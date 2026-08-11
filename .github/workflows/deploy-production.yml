@@ -39,8 +39,6 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/kora-ops-web:latest
             ghcr.io/${{ github.repository_owner }}/kora-ops-web:${{ steps.tag.outputs.VERSION }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/kora-ops-web:latest
-          cache-to: type=inline
 
   deploy:
     needs: build-and-push

@@ -26,9 +26,9 @@ COPY --from=node:22-bookworm-slim /usr/local/lib/node_modules /usr/local/lib/nod
 
 WORKDIR /app
 
-# Installer les dependances PHP
+# Installer les dependances PHP (sans scripts car artisan n'est pas encore disponible)
 COPY apps/kora-ops-web/composer.json apps/kora-ops-web/composer.lock ./
-RUN composer install --no-dev --no-interaction --optimize-autoloader --no-cache
+RUN composer install --no-dev --no-interaction --optimize-autoloader --no-cache --no-scripts
 
 # Installer les dependances frontend
 COPY apps/kora-ops-web/package.json apps/kora-ops-web/package-lock.json ./
