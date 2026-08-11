@@ -56,8 +56,8 @@ Configurer dans Gitea > BJ/kora-platform > Settings > Actions > Secrets :
 | `DEPLOY_HOST` | `51.255.196.129` |
 | `DEPLOY_PORT` | `2222` |
 | `DEPLOY_USER` | `deploy` |
-| `GITEA_REGISTRY_USER` | User Gitea pour push d'images |
-| `GITEA_REGISTRY_TOKEN` | Token Gitea avec scope `package:write` |
+| `REGISTRY_USER` | User Gitea pour push d'images |
+| `REGISTRY_TOKEN` | Token Gitea avec scope `package:write` |
 
 ## Deboguer un build en echec
 

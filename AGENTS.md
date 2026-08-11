@@ -38,7 +38,7 @@ The pipeline runs on Gitea Actions. Workflows live in `.gitea/workflows/`:
 
 Production images use `infra/docker/kora-ops-web/Dockerfile.prod` (multi-stage) with Nginx (`infra/docker/nginx/`). See `docs/runbooks/ci-cd.md` and `docs/runbooks/deployment.md` for details.
 
-Gitea Actions secrets: `DEPLOY_SSH_KEY`, `DEPLOY_HOST`, `DEPLOY_PORT`, `DEPLOY_USER`, `GITEA_REGISTRY_USER`, `GITEA_REGISTRY_TOKEN`.
+Gitea Actions secrets: `DEPLOY_SSH_KEY`, `DEPLOY_HOST`, `DEPLOY_PORT`, `DEPLOY_USER`, `REGISTRY_USER`, `REGISTRY_TOKEN`.
 
 ## Configuration
 
