@@ -1,0 +1,85 @@
+# Production environment - deploiement manuel sur tag v*
+services:
+  app:
+    build:
+      context: .
+      dockerfile: infra/docker/kora-ops-web/Dockerfile.prod
+    container_name: kora-prod-app
+    working_dir: /app
+    env_file: .env.prod
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: kora_prod
+      DB_USERNAME: kora
+      DB_PASSWORD: ${DB_PASSWORD_PROD}
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    volumes:
+      - prod-storage:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - kora-prod
+    restart: unless-stopped
+
+  nginx:
+    build:
+      context: .
+      dockerfile: infra/docker/nginx/Dockerfile
+    container_name: kora-prod-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./infra/docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    networks:
+      - kora-prod
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: kora-prod-postgres
+    environment:
+      POSTGRES_DB: kora_prod
+      POSTGRES_USER: kora
+      POSTGRES_PASSWORD: ${DB_PASSWORD_PROD}
+    volumes:
+      - prod-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kora -d kora_prod"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kora-prod
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: kora-prod-redis
+    volumes:
+      - prod-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kora-prod
+    restart: unless-stopped
+
+volumes:
+  prod-storage:
+  prod-postgres-data:
+  prod-redis-data:
+
+networks:
+  kora-prod:
+    driver: bridge

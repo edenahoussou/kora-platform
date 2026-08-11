@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/kora-ops-web
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+          extensions: bcmath, intl, pdo_pgsql, pdo_sqlite, zip
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/kora-ops-web/package-lock.json
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Prepare Laravel
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Pint (PHP lint check)
+        run: composer lint:check
+
+      - name: PHPStan (types check)
+        run: composer types:check
+
+      - name: ESLint (frontend lint check)
+        run: npm run lint:check
+
+      - name: TypeScript (types check)
+        run: npm run types:check
+
+      - name: Prettier (format check)
+        run: npm run format:check
+
+      - name: Pest (tests)
+        run: php artisan test
+
+      - name: Vite build
+        run: npm run build
