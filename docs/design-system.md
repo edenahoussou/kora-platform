@@ -38,16 +38,25 @@ Source : maquettes HTML/CSS fournies par le client (voir `docs/maquettes/`).
 
 ### Typographie
 
+**Font principale : Inter** (partout, web + mobile)
+
+> Note : la maquette app passenger utilise Aptos (font Microsoft 365, proprietaire).
+> Inter est utilisee a la place pour des raisons de licence. Visuellement tres proche.
+
 | Element | Famille | Taille | Poids |
 |---------|---------|--------|-------|
-| H1 (app) | Aptos Display, Aptos, Segoe UI | `clamp(34px, 4vw, 58px)` | — |
-| H1 (web) | Inter, Segoe UI, Arial | `clamp(38px, 4.7vw, 72px)` | — |
-| H1 (page) | Inter | `29px` | — |
-| H2 (card) | Inter | `34px` | — |
-| Body | Aptos / Inter, Segoe UI, Arial | `13-17px` | 400-850 |
-| Label | — | `12-13px` | 800 |
-| Caption | — | `10-11px` | 750-900 |
-| Eyebrow | — | `12px` | 900, letter-spacing `.15em` |
+| H1 (app) | Inter | `clamp(34px, 4vw, 58px)` | 700 |
+| H1 (web) | Inter | `clamp(38px, 4.7vw, 72px)` | 700 |
+| H1 (page) | Inter | `29px` | 700 |
+| H2 (card) | Inter | `34px` | 700 |
+| Body | Inter | `13-17px` | 400 |
+| Label | Inter | `12-13px` | 800 |
+| Caption | Inter | `10-11px` | 750-900 |
+| Eyebrow | Inter | `12px` | 900, letter-spacing `.15em` |
+
+**Installation :**
+- Web : `@fontsource/inter` (npm, self-hosted, pas de CDN Google)
+- Flutter : `google_fonts` package (Inter disponible)
 
 ### Espacements (deduits des maquettes)
 
