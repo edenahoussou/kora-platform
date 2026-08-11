@@ -1,0 +1,40 @@
+name: Protect Main
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  check-actor:
+    runs-on: ubuntu-latest
+    # Ne pas verifier si le push vient d'un tag de release ou d'un merge via PR
+    if: github.actor != 'edenahoussou' && github.actor != 'github-actions[bot]' && !startsWith(github.event.head_commit.message, 'Merge pull request')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Revert unauthorized direct push
+        run: |
+          echo "Push direct sur main par ${{ github.actor }} — revert automatique"
+          git config user.name "KORA Bot"
+          git config user.email "bot@kora.local"
+          git revert HEAD --no-edit
+          git push origin main
+
+      - name: Notify
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: context.payload.head_commit.id,
+              body: `⚠️ Push direct sur main par @${context.actor} a été automatiquement revert. Utilisez une Pull Request.`
+            }).catch(() => {
+              core.info('Notification skippee (pas un issue)')
+            })
