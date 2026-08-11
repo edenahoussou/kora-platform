@@ -31,8 +31,8 @@ services:
 
   nginx:
     build:
-      context: .
-      dockerfile: infra/docker/nginx/Dockerfile
+      context: infra/docker/nginx/
+      dockerfile: Dockerfile
     container_name: kora-staging-nginx
     ports:
       - "8080:80"
