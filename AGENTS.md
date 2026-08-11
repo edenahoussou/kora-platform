@@ -28,6 +28,18 @@ npm run build
 
 This repository has no established Git history yet. Use concise conventional-style commits, for example `feat: scaffold bus booking module` or `fix: correct pgsql health check`. Pull requests should include scope, linked client requirement or ticket, migration notes, test results, and screenshots for UI changes.
 
+## CI/CD
+
+The pipeline runs on Gitea Actions. Workflows live in `.gitea/workflows/`:
+
+- `ci.yml`: lint + test + build on PR and push to `main` (status check required).
+- `deploy-staging.yml`: auto-deploy to VPS staging (`:8080`) on merge to `main`.
+- `deploy-production.yml`: manual deploy to VPS production (`:80`) on tag `v*`.
+
+Production images use `infra/docker/kora-ops-web/Dockerfile.prod` (multi-stage) with Nginx (`infra/docker/nginx/`). See `docs/runbooks/ci-cd.md` and `docs/runbooks/deployment.md` for details.
+
+Gitea Actions secrets: `DEPLOY_SSH_KEY`, `DEPLOY_HOST`, `DEPLOY_PORT`, `DEPLOY_USER`, `GITEA_REGISTRY_USER`, `GITEA_REGISTRY_TOKEN`.
+
 ## Configuration
 
 Keep secrets in local `.env` files only. Do not commit real database passwords, API keys, fiscalization credentials, payment credentials, or P501 device secrets.

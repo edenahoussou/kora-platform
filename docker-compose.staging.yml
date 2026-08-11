@@ -1,0 +1,85 @@
+# Staging environment - deploiement automatique sur merge vers main
+services:
+  app:
+    build:
+      context: .
+      dockerfile: infra/docker/kora-ops-web/Dockerfile.prod
+    container_name: kora-staging-app
+    working_dir: /app
+    env_file: .env.staging
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: kora_staging
+      DB_USERNAME: kora
+      DB_PASSWORD: ${DB_PASSWORD_STAGING}
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    volumes:
+      - staging-storage:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - kora-staging
+    restart: unless-stopped
+
+  nginx:
+    build:
+      context: .
+      dockerfile: infra/docker/nginx/Dockerfile
+    container_name: kora-staging-nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./infra/docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    networks:
+      - kora-staging
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: kora-staging-postgres
+    environment:
+      POSTGRES_DB: kora_staging
+      POSTGRES_USER: kora
+      POSTGRES_PASSWORD: ${DB_PASSWORD_STAGING}
+    volumes:
+      - staging-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kora -d kora_staging"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kora-staging
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: kora-staging-redis
+    volumes:
+      - staging-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kora-staging
+    restart: unless-stopped
+
+volumes:
+  staging-storage:
+  staging-postgres-data:
+  staging-redis-data:
+
+networks:
+  kora-staging:
+    driver: bridge
