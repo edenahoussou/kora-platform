@@ -1,0 +1,56 @@
+# Ce fichier configure l'analyseur statique Dart/Flutter.
+#
+# **Ce fichier doit rester identique** à celui de l'app kora-app-passenger
+# et de packages/flutter-networking : une seule et même rigueur partout,
+# app comme packages partagés.
+#
+# Les problèmes détectés sont affichés dans l'IDE et via `flutter analyze`.
+
+# Base recommandée officielle Flutter, sur laquelle on vient durcir.
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  # "strict" : force à être explicite plutôt que de laisser l'inférence de
+  # type deviner à ta place — ça évite des bugs subtils (ex: un `dynamic`
+  # qui se propage sans qu'on s'en rende compte).
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+
+  errors:
+    # `@Default(...)` (freezed) déclenche ce lint alors que c'est un usage
+    # légitime et documenté par freezed lui-même. Sans ça, tout modèle
+    # freezed avec une valeur par défaut serait signalé à tort.
+    invalid_annotation_target: ignore
+
+  exclude:
+    # Fichiers générés par build_runner (freezed / json_serializable) :
+    # ils n'existent qu'après `dart run build_runner build`, et on ne les
+    # corrige jamais à la main de toute façon.
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+
+linter:
+  rules:
+    # --- Fiabilité / bugs fréquents ---
+    - cancel_subscriptions # StreamSubscription non annulée = fuite mémoire
+    - close_sinks # StreamController non fermé = fuite mémoire
+    - unawaited_futures # Future oublié = erreur silencieuse en prod
+    - avoid_dynamic_calls
+    - avoid_returning_null_for_void
+    - avoid_type_to_string
+    - test_types_in_equals
+
+    # --- Lisibilité / cohérence d'équipe ---
+    - always_declare_return_types
+    - avoid_empty_else
+    - avoid_print # utiliser `logger` (voir packages/flutter-networking)
+    - avoid_unused_constructor_parameters
+    - directives_ordering
+    - prefer_final_locals
+    - prefer_single_quotes
+    - unnecessary_await_in_return
+    - use_key_in_widget_constructors
+
+# Plus de détails : https://dart.dev/guides/language/analysis-options

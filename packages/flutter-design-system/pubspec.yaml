@@ -1,0 +1,52 @@
+name: flutter_design_system
+description: >
+  Design system KORA EXPRESS partagé entre toutes les apps Flutter du
+  monorepo (couleurs, typographie, thème clair/sombre, icônes vectorielles,
+  composants Kora* et dialogs). Source de vérité visuelle : le prototype
+  HTML de référence dans `KORA/design/`.
+publish_to: 'none'
+
+version: 1.0.0
+
+environment:
+  sdk: ^3.12.2
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Icônes vectorielles (nav + véhicules), copie fidèle des tracés du
+  # prototype HTML — voir lib/src/icons/.
+  flutter_svg: ^2.0.10+1
+
+  # Dialogs "pro" (succès / erreur / warning / confirmation / loading
+  # animés), utilisés par KoraDialogs — voir lib/src/dialogs/.
+  # Version non fixée volontairement, voir note dans l'app consommatrice.
+  pro_dialog: any
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+  # Catalogue interactif des composants du design system (équivalent
+  # Storybook) : voir `widgetbook/main.dart`, lancé via
+  # `flutter run -t widgetbook/main.dart`. Dev-only : jamais tiré par les
+  # apps qui dépendent de ce package en dépendance normale.
+  widgetbook: ^3.25.0
+
+flutter:
+  # Nécessaire pour la police d'icônes Material (Icons.*), utilisée par
+  # plusieurs composants (KoraIconButton, KoraInput...) et par Widgetbook
+  # lui-même (voir widgetbook/main.dart). Les apps consommatrices
+  # déclarent aussi ce flag chez elles ; ça ne les affecte pas.
+  uses-material-design: true
+
+  # Les apps qui dépendent de ce package accèdent automatiquement à ces
+  # assets — aucune déclaration nécessaire côté app. Le code interne au
+  # package charge ces SVG via `package: 'flutter_design_system'`
+  # (voir lib/src/icons/).
+  assets:
+    - assets/icons/nav/
+    - assets/icons/vehicles/
