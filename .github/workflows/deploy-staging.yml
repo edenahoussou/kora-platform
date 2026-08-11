@@ -19,12 +19,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Gitea Container Registry
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: gitea.mezagency.fr
-          username: ${{ secrets.REGISTRY_USER }}
-          password: ${{ secrets.REGISTRY_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push image
         uses: docker/build-push-action@v6
@@ -33,9 +33,9 @@ jobs:
           file: infra/docker/kora-ops-web/Dockerfile.prod
           push: true
           tags: |
-            gitea.mezagency.fr/bj/kora-platform/kora-ops-web:staging
-            gitea.mezagency.fr/bj/kora-platform/kora-ops-web:staging-${{ github.sha }}
-          cache-from: type=registry,ref=gitea.mezagency.fr/bj/kora-platform/kora-ops-web:staging
+            ghcr.io/${{ github.repository_owner }}/kora-ops-web:staging
+            ghcr.io/${{ github.repository_owner }}/kora-ops-web:staging-${{ github.sha }}
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/kora-ops-web:staging
           cache-to: type=inline
 
   deploy:

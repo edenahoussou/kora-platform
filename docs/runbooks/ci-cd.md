@@ -1,13 +1,13 @@
 # CI/CD Pipeline
 
-Le pipeline CI/CD est gere par Gitea Actions. Le runner tourne sur le VPS (`51.255.196.129`).
+Le pipeline CI/CD est gere par GitHub Actions. Les runners sont heberges par GitHub (ubuntu-latest). Le deploiement cible le VPS KORA via SSH.
 
 ## Vue d'ensemble
 
 ```
 PR/push ──► CI (ci.yml)          ──► lint + test + build
-merge main ──► Deploy Staging    ──► build image + deploy VPS:8080
-tag v*    ──► Deploy Production  ──► build image + backup + deploy VPS:80
+merge main ──► Deploy Staging    ──► build image GHCR + deploy VPS:8080
+tag v*    ──► Deploy Production  ──► build image GHCR + backup + deploy VPS:80
 ```
 
 ## Workflows
@@ -31,7 +31,7 @@ Si une etape echoue, la PR est bloquee (status check requis sur `main`).
 Declenche automatiquement sur push vers `main` (apres merge d'une PR).
 
 1. Build l'image Docker `kora-ops-web:staging`
-2. Push au registry Gitea (`gitea.mezagency.fr/bj/kora-platform/kora-ops-web`)
+2. Push au GitHub Container Registry (`ghcr.io/edenahoussou/kora-ops-web`)
 3. SSH au VPS : `git pull` + `docker compose pull` + `docker compose up -d` + migrations + cache
 
 URL staging : `http://51.255.196.129:8080`
@@ -41,27 +41,27 @@ URL staging : `http://51.255.196.129:8080`
 Declenche manuellement via un tag git `v*` (ex: `git tag v0.1.0 && git push origin v0.1.0`).
 
 1. Build l'image Docker `kora-ops-web:latest` + `kora-ops-web:v0.1.0`
-2. Push au registry Gitea
+2. Push au GitHub Container Registry
 3. SSH au VPS : backup DB + `git pull` + `docker compose pull` + `docker compose up -d` + migrations + cache
 
 URL prod : `http://51.255.196.129`
 
-## Secrets Gitea Actions
+## Secrets GitHub Actions
 
-Configurer dans Gitea > BJ/kora-platform > Settings > Actions > Secrets :
+Configurer dans GitHub > edenahoussou/kora-platform > Settings > Secrets and variables > Actions :
 
 | Secret | Description |
 |--------|-------------|
-| `DEPLOY_SSH_KEY` | Cle privee SSH pour deploiement VPS |
+| `DEPLOY_SSH_KEY` | Cle privee SSH pour deploiement VPS (`kora_deploy_ed25519`) |
 | `DEPLOY_HOST` | `51.255.196.129` |
 | `DEPLOY_PORT` | `2222` |
 | `DEPLOY_USER` | `deploy` |
-| `REGISTRY_USER` | User Gitea pour push d'images |
-| `REGISTRY_TOKEN` | Token Gitea avec scope `package:write` |
+
+Note : `GITHUB_TOKEN` est fourni automatiquement par GitHub Actions pour le login au GHCR. Pas besoin de le configurer manuellement.
 
 ## Deboguer un build en echec
 
-1. Ouvrir la PR dans Gitea > Actions
+1. Ouvrir la PR dans GitHub > Actions
 2. Cliquer sur le job echoue pour voir les logs
 3. Reproduire localement :
    ```bash
@@ -104,20 +104,3 @@ docker compose -f docker-compose.prod.yml exec -T postgres psql -U kora kora_pro
 git checkout v0.0.9
 docker compose -f docker-compose.prod.yml up -d --build
 ```
-
-## Runner Gitea Actions
-
-Le runner tourne sur le VPS en container Docker. Service systemd : `gitea-actions-runner.service`.
-
-```bash
-# Statut du runner
-ssh kora-vps "sudo systemctl status gitea-actions-runner"
-
-# Redemarrer le runner
-ssh kora-vps "sudo systemctl restart gitea-actions-runner"
-
-# Logs du runner
-ssh kora-vps "sudo journalctl -u gitea-actions-runner -f"
-```
-
-Si le runner est "offline" dans Gitea > Settings > Actions > Runners, verifier que le tunnel Pangolin est up sur le VPS.

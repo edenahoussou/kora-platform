@@ -30,15 +30,15 @@ This repository has no established Git history yet. Use concise conventional-sty
 
 ## CI/CD
 
-The pipeline runs on Gitea Actions. Workflows live in `.gitea/workflows/`:
+The pipeline runs on GitHub Actions. Workflows live in `.github/workflows/`:
 
 - `ci.yml`: lint + test + build on PR and push to `main` (status check required).
 - `deploy-staging.yml`: auto-deploy to VPS staging (`:8080`) on merge to `main`.
 - `deploy-production.yml`: manual deploy to VPS production (`:80`) on tag `v*`.
 
-Production images use `infra/docker/kora-ops-web/Dockerfile.prod` (multi-stage) with Nginx (`infra/docker/nginx/`). See `docs/runbooks/ci-cd.md` and `docs/runbooks/deployment.md` for details.
+Docker images are pushed to GitHub Container Registry (`ghcr.io/edenahoussou/kora-ops-web`). Production images use `infra/docker/kora-ops-web/Dockerfile.prod` (multi-stage) with Nginx (`infra/docker/nginx/`). See `docs/runbooks/ci-cd.md` and `docs/runbooks/deployment.md` for details.
 
-Gitea Actions secrets: `DEPLOY_SSH_KEY`, `DEPLOY_HOST`, `DEPLOY_PORT`, `DEPLOY_USER`, `REGISTRY_USER`, `REGISTRY_TOKEN`.
+GitHub Actions secrets: `DEPLOY_SSH_KEY`, `DEPLOY_HOST`, `DEPLOY_PORT`, `DEPLOY_USER`. The `GITHUB_TOKEN` is provided automatically for GHCR authentication.
 
 ## Configuration
 
