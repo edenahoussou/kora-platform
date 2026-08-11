@@ -57,18 +57,20 @@ jobs:
 
             # Backup DB avant migration
             TIMESTAMP=$(date +%Y%m%d%H%M%S)
-            docker compose -f docker-compose.prod.yml exec -T postgres pg_dump -U kora kora_prod > /opt/kora-prod/backups/db-backup-$TIMESTAMP.sql
+            mkdir -p /opt/kora-prod/backups
+            docker compose -f docker-compose.prod.yml --env-file .env.prod exec -T postgres pg_dump -U kora kora_prod > /opt/kora-prod/backups/db-backup-$TIMESTAMP.sql
             echo "Backup created: db-backup-$TIMESTAMP.sql"
 
             # Garder seulement les 5 derniers backups
             ls -t /opt/kora-prod/backups/db-backup-*.sql | tail -n +6 | xargs rm -f 2>/dev/null || true
 
-            docker compose -f docker-compose.prod.yml pull app
-            docker compose -f docker-compose.prod.yml up -d --no-deps app nginx
-            docker compose -f docker-compose.prod.yml exec -T app php artisan migrate --force
-            docker compose -f docker-compose.prod.yml exec -T app php artisan config:cache
-            docker compose -f docker-compose.prod.yml exec -T app php artisan route:cache
-            docker compose -f docker-compose.prod.yml exec -T app php artisan view:cache
-            docker compose -f docker-compose.prod.yml exec -T app php artisan event:cache
+            docker compose -f docker-compose.prod.yml --env-file .env.prod pull app
+            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+            docker compose -f docker-compose.prod.yml --env-file .env.prod exec -T app php artisan migrate --force
+            docker compose -f docker-compose.prod.yml --env-file .env.prod exec -T app php artisan config:cache
+            docker compose -f docker-compose.prod.yml --env-file .env.prod exec -T app php artisan route:cache
+            docker compose -f docker-compose.prod.yml --env-file .env.prod exec -T app php artisan view:cache
+            docker compose -f docker-compose.prod.yml --env-file .env.prod exec -T app php artisan event:cache
+            docker compose -f docker-compose.prod.yml --env-file .env.prod restart nginx
             docker image prune -f
             echo "Production deployed: $(date)"

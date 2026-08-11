@@ -50,12 +50,13 @@ jobs:
           script: |
             cd /opt/kora-staging
             git pull origin main
-            docker compose -f docker-compose.staging.yml pull app
-            docker compose -f docker-compose.staging.yml up -d --no-deps app nginx
-            docker compose -f docker-compose.staging.yml exec -T app php artisan migrate --force
-            docker compose -f docker-compose.staging.yml exec -T app php artisan config:cache
-            docker compose -f docker-compose.staging.yml exec -T app php artisan route:cache
-            docker compose -f docker-compose.staging.yml exec -T app php artisan view:cache
-            docker compose -f docker-compose.staging.yml exec -T app php artisan event:cache
+            docker compose -f docker-compose.staging.yml --env-file .env.staging pull app
+            docker compose -f docker-compose.staging.yml --env-file .env.staging up -d
+            docker compose -f docker-compose.staging.yml --env-file .env.staging exec -T app php artisan migrate --force
+            docker compose -f docker-compose.staging.yml --env-file .env.staging exec -T app php artisan config:cache
+            docker compose -f docker-compose.staging.yml --env-file .env.staging exec -T app php artisan route:cache
+            docker compose -f docker-compose.staging.yml --env-file .env.staging exec -T app php artisan view:cache
+            docker compose -f docker-compose.staging.yml --env-file .env.staging exec -T app php artisan event:cache
+            docker compose -f docker-compose.staging.yml --env-file .env.staging restart nginx
             docker image prune -f
             echo "Staging deployed: $(date)"
