@@ -1,0 +1,75 @@
+.role-menu {
+  width: 340px;
+  max-height: calc(100vh - 86px);
+  overflow: auto;
+  border-radius: 17px;
+  box-shadow: 0 24px 70px rgba(0, 29, 78, .2);
+}
+
+.role-menu-title {
+  padding: 13px 12px 7px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.role-options {
+  display: grid;
+  gap: 3px;
+}
+
+.role-menu .role-options button {
+  align-items: center;
+  gap: 10px;
+  border-radius: 11px;
+  transition: .2s;
+}
+
+.role-menu .role-options button span,
+.role-menu .role-options button strong,
+.role-menu .role-options button small {
+  display: block;
+}
+
+.role-menu .role-options button small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 650;
+}
+
+.role-menu .role-options button em {
+  padding: 4px 7px;
+  border-radius: 999px;
+  color: white;
+  background: var(--digital);
+  font-size: 8px;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.role-menu .role-options button:hover {
+  transform: translateX(2px);
+}
+
+.role-menu .role-options button.active {
+  box-shadow: inset 3px 0 var(--gold);
+}
+
+.role-menu .role-logout {
+  margin-top: 8px;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  color: #001D4E;
+}
+
+@media (max-width: 640px) {
+  .role-menu {
+    left: 12px;
+    right: 12px;
+    top: 70px;
+    width: auto;
+  }
+}
