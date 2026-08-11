@@ -82,6 +82,7 @@ export default [
                         'index',
                     ],
                     alphabetize: { order: 'asc', caseInsensitive: true },
+                    sortTypesGroup: false,
                 },
             ],
             'import/consistent-type-specifier-style': [
