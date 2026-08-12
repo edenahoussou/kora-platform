@@ -175,7 +175,10 @@ class _Head extends StatelessWidget {
                   // habituel) ; ici le badge est doré donc le texte est
                   // navy (`--kora`) — on reteinte l'icône pour matcher
                   // `.trip-mode-icon svg { stroke: currentColor }`.
-                  colorFilter: const ColorFilter.mode(AppColors.kora, BlendMode.srcIn),
+                  colorFilter: const ColorFilter.mode(
+                    AppColors.kora,
+                    BlendMode.srcIn,
+                  ),
                 ),
         ),
         if (isSoldOut)
@@ -223,7 +226,11 @@ class _Route extends StatelessWidget {
 }
 
 class _TimePoint extends StatelessWidget {
-  const _TimePoint({required this.time, required this.city, required this.alignEnd});
+  const _TimePoint({
+    required this.time,
+    required this.city,
+    required this.alignEnd,
+  });
 
   final String time;
   final String city;
@@ -231,7 +238,9 @@ class _TimePoint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final crossAxis = alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+    final crossAxis = alignEnd
+        ? CrossAxisAlignment.end
+        : CrossAxisAlignment.start;
     final textAlign = alignEnd ? TextAlign.right : TextAlign.left;
 
     return Column(
@@ -241,7 +250,11 @@ class _TimePoint extends StatelessWidget {
         Text(
           time,
           textAlign: textAlign,
-          style: const TextStyle(color: AppColors.kora, fontSize: 18, fontWeight: FontWeight.w900),
+          style: const TextStyle(
+            color: AppColors.kora,
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+          ),
         ),
         const SizedBox(height: 2),
         Text(
@@ -330,7 +343,11 @@ class _Foot extends StatelessWidget {
           ),
           const Text(
             'Indisponible',
-            style: TextStyle(color: AppColors.kora, fontSize: 11, fontWeight: FontWeight.w800),
+            style: TextStyle(
+              color: AppColors.kora,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ],
       );
@@ -355,7 +372,11 @@ class _Foot extends StatelessWidget {
             ),
             Text(
               price,
-              style: const TextStyle(color: AppColors.kora, fontSize: 15, fontWeight: FontWeight.w900),
+              style: const TextStyle(
+                color: AppColors.kora,
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ],
         ),

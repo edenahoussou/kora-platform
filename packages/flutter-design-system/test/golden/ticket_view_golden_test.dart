@@ -33,7 +33,10 @@ void main() {
         ),
         surfaceSize: const Size(420, 480),
       );
-      await expectLater(find.byType(TicketView), matchesGoldenFile('ticket_view_default.png'));
+      await expectLater(
+        find.byType(TicketView),
+        matchesGoldenFile('ticket_view_default.png'),
+      );
     });
 
     testWidgets('annulé', (tester) async {
@@ -53,7 +56,10 @@ void main() {
         ),
         surfaceSize: const Size(420, 480),
       );
-      await expectLater(find.byType(TicketView), matchesGoldenFile('ticket_view_cancelled.png'));
+      await expectLater(
+        find.byType(TicketView),
+        matchesGoldenFile('ticket_view_cancelled.png'),
+      );
     });
   });
 }

@@ -81,7 +81,10 @@ class TicketView extends StatelessWidget {
     final ticket = ClipRRect(
       borderRadius: BorderRadius.circular(25),
       child: DecoratedBox(
-        decoration: BoxDecoration(color: AppColors.kora, boxShadow: AppShadows.ticket),
+        decoration: BoxDecoration(
+          color: AppColors.kora,
+          boxShadow: AppShadows.ticket,
+        ),
         child: Stack(
           children: [
             Column(
@@ -105,7 +108,8 @@ class TicketView extends StatelessWidget {
                 ),
               ],
             ),
-            if (isCancelled) const Positioned.fill(child: Center(child: _CancelStamp())),
+            if (isCancelled)
+              const Positioned.fill(child: Center(child: _CancelStamp())),
           ],
         ),
       ),
@@ -119,10 +123,26 @@ class TicketView extends StatelessWidget {
     // spec CSS Filter Effects).
     return ColorFiltered(
       colorFilter: const ColorFilter.matrix(<double>[
-        0.4488, 0.5006, 0.0505, 0, 0,
-        0.1488, 0.8006, 0.0505, 0, 0,
-        0.1488, 0.5006, 0.3505, 0, 0,
-        0, 0, 0, 1, 0,
+        0.4488,
+        0.5006,
+        0.0505,
+        0,
+        0,
+        0.1488,
+        0.8006,
+        0.0505,
+        0,
+        0,
+        0.1488,
+        0.5006,
+        0.3505,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
       ]),
       child: ticket,
     );
@@ -186,10 +206,8 @@ class _BrandMark extends StatelessWidget {
         // sans sacrifier le premier (le cas réel, prioritaire).
         package: 'flutter_design_system',
         width: 105,
-        errorBuilder: (context, error, stackTrace) => Image.asset(
-          'assets/brand/kora-logo.png',
-          width: 105,
-        ),
+        errorBuilder: (context, error, stackTrace) =>
+            Image.asset('assets/brand/kora-logo.png', width: 105),
       ),
     );
   }
@@ -217,12 +235,23 @@ class _Route extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(child: _CityBlock(code: originCode, city: origin, alignEnd: false)),
+          Expanded(
+            child: _CityBlock(code: originCode, city: origin, alignEnd: false),
+          ),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 8),
-            child: Text('⟶', style: TextStyle(color: AppColors.gold, fontSize: 22)),
+            child: Text(
+              '⟶',
+              style: TextStyle(color: AppColors.gold, fontSize: 22),
+            ),
           ),
-          Expanded(child: _CityBlock(code: destinationCode, city: destination, alignEnd: true)),
+          Expanded(
+            child: _CityBlock(
+              code: destinationCode,
+              city: destination,
+              alignEnd: true,
+            ),
+          ),
         ],
       ),
     );
@@ -230,7 +259,11 @@ class _Route extends StatelessWidget {
 }
 
 class _CityBlock extends StatelessWidget {
-  const _CityBlock({required this.code, required this.city, required this.alignEnd});
+  const _CityBlock({
+    required this.code,
+    required this.city,
+    required this.alignEnd,
+  });
 
   final String code;
   final String city;
@@ -238,7 +271,9 @@ class _CityBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final crossAxis = alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+    final crossAxis = alignEnd
+        ? CrossAxisAlignment.end
+        : CrossAxisAlignment.start;
     final textAlign = alignEnd ? TextAlign.right : TextAlign.left;
 
     return Column(
@@ -248,7 +283,11 @@ class _CityBlock extends StatelessWidget {
         Text(
           code,
           textAlign: textAlign,
-          style: const TextStyle(color: AppColors.white, fontSize: 20, fontWeight: FontWeight.w900),
+          style: const TextStyle(
+            color: AppColors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
+          ),
         ),
         Text(
           city,
@@ -275,13 +314,18 @@ class _DashedCut extends StatelessWidget {
           builder: (context, constraints) {
             const dashWidth = 4.0;
             const dashSpace = 3.0;
-            final count = (constraints.maxWidth / (dashWidth + dashSpace)).floor();
+            final count = (constraints.maxWidth / (dashWidth + dashSpace))
+                .floor();
             return Row(
               children: List.generate(
                 count,
                 (_) => Padding(
                   padding: const EdgeInsets.only(right: dashSpace),
-                  child: Container(width: dashWidth, height: 1, color: const Color(0x4DFFFFFF)),
+                  child: Container(
+                    width: dashWidth,
+                    height: 1,
+                    color: const Color(0x4DFFFFFF),
+                  ),
                 ),
               ),
             );
@@ -316,8 +360,14 @@ class _NotchStraddle extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Transform.translate(offset: const Offset(-11, 0), child: const _Notch()),
-            Transform.translate(offset: const Offset(11, 0), child: const _Notch()),
+            Transform.translate(
+              offset: const Offset(-11, 0),
+              child: const _Notch(),
+            ),
+            Transform.translate(
+              offset: const Offset(11, 0),
+              child: const _Notch(),
+            ),
           ],
         ),
       ),
@@ -333,7 +383,10 @@ class _Notch extends StatelessWidget {
     return Container(
       width: 22,
       height: 22,
-      decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.mist),
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.mist,
+      ),
     );
   }
 }
@@ -367,25 +420,42 @@ class _Body extends StatelessWidget {
             const SizedBox(height: 15),
             Row(
               children: [
-                Expanded(child: _DataField(label: 'Date', value: date)),
-                Expanded(child: _DataField(label: 'Départ', value: departureTime)),
-                Expanded(child: _DataField(label: 'Siège', value: seatLabel)),
+                Expanded(
+                  child: _DataField(label: 'Date', value: date),
+                ),
+                Expanded(
+                  child: _DataField(label: 'Départ', value: departureTime),
+                ),
+                Expanded(
+                  child: _DataField(label: 'Siège', value: seatLabel),
+                ),
               ],
             ),
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 13),
-              child: Divider(height: 1, thickness: 1, color: AppColors.lineLight),
+              child: Divider(
+                height: 1,
+                thickness: 1,
+                color: AppColors.lineLight,
+              ),
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   ticketCode,
-                  style: const TextStyle(color: AppColors.mutedLight, fontSize: 9),
+                  style: const TextStyle(
+                    color: AppColors.mutedLight,
+                    fontSize: 9,
+                  ),
                 ),
                 Text(
                   passengerName,
-                  style: const TextStyle(color: AppColors.kora, fontSize: 9, fontWeight: FontWeight.w800),
+                  style: const TextStyle(
+                    color: AppColors.kora,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ],
             ),
@@ -413,7 +483,11 @@ class _DataField extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(color: AppColors.kora, fontSize: 12, fontWeight: FontWeight.w900),
+          style: const TextStyle(
+            color: AppColors.kora,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+          ),
         ),
       ],
     );

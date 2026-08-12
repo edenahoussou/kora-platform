@@ -49,7 +49,11 @@ class KoraSeat {
   final String? timerLabel;
 
   KoraSeat copyWith({KoraSeatStatus? status}) {
-    return KoraSeat(label: label, status: status ?? this.status, timerLabel: timerLabel);
+    return KoraSeat(
+      label: label,
+      status: status ?? this.status,
+      timerLabel: timerLabel,
+    );
   }
 }
 
@@ -245,7 +249,9 @@ class _SeatRow extends StatelessWidget {
     final slots = <Widget>[
       for (var c = 0; c < columns; c++) ...[
         if (c == aisleAfter + 1) const SizedBox(),
-        c < seats.length ? _SeatButton(seat: seats[c], onTap: onTap) : const SizedBox(),
+        c < seats.length
+            ? _SeatButton(seat: seats[c], onTap: onTap)
+            : const SizedBox(),
       ],
     ];
 
@@ -267,12 +273,14 @@ class _SeatButton extends StatelessWidget {
   final ValueChanged<KoraSeat>? onTap;
 
   bool get _isTappable =>
-      seat.status == KoraSeatStatus.available || seat.status == KoraSeatStatus.selected;
+      seat.status == KoraSeatStatus.available ||
+      seat.status == KoraSeatStatus.selected;
 
   @override
   Widget build(BuildContext context) {
     final visual = _seatVisual(seat.status);
-    final showTimer = seat.status == KoraSeatStatus.held && seat.timerLabel != null;
+    final showTimer =
+        seat.status == KoraSeatStatus.held && seat.timerLabel != null;
     final label = showTimer ? seat.timerLabel! : seat.label;
 
     return Material(
@@ -292,7 +300,10 @@ class _SeatButton extends StatelessWidget {
           ),
           child: CustomPaint(
             foregroundPainter: visual.dashed
-                ? _DashedBorderPainter(color: visual.border, radius: AppRadius.sm)
+                ? _DashedBorderPainter(
+                    color: visual.border,
+                    radius: AppRadius.sm,
+                  )
                 : null,
             child: Center(
               child: Text(
@@ -301,7 +312,9 @@ class _SeatButton extends StatelessWidget {
                   fontSize: showTimer ? 7 : 9,
                   fontWeight: FontWeight.w800,
                   color: visual.foreground,
-                  decoration: visual.strikethrough ? TextDecoration.lineThrough : null,
+                  decoration: visual.strikethrough
+                      ? TextDecoration.lineThrough
+                      : null,
                 ),
               ),
             ),

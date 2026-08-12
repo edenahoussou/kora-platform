@@ -5,7 +5,9 @@ import '../../test_utils.dart';
 
 void main() {
   group('DepartureCard', () {
-    testWidgets('affiche heures, trajet, durée, prix et places disponibles', (tester) async {
+    testWidgets('affiche heures, trajet, durée, prix et places disponibles', (
+      tester,
+    ) async {
       await pumpKoraWidget(
         tester,
         const DepartureCard(
@@ -31,7 +33,9 @@ void main() {
       expect(find.text('KORA CONFORT'), findsOneWidget);
     });
 
-    testWidgets('masque les places quand seatsAvailable est null', (tester) async {
+    testWidgets('masque les places quand seatsAvailable est null', (
+      tester,
+    ) async {
       await pumpKoraWidget(
         tester,
         const DepartureCard(
@@ -68,30 +72,33 @@ void main() {
       expect(tapped, isTrue);
     });
 
-    testWidgets('segment complet : affiche Complet/Indisponible et ignore le tap', (tester) async {
-      var tapped = false;
-      await pumpKoraWidget(
-        tester,
-        DepartureCard(
-          departureTime: '22:30',
-          arrivalTime: '08:15',
-          origin: 'Cotonou',
-          destination: 'Malanville',
-          duration: '≈ 9 h 45',
-          price: '12 500 FCFA',
-          isSoldOut: true,
-          onTap: () => tapped = true,
-        ),
-      );
+    testWidgets(
+      'segment complet : affiche Complet/Indisponible et ignore le tap',
+      (tester) async {
+        var tapped = false;
+        await pumpKoraWidget(
+          tester,
+          DepartureCard(
+            departureTime: '22:30',
+            arrivalTime: '08:15',
+            origin: 'Cotonou',
+            destination: 'Malanville',
+            duration: '≈ 9 h 45',
+            price: '12 500 FCFA',
+            isSoldOut: true,
+            onTap: () => tapped = true,
+          ),
+        );
 
-      expect(find.text('COMPLET'), findsOneWidget);
-      expect(find.text('Indisponible'), findsOneWidget);
-      expect(find.textContaining('Prix final garanti'), findsNothing);
+        expect(find.text('COMPLET'), findsOneWidget);
+        expect(find.text('Indisponible'), findsOneWidget);
+        expect(find.textContaining('Prix final garanti'), findsNothing);
 
-      await tester.tap(find.byType(DepartureCard));
-      await tester.pump();
+        await tester.tap(find.byType(DepartureCard));
+        await tester.pump();
 
-      expect(tapped, isFalse);
-    });
+        expect(tapped, isFalse);
+      },
+    );
   });
 }

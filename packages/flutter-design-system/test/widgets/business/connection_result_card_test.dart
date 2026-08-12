@@ -5,7 +5,9 @@ import '../../test_utils.dart';
 
 void main() {
   group('ConnectionResultCard', () {
-    testWidgets('affiche heures, trajet, note, segments et prix', (tester) async {
+    testWidgets('affiche heures, trajet, note, segments et prix', (
+      tester,
+    ) async {
       await pumpKoraWidget(
         tester,
         const ConnectionResultCard(
@@ -21,7 +23,10 @@ void main() {
       expect(find.text('06:45'), findsOneWidget);
       expect(find.text('17:40'), findsOneWidget);
       expect(find.text('Cotonou → Bohicon → Natitingou'), findsOneWidget);
-      expect(find.text('Changement de bus à Bohicon · attente 35 min'), findsOneWidget);
+      expect(
+        find.text('Changement de bus à Bohicon · attente 35 min'),
+        findsOneWidget,
+      );
       expect(find.text('2 segments inclus'), findsOneWidget);
       expect(find.text('14 500 FCFA ›'), findsOneWidget);
       // Le label passe par KoraTag, qui le met en majuscules.

@@ -39,7 +39,10 @@ void main() {
       // ticket_view_golden_test.dart : le décodage raster ne se termine
       // pas dans l'horloge simulée de ce harnais de test).
       final logo = tester.widget<Image>(find.byType(Image));
-      expect((logo.image as AssetImage).assetName, 'assets/brand/kora-logo.png');
+      expect(
+        (logo.image as AssetImage).assetName,
+        'assets/brand/kora-logo.png',
+      );
       expect((logo.image as AssetImage).package, 'flutter_design_system');
     });
 

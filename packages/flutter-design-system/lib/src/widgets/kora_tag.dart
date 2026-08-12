@@ -86,10 +86,7 @@ class KoraTag extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (leading != null) ...[
-            leading!,
-            const SizedBox(width: 4),
-          ],
+          if (leading != null) ...[leading!, const SizedBox(width: 4)],
           Text(
             label.toUpperCase(),
             style: TextStyle(

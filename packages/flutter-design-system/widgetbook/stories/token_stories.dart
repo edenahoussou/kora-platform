@@ -26,7 +26,8 @@ final tokenStories = WidgetbookFolder(
       useCases: [
         WidgetbookUseCase(
           name: 'Échelle',
-          builder: (context) => const StoryScaffold(child: _TypographySpecimen()),
+          builder: (context) =>
+              const StoryScaffold(child: _TypographySpecimen()),
         ),
       ],
     ),
@@ -44,7 +45,8 @@ final tokenStories = WidgetbookFolder(
       useCases: [
         WidgetbookUseCase(
           name: 'Échelle',
-          builder: (context) => const StoryScaffold(child: _RadiusAndShadowScale()),
+          builder: (context) =>
+              const StoryScaffold(child: _RadiusAndShadowScale()),
         ),
       ],
     ),
@@ -85,8 +87,20 @@ class _ColorSwatches extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 6),
-              Text(entry.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-              Text(entry.hex, style: TextStyle(fontSize: 11, color: context.koraColors.textMuted)),
+              Text(
+                entry.name,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                entry.hex,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: context.koraColors.textMuted,
+                ),
+              ),
             ],
           ),
       ],
@@ -127,7 +141,13 @@ class _TypographySpecimen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(specimen.$1, style: TextStyle(fontSize: 10, color: context.koraColors.textMuted)),
+                Text(
+                  specimen.$1,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: context.koraColors.textMuted,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Text(sample, style: specimen.$2),
               ],
@@ -210,7 +230,9 @@ class _RadiusAndShadowScale extends StatelessWidget {
                       // thèmes même si surface/background se ressemblent.
                       color: koraColors.surface,
                       border: Border.all(color: koraColors.line),
-                      borderRadius: BorderRadius.circular(math.min(entry.$2, 35)),
+                      borderRadius: BorderRadius.circular(
+                        math.min(entry.$2, 35),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 6),

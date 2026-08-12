@@ -11,6 +11,13 @@ on:
     paths:
       - 'packages/flutter-design-system/**'
       - '.github/workflows/flutter-design-system.yml'
+  # Outil manuel : régénère les goldens directement sur l'environnement CI
+  # (ubuntu-latest) plutôt que sur une machine de dev locale — évite les
+  # écarts de rendu entre OS/version Flutter qui font échouer les golden
+  # tests sur des changements pourtant corrects. À lancer depuis l'onglet
+  # Actions ("Run workflow") après un changement visuel, puis télécharger
+  # l'artefact `regenerated-goldens` et l'extraire dans test/golden/.
+  workflow_dispatch: {}
 
 permissions:
   contents: read
@@ -29,7 +36,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          flutter-version: '3.44.8'
           cache: true
 
       - name: Install dependencies
@@ -55,7 +62,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          flutter-version: '3.44.8'
           cache: true
 
       - name: Install dependencies
@@ -74,3 +81,35 @@ jobs:
           name: widgetbook-preview
           path: packages/flutter-design-system/build/web
           retention-days: 30
+
+  # Ne tourne que sur déclenchement manuel (voir le commentaire sur
+  # `workflow_dispatch` en haut du fichier) — jamais sur push/PR.
+  update-goldens:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/flutter-design-system
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.8'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Regenerate goldens
+        run: flutter test --update-goldens
+
+      - name: Upload regenerated goldens
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-goldens
+          path: packages/flutter-design-system/test/golden/*.png
+          retention-days: 7

@@ -20,7 +20,10 @@ void main() {
         ),
         surfaceSize: const Size(380, 190),
       );
-      await expectLater(find.byType(DepartureCard), matchesGoldenFile('departure_card_default.png'));
+      await expectLater(
+        find.byType(DepartureCard),
+        matchesGoldenFile('departure_card_default.png'),
+      );
     });
 
     testWidgets('sélectionnée', (tester) async {
@@ -38,7 +41,10 @@ void main() {
         ),
         surfaceSize: const Size(380, 190),
       );
-      await expectLater(find.byType(DepartureCard), matchesGoldenFile('departure_card_selected.png'));
+      await expectLater(
+        find.byType(DepartureCard),
+        matchesGoldenFile('departure_card_selected.png'),
+      );
     });
 
     testWidgets('complet', (tester) async {
@@ -55,10 +61,15 @@ void main() {
         ),
         surfaceSize: const Size(380, 190),
       );
-      await expectLater(find.byType(DepartureCard), matchesGoldenFile('departure_card_sold_out.png'));
+      await expectLater(
+        find.byType(DepartureCard),
+        matchesGoldenFile('departure_card_sold_out.png'),
+      );
     });
 
-    testWidgets('complet — mode sombre (carte toujours blanche)', (tester) async {
+    testWidgets('complet — mode sombre (carte toujours blanche)', (
+      tester,
+    ) async {
       await pumpKoraWidget(
         tester,
         const DepartureCard(
@@ -73,7 +84,10 @@ void main() {
         surfaceSize: const Size(380, 190),
         dark: true,
       );
-      await expectLater(find.byType(DepartureCard), matchesGoldenFile('departure_card_dark.png'));
+      await expectLater(
+        find.byType(DepartureCard),
+        matchesGoldenFile('departure_card_dark.png'),
+      );
     });
   });
 }

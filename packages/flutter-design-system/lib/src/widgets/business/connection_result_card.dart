@@ -87,32 +87,49 @@ class ConnectionResultCard extends StatelessWidget {
                 children: [
                   Text(
                     departureTime,
-                    style: const TextStyle(color: AppColors.kora, fontSize: 13, fontWeight: FontWeight.w900),
+                    style: const TextStyle(
+                      color: AppColors.kora,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   Expanded(
                     child: Container(
                       height: 2,
                       margin: const EdgeInsets.symmetric(horizontal: 8),
                       decoration: const BoxDecoration(
-                        gradient: LinearGradient(colors: [AppColors.gold, AppColors.digital]),
+                        gradient: LinearGradient(
+                          colors: [AppColors.gold, AppColors.digital],
+                        ),
                       ),
                     ),
                   ),
                   Text(
                     arrivalTime,
-                    style: const TextStyle(color: AppColors.kora, fontSize: 13, fontWeight: FontWeight.w900),
+                    style: const TextStyle(
+                      color: AppColors.kora,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 6),
               Text(
                 routeLabel,
-                style: const TextStyle(color: AppColors.kora, fontSize: 11, fontWeight: FontWeight.w800),
+                style: const TextStyle(
+                  color: AppColors.kora,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 noteLabel,
-                style: const TextStyle(color: AppColors.mutedLight, fontSize: 10),
+                style: const TextStyle(
+                  color: AppColors.mutedLight,
+                  fontSize: 10,
+                ),
               ),
               const SizedBox(height: 9),
               Container(
@@ -125,11 +142,18 @@ class ConnectionResultCard extends StatelessWidget {
                   children: [
                     Text(
                       segmentsLabel,
-                      style: const TextStyle(color: AppColors.mutedLight, fontSize: 10),
+                      style: const TextStyle(
+                        color: AppColors.mutedLight,
+                        fontSize: 10,
+                      ),
                     ),
                     Text(
                       '$price ›',
-                      style: const TextStyle(color: AppColors.digital, fontSize: 11, fontWeight: FontWeight.w900),
+                      style: const TextStyle(
+                        color: AppColors.digital,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ],
                 ),

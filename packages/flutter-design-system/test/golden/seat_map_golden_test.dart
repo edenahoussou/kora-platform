@@ -30,17 +30,25 @@ void main() {
         const SeatMap(seats: mixedSeats),
         surfaceSize: const Size(320, 320),
       );
-      await expectLater(find.byType(SeatMap), matchesGoldenFile('seat_map_mixed.png'));
+      await expectLater(
+        find.byType(SeatMap),
+        matchesGoldenFile('seat_map_mixed.png'),
+      );
     });
 
-    testWidgets('places mixtes — mode sombre (panneau toujours blanc)', (tester) async {
+    testWidgets('places mixtes — mode sombre (panneau toujours blanc)', (
+      tester,
+    ) async {
       await pumpKoraWidget(
         tester,
         const SeatMap(seats: mixedSeats),
         surfaceSize: const Size(320, 320),
         dark: true,
       );
-      await expectLater(find.byType(SeatMap), matchesGoldenFile('seat_map_dark.png'));
+      await expectLater(
+        find.byType(SeatMap),
+        matchesGoldenFile('seat_map_dark.png'),
+      );
     });
   });
 }

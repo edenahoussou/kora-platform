@@ -160,7 +160,8 @@ final businessComponentStories = WidgetbookFolder(
               departureTime: '05:30',
               arrivalTime: '20:10',
               routeLabel: 'Cotonou → Bohicon → Parakou → Kandi',
-              noteLabel: 'Changements à Bohicon et Parakou · attente totale 55 min',
+              noteLabel:
+                  'Changements à Bohicon et Parakou · attente totale 55 min',
               segmentsLabel: '3 segments inclus',
               price: '17 000 FCFA',
               connectionsLabel: '2 correspondances',
@@ -188,7 +189,11 @@ final businessComponentStories = WidgetbookFolder(
                 KoraSeat(label: '1D', status: KoraSeatStatus.blocked),
                 KoraSeat(label: '2A'),
                 KoraSeat(label: '2B', status: KoraSeatStatus.selected),
-                KoraSeat(label: '2C', status: KoraSeatStatus.held, timerLabel: '06:18'),
+                KoraSeat(
+                  label: '2C',
+                  status: KoraSeatStatus.held,
+                  timerLabel: '06:18',
+                ),
                 KoraSeat(label: '2D'),
                 KoraSeat(label: '3A', status: KoraSeatStatus.paid),
                 KoraSeat(label: '3B'),
@@ -203,7 +208,10 @@ final businessComponentStories = WidgetbookFolder(
           name: 'Toutes disponibles',
           builder: (context) => StoryScaffold(
             child: SeatMap(
-              seats: List.generate(12, (i) => KoraSeat(label: '${(i ~/ 4) + 1}${'ABCD'[i % 4]}')),
+              seats: List.generate(
+                12,
+                (i) => KoraSeat(label: '${(i ~/ 4) + 1}${'ABCD'[i % 4]}'),
+              ),
               onSeatTap: (seat) {},
             ),
           ),
