@@ -17,11 +17,15 @@ import '../dimens/app_dimens.dart';
 class AppTheme {
   const AppTheme._();
 
-  static ThemeData get light =>
-      _buildTheme(brightness: Brightness.light, koraColors: KoraColors.light);
+  static ThemeData get light => _buildTheme(
+        brightness: Brightness.light,
+        koraColors: KoraColors.light,
+      );
 
-  static ThemeData get dark =>
-      _buildTheme(brightness: Brightness.dark, koraColors: KoraColors.dark);
+  static ThemeData get dark => _buildTheme(
+        brightness: Brightness.dark,
+        koraColors: KoraColors.dark,
+      );
 
   static ThemeData _buildTheme({
     required Brightness brightness,
@@ -34,9 +38,8 @@ class AppTheme {
     // `copyWith`. C'est plus robuste que de construire un ColorScheme
     // "à la main" : Flutter se charge de remplir correctement tous les
     // champs qu'on ne précise pas.
-    final baseScheme = isDark
-        ? const ColorScheme.dark()
-        : const ColorScheme.light();
+    final baseScheme =
+        isDark ? const ColorScheme.dark() : const ColorScheme.light();
     final colorScheme = baseScheme.copyWith(
       primary: AppColors.kora,
       onPrimary: AppColors.white,
@@ -99,7 +102,10 @@ class AppTheme {
           minimumSize: const Size.fromHeight(50),
           padding: const EdgeInsets.symmetric(horizontal: 18),
           elevation: 0,
-          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+          textStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w900,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.md),
           ),
@@ -113,7 +119,10 @@ class AppTheme {
           minimumSize: const Size.fromHeight(50),
           padding: const EdgeInsets.symmetric(horizontal: 18),
           side: BorderSide(color: koraColors.line),
-          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+          textStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w900,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.md),
           ),
@@ -124,29 +133,41 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: AppColors.digital,
-          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+          textStyle: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
         ),
       ),
 
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
+        // CSS de référence (`.field-control`) : fond BLANC, pas gris — un
+        // fond `mist` serait quasi identique au fond de page en mode
+        // clair (`KoraColors.light.background` = `mist` aussi), rendant
+        // le champ invisible faute de contraste. Voir aussi la bordure
+        // ci-dessous, également absente auparavant pour la même raison.
         fillColor: isDark
             ? AppColors.white.withValues(alpha: 0.06)
-            : AppColors.mist,
+            : AppColors.white,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg,
           vertical: AppSpacing.md,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(AppRadius.input),
+          borderSide: BorderSide(
+            color: isDark ? koraColors.line : AppColors.inputBorderLight,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(AppRadius.input),
+          borderSide: BorderSide(
+            color: isDark ? koraColors.line : AppColors.inputBorderLight,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderRadius: BorderRadius.circular(AppRadius.input),
           borderSide: const BorderSide(color: AppColors.digital, width: 1.5),
         ),
         hintStyle: TextStyle(color: koraColors.textMuted),
@@ -194,8 +215,15 @@ class AppTheme {
         fontWeight: FontWeight.w800,
         color: primary,
       ),
-      bodyMedium: TextStyle(fontSize: 13, height: 1.45, color: primary),
-      bodySmall: TextStyle(fontSize: 11, color: muted),
+      bodyMedium: TextStyle(
+        fontSize: 13,
+        height: 1.45,
+        color: primary,
+      ),
+      bodySmall: TextStyle(
+        fontSize: 11,
+        color: muted,
+      ),
       labelSmall: TextStyle(
         fontSize: 10,
         fontWeight: FontWeight.w800,

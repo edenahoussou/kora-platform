@@ -90,17 +90,11 @@ class _KoraInputState extends State<KoraInput> {
             hintText: widget.hint,
             prefixIcon: widget.prefixIcon == null
                 ? null
-                : Icon(
-                    widget.prefixIcon,
-                    size: 19,
-                    color: koraColors.textMuted,
-                  ),
+                : Icon(widget.prefixIcon, size: 19, color: koraColors.textMuted),
             suffixIcon: widget.obscureText
                 ? IconButton(
                     icon: Icon(
-                      _obscured
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined,
+                      _obscured ? Icons.visibility_outlined : Icons.visibility_off_outlined,
                       size: 19,
                       color: koraColors.textMuted,
                     ),
@@ -110,11 +104,8 @@ class _KoraInputState extends State<KoraInput> {
             errorText: hasError ? widget.errorText : null,
             enabledBorder: hasError
                 ? OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                    borderSide: const BorderSide(
-                      color: AppColors.danger,
-                      width: 1,
-                    ),
+                    borderRadius: BorderRadius.circular(AppRadius.input),
+                    borderSide: const BorderSide(color: AppColors.danger, width: 1),
                   )
                 : null,
           ),

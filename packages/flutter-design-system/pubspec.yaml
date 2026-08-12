@@ -50,3 +50,9 @@ flutter:
   assets:
     - assets/icons/nav/
     - assets/icons/vehicles/
+    # Logo KORA Express (TicketView) — copie recadrée + ré-encodée de
+    # `apps/kora-app-passenger/assets/images/kora_logo.png` (source
+    # réelle de l'app passager). Voir la note dans
+    # lib/src/widgets/business/ticket_view.dart pour le détail du
+    # recadrage et du ré-encodage.
+    - assets/brand/

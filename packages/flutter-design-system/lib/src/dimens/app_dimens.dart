@@ -12,10 +12,21 @@ class AppRadius {
   const AppRadius._();
 
   static const double sm = 10; // petits éléments (tags, chips)
-  static const double md = 15; // boutons, champs de saisie
+
+  /// Boutons. CSS : `.primary, .secondary, .ghost, .danger-button`
+  /// (`border-radius: 15px`) — confondu un temps avec les champs de
+  /// saisie (voir [input] ci-dessous, qui a sa propre valeur : 14px).
+  static const double md = 15;
+
   static const double lg = 20; // cards standards
   static const double xl = 24; // grandes sections / bottom sheets
   static const double pill = 999; // badges, pastilles, boutons ronds
+
+  /// Champs de saisie (KoraInput). CSS : `.field-control { border-radius:
+  /// 14px }` (`docs/maquettes/kora-app-passenger/css/style.css`, L339-347)
+  /// — proche de [md] (15, boutons) mais pas identique ; les deux
+  /// réutilisaient [md] par erreur avant que l'écart ne soit remarqué.
+  static const double input = 14;
 
   /// Rayon "socle" du design system.
   ///
@@ -82,6 +93,17 @@ class AppShadows {
       color: AppColors.kora.withValues(alpha: 0.14),
       offset: const Offset(0, 24),
       blurRadius: 60,
+    ),
+  ];
+
+  /// Ombre portée du billet numérique ([TicketView]).
+  /// CSS de référence : `.digital-ticket { box-shadow: 0 20px 45px rgba(0,29,78,.2) }`
+  /// (`docs/maquettes/kora-app-passenger/css/style.css`, L619-626).
+  static List<BoxShadow> ticket = [
+    BoxShadow(
+      color: AppColors.kora.withValues(alpha: 0.2),
+      offset: const Offset(0, 20),
+      blurRadius: 45,
     ),
   ];
 

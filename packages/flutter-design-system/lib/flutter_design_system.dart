@@ -12,6 +12,7 @@ export 'src/dialogs/kora_dialogs.dart';
 export 'src/icons/kora_nav_icon.dart';
 export 'src/icons/kora_vehicle_icon.dart';
 export 'src/theme/app_theme.dart';
+export 'src/widgets/business/connection_result_card.dart';
 export 'src/widgets/business/departure_card.dart';
 export 'src/widgets/business/passenger_tile.dart';
 export 'src/widgets/business/seat_map.dart';
