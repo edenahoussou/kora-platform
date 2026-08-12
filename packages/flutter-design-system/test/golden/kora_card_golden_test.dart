@@ -12,25 +12,40 @@ void main() {
         const KoraCard(child: Text('Contenu de la card')),
         surfaceSize: const Size(300, 120),
       );
-      await expectLater(find.byType(KoraCard), matchesGoldenFile('kora_card_surface.png'));
+      await expectLater(
+        find.byType(KoraCard),
+        matchesGoldenFile('kora_card_surface.png'),
+      );
     });
 
     testWidgets('navy', (tester) async {
       await pumpKoraWidget(
         tester,
-        const KoraCard(variant: KoraCardVariant.navy, child: Text('Card mise en avant')),
+        const KoraCard(
+          variant: KoraCardVariant.navy,
+          child: Text('Card mise en avant'),
+        ),
         surfaceSize: const Size(300, 120),
       );
-      await expectLater(find.byType(KoraCard), matchesGoldenFile('kora_card_navy.png'));
+      await expectLater(
+        find.byType(KoraCard),
+        matchesGoldenFile('kora_card_navy.png'),
+      );
     });
 
     testWidgets('gold', (tester) async {
       await pumpKoraWidget(
         tester,
-        const KoraCard(variant: KoraCardVariant.gold, child: Text('Card promotionnelle')),
+        const KoraCard(
+          variant: KoraCardVariant.gold,
+          child: Text('Card promotionnelle'),
+        ),
         surfaceSize: const Size(300, 120),
       );
-      await expectLater(find.byType(KoraCard), matchesGoldenFile('kora_card_gold.png'));
+      await expectLater(
+        find.byType(KoraCard),
+        matchesGoldenFile('kora_card_gold.png'),
+      );
     });
 
     testWidgets('dark theme', (tester) async {
@@ -40,7 +55,10 @@ void main() {
         surfaceSize: const Size(300, 120),
         dark: true,
       );
-      await expectLater(find.byType(KoraCard), matchesGoldenFile('kora_card_dark.png'));
+      await expectLater(
+        find.byType(KoraCard),
+        matchesGoldenFile('kora_card_dark.png'),
+      );
     });
   });
 }

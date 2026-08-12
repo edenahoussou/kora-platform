@@ -94,7 +94,10 @@ class KoraButton extends StatelessWidget {
     );
   }
 
-  _KoraButtonStyle _resolveStyle(KoraButtonVariant variant, KoraColors koraColors) {
+  _KoraButtonStyle _resolveStyle(
+    KoraButtonVariant variant,
+    KoraColors koraColors,
+  ) {
     switch (variant) {
       case KoraButtonVariant.primary:
         return const _KoraButtonStyle(

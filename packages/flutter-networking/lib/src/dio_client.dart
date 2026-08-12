@@ -41,15 +41,16 @@ class DioClient {
     required Duration sendTimeout,
     required Future<String?> Function() getAccessToken,
     bool enableLogging = false,
-    Map<String, dynamic> defaultHeaders = const {'Content-Type': 'application/json'},
-  }) :
-        // Nom de paramètre public volontairement différent du champ privé
-        // (`getAccessToken` en API, `_getAccessToken` en interne) : un
-        // "initializing formal" (`this._getAccessToken`) exposerait le nom
-        // privé comme nom de paramètre nommé, inutilisable depuis un autre
-        // fichier (core/di/injector.dart).
-        // ignore: prefer_initializing_formals
-        _getAccessToken = getAccessToken {
+    Map<String, dynamic> defaultHeaders = const {
+      'Content-Type': 'application/json',
+    },
+  }) : // Nom de paramètre public volontairement différent du champ privé
+       // (`getAccessToken` en API, `_getAccessToken` en interne) : un
+       // "initializing formal" (`this._getAccessToken`) exposerait le nom
+       // privé comme nom de paramètre nommé, inutilisable depuis un autre
+       // fichier (core/di/injector.dart).
+       // ignore: prefer_initializing_formals
+       _getAccessToken = getAccessToken {
     _dio = Dio(
       BaseOptions(
         baseUrl: baseUrl,

@@ -53,5 +53,7 @@ class AuthFailure extends Failure {
 
 /// Filet de sécurité pour toute erreur non prévue explicitement.
 class UnexpectedFailure extends Failure {
-  const UnexpectedFailure([super.message = 'Une erreur inattendue est survenue.']);
+  const UnexpectedFailure([
+    super.message = 'Une erreur inattendue est survenue.',
+  ]);
 }

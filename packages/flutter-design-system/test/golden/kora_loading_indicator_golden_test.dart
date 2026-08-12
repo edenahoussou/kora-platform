@@ -12,7 +12,10 @@ void main() {
         const KoraLoadingIndicator(),
         surfaceSize: const Size(60, 60),
       );
-      await expectLater(find.byType(KoraLoadingIndicator), matchesGoldenFile('kora_loading_spinner.png'));
+      await expectLater(
+        find.byType(KoraLoadingIndicator),
+        matchesGoldenFile('kora_loading_spinner.png'),
+      );
     });
 
     testWidgets('skeleton — 3 lignes', (tester) async {
@@ -27,7 +30,10 @@ void main() {
         ),
         surfaceSize: const Size(260, 120),
       );
-      await expectLater(find.byType(KoraLoadingIndicator), matchesGoldenFile('kora_loading_skeleton.png'));
+      await expectLater(
+        find.byType(KoraLoadingIndicator),
+        matchesGoldenFile('kora_loading_skeleton.png'),
+      );
     });
   });
 }

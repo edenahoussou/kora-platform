@@ -66,11 +66,18 @@ class TicketView extends StatelessWidget {
                 children: [
                   const Text(
                     'KORA EXPRESS',
-                    style: TextStyle(color: AppColors.kora, fontSize: 13, fontWeight: FontWeight.w900),
+                    style: TextStyle(
+                      color: AppColors.kora,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   Text(
                     date,
-                    style: TextStyle(color: AppColors.graphite.withValues(alpha: 0.6), fontSize: 10),
+                    style: TextStyle(
+                      color: AppColors.graphite.withValues(alpha: 0.6),
+                      fontSize: 10,
+                    ),
                   ),
                 ],
               ),
@@ -79,7 +86,9 @@ class TicketView extends StatelessWidget {
                 children: [
                   Expanded(child: _RoutePoint(label: origin, alignEnd: false)),
                   const _RouteBadge(),
-                  Expanded(child: _RoutePoint(label: destination, alignEnd: true)),
+                  Expanded(
+                    child: _RoutePoint(label: destination, alignEnd: true),
+                  ),
                 ],
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -139,7 +148,11 @@ class _RoutePoint extends StatelessWidget {
     return Text(
       label,
       textAlign: alignEnd ? TextAlign.right : TextAlign.left,
-      style: const TextStyle(color: AppColors.kora, fontSize: 22, fontWeight: FontWeight.w900),
+      style: const TextStyle(
+        color: AppColors.kora,
+        fontSize: 22,
+        fontWeight: FontWeight.w900,
+      ),
     );
   }
 }
@@ -154,7 +167,10 @@ class _RouteBadge extends StatelessWidget {
       height: 30,
       margin: const EdgeInsets.symmetric(horizontal: 10),
       alignment: Alignment.center,
-      decoration: BoxDecoration(color: AppColors.gold, borderRadius: BorderRadius.circular(AppRadius.sm)),
+      decoration: BoxDecoration(
+        color: AppColors.gold,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
       child: const Icon(Icons.arrow_forward, size: 15, color: AppColors.kora),
     );
   }
@@ -171,13 +187,18 @@ class _Dashes extends StatelessWidget {
         builder: (context, constraints) {
           const dashWidth = 6.0;
           const dashSpace = 5.0;
-          final count = (constraints.maxWidth / (dashWidth + dashSpace)).floor();
+          final count = (constraints.maxWidth / (dashWidth + dashSpace))
+              .floor();
           return Row(
             children: List.generate(
               count,
               (_) => Padding(
                 padding: const EdgeInsets.only(right: dashSpace),
-                child: Container(width: dashWidth, height: 1, color: AppColors.kora.withValues(alpha: 0.14)),
+                child: Container(
+                  width: dashWidth,
+                  height: 1,
+                  color: AppColors.kora.withValues(alpha: 0.14),
+                ),
               ),
             ),
           );
@@ -202,12 +223,20 @@ class _TicketField extends StatelessWidget {
         children: [
           Text(
             label,
-            style: TextStyle(color: AppColors.graphite.withValues(alpha: 0.6), fontSize: 8, fontWeight: FontWeight.w800),
+            style: TextStyle(
+              color: AppColors.graphite.withValues(alpha: 0.6),
+              fontSize: 8,
+              fontWeight: FontWeight.w800,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(color: AppColors.kora, fontSize: 11, fontWeight: FontWeight.w800),
+            style: const TextStyle(
+              color: AppColors.kora,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
             overflow: TextOverflow.ellipsis,
           ),
         ],
@@ -226,13 +255,55 @@ class _QrPlaceholder extends StatelessWidget {
     // Motif fixe (pas aléatoire) pour que le rendu soit stable d'un
     // build à l'autre — utile pour les stories/golden tests.
     const pattern = [
-      1, 0, 1, 1, 0, 1, 0,
-      0, 1, 0, 0, 1, 1, 1,
-      1, 1, 1, 0, 1, 0, 1,
-      0, 0, 1, 1, 0, 1, 0,
-      1, 0, 0, 1, 1, 1, 0,
-      0, 1, 1, 0, 0, 1, 1,
-      1, 0, 1, 1, 0, 0, 1,
+      1,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      1,
+      1,
+      0,
+      0,
+      1,
+      1,
+      0,
+      0,
+      1,
+      1,
+      1,
+      0,
+      1,
+      1,
+      0,
+      0,
+      1,
     ];
 
     return Container(
@@ -249,7 +320,8 @@ class _QrPlaceholder extends StatelessWidget {
         mainAxisSpacing: 1,
         crossAxisSpacing: 1,
         children: [
-          for (final bit in pattern) ColoredBox(color: bit == 1 ? AppColors.kora : AppColors.white),
+          for (final bit in pattern)
+            ColoredBox(color: bit == 1 ? AppColors.kora : AppColors.white),
         ],
       ),
     );
@@ -263,7 +335,23 @@ class _Barcode extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const widths = [2.0, 1.0, 3.0, 1.0, 2.0, 1.0, 1.0, 3.0, 2.0, 1.0, 2.0, 1.0, 3.0, 1.0, 2.0];
+    const widths = [
+      2.0,
+      1.0,
+      3.0,
+      1.0,
+      2.0,
+      1.0,
+      1.0,
+      3.0,
+      2.0,
+      1.0,
+      2.0,
+      1.0,
+      3.0,
+      1.0,
+      2.0,
+    ];
 
     return SizedBox(
       height: 26,

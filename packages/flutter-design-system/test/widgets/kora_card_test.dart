@@ -6,7 +6,9 @@ import '../test_utils.dart';
 
 void main() {
   group('KoraCard', () {
-    testWidgets('affiche son contenu et utilise un Card Material 3', (tester) async {
+    testWidgets('affiche son contenu et utilise un Card Material 3', (
+      tester,
+    ) async {
       await pumpKoraWidget(tester, const KoraCard(child: Text('Contenu')));
 
       expect(find.text('Contenu'), findsOneWidget);
@@ -26,7 +28,9 @@ void main() {
       expect(tapped, isTrue);
     });
 
-    testWidgets('reste inerte sans onTap (pas de crash au tap)', (tester) async {
+    testWidgets('reste inerte sans onTap (pas de crash au tap)', (
+      tester,
+    ) async {
       await pumpKoraWidget(tester, const KoraCard(child: Text('Statique')));
 
       await tester.tap(find.byType(KoraCard));
@@ -37,7 +41,10 @@ void main() {
 
     for (final variant in KoraCardVariant.values) {
       testWidgets('variante $variant se construit sans erreur', (tester) async {
-        await pumpKoraWidget(tester, KoraCard(variant: variant, child: const Text('X')));
+        await pumpKoraWidget(
+          tester,
+          KoraCard(variant: variant, child: const Text('X')),
+        );
         expect(find.byType(KoraCard), findsOneWidget);
       });
     }

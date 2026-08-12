@@ -5,7 +5,9 @@ import '../../test_utils.dart';
 
 void main() {
   group('PassengerTile', () {
-    testWidgets('affiche le nom, le sous-titre et l\'initiale en avatar', (tester) async {
+    testWidgets('affiche le nom, le sous-titre et l\'initiale en avatar', (
+      tester,
+    ) async {
       await pumpKoraWidget(
         tester,
         const PassengerTile(name: 'Awa Kouassi', subtitle: 'Siège 12A'),

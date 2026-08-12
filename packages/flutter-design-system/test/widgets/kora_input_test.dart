@@ -28,27 +28,33 @@ void main() {
       expect(value, 'Awa Kouassi');
     });
 
-    testWidgets('masque la saisie par défaut si obscureText, et révèle au tap', (tester) async {
-      await pumpKoraWidget(
-        tester,
-        const KoraInput(label: 'Mot de passe', obscureText: true),
-      );
+    testWidgets(
+      'masque la saisie par défaut si obscureText, et révèle au tap',
+      (tester) async {
+        await pumpKoraWidget(
+          tester,
+          const KoraInput(label: 'Mot de passe', obscureText: true),
+        );
 
-      var field = tester.widget<TextField>(find.byType(TextField));
-      expect(field.obscureText, isTrue);
+        var field = tester.widget<TextField>(find.byType(TextField));
+        expect(field.obscureText, isTrue);
 
-      await tester.tap(find.byIcon(Icons.visibility_outlined));
-      await tester.pump();
+        await tester.tap(find.byIcon(Icons.visibility_outlined));
+        await tester.pump();
 
-      field = tester.widget<TextField>(find.byType(TextField));
-      expect(field.obscureText, isFalse);
-      expect(find.byIcon(Icons.visibility_off_outlined), findsOneWidget);
-    });
+        field = tester.widget<TextField>(find.byType(TextField));
+        expect(field.obscureText, isFalse);
+        expect(find.byIcon(Icons.visibility_off_outlined), findsOneWidget);
+      },
+    );
 
     testWidgets('affiche le texte d\'erreur', (tester) async {
       await pumpKoraWidget(
         tester,
-        const KoraInput(label: 'Mot de passe', errorText: 'Minimum 8 caractères'),
+        const KoraInput(
+          label: 'Mot de passe',
+          errorText: 'Minimum 8 caractères',
+        ),
       );
 
       expect(find.text('Minimum 8 caractères'), findsOneWidget);

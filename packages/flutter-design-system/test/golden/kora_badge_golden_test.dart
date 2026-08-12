@@ -12,7 +12,10 @@ void main() {
         const KoraBadge(child: Icon(Icons.notifications_outlined, size: 28)),
         surfaceSize: const Size(80, 80),
       );
-      await expectLater(find.byType(KoraBadge), matchesGoldenFile('kora_badge_dot.png'));
+      await expectLater(
+        find.byType(KoraBadge),
+        matchesGoldenFile('kora_badge_dot.png'),
+      );
     });
 
     testWidgets('avec compteur', (tester) async {
@@ -21,7 +24,10 @@ void main() {
         const KoraBadge(count: 3, child: Icon(Icons.mail_outline, size: 28)),
         surfaceSize: const Size(80, 80),
       );
-      await expectLater(find.byType(KoraBadge), matchesGoldenFile('kora_badge_count.png'));
+      await expectLater(
+        find.byType(KoraBadge),
+        matchesGoldenFile('kora_badge_count.png'),
+      );
     });
 
     testWidgets('compteur tronqué (999+)', (tester) async {
@@ -30,7 +36,10 @@ void main() {
         const KoraBadge(count: 1280, child: Icon(Icons.mail_outline, size: 28)),
         surfaceSize: const Size(80, 80),
       );
-      await expectLater(find.byType(KoraBadge), matchesGoldenFile('kora_badge_overflow.png'));
+      await expectLater(
+        find.byType(KoraBadge),
+        matchesGoldenFile('kora_badge_overflow.png'),
+      );
     });
   });
 
@@ -53,7 +62,10 @@ void main() {
         ),
         surfaceSize: const Size(160, 160),
       );
-      await expectLater(find.byType(Column).first, matchesGoldenFile('kora_tag_variants.png'));
+      await expectLater(
+        find.byType(Column).first,
+        matchesGoldenFile('kora_tag_variants.png'),
+      );
     });
   });
 }

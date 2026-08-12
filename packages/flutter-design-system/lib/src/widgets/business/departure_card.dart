@@ -81,7 +81,9 @@ class DepartureCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: AppSpacing.lg),
-              Expanded(child: _RouteLine(origin: origin, destination: destination)),
+              Expanded(
+                child: _RouteLine(origin: origin, destination: destination),
+              ),
               const SizedBox(width: AppSpacing.lg),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -89,7 +91,10 @@ class DepartureCard extends StatelessWidget {
                   if (seatsAvailable != null) ...[
                     Text(
                       '$seatsAvailable places',
-                      style: TextStyle(color: koraColors.textMuted, fontSize: 10),
+                      style: TextStyle(
+                        color: koraColors.textMuted,
+                        fontSize: 10,
+                      ),
                     ),
                     const SizedBox(height: 4),
                   ],
@@ -140,7 +145,11 @@ class _RouteLine extends StatelessWidget {
             Expanded(
               child: Text(
                 origin,
-                style: TextStyle(color: koraColors.textPrimary, fontSize: 11, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                  color: koraColors.textPrimary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -149,7 +158,11 @@ class _RouteLine extends StatelessWidget {
               child: Text(
                 destination,
                 textAlign: TextAlign.right,
-                style: TextStyle(color: koraColors.textPrimary, fontSize: 11, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                  color: koraColors.textPrimary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),

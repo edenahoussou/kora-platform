@@ -6,7 +6,9 @@ import '../test_utils.dart';
 
 void main() {
   group('KoraButton', () {
-    testWidgets('affiche son label et déclenche onPressed au tap', (tester) async {
+    testWidgets('affiche son label et déclenche onPressed au tap', (
+      tester,
+    ) async {
       var tapped = false;
       await pumpKoraWidget(
         tester,
@@ -22,17 +24,26 @@ void main() {
     });
 
     testWidgets('désactivé quand onPressed est null', (tester) async {
-      await pumpKoraWidget(tester, const KoraButton(label: 'Continuer', onPressed: null));
+      await pumpKoraWidget(
+        tester,
+        const KoraButton(label: 'Continuer', onPressed: null),
+      );
 
       final button = tester.widget<ElevatedButton>(find.byType(ElevatedButton));
       expect(button.onPressed, isNull);
     });
 
-    testWidgets('état loading affiche un spinner et bloque le tap', (tester) async {
+    testWidgets('état loading affiche un spinner et bloque le tap', (
+      tester,
+    ) async {
       var tapped = false;
       await pumpKoraWidget(
         tester,
-        KoraButton(label: 'Continuer', isLoading: true, onPressed: () => tapped = true),
+        KoraButton(
+          label: 'Continuer',
+          isLoading: true,
+          onPressed: () => tapped = true,
+        ),
       );
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);

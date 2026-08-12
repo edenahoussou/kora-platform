@@ -26,8 +26,9 @@ void main() {
     getIt.reset();
   });
 
-  testWidgets('KoraApp démarre sur Accueil et incrémente le compteur',
-      (WidgetTester tester) async {
+  testWidgets('KoraApp démarre sur Accueil et incrémente le compteur', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const KoraApp());
     await tester.pumpAndSettle();
 
