@@ -1,6 +1,6 @@
-// Test de fumée basique : vérifie que l'application démarre sans planter,
-// affiche la bottom nav et son onglet "Accueil" (compteur Flutter par
-// défaut), et que le compteur s'incrémente bien au clic.
+// Test de fumée : vérifie que l'application démarre sans planter,
+// que la bottom nav est présente avec ses 5 onglets, et que l'onglet
+// "Accueil" est actif par défaut.
 //
 // SharedPreferences n'est pas disponible nativement dans un test : on
 // utilise donc les valeurs mockées fournies par flutter_test.
@@ -26,17 +26,20 @@ void main() {
     getIt.reset();
   });
 
-  testWidgets('KoraApp démarre sur Accueil et incrémente le compteur', (
+  testWidgets('KoraApp démarre sur Accueil avec la bottom nav', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const KoraApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('0'), findsOneWidget);
+    // L'AppBar de l'onglet Accueil est visible.
+    expect(find.text('Accueil'), findsNWidgets(2));
 
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    expect(find.text('1'), findsOneWidget);
+    // La bottom nav propose bien 5 onglets (Accueil, Voyages, Colis,
+    // Wallet, Profil) — on vérifie leur présence via les labels.
+    expect(find.text('Voyages'), findsOneWidget);
+    expect(find.text('Colis'), findsOneWidget);
+    expect(find.text('Wallet'), findsOneWidget);
+    expect(find.text('Profil'), findsOneWidget);
   });
 }

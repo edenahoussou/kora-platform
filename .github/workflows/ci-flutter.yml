@@ -61,7 +61,12 @@ jobs:
         run: flutter analyze
 
       - name: Test
-        run: flutter test
+        run: |
+          if [ -d test ]; then
+            flutter test
+          else
+            echo "::notice::Pas de dossier test/ — tests skippe."
+          fi
 
   # ------------------------------------------------------------------
   # Application passager (kora-app-passenger)
@@ -96,7 +101,12 @@ jobs:
         run: flutter analyze
 
       - name: Test
-        run: flutter test
+        run: |
+          if [ -d test ]; then
+            flutter test
+          else
+            echo "::notice::Pas de dossier test/ — tests skippe."
+          fi
 
       - name: Build APK (debug) — non-regression
         run: flutter build apk --debug
@@ -152,7 +162,12 @@ jobs:
 
       - name: Test
         if: steps.check.outputs.exists == 'true'
-        run: flutter test
+        run: |
+          if [ -d test ]; then
+            flutter test
+          else
+            echo "::notice::Pas de dossier test/ — tests skippe."
+          fi
 
       - name: Build APK (debug) — non-regression
         if: steps.check.outputs.exists == 'true'
