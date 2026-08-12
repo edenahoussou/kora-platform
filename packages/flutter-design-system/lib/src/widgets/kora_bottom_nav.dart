@@ -8,8 +8,8 @@ import '../icons/kora_nav_icon.dart';
 /// Barre de navigation flottante en bas de l'écran, avec coins très
 /// arrondis en bas (24/24/34/34) et effet de flou, comme `.bottom-nav`
 /// dans le prototype. Les 5 onglets et leurs icônes (via [KoraNavIcon])
-/// sont fidèles à `KORA/design/js/app.js` (fonction `nav`) et
-/// `KORA/design/css/style.css` (`.nav-home`, `.nav-ticket`, `.nav-parcel`,
+/// sont fidèles à `docs/maquettes/kora-app-passenger/js/app.js` (fonction `nav`) et
+/// `docs/maquettes/kora-app-passenger/css/style.css` (`.nav-home`, `.nav-ticket`, `.nav-parcel`,
 /// `.nav-wallet`, `.nav-profile`).
 ///
 /// Exemple d'utilisation :

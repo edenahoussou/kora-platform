@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 /// Les 5 onglets de la barre de navigation, repris du prototype
-/// (`KORA/design/js/app.js`, fonction `nav`).
+/// (`docs/maquettes/kora-app-passenger/js/app.js`, fonction `nav`).
 enum KoraNavIconType { home, tickets, parcel, wallet, profile }
 
 /// Icône de navigation basée sur un `.svg` (`assets/icons/nav/`), recréée

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 /// Palette de couleurs officielle KORA EXPRESS.
 ///
 /// Toutes ces valeurs sont extraites directement du prototype de référence
-/// (`KORA/design/css/style.css`, bloc `:root`). Ne jamais écrire une
+/// (`docs/maquettes/kora-app-passenger/css/style.css`, bloc `:root`). Ne jamais écrire une
 /// couleur "en dur" (ex: `Color(0xFF001D4E)`) ailleurs dans le code : on
 /// passe toujours par une constante définie ici.
 ///

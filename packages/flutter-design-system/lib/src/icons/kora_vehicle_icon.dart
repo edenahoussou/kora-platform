@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 /// Les types de véhicules disponibles dans KORA Ride, repris du prototype
-/// (`KORA/design/js/app.js`, fonction `mobilityPictogram`).
+/// (`docs/maquettes/kora-app-passenger/js/app.js`, fonction `mobilityPictogram`).
 enum KoraVehicleType { moto, keke, bus, xl, standard, comfort }
 
 /// Icône vectorielle d'un véhicule, chargée depuis un vrai fichier `.svg`

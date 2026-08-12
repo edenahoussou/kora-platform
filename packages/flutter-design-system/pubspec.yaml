@@ -3,7 +3,7 @@ description: >
   Design system KORA EXPRESS partagé entre toutes les apps Flutter du
   monorepo (couleurs, typographie, thème clair/sombre, icônes vectorielles,
   composants Kora* et dialogs). Source de vérité visuelle : le prototype
-  HTML de référence dans `KORA/design/`.
+  HTML de référence dans `docs/maquettes/`.
 publish_to: 'none'
 
 version: 1.0.0
