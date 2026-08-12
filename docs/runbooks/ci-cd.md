@@ -9,6 +9,7 @@ PR/push ──► CI (ci.yml)          ──► lint + test + build (kora-ops-w
 PR/push ──► CI Flutter (ci-flutter.yml) ──► analyze + test + build (apps + packages)
 merge main ──► Deploy Staging    ──► build image GHCR + deploy VPS:8080
 tag v*    ──► Deploy Production  ──► build image GHCR + backup + deploy VPS:80
+tag v*    ──► Release Mobile     ──► build APK signé + GitHub Release
 ```
 
 ## Workflows
@@ -70,6 +71,20 @@ Declenche manuellement via un tag git `v*` (ex: `git tag v0.1.0 && git push orig
 1. Build l'image Docker `kora-ops-web:latest` + `kora-ops-web:v0.1.0`
 2. Push au GitHub Container Registry
 3. SSH au VPS : backup DB + `git pull` + `docker compose pull` + `docker compose up -d` + migrations + cache
+
+URL prod : `http://51.255.196.129`
+
+### `release-mobile.yml` — Release APK Android
+
+Declenche via un tag git `v*` (meme tag que la prod web — les deux workflows tournent en parallele).
+
+1. Build l'APK release signe (`flutter build apk --release`) avec le keystore de production
+2. Upload l'APK en artefact GitHub Actions (90 jours)
+3. Cree une GitHub Release avec l'APK attache (telechargeable depuis la page Releases)
+
+Si les secrets du keystore ne sont pas configures, le build retombe sur la signature debug (APK non distribuable sur le Play Store mais installable par sideloading).
+
+Voir `docs/runbooks/mobile-release.md` pour le setup complet du keystore et la procedure de release.
 
 URL prod : `http://51.255.196.129`
 
