@@ -17,14 +17,21 @@ class AppRadius {
   static const double xl = 24; // grandes sections / bottom sheets
   static const double pill = 999; // badges, pastilles, boutons ronds
 
-  /// Rayon "socle" du design system, extrait tel quel de la variable CSS
-  /// `--radius: 18px` (`kora-ops-web/css/style.css`, `:root`, L1) — c'est
-  /// la seule valeur de rayon formalisée en variable partagée côté web
-  /// (KPI cards, panels, table-card...) ; tout le reste du CSS utilise des
-  /// rayons en dur au cas par cas, d'où l'échelle `sm/md/lg/xl` ci-dessus.
-  /// À utiliser quand un composant correspond à un de ces éléments plutôt
-  /// qu'à `lg` (20) par défaut.
-  static const double base = 18;
+  /// Rayon "socle" du design system.
+  ///
+  /// Source de vérité : `--radius: 0.75rem` (12px), le token Tailwind
+  /// réellement livré dans l'app web (`apps/kora-ops-web/resources/css/
+  /// app.css`, bloc `@theme`/`:root`). La maquette HTML statique
+  /// (`docs/maquettes/kora-ops-web/css/style.css`, `:root`, L1) affichait
+  /// encore `--radius: 18px` à ce moment-là — valeur dépassée par l'app
+  /// réellement construite, donc pas retenue ici.
+  /// Le reste du CSS (prototypes comme app réelle) utilise des rayons en
+  /// dur au cas par cas, d'où l'échelle `sm/md/lg/xl` ci-dessus, dérivée
+  /// des valeurs récurrentes de la maquette passager plutôt que de ce
+  /// token unique.
+  /// À utiliser quand un composant correspond à un élément "socle" (KPI
+  /// cards, panels...) plutôt qu'à `lg` (20) par défaut.
+  static const double base = 12;
 }
 
 class AppSpacing {

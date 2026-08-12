@@ -171,8 +171,8 @@ class _RadiusAndShadowScale extends StatelessWidget {
 
   static const _radii = [
     ('sm (10)', KoraRadius.sm),
+    ('base (12 — socle web)', KoraRadius.base),
     ('md (15)', KoraRadius.md),
-    ('base (18 — socle web)', KoraRadius.base),
     ('lg (20)', KoraRadius.lg),
     ('xl (24)', KoraRadius.xl),
     ('pill (999)', KoraRadius.pill),

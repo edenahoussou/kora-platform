@@ -42,8 +42,15 @@ class AppColors {
   /// Texte secondaire / atténué en mode clair (graphite à 60% d'opacité).
   static const Color mutedLight = Color(0x99111827);
 
-  /// Couleur des séparateurs / bordures en mode clair (kora à 11%).
-  static const Color lineLight = Color(0x1C001D4E);
+  /// Couleur des séparateurs / bordures en mode clair (kora à 10%).
+  ///
+  /// Source de vérité : `--border`/`--input: rgba(0, 29, 78, 0.1)`, tokens
+  /// réellement livrés dans l'app web (`apps/kora-ops-web/resources/css/
+  /// app.css`). La maquette HTML statique passager (`docs/maquettes/
+  /// kora-app-passenger/css/style.css`, `:root`) affichait `.11` — écart
+  /// mineur avec l'app réelle, non retenu ici au profit de la valeur
+  /// effectivement livrée (et aussi celle de la maquette ops-web, `.10`).
+  static const Color lineLight = Color(0x1A001D4E);
 
   // --- Couleurs de fond & texte (mode sombre) ---
   //
