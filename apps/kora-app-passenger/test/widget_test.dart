@@ -5,7 +5,6 @@
 // SharedPreferences n'est pas disponible nativement dans un test : on
 // utilise donc les valeurs mockées fournies par flutter_test.
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_app_passenger/app.dart';
 import 'package:kora_app_passenger/core/di/injector.dart';
