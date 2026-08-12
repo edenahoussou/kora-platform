@@ -1,0 +1,75 @@
+name: kora_app_passenger
+description: "KORA EXPRESS — application mobile Passager (Clean Architecture + Bloc)."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # --- State management ---
+  flutter_bloc: ^8.1.6
+  equatable: ^2.0.5
+
+  # --- Réseau ---
+  # Ces 2 lignes restent nécessaires ici : injector.dart construit
+  # directement un Dio/FlutterSecureStorage pour les passer au DioClient
+  # du package flutter_networking (voir plus bas).
+  dio: ^5.7.0
+  connectivity_plus: ^6.1.0
+
+  # --- Injection de dépendances (Clean Architecture) ---
+  get_it: ^7.7.0
+
+  # --- Navigation ---
+  go_router: ^14.6.2
+
+  # --- Stockage ---
+  shared_preferences: ^2.3.2      # préférences simples (thème, réglages non sensibles)
+  flutter_secure_storage: ^9.2.2  # données sensibles (tokens d'authentification)
+
+  # --- Gestion d'erreurs fonctionnelle (Either<Failure, T>) ---
+  dartz: ^0.10.1
+
+  # --- Modèles immuables / sérialisation JSON ---
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.12.0
+
+  # --- Packages internes du monorepo KORA (voir KORA/packages/) ---
+  flutter_design_system:
+    path: ../../packages/flutter-design-system
+  flutter_networking:
+    path: ../../packages/flutter-networking
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+  # --- Tests ---
+  bloc_test: ^9.1.7
+  mocktail: ^1.0.4
+
+  # --- Génération de code (freezed / json_serializable) ---
+  build_runner: ^2.4.13
+  freezed: ^3.2.5
+  json_serializable: ^6.8.0
+
+flutter:
+  uses-material-design: true
+
+  # Les icônes nav/véhicules ne sont plus déclarées ici : elles vivent
+  # dans packages/flutter-design-system et sont bundlées automatiquement
+  # dès que l'app dépend de ce package.
+  assets:
+    - assets/images/
+
+  # Pour ajouter la police Aptos plus tard (voir GUIDE.md, section design
+  # system) : ça se passe dans packages/flutter-design-system, pas ici.
