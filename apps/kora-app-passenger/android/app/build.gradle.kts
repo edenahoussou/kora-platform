@@ -1,7 +1,20 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// --- Signature release ---
+// Lit android/key.properties (généré par le CI ou présent localement).
+// Si le fichier n'existe pas, on retombe sur la signature debug pour
+// que `flutter run --release` continue de fonctionner en dev.
+val keystorePropertiesFile = rootProject.file("key.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
 android {
@@ -23,16 +36,6 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-    }
-
-    // --- Signature release ---
-    // Lit android/key.properties (généré par le CI ou présent localement).
-    // Si le fichier n'existe pas, on retombe sur la signature debug pour
-    // que `flutter run --release` continue de fonctionner en dev.
-    val keystorePropertiesFile = rootProject.file("key.properties")
-    val keystoreProperties = java.util.Properties()
-    if (keystorePropertiesFile.exists()) {
-        keystoreProperties.load(java.io.FileInputStream(keystorePropertiesFile))
     }
 
     signingConfigs {
