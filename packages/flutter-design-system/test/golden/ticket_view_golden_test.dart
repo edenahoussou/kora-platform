@@ -20,7 +20,10 @@ void main() {
         ),
         surfaceSize: const Size(420, 420),
       );
-      await expectLater(find.byType(TicketView), matchesGoldenFile('ticket_view_default.png'));
+      await expectLater(
+        find.byType(TicketView),
+        matchesGoldenFile('ticket_view_default.png'),
+      );
     });
   });
 }

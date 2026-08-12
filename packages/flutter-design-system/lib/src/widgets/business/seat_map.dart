@@ -92,7 +92,8 @@ class _SeatButton extends StatelessWidget {
   final ValueChanged<KoraSeat>? onTap;
 
   bool get _isTappable =>
-      seat.status == KoraSeatStatus.available || seat.status == KoraSeatStatus.selected;
+      seat.status == KoraSeatStatus.available ||
+      seat.status == KoraSeatStatus.selected;
 
   @override
   Widget build(BuildContext context) {
@@ -142,7 +143,11 @@ class _SeatButton extends StatelessWidget {
             child: Center(
               child: Text(
                 seat.label,
-                style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: foreground),
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  color: foreground,
+                ),
               ),
             ),
           ),

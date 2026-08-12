@@ -6,26 +6,33 @@ import '../test_utils.dart';
 
 void main() {
   group('KoraLoadingIndicator', () {
-    testWidgets('variante spinner affiche un CircularProgressIndicator Material 3', (tester) async {
-      await pumpKoraWidget(tester, const KoraLoadingIndicator());
+    testWidgets(
+      'variante spinner affiche un CircularProgressIndicator Material 3',
+      (tester) async {
+        await pumpKoraWidget(tester, const KoraLoadingIndicator());
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    });
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      },
+    );
 
     testWidgets('la taille du spinner respecte size', (tester) async {
       await pumpKoraWidget(tester, const KoraLoadingIndicator(size: 44));
 
       final box = tester.widget<SizedBox>(
-        find.ancestor(
-          of: find.byType(CircularProgressIndicator),
-          matching: find.byType(SizedBox),
-        ).first,
+        find
+            .ancestor(
+              of: find.byType(CircularProgressIndicator),
+              matching: find.byType(SizedBox),
+            )
+            .first,
       );
       expect(box.width, 44);
       expect(box.height, 44);
     });
 
-    testWidgets('variante skeleton affiche skeletonLines barres', (tester) async {
+    testWidgets('variante skeleton affiche skeletonLines barres', (
+      tester,
+    ) async {
       await pumpKoraWidget(
         tester,
         const SizedBox(

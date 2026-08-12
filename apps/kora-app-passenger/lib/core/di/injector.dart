@@ -58,19 +58,20 @@ Future<void> _registerExternalDependencies() async {
 /// fait le pont entre la config d'environnement ([AppEnv.current]) et le
 /// stockage sécurisé de l'app ([FlutterSecureStorage]).
 void _registerCore() {
-  getIt.registerLazySingleton<NetworkInfo>(
-    () => NetworkInfoImpl(getIt()),
-  );
+  getIt.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl(getIt()));
 
   getIt.registerLazySingleton<DioClient>(
     () => DioClient(
       baseUrl: AppEnv.current.apiBaseUrl,
-      connectTimeout: const Duration(milliseconds: ApiConstants.connectTimeoutMs),
-      receiveTimeout: const Duration(milliseconds: ApiConstants.receiveTimeoutMs),
-      sendTimeout: const Duration(milliseconds: ApiConstants.sendTimeoutMs),
-      getAccessToken: () => getIt<FlutterSecureStorage>().read(
-        key: StorageKeys.accessToken,
+      connectTimeout: const Duration(
+        milliseconds: ApiConstants.connectTimeoutMs,
       ),
+      receiveTimeout: const Duration(
+        milliseconds: ApiConstants.receiveTimeoutMs,
+      ),
+      sendTimeout: const Duration(milliseconds: ApiConstants.sendTimeoutMs),
+      getAccessToken: () =>
+          getIt<FlutterSecureStorage>().read(key: StorageKeys.accessToken),
       // En dev/staging on veut voir les requêtes dans la console ; en
       // prod jamais, même en profile/release "de test" (kDebugMode
       // couvre ce cas, AppEnv.current.enableNetworkLogs le confirme).

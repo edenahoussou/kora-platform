@@ -12,16 +12,26 @@ void main() {
         const KoraInput(label: 'Adresse e-mail', hint: 'toi@exemple.com'),
         surfaceSize: const Size(320, 100),
       );
-      await expectLater(find.byType(KoraInput), matchesGoldenFile('kora_input_default.png'));
+      await expectLater(
+        find.byType(KoraInput),
+        matchesGoldenFile('kora_input_default.png'),
+      );
     });
 
     testWidgets('erreur', (tester) async {
       await pumpKoraWidget(
         tester,
-        const KoraInput(label: 'Mot de passe', obscureText: true, errorText: 'Minimum 8 caractères'),
+        const KoraInput(
+          label: 'Mot de passe',
+          obscureText: true,
+          errorText: 'Minimum 8 caractères',
+        ),
         surfaceSize: const Size(320, 110),
       );
-      await expectLater(find.byType(KoraInput), matchesGoldenFile('kora_input_error.png'));
+      await expectLater(
+        find.byType(KoraInput),
+        matchesGoldenFile('kora_input_error.png'),
+      );
     });
 
     testWidgets('dark theme', (tester) async {
@@ -31,7 +41,10 @@ void main() {
         surfaceSize: const Size(320, 100),
         dark: true,
       );
-      await expectLater(find.byType(KoraInput), matchesGoldenFile('kora_input_dark.png'));
+      await expectLater(
+        find.byType(KoraInput),
+        matchesGoldenFile('kora_input_dark.png'),
+      );
     });
   });
 }

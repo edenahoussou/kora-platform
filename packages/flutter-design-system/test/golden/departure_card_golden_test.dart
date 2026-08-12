@@ -18,7 +18,10 @@ void main() {
         ),
         surfaceSize: const Size(380, 130),
       );
-      await expectLater(find.byType(DepartureCard), matchesGoldenFile('departure_card_default.png'));
+      await expectLater(
+        find.byType(DepartureCard),
+        matchesGoldenFile('departure_card_default.png'),
+      );
     });
 
     testWidgets('sélectionnée', (tester) async {
@@ -34,7 +37,10 @@ void main() {
         ),
         surfaceSize: const Size(380, 130),
       );
-      await expectLater(find.byType(DepartureCard), matchesGoldenFile('departure_card_selected.png'));
+      await expectLater(
+        find.byType(DepartureCard),
+        matchesGoldenFile('departure_card_selected.png'),
+      );
     });
   });
 }

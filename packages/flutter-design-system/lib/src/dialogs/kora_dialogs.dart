@@ -33,12 +33,12 @@ class KoraDialogs {
 
   /// Thème visuel commun à tous les dialogs KORA.
   static ProDialogTheme get _theme => const ProDialogTheme(
-        useGlassmorphism: false,
-        useGradientBackground: false,
-        borderRadius: 20,
-        animationStyle: DialogAnimationStyle.scale,
-        iconAnimationStyle: IconAnimationStyle.bounce,
-      );
+    useGlassmorphism: false,
+    useGradientBackground: false,
+    borderRadius: 20,
+    animationStyle: DialogAnimationStyle.scale,
+    iconAnimationStyle: IconAnimationStyle.bounce,
+  );
 
   static void success(
     BuildContext context, {

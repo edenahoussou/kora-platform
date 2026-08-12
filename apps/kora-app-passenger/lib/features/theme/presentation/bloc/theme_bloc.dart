@@ -33,10 +33,7 @@ class ThemeBloc extends Bloc<ThemeEvent, ThemeState> {
 
   final ThemeRepository _repository;
 
-  Future<void> _onStarted(
-    ThemeStarted event,
-    Emitter<ThemeState> emit,
-  ) async {
+  Future<void> _onStarted(ThemeStarted event, Emitter<ThemeState> emit) async {
     final savedMode = await _repository.getThemeMode();
     emit(state.copyWith(mode: savedMode));
   }
@@ -49,16 +46,14 @@ class ThemeBloc extends Bloc<ThemeEvent, ThemeState> {
     await _repository.setThemeMode(event.mode);
   }
 
-  Future<void> _onToggled(
-    ThemeToggled event,
-    Emitter<ThemeState> emit,
-  ) async {
+  Future<void> _onToggled(ThemeToggled event, Emitter<ThemeState> emit) async {
     // Si on est actuellement en "system", on bascule en fonction de ce que
     // le système affiche réellement, pour que le toggle ait toujours un
     // effet visible et prévisible pour l'utilisateur.
     final brightness =
         WidgetsBinding.instance.platformDispatcher.platformBrightness;
-    final isCurrentlyDark = state.mode == AppThemeMode.dark ||
+    final isCurrentlyDark =
+        state.mode == AppThemeMode.dark ||
         (state.mode == AppThemeMode.system && brightness == Brightness.dark);
 
     final newMode = isCurrentlyDark ? AppThemeMode.light : AppThemeMode.dark;

@@ -16,7 +16,9 @@ void main() {
       expect(find.byType(Badge), findsOneWidget);
     });
 
-    testWidgets('sans count : simple point, aucun texte affiché', (tester) async {
+    testWidgets('sans count : simple point, aucun texte affiché', (
+      tester,
+    ) async {
       await pumpKoraWidget(
         tester,
         const KoraBadge(child: Icon(Icons.notifications_outlined)),
@@ -34,7 +36,9 @@ void main() {
       expect(find.text('3'), findsOneWidget);
     });
 
-    testWidgets('tronque à 999+ au-delà de 999 (comportement Badge.count)', (tester) async {
+    testWidgets('tronque à 999+ au-delà de 999 (comportement Badge.count)', (
+      tester,
+    ) async {
       await pumpKoraWidget(
         tester,
         const KoraBadge(count: 1280, child: Icon(Icons.mail_outline)),
@@ -46,7 +50,11 @@ void main() {
     testWidgets('isVisible=false masque le badge', (tester) async {
       await pumpKoraWidget(
         tester,
-        const KoraBadge(count: 3, isVisible: false, child: Icon(Icons.mail_outline)),
+        const KoraBadge(
+          count: 3,
+          isVisible: false,
+          child: Icon(Icons.mail_outline),
+        ),
       );
 
       final badge = tester.widget<Badge>(find.byType(Badge));

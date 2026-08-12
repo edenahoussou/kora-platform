@@ -1,0 +1,174 @@
+name: CI Flutter
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/kora-app-passenger/**'
+      - 'apps/kora-ops-mobile/**'
+      - 'packages/flutter-design-system/**'
+      - 'packages/flutter-networking/**'
+      - '.github/workflows/ci-flutter.yml'
+  pull_request:
+    paths:
+      - 'apps/kora-app-passenger/**'
+      - 'apps/kora-ops-mobile/**'
+      - 'packages/flutter-design-system/**'
+      - 'packages/flutter-networking/**'
+      - '.github/workflows/ci-flutter.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  # ------------------------------------------------------------------
+  # Packages partagés Flutter (design-system + networking)
+  # ------------------------------------------------------------------
+  packages:
+    name: ${{ matrix.package }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - packages/flutter-design-system
+          - packages/flutter-networking
+    defaults:
+      run:
+        working-directory: ${{ matrix.package }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Check formatting
+        run: |
+          dirs="lib"
+          [ -d test ] && dirs="$dirs test"
+          dart format --set-exit-if-changed $dirs
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: |
+          if [ -d test ]; then
+            flutter test
+          else
+            echo "::notice::Pas de dossier test/ — tests skippe."
+          fi
+
+  # ------------------------------------------------------------------
+  # Application passager (kora-app-passenger)
+  # ------------------------------------------------------------------
+  passenger-app:
+    name: kora-app-passenger
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/kora-app-passenger
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Check formatting
+        run: |
+          dirs="lib"
+          [ -d test ] && dirs="$dirs test"
+          dart format --set-exit-if-changed $dirs
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: |
+          if [ -d test ]; then
+            flutter test
+          else
+            echo "::notice::Pas de dossier test/ — tests skippe."
+          fi
+
+      - name: Build APK (debug) — non-regression
+        run: flutter build apk --debug
+
+  # ------------------------------------------------------------------
+  # Application OPS Mobile (kora-ops-mobile)
+  # L'app Flutter n'est pas encore scaffolded : le job se skip
+  # proprement tant qu'aucun pubspec.yaml n'est present. Des qu'elle
+  # sera generee, le job s'activera automatiquement.
+  # ------------------------------------------------------------------
+  ops-mobile:
+    name: kora-ops-mobile
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/kora-ops-mobile
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check if Flutter app exists
+        id: check
+        run: |
+          if [ -f pubspec.yaml ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::kora-ops-mobile n'a pas encore de pubspec.yaml — job skippe."
+          fi
+
+      - name: Setup Flutter
+        if: steps.check.outputs.exists == 'true'
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        if: steps.check.outputs.exists == 'true'
+        run: flutter pub get
+
+      - name: Check formatting
+        if: steps.check.outputs.exists == 'true'
+        run: |
+          dirs="lib"
+          [ -d test ] && dirs="$dirs test"
+          dart format --set-exit-if-changed $dirs
+
+      - name: Analyze
+        if: steps.check.outputs.exists == 'true'
+        run: flutter analyze
+
+      - name: Test
+        if: steps.check.outputs.exists == 'true'
+        run: |
+          if [ -d test ]; then
+            flutter test
+          else
+            echo "::notice::Pas de dossier test/ — tests skippe."
+          fi
+
+      - name: Build APK (debug) — non-regression
+        if: steps.check.outputs.exists == 'true'
+        run: flutter build apk --debug

@@ -73,10 +73,7 @@ class AppRouter {
     initialLocation: '/home',
     redirect: _redirect,
     routes: [
-      GoRoute(
-        path: loginPath,
-        builder: (context, state) => const LoginPage(),
-      ),
+      GoRoute(path: loginPath, builder: (context, state) => const LoginPage()),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return _ScaffoldWithNavBar(navigationShell: navigationShell);

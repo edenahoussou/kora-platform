@@ -23,7 +23,10 @@ void main() {
         ),
         surfaceSize: const Size(320, 260),
       );
-      await expectLater(find.byType(SeatMap), matchesGoldenFile('seat_map_mixed.png'));
+      await expectLater(
+        find.byType(SeatMap),
+        matchesGoldenFile('seat_map_mixed.png'),
+      );
     });
   });
 }

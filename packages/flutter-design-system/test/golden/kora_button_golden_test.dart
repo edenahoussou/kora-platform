@@ -16,25 +16,42 @@ void main() {
         KoraButton(label: 'Continuer', onPressed: () {}),
         surfaceSize: const Size(300, 100),
       );
-      await expectLater(find.byType(KoraButton), matchesGoldenFile('kora_button_primary.png'));
+      await expectLater(
+        find.byType(KoraButton),
+        matchesGoldenFile('kora_button_primary.png'),
+      );
     });
 
     testWidgets('secondary', (tester) async {
       await pumpKoraWidget(
         tester,
-        KoraButton(label: 'Voir les détails', variant: KoraButtonVariant.secondary, onPressed: () {}),
+        KoraButton(
+          label: 'Voir les détails',
+          variant: KoraButtonVariant.secondary,
+          onPressed: () {},
+        ),
         surfaceSize: const Size(300, 100),
       );
-      await expectLater(find.byType(KoraButton), matchesGoldenFile('kora_button_secondary.png'));
+      await expectLater(
+        find.byType(KoraButton),
+        matchesGoldenFile('kora_button_secondary.png'),
+      );
     });
 
     testWidgets('ghost', (tester) async {
       await pumpKoraWidget(
         tester,
-        KoraButton(label: 'Annuler', variant: KoraButtonVariant.ghost, onPressed: () {}),
+        KoraButton(
+          label: 'Annuler',
+          variant: KoraButtonVariant.ghost,
+          onPressed: () {},
+        ),
         surfaceSize: const Size(300, 100),
       );
-      await expectLater(find.byType(KoraButton), matchesGoldenFile('kora_button_ghost.png'));
+      await expectLater(
+        find.byType(KoraButton),
+        matchesGoldenFile('kora_button_ghost.png'),
+      );
     });
 
     testWidgets('disabled', (tester) async {
@@ -43,7 +60,10 @@ void main() {
         const KoraButton(label: 'Continuer', onPressed: null),
         surfaceSize: const Size(300, 100),
       );
-      await expectLater(find.byType(KoraButton), matchesGoldenFile('kora_button_disabled.png'));
+      await expectLater(
+        find.byType(KoraButton),
+        matchesGoldenFile('kora_button_disabled.png'),
+      );
     });
 
     testWidgets('dark theme', (tester) async {
@@ -53,7 +73,10 @@ void main() {
         surfaceSize: const Size(300, 100),
         dark: true,
       );
-      await expectLater(find.byType(KoraButton), matchesGoldenFile('kora_button_dark.png'));
+      await expectLater(
+        find.byType(KoraButton),
+        matchesGoldenFile('kora_button_dark.png'),
+      );
     });
   });
 }

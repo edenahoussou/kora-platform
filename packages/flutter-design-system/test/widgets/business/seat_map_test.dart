@@ -20,7 +20,9 @@ void main() {
       }
     });
 
-    testWidgets('tap sur un siège disponible déclenche onSeatTap', (tester) async {
+    testWidgets('tap sur un siège disponible déclenche onSeatTap', (
+      tester,
+    ) async {
       KoraSeat? tapped;
       await pumpKoraWidget(
         tester,
@@ -59,17 +61,20 @@ void main() {
       expect(tapped, isNull);
     });
 
-    testWidgets('tap sur un siège déjà sélectionné redéclenche onSeatTap (toggle géré par l\'appelant)', (tester) async {
-      KoraSeat? tapped;
-      await pumpKoraWidget(
-        tester,
-        SeatMap(seats: seats, onSeatTap: (seat) => tapped = seat),
-      );
+    testWidgets(
+      'tap sur un siège déjà sélectionné redéclenche onSeatTap (toggle géré par l\'appelant)',
+      (tester) async {
+        KoraSeat? tapped;
+        await pumpKoraWidget(
+          tester,
+          SeatMap(seats: seats, onSeatTap: (seat) => tapped = seat),
+        );
 
-      await tester.tap(find.text('1C'));
-      await tester.pump();
+        await tester.tap(find.text('1C'));
+        await tester.pump();
 
-      expect(tapped?.label, '1C');
-    });
+        expect(tapped?.label, '1C');
+      },
+    );
   });
 }

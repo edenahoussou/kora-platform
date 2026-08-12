@@ -17,7 +17,10 @@ void main() {
         ),
         surfaceSize: const Size(340, 90),
       );
-      await expectLater(find.byType(PassengerTile), matchesGoldenFile('passenger_tile_default.png'));
+      await expectLater(
+        find.byType(PassengerTile),
+        matchesGoldenFile('passenger_tile_default.png'),
+      );
     });
   });
 }

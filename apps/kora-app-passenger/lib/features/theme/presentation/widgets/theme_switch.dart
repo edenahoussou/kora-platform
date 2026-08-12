@@ -25,7 +25,8 @@ class ThemeSwitch extends StatelessWidget {
       buildWhen: (previous, current) => previous.mode != current.mode,
       builder: (context, state) {
         final brightness = MediaQuery.platformBrightnessOf(context);
-        final isDark = state.mode == AppThemeMode.dark ||
+        final isDark =
+            state.mode == AppThemeMode.dark ||
             (state.mode == AppThemeMode.system &&
                 brightness == Brightness.dark);
 

@@ -60,10 +60,16 @@ class PassengerTile extends StatelessWidget {
                 width: 40,
                 height: 40,
                 alignment: Alignment.center,
-                decoration: const BoxDecoration(color: AppColors.mist, shape: BoxShape.circle),
+                decoration: const BoxDecoration(
+                  color: AppColors.mist,
+                  shape: BoxShape.circle,
+                ),
                 child: Text(
                   initial,
-                  style: const TextStyle(color: AppColors.kora, fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    color: AppColors.kora,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
@@ -74,14 +80,21 @@ class PassengerTile extends StatelessWidget {
                   children: [
                     Text(
                       name,
-                      style: TextStyle(color: koraColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w800),
+                      style: TextStyle(
+                        color: koraColors.textPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                     if (subtitle != null) ...[
                       const SizedBox(height: 3),
                       Text(
                         subtitle!,
-                        style: TextStyle(color: koraColors.textMuted, fontSize: 10),
+                        style: TextStyle(
+                          color: koraColors.textMuted,
+                          fontSize: 10,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],

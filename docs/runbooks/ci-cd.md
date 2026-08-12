@@ -5,7 +5,8 @@ Le pipeline CI/CD est gere par GitHub Actions. Les runners sont heberges par Git
 ## Vue d'ensemble
 
 ```
-PR/push ──► CI (ci.yml)          ──► lint + test + build
+PR/push ──► CI (ci.yml)          ──► lint + test + build (kora-ops-web)
+PR/push ──► CI Flutter (ci-flutter.yml) ──► analyze + test + build (apps + packages)
 merge main ──► Deploy Staging    ──► build image GHCR + deploy VPS:8080
 tag v*    ──► Deploy Production  ──► build image GHCR + backup + deploy VPS:80
 ```
@@ -25,6 +26,32 @@ Declenche sur chaque pull request et push vers `main`. Execute :
 7. Vite build (verification du build frontend)
 
 Si une etape echoue, la PR est bloquee (status check requis sur `main`).
+
+### `ci-flutter.yml` — CI Flutter sur PR et push main
+
+Declenche sur les pull requests et push vers `main` lorsque des fichiers Flutter sont modifies (`apps/kora-app-passenger/`, `apps/kora-ops-mobile/`, `packages/flutter-design-system/`, `packages/flutter-networking/`). Execute en parallele :
+
+**Job `packages` (matrix)** — pour `flutter-design-system` et `flutter-networking` :
+
+1. `flutter pub get`
+2. `dart format --set-exit-if-changed` (verification du formatage)
+3. `flutter analyze` (analyse statique avec `analysis_options.yaml` strict)
+4. `flutter test` (tests unitaires, widget et golden)
+
+**Job `passenger-app`** — pour `kora-app-passenger` :
+
+1. `flutter pub get` (resout aussi les dependances path vers les packages)
+2. `dart format --set-exit-if-changed`
+3. `flutter analyze`
+4. `flutter test`
+5. `flutter build apk --debug` (build de non-regression Android)
+
+**Job `ops-mobile`** — pour `kora-ops-mobile` :
+
+Le job verifie la presence d'un `pubspec.yaml`. Tant que l'app Flutter n'est
+pas scaffolded, le job se skip proprement (notice GitHub Actions). Des qu'elle
+sera generee, le job s'activera automatiquement avec les memes etapes que
+`passenger-app` (pub get, format, analyze, test, build apk debug).
 
 ### `deploy-staging.yml` — Deploiement staging
 
@@ -77,6 +104,31 @@ Note : `GITHUB_TOKEN` est fourni automatiquement par GitHub Actions pour le logi
    npm run build            # Vite
    ```
 4. Corriger, pousser, la CI relance automatiquement
+
+### Deboguer un build Flutter en echec
+
+Reproduire localement :
+
+```bash
+# Packages partages
+cd packages/flutter-design-system   # ou flutter-networking
+flutter pub get
+dart format --set-exit-if-changed lib test
+flutter analyze
+flutter test
+
+# App passager
+cd apps/kora-app-passenger
+flutter pub get
+dart format --set-exit-if-changed lib test
+flutter analyze
+flutter test
+flutter build apk --debug
+```
+
+Note : les golden tests du design-system peuvent echouer sur CI si les polices
+differt. En cas de besoin, regenerer les goldens localement puis committer :
+`flutter test --update-goldens`.
 
 ## Rollback
 

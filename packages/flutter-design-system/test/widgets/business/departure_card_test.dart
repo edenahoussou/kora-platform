@@ -5,7 +5,9 @@ import '../../test_utils.dart';
 
 void main() {
   group('DepartureCard', () {
-    testWidgets('affiche heure, trajet, prix et places disponibles', (tester) async {
+    testWidgets('affiche heure, trajet, prix et places disponibles', (
+      tester,
+    ) async {
       await pumpKoraWidget(
         tester,
         const DepartureCard(
@@ -24,7 +26,9 @@ void main() {
       expect(find.text('12 places'), findsOneWidget);
     });
 
-    testWidgets('masque les places quand seatsAvailable est null', (tester) async {
+    testWidgets('masque les places quand seatsAvailable est null', (
+      tester,
+    ) async {
       await pumpKoraWidget(
         tester,
         const DepartureCard(
