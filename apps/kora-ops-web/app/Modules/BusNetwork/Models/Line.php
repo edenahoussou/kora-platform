@@ -2,15 +2,56 @@
 
 namespace App\Modules\BusNetwork\Models;
 
+use App\Modules\BusNetwork\Data\LineStatus;
+use App\Modules\Departures\Models\Departure;
+use App\Modules\DynamicPricing\Models\Fare;
 use App\Modules\Support\Models\KoraModel;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Line extends KoraModel
 {
     use SoftDeletes;
 
+    protected $fillable = [
+        'uuid',
+        'code',
+        'name',
+        'countries_crossed',
+        'distance_km',
+        'estimated_duration_minutes',
+        'status',
+    ];
+
+    /**
+     * @return HasMany<Stop, $this>
+     */
+    public function stops(): HasMany
+    {
+        return $this->hasMany(Stop::class)->orderBy('stop_order');
+    }
+
+    /**
+     * @return HasMany<Departure, $this>
+     */
+    public function departures(): HasMany
+    {
+        return $this->hasMany(Departure::class);
+    }
+
+    /**
+     * @return HasMany<Fare, $this>
+     */
+    public function fares(): HasMany
+    {
+        return $this->hasMany(Fare::class);
+    }
+
     protected function casts(): array
     {
-        return ['countries_crossed' => 'array'];
+        return [
+            'countries_crossed' => 'array',
+            'status' => LineStatus::class,
+        ];
     }
 }

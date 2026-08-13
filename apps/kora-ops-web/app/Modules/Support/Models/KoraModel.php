@@ -10,8 +10,6 @@ abstract class KoraModel extends Model
 {
     use HasPublicUuid;
 
-    protected $guarded = ['id'];
-
     protected $hidden = ['id'];
 
     protected static function boot(): void
