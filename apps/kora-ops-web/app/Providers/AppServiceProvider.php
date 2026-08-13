@@ -46,6 +46,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerPolicies();
+        $this->configureRateLimiting();
         $this->configureDefaults();
     }
 
@@ -88,5 +89,16 @@ class AppServiceProvider extends ServiceProvider
                 ->uncompromised()
             : null,
         );
+    }
+
+    protected function configureRateLimiting(): void
+    {
+        RateLimiter::for('auth-otp', fn (Request $request) => Limit::perMinute(3)->by(
+            $request->ip().'|'.strtolower((string) $request->input('email')),
+        ));
+
+        RateLimiter::for('auth-login', fn (Request $request) => Limit::perMinute(5)->by(
+            $request->ip().'|'.strtolower((string) $request->input('email')),
+        ));
     }
 }

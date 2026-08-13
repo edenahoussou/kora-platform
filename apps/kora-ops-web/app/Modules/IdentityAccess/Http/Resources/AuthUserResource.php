@@ -1,0 +1,31 @@
+<?php
+
+namespace App\Modules\IdentityAccess\Http\Resources;
+
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+use function Illuminate\Support\enum_value;
+
+/**
+ * @mixin User
+ */
+class AuthUserResource extends JsonResource
+{
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        return [
+            'uuid' => $this->uuid,
+            'name' => $this->name,
+            'email' => $this->email,
+            'phone' => $this->phone,
+            'country_code' => $this->country_code,
+            'status' => enum_value($this->status),
+            'permissions' => $this->getAllPermissions()->pluck('name')->values(),
+        ];
+    }
+}
