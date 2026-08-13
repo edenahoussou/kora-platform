@@ -14,3 +14,17 @@ Groupes d'API initiaux conformes au CDC MVP Bus.
 - `/api/v1/ops/fleet-lite`: kilometrage, carburant, peages, positions et incidents.
 - `/api/v1/fiscalization`: statut fiscal, reprises internes, rapprochement MECeF et consultation autorisee.
 
+## `/api/v1/bus`
+
+Endpoints publics de lecture pour la recherche KORA BUS. Ces routes sont limitees par `throttle:bus-search` et exposent uniquement des UUID ou codes metier.
+
+- `GET /api/v1/bus/cities` : villes desservies derivees des arrets actifs.
+- `GET /api/v1/bus/lines?from=Cotonou&to=Abidjan` : lignes actives, filtrables par segment origine/destination.
+- `GET /api/v1/bus/lines/{line_uuid}` : detail d'une ligne avec arrets ordonnes.
+- `GET /api/v1/bus/departures?date=2026-08-15&from=Cotonou&to=Abidjan` : departs programmes pour une date et un segment.
+- `GET /api/v1/bus/departures/{departure_uuid}` : detail depart avec ligne, bus, segment, disponibilite et apercu tarifaire.
+- `GET /api/v1/bus/departures/{departure_uuid}/seats?origin_stop_uuid=...&destination_stop_uuid=...` : plan des sieges pour un segment.
+
+La disponibilite siege vaut `available`, `occupied` ou `blocked`. Les statuts de reservation bloquants sont `held`, `confirmed`, `paid`, `ticketed` et `boarded`.
+
+`fare_preview` est un apercu du tarif actif; il ne cree pas de devis fige. Le devis serveur fige reste porte par `/api/v1/pricing`.
