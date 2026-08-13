@@ -1,0 +1,84 @@
+:root {
+    --kora: #001d4e;
+    --gold: #f6b000;
+    --digital: #0057b8;
+    --mist: #f4f6f8;
+    --graphite: #111827;
+
+    --background: #ffffff;
+    --foreground: #111827;
+    --card: #ffffff;
+    --card-foreground: #111827;
+    --popover: #ffffff;
+    --popover-foreground: #111827;
+    --primary: #001d4e;
+    --primary-foreground: #ffffff;
+    --secondary: #f4f6f8;
+    --secondary-foreground: #001d4e;
+    --muted: #f4f6f8;
+    --muted-foreground: rgba(17, 24, 39, 0.62);
+    --accent: #f6b000;
+    --accent-foreground: #001d4e;
+    --destructive: #dc2626;
+    --destructive-foreground: #ffffff;
+    --border: rgba(0, 29, 78, 0.1);
+    --input: rgba(0, 29, 78, 0.1);
+    --ring: #f6b000;
+    --chart-1: #001d4e;
+    --chart-2: #0057b8;
+    --chart-3: #f6b000;
+    --chart-4: #111827;
+    --chart-5: #f4f6f8;
+    --radius: 1.125rem;
+    --shadow-kora: 0 18px 45px rgba(0, 29, 78, 0.09);
+    --sidebar: #001d4e;
+    --sidebar-foreground: #ffffff;
+    --sidebar-primary: #f6b000;
+    --sidebar-primary-foreground: #001d4e;
+    --sidebar-accent: rgba(255, 255, 255, 0.09);
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: rgba(255, 255, 255, 0.1);
+    --sidebar-ring: #f6b000;
+}
+
+.dark {
+    --kora: #061839;
+    --gold: #f6b000;
+    --digital: #4f8edc;
+    --mist: #15213a;
+    --graphite: #f4f6f8;
+
+    --background: #0b1224;
+    --foreground: #f4f6f8;
+    --card: #121b30;
+    --card-foreground: #f4f6f8;
+    --popover: #121b30;
+    --popover-foreground: #f4f6f8;
+    --primary: #f6b000;
+    --primary-foreground: #001d4e;
+    --secondary: #1b2842;
+    --secondary-foreground: #f4f6f8;
+    --muted: #1b2842;
+    --muted-foreground: rgba(244, 246, 248, 0.66);
+    --accent: #f6b000;
+    --accent-foreground: #001d4e;
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    --border: rgba(244, 246, 248, 0.12);
+    --input: rgba(244, 246, 248, 0.12);
+    --ring: #f6b000;
+    --chart-1: #f6b000;
+    --chart-2: #4f8edc;
+    --chart-3: #f4f6f8;
+    --chart-4: #7c8ba4;
+    --chart-5: #1b2842;
+    --shadow-kora: 0 22px 55px rgba(1, 8, 24, 0.34);
+    --sidebar: #061839;
+    --sidebar-foreground: #ffffff;
+    --sidebar-primary: #f6b000;
+    --sidebar-primary-foreground: #001d4e;
+    --sidebar-accent: rgba(255, 255, 255, 0.1);
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: rgba(255, 255, 255, 0.12);
+    --sidebar-ring: #f6b000;
+}

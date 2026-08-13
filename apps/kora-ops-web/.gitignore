@@ -8,6 +8,7 @@
 /storage/*.key
 /storage/inertia-devtools
 /storage/pail
+/storybook-static
 /resources/js/actions
 /resources/js/routes
 /resources/js/wayfinder

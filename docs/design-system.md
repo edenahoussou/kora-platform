@@ -1,143 +1,64 @@
-# KORA Design System
+# Design System: KORA OPS Web
 
-Source : maquettes HTML/CSS fournies par le client (voir `docs/maquettes/`).
+## 1. Visual Theme & Atmosphere
 
-## Design Tokens
+KORA OPS Web is a premium operations cockpit for the Bus MVP. The interface is dense enough for repeated professional use, but calm and readable: navy command surfaces, mist backgrounds, crisp white cards, gold as the single action accent, and restrained motion. The product should feel like an operations room, not a marketing landing page.
 
-### Couleurs
+Density: Daily App Balanced 6/10. Variance: Offset Operational 6/10. Motion: Fluid CSS 5/10.
 
-| Token | Valeur | Usage |
-|-------|--------|-------|
-| `--kora` / `--navy` | `#001D4E` | Couleur primaire (fond sombre, texte sur or, sidebar, headers) |
-| `--gold` | `#F6B000` | Couleur secondaire (CTA, accents, badges, focus) |
-| `--white` | `#FFFFFF` | Fond clair, texte sur navy |
-| `--digital` | `#0057B8` | Liens, actions secondaires, focus rings, tendances positives |
-| `--mist` | `#F4F6F8` | Fond neutre, surfaces secondaires, inputs |
-| `--graphite` | `#111827` | Texte principal |
-| `--muted` | `rgba(17, 24, 39, .6)` | Texte secondaire, labels, descriptions |
-| `--line` | `rgba(0, 29, 78, .10)` | Bordures, separateurs |
+## 2. Color Palette & Roles
 
-### Ombres
+- **KORA Navy** (#001D4E) - Primary command color, navigation, main headings, critical surfaces.
+- **KORA Gold** (#F6B000) - Single accent for CTAs, active states, focus rings, selected records.
+- **Digital Blue** (#0057B8) - Informational states, route progress, charts, subtle data emphasis.
+- **Mist Surface** (#F4F6F8) - App background and secondary surfaces.
+- **Graphite Ink** (#111827) - Primary text in light mode.
+- **White Surface** (#FFFFFF) - Cards, tables, dialogs, inputs.
+- **Night Canvas** (#0B1224) - Dark mode background.
+- **Night Surface** (#121B30) - Dark mode cards and popovers.
 
-| Token | Valeur | Usage |
-|-------|--------|-------|
-| `--shadow` | `0 24px 60px rgba(0, 29, 78, .14)` | Cartes, modales (app passenger) |
-| `--shadow` | `0 18px 45px rgba(0, 29, 78, .09)` | Cartes, panels (ops web) |
+No purple or neon palette is allowed. Gold remains the only accent.
 
-### Border-radius
+## 3. Typography Rules
 
-| Token | Valeur | Usage |
-|-------|--------|-------|
-| `--radius` | `18px` | Cards, panels (ops web) |
-| (direct) | `14px` | Boutons, brand lockup |
-| (direct) | `12px` | Inputs, controls, nav items |
-| (direct) | `11px` | Boutons (ops web) |
-| (direct) | `10px` | Avatars, icon badges |
-| (direct) | `9px` | Small buttons |
-| (direct) | `999px` | Pills, meta tags |
+- **Display and Body:** Geist Sans. Use weight, color, and spacing for hierarchy. Avoid oversized headings inside dashboards.
+- **Mono:** Geist Mono for operational numbers, codes, ticket references, timestamps, and compact metadata.
+- **Line length:** Body copy should stay under 65 characters when possible.
+- **Banned:** Inter for new KORA OPS UI, generic serif fonts, pure black (#000000), and negative letter spacing.
 
-### Typographie
+## 4. Component Stylings
 
-**Font principale : Inter** (partout, web + mobile)
+- **Buttons:** shadcn/ui-compatible variants using `class-variance-authority`; primary maps to semantic `primary`, gold action intent maps through tokens, never hardcoded component-level colors.
+- **Cards:** 18px radius by default through `--radius`; use borders and blue-tinted shadows only when hierarchy needs a framed surface.
+- **Inputs:** Label above input, helper/error text below, gold focus ring via `--ring`, light and dark variables required.
+- **Badges:** Compact, readable status indicators; avoid inventing status colors outside semantic variants.
+- **Tables and Lists:** Dense rows, clear borders, primary text plus muted metadata; no raw Eloquent IDs or numeric backend IDs in UI examples.
+- **Loaders:** Skeletons matching the expected layout; no generic circular loading patterns for page sections.
 
-> Note : la maquette app passenger utilise Aptos (font Microsoft 365, proprietaire).
-> Inter est utilisee a la place pour des raisons de licence. Visuellement tres proche.
+## 5. Layout Principles
 
-| Element | Famille | Taille | Poids |
-|---------|---------|--------|-------|
-| H1 (app) | Inter | `clamp(34px, 4vw, 58px)` | 700 |
-| H1 (web) | Inter | `clamp(38px, 4.7vw, 72px)` | 700 |
-| H1 (page) | Inter | `29px` | 700 |
-| H2 (card) | Inter | `34px` | 700 |
-| Body | Inter | `13-17px` | 400 |
-| Label | Inter | `12-13px` | 800 |
-| Caption | Inter | `10-11px` | 750-900 |
-| Eyebrow | Inter | `12px` | 900, letter-spacing `.15em` |
+- Use CSS Grid for dashboards, KPI boards, tables, and multi-column operational layouts.
+- Mobile collapses to one column below 768px; no horizontal scroll.
+- Compose business stories from `resources/js/components/ui/*`; do not create a second component library in Storybook.
+- Keep components compatible with both light and dark mode, even when the client maquette only shows light mode.
+- The MVP is Bus only. Do not add KORA Ride, Wallet, Colis, Driver, payroll, or full accounting screens without a ticket.
 
-**Installation :**
-- Web : `@fontsource/inter` (npm, self-hosted, pas de CDN Google)
-- Flutter : `google_fonts` package (Inter disponible)
+## 6. Motion & Interaction
 
-### Espacements (deduits des maquettes)
+- Animate with transform and opacity only.
+- Use restrained hover elevation and active press feedback.
+- Keep Storybook stories deterministic and performant; avoid CPU-heavy cinematic animation in foundational component stories.
+- When an animated showcase is explicitly requested, include a pre-flight design plan and ensure no text overlap or horizontal overflow.
 
-| Token | Valeur | Usage |
-|-------|--------|-------|
-| `xs` | `8px` | Gaps entre petits elements |
-| `sm` | `12px` | Padding interne, gaps |
-| `md` | `15-17px` | Padding champs, gaps |
-| `lg` | `20-22px` | Padding cards |
-| `xl` | `28-30px` | Padding content |
-| `2xl` | `44-64px` | Padding sections |
+## 7. Anti-Patterns
 
-### Effets
-
-| Token | Valeur | Usage |
-|-------|--------|-------|
-| `--ease` | `cubic-bezier(.2, .8, .2, 1)` | Transitions |
-| Focus ring | `3px solid rgba(0, 87, 184, .3)` | App passenger |
-| Focus ring | `3px solid rgba(246, 176, 0, .55)` | Ops web |
-| Transition | `0.18s` | Boutons hover |
-
-## Composants identifiés dans les maquettes
-
-### Boutons
-
-| Variante | Style | Usage |
-|----------|-------|-------|
-| `.btn-primary` | Fond gold, texte navy, shadow gold | CTA principal |
-| `.btn-navy` | Fond navy, texte blanc | Action secondaire |
-| `.btn-ghost` | Bordure line, fond blanc, texte navy | Action tertiaire |
-| `.btn-full` | Width 100%, min-height 52px | CTA plein largeur |
-| `.panel-action` | Fond gold, texte navy, radius 14px, shadow | CTA hero panel |
-
-### Inputs
-
-| Element | Style |
-|---------|-------|
-| `.control` | Min-height 50px, border 1px line, radius 12px, bg white |
-| `.control:hover/focus` | Border digital |
-| `.field label` | Color navy, 13px, font-weight 800 |
-| `.search` | Height 42px, padding-left 40px (icon), bg mist |
-
-### Cards
-
-| Element | Style |
-|---------|-------|
-| `.kpi` | Padding 19px, border 1px line, radius 18px, bg white, shadow |
-| `.panel` | Padding 20px, border 1px line, radius 18px, bg white, shadow |
-
-### Navigation
-
-| Element | Style |
-|---------|-------|
-| `.sidebar` | Width 264px, bg navy, texte blanc |
-| `.nav-item` | Min-height 43px, radius 11px, hover bg rgba(255,255,255,.09) |
-| `.nav-item.active` | Box-shadow inset 3px gold (left border) |
-| `.nav-icon` | 21x21px, radius 7px, color gold, bg rgba(246,176,0,.1) |
-
-### Badges / Pills
-
-| Element | Style |
-|---------|-------|
-| `.meta-pill` | Padding 7px 10px, radius 999px, border 1px rgba(255,255,255,.17) |
-| `.avatar` | 36x36px, radius 10px, bg gold, color navy, font-weight 900 |
-
-## Correspondance Web ↔ Mobile
-
-Les tokens sont identiques entre les deux maquettes. La seule difference de nommage :
-
-| Web (ops web) | Mobile (app passenger) | Valeur |
-|---------------|------------------------|--------|
-| `--navy` | `--kora` | `#001D4E` |
-| `--gold` | `--gold` | `#F6B000` |
-| `--digital` | `--digital` | `#0057B8` |
-| `--mist` | `--mist` | `#F4F6F8` |
-| `--graphite` | `--graphite` | `#111827` |
-| `--muted` | `--muted` | `rgba(17,24,39,.6)` |
-| `--line` | `--line` | `rgba(0,29,78,.10)` |
-| `--shadow` | `--shadow` | legere variation (web plus doux) |
-| `--radius` | — | `18px` (web seulement) |
-
-## Dark mode
-
-Structure preparee (CSS variables) mais non implementee. Les maquettes du client sont en light mode uniquement. Le dark mode sera ajoute si le client le demande explicitement.
+- No emojis.
+- No Inter in new UI.
+- No pure black.
+- No neon or outer glow effects.
+- No purple/blue AI gradient aesthetic.
+- No generic three-equal-card feature rows.
+- No generic placeholder names such as John Doe or Acme.
+- No fake precision claims such as 99.99%.
+- No AI copywriting cliches such as "Elevate", "Seamless", "Unleash", or "Next-Gen".
+- No raw numeric backend IDs in web/mobile/API-visible examples.
