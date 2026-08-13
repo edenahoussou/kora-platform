@@ -14,3 +14,21 @@ Groupes d'API initiaux conformes au CDC MVP Bus.
 - `/api/v1/ops/fleet-lite`: kilometrage, carburant, peages, positions et incidents.
 - `/api/v1/fiscalization`: statut fiscal, reprises internes, rapprochement MECeF et consultation autorisee.
 
+## Auth MVP
+
+Endpoints publics:
+
+- `POST /api/v1/auth/otp/request`: demande OTP email.
+- `POST /api/v1/auth/otp/verify`: verification OTP et emission d'un jeton de verification court.
+- `POST /api/v1/auth/register/complete`: creation/activation compte par PIN et appareil de confiance.
+- `POST /api/v1/auth/login`: connexion par email + PIN; OTP obligatoire sur nouvel appareil.
+- `POST /api/v1/auth/pin/reset`: reinitialisation PIN apres OTP email.
+
+Endpoints proteges par token Sanctum:
+
+- `GET /api/v1/auth/me`
+- `GET /api/v1/auth/devices`
+- `DELETE /api/v1/auth/devices/{device:uuid}`
+- `POST /api/v1/auth/logout`
+
+Les payloads publics exposent uniquement les UUID et valeurs textuelles. Les codes OTP et PIN sont toujours stockes hashes.
