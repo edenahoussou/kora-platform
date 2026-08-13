@@ -5,16 +5,12 @@ use App\Modules\Departures\Http\Controllers\BusDepartureController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthDeviceController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthOtpController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthSessionController;
+use App\Modules\Support\Http\Controllers\HealthController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
-    Route::get('health', function () {
-        return response()->json([
-            'status' => 'ok',
-            'service' => 'kora-platform',
-            'scope' => 'mvp-bus',
-        ]);
-    })->name('health');
+    Route::get('health', [HealthController::class, 'index'])->name('health');
+    Route::get('health/ping', [HealthController::class, 'ping'])->name('health.ping');
 
     Route::prefix('auth')->name('auth.')->group(function (): void {
         Route::middleware('throttle:auth-otp')->group(function (): void {

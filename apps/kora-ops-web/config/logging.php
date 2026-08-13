@@ -58,6 +58,14 @@ return [
             'ignore_exceptions' => false,
         ],
 
+        // Docker: daily file (rotated, persisted via volume) + stderr so
+        // `docker logs` captures application logs for staging/production.
+        'docker' => [
+            'driver' => 'stack',
+            'channels' => ['daily', 'stderr'],
+            'ignore_exceptions' => false,
+        ],
+
         'single' => [
             'driver' => 'single',
             'path' => storage_path('logs/laravel.log'),
