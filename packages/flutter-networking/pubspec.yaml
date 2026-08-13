@@ -26,3 +26,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+
+  # Mock de Connectivity/HttpClientAdapter dans les tests unitaires — même
+  # librairie que celle déjà utilisée par kora-app-passenger.
+  mocktail: ^1.0.4

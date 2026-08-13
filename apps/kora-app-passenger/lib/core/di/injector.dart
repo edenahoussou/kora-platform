@@ -62,20 +62,22 @@ void _registerCore() {
 
   getIt.registerLazySingleton<DioClient>(
     () => DioClient(
-      baseUrl: AppEnv.current.apiBaseUrl,
-      connectTimeout: const Duration(
-        milliseconds: ApiConstants.connectTimeoutMs,
+      config: NetworkConfig(
+        baseUrl: AppEnv.current.apiBaseUrl,
+        connectTimeout: const Duration(
+          milliseconds: ApiConstants.connectTimeoutMs,
+        ),
+        receiveTimeout: const Duration(
+          milliseconds: ApiConstants.receiveTimeoutMs,
+        ),
+        sendTimeout: const Duration(milliseconds: ApiConstants.sendTimeoutMs),
+        // En dev/staging on veut voir les requêtes dans la console ; en
+        // prod jamais, même en profile/release "de test" (kDebugMode
+        // couvre ce cas, AppEnv.current.enableNetworkLogs le confirme).
+        enableLogging: kDebugMode && AppEnv.current.enableNetworkLogs,
       ),
-      receiveTimeout: const Duration(
-        milliseconds: ApiConstants.receiveTimeoutMs,
-      ),
-      sendTimeout: const Duration(milliseconds: ApiConstants.sendTimeoutMs),
       getAccessToken: () =>
           getIt<FlutterSecureStorage>().read(key: StorageKeys.accessToken),
-      // En dev/staging on veut voir les requêtes dans la console ; en
-      // prod jamais, même en profile/release "de test" (kDebugMode
-      // couvre ce cas, AppEnv.current.enableNetworkLogs le confirme).
-      enableLogging: kDebugMode && AppEnv.current.enableNetworkLogs,
     ),
   );
 
