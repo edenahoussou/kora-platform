@@ -9,10 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
-import type { Auth } from '@/types';
+import type { AuthenticatedAuth } from '@/types';
 
 type PageProps = {
-    auth: Auth;
+    auth: AuthenticatedAuth;
 };
 
 export default function Profile({

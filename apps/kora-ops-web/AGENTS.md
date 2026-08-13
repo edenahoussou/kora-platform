@@ -27,6 +27,10 @@ Docker remains available for team parity with `docker compose up -d kora-ops-web
 
 Use Laravel conventions, PSR-4 namespaces, and 4-space PHP indentation. Keep controllers short: receive the request, call a service, and return JSON or an Inertia response. Put validation in `FormRequest`, orchestration in `Services`, atomic business behavior in `Actions`, and authorization in `Policies` or `Gates`. Use TypeScript React function components, Tailwind CSS, ESLint, and Prettier for UI work. Preserve KORA vocabulary from `../../CONTEXT.md`.
 
+## Public Identifiers & Serialization
+
+Numeric `id` values are internal backend identifiers only. Backend services, actions, policies, jobs, Eloquent relationships, and foreign keys may use numeric IDs freely, but web/mobile/API surfaces must expose `uuid` or domain codes instead. Do not return raw Eloquent business models to Inertia or JSON responses. Use explicit Inertia props for KORA OPS Web and `JsonResource` or DTO responses for REST/mobile APIs; keep model `$hidden = ['id']` only as a safety net.
+
 ## Testing Guidelines
 
 Pest is the backend test framework. Name feature tests after user-visible behavior, for example `BookingSeatHoldTest.php`. Add focused tests for reservations, payments, tickets, seat inventory, fiscalization, cash, boarding, and API contracts. Run a targeted test with `php artisan test tests/Feature/ApiHealthTest.php`; run the full gate with `composer test`.
