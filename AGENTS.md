@@ -28,6 +28,8 @@ npm run build
 
 This repository has no established Git history yet. Use concise conventional-style commits, for example `feat: scaffold bus booking module` or `fix: correct pgsql health check`. Pull requests should include scope, linked client requirement or ticket, migration notes, test results, and screenshots for UI changes.
 
+Before pushing a branch or merging a pull request, run the relevant local gate and confirm the equivalent GitHub Actions checks are green. For KORA OPS Web changes, run at minimum `composer test`, `npm run build`, and when the production image or deploy pipeline may be affected, `docker build -f infra/docker/kora-ops-web/Dockerfile.prod -t kora-ops-web:local-check .` from the repository root. Do not merge based only on a PR check if the post-merge `main` deployment workflow is failing.
+
 ## CI/CD
 
 The pipeline runs on GitHub Actions. Workflows live in `.github/workflows/`:

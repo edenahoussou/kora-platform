@@ -12,6 +12,7 @@ RUN apt-get update \
     git \
     && docker-php-ext-install \
     bcmath \
+    exif \
     intl \
     opcache \
     pdo_pgsql \
