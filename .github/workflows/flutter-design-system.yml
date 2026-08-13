@@ -11,12 +11,11 @@ on:
     paths:
       - 'packages/flutter-design-system/**'
       - '.github/workflows/flutter-design-system.yml'
-  # Outil manuel : régénère les goldens directement sur l'environnement CI
-  # (ubuntu-latest) plutôt que sur une machine de dev locale — évite les
-  # écarts de rendu entre OS/version Flutter qui font échouer les golden
-  # tests sur des changements pourtant corrects. À lancer depuis l'onglet
-  # Actions ("Run workflow") après un changement visuel, puis télécharger
-  # l'artefact `regenerated-goldens` et l'extraire dans test/golden/.
+  # Déclenchement manuel additionnel — voir le job `regenerate-goldens-
+  # artifact` ci-dessous pour la vraie voie d'accès (celle-ci n'apparaît
+  # dans l'onglet Actions qu'une fois ce fichier présent sur la branche
+  # par défaut, limitation GitHub ; inutile tant que cette branche n'est
+  # pas mergée).
   workflow_dispatch: {}
 
 permissions:
@@ -82,10 +81,16 @@ jobs:
           path: packages/flutter-design-system/build/web
           retention-days: 30
 
-  # Ne tourne que sur déclenchement manuel (voir le commentaire sur
-  # `workflow_dispatch` en haut du fichier) — jamais sur push/PR.
-  update-goldens:
-    if: github.event_name == 'workflow_dispatch'
+  # Tourne systématiquement sur push/PR (`always()`, même si
+  # analyze-and-test échoue), pas seulement sur workflow_dispatch : c'est
+  # la voie d'accès qui marche réellement tant que cette branche n'est
+  # pas mergée (voir la note sur `workflow_dispatch` en haut du fichier).
+  # Télécharger l'artefact `regenerated-goldens` de cette run et
+  # l'extraire dans test/golden/ pour obtenir des goldens qui matchent
+  # le rendu réel du runner CI.
+  regenerate-goldens-artifact:
+    needs: analyze-and-test
+    if: always()
     runs-on: ubuntu-latest
     defaults:
       run:
