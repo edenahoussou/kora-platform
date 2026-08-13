@@ -1,11 +1,31 @@
 <?php
 
-use Knuckles\Scribe\Config\AuthIn;
-use Knuckles\Scribe\Config\Defaults;
-use Knuckles\Scribe\Extracting\Strategies;
+$scribeDefaults = class_exists(\Knuckles\Scribe\Config\Defaults::class);
+$scribeAuthIn = class_exists(\Knuckles\Scribe\Config\AuthIn::class)
+    ? \Knuckles\Scribe\Config\AuthIn::BEARER->value
+    : 'bearer';
+$scribeHeaderStrategies = class_exists(\Knuckles\Scribe\Extracting\Strategies\StaticData::class)
+    ? [
+        \Knuckles\Scribe\Extracting\Strategies\StaticData::withSettings(data: [
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+        ]),
+    ]
+    : [];
+$scribeResponseStrategies = $scribeDefaults
+    ? \Knuckles\Scribe\Config\Defaults::RESPONSES_STRATEGIES
+    : [];
 
-use function Knuckles\Scribe\Config\configureStrategy;
-use function Knuckles\Scribe\Config\removeStrategies;
+if (
+    $scribeResponseStrategies !== []
+    && class_exists(\Knuckles\Scribe\Extracting\Strategies\Responses\ResponseCalls::class)
+    && function_exists('Knuckles\Scribe\Config\removeStrategies')
+) {
+    $scribeResponseStrategies = \Knuckles\Scribe\Config\removeStrategies(
+        $scribeResponseStrategies,
+        [\Knuckles\Scribe\Extracting\Strategies\Responses\ResponseCalls::class],
+    );
+}
 
 // Only the most common configs are shown. See the https://scribe.knuckles.wtf/laravel/reference/config for all.
 
@@ -111,7 +131,7 @@ return [
         'default' => false,
 
         // Where is the auth value meant to be sent in a request?
-        'in' => AuthIn::BEARER->value,
+        'in' => $scribeAuthIn,
 
         // The name of the auth parameter (e.g. token, key, apiKey) or header (e.g. Authorization, Api-Key).
         'name' => 'key',
@@ -213,30 +233,24 @@ return [
     // Use removeStrategies() to remove an included strategy.
     'strategies' => [
         'metadata' => [
-            ...Defaults::METADATA_STRATEGIES,
+            ...($scribeDefaults ? \Knuckles\Scribe\Config\Defaults::METADATA_STRATEGIES : []),
         ],
         'headers' => [
-            ...Defaults::HEADERS_STRATEGIES,
-            Strategies\StaticData::withSettings(data: [
-                'Content-Type' => 'application/json',
-                'Accept' => 'application/json',
-            ]),
+            ...($scribeDefaults ? \Knuckles\Scribe\Config\Defaults::HEADERS_STRATEGIES : []),
+            ...$scribeHeaderStrategies,
         ],
         'urlParameters' => [
-            ...Defaults::URL_PARAMETERS_STRATEGIES,
+            ...($scribeDefaults ? \Knuckles\Scribe\Config\Defaults::URL_PARAMETERS_STRATEGIES : []),
         ],
         'queryParameters' => [
-            ...Defaults::QUERY_PARAMETERS_STRATEGIES,
+            ...($scribeDefaults ? \Knuckles\Scribe\Config\Defaults::QUERY_PARAMETERS_STRATEGIES : []),
         ],
         'bodyParameters' => [
-            ...Defaults::BODY_PARAMETERS_STRATEGIES,
+            ...($scribeDefaults ? \Knuckles\Scribe\Config\Defaults::BODY_PARAMETERS_STRATEGIES : []),
         ],
-        'responses' => removeStrategies(
-            Defaults::RESPONSES_STRATEGIES,
-            [Strategies\Responses\ResponseCalls::class],
-        ),
+        'responses' => $scribeResponseStrategies,
         'responseFields' => [
-            ...Defaults::RESPONSE_FIELDS_STRATEGIES,
+            ...($scribeDefaults ? \Knuckles\Scribe\Config\Defaults::RESPONSE_FIELDS_STRATEGIES : []),
         ],
     ],
 
