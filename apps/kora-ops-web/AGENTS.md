@@ -14,6 +14,8 @@ npm install               # install frontend dependencies
 composer dev              # start Laravel/Vite development workflow
 php artisan migrate       # apply local PostgreSQL migrations
 composer test             # run Pint, PHPStan, and Pest
+composer test:db          # run focused KORA BUS DB tests on fast SQLite
+composer test:pgsql       # run focused KORA BUS DB tests on a temporary PostgreSQL database
 npm run lint:check        # check frontend lint rules
 npm run types:check       # check TypeScript types
 npm run build             # build production frontend assets
@@ -28,6 +30,14 @@ Use Laravel conventions, PSR-4 namespaces, and 4-space PHP indentation. Keep con
 ## Testing Guidelines
 
 Pest is the backend test framework. Name feature tests after user-visible behavior, for example `BookingSeatHoldTest.php`. Add focused tests for reservations, payments, tickets, seat inventory, fiscalization, cash, boarding, and API contracts. Run a targeted test with `php artisan test tests/Feature/ApiHealthTest.php`; run the full gate with `composer test`.
+
+`composer test` intentionally uses SQLite in memory for fast feedback. PostgreSQL-specific invariants, especially KORA BUS seat segment exclusion constraints and migration/seed compatibility, must also be validated with `composer test:pgsql`. Provide the local password through `KORA_TEST_DB_PASSWORD`; do not commit it.
+
+```bash
+KORA_TEST_DB_PASSWORD='local-password' composer test:pgsql
+```
+
+The PostgreSQL workflow creates a temporary `kora_test_*` database, runs migrations and seeders, executes `tests/Feature/KoraBus`, and drops the temporary database on exit. The `kora` PostgreSQL role needs the `CREATEDB` attribute. When running inside Docker, set `KORA_TEST_DB_HOST=postgres`.
 
 ## Configuration & Security
 
