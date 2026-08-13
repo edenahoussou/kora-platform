@@ -62,13 +62,17 @@ Exemple de reponse saine :
 ## Domaine staging + SSL/TLS (Let's Encrypt)
 
 L'API et l'OPS Web vivent dans la meme application Laravel (UI Inertia sous `/`
-et REST API sous `/api/v1/*`). Un seul domaine staging suffit :
+et REST API sous `/api/v1/*`). Un seul domaine staging suffit.
 
-- UI OPS : `https://app-staging.korabus.mezagency.fr/dashboard`
-- API    : `https://app-staging.korabus.mezagency.fr/api/v1/health`
+> `app-staging.<domaine-final>` est un placeholder : remplacer par le domaine
+> choisi quand il sera fixe. Le sous-domaine `app-staging` encode
+> l'environnement, le domaine racine encode le produit.
+
+- UI OPS : `https://app-staging.<domaine-final>/dashboard`
+- API    : `https://app-staging.<domaine-final>/api/v1/health`
 
 Le staging est exposé en HTTP sur le port `8080` du VPS. Pour le domaine
-`app-staging.korabus.mezagency.fr` avec un certificat Let's Encrypt, on utilise
+`app-staging.<domaine-final>` avec un certificat Let's Encrypt, on utilise
 un reverse proxy Nginx host + certbot sur le VPS (en dehors des conteneurs).
 
 ### 1. DNS
@@ -76,7 +80,7 @@ un reverse proxy Nginx host + certbot sur le VPS (en dehors des conteneurs).
 Pointer un enregistrement A vers l'IP du VPS :
 
 ```
-app-staging.korabus.mezagency.fr.  IN  A  51.255.196.129
+app-staging.<domaine-final>.  IN  A  51.255.196.129
 ```
 
 ### 2. Nginx host (reverse proxy vers le conteneur)
@@ -86,7 +90,7 @@ Installer Nginx sur le VPS puis créer `/etc/nginx/sites-available/kora-staging`
 ```nginx
 server {
     listen 80;
-    server_name app-staging.korabus.mezagency.fr;
+    server_name app-staging.<domaine-final>;
 
     location / {
         proxy_pass http://127.0.0.1:8080;
@@ -107,7 +111,7 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ```bash
 sudo apt-get install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d app-staging.korabus.mezagency.fr --redirect
+sudo certbot --nginx -d app-staging.<domaine-final> --redirect
 ```
 
 certbot genere le certificat et modifie le vhost pour HTTPS avec renouvellement
@@ -117,13 +121,13 @@ automatique (`systemctl list-timers | grep certbot`).
 
 ```bash
 # UI OPS
-curl -sS -o /dev/null -w "HTTP %{http_code}" https://app-staging.korabus.mezagency.fr/dashboard
+curl -sS -o /dev/null -w "HTTP %{http_code}" https://app-staging.<domaine-final>/dashboard
 
 # API health (statut complet)
-curl -sS https://app-staging.korabus.mezagency.fr/api/v1/health | jq
+curl -sS https://app-staging.<domaine-final>/api/v1/health | jq
 
 # API ping (load balancer, doit renvoyer 204)
-curl -sS -o /dev/null -w "HTTP %{http_code}" https://app-staging.korabus.mezagency.fr/api/v1/health/ping
+curl -sS -o /dev/null -w "HTTP %{http_code}" https://app-staging.<domaine-final>/api/v1/health/ping
 ```
 
 ## Deploiement production manuel
