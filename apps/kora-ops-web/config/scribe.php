@@ -1,29 +1,34 @@
 <?php
 
-$scribeDefaults = class_exists(\Knuckles\Scribe\Config\Defaults::class);
-$scribeAuthIn = class_exists(\Knuckles\Scribe\Config\AuthIn::class)
-    ? \Knuckles\Scribe\Config\AuthIn::BEARER->value
+use Knuckles\Scribe\Config\AuthIn;
+use Knuckles\Scribe\Config\Defaults;
+use Knuckles\Scribe\Extracting\Strategies\Responses\ResponseCalls;
+use Knuckles\Scribe\Extracting\Strategies\StaticData;
+
+$scribeDefaults = class_exists(Defaults::class);
+$scribeAuthIn = class_exists(AuthIn::class)
+    ? AuthIn::BEARER->value
     : 'bearer';
-$scribeHeaderStrategies = class_exists(\Knuckles\Scribe\Extracting\Strategies\StaticData::class)
+$scribeHeaderStrategies = class_exists(StaticData::class)
     ? [
-        \Knuckles\Scribe\Extracting\Strategies\StaticData::withSettings(data: [
+        StaticData::withSettings(data: [
             'Content-Type' => 'application/json',
             'Accept' => 'application/json',
         ]),
     ]
     : [];
 $scribeResponseStrategies = $scribeDefaults
-    ? \Knuckles\Scribe\Config\Defaults::RESPONSES_STRATEGIES
+    ? Defaults::RESPONSES_STRATEGIES
     : [];
 
 if (
     $scribeResponseStrategies !== []
-    && class_exists(\Knuckles\Scribe\Extracting\Strategies\Responses\ResponseCalls::class)
+    && class_exists(ResponseCalls::class)
     && function_exists('Knuckles\Scribe\Config\removeStrategies')
 ) {
     $scribeResponseStrategies = \Knuckles\Scribe\Config\removeStrategies(
         $scribeResponseStrategies,
-        [\Knuckles\Scribe\Extracting\Strategies\Responses\ResponseCalls::class],
+        [ResponseCalls::class],
     );
 }
 
@@ -233,24 +238,24 @@ return [
     // Use removeStrategies() to remove an included strategy.
     'strategies' => [
         'metadata' => [
-            ...($scribeDefaults ? \Knuckles\Scribe\Config\Defaults::METADATA_STRATEGIES : []),
+            ...($scribeDefaults ? Defaults::METADATA_STRATEGIES : []),
         ],
         'headers' => [
-            ...($scribeDefaults ? \Knuckles\Scribe\Config\Defaults::HEADERS_STRATEGIES : []),
+            ...($scribeDefaults ? Defaults::HEADERS_STRATEGIES : []),
             ...$scribeHeaderStrategies,
         ],
         'urlParameters' => [
-            ...($scribeDefaults ? \Knuckles\Scribe\Config\Defaults::URL_PARAMETERS_STRATEGIES : []),
+            ...($scribeDefaults ? Defaults::URL_PARAMETERS_STRATEGIES : []),
         ],
         'queryParameters' => [
-            ...($scribeDefaults ? \Knuckles\Scribe\Config\Defaults::QUERY_PARAMETERS_STRATEGIES : []),
+            ...($scribeDefaults ? Defaults::QUERY_PARAMETERS_STRATEGIES : []),
         ],
         'bodyParameters' => [
-            ...($scribeDefaults ? \Knuckles\Scribe\Config\Defaults::BODY_PARAMETERS_STRATEGIES : []),
+            ...($scribeDefaults ? Defaults::BODY_PARAMETERS_STRATEGIES : []),
         ],
         'responses' => $scribeResponseStrategies,
         'responseFields' => [
-            ...($scribeDefaults ? \Knuckles\Scribe\Config\Defaults::RESPONSE_FIELDS_STRATEGIES : []),
+            ...($scribeDefaults ? Defaults::RESPONSE_FIELDS_STRATEGIES : []),
         ],
     ],
 
