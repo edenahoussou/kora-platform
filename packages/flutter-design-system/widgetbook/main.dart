@@ -43,10 +43,7 @@ class KoraWidgetbookApp extends StatelessWidget {
             WidgetbookTheme(name: 'Sombre', data: AppTheme.dark),
           ],
         ),
-        ViewportAddon([
-          ...IosViewports.phones,
-          ...AndroidViewports.phones,
-        ]),
+        ViewportAddon([...IosViewports.phones, ...AndroidViewports.phones]),
         AlignmentAddon(),
       ],
     );

@@ -9,8 +9,8 @@
 ///
 /// **Source de vérité pour la parité web** : chaque token ci-dessous a
 /// été extrait (et vérifié) contre deux prototypes du monorepo :
-/// - `KORA/design/css/style.css` — prototype passager (`:root`, L1-11)
-/// - `KORA/design_web/kora-ops-web/css/style.css` — OPS web, en
+/// - `docs/maquettes/kora-app-passenger/css/style.css` — prototype passager (`:root`, L1-11)
+/// - `docs/maquettes/kora-ops-web/css/style.css` — OPS web, en
 ///   particulier le bloc `/* Fondations KORA partagées */` (L41-43), qui
 ///   est la trace la plus proche d'un jeu de tokens formellement déclaré
 ///   côté web.

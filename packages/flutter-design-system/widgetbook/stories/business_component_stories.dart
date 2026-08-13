@@ -16,10 +16,12 @@ final businessComponentStories = WidgetbookFolder(
           name: 'Par défaut',
           builder: (context) => StoryScaffold(
             child: DepartureCard(
-              departureTime: '14:30',
+              departureTime: '07:30',
+              arrivalTime: '17:15',
               origin: 'Cotonou',
-              destination: 'Porto-Novo',
-              price: '2 500 FCFA',
+              destination: 'Malanville',
+              duration: '≈ 9 h 45',
+              price: '12 500 FCFA',
               seatsAvailable: 12,
               onTap: () {},
             ),
@@ -29,13 +31,29 @@ final businessComponentStories = WidgetbookFolder(
           name: 'Sélectionnée',
           builder: (context) => StoryScaffold(
             child: DepartureCard(
-              departureTime: '14:30',
+              departureTime: '07:30',
+              arrivalTime: '17:15',
               origin: 'Cotonou',
-              destination: 'Porto-Novo',
-              price: '2 500 FCFA',
+              destination: 'Malanville',
+              duration: '≈ 9 h 45',
+              price: '12 500 FCFA',
               seatsAvailable: 12,
               isSelected: true,
               onTap: () {},
+            ),
+          ),
+        ),
+        WidgetbookUseCase(
+          name: 'Complet',
+          builder: (context) => const StoryScaffold(
+            child: DepartureCard(
+              departureTime: '22:30',
+              arrivalTime: '08:15',
+              origin: 'Cotonou',
+              destination: 'Malanville',
+              duration: '≈ 9 h 45',
+              price: '12 500 FCFA',
+              isSoldOut: true,
             ),
           ),
         ),
@@ -44,44 +62,73 @@ final businessComponentStories = WidgetbookFolder(
           builder: (context) => StoryScaffold(
             child: DepartureCard(
               departureTime: '09:15',
+              arrivalTime: '09:52',
               origin: 'Abidjan',
               destination: 'Yamoussoukro',
+              duration: '≈ 37 min',
               price: '8 000 FCFA',
               onTap: () {},
             ),
           ),
         ),
+        // Reproduit l'écran "results" du prototype (`js/app.js`, L531-543) :
+        // 3 départs disponibles + un segment complet dans la même liste.
         WidgetbookUseCase(
-          name: 'Liste',
+          name: '3 départs disponibles (écran résultats)',
           builder: (context) => StoryScaffold(
             child: Column(
               children: [
                 DepartureCard(
-                  departureTime: '08:00',
+                  departureTime: '07:30',
+                  arrivalTime: '17:15',
                   origin: 'Cotonou',
-                  destination: 'Lomé',
-                  price: '5 000 FCFA',
-                  seatsAvailable: 4,
-                  onTap: () {},
-                ),
-                const SizedBox(height: KoraSpacing.md),
-                DepartureCard(
-                  departureTime: '14:30',
-                  origin: 'Cotonou',
-                  destination: 'Lomé',
-                  price: '5 000 FCFA',
+                  destination: 'Malanville',
+                  duration: '≈ 9 h 45',
+                  price: '12 500 FCFA',
                   seatsAvailable: 12,
-                  isSelected: true,
                   onTap: () {},
                 ),
                 const SizedBox(height: KoraSpacing.md),
                 DepartureCard(
-                  departureTime: '19:45',
+                  departureTime: '09:00',
+                  arrivalTime: '18:55',
                   origin: 'Cotonou',
-                  destination: 'Lomé',
-                  price: '5 500 FCFA',
-                  seatsAvailable: 1,
+                  destination: 'Malanville',
+                  duration: '≈ 9 h 55',
+                  price: '12 500 FCFA',
+                  seatsAvailable: 5,
                   onTap: () {},
+                ),
+                const SizedBox(height: KoraSpacing.md),
+                DepartureCard(
+                  departureTime: '20:00',
+                  arrivalTime: '05:45',
+                  origin: 'Cotonou',
+                  destination: 'Malanville',
+                  duration: '≈ 9 h 45',
+                  price: '14 500 FCFA',
+                  seatsAvailable: 22,
+                  onTap: () {},
+                ),
+                const SizedBox(height: KoraSpacing.md),
+                ConnectionResultCard(
+                  departureTime: '06:45',
+                  arrivalTime: '17:40',
+                  routeLabel: 'Cotonou → Bohicon → Natitingou',
+                  noteLabel: 'Changement de bus à Bohicon · attente 35 min',
+                  segmentsLabel: '2 segments inclus',
+                  price: '14 500 FCFA',
+                  onTap: () {},
+                ),
+                const SizedBox(height: KoraSpacing.md),
+                const DepartureCard(
+                  departureTime: '22:30',
+                  arrivalTime: '08:15',
+                  origin: 'Cotonou',
+                  destination: 'Malanville',
+                  duration: '≈ 9 h 45',
+                  price: '12 500 FCFA',
+                  isSoldOut: true,
                 ),
               ],
             ),
@@ -90,24 +137,67 @@ final businessComponentStories = WidgetbookFolder(
       ],
     ),
     WidgetbookComponent(
-      name: 'SeatMap',
+      name: 'ConnectionResultCard',
       useCases: [
         WidgetbookUseCase(
-          name: 'Places mixtes',
+          name: 'Par défaut',
+          builder: (context) => StoryScaffold(
+            child: ConnectionResultCard(
+              departureTime: '06:45',
+              arrivalTime: '17:40',
+              routeLabel: 'Cotonou → Bohicon → Natitingou',
+              noteLabel: 'Changement de bus à Bohicon · attente 35 min',
+              segmentsLabel: '2 segments inclus',
+              price: '14 500 FCFA',
+              onTap: () {},
+            ),
+          ),
+        ),
+        WidgetbookUseCase(
+          name: 'Deux correspondances',
+          builder: (context) => StoryScaffold(
+            child: ConnectionResultCard(
+              departureTime: '05:30',
+              arrivalTime: '20:10',
+              routeLabel: 'Cotonou → Bohicon → Parakou → Kandi',
+              noteLabel:
+                  'Changements à Bohicon et Parakou · attente totale 55 min',
+              segmentsLabel: '3 segments inclus',
+              price: '17 000 FCFA',
+              connectionsLabel: '2 correspondances',
+              onTap: () {},
+            ),
+          ),
+        ),
+      ],
+    ),
+    WidgetbookComponent(
+      name: 'SeatMap',
+      useCases: [
+        // Reproduit la logique de génération de l'écran `seats` du
+        // prototype (`js/app.js`, L1660) : rangée 1 entièrement bloquée,
+        // sièges payés/embarqués/réservés dispersés sur les autres
+        // rangées — les 6 états sont ainsi tous représentés.
+        WidgetbookUseCase(
+          name: 'Places mixtes (6 états)',
           builder: (context) => StoryScaffold(
             child: SeatMap(
               seats: const [
-                KoraSeat(label: '1A'),
-                KoraSeat(label: '1B', status: KoraSeatStatus.occupied),
-                KoraSeat(label: '1C', status: KoraSeatStatus.occupied),
-                KoraSeat(label: '1D'),
-                KoraSeat(label: '2A', status: KoraSeatStatus.selected),
-                KoraSeat(label: '2B'),
-                KoraSeat(label: '2C'),
-                KoraSeat(label: '2D', status: KoraSeatStatus.disabled),
-                KoraSeat(label: '3A'),
+                KoraSeat(label: '1A', status: KoraSeatStatus.blocked),
+                KoraSeat(label: '1B', status: KoraSeatStatus.blocked),
+                KoraSeat(label: '1C', status: KoraSeatStatus.blocked),
+                KoraSeat(label: '1D', status: KoraSeatStatus.blocked),
+                KoraSeat(label: '2A'),
+                KoraSeat(label: '2B', status: KoraSeatStatus.selected),
+                KoraSeat(
+                  label: '2C',
+                  status: KoraSeatStatus.held,
+                  timerLabel: '06:18',
+                ),
+                KoraSeat(label: '2D'),
+                KoraSeat(label: '3A', status: KoraSeatStatus.paid),
                 KoraSeat(label: '3B'),
-                KoraSeat(label: '3C', status: KoraSeatStatus.occupied),
+                KoraSeat(label: '3C', status: KoraSeatStatus.embarked),
                 KoraSeat(label: '3D'),
               ],
               onSeatTap: (seat) {},
@@ -118,20 +208,23 @@ final businessComponentStories = WidgetbookFolder(
           name: 'Toutes disponibles',
           builder: (context) => StoryScaffold(
             child: SeatMap(
-              seats: List.generate(12, (i) => KoraSeat(label: '${(i ~/ 4) + 1}${'ABCD'[i % 4]}')),
+              seats: List.generate(
+                12,
+                (i) => KoraSeat(label: '${(i ~/ 4) + 1}${'ABCD'[i % 4]}'),
+              ),
               onSeatTap: (seat) {},
             ),
           ),
         ),
         WidgetbookUseCase(
-          name: 'Bus complet',
+          name: 'Bus complet (payé)',
           builder: (context) => StoryScaffold(
             child: SeatMap(
               seats: List.generate(
                 12,
                 (i) => KoraSeat(
                   label: '${(i ~/ 4) + 1}${'ABCD'[i % 4]}',
-                  status: KoraSeatStatus.occupied,
+                  status: KoraSeatStatus.paid,
                 ),
               ),
             ),
@@ -208,16 +301,35 @@ final businessComponentStories = WidgetbookFolder(
       name: 'TicketView',
       useCases: [
         WidgetbookUseCase(
-          name: 'Par défaut',
+          name: 'Confirmé',
           builder: (context) => const StoryScaffold(
             child: TicketView(
-              passengerName: 'Awa Kouassi',
+              passengerName: 'A. HOUNKPÈ',
+              originCode: 'CTN',
               origin: 'Cotonou',
-              destination: 'Porto-Novo',
-              departureTime: '14:30',
-              date: '12 Août 2026',
-              seatLabel: '12A',
-              ticketCode: 'KRA-284910',
+              destinationCode: 'MLV',
+              destination: 'Malanville',
+              date: '04 AOÛ',
+              departureTime: '07:30',
+              seatLabel: '4A',
+              ticketCode: 'KE-20260804-78342',
+            ),
+          ),
+        ),
+        WidgetbookUseCase(
+          name: 'Annulé',
+          builder: (context) => const StoryScaffold(
+            child: TicketView(
+              passengerName: 'A. HOUNKPÈ',
+              originCode: 'CTN',
+              origin: 'Cotonou',
+              destinationCode: 'MLV',
+              destination: 'Malanville',
+              date: '04 AOÛ',
+              departureTime: '07:30',
+              seatLabel: '4A',
+              ticketCode: 'KE-20260804-78342',
+              isCancelled: true,
             ),
           ),
         ),

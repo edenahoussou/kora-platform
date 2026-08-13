@@ -3,7 +3,7 @@ description: >
   Design system KORA EXPRESS partagé entre toutes les apps Flutter du
   monorepo (couleurs, typographie, thème clair/sombre, icônes vectorielles,
   composants Kora* et dialogs). Source de vérité visuelle : le prototype
-  HTML de référence dans `KORA/design/`.
+  HTML de référence dans `docs/maquettes/`.
 publish_to: 'none'
 
 version: 1.0.0
@@ -50,3 +50,9 @@ flutter:
   assets:
     - assets/icons/nav/
     - assets/icons/vehicles/
+    # Logo KORA Express (TicketView) — copie recadrée + ré-encodée de
+    # `apps/kora-app-passenger/assets/images/kora_logo.png` (source
+    # réelle de l'app passager). Voir la note dans
+    # lib/src/widgets/business/ticket_view.dart pour le détail du
+    # recadrage et du ré-encodage.
+    - assets/brand/

@@ -130,23 +130,32 @@ class AppTheme {
 
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
+        // CSS de référence (`.field-control`) : fond BLANC, pas gris — un
+        // fond `mist` serait quasi identique au fond de page en mode
+        // clair (`KoraColors.light.background` = `mist` aussi), rendant
+        // le champ invisible faute de contraste. Voir aussi la bordure
+        // ci-dessous, également absente auparavant pour la même raison.
         fillColor: isDark
             ? AppColors.white.withValues(alpha: 0.06)
-            : AppColors.mist,
+            : AppColors.white,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg,
           vertical: AppSpacing.md,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(AppRadius.input),
+          borderSide: BorderSide(
+            color: isDark ? koraColors.line : AppColors.inputBorderLight,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(AppRadius.input),
+          borderSide: BorderSide(
+            color: isDark ? koraColors.line : AppColors.inputBorderLight,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderRadius: BorderRadius.circular(AppRadius.input),
           borderSide: const BorderSide(color: AppColors.digital, width: 1.5),
         ),
         hintStyle: TextStyle(color: koraColors.textMuted),

@@ -62,7 +62,11 @@ final baseComponentStories = WidgetbookFolder(
         WidgetbookUseCase(
           name: 'État — chargement',
           builder: (context) => StoryScaffold(
-            child: KoraButton(label: 'Continuer', isLoading: true, onPressed: () {}),
+            child: KoraButton(
+              label: 'Continuer',
+              isLoading: true,
+              onPressed: () {},
+            ),
           ),
         ),
         WidgetbookUseCase(
@@ -96,7 +100,11 @@ final baseComponentStories = WidgetbookFolder(
         WidgetbookUseCase(
           name: 'Mot de passe',
           builder: (context) => const StoryScaffold(
-            child: KoraInput(label: 'Mot de passe', hint: '••••••••', obscureText: true),
+            child: KoraInput(
+              label: 'Mot de passe',
+              hint: '••••••••',
+              obscureText: true,
+            ),
           ),
         ),
         WidgetbookUseCase(
@@ -112,7 +120,11 @@ final baseComponentStories = WidgetbookFolder(
         WidgetbookUseCase(
           name: 'État — désactivé',
           builder: (context) => const StoryScaffold(
-            child: KoraInput(label: 'Code promo', hint: 'Indisponible', enabled: false),
+            child: KoraInput(
+              label: 'Code promo',
+              hint: 'Indisponible',
+              enabled: false,
+            ),
           ),
         ),
       ],
@@ -156,10 +168,7 @@ final baseComponentStories = WidgetbookFolder(
         WidgetbookUseCase(
           name: 'État — cliquable',
           builder: (context) => StoryScaffold(
-            child: KoraCard(
-              onTap: () {},
-              child: const Text('Tape-moi'),
-            ),
+            child: KoraCard(onTap: () {}, child: const Text('Tape-moi')),
           ),
         ),
       ],
@@ -169,9 +178,8 @@ final baseComponentStories = WidgetbookFolder(
       useCases: [
         WidgetbookUseCase(
           name: 'Neutral',
-          builder: (context) => const StoryScaffold(
-            child: KoraTag(label: 'En attente'),
-          ),
+          builder: (context) =>
+              const StoryScaffold(child: KoraTag(label: 'En attente')),
         ),
         WidgetbookUseCase(
           name: 'Gold',
@@ -199,25 +207,37 @@ final baseComponentStories = WidgetbookFolder(
         WidgetbookUseCase(
           name: 'Point simple',
           builder: (context) => const StoryScaffold(
-            child: KoraBadge(child: Icon(Icons.notifications_outlined, size: 28)),
+            child: KoraBadge(
+              child: Icon(Icons.notifications_outlined, size: 28),
+            ),
           ),
         ),
         WidgetbookUseCase(
           name: 'Avec compteur',
           builder: (context) => const StoryScaffold(
-            child: KoraBadge(count: 3, child: Icon(Icons.mail_outline, size: 28)),
+            child: KoraBadge(
+              count: 3,
+              child: Icon(Icons.mail_outline, size: 28),
+            ),
           ),
         ),
         WidgetbookUseCase(
           name: 'Compteur > 999',
           builder: (context) => const StoryScaffold(
-            child: KoraBadge(count: 1280, child: Icon(Icons.mail_outline, size: 28)),
+            child: KoraBadge(
+              count: 1280,
+              child: Icon(Icons.mail_outline, size: 28),
+            ),
           ),
         ),
         WidgetbookUseCase(
           name: 'Sur KoraIconButton',
           builder: (context) => StoryScaffold(
-            child: KoraIconButton(icon: Icons.notifications_outlined, showBadge: true, onTap: () {}),
+            child: KoraIconButton(
+              icon: Icons.notifications_outlined,
+              showBadge: true,
+              onTap: () {},
+            ),
           ),
         ),
       ],
@@ -227,28 +247,27 @@ final baseComponentStories = WidgetbookFolder(
       useCases: [
         WidgetbookUseCase(
           name: 'Spinner — petit (20)',
-          builder: (context) => const StoryScaffold(
-            child: KoraLoadingIndicator(size: 20),
-          ),
+          builder: (context) =>
+              const StoryScaffold(child: KoraLoadingIndicator(size: 20)),
         ),
         WidgetbookUseCase(
           name: 'Spinner — moyen (28, défaut)',
-          builder: (context) => const StoryScaffold(
-            child: KoraLoadingIndicator(),
-          ),
+          builder: (context) =>
+              const StoryScaffold(child: KoraLoadingIndicator()),
         ),
         WidgetbookUseCase(
           name: 'Spinner — grand (44)',
-          builder: (context) => const StoryScaffold(
-            child: KoraLoadingIndicator(size: 44),
-          ),
+          builder: (context) =>
+              const StoryScaffold(child: KoraLoadingIndicator(size: 44)),
         ),
         WidgetbookUseCase(
           name: 'Skeleton — 1 ligne',
           builder: (context) => const StoryScaffold(
             child: SizedBox(
               width: 260,
-              child: KoraLoadingIndicator(variant: KoraLoadingIndicatorVariant.skeleton),
+              child: KoraLoadingIndicator(
+                variant: KoraLoadingIndicatorVariant.skeleton,
+              ),
             ),
           ),
         ),

@@ -110,7 +110,7 @@ class _KoraInputState extends State<KoraInput> {
             errorText: hasError ? widget.errorText : null,
             enabledBorder: hasError
                 ? OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    borderRadius: BorderRadius.circular(AppRadius.input),
                     borderSide: const BorderSide(
                       color: AppColors.danger,
                       width: 1,

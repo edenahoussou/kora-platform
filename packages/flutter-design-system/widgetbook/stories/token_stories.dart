@@ -26,7 +26,8 @@ final tokenStories = WidgetbookFolder(
       useCases: [
         WidgetbookUseCase(
           name: 'Échelle',
-          builder: (context) => const StoryScaffold(child: _TypographySpecimen()),
+          builder: (context) =>
+              const StoryScaffold(child: _TypographySpecimen()),
         ),
       ],
     ),
@@ -44,7 +45,8 @@ final tokenStories = WidgetbookFolder(
       useCases: [
         WidgetbookUseCase(
           name: 'Échelle',
-          builder: (context) => const StoryScaffold(child: _RadiusAndShadowScale()),
+          builder: (context) =>
+              const StoryScaffold(child: _RadiusAndShadowScale()),
         ),
       ],
     ),
@@ -85,8 +87,20 @@ class _ColorSwatches extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 6),
-              Text(entry.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-              Text(entry.hex, style: const TextStyle(fontSize: 11, color: Colors.black54)),
+              Text(
+                entry.name,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                entry.hex,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: context.koraColors.textMuted,
+                ),
+              ),
             ],
           ),
       ],
@@ -99,7 +113,11 @@ class _TypographySpecimen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const color = AppColors.graphite;
+    // Couleur du thème actif (KoraColors.light/dark), pas une valeur en
+    // dur : sinon le texte reste noir sur fond navy en mode sombre (voir
+    // capture de bug — texte quasi invisible sur le thème "Sombre" du
+    // sélecteur Widgetbook).
+    final color = context.koraColors.textPrimary;
     const sample = 'KORA EXPRESS — Cotonou → Porto-Novo';
 
     final specimens = <(String, TextStyle)>[
@@ -123,7 +141,13 @@ class _TypographySpecimen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(specimen.$1, style: const TextStyle(fontSize: 10, color: Colors.black45)),
+                Text(
+                  specimen.$1,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: context.koraColors.textMuted,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Text(sample, style: specimen.$2),
               ],
@@ -171,8 +195,9 @@ class _RadiusAndShadowScale extends StatelessWidget {
 
   static const _radii = [
     ('sm (10)', KoraRadius.sm),
-    ('md (15)', KoraRadius.md),
-    ('base (18 — socle web)', KoraRadius.base),
+    ('base (12 — socle web)', KoraRadius.base),
+    ('input (14 — KoraInput)', KoraRadius.input),
+    ('md (15 — boutons)', KoraRadius.md),
     ('lg (20)', KoraRadius.lg),
     ('xl (24)', KoraRadius.xl),
     ('pill (999)', KoraRadius.pill),
@@ -180,6 +205,8 @@ class _RadiusAndShadowScale extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -194,8 +221,18 @@ class _RadiusAndShadowScale extends StatelessWidget {
                     width: 70,
                     height: 70,
                     decoration: BoxDecoration(
-                      color: AppColors.mist,
-                      borderRadius: BorderRadius.circular(math.min(entry.$2, 35)),
+                      // `koraColors.surface` (pas `AppColors.mist` en dur) :
+                      // sinon en thème clair le carré est mist-sur-mist,
+                      // exactement la même couleur que le fond de la page
+                      // (`koraColors.background`) — invisible, comme le
+                      // bug repéré plus haut sur la typographie. La
+                      // bordure garantit un contour visible dans les deux
+                      // thèmes même si surface/background se ressemblent.
+                      color: koraColors.surface,
+                      border: Border.all(color: koraColors.line),
+                      borderRadius: BorderRadius.circular(
+                        math.min(entry.$2, 35),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 6),

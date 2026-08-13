@@ -18,10 +18,7 @@ class StoryScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: padding,
-          child: child,
-        ),
+        child: SingleChildScrollView(padding: padding, child: child),
       ),
     );
   }

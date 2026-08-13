@@ -45,7 +45,12 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          # Figé (au lieu de `channel: stable`, une cible mouvante) :
+          # les golden tests comparent des PNG rendus sur cette version
+          # exacte — un `stable` qui avance sans prévenir fait échouer
+          # des goldens pourtant corrects. Doit rester alignée avec
+          # `.github/workflows/flutter-design-system.yml`.
+          flutter-version: '3.44.8'
           cache: true
 
       - name: Install dependencies
