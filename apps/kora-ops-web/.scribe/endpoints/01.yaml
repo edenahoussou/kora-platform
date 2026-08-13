@@ -1,0 +1,455 @@
+name: Bus
+description: |-
+
+  Public Bus catalog endpoints for KORA BUS search experiences.
+endpoints:
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/bus/cities
+    metadata:
+      custom: []
+      groupName: Bus
+      groupDescription: |-
+
+        Public Bus catalog endpoints for KORA BUS search experiences.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'List served cities.'
+      description: 'Returns active cities derived from active Bus stops.'
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/bus/lines
+    metadata:
+      custom: []
+      groupName: Bus
+      groupDescription: |-
+
+        Public Bus catalog endpoints for KORA BUS search experiences.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'List Bus lines.'
+      description: ''
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters:
+      from:
+        custom: []
+        name: from
+        description: 'Optional origin city filter.'
+        required: false
+        example: Cotonou
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      to:
+        custom: []
+        name: to
+        description: 'Optional destination city filter.'
+        required: false
+        example: Abidjan
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanQueryParameters:
+      from: Cotonou
+      to: Abidjan
+    bodyParameters:
+      from:
+        custom: []
+        name: from
+        description: validation.max.
+        required: false
+        example: b
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      to:
+        custom: []
+        name: to
+        description: validation.max.
+        required: false
+        example: 'n'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+    cleanBodyParameters:
+      from: b
+      to: 'n'
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'api/v1/bus/lines/{uuid}'
+    metadata:
+      custom: []
+      groupName: Bus
+      groupDescription: |-
+
+        Public Bus catalog endpoints for KORA BUS search experiences.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Show a Bus line.'
+      description: ''
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      uuid:
+        custom: []
+        name: uuid
+        description: ''
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/bus/departures
+    metadata:
+      custom: []
+      groupName: Bus
+      groupDescription: |-
+
+        Public Bus departure and seat availability endpoints.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'List departures.'
+      description: ''
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters:
+      date:
+        custom: []
+        name: date
+        description: 'Travel date in YYYY-MM-DD format.'
+        required: true
+        example: '2026-08-15'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      from:
+        custom: []
+        name: from
+        description: 'Optional origin city filter.'
+        required: false
+        example: Cotonou
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      to:
+        custom: []
+        name: to
+        description: 'Optional destination city filter.'
+        required: false
+        example: Abidjan
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanQueryParameters:
+      date: '2026-08-15'
+      from: Cotonou
+      to: Abidjan
+    bodyParameters:
+      date:
+        custom: []
+        name: date
+        description: 'Must be a valid date in the format <code>Y-m-d</code>.'
+        required: true
+        example: '2026-08-13'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      from:
+        custom: []
+        name: from
+        description: validation.max.
+        required: false
+        example: b
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      to:
+        custom: []
+        name: to
+        description: validation.max.
+        required: false
+        example: 'n'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+    cleanBodyParameters:
+      date: '2026-08-13'
+      from: b
+      to: 'n'
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'api/v1/bus/departures/{uuid}'
+    metadata:
+      custom: []
+      groupName: Bus
+      groupDescription: |-
+
+        Public Bus departure and seat availability endpoints.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Show a departure.'
+      description: ''
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      uuid:
+        custom: []
+        name: uuid
+        description: ''
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+    queryParameters:
+      from:
+        custom: []
+        name: from
+        description: 'Optional origin city.'
+        required: false
+        example: Cotonou
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      to:
+        custom: []
+        name: to
+        description: 'Optional destination city.'
+        required: false
+        example: Abidjan
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanQueryParameters:
+      from: Cotonou
+      to: Abidjan
+    bodyParameters:
+      from:
+        custom: []
+        name: from
+        description: validation.max.
+        required: false
+        example: b
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      to:
+        custom: []
+        name: to
+        description: validation.max.
+        required: false
+        example: 'n'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+    cleanBodyParameters:
+      from: b
+      to: 'n'
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'api/v1/bus/departures/{departure_uuid}/seats'
+    metadata:
+      custom: []
+      groupName: Bus
+      groupDescription: |-
+
+        Public Bus departure and seat availability endpoints.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'List departure seats.'
+      description: ''
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      departure_uuid:
+        custom: []
+        name: departure_uuid
+        description: ''
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      departure_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+    queryParameters:
+      origin_stop_uuid:
+        custom: []
+        name: origin_stop_uuid
+        description: 'Public UUID of the boarding stop.'
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      destination_stop_uuid:
+        custom: []
+        name: destination_stop_uuid
+        description: 'Public UUID of the drop-off stop.'
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanQueryParameters:
+      origin_stop_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      destination_stop_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+    bodyParameters:
+      origin_stop_uuid:
+        custom: []
+        name: origin_stop_uuid
+        description: validation.uuid.
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      destination_stop_uuid:
+        custom: []
+        name: destination_stop_uuid
+        description: validation.uuid.
+        required: true
+        example: 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      origin_stop_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      destination_stop_uuid: 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
