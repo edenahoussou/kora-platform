@@ -15,11 +15,16 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $this->call([
+            KoraBusRolePermissionSeeder::class,
+            KoraBusReferenceSeeder::class,
+        ]);
 
-        User::factory()->create([
+        $admin = User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
+
+        $admin->assignRole('system_admin');
     }
 }
