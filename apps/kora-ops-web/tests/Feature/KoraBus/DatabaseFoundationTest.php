@@ -1,7 +1,12 @@
 <?php
 
 use App\Models\User;
+use App\Modules\Boarding\Models\BoardingEvent;
+use App\Modules\Boarding\Models\SeatReleaseEvent;
+use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\Booking\Models\Reservation;
+use App\Modules\Booking\Models\ReservationPassenger;
+use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\BusNetwork\Models\Seat;
@@ -10,13 +15,80 @@ use App\Modules\Cash\Models\CashSession;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Models\Fare;
 use App\Modules\DynamicPricing\Models\PriceQuote;
+use App\Modules\DynamicPricing\Models\PricingRule;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
+use App\Modules\FleetLite\Models\Incident;
 use App\Modules\IdentityAccess\Models\Agency;
+use App\Modules\IdentityAccess\Models\TerminalP501;
+use App\Modules\Payments\Models\Payment;
+use App\Modules\SeatInventory\Data\SeatAvailabilityStatus;
+use App\Modules\Support\Models\KoraModel;
+use App\Modules\Ticketing\Models\Ticket;
 use Database\Seeders\KoraBusRolePermissionSeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
+
+it('requires explicit fillable fields on business models', function (): void {
+    foreach (koraBusinessModelClasses() as $class) {
+        $reflection = new ReflectionClass($class);
+        $model = $reflection->newInstance();
+
+        expect($model->getFillable())
+            ->not->toBeEmpty("{$class} must explicitly whitelist fillable attributes.");
+
+        if ($reflection->hasProperty('guarded')) {
+            expect($reflection->getProperty('guarded')->getDeclaringClass()->getName())
+                ->not->toBe($class, "{$class} must not declare guarded attributes.");
+        }
+    }
+});
+
+it('casts finite business fields to enums with reusable helpers', function (): void {
+    $finiteFields = [
+        BoardingEvent::class => ['status'],
+        SeatReleaseEvent::class => ['status'],
+        Reservation::class => ['status', 'channel'],
+        ReservationPassenger::class => ['document_type'],
+        ReservationSegment::class => ['status'],
+        Bus::class => ['status'],
+        Line::class => ['status'],
+        Seat::class => ['type', 'status'],
+        Stop::class => ['status'],
+        CashSession::class => ['status'],
+        Departure::class => ['status'],
+        Fare::class => ['status'],
+        PricingRule::class => ['type', 'status'],
+        FiscalInvoice::class => ['status'],
+        Incident::class => ['type', 'status'],
+        Agency::class => ['status'],
+        TerminalP501::class => ['status'],
+        Payment::class => ['status'],
+        Ticket::class => ['status'],
+    ];
+
+    foreach ($finiteFields as $class => $fields) {
+        $model = new $class;
+        $casts = $model->getCasts();
+
+        foreach ($fields as $field) {
+            expect($casts)->toHaveKey($field);
+
+            $cast = $casts[$field];
+
+            expect(enum_exists($cast))
+                ->toBeTrue("{$class}::{$field} cast must reference an enum class.")
+                ->and(is_subclass_of($cast, BackedEnum::class))
+                ->toBeTrue("{$class}::{$field} cast must reference a backed enum.");
+        }
+    }
+
+    expect(ReservationSegmentStatus::occupyingValues())
+        ->toBe(['held', 'confirmed', 'paid', 'ticketed', 'boarded'])
+        ->and(ReservationSegmentStatus::Confirmed->occupiesSeat())->toBeTrue()
+        ->and(SeatAvailabilityStatus::options())->toHaveKey('available', 'Available');
+});
 
 it('uses public uuids and hides numeric ids on business models', function (): void {
     $agency = Agency::query()->create([
@@ -303,4 +375,23 @@ function koraBusScenario(): array
     ]);
 
     return compact('line', 'origin', 'destination', 'bus', 'seat', 'departure');
+}
+
+/**
+ * @return array<int, class-string<KoraModel>>
+ */
+function koraBusinessModelClasses(): array
+{
+    return collect(glob(app_path('Modules/*/Models/*.php')) ?: [])
+        ->map(function (string $path): string {
+            $relativePath = Str::of($path)
+                ->after(app_path().DIRECTORY_SEPARATOR)
+                ->replace(DIRECTORY_SEPARATOR, '\\')
+                ->beforeLast('.php');
+
+            return 'App\\'.$relativePath;
+        })
+        ->filter(fn (string $class): bool => is_subclass_of($class, KoraModel::class))
+        ->values()
+        ->all();
 }
