@@ -61,8 +61,16 @@ Exemple de reponse saine :
 
 ## Domaine staging + SSL/TLS (Let's Encrypt)
 
+L'API et l'OPS Web vivent dans la meme application Laravel (UI Inertia sous `/`
+et REST API sous `/api/v1/*`). Un seul domaine staging suffit.
+
+Domaines valides :
+
+- Staging : `https://staging.koraexpress.app`
+- Prod    : `https://prod.koraexpress.app`
+
 Le staging est exposé en HTTP sur le port `8080` du VPS. Pour le domaine
-`api-staging.korabus.mezagency.fr` avec un certificat Let's Encrypt, on utilise
+`staging.koraexpress.app` avec un certificat Let's Encrypt, on utilise
 un reverse proxy Nginx host + certbot sur le VPS (en dehors des conteneurs).
 
 ### 1. DNS
@@ -70,7 +78,8 @@ un reverse proxy Nginx host + certbot sur le VPS (en dehors des conteneurs).
 Pointer un enregistrement A vers l'IP du VPS :
 
 ```
-api-staging.korabus.mezagency.fr.  IN  A  51.255.196.129
+staging.koraexpress.app.  IN  A  51.255.196.129
+prod.koraexpress.app.     IN  A  51.255.196.129
 ```
 
 ### 2. Nginx host (reverse proxy vers le conteneur)
@@ -80,7 +89,7 @@ Installer Nginx sur le VPS puis créer `/etc/nginx/sites-available/kora-staging`
 ```nginx
 server {
     listen 80;
-    server_name api-staging.korabus.mezagency.fr;
+    server_name staging.koraexpress.app;
 
     location / {
         proxy_pass http://127.0.0.1:8080;
@@ -101,7 +110,7 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ```bash
 sudo apt-get install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d api-staging.korabus.mezagency.fr --redirect
+sudo certbot --nginx -d staging.koraexpress.app -d prod.koraexpress.app --redirect
 ```
 
 certbot genere le certificat et modifie le vhost pour HTTPS avec renouvellement
@@ -110,8 +119,14 @@ automatique (`systemctl list-timers | grep certbot`).
 ### 4. Verifier en HTTPS
 
 ```bash
-curl -sS https://api-staging.korabus.mezagency.fr/api/v1/health | jq
-curl -sS -o /dev/null -w "HTTP %{http_code}" https://api-staging.korabus.mezagency.fr/api/v1/health/ping
+# UI OPS
+curl -sS -o /dev/null -w "HTTP %{http_code}" https://staging.koraexpress.app/dashboard
+
+# API health (statut complet)
+curl -sS https://staging.koraexpress.app/api/v1/health | jq
+
+# API ping (load balancer, doit renvoyer 204)
+curl -sS -o /dev/null -w "HTTP %{http_code}" https://staging.koraexpress.app/api/v1/health/ping
 ```
 
 ## Deploiement production manuel
