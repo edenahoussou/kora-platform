@@ -1,0 +1,38 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  errors:
+    invalid_annotation_target: ignore # requis par certains modèles freezed/json_serializable
+
+linter:
+  rules:
+    avoid_print: true
+    prefer_const_constructors: true
+    prefer_const_constructors_in_immutables: true
+    prefer_const_literals_to_create_immutables: true
+    prefer_final_fields: true
+    prefer_final_locals: true
+    unnecessary_lambdas: true
+    always_declare_return_types: true
+    avoid_dynamic_calls: true
+    avoid_empty_else: true
+    avoid_relative_lib_imports: true
+    avoid_returning_null_for_void: true
+    avoid_unnecessary_containers: true
+    cancel_subscriptions: true
+    close_sinks: true
+    directives_ordering: true
+    prefer_single_quotes: true
+    sort_child_properties_last: true
+    unawaited_futures: true
+    unnecessary_await_in_return: true
+    use_key_in_widget_constructors: true
+
+    # Désactivée car le style feature-first du projet regroupe volontairement
+    # entités/modèles/usecases dans des fichiers courts nommés par rôle plutôt
+    # que par répertoire unique — voir document.md § Conventions.
+    # public_member_api_docs: false
