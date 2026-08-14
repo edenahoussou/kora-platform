@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mocktail/mocktail.dart';
 import 'package:kora_ops_mobile/core/exceptions/app_exceptions.dart';
 import 'package:kora_ops_mobile/features/printing/domain/entities/ticket_payload.dart';
 import 'package:kora_ops_mobile/features/printing/domain/services/barcode_scanner.dart';
 import 'package:kora_ops_mobile/features/printing/domain/services/thermal_printer.dart';
 import 'package:kora_ops_mobile/features/printing/domain/usecases/print_ticket.dart';
 import 'package:kora_ops_mobile/features/printing/domain/usecases/scan_barcode.dart';
+import 'package:mocktail/mocktail.dart';
 
 class MockBarcodeScannerService extends Mock implements BarcodeScanner {}
 
@@ -28,7 +28,7 @@ void main() {
   group('ScanBarcode', () {
     test('retourne un succès quand le scanner répond', () async {
       final scanner = MockBarcodeScannerService();
-      when(() => scanner.scan()).thenAnswer((_) async => 'KORA-TICKET-000123');
+      when(scanner.scan).thenAnswer((_) async => 'KORA-TICKET-000123');
 
       final result = await ScanBarcode(scanner)();
 
@@ -37,7 +37,7 @@ void main() {
 
     test('mappe ScannerException en HardwareFailure', () async {
       final scanner = MockBarcodeScannerService();
-      when(() => scanner.scan()).thenThrow(const ScannerException('Échec scan'));
+      when(scanner.scan).thenThrow(const ScannerException('Échec scan'));
 
       final result = await ScanBarcode(scanner)();
 

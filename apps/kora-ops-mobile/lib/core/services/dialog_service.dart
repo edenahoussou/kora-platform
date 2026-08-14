@@ -1,52 +1,67 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../app/theme/app_colors.dart';
+import 'package:pro_dialog/pro_dialog.dart';
 import '../../app/theme/app_radius.dart';
-import '../../app/theme/app_spacing.dart';
 
-/// Service centralisé pour toutes les alertes/dialogues de l'application.
+/// Service centralisé pour toutes les alertes/dialogues de l'application,
+/// construit sur le package **pro_dialog** (pub.dev/packages/pro_dialog,
+/// v1.0.9). Aucun écran ne doit appeler `showDialog()` ni un dialogue
+/// natif Flutter directement — tout passe par ce service, pour garder un
+/// seul point de configuration visuelle (rayon, animation…) et pouvoir
+/// personnaliser le thème KORA en un seul endroit.
 ///
-/// Décision documentée (voir document.md § ProDialog) : le pack "ProDialog"
-/// demandé dans le cahier des charges n'a pas de version publique vérifiable
-/// pour la version Flutter/Dart de ce projet au moment du scaffolding. Pour
-/// ne pas bloquer la mise en place de l'architecture, [DialogService]
-/// expose déjà l'API cible (`showError`, `showSuccess`, `showConfirmation`,
-/// `showInfo`, `showLoading`) et l'implémente pour l'instant avec les
-/// dialogues Material stylés selon le Design System KORA.
-///
-/// Aucun écran ne doit appeler `showDialog()` directement : tout passe par
-/// ce service, afin que le remplacement par le vrai package ProDialog se
-/// fasse en un seul endroit.
+/// pro_dialog gère nativement le mode sombre (il lit `Theme.of(context)`),
+/// aucune adaptation manuelle n'est donc nécessaire ici pour le dark mode.
 class DialogService {
+  static final ProDialogTheme _theme = const ProDialogTheme(
+    borderRadius: AppRadius.lg,
+    animationStyle: DialogAnimationStyle.scale,
+    iconAnimationStyle: IconAnimationStyle.pulse,
+  );
+
   Future<void> showSuccess(BuildContext context, {required String message, String? title}) {
-    return _showStatusDialog(
+    return showProDialog(
       context,
-      icon: Icons.check_circle,
-      iconColor: AppColors.success,
+      type: DialogType.success,
       title: title ?? 'Succès',
-      message: message,
+      description: message,
+      theme: _theme,
     );
   }
 
   Future<void> showError(BuildContext context, {required String message, String? title}) {
-    return _showStatusDialog(
+    return showProDialog(
       context,
-      icon: Icons.error,
-      iconColor: AppColors.error,
+      type: DialogType.error,
       title: title ?? 'Erreur',
-      message: message,
+      description: message,
+      theme: _theme,
+    );
+  }
+
+  Future<void> showWarning(BuildContext context, {required String message, String? title}) {
+    return showProDialog(
+      context,
+      type: DialogType.warning,
+      title: title ?? 'Attention',
+      description: message,
+      theme: _theme,
     );
   }
 
   Future<void> showInfo(BuildContext context, {required String message, String? title}) {
-    return _showStatusDialog(
+    return showProDialog(
       context,
-      icon: Icons.info,
-      iconColor: AppColors.info,
+      type: DialogType.info,
       title: title ?? 'Information',
-      message: message,
+      description: message,
+      theme: _theme,
     );
   }
 
+  /// Dialogue de confirmation (type `question`) — retourne `true` si
+  /// l'utilisateur confirme, `false` sinon (annulation ou fermeture hors
+  /// dialogue).
   Future<bool> showConfirmation(
     BuildContext context, {
     required String message,
@@ -54,76 +69,48 @@ class DialogService {
     String confirmLabel = 'Confirmer',
     String cancelLabel = 'Annuler',
   }) async {
-    final bool? result = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
-        title: Text(title),
-        content: Text(message),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(cancelLabel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(confirmLabel),
-          ),
-        ],
-      ),
+    final Completer<bool> completer = Completer<bool>();
+
+    // ignore: inference_failure_on_function_invocation
+    await showProDialog(
+      context,
+      type: DialogType.question,
+      title: title,
+      description: message,
+      theme: _theme,
+      barrierDismissible: false,
+      buttons: <DialogButton>[
+        DialogButton(
+          text: cancelLabel,
+          style: DialogButtonStyle.outlined,
+          onPressed: () {
+            if (!completer.isCompleted) completer.complete(false);
+            Navigator.of(context).pop();
+          },
+        ),
+        DialogButton(
+          text: confirmLabel,
+          isPrimary: true,
+          onPressed: () {
+            if (!completer.isCompleted) completer.complete(true);
+            Navigator.of(context).pop();
+          },
+        ),
+      ],
     );
-    return result ?? false;
+
+    if (!completer.isCompleted) completer.complete(false);
+    return completer.future;
   }
 
   /// Affiche un dialogue de chargement bloquant. Doit être fermé avec
   /// `Navigator.pop(context)` une fois l'opération terminée.
   void showLoading(BuildContext context, {String? message}) {
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              const CircularProgressIndicator(color: AppColors.primary),
-              const SizedBox(width: AppSpacing.md),
-              Flexible(child: Text(message ?? 'Chargement…')),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showStatusDialog(
-    BuildContext context, {
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String message,
-  }) {
-    return showDialog<void>(
-      context: context,
-      builder: (BuildContext context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
-        title: Row(
-          children: <Widget>[
-            Icon(icon, color: iconColor),
-            const SizedBox(width: AppSpacing.sm),
-            Text(title),
-          ],
-        ),
-        content: Text(message),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
+    // ignore: inference_failure_on_function_invocation
+    showLoadingDialog(
+      context,
+      title: message ?? 'Chargement…',
+      description: '',
     );
   }
 }

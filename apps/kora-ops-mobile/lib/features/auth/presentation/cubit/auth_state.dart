@@ -24,15 +24,14 @@ class AuthAuthenticated extends AuthState {
   List<Object?> get props => <Object?>[user];
 }
 
+/// [savedEmail] non nul si un email est déjà enregistré sur l'appareil —
+/// [AuthGuard] s'en sert pour rediriger vers l'écran PIN plutôt que l'écran
+/// email (voir document.md § Flux d'authentification).
 class AuthUnauthenticated extends AuthState {
-  const AuthUnauthenticated();
-}
+  const AuthUnauthenticated({this.savedEmail});
 
-class AuthFailure extends AuthState {
-  const AuthFailure(this.message);
-
-  final String message;
+  final String? savedEmail;
 
   @override
-  List<Object?> get props => <Object?>[message];
+  List<Object?> get props => <Object?>[savedEmail];
 }

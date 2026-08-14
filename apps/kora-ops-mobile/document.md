@@ -69,13 +69,14 @@ Les widgets ne contiennent aucune logique métier : `BlocConsumer`/`BlocBuilder`
 
 ## 6. Navigation — GoRouter & AuthGuard
 
-Routes déclarées dans `AppRoutes` (`app/router/app_routes.dart`). `AuthGuard` (`ChangeNotifier` alimenté par le flux `AuthCubit`) redirige :
+Routes déclarées dans `AppRoutes` (`app/router/app_routes.dart`). `AuthGuard` (`ChangeNotifier` alimenté par le flux `AuthCubit`) ne redirige automatiquement que depuis `/` (splash) et `/home` (déconnexion) :
 
 - état en cours de résolution → reste sur `/` (splash)
-- non authentifié → `/login`
+- non authentifié, aucun email enregistré → `/login/email`
+- non authentifié, email déjà enregistré → `/login/pin`
 - authentifié → `/home`
 
-Flux : `Splash → (auth check) → Login ou Home`, avec logout ramenant vers `Login`.
+Une fois entré dans le parcours `/login/*` (email → OTP → PIN → nouvel appareil), chaque écran gère sa propre navigation explicite (`context.push`/`context.go`) — voir § 17 pour le détail du parcours.
 
 ## 7. Dependency Injection — GetIt
 
@@ -112,10 +113,10 @@ Deux mécanismes complémentaires :
 
 Tokens extraits des variables CSS du prototype web passagers (`KORA_App_Final.zip` → `css/style.css`), afin que KORA OPS Mobile partage la même identité visuelle bien que ce soit une app distincte :
 
-| Variable CSS | Token Flutter | Valeur |
+| Variable CSS / rôle | Token Flutter | Valeur |
 |---|---|---|
-| `--kora` | `AppColors.primary` | `#001D4E` |
-| `--gold` | `AppColors.accent` | `#F6B000` |
+| `--kora` (marine, en-têtes, écrans de sécurité) | `AppColors.primary` | `#001D4E` |
+| `--gold` (**CTA principal** — voir ci-dessous) | `AppColors.accent` | `#F6B000` |
 | `--digital` | `AppColors.secondary` | `#0057B8` |
 | `--mist` | `AppColors.background` | `#F4F6F8` |
 | `--graphite` | `AppColors.textPrimary` | `#111827` |
@@ -124,9 +125,34 @@ Tokens extraits des variables CSS du prototype web passagers (`KORA_App_Final.zi
 | Police titres | `AppTypography` (`_displayFontFamily`) | `"Aptos Display", Aptos, "Segoe UI"` |
 | Police texte | `AppTypography` (`_bodyFontFamily`) | `Aptos, "Segoe UI", Arial` |
 
+**Correction issue des maquettes d'authentification** (5 écrans fournis) : le bouton d'action principal de l'app est **doré** (`AppColors.accent`), pas marine — le marine est réservé aux en-têtes et aux écrans de sécurité (PIN, nouvel appareil). `AppButtonVariant.primary` et le thème `ElevatedButton` par défaut utilisent donc `accent`/`onAccent`.
+
+### Variantes de bouton (`AppButton`, `core/widgets/app_button.dart`)
+
+| Variante | Couleur de fond | Usage |
+|---|---|---|
+| `primary` | `accent` (or) | CTA principal — la grande majorité des écrans |
+| `secondary` | `secondary` (bleu digital) | Action secondaire pleine couleur |
+| `outline` | transparent, bordure `primary`/blanc selon le thème | Action secondaire discrète ("Ce n'est pas moi", "Modifier l'email"…) |
+| `success` | `success` | Confirmation/validation |
+| `warning` | `warning` (ambre, **distinct** de `accent` pour rester identifiable) | Alerte non bloquante |
+| `danger` | `error` | Action destructive/bloquante |
+
 "Aptos" n'étant pas une police système Android/iOS, un `fontFamilyFallback` est déclaré. Si les fichiers de police sont fournis par la marque, les ajouter dans `pubspec.yaml > flutter > fonts` et adapter `AppTypography`.
 
 Fichiers : `app/theme/app_colors.dart`, `app_typography.dart`, `app_spacing.dart`, `app_radius.dart`, `app_theme.dart`. Aucune couleur codée en dur (`Color(0xFF...)`) ne doit apparaître dans un écran.
+
+## 10bis. Dark mode
+
+Bascule **automatique (système) et manuelle**, pilotée par `ThemeCubit` (`app/theme/theme_cubit.dart`, singleton GetIt) :
+
+- Par défaut : `ThemeMode.system` — suit les réglages de l'appareil.
+- Bascule manuelle : bouton dans l'`AppBar` de `HomePage` (icône soleil/lune/auto) qui fait défiler `system → light → dark → system` via `ThemeCubit.cycle()`. Le choix est persisté dans `SharedPreferences` (`app.theme_mode`) et relu au lancement suivant.
+- `AppTheme.light` et `AppTheme.dark` partagent la même structure (`AppTheme._build(...)`) et ne diffèrent que par les couleurs de surface/texte (`AppColors.*Dark`).
+
+**Cas particulier — écran PIN KORA** (`PinEntryPage`) : son fond bleu marine plein écran est un choix de **design de marque fixe**, indépendant de `ThemeMode` (il reste marine que l'app soit en thème clair ou sombre) — ce n'est pas un mode sombre activable/désactivable, conformément à la maquette fournie. Idem pour le bandeau marine de `NewDeviceDetectedPage`.
+
+`pro_dialog` gère nativement le dark mode (il lit `Theme.of(context)`), aucune adaptation manuelle n'a été nécessaire dans `DialogService`.
 
 ## 11. Widgetbook
 
@@ -138,21 +164,22 @@ flutter pub get
 flutter run -t lib/main.dart
 ```
 
-Use cases fournis : Buttons (enabled/disabled/loading/secondary/outline), Inputs (enabled/error/obscured), Cards, Loading, Empty state, Error state, Dialogs ProDialog (success/error/info/confirmation/loading), Colors, Typography.
+Use cases fournis : Buttons (les 6 variantes), Inputs (enabled/error/obscured), Cards, Loading, Empty state, Error state, Dialogs ProDialog (success/error/warning/info/confirmation/loading), Colors, Typography — le `ThemeAddon` propose "KORA Clair" et "KORA Sombre".
 
 ## 12. ProDialog
 
-**Décision documentée** : le package "ProDialog" demandé n'a pas de version publique vérifiable pour ce projet au moment de la génération de ce scaffold (impossible de valider sa compatibilité sans exécuter `pub get`). Pour ne pas bloquer l'architecture, `core/services/dialog_service.dart` expose déjà l'API cible :
+Intégration réelle du package **[pro_dialog](https://pub.dev/packages/pro_dialog)** (v1.0.9, vérifié sur pub.dev — Flutter ≥3.22, Dart ≥3.4, compatible avec ce projet), suite à la demande explicite du client. `core/services/dialog_service.dart` expose :
 
 ```dart
 DialogService.showSuccess(...)
 DialogService.showError(...)
-DialogService.showConfirmation(...)
+DialogService.showWarning(...)
 DialogService.showInfo(...)
+DialogService.showConfirmation(...)  // retourne Future<bool>
 DialogService.showLoading(...)
 ```
 
-et l'implémente pour l'instant avec des dialogues Material stylés au Design System KORA. **Action de suivi** : une fois le vrai package ProDialog confirmé et ajouté à `pubspec.yaml`, seule l'implémentation interne de `DialogService` doit changer — aucun appelant n'a besoin d'être modifié.
+Implémentation : `showProDialog` avec `DialogType.success/error/warning/info/question`, thème commun `ProDialogTheme(borderRadius: AppRadius.lg, animationStyle: scale, iconAnimationStyle: pulse)`. `showConfirmation` utilise un `Completer<bool>` complété par les `DialogButton` (annuler/confirmer), suivant le pattern documenté par le package. Aucun écran n'appelle `showDialog()` ni un dialogue natif directement — tout passe par `DialogService`.
 
 ## 13. Environnements
 
@@ -178,10 +205,13 @@ Le modèle `UserModel` actuel est écrit à la main (`fromJson`/`toJson` manuels
 
 ```
 test/
-├── features/auth/domain/login_user_test.dart        # UseCase
-├── features/auth/data/auth_repository_impl_test.dart # Repository mocké
-├── features/auth/presentation/auth_cubit_test.dart   # Cubit (bloc_test)
-└── features/home_page_widget_test.dart               # Widget
+├── app/theme/theme_cubit_test.dart                     # bascule dark mode
+├── features/auth/domain/auth_usecases_test.dart        # UseCases OTP/PIN
+├── features/auth/data/auth_repository_impl_test.dart   # Repository mocké
+├── features/auth/presentation/auth_cubit_test.dart     # session globale (bloc_test)
+├── features/auth/presentation/login_cubit_test.dart    # flux email→OTP→PIN (bloc_test)
+├── features/printing/…                                 # voir § 17bis
+└── features/home_page_widget_test.dart                 # Widget
 ```
 
 ```bash
@@ -196,9 +226,58 @@ flutter test
 flutter analyze
 ```
 
-## 17. Écrans mockés
+## 17. Flux d'authentification (écrans mockés)
 
-`SplashPage → (AuthGuard) → LoginPage ou HomePage`, avec logout (`AppBar` de `HomePage`) ramenant vers `LoginPage`. Authentification simulée en mémoire/`shared_preferences` (`AuthLocalDataSource`) — aucun backend réel à ce stade.
+Reproduction fidèle des 5 maquettes fournies par le client — voir `features/auth/`. Toutes les données sont mockées ce sprint (`AuthLocalDataSource`) ; la connexion aux API réelles est prévue au Sprint 5.
+
+### Parcours
+
+```
+Splash
+  │
+  ├─ AuthGuard : email déjà enregistré sur l'appareil ?
+  │      NON → EmailEntryPage (/login/email)
+  │      OUI → PinEntryPage (/login/pin)
+  │
+EmailEntryPage ──"Recevoir mon code"──► OtpVerificationPage (/login/otp, purpose=accountCreation)
+  │                                           │
+  │                                    code correct → Home (authentifié)
+  │                                    code incorrect → OtpInvalidPage (/login/otp-invalid)
+  │                                                        │
+  │                                          "Recevoir un nouveau code" → retour OtpVerificationPage
+  │                                          "Modifier l'email" → retour EmailEntryPage
+  │
+PinEntryPage ──PIN correct──► NewDeviceDetectedPage (/login/new-device)
+  │                                  │
+  │                     "Recevoir le code OTP" → OtpVerificationPage (purpose=deviceConfirmation) → Home
+  │                     "Ce n'est pas moi" → confirmation ProDialog → retour EmailEntryPage
+  │
+  └─PIN incorrect → DialogService.showError + réinitialisation du clavier
+```
+
+### Données mockées (`AuthLocalDataSource`)
+
+- Code OTP accepté : **`583187`** (toute autre valeur à 6 chiffres → `OtpInvalidPage`)
+- PIN accepté : **`1234`** (toute autre valeur à 4 chiffres → erreur inline + clavier réinitialisé)
+- Appareil mocké pour `NewDeviceDetectedPage` : `Tecno CAMON · Cotonou · À l'instant`
+
+### Écrans (fidèles aux 5 maquettes fournies)
+
+| Écran | Route | Fichier |
+|---|---|---|
+| Votre adresse email | `/login/email` | `presentation/pages/email_entry_page.dart` |
+| Code de vérification (OTP) | `/login/otp` | `presentation/pages/otp_verification_page.dart` |
+| Code non valide | `/login/otp-invalid` | `presentation/pages/otp_invalid_page.dart` |
+| Votre PIN KORA (fond marine) | `/login/pin` | `presentation/pages/pin_entry_page.dart` |
+| Nouvel appareil détecté | `/login/new-device` | `presentation/pages/new_device_detected_page.dart` |
+
+### Architecture Cubit
+
+- **`AuthCubit`** (singleton) : état de session global (`AuthInitial`/`AuthLoading`/`AuthAuthenticated`/`AuthUnauthenticated(savedEmail)`), seule source de vérité pour `AuthGuard`.
+- **`LoginCubit`** (singleton, partagé entre toutes les routes `/login/*` via `BlocProvider.value`) : orchestre les étapes (email, OTP, PIN, nouvel appareil) dans un état unique (`LoginState` avec `status`/`email`/`otpPurpose`/`deviceInfo`/`user`). Ses méthodes retournent `Future<bool>` en plus d'émettre un état : l'écran utilise le booléen pour naviguer (`context.push`), l'état pour l'affichage (spinner, erreur).
+- Une fois l'OTP vérifié avec succès (création de compte ou confirmation d'appareil), l'écran appelle `AuthCubit.authenticate(user)` avant de naviguer vers `/home`, pour que `AuthGuard` laisse passer.
+
+Widgets réutilisables : `OtpCodeInput` (`core/widgets/`, 6 cases, avance automatique), `NumericKeypad` et `AuthScreenHeader` (`features/auth/presentation/widgets/`).
 
 ## 17bis. Adaptateurs P501 — scanner QR et imprimante thermique 58mm
 
@@ -295,10 +374,11 @@ flutter build appbundle --dart-define=ENV=prod
 
 ## 20. Prochaines étapes suggérées
 
-- Créer les features `boarding`, `manifest`, `sync` (voir `AGENTS.md`) en suivant la structure Clean Architecture ci-dessus.
-- Remplacer `AuthLocalDataSource` par un vrai flux API (`AuthRemoteDataSource` + `NetworkClient`) quand le backend sera prêt.
+- Créer les écrans restants du ticket [OPS Mobile] écrans mockés : Manifeste (liste passagers avec `PassengerListTile`, `StatutBadge`), Scan boarding (caméra/scanner + feedback valide/refusé), Détail passager, Descente anticipée (`SeatMap`), Synchro (indicateur de connexion, file d'attente) — modèles mockés `Depart`/`Passenger`/`Ticket`/`Seat` à créer.
+- Ajouter la sélection du départ à gérer (hors périmètre de ce sprint, voir échange du 14/08/2026).
+- Remplacer `AuthLocalDataSource` par un vrai flux API (`AuthRemoteDataSource` + `NetworkClient`) quand le backend sera prêt, y compris un vrai fingerprint d'appareil pour `NewDeviceDetectedPage`.
 - Intégrer les vrais packages `flutter-networking` / `flutter-design-system` du monorepo s'ils existent, à la place des abstractions temporaires actuelles.
-- Confirmer et intégrer le vrai package ProDialog (§ 12).
 - Ajouter les polices Aptos en assets si fournies par la marque.
+- Déplacer la bascule manuelle du thème (§ 10bis) vers un écran Paramètres dédié.
 - Implémenter le handler natif Android/iOS des canaux `kora.ops/p501_scanner` et `kora.ops/p501_printer` (§ 17bis) une fois le SDK P501 disponible.
 

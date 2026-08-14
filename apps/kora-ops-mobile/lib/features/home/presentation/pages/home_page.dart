@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../app/theme/theme_cubit.dart';
 import '../../../../core/helpers/responsive.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
@@ -10,12 +11,34 @@ import '../../../auth/presentation/cubit/auth_cubit.dart';
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
+  IconData _themeIcon(ThemeMode mode) => switch (mode) {
+        ThemeMode.light => Icons.light_mode_outlined,
+        ThemeMode.dark => Icons.dark_mode_outlined,
+        ThemeMode.system => Icons.brightness_auto_outlined,
+      };
+
+  String _themeTooltip(ThemeMode mode) => switch (mode) {
+        ThemeMode.light => 'Thème clair (appuyer pour sombre)',
+        ThemeMode.dark => 'Thème sombre (appuyer pour automatique)',
+        ThemeMode.system => 'Thème automatique (appuyer pour clair)',
+      };
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('KORA OPS'),
         actions: <Widget>[
+          // Bascule manuelle du thème (système → clair → sombre → système) —
+          // un vrai écran Paramètres accueillera ce réglage plus tard, voir
+          // document.md § Dark mode.
+          BlocBuilder<ThemeCubit, ThemeMode>(
+            builder: (BuildContext context, ThemeMode mode) => IconButton(
+              icon: Icon(_themeIcon(mode)),
+              tooltip: _themeTooltip(mode),
+              onPressed: () => context.read<ThemeCubit>().cycle(),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Déconnexion',
