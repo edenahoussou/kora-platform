@@ -30,3 +30,15 @@ class ServerException extends AppException {
 class CacheException extends AppException {
   const CacheException([super.message = 'Erreur de stockage local.']);
 }
+
+/// Le scan a échoué, a été annulé, ou le SDK du scanner P501 a renvoyé une
+/// erreur.
+class ScannerException extends AppException {
+  const ScannerException([super.message = 'Erreur du scanner.']);
+}
+
+/// L'impression a échoué (papier absent, imprimante déconnectée, SDK P501
+/// en erreur…).
+class PrinterException extends AppException {
+  const PrinterException([super.message = 'Erreur de l\'imprimante.']);
+}

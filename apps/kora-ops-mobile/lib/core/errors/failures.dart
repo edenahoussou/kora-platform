@@ -36,3 +36,8 @@ class ValidationFailure extends Failure {
 class UnknownFailure extends Failure {
   const UnknownFailure([super.message = 'Une erreur inconnue est survenue.']);
 }
+
+/// Échec d'un adaptateur matériel P501 (scanner ou imprimante).
+class HardwareFailure extends Failure {
+  const HardwareFailure([super.message = 'Erreur matérielle (P501).']);
+}
