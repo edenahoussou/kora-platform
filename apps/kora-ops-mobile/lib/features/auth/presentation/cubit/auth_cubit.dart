@@ -2,54 +2,67 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/usecases/get_current_user.dart';
-import '../../domain/usecases/login_user.dart';
+import '../../domain/usecases/get_saved_email.dart';
 import '../../domain/usecases/logout_user.dart';
 
 part 'auth_state.dart';
 
-/// AuthCubit plutôt qu'un AuthBloc : le flux d'authentification de ce
-/// scaffold n'a pas besoin d'événements distincts (pas de debounce, pas de
-/// combinaison de flux) — voir document.md § Bloc vs Cubit.
+/// État de session global — c'est la seule source de vérité utilisée par
+/// [AuthGuard] pour rediriger entre les écrans d'authentification et
+/// `/home`. La logique détaillée du flux (email → OTP → PIN → nouvel
+/// appareil) vit dans `LoginCubit`, propre à la feature de connexion ;
+/// celui-ci appelle [authenticate] une fois la connexion aboutie.
 class AuthCubit extends Cubit<AuthState> {
   AuthCubit({
-    required LoginUser loginUser,
-    required LogoutUser logoutUser,
     required GetCurrentUser getCurrentUser,
-  })  : _loginUser = loginUser,
+    required GetSavedEmail getSavedEmail,
+    required LogoutUser logoutUser,
+  })  : _getCurrentUser = getCurrentUser,
+        _getSavedEmail = getSavedEmail,
         _logoutUser = logoutUser,
-        _getCurrentUser = getCurrentUser,
         super(const AuthInitial());
 
-  final LoginUser _loginUser;
-  final LogoutUser _logoutUser;
   final GetCurrentUser _getCurrentUser;
+  final GetSavedEmail _getSavedEmail;
+  final LogoutUser _logoutUser;
 
   Future<void> checkAuthStatus() async {
     emit(const AuthLoading());
     final result = await _getCurrentUser();
     result.when(
-      onSuccess: (UserEntity? user) {
-        emit(user == null ? const AuthUnauthenticated() : AuthAuthenticated(user));
+      onSuccess: (UserEntity? user) async {
+        if (user != null) {
+          emit(AuthAuthenticated(user));
+          return;
+        }
+        final emailResult = await _getSavedEmail();
+        emit(
+          AuthUnauthenticated(
+            savedEmail: emailResult.when(onSuccess: (email) => email, onFailure: (_) => null),
+          ),
+        );
       },
       onFailure: (failure) => emit(const AuthUnauthenticated()),
     );
   }
 
-  Future<void> login({required String username, required String password}) async {
-    emit(const AuthLoading());
-    final result = await _loginUser(username: username, password: password);
-    result.when(
-      onSuccess: (UserEntity user) => emit(AuthAuthenticated(user)),
-      onFailure: (failure) => emit(AuthFailure(failure.message)),
-    );
-  }
+  /// Appelé par `LoginCubit` une fois l'authentification aboutie (via OTP ou
+  /// PIN).
+  void authenticate(UserEntity user) => emit(AuthAuthenticated(user));
 
   Future<void> logout() async {
     emit(const AuthLoading());
     final result = await _logoutUser();
     result.when(
-      onSuccess: (_) => emit(const AuthUnauthenticated()),
-      onFailure: (failure) => emit(AuthFailure(failure.message)),
+      onSuccess: (_) async {
+        final emailResult = await _getSavedEmail();
+        emit(
+          AuthUnauthenticated(
+            savedEmail: emailResult.when(onSuccess: (email) => email, onFailure: (_) => null),
+          ),
+        );
+      },
+      onFailure: (failure) => emit(const AuthUnauthenticated()),
     );
   }
 }

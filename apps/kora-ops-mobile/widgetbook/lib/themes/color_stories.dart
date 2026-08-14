@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:widgetbook/widgetbook.dart';
 import 'package:kora_ops_mobile/app/theme/app_colors.dart';
+import 'package:widgetbook/widgetbook.dart';
 
 final WidgetbookUseCase colorsUseCase = WidgetbookUseCase(
   name: 'Colors',
   builder: (BuildContext context) {
     final Map<String, Color> swatches = <String, Color>{
-      'primary (--kora)': AppColors.primary,
-      'accent (--gold)': AppColors.accent,
+      'primary (--kora, navy)': AppColors.primary,
+      'accent (--gold, CTA principal)': AppColors.accent,
+      'onAccent (texte sur accent/warning)': AppColors.onAccent,
       'secondary (--digital)': AppColors.secondary,
       'background (--mist)': AppColors.background,
+      'backgroundDark': AppColors.backgroundDark,
+      'surfaceDark': AppColors.surfaceDark,
       'textPrimary (--graphite)': AppColors.textPrimary,
       'success': AppColors.success,
-      'warning': AppColors.warning,
-      'error': AppColors.error,
+      'warning (distinct de accent)': AppColors.warning,
+      'error / danger': AppColors.error,
       'info': AppColors.info,
     };
 
@@ -32,7 +35,9 @@ final WidgetbookUseCase colorsUseCase = WidgetbookUseCase(
                 ),
               ),
               title: Text(entry.key),
-              subtitle: Text('#${entry.value.value.toRadixString(16).padLeft(8, '0').toUpperCase()}'),
+              subtitle: Text(
+                '#${entry.value.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase()}',
+              ),
             ),
           )
           .toList(),

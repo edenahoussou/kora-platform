@@ -1,15 +1,21 @@
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../app/config/app_config.dart';
+import '../app/theme/theme_cubit.dart';
 import '../core/network/network_client.dart';
 import '../core/services/dialog_service.dart';
 import '../features/auth/data/datasources/auth_local_datasource.dart';
 import '../features/auth/data/repositories/auth_repository_impl.dart';
 import '../features/auth/domain/repositories/auth_repository.dart';
+import '../features/auth/domain/usecases/get_current_device_info.dart';
 import '../features/auth/domain/usecases/get_current_user.dart';
-import '../features/auth/domain/usecases/login_user.dart';
+import '../features/auth/domain/usecases/get_saved_email.dart';
 import '../features/auth/domain/usecases/logout_user.dart';
+import '../features/auth/domain/usecases/send_otp.dart';
+import '../features/auth/domain/usecases/verify_otp.dart';
+import '../features/auth/domain/usecases/verify_pin.dart';
 import '../features/auth/presentation/cubit/auth_cubit.dart';
+import '../features/auth/presentation/cubit/login_cubit.dart';
 import '../features/printing/data/services/mock_barcode_scanner.dart';
 import '../features/printing/data/services/mock_thermal_printer.dart';
 import '../features/printing/data/services/p501_barcode_scanner.dart';
@@ -49,6 +55,9 @@ Future<void> configureDependencies() async {
 
   getIt.registerSingleton<DialogService>(DialogService());
 
+  // --- Thème (dark mode auto + bascule manuelle) ---
+  getIt.registerSingleton<ThemeCubit>(ThemeCubit(getIt<SharedPreferences>()));
+
   // --- Feature: auth ---
   getIt.registerLazySingleton<AuthLocalDataSource>(
     () => AuthLocalDataSource(getIt<SharedPreferences>()),
@@ -56,15 +65,36 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(getIt<AuthLocalDataSource>()),
   );
-  getIt.registerLazySingleton<LoginUser>(() => LoginUser(getIt<AuthRepository>()));
-  getIt.registerLazySingleton<LogoutUser>(() => LogoutUser(getIt<AuthRepository>()));
   getIt.registerLazySingleton<GetCurrentUser>(() => GetCurrentUser(getIt<AuthRepository>()));
+  getIt.registerLazySingleton<GetSavedEmail>(() => GetSavedEmail(getIt<AuthRepository>()));
+  getIt.registerLazySingleton<SendOtp>(() => SendOtp(getIt<AuthRepository>()));
+  getIt.registerLazySingleton<VerifyOtp>(() => VerifyOtp(getIt<AuthRepository>()));
+  getIt.registerLazySingleton<VerifyPin>(() => VerifyPin(getIt<AuthRepository>()));
+  getIt.registerLazySingleton<GetCurrentDeviceInfo>(
+    () => GetCurrentDeviceInfo(getIt<AuthRepository>()),
+  );
+  getIt.registerLazySingleton<LogoutUser>(() => LogoutUser(getIt<AuthRepository>()));
 
-  getIt.registerFactory<AuthCubit>(
-    () => AuthCubit(
-      loginUser: getIt<LoginUser>(),
-      logoutUser: getIt<LogoutUser>(),
+  // AuthCubit : état de session global, utilisé par AuthGuard — un seul
+  // singleton pour toute l'app (voir features/auth/presentation/cubit).
+  getIt.registerSingleton<AuthCubit>(
+    AuthCubit(
       getCurrentUser: getIt<GetCurrentUser>(),
+      getSavedEmail: getIt<GetSavedEmail>(),
+      logoutUser: getIt<LogoutUser>(),
+    ),
+  );
+
+  // LoginCubit : orchestre les écrans /login/* (email → otp → pin → nouvel
+  // appareil). Singleton également, pour conserver l'email/le contexte OTP
+  // en changeant d'écran — voir app/router/app_router.dart.
+  getIt.registerSingleton<LoginCubit>(
+    LoginCubit(
+      getSavedEmail: getIt<GetSavedEmail>(),
+      sendOtp: getIt<SendOtp>(),
+      verifyOtp: getIt<VerifyOtp>(),
+      verifyPin: getIt<VerifyPin>(),
+      getCurrentDeviceInfo: getIt<GetCurrentDeviceInfo>(),
     ),
   );
 
@@ -75,11 +105,11 @@ Future<void> configureDependencies() async {
   // et document.md § Adaptateurs P501). L'app compile et tourne avec le
   // Mock par défaut en dev/staging.
   if (AppConfig.instance.useMockHardware) {
-    getIt.registerLazySingleton<BarcodeScanner>(() => MockBarcodeScanner());
-    getIt.registerLazySingleton<ThermalPrinter>(() => MockThermalPrinter());
+    getIt.registerLazySingleton<BarcodeScanner>(MockBarcodeScanner.new);
+    getIt.registerLazySingleton<ThermalPrinter>(MockThermalPrinter.new);
   } else {
-    getIt.registerLazySingleton<BarcodeScanner>(() => P501BarcodeScanner());
-    getIt.registerLazySingleton<ThermalPrinter>(() => P501ThermalPrinter());
+    getIt.registerLazySingleton<BarcodeScanner>(P501BarcodeScanner.new);
+    getIt.registerLazySingleton<ThermalPrinter>(P501ThermalPrinter.new);
   }
 
   getIt.registerLazySingleton<ScanBarcode>(() => ScanBarcode(getIt<BarcodeScanner>()));

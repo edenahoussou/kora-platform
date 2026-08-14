@@ -7,14 +7,18 @@ import 'config/app_config.dart';
 import 'router/app_router.dart';
 import 'router/auth_guard.dart';
 import 'theme/app_theme.dart';
+import 'theme/theme_cubit.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<AuthCubit>(
-      create: (_) => getIt<AuthCubit>(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<AuthCubit>.value(value: getIt<AuthCubit>()),
+        BlocProvider<ThemeCubit>.value(value: getIt<ThemeCubit>()),
+      ],
       child: Builder(
         builder: (BuildContext context) {
           final AuthGuard authGuard = AuthGuard(context.read<AuthCubit>());
@@ -29,11 +33,17 @@ class App extends StatelessWidget {
             minTextAdapt: true,
             splitScreenMode: true,
             builder: (BuildContext context, Widget? child) {
-              return MaterialApp.router(
-                title: AppConfig.instance.appName,
-                debugShowCheckedModeBanner: AppConfig.instance.enableDebugBanner,
-                theme: AppTheme.light,
-                routerConfig: appRouter.router,
+              return BlocBuilder<ThemeCubit, ThemeMode>(
+                builder: (BuildContext context, ThemeMode themeMode) {
+                  return MaterialApp.router(
+                    title: AppConfig.instance.appName,
+                    debugShowCheckedModeBanner: AppConfig.instance.enableDebugBanner,
+                    theme: AppTheme.light,
+                    darkTheme: AppTheme.dark,
+                    themeMode: themeMode,
+                    routerConfig: appRouter.router,
+                  );
+                },
               );
             },
           );

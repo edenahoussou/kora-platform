@@ -51,7 +51,7 @@ class AppEnv {
   bool get isStaging => environment == Environment.staging;
   bool get isProd => environment == Environment.prod;
 
-  // TODO(backend): remplacer par les vraies URLs dès qu'elles existent.
+  // TOO(backend): remplacer par les vraies URLs dès qu'elles existent.
   static const dev = AppEnv._(
     environment: Environment.dev,
     appName: 'KORA (Dev)',

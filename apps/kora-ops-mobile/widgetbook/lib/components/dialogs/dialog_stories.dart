@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:widgetbook/widgetbook.dart';
 import 'package:kora_ops_mobile/core/services/dialog_service.dart';
+import 'package:widgetbook/widgetbook.dart';
 
 final DialogService _dialogService = DialogService();
 
@@ -17,6 +17,14 @@ final List<WidgetbookNode> dialogUseCases = <WidgetbookNode>[
     builder: (BuildContext context) => _DialogTrigger(
       label: 'Afficher erreur',
       onPressed: () => _dialogService.showError(context, message: 'Échec de synchronisation.'),
+    ),
+  ),
+  WidgetbookUseCase(
+    name: 'Warning',
+    builder: (BuildContext context) => _DialogTrigger(
+      label: 'Afficher avertissement',
+      onPressed: () =>
+          _dialogService.showWarning(context, message: 'Connexion instable — certaines données sont en attente.'),
     ),
   ),
   WidgetbookUseCase(

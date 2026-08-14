@@ -6,36 +6,68 @@ import 'app_typography.dart';
 /// Thème global de l'application, construit à partir des tokens
 /// AppColors / AppTypography / AppSpacing / AppRadius.
 ///
-/// Un seul thème clair est fourni au lancement du scaffold (le prototype
-/// web KORA n'expose pas de mode sombre) ; la structure est prête à
-/// accueillir un `darkTheme` équivalent plus tard.
+/// [light] et [dark] partagent la même structure (formes, tailles,
+/// typographie) et ne diffèrent que par les couleurs de surface/texte —
+/// voir document.md § Dark mode.
 abstract final class AppTheme {
-  static ThemeData get light {
+  static ThemeData get light => _build(
+        brightness: Brightness.light,
+        background: AppColors.background,
+        surface: AppColors.surface,
+        border: AppColors.border,
+        textPrimary: AppColors.textPrimary,
+        textSecondary: AppColors.textSecondary,
+        shadow: AppColors.shadow,
+      );
+
+  static ThemeData get dark => _build(
+        brightness: Brightness.dark,
+        background: AppColors.backgroundDark,
+        surface: AppColors.surfaceDark,
+        border: AppColors.borderDark,
+        textPrimary: AppColors.textPrimaryDark,
+        textSecondary: AppColors.textSecondaryDark,
+        shadow: AppColors.shadowDark,
+      );
+
+  static ThemeData _build({
+    required Brightness brightness,
+    required Color background,
+    required Color surface,
+    required Color border,
+    required Color textPrimary,
+    required Color textSecondary,
+    required Color shadow,
+  }) {
     final ColorScheme colorScheme = ColorScheme.fromSeed(
       seedColor: AppColors.primary,
       primary: AppColors.primary,
       secondary: AppColors.secondary,
       tertiary: AppColors.accent,
-      surface: AppColors.surface,
+      surface: surface,
       error: AppColors.error,
-      brightness: Brightness.light,
+      brightness: brightness,
+    );
+
+    final TextTheme textTheme = TextTheme(
+      displayLarge: AppTypography.displayLarge.copyWith(color: textPrimary),
+      displayMedium: AppTypography.displayMedium.copyWith(color: textPrimary),
+      headlineMedium: AppTypography.headline.copyWith(color: textPrimary),
+      titleMedium: AppTypography.titleMedium.copyWith(color: textPrimary),
+      bodyLarge: AppTypography.bodyLarge.copyWith(color: textPrimary),
+      bodyMedium: AppTypography.bodyMedium.copyWith(color: textPrimary),
+      bodySmall: AppTypography.caption.copyWith(color: textSecondary),
+      labelLarge: AppTypography.button.copyWith(color: AppColors.onAccent),
     );
 
     return ThemeData(
       useMaterial3: true,
+      brightness: brightness,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: AppColors.background,
+      scaffoldBackgroundColor: background,
       fontFamily: 'Aptos',
-      textTheme: const TextTheme(
-        displayLarge: AppTypography.displayLarge,
-        displayMedium: AppTypography.displayMedium,
-        headlineMedium: AppTypography.headline,
-        titleMedium: AppTypography.titleMedium,
-        bodyLarge: AppTypography.bodyLarge,
-        bodyMedium: AppTypography.bodyMedium,
-        bodySmall: AppTypography.caption,
-        labelLarge: AppTypography.button,
-      ),
+      textTheme: textTheme,
+      iconTheme: IconThemeData(color: textPrimary),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.white,
@@ -50,40 +82,40 @@ abstract final class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: AppColors.white,
+          backgroundColor: AppColors.accent,
+          foregroundColor: AppColors.onAccent,
           textStyle: AppTypography.button,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primary,
-          side: const BorderSide(color: AppColors.primary),
+          foregroundColor: brightness == Brightness.dark ? AppColors.white : AppColors.primary,
+          side: BorderSide(color: brightness == Brightness.dark ? AppColors.white : AppColors.primary),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
         ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(foregroundColor: AppColors.secondary),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.white,
+        fillColor: surface,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        labelStyle: TextStyle(color: textSecondary),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: BorderSide(color: border),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: BorderSide(color: border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          borderSide: const BorderSide(color: AppColors.accent, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
@@ -91,14 +123,12 @@ abstract final class AppTheme {
         ),
       ),
       cardTheme: CardThemeData(
-        color: AppColors.surface,
+        color: surface,
         elevation: 2,
-        shadowColor: AppColors.shadow,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-        ),
+        shadowColor: shadow,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
       ),
-      dividerTheme: const DividerThemeData(color: AppColors.border, thickness: 1),
+      dividerTheme: DividerThemeData(color: border, thickness: 1),
     );
   }
 }

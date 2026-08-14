@@ -1,12 +1,12 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mocktail/mocktail.dart';
 import 'package:kora_ops_mobile/core/errors/failures.dart';
 import 'package:kora_ops_mobile/core/result/result.dart';
 import 'package:kora_ops_mobile/features/printing/domain/entities/ticket_payload.dart';
 import 'package:kora_ops_mobile/features/printing/domain/usecases/print_ticket.dart';
 import 'package:kora_ops_mobile/features/printing/domain/usecases/scan_barcode.dart';
 import 'package:kora_ops_mobile/features/printing/presentation/cubit/printing_cubit.dart';
+import 'package:mocktail/mocktail.dart';
 
 class MockScanBarcode extends Mock implements ScanBarcode {}
 

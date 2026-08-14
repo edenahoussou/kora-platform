@@ -14,7 +14,7 @@ void main() {
 
     test('lève ScannerException quand shouldFail est true', () async {
       final scanner = MockBarcodeScanner(shouldFail: true, simulatedDelay: Duration.zero);
-      expect(() => scanner.scan(), throwsA(isA<ScannerException>()));
+      expect(scanner.scan, throwsA(isA<ScannerException>()));
     });
   });
 
