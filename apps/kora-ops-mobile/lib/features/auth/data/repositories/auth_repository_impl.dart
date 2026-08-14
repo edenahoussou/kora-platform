@@ -46,5 +46,9 @@ class AuthRepositoryImpl implements AuthRepository {
         ServerException() => ServerFailure(exception.message),
         ApiException() => ValidationFailure(exception.message),
         CacheException() => ServerFailure(exception.message),
+    // TODO: Handle this case.
+    ScannerException() => throw UnimplementedError(),
+    // TODO: Handle this case.
+    PrinterException() => throw UnimplementedError(),
       };
 }
