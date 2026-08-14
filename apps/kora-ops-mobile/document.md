@@ -200,6 +200,88 @@ flutter analyze
 
 `SplashPage → (AuthGuard) → LoginPage ou HomePage`, avec logout (`AppBar` de `HomePage`) ramenant vers `LoginPage`. Authentification simulée en mémoire/`shared_preferences` (`AuthLocalDataSource`) — aucun backend réel à ce stade.
 
+## 17bis. Adaptateurs P501 — scanner QR et imprimante thermique 58mm
+
+Feature `lib/features/printing/`, même structure Clean Architecture que les autres :
+
+```
+features/printing/
+├── data/
+│   ├── formatters/ticket_formatter.dart   # formatage 58mm, testé unitairement
+│   └── services/
+│       ├── mock_barcode_scanner.dart      # défaut dev/staging
+│       ├── mock_thermal_printer.dart      # défaut dev/staging
+│       ├── p501_barcode_scanner.dart      # MethodChannel 'kora.ops/p501_scanner'
+│       └── p501_thermal_printer.dart      # MethodChannel 'kora.ops/p501_printer'
+├── domain/
+│   ├── entities/ticket_payload.dart
+│   ├── services/barcode_scanner.dart      # interface BarcodeScanner
+│   ├── services/thermal_printer.dart      # interface ThermalPrinter
+│   └── usecases/scan_barcode.dart, print_ticket.dart
+└── presentation/
+    ├── cubit/printing_cubit.dart
+    └── pages/printer_test_page.dart       # test manuel sans hardware
+```
+
+### Interfaces
+
+```dart
+abstract interface class BarcodeScanner {
+  Future<String> scan();
+}
+
+abstract interface class ThermalPrinter {
+  Future<bool> printTicket(TicketPayload payload);
+}
+```
+
+### Switch Mock / P501
+
+Piloté par `AppConfig.useMockHardware` (`app/config/app_config.dart`), résolu ainsi :
+
+- Par défaut : `true` en `dev`/`staging`, `false` en `prod`.
+- Override explicite : `--dart-define=USE_MOCK_HARDWARE=true|false`.
+
+```bash
+# Forcer le mock même en prod (démo, recette sans terminal)
+flutter run --dart-define=ENV=prod --dart-define=USE_MOCK_HARDWARE=true
+
+# Forcer le matériel réel en dev (test sur un vrai P501)
+flutter run --dart-define=ENV=dev --dart-define=USE_MOCK_HARDWARE=false
+```
+
+L'enregistrement DI correspondant est dans `injection/injection.dart` — un seul point de bascule, aucun `if` dispersé ailleurs dans le code.
+
+### Format du ticket 58mm
+
+`TicketFormatter` (`data/formatters/ticket_formatter.dart`) produit des lignes de **32 caractères maximum** (largeur standard imprimante 58mm) :
+
+1. En-tête "KORA EXPRESS" centré
+2. Ligne de séparation
+3. Trajet, date, heure
+4. Ligne de séparation
+5. Passager, siège
+6. Ligne de séparation
+7. Marqueur `[ QR CODE ]` centré — le QR réel est généré côté SDK natif à partir de `TicketPayload.qrData`, ce marqueur ASCII ne sert qu'à la prévisualisation écran et aux tests
+8. Ligne de séparation
+9. Pied de page fiscal
+
+`TicketFormatter.isValid(lines)` vérifie ce format ; `TicketFormatter.formatAsText(payload)` assemble le tout pour affichage/logs.
+
+### Implémentation P501 (MethodChannel)
+
+`P501BarcodeScanner` et `P501ThermalPrinter` appellent respectivement les canaux `kora.ops/p501_scanner` (méthode `scan`) et `kora.ops/p501_printer` (méthode `printTicket`, arguments `{lines: List<String>, qrData: String}`). **Aucun SDK P501 n'ayant été fourni au moment de ce scaffold**, le côté natif (`android/.../MainActivity.kt`) reste à implémenter — les deux classes Dart sont prêtes à l'emploi dès que le handler natif existe, et lèvent une `ScannerException`/`PrinterException` explicite (`MissingPluginException`) tant que ce n'est pas le cas.
+
+### Tester sans hardware P501
+
+1. **Tests unitaires** (aucun appareil requis) :
+   ```bash
+   flutter test test/features/printing/
+   ```
+   Couvrent : format du ticket (largeur, centrage, troncature), `MockBarcodeScanner`/`MockThermalPrinter`, UseCases (`ScanBarcode`, `PrintTicket`), `PrintingCubit`.
+
+2. **Test manuel dans l'app** : lancer en mode Mock (par défaut), depuis `HomePage` ouvrir la tuile **Impression** → écran "Test scanner & imprimante" (`PrinterTestPage`) : bouton "Scanner (mock)" renvoie un code de test cyclique, bouton "Imprimer un ticket de test" affiche l'aperçu formaté à l'écran (police monospace, 32 colonnes) et confirme le succès simulé.
+
 ## 18. Build
 
 ```bash
@@ -213,8 +295,10 @@ flutter build appbundle --dart-define=ENV=prod
 
 ## 20. Prochaines étapes suggérées
 
-- Créer les features `boarding`, `manifest`, `printing`, `sync` (voir `AGENTS.md`) en suivant la structure Clean Architecture ci-dessus.
+- Créer les features `boarding`, `manifest`, `sync` (voir `AGENTS.md`) en suivant la structure Clean Architecture ci-dessus.
 - Remplacer `AuthLocalDataSource` par un vrai flux API (`AuthRemoteDataSource` + `NetworkClient`) quand le backend sera prêt.
 - Intégrer les vrais packages `flutter-networking` / `flutter-design-system` du monorepo s'ils existent, à la place des abstractions temporaires actuelles.
 - Confirmer et intégrer le vrai package ProDialog (§ 12).
 - Ajouter les polices Aptos en assets si fournies par la marque.
+- Implémenter le handler natif Android/iOS des canaux `kora.ops/p501_scanner` et `kora.ops/p501_printer` (§ 17bis) une fois le SDK P501 disponible.
+
