@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\IdentityAccess\Data\SystemRole;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 /**
  * Crée des utilisateurs de démonstration pour chaque rôle système.
@@ -31,6 +32,27 @@ class KoraDemoUserSeeder extends Seeder
     }
 
     /**
+     * Crée un user sans factory (compatible prod sans Faker).
+     *
+     * @param  array<string, mixed>  $overrides
+     */
+    private function createUser(array $overrides): User
+    {
+        $defaults = [
+            'uuid' => (string) Str::uuid(),
+            'country_code' => '+229',
+            'status' => 'active',
+            'email_verified_at' => now(),
+            'remember_token' => Str::random(10),
+            'two_factor_secret' => null,
+            'two_factor_recovery_codes' => null,
+            'two_factor_confirmed_at' => null,
+        ];
+
+        return User::create(array_merge($defaults, $overrides));
+    }
+
+    /**
      * Passagers — pour les tests de l'app passager (OTP + PIN).
      */
     private function seedPassengers(): void
@@ -44,7 +66,7 @@ class KoraDemoUserSeeder extends Seeder
         ];
 
         foreach ($passengers as $data) {
-            $user = User::factory()->create([
+            $user = $this->createUser([
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'phone' => $data['phone'],
@@ -100,7 +122,7 @@ class KoraDemoUserSeeder extends Seeder
         ];
 
         foreach ($fieldStaff as $data) {
-            $user = User::factory()->create([
+            $user = $this->createUser([
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'phone' => $data['phone'],
@@ -138,7 +160,7 @@ class KoraDemoUserSeeder extends Seeder
         ];
 
         foreach ($management as $data) {
-            $user = User::factory()->create([
+            $user = $this->createUser([
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'phone' => $data['phone'],
@@ -153,7 +175,7 @@ class KoraDemoUserSeeder extends Seeder
      */
     private function seedSystemAdmin(): void
     {
-        $admin = User::factory()->create([
+        $admin = $this->createUser([
             'name' => 'System Administrator',
             'email' => 'admin@kora.demo',
             'phone' => '+22909000001',
