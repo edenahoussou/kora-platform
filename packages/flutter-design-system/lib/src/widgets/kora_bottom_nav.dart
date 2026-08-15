@@ -46,8 +46,7 @@ class KoraBottomNav extends StatelessWidget {
     // blanche. En thème sombre, la barre EST bleu KORA : ce navy y
     // devient invisible. On reprend alors le doré, déjà utilisé pour
     // l'icône et le trait de l'onglet actif juste au-dessus.
-    final activeLabelColor =
-        Theme.of(context).brightness == Brightness.dark
+    final activeLabelColor = Theme.of(context).brightness == Brightness.dark
         ? AppColors.gold
         : AppColors.kora;
 

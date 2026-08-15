@@ -69,7 +69,13 @@ const List<_LineSpec> _lineSpecs = [
   _LineSpec(
     id: 'ctn-mlv',
     duration: Duration(hours: 9, minutes: 45),
-    waypoints: [('ctn', 0), ('bhc', 128), ('pku', 415), ('knd', 620), ('mlv', 733)],
+    waypoints: [
+      ('ctn', 0),
+      ('bhc', 128),
+      ('pku', 415),
+      ('knd', 620),
+      ('mlv', 733),
+    ],
   ),
   _LineSpec(
     id: 'ctn-pku',
@@ -103,9 +109,7 @@ const List<_LineSpec> _lineSpecs = [
 /// **Toutes les paires de villes ne sont pas reliées en direct** : c'est
 /// vrai d'un vrai réseau d'autocars, et c'est ce qui rend l'état « aucun
 /// départ » atteignable en démonstration (essayer Savè → Djougou).
-final List<Line> kMockLines = [
-  for (final spec in _lineSpecs) _lineFrom(spec),
-];
+final List<Line> kMockLines = [for (final spec in _lineSpecs) _lineFrom(spec)];
 
 /// Ligne Cotonou → Malanville, utilisée par le prochain voyage de
 /// l'accueil.
@@ -123,9 +127,7 @@ Line _lineFrom(_LineSpec spec, {bool reversed = false}) {
   // Parcourue à l'envers, la ligne garde ses arrêts mais leurs distances se
   // comptent depuis l'autre bout.
   final waypoints = reversed
-      ? [
-          for (final (id, km) in spec.waypoints.reversed) (id, total - km),
-        ]
+      ? [for (final (id, km) in spec.waypoints.reversed) (id, total - km)]
       : spec.waypoints;
 
   Duration offsetAt(int km) => Duration(

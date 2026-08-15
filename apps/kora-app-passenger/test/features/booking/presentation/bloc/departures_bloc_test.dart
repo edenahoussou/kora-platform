@@ -134,9 +134,9 @@ void main() {
     blocTest<DeparturesBloc, DeparturesState>(
       'remonte l’échec de la recherche',
       build: () {
-        when(() => searchDepartures(any())).thenAnswer(
-          (_) async => const Left(NetworkFailure()),
-        );
+        when(
+          () => searchDepartures(any()),
+        ).thenAnswer((_) async => const Left(NetworkFailure()));
         return buildBloc();
       },
       act: (bloc) => bloc.add(requested),

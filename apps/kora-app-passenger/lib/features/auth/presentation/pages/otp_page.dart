@@ -151,9 +151,7 @@ class _OtpPageState extends State<OtpPage> {
                           // presque noire en thème clair.
                           TextSpan(
                             text: _maskEmail(widget.email),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w800,
-                            ),
+                            style: const TextStyle(fontWeight: FontWeight.w800),
                           ),
                           const TextSpan(text: '.'),
                         ],
@@ -279,9 +277,7 @@ class _CodeBoxState extends State<_CodeBox> {
       decoration: BoxDecoration(
         color: koraColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.base),
-        border: Border.all(
-          color: isActive ? AppColors.gold : koraColors.line,
-        ),
+        border: Border.all(color: isActive ? AppColors.gold : koraColors.line),
         // `.code-box.active { box-shadow: 0 0 0 3px rgba(246,176,0,.15) }`
         boxShadow: isActive
             ? [

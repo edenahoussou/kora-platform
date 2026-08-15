@@ -113,10 +113,7 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
                     // card dans le flux, il n'est pas épinglé en bas
                     // d'écran comme ceux du tunnel de réservation.
                     const SizedBox(height: 24),
-                    KoraButton(
-                      label: 'Recevoir mon code',
-                      onPressed: _submit,
-                    ),
+                    KoraButton(label: 'Recevoir mon code', onPressed: _submit),
                     const SizedBox(height: AppSpacing.lg),
                   ],
                 ),

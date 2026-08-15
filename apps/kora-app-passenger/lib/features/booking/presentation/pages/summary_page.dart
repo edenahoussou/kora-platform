@@ -56,10 +56,7 @@ class SummaryPage extends StatelessWidget {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18),
-          child: _SummaryContent(
-            departure: departure,
-            passengers: passengers,
-          ),
+          child: _SummaryContent(departure: departure, passengers: passengers),
         ),
       ),
     );
@@ -110,9 +107,7 @@ class _SummaryContent extends StatelessWidget {
               ..hideCurrentSnackBar()
               ..showSnackBar(
                 const SnackBar(
-                  content: Text(
-                    'Le paiement sera branché au Sprint 2.',
-                  ),
+                  content: Text('Le paiement sera branché au Sprint 2.'),
                 ),
               ),
           ),
@@ -132,7 +127,9 @@ class _TripCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final line = departure.line;
-    final seats = passengers.map((passenger) => passenger.seat.label).join(', ');
+    final seats = passengers
+        .map((passenger) => passenger.seat.label)
+        .join(', ');
 
     return KoraCard(
       variant: KoraCardVariant.navy,
@@ -290,7 +287,11 @@ class _PriceCard extends StatelessWidget {
           const Divider(height: 26),
           const _PriceRow(label: 'Frais de service', value: 'Inclus'),
           const Divider(height: 26),
-          _PriceRow(label: 'Total à payer', value: total.formatted, isTotal: true),
+          _PriceRow(
+            label: 'Total à payer',
+            value: total.formatted,
+            isTotal: true,
+          ),
         ],
       ),
     );

@@ -126,7 +126,9 @@ void _registerBookingFeature() {
     () => BookingRepositoryImpl(getIt()),
   );
 
-  getIt.registerLazySingleton<GetCitiesUseCase>(() => GetCitiesUseCase(getIt()));
+  getIt.registerLazySingleton<GetCitiesUseCase>(
+    () => GetCitiesUseCase(getIt()),
+  );
   getIt.registerLazySingleton<GetRecentCitiesUseCase>(
     () => GetRecentCitiesUseCase(getIt()),
   );

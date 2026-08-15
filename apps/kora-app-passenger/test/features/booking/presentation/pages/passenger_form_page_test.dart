@@ -36,10 +36,9 @@ void main() {
         date: DateTime(2026, 8, 14),
       ),
     ).first;
-    freeSeats = mockSeatsFor(departure)
-        .where((seat) => seat.status == SeatStatus.free)
-        .take(2)
-        .toList();
+    freeSeats = mockSeatsFor(
+      departure,
+    ).where((seat) => seat.status == SeatStatus.free).take(2).toList();
   });
 
   Future<void> pumpForm(WidgetTester tester, {int passengers = 1}) async {

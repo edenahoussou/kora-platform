@@ -26,15 +26,13 @@ void main() {
   }
 
   /// Compte les pastilles déjà remplies (dorées).
-  int filledDots(WidgetTester tester) => tester
-      .widgetList<Container>(find.byType(Container))
-      .where((container) {
+  int filledDots(WidgetTester tester) =>
+      tester.widgetList<Container>(find.byType(Container)).where((container) {
         final decoration = container.decoration;
         return decoration is BoxDecoration &&
             decoration.shape == BoxShape.circle &&
             decoration.color == AppColors.gold;
-      })
-      .length;
+      }).length;
 
   testWidgets('affiche le compte et un pavé complet', (tester) async {
     await pumpLogin(tester);

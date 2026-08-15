@@ -104,7 +104,8 @@ class _SearchingView extends StatelessWidget {
         const StateView(
           icon: Icons.trending_up_rounded,
           title: 'Nous trouvons votre meilleur départ',
-          message: 'Disponibilités et tarifs sont vérifiés sur chaque segment '
+          message:
+              'Disponibilités et tarifs sont vérifiés sur chaque segment '
               'du trajet.',
           showLoader: true,
         ),
@@ -136,7 +137,9 @@ class _ResultsView extends StatelessWidget {
       children: [
         ScreenHeader(
           eyebrow: _criteriaLabel(state.criteria),
-          title: count == 1 ? '1 départ disponible' : '$count départs disponibles',
+          title: count == 1
+              ? '1 départ disponible'
+              : '$count départs disponibles',
           action: KoraIconButton(
             icon: Icons.tune_rounded,
             onTap: () => Navigator.of(context).pop(),
@@ -214,7 +217,8 @@ class _EmptyView extends StatelessWidget {
         StateView(
           icon: Icons.search_rounded,
           title: 'Aucun voyage ce jour-là',
-          message: 'Cette liaison n’est pas desservie à cette date. Essayez '
+          message:
+              'Cette liaison n’est pas desservie à cette date. Essayez '
               'une autre date, ou un autre trajet.',
           primaryLabel: 'Modifier la recherche',
           onPrimary: () => Navigator.of(context).pop(),
@@ -243,8 +247,7 @@ class _FailureView extends StatelessWidget {
         StateView(
           icon: Icons.cloud_off_rounded,
           title: 'La recherche a échoué',
-          message:
-              state.errorMessage ?? 'Une erreur inattendue est survenue.',
+          message: state.errorMessage ?? 'Une erreur inattendue est survenue.',
           primaryLabel: 'Modifier la recherche',
           onPrimary: () => Navigator.of(context).pop(),
         ),

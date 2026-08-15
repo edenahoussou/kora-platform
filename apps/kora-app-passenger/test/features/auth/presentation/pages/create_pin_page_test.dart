@@ -27,15 +27,13 @@ void main() {
 
   /// Compte les pastilles déjà remplies. Hors écran navy, elles se
   /// remplissent en bleu KORA.
-  int filledDots(WidgetTester tester) => tester
-      .widgetList<Container>(find.byType(Container))
-      .where((container) {
+  int filledDots(WidgetTester tester) =>
+      tester.widgetList<Container>(find.byType(Container)).where((container) {
         final decoration = container.decoration;
         return decoration is BoxDecoration &&
             decoration.shape == BoxShape.circle &&
             decoration.color == AppColors.kora;
-      })
-      .length;
+      }).length;
 
   testWidgets('affiche la consigne et un pavé complet', (tester) async {
     await pumpCreatePin(tester);

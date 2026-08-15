@@ -62,17 +62,18 @@ class _DatePickerPageState extends State<DatePickerPage> {
 
   DateTime get _firstMonth => DateTime(widget.today.year, widget.today.month);
 
-  DateTime get _lastMonth => DateTime(
-    widget.today.year,
-    widget.today.month + widget.monthsAhead,
-  );
+  DateTime get _lastMonth =>
+      DateTime(widget.today.year, widget.today.month + widget.monthsAhead);
 
   bool get _canGoBack => _visibleMonth.isAfter(_firstMonth);
   bool get _canGoForward => _visibleMonth.isBefore(_lastMonth);
 
   void _shiftMonth(int months) {
     setState(() {
-      _visibleMonth = DateTime(_visibleMonth.year, _visibleMonth.month + months);
+      _visibleMonth = DateTime(
+        _visibleMonth.year,
+        _visibleMonth.month + months,
+      );
     });
   }
 
@@ -213,7 +214,15 @@ class _MonthGrid extends StatelessWidget {
   final ValueChanged<DateTime> onSelect;
 
   /// Semaine commençant le lundi, comme la maquette (`L M M J V S D`).
-  static const List<String> _weekdayInitials = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+  static const List<String> _weekdayInitials = [
+    'L',
+    'M',
+    'M',
+    'J',
+    'V',
+    'S',
+    'D',
+  ];
 
   @override
   Widget build(BuildContext context) {

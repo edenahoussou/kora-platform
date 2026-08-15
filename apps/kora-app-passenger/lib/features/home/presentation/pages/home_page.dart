@@ -129,10 +129,7 @@ class _HomeContent extends StatelessWidget {
               icon: const KoraVehicleIcon(
                 type: KoraVehicleType.standard,
                 size: 24,
-                colorFilter: ColorFilter.mode(
-                  AppColors.kora,
-                  BlendMode.srcIn,
-                ),
+                colorFilter: ColorFilter.mode(AppColors.kora, BlendMode.srcIn),
               ),
               onTap: () => _notAvailableYet(
                 context,
@@ -307,11 +304,7 @@ class _HomeError extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(
-            Icons.cloud_off_rounded,
-            size: 34,
-            color: koraColors.textMuted,
-          ),
+          Icon(Icons.cloud_off_rounded, size: 34, color: koraColors.textMuted),
           const SizedBox(height: AppSpacing.md),
           Text(
             'Impossible de charger l’accueil',

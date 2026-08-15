@@ -64,10 +64,7 @@ void main() {
   group('plan mocké', () {
     test('laisse exactement le nombre de places annoncé par le départ', () {
       expect(departure.seatsAvailable, 12);
-      expect(
-        seats.where((seat) => seat.status == SeatStatus.free).length,
-        12,
-      );
+      expect(seats.where((seat) => seat.status == SeatStatus.free).length, 12);
     });
 
     test('compte les 55 places du bus et condamne la première rangée', () {
@@ -84,7 +81,10 @@ void main() {
 
     test('redonne le même plan pour le même départ', () {
       final again = mockSeatsFor(departure);
-      expect(again.map((seat) => seat.status), seats.map((seat) => seat.status));
+      expect(
+        again.map((seat) => seat.status),
+        seats.map((seat) => seat.status),
+      );
     });
   });
 
@@ -114,9 +114,7 @@ void main() {
   testWidgets('ignore un siège déjà vendu', (tester) async {
     await pumpSeats(tester);
 
-    final sold = seats.firstWhere(
-      (seat) => seat.status == SeatStatus.occupied,
-    );
+    final sold = seats.firstWhere((seat) => seat.status == SeatStatus.occupied);
 
     await tester.tap(find.text(sold.label));
     await tester.pumpAndSettle();

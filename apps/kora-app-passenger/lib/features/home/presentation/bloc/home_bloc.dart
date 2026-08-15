@@ -31,7 +31,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     this._getNextTrip, {
     DateTime Function()? now,
   }) : _now = now ?? DateTime.now,
-      super(const HomeState()) {
+       super(const HomeState()) {
     on<HomeStarted>(_onStarted);
     on<HomeOriginSelected>(_onOriginSelected);
     on<HomeDestinationSelected>(_onDestinationSelected);

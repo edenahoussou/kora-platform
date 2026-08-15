@@ -12,7 +12,11 @@ import '../widgets/pin_pad.dart';
 /// de parcourir le tunnel Bus mocké. Le jour où l'authentification arrive,
 /// seul [onSuccess] change — la saisie, elle, est déjà en place.
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key, this.email = 'aicha.hounkpe@example.com', this.onSuccess});
+  const LoginPage({
+    super.key,
+    this.email = 'aicha.hounkpe@example.com',
+    this.onSuccess,
+  });
 
   /// Compte auquel se rattache le PIN. Codé en dur tant qu'aucune session
   /// n'existe.
@@ -174,9 +178,7 @@ class _Header extends StatelessWidget {
       children: [
         Text(
           'BON RETOUR PARMI NOUS',
-          style: AppTextStyles.eyebrow(
-            AppColors.white.withValues(alpha: 0.65),
-          ),
+          style: AppTextStyles.eyebrow(AppColors.white.withValues(alpha: 0.65)),
         ),
         const SizedBox(height: 6),
         const Text(

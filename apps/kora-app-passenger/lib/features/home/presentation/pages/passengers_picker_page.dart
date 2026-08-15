@@ -78,9 +78,7 @@ class _PassengersPickerPageState extends State<PassengersPickerPage> {
                           ),
                           _Stepper(
                             count: _count,
-                            onDecrement: _count > 1
-                                ? () => _change(-1)
-                                : null,
+                            onDecrement: _count > 1 ? () => _change(-1) : null,
                             onIncrement: _count < widget.maxPassengers
                                 ? () => _change(1)
                                 : null,

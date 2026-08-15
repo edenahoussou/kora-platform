@@ -26,12 +26,7 @@ class SeatsBloc extends Bloc<SeatsEvent, SeatsState> {
     SeatsRequested event,
     Emitter<SeatsState> emit,
   ) async {
-    emit(
-      SeatsState(
-        departure: event.departure,
-        passengers: event.passengers,
-      ),
-    );
+    emit(SeatsState(departure: event.departure, passengers: event.passengers));
 
     final result = await _getSeats(event.departure);
     result.fold(
@@ -41,9 +36,8 @@ class SeatsBloc extends Bloc<SeatsEvent, SeatsState> {
           errorMessage: failure.message,
         ),
       ),
-      (seats) => emit(
-        state.copyWith(status: SeatsStatus.success, seats: seats),
-      ),
+      (seats) =>
+          emit(state.copyWith(status: SeatsStatus.success, seats: seats)),
     );
   }
 

@@ -88,7 +88,13 @@ void main() {
     expect(find.text('Les étapes'), findsOneWidget);
 
     // La ligne dessert Bohicon, Parakou et Kandi entre les deux terminus.
-    for (final stop in ['Cotonou', 'Bohicon', 'Parakou', 'Kandi', 'Malanville']) {
+    for (final stop in [
+      'Cotonou',
+      'Bohicon',
+      'Parakou',
+      'Kandi',
+      'Malanville',
+    ]) {
       expect(find.text(stop), findsWidgets, reason: '$stop absent des étapes');
     }
 

@@ -53,8 +53,12 @@ class DeparturesBloc extends Bloc<DeparturesEvent, DeparturesState> {
     if (criteria == null) {
       // Paramètres d'URL absents ou inconnus : l'écran ne peut rien
       // chercher, et le dire vaut mieux qu'une liste vide trompeuse.
-      emit(_failed('Cette recherche est incomplète. Reprenez-la depuis '
-          'l’accueil.'));
+      emit(
+        _failed(
+          'Cette recherche est incomplète. Reprenez-la depuis '
+          'l’accueil.',
+        ),
+      );
       return;
     }
 

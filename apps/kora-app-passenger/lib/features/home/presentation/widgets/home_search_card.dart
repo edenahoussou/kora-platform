@@ -332,7 +332,11 @@ class _SwapButton extends StatelessWidget {
           onTap: onTap,
           customBorder: const CircleBorder(),
           child: const Center(
-            child: Icon(Icons.swap_vert_rounded, size: 19, color: AppColors.kora),
+            child: Icon(
+              Icons.swap_vert_rounded,
+              size: 19,
+              color: AppColors.kora,
+            ),
           ),
         ),
       ),
@@ -423,7 +427,10 @@ class _MetaTile extends StatelessWidget {
         onTap: onTap,
         child: Container(
           constraints: const BoxConstraints(minHeight: 55),
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 9),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: 9,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,

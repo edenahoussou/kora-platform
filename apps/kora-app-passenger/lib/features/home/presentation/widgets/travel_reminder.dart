@@ -27,7 +27,10 @@ class TravelReminder extends StatelessWidget {
         borderRadius: BorderRadius.circular(17),
         child: Container(
           constraints: const BoxConstraints(minHeight: 58),
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 9),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: 9,
+          ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(17),
             border: Border.all(color: koraColors.line),
@@ -69,7 +72,10 @@ class TravelReminder extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       message,
-                      style: TextStyle(color: koraColors.textMuted, fontSize: 9),
+                      style: TextStyle(
+                        color: koraColors.textMuted,
+                        fontSize: 9,
+                      ),
                     ),
                   ],
                 ),

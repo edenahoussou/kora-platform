@@ -78,10 +78,7 @@ class _DetailContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ScreenHeader(
-          eyebrow: departure.comfort.label,
-          title: 'Votre départ',
-        ),
+        ScreenHeader(eyebrow: departure.comfort.label, title: 'Votre départ'),
         Expanded(
           child: ListView(
             padding: EdgeInsets.zero,
@@ -430,10 +427,7 @@ class _TimelineItem extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     isFirst ? '$time · départ confirmé' : '≈ $time · estimée',
-                    style: TextStyle(
-                      color: koraColors.textMuted,
-                      fontSize: 10,
-                    ),
+                    style: TextStyle(color: koraColors.textMuted, fontSize: 10),
                   ),
                 ],
               ),

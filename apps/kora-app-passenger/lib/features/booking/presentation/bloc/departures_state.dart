@@ -39,8 +39,7 @@ class DeparturesState extends Equatable {
   /// Aucun départ sur cette liaison ce jour-là. C'est un succès, pas une
   /// erreur : l'écran a un état dédié qui propose de changer la date ou le
   /// trajet.
-  bool get isEmpty =>
-      status == DeparturesStatus.success && departures.isEmpty;
+  bool get isEmpty => status == DeparturesStatus.success && departures.isEmpty;
 
   /// Les départs dans l'ordre demandé.
   ///
@@ -81,11 +80,5 @@ class DeparturesState extends Equatable {
   }
 
   @override
-  List<Object?> get props => [
-    status,
-    criteria,
-    departures,
-    sort,
-    errorMessage,
-  ];
+  List<Object?> get props => [status, criteria, departures, sort, errorMessage];
 }
