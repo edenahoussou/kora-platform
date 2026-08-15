@@ -21,7 +21,6 @@ services:
       LOG_STACK: docker
     volumes:
       - prod-storage:/app/storage
-      - prod-public:/app/public
     depends_on:
       postgres:
         condition: service_healthy
@@ -46,6 +45,19 @@ services:
     networks:
       - kora-prod
     restart: unless-stopped
+
+  # Copie les assets de l'image app vers le volume prod-public
+  sync-public:
+    image: ghcr.io/edenahoussou/kora-ops-web:latest
+    container_name: kora-prod-sync-public
+    volumes:
+      - prod-public:/sync
+    command: [ "sh", "-c", "cp -a /app/public/. /sync/ && echo 'Public assets synced'" ]
+    depends_on:
+      - app
+    networks:
+      - kora-prod
+    restart: "no"
 
   postgres:
     image: postgres:16-alpine

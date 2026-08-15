@@ -21,7 +21,6 @@ services:
       LOG_STACK: docker
     volumes:
       - staging-storage:/app/storage
-      - staging-public:/app/public
     depends_on:
       postgres:
         condition: service_healthy
@@ -46,6 +45,19 @@ services:
     networks:
       - kora-staging
     restart: unless-stopped
+
+  # Copie les assets de l'image app vers le volume staging-public
+  sync-public:
+    image: ghcr.io/edenahoussou/kora-ops-web:staging
+    container_name: kora-staging-sync-public
+    volumes:
+      - staging-public:/sync
+    command: [ "sh", "-c", "cp -a /app/public/. /sync/ && echo 'Public assets synced'" ]
+    depends_on:
+      - app
+    networks:
+      - kora-staging
+    restart: "no"
 
   postgres:
     image: postgres:16-alpine
