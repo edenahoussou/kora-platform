@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/di/injector.dart';
 import 'core/env/app_env.dart';
@@ -35,6 +36,16 @@ class KoraApp extends StatelessWidget {
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
             themeMode: themeState.materialThemeMode,
+            // KORA EXPRESS est une app francophone : on force le français
+            // plutôt que de suivre la langue du téléphone, faute de
+            // traductions anglaises de nos propres textes.
+            locale: const Locale('fr', 'FR'),
+            supportedLocales: const [Locale('fr', 'FR')],
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
             routerConfig: AppRouter.router,
           );
         },

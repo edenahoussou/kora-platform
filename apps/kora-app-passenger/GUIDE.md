@@ -677,9 +677,16 @@ sauvegarde.
 ## 13. Ce qui n'est PAS encore fait
 
 - Les vrais écrans métier (Voyages/Colis/Wallet/Profil sont des
-  placeholders "texte centré")
+  placeholders "texte centré"). L'accueil, lui, est écrit : c'est
+  l'écran de recherche de départs Bus (`features/home`), alimenté par le
+  jeu de données de test de `features/booking/data/datasources/`
+- La suite du parcours Bus : liste des départs et ses filtres, détail
+  d'un départ, sélection de siège, récapitulatif
 - Les vrais appels réseau (aucune API backend n'existe encore —
-  `ApiConstants.baseUrl` est un placeholder)
+  `ApiConstants.baseUrl` est un placeholder). Côté Bus, le branchement
+  se fera en remplaçant `BookingMockDataSource` par une implémentation
+  réseau dans `_registerBookingFeature()` (`core/di/injector.dart`) —
+  rien d'autre à changer
 - L'authentification (login/register/refresh token) — le guard de
   navigation existe (`AuthGuard`, voir §7) mais sa redirection
   "non connecté → `/login`" est désactivée tant que `LoginPage` n'a pas
@@ -688,8 +695,10 @@ sauvegarde.
   `StorageKeys`, mais la feature `auth` elle-même (formulaire, appel API,
   écriture du token) n'est pas encore écrite — `LoginPage` est un
   placeholder
-- Les tests unitaires (`bloc_test` + `mocktail` sont installés et prêts à
-  l'emploi, mais aucun test n'est encore écrit au-delà du test de fumée)
+- Les tests des features non écrites. Ceux de l'accueil existent et
+  servent de modèle : `test/features/home/presentation/bloc/`
+  (`bloc_test` + `mocktail`) et `.../pages/` (test d'écran couvrant les
+  états chargement / succès / vide / erreur)
 - Les icônes de nav pourraient être affinées visuellement si besoin
   (actuellement des interprétations fidèles, mais redessinées à la main,
   des pictogrammes CSS du prototype)

@@ -1,0 +1,112 @@
+// Tests de l'écran de connexion : saisie du PIN, effacement, validation
+// incomplète, et entrée dans l'app.
+
+import 'package:flutter/material.dart';
+import 'package:flutter_design_system/flutter_design_system.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:kora_app_passenger/features/auth/presentation/pages/login_page.dart';
+
+void main() {
+  late int successes;
+
+  Future<void> pumpLogin(WidgetTester tester) async {
+    tester.view.physicalSize = const Size(390 * 3, 900 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    successes = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: LoginPage(onSuccess: () => successes++),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  /// Compte les pastilles déjà remplies (dorées).
+  int filledDots(WidgetTester tester) => tester
+      .widgetList<Container>(find.byType(Container))
+      .where((container) {
+        final decoration = container.decoration;
+        return decoration is BoxDecoration &&
+            decoration.shape == BoxShape.circle &&
+            decoration.color == AppColors.gold;
+      })
+      .length;
+
+  testWidgets('affiche le compte et un pavé complet', (tester) async {
+    await pumpLogin(tester);
+
+    expect(find.text('Votre PIN KORA'), findsOneWidget);
+    expect(find.text('aicha.hounkpe@example.com'), findsOneWidget);
+
+    for (final key in ['1', '5', '9', '0', '⌫', '✓']) {
+      expect(find.text(key), findsOneWidget, reason: 'touche $key absente');
+    }
+    expect(filledDots(tester), 0);
+  });
+
+  testWidgets('remplit une pastille par chiffre, sans dépasser quatre', (
+    tester,
+  ) async {
+    await pumpLogin(tester);
+
+    for (final key in ['1', '2', '3']) {
+      await tester.tap(find.text(key));
+      await tester.pump();
+    }
+    expect(filledDots(tester), 3);
+
+    // Un cinquième chiffre ne s'ajoute pas.
+    for (final key in ['4', '5']) {
+      await tester.tap(find.text(key));
+      await tester.pump();
+    }
+    expect(filledDots(tester), 4);
+  });
+
+  testWidgets('efface le dernier chiffre saisi', (tester) async {
+    await pumpLogin(tester);
+
+    await tester.tap(find.text('7'));
+    await tester.tap(find.text('8'));
+    await tester.pump();
+    expect(filledDots(tester), 2);
+
+    await tester.tap(find.text('⌫'));
+    await tester.pump();
+    expect(filledDots(tester), 1);
+  });
+
+  testWidgets('refuse un PIN incomplet', (tester) async {
+    await pumpLogin(tester);
+
+    await tester.tap(find.text('1'));
+    await tester.tap(find.text('2'));
+    await tester.pump();
+
+    await tester.tap(find.text('✓'));
+    await tester.pump();
+
+    expect(find.text('Saisissez vos 4 chiffres'), findsOneWidget);
+    expect(successes, 0);
+  });
+
+  testWidgets('ouvre l’app une fois les quatre chiffres saisis', (
+    tester,
+  ) async {
+    await pumpLogin(tester);
+
+    for (final key in ['1', '2', '3', '4']) {
+      await tester.tap(find.text(key));
+      await tester.pump();
+    }
+    await tester.tap(find.text('✓'));
+    await tester.pump();
+
+    expect(successes, 1);
+    expect(find.text('Saisissez vos 4 chiffres'), findsNothing);
+  });
+}

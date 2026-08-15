@@ -61,6 +61,8 @@ lib/
 │   │   └── injector.dart           # Configuration get_it (service locator)
 │   ├── env/
 │   │   └── app_env.dart            # AppEnv : config par environnement (dev/staging/prod)
+│   ├── utils/
+│   │   └── date_formats.dart       # Formats de date/heure fr_FR (intl)
 │   ├── error/
 │   │   ├── failures.dart           # Failure (domain) — ServerFailure, NetworkFailure...
 │   │   └── exceptions.dart         # Exception (data) — ServerException...
@@ -79,7 +81,11 @@ lib/
     │   ├── domain/{entities,repositories}/
     │   └── presentation/{bloc,widgets}/
     ├── auth/presentation/pages/    # LoginPage : placeholder, destination du guard tant que la feature n'est pas écrite
-    ├── home/presentation/pages/    # Onglet Accueil (compteur Flutter par défaut, volontairement — cf. home_page.dart)
+    ├── booking/                    # Parcours de réservation Bus (données mockées Sprint 1)
+    │   ├── data/{datasources,repositories}/  # booking_mock_data.dart = le jeu de test, à supprimer au Sprint 2
+    │   ├── domain/{entities,repositories,usecases}/  # City, Line, Departure, Seat, Price...
+    │   └── presentation/pages/     # DeparturesPage (liste des départs — en cours)
+    ├── home/presentation/          # Onglet Accueil : recherche de départs (bloc + widgets + page)
     ├── voyages/presentation/pages/ # Placeholder "texte centré"
     ├── colis/presentation/pages/   # Placeholder "texte centré"
     ├── wallet/presentation/pages/  # Placeholder "texte centré"

@@ -5,6 +5,17 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../features/booking/data/datasources/booking_data_source.dart';
+import '../../features/booking/data/repositories/booking_repository_impl.dart';
+import '../../features/booking/domain/repositories/booking_repository.dart';
+import '../../features/booking/domain/usecases/get_cities_usecase.dart';
+import '../../features/booking/domain/usecases/get_next_trip_usecase.dart';
+import '../../features/booking/domain/usecases/get_recent_cities_usecase.dart';
+import '../../features/booking/domain/usecases/get_seats_usecase.dart';
+import '../../features/booking/domain/usecases/search_departures_usecase.dart';
+import '../../features/booking/presentation/bloc/departures_bloc.dart';
+import '../../features/booking/presentation/bloc/seats_bloc.dart';
+import '../../features/home/presentation/bloc/home_bloc.dart';
 import '../../features/theme/data/datasources/theme_local_data_source.dart';
 import '../../features/theme/data/repositories/theme_repository_impl.dart';
 import '../../features/theme/domain/repositories/theme_repository.dart';
@@ -31,6 +42,7 @@ Future<void> setupInjector() async {
   await _registerExternalDependencies();
   _registerCore();
   _registerThemeFeature();
+  _registerBookingFeature();
 
   // Quand on ajoutera une nouvelle feature (ex: "auth"), on suit le même
   // schéma que _registerThemeFeature() ci-dessous :
@@ -99,4 +111,35 @@ void _registerThemeFeature() {
   // `registerFactory` (et non singleton) : convention recommandée pour les
   // Blocs, même si dans notre cas on ne le crée qu'une fois (voir app.dart).
   getIt.registerFactory<ThemeBloc>(() => ThemeBloc(getIt()));
+}
+
+/// Feature "booking" (parcours de réservation Bus) — voir features/booking/.
+///
+/// **C'est ici, et nulle part ailleurs, que l'app décide de travailler sur
+/// des données mockées.** Au Sprint 2, seule la ligne
+/// [BookingMockDataSource] deviendra `BookingRemoteDataSourceImpl(getIt())` :
+/// repository, use cases, Blocs et écrans resteront inchangés.
+void _registerBookingFeature() {
+  getIt.registerLazySingleton<BookingDataSource>(() => BookingMockDataSource());
+
+  getIt.registerLazySingleton<BookingRepository>(
+    () => BookingRepositoryImpl(getIt()),
+  );
+
+  getIt.registerLazySingleton<GetCitiesUseCase>(() => GetCitiesUseCase(getIt()));
+  getIt.registerLazySingleton<GetRecentCitiesUseCase>(
+    () => GetRecentCitiesUseCase(getIt()),
+  );
+  getIt.registerLazySingleton<GetNextTripUseCase>(
+    () => GetNextTripUseCase(getIt()),
+  );
+
+  getIt.registerLazySingleton<SearchDeparturesUseCase>(
+    () => SearchDeparturesUseCase(getIt()),
+  );
+  getIt.registerLazySingleton<GetSeatsUseCase>(() => GetSeatsUseCase(getIt()));
+
+  getIt.registerFactory<HomeBloc>(() => HomeBloc(getIt(), getIt(), getIt()));
+  getIt.registerFactory<DeparturesBloc>(() => DeparturesBloc(getIt(), getIt()));
+  getIt.registerFactory<SeatsBloc>(() => SeatsBloc(getIt()));
 }
