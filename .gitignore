@@ -24,3 +24,7 @@ apps/kora-ops-mobile/.flutter-plugins-dependencies
 
 infra/docker/postgres-data/
 infra/docker/redis-data/
+
+rebase-main.sh
+
+rebase-branch.sh

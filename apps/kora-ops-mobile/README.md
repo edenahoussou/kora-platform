@@ -1,5 +1,35 @@
-# KORA OPS Mobile/P501
+# KORA OPS Mobile (P501)
 
-Emplacement de l'application Flutter Android/P501 pour chauffeurs Bus, convoyeurs, agences et operations terrain. Ce n'est pas KORA Driver, qui sera l'application future pour les conducteurs Ride.
+Application Flutter terrain pour chauffeurs bus, convoyeurs et agences KORA EXPRESS (manifestes, embarquement, impression, synchronisation). Ce n'est pas KORA Driver (Ride).
 
-Le projet sera genere ici apres validation Flutter, SDK P501, scanner 2D et imprimante thermique.
+Documentation complète : voir **[document.md](document.md)**.
+
+## Démarrage rapide
+
+```bash
+flutter --version   # Flutter 3.x / Dart 3.x requis
+flutter pub get
+
+# Génération de code (si des modèles Freezed/json_serializable sont ajoutés)
+dart run build_runner build --delete-conflicting-outputs
+
+flutter analyze
+flutter test
+flutter run --dart-define=ENV=dev
+```
+
+## Widgetbook
+
+```bash
+cd widgetbook
+flutter pub get
+flutter run -t lib/main.dart
+```
+
+## Environnements
+
+```bash
+flutter run --dart-define=ENV=dev
+flutter run --dart-define=ENV=staging
+flutter run --dart-define=ENV=prod
+```

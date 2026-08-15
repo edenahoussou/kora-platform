@@ -50,7 +50,7 @@ class AppRouter {
   /// désactivée pour l'instant** : `LoginPage` n'a pas encore de vrai
   /// formulaire (voir GUIDE.md §13), donc la forcer enfermerait tout le
   /// monde sur un écran sans issue, impossible de revenir sur la bottom
-  /// nav. TODO(auth): réactiver `if (!authenticated && !onLoginPage) return
+  /// nav. TOO(auth): réactiver `if (!authenticated && !onLoginPage) return
   /// loginPath;` dès que `LoginPage` permet réellement de se connecter.
   ///
   /// Volontairement pas de `refreshListenable` non plus : sans feature
