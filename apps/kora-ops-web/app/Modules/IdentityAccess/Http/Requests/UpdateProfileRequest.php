@@ -29,6 +29,25 @@ class UpdateProfileRequest extends FormRequest
     }
 
     /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'Le nom est obligatoire.',
+            'name.max' => 'Le nom ne peut pas dépasser 120 caractères.',
+            'email.required' => "L'adresse email est obligatoire.",
+            'email.email' => 'Veuillez saisir une adresse email valide.',
+            'email.max' => "L'adresse email ne peut pas dépasser 255 caractères.",
+            'email.unique' => 'Cette adresse email est déjà utilisée.',
+            'phone.max' => 'Le numéro de téléphone ne peut pas dépasser 20 caractères.',
+            'country_code.max' => "L'indicatif pays ne peut pas dépasser 4 caractères.",
+            'birth_date.date' => "La date de naissance n'est pas valide.",
+            'birth_date.before' => "La date de naissance doit être antérieure à aujourd'hui.",
+        ];
+    }
+
+    /**
      * @return array{name: string, email: string, phone?: string|null, country_code?: string|null, birth_date?: string|null}
      */
     public function payload(): array

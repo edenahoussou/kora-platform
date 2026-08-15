@@ -24,6 +24,21 @@ class ChangePinRequest extends FormRequest
     }
 
     /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'current_pin.required' => 'Le PIN actuel est obligatoire.',
+            'current_pin.digits' => 'Le PIN actuel doit contenir exactement 4 chiffres.',
+            'new_pin.required' => 'Le nouveau PIN est obligatoire.',
+            'new_pin.digits' => 'Le nouveau PIN doit contenir exactement 4 chiffres.',
+            'new_pin.confirmed' => 'La confirmation du nouveau PIN ne correspond pas.',
+            'new_pin.not_in' => 'Le nouveau PIN doit être différent du PIN actuel.',
+        ];
+    }
+
+    /**
      * @return array{current_pin: string, new_pin: string}
      */
     public function payload(): array

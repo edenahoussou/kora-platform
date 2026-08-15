@@ -23,4 +23,18 @@ class RequestOtpRequest extends FormRequest
             'purpose' => ['required', Rule::in(OtpPurpose::values())],
         ];
     }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'email.required' => "L'adresse email est obligatoire.",
+            'email.email' => 'Veuillez saisir une adresse email valide.',
+            'email.max' => "L'adresse email ne peut pas dépasser 255 caractères.",
+            'purpose.required' => 'La raison de la demande est obligatoire.',
+            'purpose.in' => "La raison de la demande n'est pas valide.",
+        ];
+    }
 }
