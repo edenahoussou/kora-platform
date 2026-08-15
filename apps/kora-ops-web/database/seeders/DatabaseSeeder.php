@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -18,13 +17,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             KoraBusRolePermissionSeeder::class,
             KoraBusReferenceSeeder::class,
+            KoraDemoUserSeeder::class,
         ]);
-
-        $admin = User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
-
-        $admin->assignRole('system_admin');
     }
 }
