@@ -23,7 +23,10 @@ export function KoraShell({ children, breadcrumbs = [] }: Props) {
 
     return (
         <div className="kora-shell grid min-h-screen grid-cols-1 bg-background lg:grid-cols-[264px_minmax(0,1fr)]">
-            <KoraSidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
+            <KoraSidebar
+                mobileOpen={mobileOpen}
+                onMobileClose={() => setMobileOpen(false)}
+            />
             <div className="kora-main flex min-h-screen flex-col">
                 <KoraTopbar
                     user={user}

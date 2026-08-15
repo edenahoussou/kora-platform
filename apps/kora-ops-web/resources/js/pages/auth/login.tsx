@@ -105,7 +105,7 @@ export default function Login({ status, canResetPassword }: Props) {
 
                             <Button
                                 type="submit"
-                                className="kora-auth-submit relative mt-4 h-[3.25rem] w-full overflow-hidden rounded-[0.6875rem] bg-gold text-[0.8125rem] font-extrabold text-[var(--kora)] shadow-[0_9px_22px_rgba(246,176,0,0.22)] transition-[color,background,transform] hover:bg-[var(--kora)] hover:text-white hover:translate-y-[-1px]"
+                                className="kora-auth-submit relative mt-4 h-[3.25rem] w-full overflow-hidden rounded-[0.6875rem] bg-gold text-[0.8125rem] font-extrabold text-[var(--kora)] shadow-[0_9px_22px_rgba(246,176,0,0.22)] transition-[color,background,transform] hover:translate-y-[-1px] hover:bg-[var(--kora)] hover:text-white"
                                 tabIndex={4}
                                 disabled={processing}
                                 data-test="login-button"
@@ -133,7 +133,7 @@ export default function Login({ status, canResetPassword }: Props) {
             )}
 
             <div className="mt-6 flex items-center gap-3 border-t border-border pt-[1.125rem]">
-                <i className="grid size-[1.9375rem] shrink-0 place-items-center rounded-[0.625rem] bg-gold/20 text-[0.625rem] font-black not-italic text-[var(--kora)]">
+                <i className="grid size-[1.9375rem] shrink-0 place-items-center rounded-[0.625rem] bg-gold/20 text-[0.625rem] font-black text-[var(--kora)] not-italic">
                     ✓
                 </i>
                 <div>
@@ -201,7 +201,7 @@ function ForgotPasswordDialog({
                         <div className="mb-5 grid size-16 place-items-center rounded-[1.25rem] bg-gold text-[1.875rem] font-black text-[var(--kora)]">
                             <Check className="size-7" />
                         </div>
-                        <span className="mb-1 block text-xs font-black uppercase tracking-[0.15em] text-gold">
+                        <span className="mb-1 block text-xs font-black tracking-[0.15em] text-gold uppercase">
                             Demande confirmée
                         </span>
                         <DialogTitle className="mt-1 text-[1.625rem] font-extrabold tracking-[-0.03em] text-foreground">
@@ -217,7 +217,7 @@ function ForgotPasswordDialog({
                         <Button
                             type="button"
                             onClick={() => handleClose(false)}
-                            className="mt-6 h-[3.25rem] w-full rounded-[0.6875rem] bg-gold text-[0.8125rem] font-extrabold text-[var(--kora)] shadow-[0_9px_22px_rgba(246,176,0,0.22)] transition-[color,background,transform] hover:bg-[var(--kora)] hover:text-white hover:translate-y-[-1px]"
+                            className="mt-6 h-[3.25rem] w-full rounded-[0.6875rem] bg-gold text-[0.8125rem] font-extrabold text-[var(--kora)] shadow-[0_9px_22px_rgba(246,176,0,0.22)] transition-[color,background,transform] hover:translate-y-[-1px] hover:bg-[var(--kora)] hover:text-white"
                         >
                             Retour à la connexion
                         </Button>
@@ -227,7 +227,7 @@ function ForgotPasswordDialog({
                         <button
                             type="button"
                             onClick={() => handleClose(false)}
-                            className="absolute right-[1.125rem] top-[1.125rem] grid size-[2.375rem] place-items-center rounded-[0.75rem] bg-muted text-foreground transition-colors hover:bg-muted/80"
+                            className="absolute top-[1.125rem] right-[1.125rem] grid size-[2.375rem] place-items-center rounded-[0.75rem] bg-muted text-foreground transition-colors hover:bg-muted/80"
                             aria-label="Fermer"
                         >
                             <X className="size-4" />
@@ -240,15 +240,15 @@ function ForgotPasswordDialog({
                             <i className="h-0.5 w-[3.875rem] bg-gradient-to-r from-gold to-transparent" />
                         </div>
 
-                        <span className="block text-xs font-black uppercase tracking-[0.15em] text-gold">
+                        <span className="block text-xs font-black tracking-[0.15em] text-gold uppercase">
                             Accès sécurisé
                         </span>
                         <DialogTitle className="mt-1 text-[1.625rem] font-extrabold tracking-[-0.03em] text-foreground">
                             Réinitialiser votre accès
                         </DialogTitle>
                         <DialogDescription className="text-sm leading-relaxed text-muted-foreground">
-                            Saisissez votre identifiant professionnel. Un lien
-                            à usage unique sera envoyé à l'adresse enregistrée.
+                            Saisissez votre identifiant professionnel. Un lien à
+                            usage unique sera envoyé à l'adresse enregistrée.
                         </DialogDescription>
 
                         <div className="grid gap-2">
@@ -265,7 +265,9 @@ function ForgotPasswordDialog({
                                 required
                                 autoFocus
                                 value={data.email}
-                                onChange={(e) => setData('email', e.target.value)}
+                                onChange={(e) =>
+                                    setData('email', e.target.value)
+                                }
                                 placeholder="email@koraexpress.com"
                                 className="h-[3.375rem] rounded-[0.875rem] border-0 bg-muted text-sm shadow-[inset_0_0_0_1px_var(--border)] transition-[box-shadow,transform,background] focus-visible:translate-y-[-1px] focus-visible:bg-background focus-visible:shadow-[0_0_0_3px_rgba(246,176,0,0.16),inset_0_0_0_1px_var(--gold)]"
                             />
@@ -275,9 +277,13 @@ function ForgotPasswordDialog({
                         <Button
                             type="submit"
                             disabled={processing}
-                            className="h-[3.25rem] w-full rounded-[0.6875rem] bg-gold text-[0.8125rem] font-extrabold text-[var(--kora)] shadow-[0_9px_22px_rgba(246,176,0,0.22)] transition-[color,background,transform] hover:bg-[var(--kora)] hover:text-white hover:translate-y-[-1px]"
+                            className="h-[3.25rem] w-full rounded-[0.6875rem] bg-gold text-[0.8125rem] font-extrabold text-[var(--kora)] shadow-[0_9px_22px_rgba(246,176,0,0.22)] transition-[color,background,transform] hover:translate-y-[-1px] hover:bg-[var(--kora)] hover:text-white"
                         >
-                            {processing ? <Spinner /> : 'Envoyer le lien sécurisé'}
+                            {processing ? (
+                                <Spinner />
+                            ) : (
+                                'Envoyer le lien sécurisé'
+                            )}
                         </Button>
 
                         <p className="text-center text-[0.75rem] text-muted-foreground">
@@ -294,5 +300,5 @@ function ForgotPasswordDialog({
 Login.layout = {
     title: 'Bon retour parmi nous.',
     description:
-        "Connectez-vous pour retrouver votre agence, vos opérations et les priorités du réseau.",
+        'Connectez-vous pour retrouver votre agence, vos opérations et les priorités du réseau.',
 };

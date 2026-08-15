@@ -5,7 +5,5 @@ export default function AppSidebarLayout({
     children,
     breadcrumbs = [],
 }: AppLayoutProps) {
-    return (
-        <KoraShell breadcrumbs={breadcrumbs}>{children}</KoraShell>
-    );
+    return <KoraShell breadcrumbs={breadcrumbs}>{children}</KoraShell>;
 }

@@ -15,8 +15,8 @@ export default function Dashboard() {
                         Centre de pilotage
                     </h1>
                     <p className="mt-1.5 text-[0.8125rem] text-muted-foreground">
-                        Les indicateurs essentiels de votre périmètre, actualisés
-                        aujourd'hui.
+                        Les indicateurs essentiels de votre périmètre,
+                        actualisés aujourd'hui.
                     </p>
                 </div>
             </div>
@@ -63,7 +63,9 @@ export default function Dashboard() {
                             >
                                 <div
                                     className="w-full rounded-t-[7px] bg-gradient-to-t from-[var(--kora)] to-digital opacity-20"
-                                    style={{ height: `${[58, 73, 62, 84, 77, 91, 68][i]}%` }}
+                                    style={{
+                                        height: `${[58, 73, 62, 84, 77, 91, 68][i]}%`,
+                                    }}
                                 >
                                     <span className="absolute bottom-[-1.4375rem] left-1/2 -translate-x-1/2 text-[0.5625rem] text-muted-foreground">
                                         {day}

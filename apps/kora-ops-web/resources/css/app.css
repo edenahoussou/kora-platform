@@ -95,12 +95,19 @@
 }
 
 @layer kora-auth {
-
     /* Brand panel: navy with radial glows + orbiting decorative rings */
     .kora-auth-brand {
         background:
-            radial-gradient(circle at 86% 10%, rgba(0, 87, 184, 0.72), transparent 30%),
-            radial-gradient(circle at 10% 90%, rgba(0, 87, 184, 0.38), transparent 28%),
+            radial-gradient(
+                circle at 86% 10%,
+                rgba(0, 87, 184, 0.72),
+                transparent 30%
+            ),
+            radial-gradient(
+                circle at 10% 90%,
+                rgba(0, 87, 184, 0.38),
+                transparent 28%
+            ),
             var(--kora);
     }
 
@@ -230,7 +237,6 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
-
         .kora-auth-brand::before,
         .kora-auth-brand::after,
         .kora-auth-track::after,

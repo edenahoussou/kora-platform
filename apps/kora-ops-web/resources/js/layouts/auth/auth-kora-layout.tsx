@@ -28,19 +28,19 @@ export default function AuthKoraLayout({
                         alt="KORA EXPRESS"
                         className="kora-auth-logo h-24 w-[14.6875rem] object-contain object-left"
                     />
-                    <span className="rounded-full border border-white/15 px-3 py-2 text-[0.5625rem] font-black uppercase tracking-[0.14em] text-white/65">
+                    <span className="rounded-full border border-white/15 px-3 py-2 text-[0.5625rem] font-black tracking-[0.14em] text-white/65 uppercase">
                         KORA OPS
                     </span>
                 </div>
 
                 <div className="kora-auth-copy relative z-10 mt-[2vh] max-w-[40rem]">
-                    <span className="mb-3 block text-xs font-black uppercase tracking-[0.15em] text-gold">
+                    <span className="mb-3 block text-xs font-black tracking-[0.15em] text-gold uppercase">
                         Le réseau en mouvement
                     </span>
-                    <h1 className="m-0 max-w-[47.5rem] text-[clamp(2.8125rem,5.1vw,4.875rem)] font-extrabold leading-[0.94] tracking-[-0.045em]">
+                    <h1 className="m-0 max-w-[47.5rem] text-[clamp(2.8125rem,5.1vw,4.875rem)] leading-[0.94] font-extrabold tracking-[-0.045em]">
                         Pilotez chaque trajet.
                         <br />
-                        <em className="inline-block not-italic text-gold">
+                        <em className="inline-block text-gold not-italic">
                             Maîtrisez l'ensemble.
                         </em>
                     </h1>
@@ -53,21 +53,21 @@ export default function AuthKoraLayout({
                     <div className="kora-auth-network relative z-10 mt-[2.125rem] max-w-[40.625rem] rounded-[1.25rem] border border-white/10 bg-white/5 p-5 shadow-[inset_0_1px_rgba(255,255,255,0.07)] backdrop-blur-md">
                         <div className="kora-auth-track relative mx-3 h-[3.375rem] border-b-2 border-white/20">
                             <span className="kora-auth-stop kora-auth-stop-first absolute bottom-[-7px] left-0 size-3 rounded-full border-[3px] border-[var(--kora)] bg-gold shadow-[0_0_0_1px_rgba(255,255,255,0.4)]">
-                                <b className="absolute bottom-4 whitespace-nowrap text-[0.5rem] text-white/55">
+                                <b className="absolute bottom-4 text-[0.5rem] whitespace-nowrap text-white/55">
                                     Cotonou
                                 </b>
                             </span>
                             <span className="kora-auth-stop kora-auth-stop-middle absolute bottom-[-7px] left-[48%] size-3 rounded-full border-[3px] border-[var(--kora)] bg-white shadow-[0_0_0_1px_rgba(255,255,255,0.4)]">
-                                <b className="absolute bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap text-[0.5rem] text-white/55">
+                                <b className="absolute bottom-4 left-1/2 -translate-x-1/2 text-[0.5rem] whitespace-nowrap text-white/55">
                                     Parakou
                                 </b>
                             </span>
-                            <span className="kora-auth-stop kora-auth-stop-last absolute bottom-[-7px] right-0 size-3 rounded-full border-[3px] border-[var(--kora)] bg-white shadow-[0_0_0_1px_rgba(255,255,255,0.4)]">
-                                <b className="absolute bottom-4 right-0 whitespace-nowrap text-[0.5rem] text-white/55">
+                            <span className="kora-auth-stop kora-auth-stop-last absolute right-0 bottom-[-7px] size-3 rounded-full border-[3px] border-[var(--kora)] bg-white shadow-[0_0_0_1px_rgba(255,255,255,0.4)]">
+                                <b className="absolute right-0 bottom-4 text-[0.5rem] whitespace-nowrap text-white/55">
                                     Malanville
                                 </b>
                             </span>
-                            <i className="kora-auth-vehicle absolute bottom-[7px] left-[38%] grid size-[1.8125rem] place-items-center rounded-[0.5625rem] bg-gold text-[0.625rem] font-black not-italic text-[var(--kora)] shadow-[0_9px_20px_rgba(246,176,0,0.24)]">
+                            <i className="kora-auth-vehicle absolute bottom-[7px] left-[38%] grid size-[1.8125rem] place-items-center rounded-[0.5625rem] bg-gold text-[0.625rem] font-black text-[var(--kora)] not-italic shadow-[0_9px_20px_rgba(246,176,0,0.24)]">
                                 K
                             </i>
                         </div>
@@ -129,13 +129,13 @@ export default function AuthKoraLayout({
                         <i className="h-0.5 w-[3.875rem] bg-gradient-to-r from-gold to-transparent" />
                     </div>
 
-                    <span className="mb-1 block text-xs font-black uppercase tracking-[0.15em] text-gold">
+                    <span className="mb-1 block text-xs font-black tracking-[0.15em] text-gold uppercase">
                         Espace professionnel
                     </span>
-                    <h2 className="mt-1 text-[1.9375rem] font-extrabold leading-tight tracking-[-0.03em] text-foreground">
+                    <h2 className="mt-1 text-[1.9375rem] leading-tight font-extrabold tracking-[-0.03em] text-foreground">
                         {title}
                     </h2>
-                    <p className="mb-7 mt-2 text-sm leading-relaxed text-muted-foreground">
+                    <p className="mt-2 mb-7 text-sm leading-relaxed text-muted-foreground">
                         {description}
                     </p>
 

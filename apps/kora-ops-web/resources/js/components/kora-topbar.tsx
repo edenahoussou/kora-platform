@@ -37,11 +37,11 @@ export function KoraTopbar({ user, onMenuClick }: Props) {
 
     const initials = user
         ? user.name
-            .split(' ')
-            .map((n) => n[0])
-            .slice(0, 2)
-            .join('')
-            .toUpperCase()
+              .split(' ')
+              .map((n) => n[0])
+              .slice(0, 2)
+              .join('')
+              .toUpperCase()
         : 'KO';
 
     return (
@@ -57,14 +57,17 @@ export function KoraTopbar({ user, onMenuClick }: Props) {
             </button>
 
             {/* Search — hidden on mobile */}
-            <form onSubmit={handleSearch} className="relative hidden max-w-[28.75rem] flex-1 md:block">
-                <Search className="absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
+            <form
+                onSubmit={handleSearch}
+                className="relative hidden max-w-[28.75rem] flex-1 md:block"
+            >
+                <Search className="absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-muted-foreground" />
                 <input
                     type="search"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Rechercher un billet, un départ, un colis…"
-                    className="h-[2.625rem] w-full rounded-[0.75rem] border border-border bg-muted pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+                    className="h-[2.625rem] w-full rounded-[0.75rem] border border-border bg-muted pr-4 pl-10 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
                 />
             </form>
 
@@ -86,7 +89,7 @@ export function KoraTopbar({ user, onMenuClick }: Props) {
                 aria-label="Alertes"
             >
                 <Bell className="size-5" />
-                <span className="absolute right-2 top-2 size-[7px] rounded-full border-2 border-background bg-gold" />
+                <span className="absolute top-2 right-2 size-[7px] rounded-full border-2 border-background bg-gold" />
             </button>
 
             {/* Theme toggle */}
@@ -148,10 +151,7 @@ export function KoraTopbar({ user, onMenuClick }: Props) {
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                        <a
-                            href={edit().url}
-                            className="cursor-pointer"
-                        >
+                        <a href={edit().url} className="cursor-pointer">
                             Paramètres du profil
                         </a>
                     </DropdownMenuItem>

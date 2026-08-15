@@ -99,12 +99,14 @@ export function KoraSidebar({
 
     const isActive = (href: string) =>
         isCurrentUrl(href) ||
-        (href !== dashboard().url && typeof window !== 'undefined' && window.location.pathname.startsWith(href));
+        (href !== dashboard().url &&
+            typeof window !== 'undefined' &&
+            window.location.pathname.startsWith(href));
 
     const sidebarContent = (
         <>
             {/* Brand */}
-            <div className="kora-side-brand relative mx-1 mb-7 border-b border-white/10 pb-3.5 pt-1.5">
+            <div className="kora-side-brand relative mx-1 mb-7 border-b border-white/10 pt-1.5 pb-3.5">
                 <Link href={dashboard()} className="block">
                     <img
                         src="/kora-logo-sidebar.png"
@@ -112,14 +114,14 @@ export function KoraSidebar({
                         className="kora-side-logo block h-[5rem] w-full object-contain object-left drop-shadow-[0_10px_19px_rgba(0,29,78,0.32)]"
                     />
                 </Link>
-                <span className="mt-1.5 block text-[0.5625rem] font-black uppercase tracking-[0.22em] text-white/60">
+                <span className="mt-1.5 block text-[0.5625rem] font-black tracking-[0.22em] text-white/60 uppercase">
                     KORA OPS
                 </span>
                 <i className="absolute bottom-[-1px] left-0 h-0.5 w-12 rounded bg-gold" />
             </div>
 
             {/* Workspace label */}
-            <div className="mx-2 mb-3 text-[0.625rem] font-black uppercase tracking-[0.13em] text-white/35">
+            <div className="mx-2 mb-3 text-[0.625rem] font-black tracking-[0.13em] text-white/35 uppercase">
                 Espace de travail
             </div>
 
@@ -234,7 +236,7 @@ export function KoraSidebar({
             {/* Mobile sidebar overlay with slide animation */}
             <div
                 className={cn(
-                    'fixed inset-0 z-50 lg:hidden transition-opacity duration-300',
+                    'fixed inset-0 z-50 transition-opacity duration-300 lg:hidden',
                     mobileOpen
                         ? 'opacity-100'
                         : 'pointer-events-none opacity-0',
@@ -244,7 +246,7 @@ export function KoraSidebar({
                 <div className="absolute inset-0 bg-black/50" />
                 <aside
                     className={cn(
-                        'absolute left-0 top-0 flex h-full w-[264px] flex-col overflow-y-auto bg-[var(--kora)] px-4 py-5.5 text-white transition-transform duration-300 ease-out',
+                        'absolute top-0 left-0 flex h-full w-[264px] flex-col overflow-y-auto bg-[var(--kora)] px-4 py-5.5 text-white transition-transform duration-300 ease-out',
                         mobileOpen ? 'translate-x-0' : '-translate-x-full',
                     )}
                     onClick={(e) => e.stopPropagation()}
