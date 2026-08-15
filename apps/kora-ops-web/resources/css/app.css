@@ -93,3 +93,203 @@
         @apply bg-background text-foreground;
     }
 }
+
+@layer kora-auth {
+    /* Brand panel: navy with radial glows + orbiting decorative rings */
+    .kora-auth-brand {
+        background:
+            radial-gradient(
+                circle at 86% 10%,
+                rgba(0, 87, 184, 0.72),
+                transparent 30%
+            ),
+            radial-gradient(
+                circle at 10% 90%,
+                rgba(0, 87, 184, 0.38),
+                transparent 28%
+            ),
+            var(--kora);
+    }
+
+    .kora-auth-brand::before,
+    .kora-auth-brand::after {
+        content: '';
+        position: absolute;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 50%;
+        transform: rotate(-18deg);
+    }
+
+    .kora-auth-brand::before {
+        width: 61.25rem;
+        height: 20.625rem;
+        left: -11.25rem;
+        bottom: -5.75rem;
+        border-color: rgba(246, 176, 0, 0.16);
+        animation: kora-login-orbit 11s linear infinite;
+    }
+
+    .kora-auth-brand::after {
+        width: 70.625rem;
+        height: 24.375rem;
+        left: -14.375rem;
+        bottom: -10.5rem;
+        border-color: rgba(255, 255, 255, 0.09);
+        animation: kora-login-orbit 15s linear infinite reverse;
+    }
+
+    /* Logo arrival */
+    .kora-auth-logo {
+        filter: drop-shadow(0 12px 24px rgba(0, 29, 78, 0.28));
+        animation: kora-logo-arrive 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    }
+
+    /* Network card arrival */
+    .kora-auth-network {
+        animation: kora-network-arrive 0.8s 0.15s both;
+    }
+
+    /* Animated progress line under the network track */
+    .kora-auth-track::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: -2px;
+        width: 44%;
+        height: 2px;
+        background: linear-gradient(90deg, var(--gold), var(--digital));
+        animation: kora-route-progress 3.8s ease-in-out infinite alternate;
+    }
+
+    /* Moving vehicle along the track */
+    .kora-auth-vehicle {
+        animation: kora-login-bus 3.8s ease-in-out infinite alternate;
+    }
+
+    /* Form panel: subtle gold glow top-right + decorative ring bottom-right */
+    .kora-auth-panel::before {
+        content: '';
+        position: absolute;
+        width: 11.25rem;
+        height: 11.25rem;
+        right: -6.25rem;
+        bottom: -6.25rem;
+        border: 26px solid rgba(0, 87, 184, 0.045);
+        border-radius: 50%;
+    }
+
+    /* Forgot-password recovery modal: navy overlay with blur (maquette) */
+    .kora-recovery-overlay {
+        background: rgba(0, 29, 78, 0.72) !important;
+        backdrop-filter: blur(12px);
+    }
+
+    @keyframes kora-login-orbit {
+        50% {
+            transform: rotate(-11deg) translateX(35px);
+        }
+    }
+
+    @keyframes kora-logo-arrive {
+        from {
+            opacity: 0;
+            transform: translateY(-15px);
+        }
+
+        to {
+            opacity: 1;
+            transform: none;
+        }
+    }
+
+    @keyframes kora-network-arrive {
+        from {
+            opacity: 0;
+            transform: translateY(18px);
+        }
+
+        to {
+            opacity: 1;
+            transform: none;
+        }
+    }
+
+    @keyframes kora-login-bus {
+        from {
+            left: 5%;
+            transform: translateY(0);
+        }
+
+        to {
+            left: 84%;
+            transform: translateY(-4px);
+        }
+    }
+
+    @keyframes kora-route-progress {
+        from {
+            width: 8%;
+        }
+
+        to {
+            width: 91%;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .kora-auth-brand::before,
+        .kora-auth-brand::after,
+        .kora-auth-track::after,
+        .kora-auth-vehicle,
+        .kora-auth-logo,
+        .kora-auth-network {
+            animation: none !important;
+        }
+    }
+}
+
+/* ==========================================================================
+   KORA OPS — Application Shell (sidebar + topbar + main)
+   Based on docs/maquettes/kora-ops-web/css/style.css
+   ========================================================================== */
+
+@layer kora-shell {
+    .kora-shell {
+        --kora-side-w: 264px;
+    }
+
+    .kora-sidebar {
+        font-feature-settings: 'ss01';
+    }
+
+    .kora-sidebar::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .kora-sidebar::-webkit-scrollbar-thumb {
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.12);
+    }
+
+    .kora-topbar {
+        font-feature-settings: 'ss01';
+    }
+
+    .kora-panel {
+        transition: box-shadow 0.2s ease;
+    }
+
+    .kora-panel:hover {
+        box-shadow: 0 12px 36px rgba(0, 29, 78, 0.07);
+    }
+
+    .kora-page-head h1 {
+        color: var(--foreground);
+    }
+
+    @media (max-width: 1023px) {
+        .kora-sidebar {
+            display: none;
+        }
+    }
+}

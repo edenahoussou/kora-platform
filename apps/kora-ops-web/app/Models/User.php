@@ -5,8 +5,9 @@ namespace App\Models;
 use App\Models\Concerns\HasPublicUuid;
 use App\Modules\IdentityAccess\Data\UserStatus;
 use App\Modules\IdentityAccess\Models\UserDevice;
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Notifications\IdentityAccess\ResetPassword;
 use Database\Factories\UserFactory;
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -67,5 +68,15 @@ class User extends Authenticatable implements PasskeyUser
             'status' => UserStatus::class,
             'two_factor_confirmed_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Send the password reset notification (KORA branded, French).
+     *
+     * @param  string  $token
+     */
+    public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
+    {
+        $this->notify(new ResetPassword($token));
     }
 }
