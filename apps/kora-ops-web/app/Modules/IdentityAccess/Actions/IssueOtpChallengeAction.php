@@ -17,6 +17,13 @@ class IssueOtpChallengeAction
     public function handle(string $email, OtpPurpose $purpose, Request $request): AuthOtpChallenge
     {
         $normalizedEmail = Str::lower($email);
+
+        AuthOtpChallenge::query()
+            ->where('email', $normalizedEmail)
+            ->where('purpose', $purpose)
+            ->where('status', OtpChallengeStatus::Pending)
+            ->update(['status' => OtpChallengeStatus::Expired]);
+
         $user = User::query()->where('email', $normalizedEmail)->first();
         $code = (string) random_int(100000, 999999);
 
