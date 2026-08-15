@@ -4,6 +4,7 @@ use App\Models\User;
 use App\Modules\IdentityAccess\Data\OtpChallengeStatus;
 use App\Modules\IdentityAccess\Data\OtpPurpose;
 use App\Modules\IdentityAccess\Data\UserDeviceStatus;
+use App\Modules\IdentityAccess\Data\UserStatus;
 use App\Modules\IdentityAccess\Models\AuthOtpChallenge;
 use App\Modules\IdentityAccess\Models\UserDevice;
 use App\Notifications\IdentityAccess\OtpCodeNotification;
@@ -235,6 +236,204 @@ it('rate limits otp requests', function (): void {
         'email' => 'limit@example.com',
         'purpose' => 'registration',
     ])->assertTooManyRequests();
+});
+
+it('locks account after 5 failed pin attempts', function (): void {
+    Notification::fake();
+    $user = pinUser('lockout@example.com');
+    trustedDevice($user, 'lockout-device-fingerprint');
+
+    for ($i = 0; $i < 4; $i++) {
+        $this->postJson('/api/v1/auth/login', [
+            'email' => 'lockout@example.com',
+            'pin' => '0000',
+            'device_name' => 'Tecno Spark 20',
+            'platform' => 'android',
+            'device_fingerprint' => 'lockout-device-fingerprint',
+        ])->assertJsonPath('error.code', 'invalid_credentials');
+    }
+
+    $this->postJson('/api/v1/auth/login', [
+        'email' => 'lockout@example.com',
+        'pin' => '0000',
+        'device_name' => 'Tecno Spark 20',
+        'platform' => 'android',
+        'device_fingerprint' => 'lockout-device-fingerprint',
+    ])
+        ->assertStatus(423)
+        ->assertJsonPath('error.code', 'account_locked')
+        ->assertJsonStructure(['error' => ['code', 'message', 'locked_until']]);
+
+    expect($user->refresh()->status)->toBe(UserStatus::Locked)
+        ->and($user->refresh()->locked_until)->not->toBeNull();
+});
+
+it('returns 423 when logging into a locked account', function (): void {
+    $user = pinUser('locked@example.com');
+    trustedDevice($user, 'locked-device-fingerprint');
+    $user->forceFill([
+        'status' => UserStatus::Locked,
+        'locked_until' => now()->addMinutes(30),
+    ])->save();
+
+    $this->postJson('/api/v1/auth/login', [
+        'email' => 'locked@example.com',
+        'pin' => '1234',
+        'device_name' => 'Tecno Spark 20',
+        'platform' => 'android',
+        'device_fingerprint' => 'locked-device-fingerprint',
+    ])
+        ->assertStatus(423)
+        ->assertJsonPath('error.code', 'account_locked');
+});
+
+it('unlocks account after verified otp', function (): void {
+    $user = pinUser('unlock@example.com');
+    $user->forceFill([
+        'status' => UserStatus::Locked,
+        'locked_until' => now()->addMinutes(30),
+        'failed_pin_attempts' => 5,
+    ])->save();
+
+    [$challenge, $verificationToken] = verifiedOtpChallenge('unlock@example.com', OtpPurpose::AccountUnlock, $user);
+
+    $this->postJson('/api/v1/auth/unlock', [
+        'otp_challenge_uuid' => $challenge->uuid,
+        'verification_token' => $verificationToken,
+    ])
+        ->assertOk()
+        ->assertJsonPath('data.user.email', 'unlock@example.com');
+
+    expect($user->refresh()->status)->toBe(UserStatus::Active)
+        ->and($user->refresh()->failed_pin_attempts)->toBe(0)
+        ->and($user->refresh()->locked_until)->toBeNull();
+});
+
+it('updates profile with name, phone and birth_date', function (): void {
+    $user = pinUser('profile@example.com');
+    $device = trustedDevice($user, 'profile-device');
+    $token = $user->createToken("device:{$device->uuid}", ['*'], now()->addDays(7))->plainTextToken;
+
+    $this->withToken($token)
+        ->putJson('/api/v1/auth/me', [
+            'name' => 'Aïcha HOUNKPÈ',
+            'email' => 'profile@example.com',
+            'phone' => '+229 01 97 42 18 60',
+            'country_code' => '229',
+            'birth_date' => '1994-04-18',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.user.name', 'Aïcha HOUNKPÈ')
+        ->assertJsonPath('data.user.phone', '+229 01 97 42 18 60')
+        ->assertJsonPath('data.user.birth_date', '1994-04-18T00:00:00.000000Z');
+});
+
+it('requires email re-verification when email changes', function (): void {
+    $user = pinUser('email-change@example.com');
+    $device = trustedDevice($user, 'email-change-device');
+    $token = $user->createToken("device:{$device->uuid}", ['*'], now()->addDays(7))->plainTextToken;
+
+    $this->withToken($token)
+        ->putJson('/api/v1/auth/me', [
+            'name' => $user->name,
+            'email' => 'new-email@example.com',
+        ])
+        ->assertOk();
+
+    expect($user->refresh()->email)->toBe('new-email@example.com')
+        ->and($user->refresh()->email_verified_at)->toBeNull();
+});
+
+it('changes pin with current pin verification', function (): void {
+    $user = pinUser('changepin@example.com');
+    $device = trustedDevice($user, 'changepin-device');
+    $token = $user->createToken("device:{$device->uuid}", ['*'], now()->addDays(7))->plainTextToken;
+
+    $this->withToken($token)
+        ->postJson('/api/v1/auth/pin/change', [
+            'current_pin' => '1234',
+            'new_pin' => '5678',
+            'new_pin_confirmation' => '5678',
+        ])
+        ->assertOk();
+
+    expect(Hash::check('5678', $user->refresh()->pin_hash))->toBeTrue();
+});
+
+it('rejects pin change with wrong current pin', function (): void {
+    $user = pinUser('wrongpin@example.com');
+    $device = trustedDevice($user, 'wrongpin-device');
+    $token = $user->createToken("device:{$device->uuid}", ['*'], now()->addDays(7))->plainTextToken;
+
+    $this->withToken($token)
+        ->postJson('/api/v1/auth/pin/change', [
+            'current_pin' => '9999',
+            'new_pin' => '5678',
+            'new_pin_confirmation' => '5678',
+        ])
+        ->assertUnprocessable();
+});
+
+it('rejects same pin as new pin', function (): void {
+    $user = pinUser('samepin@example.com');
+    $device = trustedDevice($user, 'samepin-device');
+    $token = $user->createToken("device:{$device->uuid}", ['*'], now()->addDays(7))->plainTextToken;
+
+    $this->withToken($token)
+        ->postJson('/api/v1/auth/pin/change', [
+            'current_pin' => '1234',
+            'new_pin' => '1234',
+            'new_pin_confirmation' => '1234',
+        ])
+        ->assertUnprocessable();
+});
+
+it('invalidates previous pending otp when requesting new one', function (): void {
+    Notification::fake();
+
+    $this->postJson('/api/v1/auth/otp/request', [
+        'email' => 'invalidate@example.com',
+        'purpose' => 'registration',
+    ])->assertAccepted();
+
+    $firstChallenge = AuthOtpChallenge::query()->firstOrFail();
+    expect($firstChallenge->status)->toBe(OtpChallengeStatus::Pending);
+
+    $this->postJson('/api/v1/auth/otp/request', [
+        'email' => 'invalidate@example.com',
+        'purpose' => 'registration',
+    ])->assertAccepted();
+
+    expect($firstChallenge->refresh()->status)->toBe(OtpChallengeStatus::Expired);
+});
+
+it('stores and retrieves user preferences', function (): void {
+    $user = pinUser('prefs@example.com');
+    $device = trustedDevice($user, 'prefs-device');
+    $token = $user->createToken("device:{$device->uuid}", ['*'], now()->addDays(7))->plainTextToken;
+
+    $this->withToken($token)
+        ->getJson('/api/v1/auth/preferences')
+        ->assertOk()
+        ->assertJsonPath('data.push_notifications', true)
+        ->assertJsonPath('data.locale', 'fr');
+});
+
+it('updates user preferences', function (): void {
+    $user = pinUser('prefs-update@example.com');
+    $device = trustedDevice($user, 'prefs-update-device');
+    $token = $user->createToken("device:{$device->uuid}", ['*'], now()->addDays(7))->plainTextToken;
+
+    $this->withToken($token)
+        ->putJson('/api/v1/auth/preferences', [
+            'push_notifications' => false,
+            'locale' => 'en',
+            'theme' => 'dark',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.push_notifications', false)
+        ->assertJsonPath('data.locale', 'en')
+        ->assertJsonPath('data.theme', 'dark');
 });
 
 function pendingOtpChallenge(

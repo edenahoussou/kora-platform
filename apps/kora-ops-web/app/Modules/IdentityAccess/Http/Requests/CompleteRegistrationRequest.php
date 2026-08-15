@@ -30,6 +30,30 @@ class CompleteRegistrationRequest extends FormRequest
     }
 
     /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'otp_challenge_uuid.required' => "L'identifiant de la vérification est obligatoire.",
+            'otp_challenge_uuid.uuid' => "L'identifiant de la vérification n'est pas valide.",
+            'verification_token.required' => 'Le jeton de vérification est obligatoire.',
+            'verification_token.size' => "Le jeton de vérification n'est pas valide.",
+            'pin.required' => 'Le PIN est obligatoire.',
+            'pin.digits' => 'Le PIN doit contenir exactement 4 chiffres.',
+            'pin.confirmed' => 'La confirmation du PIN ne correspond pas.',
+            'device_name.required' => "Le nom de l'appareil est obligatoire.",
+            'device_name.max' => "Le nom de l'appareil ne peut pas dépasser 120 caractères.",
+            'platform.required' => 'La plateforme est obligatoire.',
+            'platform.in' => "La plateforme n'est pas valide.",
+            'device_fingerprint.required' => "L'empreinte de l'appareil est obligatoire.",
+            'device_fingerprint.min' => "L'empreinte de l'appareil n'est pas valide.",
+            'device_fingerprint.max' => "L'empreinte de l'appareil est trop longue.",
+            'push_token.max' => 'Le token de notification est trop long.',
+        ];
+    }
+
+    /**
      * @return array{otp_challenge_uuid: string, verification_token: string, pin: string, device_name: string, platform: string, device_fingerprint: string, push_token?: string|null}
      */
     public function payload(): array

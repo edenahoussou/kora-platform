@@ -7,6 +7,7 @@ enum OtpPurpose: string
     case Registration = 'registration';
     case LoginNewDevice = 'login_new_device';
     case PinReset = 'pin_reset';
+    case AccountUnlock = 'account_unlock';
 
     /**
      * @return list<string>
