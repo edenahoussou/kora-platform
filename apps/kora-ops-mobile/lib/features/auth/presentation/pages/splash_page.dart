@@ -27,11 +27,15 @@ class _SplashPageState extends State<SplashPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Icon(Icons.local_shipping_rounded, color: AppColors.white, size: 56),
+            Icon(Icons.local_shipping_rounded,
+                color: AppColors.white, size: 56),
             SizedBox(height: 16),
             Text(
               'KORA OPS',
-              style: TextStyle(color: AppColors.white, fontSize: 24, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  color: AppColors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 24),
             CircularProgressIndicator(color: AppColors.accent),

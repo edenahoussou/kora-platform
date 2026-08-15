@@ -45,7 +45,8 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
     if (success) {
       await context.push(AppRoutes.loginOtp);
     } else {
-      final String message = context.read<LoginCubit>().state.errorMessage ?? 'Erreur inattendue.';
+      final String message =
+          context.read<LoginCubit>().state.errorMessage ?? 'Erreur inattendue.';
       await getIt.dialogService.showError(context, message: message);
     }
   }
@@ -57,7 +58,8 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              maxWidth: Responsive.value<double>(context, mobile: double.infinity, tablet: 480),
+              maxWidth: Responsive.value<double>(context,
+                  mobile: double.infinity, tablet: 480),
             ),
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(AppSpacing.lg),
@@ -76,13 +78,15 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     const SizedBox(height: AppSpacing.lg),
-                    Text('Adresse email', style: Theme.of(context).textTheme.titleMedium),
+                    Text('Adresse email',
+                        style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: AppSpacing.sm),
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       autofillHints: const <String>[AutofillHints.email],
-                      decoration: const InputDecoration(hintText: 'nom.prenom@example.com'),
+                      decoration: const InputDecoration(
+                          hintText: 'nom.prenom@example.com'),
                       validator: _validateEmail,
                     ),
                     const SizedBox(height: AppSpacing.md),
@@ -95,7 +99,8 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
                       ),
                       child: Row(
                         children: <Widget>[
-                          const Icon(Icons.track_changes, color: AppColors.accent),
+                          const Icon(Icons.track_changes,
+                              color: AppColors.accent),
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: Text(
@@ -108,7 +113,8 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
                     ),
                     const SizedBox(height: AppSpacing.lg),
                     BlocBuilder<LoginCubit, LoginState>(
-                      builder: (BuildContext context, LoginState state) => AppButton(
+                      builder: (BuildContext context, LoginState state) =>
+                          AppButton(
                         label: 'Recevoir mon code',
                         isLoading: state.status == LoginStatus.submitting,
                         onPressed: () => _submit(context),

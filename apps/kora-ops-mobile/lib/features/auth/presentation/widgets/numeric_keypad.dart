@@ -20,15 +20,32 @@ class NumericKeypad extends StatelessWidget {
   final VoidCallback? onConfirmPressed;
 
   static const List<List<_KeypadKey>> _rows = <List<_KeypadKey>>[
-    <_KeypadKey>[_KeypadKey.digit('1'), _KeypadKey.digit('2'), _KeypadKey.digit('3')],
-    <_KeypadKey>[_KeypadKey.digit('4'), _KeypadKey.digit('5'), _KeypadKey.digit('6')],
-    <_KeypadKey>[_KeypadKey.digit('7'), _KeypadKey.digit('8'), _KeypadKey.digit('9')],
-    <_KeypadKey>[_KeypadKey.backspace(), _KeypadKey.digit('0'), _KeypadKey.confirm()],
+    <_KeypadKey>[
+      _KeypadKey.digit('1'),
+      _KeypadKey.digit('2'),
+      _KeypadKey.digit('3')
+    ],
+    <_KeypadKey>[
+      _KeypadKey.digit('4'),
+      _KeypadKey.digit('5'),
+      _KeypadKey.digit('6')
+    ],
+    <_KeypadKey>[
+      _KeypadKey.digit('7'),
+      _KeypadKey.digit('8'),
+      _KeypadKey.digit('9')
+    ],
+    <_KeypadKey>[
+      _KeypadKey.backspace(),
+      _KeypadKey.digit('0'),
+      _KeypadKey.confirm()
+    ],
   ];
 
   @override
   Widget build(BuildContext context) {
-    final double keySize = Responsive.value<double>(context, mobile: 72, tablet: 88);
+    final double keySize =
+        Responsive.value<double>(context, mobile: 72, tablet: 88);
 
     return Column(
       children: _rows
@@ -37,7 +54,9 @@ class NumericKeypad extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: AppSpacing.md),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: row.map((_KeypadKey key) => _buildKey(context, key, keySize)).toList(),
+                children: row
+                    .map((_KeypadKey key) => _buildKey(context, key, keySize))
+                    .toList(),
               ),
             ),
           )
@@ -49,10 +68,15 @@ class NumericKeypad extends StatelessWidget {
     final Widget content = switch (key.type) {
       _KeypadKeyType.digit => Text(
           key.value!,
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.primary),
+          style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primary),
         ),
-      _KeypadKeyType.backspace => const Icon(Icons.backspace_outlined, color: AppColors.primary),
-      _KeypadKeyType.confirm => const Icon(Icons.check, color: AppColors.primary),
+      _KeypadKeyType.backspace =>
+        const Icon(Icons.backspace_outlined, color: AppColors.primary),
+      _KeypadKeyType.confirm =>
+        const Icon(Icons.check, color: AppColors.primary),
     };
 
     return SizedBox(
@@ -79,8 +103,12 @@ enum _KeypadKeyType { digit, backspace, confirm }
 
 class _KeypadKey {
   const _KeypadKey.digit(this.value) : type = _KeypadKeyType.digit;
-  const _KeypadKey.backspace() : type = _KeypadKeyType.backspace, value = null;
-  const _KeypadKey.confirm() : type = _KeypadKeyType.confirm, value = null;
+  const _KeypadKey.backspace()
+      : type = _KeypadKeyType.backspace,
+        value = null;
+  const _KeypadKey.confirm()
+      : type = _KeypadKeyType.confirm,
+        value = null;
 
   final _KeypadKeyType type;
   final String? value;

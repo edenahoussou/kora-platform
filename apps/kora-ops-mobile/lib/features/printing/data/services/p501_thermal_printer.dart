@@ -26,7 +26,8 @@ class P501ThermalPrinter implements ThermalPrinter {
     final List<String> lines = TicketFormatter.format(payload);
 
     try {
-      final bool? success = await _channel.invokeMethod<bool>('printTicket', <String, Object>{
+      final bool? success =
+          await _channel.invokeMethod<bool>('printTicket', <String, Object>{
         'lines': lines,
         'qrData': payload.qrData,
       });

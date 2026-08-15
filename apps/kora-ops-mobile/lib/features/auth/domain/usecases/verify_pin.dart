@@ -7,5 +7,6 @@ class VerifyPin {
 
   final AuthRepository _repository;
 
-  Future<Result<UserEntity>> call({required String pin}) => _repository.verifyPin(pin: pin);
+  Future<Result<UserEntity>> call({required String pin}) =>
+      _repository.verifyPin(pin: pin);
 }

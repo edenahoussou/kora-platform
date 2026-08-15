@@ -25,7 +25,8 @@ class AppRouter {
   /// d'authentification) afin que l'email saisi et le contexte OTP
   /// survivent à la navigation entre écrans.
   Widget _withLoginCubit(Widget child) {
-    return BlocProvider<LoginCubit>.value(value: getIt<LoginCubit>(), child: child);
+    return BlocProvider<LoginCubit>.value(
+        value: getIt<LoginCubit>(), child: child);
   }
 
   late final GoRouter router = GoRouter(
@@ -33,14 +34,17 @@ class AppRouter {
     refreshListenable: _authGuard,
     redirect: (context, state) => _authGuard.redirect(state.matchedLocation),
     routes: <RouteBase>[
-      GoRoute(path: AppRoutes.splash, builder: (context, state) => const SplashPage()),
+      GoRoute(
+          path: AppRoutes.splash,
+          builder: (context, state) => const SplashPage()),
       GoRoute(
         path: AppRoutes.loginEmail,
         builder: (context, state) => _withLoginCubit(const EmailEntryPage()),
       ),
       GoRoute(
         path: AppRoutes.loginOtp,
-        builder: (context, state) => _withLoginCubit(const OtpVerificationPage()),
+        builder: (context, state) =>
+            _withLoginCubit(const OtpVerificationPage()),
       ),
       GoRoute(
         path: AppRoutes.loginOtpInvalid,
@@ -52,9 +56,11 @@ class AppRouter {
       ),
       GoRoute(
         path: AppRoutes.loginNewDevice,
-        builder: (context, state) => _withLoginCubit(const NewDeviceDetectedPage()),
+        builder: (context, state) =>
+            _withLoginCubit(const NewDeviceDetectedPage()),
       ),
-      GoRoute(path: AppRoutes.home, builder: (context, state) => const HomePage()),
+      GoRoute(
+          path: AppRoutes.home, builder: (context, state) => const HomePage()),
       GoRoute(
         path: AppRoutes.printerTest,
         builder: (context, state) => BlocProvider<PrintingCubit>(

@@ -26,8 +26,8 @@ void main() {
   );
 
   test('GetSavedEmail délègue au repository', () async {
-    when(() => repository.getSavedEmail())
-        .thenAnswer((_) async => const Result<String?>.success('aicha.hounkpe@example.com'));
+    when(() => repository.getSavedEmail()).thenAnswer((_) async =>
+        const Result<String?>.success('aicha.hounkpe@example.com'));
 
     final result = await GetSavedEmail(repository)();
 
@@ -47,11 +47,16 @@ void main() {
     verify(() => repository.sendOtp(email: 'x@example.com')).called(1);
   });
 
-  test('VerifyOtp retourne un échec de validation pour un code refusé', () async {
-    when(() => repository.verifyOtp(email: any(named: 'email'), code: any(named: 'code')))
-        .thenAnswer((_) async => const Result<UserEntity>.failure(ValidationFailure('Code invalide.')));
+  test('VerifyOtp retourne un échec de validation pour un code refusé',
+      () async {
+    when(() =>
+        repository.verifyOtp(
+            email: any(named: 'email'),
+            code: any(named: 'code'))).thenAnswer((_) async =>
+        const Result<UserEntity>.failure(ValidationFailure('Code invalide.')));
 
-    final result = await VerifyOtp(repository)(email: user.email, code: '000000');
+    final result =
+        await VerifyOtp(repository)(email: user.email, code: '000000');
 
     expect(result.isFailure, isTrue);
   });
@@ -62,7 +67,9 @@ void main() {
 
     final result = await VerifyPin(repository)(pin: '1234');
 
-    result.when(onSuccess: (u) => expect(u, user), onFailure: (_) => fail('ne devrait pas échouer'));
+    result.when(
+        onSuccess: (u) => expect(u, user),
+        onFailure: (_) => fail('ne devrait pas échouer'));
   });
 
   test('GetCurrentDeviceInfo délègue au repository', () async {
@@ -76,6 +83,8 @@ void main() {
 
     final result = await GetCurrentDeviceInfo(repository)();
 
-    result.when(onSuccess: (d) => expect(d, device), onFailure: (_) => fail('ne devrait pas échouer'));
+    result.when(
+        onSuccess: (d) => expect(d, device),
+        onFailure: (_) => fail('ne devrait pas échouer'));
   });
 }

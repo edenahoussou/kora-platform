@@ -49,5 +49,6 @@ class LoginState extends Equatable {
   }
 
   @override
-  List<Object?> get props => <Object?>[status, email, otpPurpose, deviceInfo, errorMessage, user];
+  List<Object?> get props =>
+      <Object?>[status, email, otpPurpose, deviceInfo, errorMessage, user];
 }

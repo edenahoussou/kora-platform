@@ -43,23 +43,28 @@ class LoginCubit extends Cubit<LoginState> {
   /// PIN KORA").
   Future<String?> loadSavedEmail() async {
     final result = await _getSavedEmail();
-    final String? email = result.when(onSuccess: (value) => value, onFailure: (_) => null);
+    final String? email =
+        result.when(onSuccess: (value) => value, onFailure: (_) => null);
     if (email != null) emit(state.copyWith(email: email));
     return email;
   }
 
   Future<bool> submitEmail(String email) async {
-    emit(state.copyWith(status: LoginStatus.submitting, email: email, clearError: true));
+    emit(state.copyWith(
+        status: LoginStatus.submitting, email: email, clearError: true));
     final result = await _sendOtp(email: email);
     return result.when(
       onSuccess: (_) {
         emit(
-          state.copyWith(status: LoginStatus.success, otpPurpose: OtpPurpose.accountCreation),
+          state.copyWith(
+              status: LoginStatus.success,
+              otpPurpose: OtpPurpose.accountCreation),
         );
         return true;
       },
       onFailure: (failure) {
-        emit(state.copyWith(status: LoginStatus.failure, errorMessage: failure.message));
+        emit(state.copyWith(
+            status: LoginStatus.failure, errorMessage: failure.message));
         return false;
       },
     );
@@ -68,7 +73,8 @@ class LoginCubit extends Cubit<LoginState> {
   Future<bool> submitOtp(String code) async {
     final String? email = state.email;
     if (email == null) {
-      emit(state.copyWith(status: LoginStatus.failure, errorMessage: 'Email manquant.'));
+      emit(state.copyWith(
+          status: LoginStatus.failure, errorMessage: 'Email manquant.'));
       return false;
     }
 
@@ -82,7 +88,8 @@ class LoginCubit extends Cubit<LoginState> {
       onFailure: (failure) {
         // Toute vérification échouée mène à l'écran dédié "Code non valide"
         // (voir maquette) plutôt qu'une erreur inline.
-        emit(state.copyWith(status: LoginStatus.failure, errorMessage: failure.message));
+        emit(state.copyWith(
+            status: LoginStatus.failure, errorMessage: failure.message));
         return false;
       },
     );
@@ -103,7 +110,8 @@ class LoginCubit extends Cubit<LoginState> {
         return true;
       },
       onFailure: (failure) {
-        emit(state.copyWith(status: LoginStatus.failure, errorMessage: failure.message));
+        emit(state.copyWith(
+            status: LoginStatus.failure, errorMessage: failure.message));
         return false;
       },
     );
@@ -119,10 +127,12 @@ class LoginCubit extends Cubit<LoginState> {
           onSuccess: (info) => info,
           onFailure: (_) => null,
         );
-        emit(state.copyWith(status: LoginStatus.success, user: user, deviceInfo: device));
+        emit(state.copyWith(
+            status: LoginStatus.success, user: user, deviceInfo: device));
         return true;
       case ResultFailure<UserEntity>(failure: final failure):
-        emit(state.copyWith(status: LoginStatus.failure, errorMessage: failure.message));
+        emit(state.copyWith(
+            status: LoginStatus.failure, errorMessage: failure.message));
         return false;
     }
   }
@@ -138,12 +148,15 @@ class LoginCubit extends Cubit<LoginState> {
     return result.when(
       onSuccess: (_) {
         emit(
-          state.copyWith(status: LoginStatus.success, otpPurpose: OtpPurpose.deviceConfirmation),
+          state.copyWith(
+              status: LoginStatus.success,
+              otpPurpose: OtpPurpose.deviceConfirmation),
         );
         return true;
       },
       onFailure: (failure) {
-        emit(state.copyWith(status: LoginStatus.failure, errorMessage: failure.message));
+        emit(state.copyWith(
+            status: LoginStatus.failure, errorMessage: failure.message));
         return false;
       },
     );

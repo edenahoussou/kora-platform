@@ -86,15 +86,22 @@ abstract final class AppTheme {
           foregroundColor: AppColors.onAccent,
           textStyle: AppTypography.button,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md)),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: brightness == Brightness.dark ? AppColors.white : AppColors.primary,
-          side: BorderSide(color: brightness == Brightness.dark ? AppColors.white : AppColors.primary),
+          foregroundColor: brightness == Brightness.dark
+              ? AppColors.white
+              : AppColors.primary,
+          side: BorderSide(
+              color: brightness == Brightness.dark
+                  ? AppColors.white
+                  : AppColors.primary),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md)),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
@@ -103,7 +110,8 @@ abstract final class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surface,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         labelStyle: TextStyle(color: textSecondary),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
@@ -126,7 +134,8 @@ abstract final class AppTheme {
         color: surface,
         elevation: 2,
         shadowColor: shadow,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.lg)),
       ),
       dividerTheme: DividerThemeData(color: border, thickness: 1),
     );

@@ -23,21 +23,26 @@ class PrinterTestPage extends StatelessWidget {
           child: BlocConsumer<PrintingCubit, PrintingState>(
             listener: (BuildContext context, PrintingState state) {
               if (state case PrintingFailure(:final String message)) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(SnackBar(content: Text(message)));
               }
               if (state is PrintingSuccess) {
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(const SnackBar(content: Text('Ticket imprimé ✓')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Ticket imprimé ✓')));
               }
             },
             builder: (BuildContext context, PrintingState state) {
-              final bool isBusy = state is PrintingScanning || state is PrintingInProgress;
+              final bool isBusy =
+                  state is PrintingScanning || state is PrintingInProgress;
               final String? lastScannedCode =
                   state is PrintingIdle ? state.lastScannedCode : null;
               final List<String>? previewLines = switch (state) {
-                PrintingIdle(:final List<String>? lastPreviewLines) => lastPreviewLines,
-                PrintingInProgress(:final List<String> previewLines) => previewLines,
-                PrintingSuccess(:final List<String> previewLines) => previewLines,
+                PrintingIdle(:final List<String>? lastPreviewLines) =>
+                  lastPreviewLines,
+                PrintingInProgress(:final List<String> previewLines) =>
+                  previewLines,
+                PrintingSuccess(:final List<String> previewLines) =>
+                  previewLines,
                 _ => null,
               };
 
@@ -48,7 +53,8 @@ class PrinterTestPage extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Text('Scanner', style: Theme.of(context).textTheme.titleMedium),
+                        Text('Scanner',
+                            style: Theme.of(context).textTheme.titleMedium),
                         const SizedBox(height: AppSpacing.sm),
                         Text(
                           lastScannedCode == null
@@ -60,7 +66,9 @@ class PrinterTestPage extends StatelessWidget {
                         AppButton(
                           label: 'Scanner (mock)',
                           isLoading: state is PrintingScanning,
-                          onPressed: isBusy ? null : () => context.read<PrintingCubit>().scan(),
+                          onPressed: isBusy
+                              ? null
+                              : () => context.read<PrintingCubit>().scan(),
                         ),
                       ],
                     ),
@@ -70,7 +78,8 @@ class PrinterTestPage extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Text('Imprimante 58mm', style: Theme.of(context).textTheme.titleMedium),
+                        Text('Imprimante 58mm',
+                            style: Theme.of(context).textTheme.titleMedium),
                         const SizedBox(height: AppSpacing.sm),
                         AppButton(
                           label: 'Imprimer un ticket de test',
@@ -78,7 +87,9 @@ class PrinterTestPage extends StatelessWidget {
                           variant: AppButtonVariant.secondary,
                           onPressed: isBusy
                               ? null
-                              : () => context.read<PrintingCubit>().printTestTicket(),
+                              : () => context
+                                  .read<PrintingCubit>()
+                                  .printTestTicket(),
                         ),
                         if (previewLines != null) ...<Widget>[
                           const SizedBox(height: AppSpacing.md),
@@ -115,7 +126,8 @@ class _TicketPreview extends StatelessWidget {
       ),
       child: Text(
         lines.join('\n'),
-        style: const TextStyle(fontFamily: 'monospace', fontSize: 12, height: 1.4),
+        style:
+            const TextStyle(fontFamily: 'monospace', fontSize: 12, height: 1.4),
       ),
     );
   }

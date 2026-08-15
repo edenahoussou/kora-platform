@@ -17,7 +17,8 @@ abstract interface class AuthRepository {
 
   /// Vérifie le code OTP saisi. En cas de succès, enregistre [email]
   /// comme email de l'appareil et retourne l'utilisateur authentifié.
-  Future<Result<UserEntity>> verifyOtp({required String email, required String code});
+  Future<Result<UserEntity>> verifyOtp(
+      {required String email, required String code});
 
   /// Vérifie le PIN à 4 chiffres pour l'utilisateur déjà enregistré sur cet
   /// appareil.

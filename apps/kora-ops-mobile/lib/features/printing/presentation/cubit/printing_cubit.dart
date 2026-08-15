@@ -13,7 +13,8 @@ part 'printing_state.dart';
 /// continu (mode "boarding" en rafale) est ajouté plus tard, migrer vers
 /// un Bloc dédié à ce moment-là.
 class PrintingCubit extends Cubit<PrintingState> {
-  PrintingCubit({required ScanBarcode scanBarcode, required PrintTicket printTicket})
+  PrintingCubit(
+      {required ScanBarcode scanBarcode, required PrintTicket printTicket})
       : _scanBarcode = scanBarcode,
         _printTicket = printTicket,
         super(const PrintingIdle());
@@ -36,7 +37,8 @@ class PrintingCubit extends Cubit<PrintingState> {
   /// state pour être affiché à l'écran (utile sans hardware P501).
   Future<void> printTestTicket() async {
     final String qrData = switch (state) {
-      PrintingIdle(:final String? lastScannedCode) => lastScannedCode ?? 'KORA-TICKET-TEST',
+      PrintingIdle(:final String? lastScannedCode) =>
+        lastScannedCode ?? 'KORA-TICKET-TEST',
       _ => 'KORA-TICKET-TEST',
     };
 
@@ -55,7 +57,9 @@ class PrintingCubit extends Cubit<PrintingState> {
     final result = await _printTicket(payload);
     result.when(
       onSuccess: (bool success) {
-        emit(success ? PrintingSuccess(preview) : const PrintingFailure('Impression refusée par le matériel.'));
+        emit(success
+            ? PrintingSuccess(preview)
+            : const PrintingFailure('Impression refusée par le matériel.'));
       },
       onFailure: (failure) => emit(PrintingFailure(failure.message)),
     );

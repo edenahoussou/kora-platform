@@ -6,12 +6,13 @@ import 'package:widgetbook/widgetbook.dart';
 final List<WidgetbookNode> stateUseCases = <WidgetbookNode>[
   WidgetbookUseCase(
     name: 'Loading',
-    builder: (BuildContext context) => const AppLoading(message: 'Chargement du manifeste…'),
+    builder: (BuildContext context) =>
+        const AppLoading(message: 'Chargement du manifeste…'),
   ),
   WidgetbookUseCase(
     name: 'Empty state',
-    builder: (BuildContext context) =>
-        const AppStatePlaceholder.empty(message: 'Aucun manifeste pour cette tournée.'),
+    builder: (BuildContext context) => const AppStatePlaceholder.empty(
+        message: 'Aucun manifeste pour cette tournée.'),
   ),
   WidgetbookUseCase(
     name: 'Error state',

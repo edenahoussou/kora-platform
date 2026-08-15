@@ -32,9 +32,11 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Result<UserEntity>> verifyOtp({required String email, required String code}) async {
+  Future<Result<UserEntity>> verifyOtp(
+      {required String email, required String code}) async {
     try {
-      final UserEntity user = await _localDataSource.verifyOtp(email: email, code: code);
+      final UserEntity user =
+          await _localDataSource.verifyOtp(email: email, code: code);
       return Result<UserEntity>.success(user);
     } on AppException catch (error) {
       return Result<UserEntity>.failure(_mapException(error));

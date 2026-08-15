@@ -19,7 +19,8 @@ void main() {
 
   group('getSavedEmail', () {
     test('retourne l\'email enregistré', () async {
-      when(() => dataSource.getSavedEmail()).thenAnswer((_) async => 'aicha@example.com');
+      when(() => dataSource.getSavedEmail())
+          .thenAnswer((_) async => 'aicha@example.com');
 
       final result = await repository.getSavedEmail();
 
@@ -35,7 +36,9 @@ void main() {
 
       final result = await repository.getSavedEmail();
 
-      result.when(onSuccess: (email) => expect(email, isNull), onFailure: (_) => fail('échec inattendu'));
+      result.when(
+          onSuccess: (email) => expect(email, isNull),
+          onFailure: (_) => fail('échec inattendu'));
     });
   });
 
@@ -47,19 +50,23 @@ void main() {
         role: 'Convoyeur',
         email: 'aicha.hounkpe@example.com',
       );
-      when(() => dataSource.verifyOtp(email: any(named: 'email'), code: any(named: 'code')))
-          .thenAnswer((_) async => user);
+      when(() => dataSource.verifyOtp(
+          email: any(named: 'email'),
+          code: any(named: 'code'))).thenAnswer((_) async => user);
 
-      final result = await repository.verifyOtp(email: user.email, code: '583187');
+      final result =
+          await repository.verifyOtp(email: user.email, code: '583187');
 
       expect(result.isSuccess, isTrue);
     });
 
     test('mappe ApiException (code invalide) en ValidationFailure', () async {
-      when(() => dataSource.verifyOtp(email: any(named: 'email'), code: any(named: 'code')))
+      when(() => dataSource.verifyOtp(
+              email: any(named: 'email'), code: any(named: 'code')))
           .thenThrow(const ApiException('Le code est incorrect ou expiré.'));
 
-      final result = await repository.verifyOtp(email: 'x@example.com', code: '000000');
+      final result =
+          await repository.verifyOtp(email: 'x@example.com', code: '000000');
 
       expect(result.isFailure, isTrue);
     });
@@ -73,7 +80,8 @@ void main() {
         role: 'Convoyeur',
         email: 'aicha@example.com',
       );
-      when(() => dataSource.verifyPin(pin: any(named: 'pin'))).thenAnswer((_) async => user);
+      when(() => dataSource.verifyPin(pin: any(named: 'pin')))
+          .thenAnswer((_) async => user);
 
       final result = await repository.verifyPin(pin: '1234');
 
@@ -97,7 +105,8 @@ void main() {
         city: 'Cotonou',
         attemptLabel: 'À l\'instant',
       );
-      when(() => dataSource.getCurrentDeviceInfo()).thenAnswer((_) async => device);
+      when(() => dataSource.getCurrentDeviceInfo())
+          .thenAnswer((_) async => device);
 
       final result = await repository.getCurrentDeviceInfo();
 

@@ -19,7 +19,8 @@ class DialogService {
     iconAnimationStyle: IconAnimationStyle.pulse,
   );
 
-  Future<void> showSuccess(BuildContext context, {required String message, String? title}) {
+  Future<void> showSuccess(BuildContext context,
+      {required String message, String? title}) {
     return showProDialog(
       context,
       type: DialogType.success,
@@ -29,7 +30,8 @@ class DialogService {
     );
   }
 
-  Future<void> showError(BuildContext context, {required String message, String? title}) {
+  Future<void> showError(BuildContext context,
+      {required String message, String? title}) {
     return showProDialog(
       context,
       type: DialogType.error,
@@ -39,7 +41,8 @@ class DialogService {
     );
   }
 
-  Future<void> showWarning(BuildContext context, {required String message, String? title}) {
+  Future<void> showWarning(BuildContext context,
+      {required String message, String? title}) {
     return showProDialog(
       context,
       type: DialogType.warning,
@@ -49,7 +52,8 @@ class DialogService {
     );
   }
 
-  Future<void> showInfo(BuildContext context, {required String message, String? title}) {
+  Future<void> showInfo(BuildContext context,
+      {required String message, String? title}) {
     return showProDialog(
       context,
       type: DialogType.info,

@@ -9,43 +9,48 @@ final List<WidgetbookNode> dialogUseCases = <WidgetbookNode>[
     name: 'Success',
     builder: (BuildContext context) => _DialogTrigger(
       label: 'Afficher succès',
-      onPressed: () => _dialogService.showSuccess(context, message: 'Colis livré avec succès.'),
+      onPressed: () => _dialogService.showSuccess(context,
+          message: 'Colis livré avec succès.'),
     ),
   ),
   WidgetbookUseCase(
     name: 'Error',
     builder: (BuildContext context) => _DialogTrigger(
       label: 'Afficher erreur',
-      onPressed: () => _dialogService.showError(context, message: 'Échec de synchronisation.'),
+      onPressed: () => _dialogService.showError(context,
+          message: 'Échec de synchronisation.'),
     ),
   ),
   WidgetbookUseCase(
     name: 'Warning',
     builder: (BuildContext context) => _DialogTrigger(
       label: 'Afficher avertissement',
-      onPressed: () =>
-          _dialogService.showWarning(context, message: 'Connexion instable — certaines données sont en attente.'),
+      onPressed: () => _dialogService.showWarning(context,
+          message: 'Connexion instable — certaines données sont en attente.'),
     ),
   ),
   WidgetbookUseCase(
     name: 'Info',
     builder: (BuildContext context) => _DialogTrigger(
       label: 'Afficher info',
-      onPressed: () => _dialogService.showInfo(context, message: 'Nouvelle mise à jour disponible.'),
+      onPressed: () => _dialogService.showInfo(context,
+          message: 'Nouvelle mise à jour disponible.'),
     ),
   ),
   WidgetbookUseCase(
     name: 'Confirmation',
     builder: (BuildContext context) => _DialogTrigger(
       label: 'Afficher confirmation',
-      onPressed: () => _dialogService.showConfirmation(context, message: 'Clôturer la tournée ?'),
+      onPressed: () => _dialogService.showConfirmation(context,
+          message: 'Clôturer la tournée ?'),
     ),
   ),
   WidgetbookUseCase(
     name: 'Loading',
     builder: (BuildContext context) => _DialogTrigger(
       label: 'Afficher chargement',
-      onPressed: () => _dialogService.showLoading(context, message: 'Synchronisation…'),
+      onPressed: () =>
+          _dialogService.showLoading(context, message: 'Synchronisation…'),
     ),
   ),
 ];
@@ -58,6 +63,7 @@ class _DialogTrigger extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(child: ElevatedButton(onPressed: onPressed, child: Text(label)));
+    return Center(
+        child: ElevatedButton(onPressed: onPressed, child: Text(label)));
   }
 }

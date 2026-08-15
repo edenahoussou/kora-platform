@@ -55,32 +55,38 @@ void main() {
   blocTest<PrintingCubit, PrintingState>(
     'émet [Scanning, Failure] quand le scan échoue',
     build: () {
-      when(() => scanBarcode())
-          .thenAnswer((_) async => const Result<String>.failure(HardwareFailure('Scan HS')));
+      when(() => scanBarcode()).thenAnswer((_) async =>
+          const Result<String>.failure(HardwareFailure('Scan HS')));
       return buildCubit();
     },
     act: (PrintingCubit cubit) => cubit.scan(),
-    expect: () => <PrintingState>[const PrintingScanning(), const PrintingFailure('Scan HS')],
+    expect: () => <PrintingState>[
+      const PrintingScanning(),
+      const PrintingFailure('Scan HS')
+    ],
   );
 
   blocTest<PrintingCubit, PrintingState>(
     'émet [InProgress, Success] quand l\'impression réussit',
     build: () {
-      when(() => printTicket(any())).thenAnswer((_) async => const Result<bool>.success(true));
+      when(() => printTicket(any()))
+          .thenAnswer((_) async => const Result<bool>.success(true));
       return buildCubit();
     },
     act: (PrintingCubit cubit) => cubit.printTestTicket(),
-    verify: (PrintingCubit cubit) => expect(cubit.state, isA<PrintingSuccess>()),
+    verify: (PrintingCubit cubit) =>
+        expect(cubit.state, isA<PrintingSuccess>()),
   );
 
   blocTest<PrintingCubit, PrintingState>(
     'émet Failure quand l\'impression échoue',
     build: () {
-      when(() => printTicket(any()))
-          .thenAnswer((_) async => const Result<bool>.failure(HardwareFailure('Papier absent')));
+      when(() => printTicket(any())).thenAnswer((_) async =>
+          const Result<bool>.failure(HardwareFailure('Papier absent')));
       return buildCubit();
     },
     act: (PrintingCubit cubit) => cubit.printTestTicket(),
-    verify: (PrintingCubit cubit) => expect(cubit.state, const PrintingFailure('Papier absent')),
+    verify: (PrintingCubit cubit) =>
+        expect(cubit.state, const PrintingFailure('Papier absent')),
   );
 }

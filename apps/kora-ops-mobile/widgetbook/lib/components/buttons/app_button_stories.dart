@@ -21,42 +21,58 @@ final List<WidgetbookNode> appButtonUseCases = <WidgetbookNode>[
     name: 'Loading',
     builder: (BuildContext context) => Padding(
       padding: const EdgeInsets.all(16),
-      child: AppButton(label: 'Vérifier le code', isLoading: true, onPressed: () {}),
+      child: AppButton(
+          label: 'Vérifier le code', isLoading: true, onPressed: () {}),
     ),
   ),
   WidgetbookUseCase(
     name: 'Secondary',
     builder: (BuildContext context) => Padding(
       padding: const EdgeInsets.all(16),
-      child: AppButton(label: 'Action secondaire', variant: AppButtonVariant.secondary, onPressed: () {}),
+      child: AppButton(
+          label: 'Action secondaire',
+          variant: AppButtonVariant.secondary,
+          onPressed: () {}),
     ),
   ),
   WidgetbookUseCase(
     name: 'Outline',
     builder: (BuildContext context) => Padding(
       padding: const EdgeInsets.all(16),
-      child: AppButton(label: 'Ce n\'est pas moi', variant: AppButtonVariant.outline, onPressed: () {}),
+      child: AppButton(
+          label: 'Ce n\'est pas moi',
+          variant: AppButtonVariant.outline,
+          onPressed: () {}),
     ),
   ),
   WidgetbookUseCase(
     name: 'Success',
     builder: (BuildContext context) => Padding(
       padding: const EdgeInsets.all(16),
-      child: AppButton(label: 'Confirmer', variant: AppButtonVariant.success, onPressed: () {}),
+      child: AppButton(
+          label: 'Confirmer',
+          variant: AppButtonVariant.success,
+          onPressed: () {}),
     ),
   ),
   WidgetbookUseCase(
     name: 'Warning',
     builder: (BuildContext context) => Padding(
       padding: const EdgeInsets.all(16),
-      child: AppButton(label: 'Attention requise', variant: AppButtonVariant.warning, onPressed: () {}),
+      child: AppButton(
+          label: 'Attention requise',
+          variant: AppButtonVariant.warning,
+          onPressed: () {}),
     ),
   ),
   WidgetbookUseCase(
     name: 'Danger',
     builder: (BuildContext context) => Padding(
       padding: const EdgeInsets.all(16),
-      child: AppButton(label: 'Bloquer la tentative', variant: AppButtonVariant.danger, onPressed: () {}),
+      child: AppButton(
+          label: 'Bloquer la tentative',
+          variant: AppButtonVariant.danger,
+          onPressed: () {}),
     ),
   ),
 ];

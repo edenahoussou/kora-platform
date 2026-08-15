@@ -13,7 +13,8 @@ void main() {
     });
 
     test('lève ScannerException quand shouldFail est true', () async {
-      final scanner = MockBarcodeScanner(shouldFail: true, simulatedDelay: Duration.zero);
+      final scanner =
+          MockBarcodeScanner(shouldFail: true, simulatedDelay: Duration.zero);
       expect(scanner.scan, throwsA(isA<ScannerException>()));
     });
   });
@@ -35,8 +36,10 @@ void main() {
     });
 
     test('lève PrinterException quand shouldFail est true', () async {
-      final printer = MockThermalPrinter(shouldFail: true, simulatedDelay: Duration.zero);
-      expect(() => printer.printTicket(payload), throwsA(isA<PrinterException>()));
+      final printer =
+          MockThermalPrinter(shouldFail: true, simulatedDelay: Duration.zero);
+      expect(
+          () => printer.printTicket(payload), throwsA(isA<PrinterException>()));
     });
   });
 }

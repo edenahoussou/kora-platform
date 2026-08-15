@@ -8,7 +8,9 @@ import '../../domain/services/barcode_scanner.dart';
 /// Passer `shouldFail: true` (ex. dans un test) pour simuler un échec de
 /// scan et vérifier la gestion d'erreur en amont.
 class MockBarcodeScanner implements BarcodeScanner {
-  MockBarcodeScanner({this.shouldFail = false, this.simulatedDelay = const Duration(milliseconds: 400)});
+  MockBarcodeScanner(
+      {this.shouldFail = false,
+      this.simulatedDelay = const Duration(milliseconds: 400)});
 
   final bool shouldFail;
   final Duration simulatedDelay;

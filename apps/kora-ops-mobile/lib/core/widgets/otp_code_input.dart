@@ -10,7 +10,11 @@ import '../helpers/responsive.dart';
 /// code numérique doit être saisi (création de compte, confirmation
 /// d'appareil…).
 class OtpCodeInput extends StatefulWidget {
-  const OtpCodeInput({required this.length, required this.onChanged, this.onCompleted, super.key});
+  const OtpCodeInput(
+      {required this.length,
+      required this.onChanged,
+      this.onCompleted,
+      super.key});
 
   final int length;
   final ValueChanged<String> onChanged;
@@ -45,7 +49,8 @@ class _OtpCodeInputState extends State<OtpCodeInput> {
     super.dispose();
   }
 
-  String get _code => _controllers.map((TextEditingController c) => c.text).join();
+  String get _code =>
+      _controllers.map((TextEditingController c) => c.text).join();
 
   void _handleChanged(int index, String value) {
     if (value.isNotEmpty && index < widget.length - 1) {
@@ -77,7 +82,8 @@ class _OtpCodeInputState extends State<OtpCodeInput> {
 
   @override
   Widget build(BuildContext context) {
-    final double boxSize = Responsive.value<double>(context, mobile: 44, tablet: 52);
+    final double boxSize =
+        Responsive.value<double>(context, mobile: 44, tablet: 52);
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -88,7 +94,8 @@ class _OtpCodeInputState extends State<OtpCodeInput> {
           child: KeyboardListener(
             focusNode: FocusNode(skipTraversal: true),
             onKeyEvent: (KeyEvent event) {
-              if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.backspace) {
+              if (event is KeyDownEvent &&
+                  event.logicalKey == LogicalKeyboardKey.backspace) {
                 _handleBackspace(index);
               }
             },
@@ -99,7 +106,9 @@ class _OtpCodeInputState extends State<OtpCodeInput> {
               keyboardType: TextInputType.number,
               maxLength: 1,
               style: Theme.of(context).textTheme.headlineMedium,
-              inputFormatters: <TextInputFormatter>[FilteringTextInputFormatter.digitsOnly],
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.digitsOnly
+              ],
               decoration: InputDecoration(
                 counterText: '',
                 contentPadding: EdgeInsets.zero,
@@ -111,7 +120,8 @@ class _OtpCodeInputState extends State<OtpCodeInput> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppRadius.md),
-                  borderSide: const BorderSide(color: AppColors.accent, width: 2),
+                  borderSide:
+                      const BorderSide(color: AppColors.accent, width: 2),
                 ),
               ),
               onChanged: (String value) => _handleChanged(index, value),

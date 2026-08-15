@@ -41,7 +41,8 @@ void main() {
 
     test('le marqueur QR est présent et centré', () {
       final List<String> lines = TicketFormatter.format(payload);
-      final String qrLine = lines.firstWhere((String l) => l.contains('QR CODE'));
+      final String qrLine =
+          lines.firstWhere((String l) => l.contains('QR CODE'));
 
       expect(qrLine.trim(), '[ QR CODE ]');
       expect(qrLine.length, TicketFormatter.lineWidth);
@@ -65,7 +66,7 @@ void main() {
     test('contient le pied de page fiscal (tronqué si nécessaire)', () {
       final List<String> lines = TicketFormatter.format(payload);
       final String footer = lines.last.trim();
-      
+
       // Le pied de page doit contenir "KORA" (version tronquée acceptée)
       expect(footer, contains('KORA'));
       // Et ne pas dépasser la largeur max
@@ -90,7 +91,8 @@ void main() {
 
     test('un diviseur fait exactement 32 caractères', () {
       final List<String> lines = TicketFormatter.format(payload);
-      final String divider = lines.firstWhere((String l) => l.trim() == '-' * 32 || l == '-' * 32);
+      final String divider =
+          lines.firstWhere((String l) => l.trim() == '-' * 32 || l == '-' * 32);
       expect(divider.length, TicketFormatter.lineWidth);
     });
   });

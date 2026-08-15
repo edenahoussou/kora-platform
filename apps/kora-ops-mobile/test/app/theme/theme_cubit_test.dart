@@ -25,7 +25,8 @@ void main() {
   });
 
   test('le choix manuel est persisté et relu au prochain lancement', () async {
-    SharedPreferences.setMockInitialValues(<String, Object>{'app.theme_mode': 'dark'});
+    SharedPreferences.setMockInitialValues(
+        <String, Object>{'app.theme_mode': 'dark'});
     final ThemeCubit cubit = ThemeCubit(await SharedPreferences.getInstance());
     expect(cubit.state, ThemeMode.dark);
   });

@@ -65,15 +65,20 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(getIt<AuthLocalDataSource>()),
   );
-  getIt.registerLazySingleton<GetCurrentUser>(() => GetCurrentUser(getIt<AuthRepository>()));
-  getIt.registerLazySingleton<GetSavedEmail>(() => GetSavedEmail(getIt<AuthRepository>()));
+  getIt.registerLazySingleton<GetCurrentUser>(
+      () => GetCurrentUser(getIt<AuthRepository>()));
+  getIt.registerLazySingleton<GetSavedEmail>(
+      () => GetSavedEmail(getIt<AuthRepository>()));
   getIt.registerLazySingleton<SendOtp>(() => SendOtp(getIt<AuthRepository>()));
-  getIt.registerLazySingleton<VerifyOtp>(() => VerifyOtp(getIt<AuthRepository>()));
-  getIt.registerLazySingleton<VerifyPin>(() => VerifyPin(getIt<AuthRepository>()));
+  getIt.registerLazySingleton<VerifyOtp>(
+      () => VerifyOtp(getIt<AuthRepository>()));
+  getIt.registerLazySingleton<VerifyPin>(
+      () => VerifyPin(getIt<AuthRepository>()));
   getIt.registerLazySingleton<GetCurrentDeviceInfo>(
     () => GetCurrentDeviceInfo(getIt<AuthRepository>()),
   );
-  getIt.registerLazySingleton<LogoutUser>(() => LogoutUser(getIt<AuthRepository>()));
+  getIt.registerLazySingleton<LogoutUser>(
+      () => LogoutUser(getIt<AuthRepository>()));
 
   // AuthCubit : état de session global, utilisé par AuthGuard — un seul
   // singleton pour toute l'app (voir features/auth/presentation/cubit).
@@ -112,11 +117,14 @@ Future<void> configureDependencies() async {
     getIt.registerLazySingleton<ThermalPrinter>(P501ThermalPrinter.new);
   }
 
-  getIt.registerLazySingleton<ScanBarcode>(() => ScanBarcode(getIt<BarcodeScanner>()));
-  getIt.registerLazySingleton<PrintTicket>(() => PrintTicket(getIt<ThermalPrinter>()));
+  getIt.registerLazySingleton<ScanBarcode>(
+      () => ScanBarcode(getIt<BarcodeScanner>()));
+  getIt.registerLazySingleton<PrintTicket>(
+      () => PrintTicket(getIt<ThermalPrinter>()));
 
   getIt.registerFactory<PrintingCubit>(
-    () => PrintingCubit(scanBarcode: getIt<ScanBarcode>(), printTicket: getIt<PrintTicket>()),
+    () => PrintingCubit(
+        scanBarcode: getIt<ScanBarcode>(), printTicket: getIt<PrintTicket>()),
   );
 }
 

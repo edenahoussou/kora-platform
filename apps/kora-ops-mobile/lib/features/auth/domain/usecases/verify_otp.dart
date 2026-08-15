@@ -7,6 +7,7 @@ class VerifyOtp {
 
   final AuthRepository _repository;
 
-  Future<Result<UserEntity>> call({required String email, required String code}) =>
+  Future<Result<UserEntity>> call(
+          {required String email, required String code}) =>
       _repository.verifyOtp(email: email, code: code);
 }

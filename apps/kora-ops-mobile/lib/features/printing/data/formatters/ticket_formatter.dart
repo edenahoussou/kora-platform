@@ -20,7 +20,8 @@ abstract final class TicketFormatter {
       _label('Date', payload.tripDate),
       _label('Heure', payload.tripTime),
       _divider(),
-      _label('Passager', _truncate(payload.passengerName, prefixLength: 'Passager: '.length)),
+      _label('Passager',
+          _truncate(payload.passengerName, prefixLength: 'Passager: '.length)),
       _label('Siege', payload.seatNumber),
       _divider(),
       _centered('[ QR CODE ]'),
@@ -39,13 +40,15 @@ abstract final class TicketFormatter {
 
   /// Assemble les lignes avec des sauts de ligne, prêt à être envoyé au
   /// canal natif ou affiché dans un widget `Text` à police monospace.
-  static String formatAsText(TicketPayload payload) => format(payload).join('\n');
+  static String formatAsText(TicketPayload payload) =>
+      format(payload).join('\n');
 
   /// Vérifie que le document respecte le format 58mm (largeur 32
   /// caractères, aucune ligne vide en trop). Utilisé par les tests et par
   /// [MockThermalPrinter] avant "impression".
   static bool isValid(List<String> lines) =>
-      lines.isNotEmpty && lines.every((String line) => line.length <= lineWidth);
+      lines.isNotEmpty &&
+      lines.every((String line) => line.length <= lineWidth);
 
   static String _centered(String text) {
     final String clipped = _truncate(text);

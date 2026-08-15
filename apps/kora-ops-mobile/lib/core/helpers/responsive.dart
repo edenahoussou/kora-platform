@@ -22,11 +22,14 @@ abstract final class Responsive {
     return DeviceType.mobile;
   }
 
-  static bool isMobile(BuildContext context) => deviceTypeOf(context) == DeviceType.mobile;
+  static bool isMobile(BuildContext context) =>
+      deviceTypeOf(context) == DeviceType.mobile;
 
-  static bool isTablet(BuildContext context) => deviceTypeOf(context) == DeviceType.tablet;
+  static bool isTablet(BuildContext context) =>
+      deviceTypeOf(context) == DeviceType.tablet;
 
-  static bool isDesktop(BuildContext context) => deviceTypeOf(context) == DeviceType.desktop;
+  static bool isDesktop(BuildContext context) =>
+      deviceTypeOf(context) == DeviceType.desktop;
 
   /// Retourne `mobile`, `tablet` ou `desktop` selon la largeur d'écran
   /// courante — utile pour choisir une valeur (nombre de colonnes, padding,

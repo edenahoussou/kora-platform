@@ -38,7 +38,8 @@ class AuthCubit extends Cubit<AuthState> {
         final emailResult = await _getSavedEmail();
         emit(
           AuthUnauthenticated(
-            savedEmail: emailResult.when(onSuccess: (email) => email, onFailure: (_) => null),
+            savedEmail: emailResult.when(
+                onSuccess: (email) => email, onFailure: (_) => null),
           ),
         );
       },
@@ -58,7 +59,8 @@ class AuthCubit extends Cubit<AuthState> {
         final emailResult = await _getSavedEmail();
         emit(
           AuthUnauthenticated(
-            savedEmail: emailResult.when(onSuccess: (email) => email, onFailure: (_) => null),
+            savedEmail: emailResult.when(
+                onSuccess: (email) => email, onFailure: (_) => null),
           ),
         );
       },

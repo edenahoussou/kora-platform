@@ -17,14 +17,16 @@ class MockGetSavedEmail extends Mock implements GetSavedEmail {}
 class MockLogoutUser extends Mock implements LogoutUser {}
 
 void main() {
-  testWidgets('HomePage affiche les 4 tuiles opérationnelles', (WidgetTester tester) async {
+  testWidgets('HomePage affiche les 4 tuiles opérationnelles',
+      (WidgetTester tester) async {
     final AuthCubit authCubit = AuthCubit(
       getCurrentUser: MockGetCurrentUser(),
       getSavedEmail: MockGetSavedEmail(),
       logoutUser: MockLogoutUser(),
     );
     SharedPreferences.setMockInitialValues(<String, Object>{});
-    final ThemeCubit themeCubit = ThemeCubit(await SharedPreferences.getInstance());
+    final ThemeCubit themeCubit =
+        ThemeCubit(await SharedPreferences.getInstance());
 
     await tester.pumpWidget(
       MaterialApp(

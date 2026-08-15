@@ -34,7 +34,9 @@ class AppButton extends StatelessWidget {
   final bool fullWidth;
 
   Color _foregroundColor(AppButtonVariant variant) => switch (variant) {
-        AppButtonVariant.primary || AppButtonVariant.warning => AppColors.onAccent,
+        AppButtonVariant.primary ||
+        AppButtonVariant.warning =>
+          AppColors.onAccent,
         AppButtonVariant.outline => AppColors.primary,
         _ => AppColors.white,
       };
@@ -62,19 +64,25 @@ class AppButton extends StatelessWidget {
         : Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              if (icon != null) ...<Widget>[Icon(icon, size: 18), const SizedBox(width: 8)],
+              if (icon != null) ...<Widget>[
+                Icon(icon, size: 18),
+                const SizedBox(width: 8)
+              ],
               Text(label),
             ],
           );
 
     final Widget button = switch (variant) {
-      AppButtonVariant.outline => OutlinedButton(onPressed: handler, child: child),
+      AppButtonVariant.outline =>
+        OutlinedButton(onPressed: handler, child: child),
       _ => ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: _backgroundColor(variant),
             foregroundColor: foreground,
-            disabledBackgroundColor: _backgroundColor(variant)?.withValues(alpha: 0.5),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+            disabledBackgroundColor:
+                _backgroundColor(variant)?.withValues(alpha: 0.5),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.md)),
           ),
           onPressed: handler,
           child: child,

@@ -55,7 +55,10 @@ class WidgetbookApp extends StatelessWidget {
         ),
         // ignore: deprecated_member_use
         DeviceFrameAddon(
-          devices: <DeviceInfo>[Devices.ios.iPhone13, Devices.android.samsungGalaxyA50],
+          devices: <DeviceInfo>[
+            Devices.ios.iPhone13,
+            Devices.android.samsungGalaxyA50
+          ],
         ),
       ],
     );

@@ -6,5 +6,6 @@ class SendOtp {
 
   final AuthRepository _repository;
 
-  Future<Result<void>> call({required String email}) => _repository.sendOtp(email: email);
+  Future<Result<void>> call({required String email}) =>
+      _repository.sendOtp(email: email);
 }

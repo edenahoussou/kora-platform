@@ -66,7 +66,8 @@ void main() {
 
     test('mappe PrinterException en HardwareFailure', () async {
       final printer = MockThermalPrinterService();
-      when(() => printer.printTicket(any())).thenThrow(const PrinterException('Papier absent'));
+      when(() => printer.printTicket(any()))
+          .thenThrow(const PrinterException('Papier absent'));
 
       final result = await PrintTicket(printer)(payload);
 

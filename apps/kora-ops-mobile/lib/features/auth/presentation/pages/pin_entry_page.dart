@@ -23,7 +23,8 @@ class PinEntryPage extends StatefulWidget {
   State<PinEntryPage> createState() => _PinEntryPageState();
 }
 
-class _PinEntryPageState extends State<PinEntryPage> with SingleTickerProviderStateMixin {
+class _PinEntryPageState extends State<PinEntryPage>
+    with SingleTickerProviderStateMixin {
   static const int _pinLength = 4;
 
   String _pin = '';
@@ -73,7 +74,8 @@ class _PinEntryPageState extends State<PinEntryPage> with SingleTickerProviderSt
       await _shakeController.forward(from: 0);
       setState(() => _pin = '');
       if (mounted) {
-        final String message = loginCubit.state.errorMessage ?? 'PIN incorrect.';
+        final String message =
+            loginCubit.state.errorMessage ?? 'PIN incorrect.';
         await getIt.dialogService.showError(context, message: message);
       }
     }
@@ -88,10 +90,12 @@ class _PinEntryPageState extends State<PinEntryPage> with SingleTickerProviderSt
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              maxWidth: Responsive.value<double>(context, mobile: double.infinity, tablet: 420),
+              maxWidth: Responsive.value<double>(context,
+                  mobile: double.infinity, tablet: 420),
             ),
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xl),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg, vertical: AppSpacing.xl),
               child: Column(
                 children: <Widget>[
                   const _KoraLogoCard(),
@@ -108,31 +112,41 @@ class _PinEntryPageState extends State<PinEntryPage> with SingleTickerProviderSt
                   const SizedBox(height: 4),
                   const Text(
                     'Votre PIN KORA',
-                    style: TextStyle(color: AppColors.white, fontSize: 24, fontWeight: FontWeight.w700),
+                    style: TextStyle(
+                        color: AppColors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     _savedEmail ?? '',
-                    style: TextStyle(color: AppColors.white.withValues(alpha: 0.7), fontSize: 13),
+                    style: TextStyle(
+                        color: AppColors.white.withValues(alpha: 0.7),
+                        fontSize: 13),
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   AnimatedBuilder(
                     animation: _shakeController,
                     builder: (BuildContext context, Widget? child) {
                       final double value = _shakeController.value;
-                      final double offset = 8 * math.sin(value * math.pi * 6) * (1 - value);
-                      return Transform.translate(offset: Offset(offset, 0), child: child);
+                      final double offset =
+                          8 * math.sin(value * math.pi * 6) * (1 - value);
+                      return Transform.translate(
+                          offset: Offset(offset, 0), child: child);
                     },
                     child: _PinDots(filled: _pin.length, length: _pinLength),
                   ),
                   const SizedBox(height: AppSpacing.xl),
-                  NumericKeypad(onDigitPressed: _onDigit, onBackspacePressed: _onBackspace),
+                  NumericKeypad(
+                      onDigitPressed: _onDigit,
+                      onBackspacePressed: _onBackspace),
                   const SizedBox(height: AppSpacing.md),
                   TextButton(
                     onPressed: () {},
                     child: Text(
                       'PIN oublié ?',
-                      style: TextStyle(color: AppColors.white.withValues(alpha: 0.85)),
+                      style: TextStyle(
+                          color: AppColors.white.withValues(alpha: 0.85)),
                     ),
                   ),
                   TextButton(
@@ -142,7 +156,8 @@ class _PinEntryPageState extends State<PinEntryPage> with SingleTickerProviderSt
                     },
                     child: Text(
                       'Connexion sur un nouvel appareil',
-                      style: TextStyle(color: AppColors.white.withValues(alpha: 0.85)),
+                      style: TextStyle(
+                          color: AppColors.white.withValues(alpha: 0.85)),
                     ),
                   ),
                 ],
@@ -174,7 +189,8 @@ class _PinDots extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: isFilled ? AppColors.accent : Colors.transparent,
-            border: Border.all(color: AppColors.white.withValues(alpha: 0.6), width: 1.5),
+            border: Border.all(
+                color: AppColors.white.withValues(alpha: 0.6), width: 1.5),
           ),
         );
       }),
@@ -198,15 +214,22 @@ class _KoraLogoCard extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Icon(Icons.local_shipping_rounded, color: AppColors.primary, size: 32),
+            Icon(Icons.local_shipping_rounded,
+                color: AppColors.primary, size: 32),
             SizedBox(height: 4),
             Text(
               'KORA',
-              style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800, fontSize: 16),
+              style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16),
             ),
             Text(
               'EXPRESS',
-              style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700, fontSize: 10),
+              style: TextStyle(
+                  color: AppColors.accent,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 10),
             ),
           ],
         ),

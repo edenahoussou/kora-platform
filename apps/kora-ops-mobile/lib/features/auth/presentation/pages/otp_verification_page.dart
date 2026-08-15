@@ -64,7 +64,8 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
     if (email == null || !email.contains('@')) return '••••@••••';
     final List<String> parts = email.split('@');
     final String local = parts.first;
-    final String masked = local.isEmpty ? '' : '${local[0]}${'*' * (local.length - 1)}';
+    final String masked =
+        local.isEmpty ? '' : '${local[0]}${'*' * (local.length - 1)}';
     return '$masked@${parts.last}';
   }
 
@@ -94,17 +95,20 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              maxWidth: Responsive.value<double>(context, mobile: double.infinity, tablet: 480),
+              maxWidth: Responsive.value<double>(context,
+                  mobile: double.infinity, tablet: 480),
             ),
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(AppSpacing.lg),
               child: BlocBuilder<LoginCubit, LoginState>(
                 builder: (BuildContext context, LoginState state) {
-                  final bool isSubmitting = state.status == LoginStatus.submitting;
+                  final bool isSubmitting =
+                      state.status == LoginStatus.submitting;
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
-                      const AuthScreenHeader(eyebrow: 'Sécurité', title: 'Code de vérification'),
+                      const AuthScreenHeader(
+                          eyebrow: 'Sécurité', title: 'Code de vérification'),
                       const SizedBox(height: AppSpacing.md),
                       Text.rich(
                         TextSpan(
@@ -113,7 +117,8 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                             const TextSpan(text: 'Saisissez le code envoyé à '),
                             TextSpan(
                               text: _maskedEmail(state.email),
-                              style: const TextStyle(fontWeight: FontWeight.w700),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w700),
                             ),
                             const TextSpan(text: '.'),
                           ],
@@ -122,7 +127,8 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                       const SizedBox(height: AppSpacing.lg),
                       OtpCodeInput(
                         length: _codeLength,
-                        onChanged: (String value) => setState(() => _code = value),
+                        onChanged: (String value) =>
+                            setState(() => _code = value),
                         onCompleted: (_) => _verify(context),
                       ),
                       const SizedBox(height: AppSpacing.md),
@@ -136,7 +142,8 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                           TextButton(
-                            onPressed: isSubmitting ? null : () => _resend(context),
+                            onPressed:
+                                isSubmitting ? null : () => _resend(context),
                             child: const Text('Renvoyer'),
                           ),
                         ],
@@ -145,7 +152,9 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                       AppButton(
                         label: 'Vérifier le code',
                         isLoading: isSubmitting,
-                        onPressed: _code.length == _codeLength ? () => _verify(context) : null,
+                        onPressed: _code.length == _codeLength
+                            ? () => _verify(context)
+                            : null,
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       AppButton(
@@ -156,7 +165,8 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                       const SizedBox(height: AppSpacing.md),
                       Center(
                         child: TextButton(
-                          onPressed: () => context.push(AppRoutes.loginOtpInvalid),
+                          onPressed: () =>
+                              context.push(AppRoutes.loginOtpInvalid),
                           child: const Text(
                             'Voir l\'état code invalide',
                             style: TextStyle(color: AppColors.secondary),
@@ -174,4 +184,3 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
     );
   }
 }
-

@@ -10,7 +10,9 @@ import '../formatters/ticket_formatter.dart';
 ///
 /// Passer `shouldFail: true` pour simuler une panne matérielle.
 class MockThermalPrinter implements ThermalPrinter {
-  MockThermalPrinter({this.shouldFail = false, this.simulatedDelay = const Duration(milliseconds: 600)});
+  MockThermalPrinter(
+      {this.shouldFail = false,
+      this.simulatedDelay = const Duration(milliseconds: 600)});
 
   final bool shouldFail;
   final Duration simulatedDelay;

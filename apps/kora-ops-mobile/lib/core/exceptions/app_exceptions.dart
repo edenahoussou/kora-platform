@@ -20,7 +20,8 @@ class NetworkException extends AppException {
 }
 
 class UnauthorizedException extends AppException {
-  const UnauthorizedException([super.message = 'Session expirée ou non authentifiée.']);
+  const UnauthorizedException(
+      [super.message = 'Session expirée ou non authentifiée.']);
 }
 
 class ServerException extends AppException {

@@ -41,19 +41,22 @@ void main() {
   blocTest<AuthCubit, AuthState>(
     'émet [Loading, Authenticated] si une session existe déjà',
     build: () {
-      when(() => getCurrentUser()).thenAnswer((_) async => const Result<UserEntity?>.success(user));
+      when(() => getCurrentUser())
+          .thenAnswer((_) async => const Result<UserEntity?>.success(user));
       return buildCubit();
     },
     act: (AuthCubit cubit) => cubit.checkAuthStatus(),
-    expect: () => <AuthState>[const AuthLoading(), const AuthAuthenticated(user)],
+    expect: () =>
+        <AuthState>[const AuthLoading(), const AuthAuthenticated(user)],
   );
 
   blocTest<AuthCubit, AuthState>(
     'émet [Loading, Unauthenticated(savedEmail)] si aucune session mais un email enregistré',
     build: () {
-      when(() => getCurrentUser()).thenAnswer((_) async => const Result<UserEntity?>.success(null));
-      when(() => getSavedEmail())
-          .thenAnswer((_) async => const Result<String?>.success('aicha.hounkpe@example.com'));
+      when(() => getCurrentUser())
+          .thenAnswer((_) async => const Result<UserEntity?>.success(null));
+      when(() => getSavedEmail()).thenAnswer((_) async =>
+          const Result<String?>.success('aicha.hounkpe@example.com'));
       return buildCubit();
     },
     act: (AuthCubit cubit) => cubit.checkAuthStatus(),
@@ -66,8 +69,10 @@ void main() {
   blocTest<AuthCubit, AuthState>(
     'émet [Loading, Unauthenticated(null)] si aucune session ni email enregistré',
     build: () {
-      when(() => getCurrentUser()).thenAnswer((_) async => const Result<UserEntity?>.success(null));
-      when(() => getSavedEmail()).thenAnswer((_) async => const Result<String?>.success(null));
+      when(() => getCurrentUser())
+          .thenAnswer((_) async => const Result<UserEntity?>.success(null));
+      when(() => getSavedEmail())
+          .thenAnswer((_) async => const Result<String?>.success(null));
       return buildCubit();
     },
     act: (AuthCubit cubit) => cubit.checkAuthStatus(),
@@ -84,9 +89,10 @@ void main() {
   blocTest<AuthCubit, AuthState>(
     'logout() émet [Loading, Unauthenticated(savedEmail conservé)]',
     build: () {
-      when(() => logoutUser()).thenAnswer((_) async => const Result<void>.success(null));
-      when(() => getSavedEmail())
-          .thenAnswer((_) async => const Result<String?>.success('aicha.hounkpe@example.com'));
+      when(() => logoutUser())
+          .thenAnswer((_) async => const Result<void>.success(null));
+      when(() => getSavedEmail()).thenAnswer((_) async =>
+          const Result<String?>.success('aicha.hounkpe@example.com'));
       return buildCubit();
     },
     act: (AuthCubit cubit) => cubit.logout(),

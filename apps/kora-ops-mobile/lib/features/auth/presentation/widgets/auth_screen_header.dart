@@ -8,7 +8,8 @@ import '../../../../app/theme/app_typography.dart';
 /// code invalide, nouvel appareil) : bouton retour circulaire, petit
 /// libellé de section en capitales, grand titre — fidèle à la maquette.
 class AuthScreenHeader extends StatelessWidget {
-  const AuthScreenHeader({required this.eyebrow, required this.title, this.onBack, super.key});
+  const AuthScreenHeader(
+      {required this.eyebrow, required this.title, this.onBack, super.key});
 
   final String eyebrow;
   final String title;
@@ -19,7 +20,8 @@ class AuthScreenHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        _BackButton(onPressed: onBack ?? () => context.canPop() ? context.pop() : null),
+        _BackButton(
+            onPressed: onBack ?? () => context.canPop() ? context.pop() : null),
         const SizedBox(height: AppSpacing.md),
         Text(
           eyebrow.toUpperCase(),

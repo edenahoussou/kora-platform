@@ -21,20 +21,23 @@ class OtpInvalidPage extends StatelessWidget {
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              maxWidth: Responsive.value<double>(context, mobile: double.infinity, tablet: 480),
+              maxWidth: Responsive.value<double>(context,
+                  mobile: double.infinity, tablet: 480),
             ),
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(AppSpacing.lg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  const AuthScreenHeader(eyebrow: 'Vérification OTP', title: 'Code non valide'),
+                  const AuthScreenHeader(
+                      eyebrow: 'Vérification OTP', title: 'Code non valide'),
                   const SizedBox(height: AppSpacing.xl),
                   Center(
                     child: Container(
                       width: 96,
                       height: 96,
-                      decoration: const BoxDecoration(color: AppColors.background, shape: BoxShape.circle),
+                      decoration: const BoxDecoration(
+                          color: AppColors.background, shape: BoxShape.circle),
                       child: Center(
                         child: Container(
                           width: 56,
@@ -43,7 +46,8 @@ class OtpInvalidPage extends StatelessWidget {
                             color: AppColors.primary,
                             borderRadius: BorderRadius.circular(AppRadius.lg),
                           ),
-                          child: const Icon(Icons.priority_high_rounded, color: AppColors.white),
+                          child: const Icon(Icons.priority_high_rounded,
+                              color: AppColors.white),
                         ),
                       ),
                     ),
@@ -64,14 +68,14 @@ class OtpInvalidPage extends StatelessWidget {
                   const SizedBox(height: AppSpacing.xl),
                   AppButton(
                     label: 'Recevoir un nouveau code',
-                    onPressed: () => context.pushReplacement(AppRoutes.loginOtp),
+                    onPressed: () =>
+                        context.pushReplacement(AppRoutes.loginOtp),
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   AppButton(
                     label: 'Modifier l\'email',
                     variant: AppButtonVariant.outline,
-                    onPressed: () =>
-                        context.go(AppRoutes.loginEmail),
+                    onPressed: () => context.go(AppRoutes.loginEmail),
                   ),
                 ],
               ),

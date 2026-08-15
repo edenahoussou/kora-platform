@@ -18,7 +18,8 @@ class NewDeviceDetectedPage extends StatelessWidget {
   const NewDeviceDetectedPage({super.key});
 
   Future<void> _requestOtp(BuildContext context) async {
-    final bool success = await context.read<LoginCubit>().requestDeviceConfirmationOtp();
+    final bool success =
+        await context.read<LoginCubit>().requestDeviceConfirmationOtp();
     if (!context.mounted) return;
     if (success) {
       await context.push(AppRoutes.loginOtp);
@@ -33,7 +34,8 @@ class NewDeviceDetectedPage extends StatelessWidget {
     final bool confirmed = await getIt.dialogService.showConfirmation(
       context,
       title: 'Ce n\'est pas moi',
-      message: 'Cette tentative de connexion sera bloquée et votre email devra être '
+      message:
+          'Cette tentative de connexion sera bloquée et votre email devra être '
           'reconfirmé pour vous reconnecter.',
       confirmLabel: 'Bloquer la tentative',
       cancelLabel: 'Annuler',
@@ -50,7 +52,8 @@ class NewDeviceDetectedPage extends StatelessWidget {
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              maxWidth: Responsive.value<double>(context, mobile: double.infinity, tablet: 480),
+              maxWidth: Responsive.value<double>(context,
+                  mobile: double.infinity, tablet: 480),
             ),
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(AppSpacing.lg),
@@ -67,7 +70,8 @@ class NewDeviceDetectedPage extends StatelessWidget {
                       const SizedBox(height: AppSpacing.lg),
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: AppSpacing.lg),
                         decoration: BoxDecoration(
                           color: AppColors.primary,
                           borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -78,9 +82,11 @@ class NewDeviceDetectedPage extends StatelessWidget {
                               padding: const EdgeInsets.all(AppSpacing.sm),
                               decoration: BoxDecoration(
                                 color: AppColors.accent,
-                                borderRadius: BorderRadius.circular(AppRadius.md),
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.md),
                               ),
-                              child: const Icon(Icons.pending_actions, color: AppColors.onAccent),
+                              child: const Icon(Icons.pending_actions,
+                                  color: AppColors.onAccent),
                             ),
                             const SizedBox(height: AppSpacing.sm),
                             const Text(
@@ -96,7 +102,8 @@ class NewDeviceDetectedPage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: AppSpacing.lg),
-                      Text('Est-ce bien vous ?', style: Theme.of(context).textTheme.headlineMedium),
+                      Text('Est-ce bien vous ?',
+                          style: Theme.of(context).textTheme.headlineMedium),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
                         'Une vérification par email est obligatoire avant d\'autoriser cet '
@@ -116,7 +123,9 @@ class NewDeviceDetectedPage extends StatelessWidget {
                         ),
                         child: Column(
                           children: <Widget>[
-                            _InfoRow(label: 'Appareil', value: device?.deviceModel ?? '—'),
+                            _InfoRow(
+                                label: 'Appareil',
+                                value: device?.deviceModel ?? '—'),
                             const Divider(height: AppSpacing.lg),
                             _InfoRow(
                               label: 'Tentative',
@@ -167,7 +176,10 @@ class _InfoRow extends StatelessWidget {
           Text(label, style: Theme.of(context).textTheme.bodyMedium),
           Text(
             value,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(fontWeight: FontWeight.w700),
           ),
         ],
       ),

@@ -69,7 +69,9 @@ void main() {
       expect: () => <dynamic>[
         predicate<LoginState>((s) => s.status == LoginStatus.submitting),
         predicate<LoginState>(
-          (s) => s.status == LoginStatus.success && s.otpPurpose == OtpPurpose.accountCreation,
+          (s) =>
+              s.status == LoginStatus.success &&
+              s.otpPurpose == OtpPurpose.accountCreation,
         ),
       ],
     );
@@ -82,9 +84,10 @@ void main() {
       expect(result, isTrue);
     });
 
-    test('retourne false et expose le message d\'erreur en cas d\'échec', () async {
-      when(() => sendOtp(email: any(named: 'email')))
-          .thenAnswer((_) async => const Result<void>.failure(NetworkFailure('Pas de réseau.')));
+    test('retourne false et expose le message d\'erreur en cas d\'échec',
+        () async {
+      when(() => sendOtp(email: any(named: 'email'))).thenAnswer((_) async =>
+          const Result<void>.failure(NetworkFailure('Pas de réseau.')));
       final cubit = buildCubit();
       final result = await cubit.submitEmail('aicha.hounkpe@example.com');
       expect(result, isFalse);
@@ -93,13 +96,15 @@ void main() {
   });
 
   group('submitOtp', () {
-    test('retourne true et stocke l\'utilisateur quand le code est correct', () async {
+    test('retourne true et stocke l\'utilisateur quand le code est correct',
+        () async {
       when(() => sendOtp(email: any(named: 'email')))
           .thenAnswer((_) async => const Result<void>.success(null));
       final cubit = buildCubit();
       await cubit.submitEmail(user.email);
 
-      when(() => verifyOtp(email: any(named: 'email'), code: any(named: 'code')))
+      when(() =>
+              verifyOtp(email: any(named: 'email'), code: any(named: 'code')))
           .thenAnswer((_) async => const Result<UserEntity>.success(user));
 
       final result = await cubit.submitOtp('583187');
@@ -114,8 +119,11 @@ void main() {
       final cubit = buildCubit();
       await cubit.submitEmail(user.email);
 
-      when(() => verifyOtp(email: any(named: 'email'), code: any(named: 'code'))).thenAnswer(
-        (_) async => const Result<UserEntity>.failure(ValidationFailure('Code incorrect.')),
+      when(() =>
+              verifyOtp(email: any(named: 'email'), code: any(named: 'code')))
+          .thenAnswer(
+        (_) async => const Result<UserEntity>.failure(
+            ValidationFailure('Code incorrect.')),
       );
 
       final result = await cubit.submitOtp('000000');
@@ -138,7 +146,10 @@ void main() {
       expect: () => <dynamic>[
         predicate<LoginState>((s) => s.status == LoginStatus.submitting),
         predicate<LoginState>(
-          (s) => s.status == LoginStatus.success && s.user == user && s.deviceInfo == device,
+          (s) =>
+              s.status == LoginStatus.success &&
+              s.user == user &&
+              s.deviceInfo == device,
         ),
       ],
     );
@@ -147,7 +158,8 @@ void main() {
       'émet failure quand le PIN est incorrect',
       build: () {
         when(() => verifyPin(pin: any(named: 'pin'))).thenAnswer(
-          (_) async => const Result<UserEntity>.failure(ValidationFailure('PIN incorrect.')),
+          (_) async => const Result<UserEntity>.failure(
+              ValidationFailure('PIN incorrect.')),
         );
         return buildCubit();
       },
@@ -155,14 +167,17 @@ void main() {
       expect: () => <dynamic>[
         predicate<LoginState>((s) => s.status == LoginStatus.submitting),
         predicate<LoginState>(
-          (s) => s.status == LoginStatus.failure && s.errorMessage == 'PIN incorrect.',
+          (s) =>
+              s.status == LoginStatus.failure &&
+              s.errorMessage == 'PIN incorrect.',
         ),
       ],
     );
   });
 
   group('requestDeviceConfirmationOtp', () {
-    test('bascule otpPurpose vers deviceConfirmation en cas de succès', () async {
+    test('bascule otpPurpose vers deviceConfirmation en cas de succès',
+        () async {
       when(() => sendOtp(email: any(named: 'email')))
           .thenAnswer((_) async => const Result<void>.success(null));
       final cubit = buildCubit();

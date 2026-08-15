@@ -32,7 +32,8 @@ abstract final class AppColors {
   static const Color surface = Color(0xFFFFFFFF);
   static const Color border = Color(0x1C001D4E); // --line rgba(0,29,78,.11)
   static const Color textPrimary = Color(0xFF111827); // --graphite
-  static const Color textSecondary = Color(0x99111827); // --muted rgba(17,24,39,.6)
+  static const Color textSecondary =
+      Color(0x99111827); // --muted rgba(17,24,39,.6)
   static const Color textOnPrimary = white;
   static const Color shadow = Color(0x24001D4E); // --shadow rgba(0,29,78,.14)
 
@@ -54,7 +55,8 @@ abstract final class AppColors {
   static const Color success = Color(0xFF2D7A51);
   static const Color warning = Color(0xFFC77700);
   static const Color error = Color(0xFF9C2430);
-  static const Color danger = error; // alias explicite pour AppButtonVariant.danger
+  static const Color danger =
+      error; // alias explicite pour AppButtonVariant.danger
   static const Color info = secondary;
 
   /// Texte lisible sur un fond `accent`/`warning` (tons or/ambre) : le blanc

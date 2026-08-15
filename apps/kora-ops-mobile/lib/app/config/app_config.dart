@@ -49,7 +49,8 @@ class AppConfig {
     const String rawEnv = String.fromEnvironment('ENV', defaultValue: 'dev');
     final Environment env = EnvironmentX.fromString(rawEnv);
 
-    const String rawUseMockHardware = String.fromEnvironment('USE_MOCK_HARDWARE');
+    const String rawUseMockHardware =
+        String.fromEnvironment('USE_MOCK_HARDWARE');
     bool resolveUseMockHardware(bool defaultValue) {
       if (rawUseMockHardware.isEmpty) return defaultValue;
       return rawUseMockHardware.toLowerCase() == 'true';

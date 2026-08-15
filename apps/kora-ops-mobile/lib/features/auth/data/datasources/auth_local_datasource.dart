@@ -24,14 +24,16 @@ class AuthLocalDataSource {
   /// PIN accepté par le mock — toute autre valeur à 4 chiffres est refusée.
   static const String mockPin = '1234';
 
-  Future<String?> getSavedEmail() async => _preferences.getString(_savedEmailKey);
+  Future<String?> getSavedEmail() async =>
+      _preferences.getString(_savedEmailKey);
 
   Future<void> sendOtp({required String email}) async {
     // Simule la latence d'envoi d'email — aucun envoi réel à ce sprint.
     await Future<void>.delayed(const Duration(milliseconds: 500));
   }
 
-  Future<UserModel> verifyOtp({required String email, required String code}) async {
+  Future<UserModel> verifyOtp(
+      {required String email, required String code}) async {
     await Future<void>.delayed(const Duration(milliseconds: 500));
     if (code != mockOtpCode) {
       throw const ApiException('Le code est incorrect ou expiré.');
