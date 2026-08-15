@@ -11,7 +11,17 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # Traductions officielles des widgets Material (sélecteur de date,
+  # actions d'accessibilité...) : sans ça, `showDatePicker` s'afficherait
+  # en anglais dans une app entièrement française.
+  flutter_localizations:
+    sdk: flutter
+
   cupertino_icons: ^1.0.8
+
+  # --- Formatage dates / nombres (fr_FR) ---
+  # Version alignée sur celle qu'impose flutter_localizations.
+  intl: any
 
   # --- State management ---
   flutter_bloc: ^8.1.6

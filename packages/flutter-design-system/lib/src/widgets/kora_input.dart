@@ -69,10 +69,17 @@ class _KoraInputState extends State<KoraInput> {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (widget.label != null) ...[
+          // `.field > span { color: var(--kora) }` : le libellé d'un champ
+          // est en bleu KORA, pas dans la couleur du texte courant
+          // (graphite), qui le rendait presque noir en thème clair. En
+          // thème sombre, ce bleu serait invisible : `textPrimary` (blanc)
+          // y reste le bon choix.
           Text(
             widget.label!,
             style: TextStyle(
-              color: koraColors.textPrimary,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? koraColors.textPrimary
+                  : AppColors.kora,
               fontSize: 13,
               fontWeight: FontWeight.w800,
             ),

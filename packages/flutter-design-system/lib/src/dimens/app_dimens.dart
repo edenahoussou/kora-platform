@@ -70,6 +70,20 @@ class AppShadows {
     ),
   ];
 
+  /// Ombre du bouton rond ([KoraIconButton]) : c'est elle qui détache la
+  /// pastille du fond, y compris quand les deux sont blancs — cas courant,
+  /// le bouton étant souvent posé sur une card.
+  /// CSS de référence : `.icon-button { box-shadow: 0 4px 15px
+  /// rgba(0,29,78,.08) }` (`docs/maquettes/kora-app-passenger/css/
+  /// style.css`, L231-244).
+  static List<BoxShadow> iconButton = [
+    BoxShadow(
+      color: AppColors.kora.withValues(alpha: 0.08),
+      offset: const Offset(0, 4),
+      blurRadius: 15,
+    ),
+  ];
+
   /// Ombre plus marquée utilisée sous le bouton principal (gold).
   /// CSS de référence : 0 9px 22px rgba(246,176,0,.2)
   static List<BoxShadow> primaryButton = [

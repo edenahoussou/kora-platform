@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../colors/app_colors.dart';
 import '../colors/kora_colors.dart';
+import '../dimens/app_dimens.dart';
 import 'kora_badge.dart';
 
 /// Bouton rond avec icône, utilisé dans les headers d'écran (retour,
@@ -35,19 +37,35 @@ class KoraIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final koraColors = context.koraColors;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final button = SizedBox(
-      width: size,
-      height: size,
-      child: Material(
-        color: koraColors.surface,
-        shape: const CircleBorder(),
-        elevation: 0,
-        child: InkWell(
-          onTap: onTap,
-          customBorder: const CircleBorder(),
-          child: Center(
-            child: Icon(icon, size: 19, color: koraColors.textPrimary),
+    // Le bouton est très souvent posé sur une card, de la même couleur de
+    // surface que lui : sans traitement, la pastille disparaît. La
+    // maquette résout ça de deux façons selon le fond, on reprend les
+    // deux :
+    // - sur écran clair, `.icon-button` est blanc avec une ombre douce ;
+    // - sur écran navy, `.navy-screen .icon-button` devient un voile blanc
+    //   à 10 %, sans ombre (une ombre ne se verrait pas sur du sombre).
+    final button = DecoratedBox(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: isDark ? const [] : AppShadows.iconButton,
+      ),
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: Material(
+          color: isDark
+              ? AppColors.white.withValues(alpha: 0.1)
+              : koraColors.surface,
+          shape: const CircleBorder(),
+          elevation: 0,
+          child: InkWell(
+            onTap: onTap,
+            customBorder: const CircleBorder(),
+            child: Center(
+              child: Icon(icon, size: 19, color: koraColors.textPrimary),
+            ),
           ),
         ),
       ),

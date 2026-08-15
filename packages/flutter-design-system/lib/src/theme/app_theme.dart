@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../colors/app_colors.dart';
 import '../colors/kora_colors.dart';
@@ -64,6 +65,19 @@ class AppTheme {
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         foregroundColor: koraColors.textPrimary,
+
+        // Sans cette ligne, l'`AppBar` déduit le style de la barre d'état
+        // de sa propre couleur de fond. Celle-ci étant transparente,
+        // Flutter la lit comme sombre et demande des icônes blanches —
+        // illisibles sur un écran clair. On le décide donc explicitement,
+        // d'après le thème. Seuls les champs de la barre d'état sont
+        // renseignés : `SystemUiOverlayStyle.light`/`.dark` forceraient
+        // aussi une barre de navigation noire.
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+          statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+        ),
         // Valeurs alignées sur AppTextStyles.heading1 (voir ce fichier
         // pour le détail du calcul de letterSpacing depuis le CSS).
         titleTextStyle: TextStyle(
@@ -159,6 +173,19 @@ class AppTheme {
           borderSide: const BorderSide(color: AppColors.digital, width: 1.5),
         ),
         hintStyle: TextStyle(color: koraColors.textMuted),
+      ),
+
+      // Curseur et sélection de texte. Sans ces valeurs, Flutter retombe
+      // sur `colorScheme.primary` — le bleu marine KORA, qui se confond
+      // avec le texte et devient très difficile à repérer dans un champ.
+      // On prend le bleu `digital`, déjà la couleur de la bordure d'un
+      // champ actif : le curseur et le contour disent alors la même chose.
+      textSelectionTheme: TextSelectionThemeData(
+        cursorColor: isDark ? AppColors.white : AppColors.digital,
+        selectionColor: AppColors.digital.withValues(
+          alpha: isDark ? 0.4 : 0.22,
+        ),
+        selectionHandleColor: AppColors.digital,
       ),
 
       iconTheme: IconThemeData(color: koraColors.textPrimary),
