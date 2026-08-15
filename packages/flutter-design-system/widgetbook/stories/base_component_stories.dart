@@ -50,11 +50,38 @@ final baseComponentStories = WidgetbookFolder(
           ),
         ),
         WidgetbookUseCase(
-          name: 'Avec icône',
+          name: 'Avec icône — avant le libellé',
           builder: (context) => StoryScaffold(
             child: KoraButton(
               label: 'Payer maintenant',
               icon: Icons.lock_outline,
+              onPressed: () {},
+            ),
+          ),
+        ),
+        WidgetbookUseCase(
+          // L'icône qui indique la progression se place APRÈS le libellé,
+          // contrairement à celle qui qualifie l'action (`🔒 Payer
+          // maintenant`, ci-dessus).
+          name: 'Avec icône — après le libellé',
+          builder: (context) => StoryScaffold(
+            child: KoraButton(
+              label: 'Continuer',
+              icon: Icons.arrow_forward_rounded,
+              iconPosition: KoraButtonIconPosition.trailing,
+              onPressed: () {},
+            ),
+          ),
+        ),
+        WidgetbookUseCase(
+          // Libellé et icône aux deux bouts du bouton — la disposition des
+          // barres de validation (`.seat-checkout button`, `.welcome-primary`).
+          name: 'Avec icône — aux deux bouts',
+          builder: (context) => StoryScaffold(
+            child: KoraButton(
+              label: 'Continuer',
+              icon: Icons.arrow_forward_rounded,
+              iconPosition: KoraButtonIconPosition.edges,
               onPressed: () {},
             ),
           ),

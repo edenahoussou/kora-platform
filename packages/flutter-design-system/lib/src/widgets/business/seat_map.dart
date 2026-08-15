@@ -214,9 +214,112 @@ class SeatMap extends StatelessWidget {
             ),
             boxShadow: AppShadows.card,
           ),
-          child: Column(mainAxisSize: MainAxisSize.min, children: rows),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const _BusFront(),
+              const SizedBox(height: AppSpacing.md),
+              ...rows,
+              const SizedBox(height: 10),
+              const _BusRear(),
+            ],
+          ),
         ),
       ],
+    );
+  }
+}
+
+/// `.premium-bus-front` : le volant du chauffeur, l'orientation du plan et
+/// la porte de sortie. Sans ce repère, rien ne dit quel bout de la grille
+/// est l'avant du bus.
+class _BusFront extends StatelessWidget {
+  const _BusFront();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        // `.driver-wheel` : un cercle dans un cercle.
+        Container(
+          width: 25,
+          height: 25,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: AppColors.mist,
+            border: Border.all(color: AppColors.seatBorderLight),
+          ),
+          child: Container(
+            width: 11,
+            height: 11,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.kora, width: 1.5),
+            ),
+          ),
+        ),
+        const Expanded(child: _BusLabel('AVANT DU BUS')),
+        // `.bus-door`
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(5),
+            border: Border.all(color: AppColors.seatBorderLight),
+          ),
+          child: const _BusLabel('SORTIE', size: 6),
+        ),
+      ],
+    );
+  }
+}
+
+/// `.bus-rear-label` : le repère de l'autre extrémité, entre deux filets.
+class _BusRear extends StatelessWidget {
+  const _BusRear();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const _RearDash(),
+        const SizedBox(width: 8),
+        const _BusLabel('ARRIÈRE DU BUS'),
+        const SizedBox(width: 8),
+        const _RearDash(),
+      ],
+    );
+  }
+}
+
+class _RearDash extends StatelessWidget {
+  const _RearDash();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(width: 34, height: 1, color: AppColors.seatBorderLight);
+  }
+}
+
+/// Les libellés de carrosserie, tous dans le même gris discret : le
+/// panneau restant blanc quel que soit le thème, cette couleur l'est aussi.
+class _BusLabel extends StatelessWidget {
+  const _BusLabel(this.text, {this.size = 7});
+
+  final String text;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        color: AppColors.mutedLight,
+        fontSize: size,
+        letterSpacing: size * 0.08,
+      ),
     );
   }
 }
@@ -350,20 +453,24 @@ class _Legend extends StatelessWidget {
     // sombre sur fond sombre), d'où `koraColors.textMuted` ici.
     final textMuted = context.koraColors.textMuted;
 
-    return Wrap(
-      spacing: 13,
-      runSpacing: 8,
-      children: [
-        for (final entry in _entries)
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _LegendSwatch(status: entry.$2),
-              const SizedBox(width: 4),
-              Text(entry.$1, style: TextStyle(color: textMuted, fontSize: 9)),
-            ],
-          ),
-      ],
+    // Les 6 états tiennent sur UNE ligne : passer à deux couperait la
+    // légende en deux blocs déséquilibrés, avec un état orphelin en
+    // dessous. `FittedBox` la réduit juste ce qu'il faut sur les écrans
+    // les plus étroits plutôt que de la replier.
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final entry in _entries) ...[
+            if (entry != _entries.first) const SizedBox(width: 11),
+            _LegendSwatch(status: entry.$2),
+            const SizedBox(width: 4),
+            Text(entry.$1, style: TextStyle(color: textMuted, fontSize: 9)),
+          ],
+        ],
+      ),
     );
   }
 }

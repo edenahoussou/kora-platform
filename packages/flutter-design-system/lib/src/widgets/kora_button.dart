@@ -8,6 +8,17 @@ import '../dimens/app_dimens.dart';
 /// `.primary` (gold), `.secondary` (navy), `.ghost` (contour), `.danger-button`.
 enum KoraButtonVariant { primary, secondary, ghost, danger }
 
+/// Où se place l'icône par rapport au libellé.
+///
+/// Le prototype utilise les trois dispositions :
+/// - [leading] : l'icône précède le texte, l'ensemble reste centré. Elle
+///   qualifie l'action (`🔒 Payer maintenant`).
+/// - [trailing] : l'icône suit le texte, l'ensemble reste centré.
+/// - [edges] : le libellé est calé à gauche, l'icône à droite, aux deux
+///   bouts du bouton — `justify-content: space-between` sur
+///   `.seat-checkout button` et `.welcome-primary`.
+enum KoraButtonIconPosition { leading, trailing, edges }
+
 /// Bouton pleine largeur KORA, avec icône optionnelle.
 ///
 /// Exemple d'utilisation :
@@ -30,6 +41,7 @@ class KoraButton extends StatelessWidget {
     required this.onPressed,
     this.variant = KoraButtonVariant.primary,
     this.icon,
+    this.iconPosition = KoraButtonIconPosition.leading,
     this.isLoading = false,
   });
 
@@ -37,12 +49,20 @@ class KoraButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final KoraButtonVariant variant;
   final IconData? icon;
+
+  /// Position de [icon] par rapport au libellé.
+  final KoraButtonIconPosition iconPosition;
+
   final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
     final koraColors = context.koraColors;
-    final style = _resolveStyle(variant, koraColors);
+    final style = _resolveStyle(
+      variant,
+      koraColors,
+      isDark: Theme.of(context).brightness == Brightness.dark,
+    );
 
     final child = isLoading
         ? SizedBox(
@@ -54,25 +74,45 @@ class KoraButton extends StatelessWidget {
             ),
           )
         : Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
+            // En disposition [KoraButtonIconPosition.edges], la rangée
+            // occupe toute la largeur et écarte ses deux extrémités ;
+            // sinon elle se resserre autour de son contenu, centré.
+            mainAxisSize: iconPosition == KoraButtonIconPosition.edges
+                ? MainAxisSize.max
+                : MainAxisSize.min,
+            mainAxisAlignment: iconPosition == KoraButtonIconPosition.edges
+                ? MainAxisAlignment.spaceBetween
+                : MainAxisAlignment.center,
             children: [
-              if (icon != null) ...[
+              if (icon != null &&
+                  iconPosition == KoraButtonIconPosition.leading) ...[
                 Icon(icon, size: 18, color: style.foreground),
                 const SizedBox(width: AppSpacing.sm),
               ],
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
-                  color: style.foreground,
+              // `Flexible` + ellipse : un libellé long (bouton en demi-
+              // largeur, texte agrandi par les réglages d'accessibilité)
+              // doit se tronquer proprement, pas déborder de son bouton.
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    color: style.foreground,
+                  ),
                 ),
               ),
+              if (icon != null &&
+                  iconPosition != KoraButtonIconPosition.leading) ...[
+                const SizedBox(width: AppSpacing.sm),
+                Icon(icon, size: 18, color: style.foreground),
+              ],
             ],
           );
 
-    return SizedBox(
+    final button = SizedBox(
       width: double.infinity,
       height: 50,
       child: ElevatedButton(
@@ -92,12 +132,32 @@ class KoraButton extends StatelessWidget {
         child: child,
       ),
     );
+
+    // `.primary { box-shadow: 0 9px 22px rgba(246,176,0,.2) }` — la halo
+    // dorée sous le bouton principal, seule variante à en avoir une. Le
+    // token [AppShadows.primaryButton] existait déjà pour ça mais n'était
+    // appliqué nulle part.
+    //
+    // Pas d'ombre quand le bouton ne répond pas : un bouton désactivé (ou
+    // en cours de chargement) est à plat, son fond passant lui aussi à
+    // 50 % d'opacité juste au-dessus.
+    final isEnabled = onPressed != null && !isLoading;
+    if (variant != KoraButtonVariant.primary || !isEnabled) return button;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        boxShadow: AppShadows.primaryButton,
+      ),
+      child: button,
+    );
   }
 
   _KoraButtonStyle _resolveStyle(
     KoraButtonVariant variant,
-    KoraColors koraColors,
-  ) {
+    KoraColors koraColors, {
+    required bool isDark,
+  }) {
     switch (variant) {
       case KoraButtonVariant.primary:
         return const _KoraButtonStyle(
@@ -110,9 +170,13 @@ class KoraButton extends StatelessWidget {
           foreground: AppColors.white,
         );
       case KoraButtonVariant.ghost:
+        // `.ghost { color: var(--kora) }` : le libellé est en bleu KORA,
+        // pas dans la couleur du texte courant (graphite), qui le rendait
+        // presque noir en thème clair. En thème sombre ce bleu serait
+        // illisible : `textPrimary` (blanc) y reste le bon choix.
         return _KoraButtonStyle(
           background: Colors.transparent,
-          foreground: koraColors.textPrimary,
+          foreground: isDark ? koraColors.textPrimary : AppColors.kora,
           border: BorderSide(color: koraColors.line),
         );
       case KoraButtonVariant.danger:

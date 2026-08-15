@@ -93,9 +93,15 @@ class AppColors {
   /// minuteur affiché). CSS : `.seat.held { background: rgba(246,176,0,.18) }`.
   static const Color seatHeldBackgroundLight = Color(0x2EF6B000);
 
-  /// Texte d'un siège "Bloqué" (barré). CSS : `.seat.blocked { color:
-  /// rgba(17,24,39,.35) }`.
-  static const Color seatBlockedTextLight = Color(0x59111827);
+  /// Texte d'un siège "Bloqué" (barré).
+  ///
+  /// Le CSS descend à `rgba(17,24,39,.35)` (`.seat.blocked`), mais à cette
+  /// opacité le trait de barré — un filet d'un pixel — devient illisible
+  /// sur l'écran d'un téléphone, alors que c'est lui qui porte
+  /// l'information « siège indisponible ». On remonte à 55 % : le siège
+  /// reste visiblement éteint par rapport aux autres, sans que la barre
+  /// disparaisse.
+  static const Color seatBlockedTextLight = Color(0x8C111827);
 
   // --- Couleurs de fond & texte (mode sombre) ---
   //

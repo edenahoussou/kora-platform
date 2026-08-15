@@ -41,6 +41,16 @@ class KoraBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final koraColors = context.koraColors;
 
+    // Couleur du libellé de l'onglet actif. La maquette dit `--kora`
+    // (navy) — mais elle n'existe qu'en thème clair, sur une barre
+    // blanche. En thème sombre, la barre EST bleu KORA : ce navy y
+    // devient invisible. On reprend alors le doré, déjà utilisé pour
+    // l'icône et le trait de l'onglet actif juste au-dessus.
+    final activeLabelColor =
+        Theme.of(context).brightness == Brightness.dark
+        ? AppColors.gold
+        : AppColors.kora;
+
     return Container(
       height: 76,
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 8),
@@ -84,7 +94,7 @@ class KoraBottomNav extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.w700,
-                      color: isActive ? AppColors.kora : color,
+                      color: isActive ? activeLabelColor : color,
                     ),
                   ),
                 ],
