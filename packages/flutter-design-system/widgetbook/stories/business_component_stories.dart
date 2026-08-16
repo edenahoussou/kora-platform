@@ -137,6 +137,75 @@ final businessComponentStories = WidgetbookFolder(
       ],
     ),
     WidgetbookComponent(
+      name: 'HomeSkeleton',
+      useCases: [
+        WidgetbookUseCase(
+          name: 'Accueil en chargement',
+          builder: (context) => const StoryScaffold(
+            padding: EdgeInsets.all(18),
+            child: HomeSkeleton(),
+          ),
+        ),
+        // Quand on sait déjà qu'aucun billet n'est à venir, esquisser une
+        // carte « Prochain voyage » promettrait un contenu qui ne
+        // viendra pas.
+        WidgetbookUseCase(
+          name: 'Sans prochain voyage',
+          builder: (context) => const StoryScaffold(
+            padding: EdgeInsets.all(18),
+            child: HomeSkeleton(showNextTrip: false),
+          ),
+        ),
+      ],
+    ),
+    // Le pendant en chargement de « 3 départs disponibles » ci-dessus :
+    // les deux stories se comparent à l'écran, c'est ce qui permet de
+    // voir si le fantôme tombe bien en face du contenu réel.
+    WidgetbookComponent(
+      name: 'DeparturesSkeleton',
+      useCases: [
+        WidgetbookUseCase(
+          name: 'Écran résultats en chargement',
+          builder: (context) =>
+              const StoryScaffold(child: DeparturesSkeleton()),
+        ),
+        WidgetbookUseCase(
+          name: 'Liste longue (5 départs)',
+          builder: (context) =>
+              const StoryScaffold(child: DeparturesSkeleton(count: 5)),
+        ),
+        WidgetbookUseCase(
+          name: 'Une carte seule',
+          builder: (context) =>
+              const StoryScaffold(child: DepartureCardSkeleton()),
+        ),
+        // Fantôme puis carte réelle, l'un au-dessus de l'autre : chaque
+        // bloc doit se retrouver à la hauteur de l'information qu'il
+        // remplace, sinon la liste sursaute au remplissage.
+        WidgetbookUseCase(
+          name: 'Fantôme et carte réelle superposés',
+          builder: (context) => StoryScaffold(
+            child: Column(
+              children: [
+                const DepartureCardSkeleton(),
+                const SizedBox(height: KoraSpacing.md),
+                DepartureCard(
+                  departureTime: '07:30',
+                  arrivalTime: '17:15',
+                  origin: 'Cotonou',
+                  destination: 'Malanville',
+                  duration: '≈ 9 h 45',
+                  price: '12 500 FCFA',
+                  seatsAvailable: 12,
+                  onTap: () {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ),
+    WidgetbookComponent(
       name: 'ConnectionResultCard',
       useCases: [
         WidgetbookUseCase(

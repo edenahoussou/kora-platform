@@ -180,10 +180,14 @@ class KoraButton extends StatelessWidget {
           border: BorderSide(color: koraColors.line),
         );
       case KoraButtonVariant.danger:
-        return _KoraButtonStyle(
-          background: koraColors.surface,
-          foreground: AppColors.danger,
-          border: BorderSide(color: koraColors.line),
+        // Rouge plein, libellé blanc — le traitement que la maquette
+        // réserve déjà à ce qui bloque (`.sold-out .danger { color: white;
+        // background: #9c2430 }`). Une action destructrice doit se lire
+        // comme telle : le contour blanc de `.danger-button` la rendait
+        // indistinguable d'un bouton secondaire.
+        return const _KoraButtonStyle(
+          background: AppColors.danger,
+          foreground: AppColors.white,
         );
     }
   }
