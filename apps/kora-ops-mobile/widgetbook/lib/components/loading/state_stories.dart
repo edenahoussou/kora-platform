@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kora_ops_mobile/core/services/kora_dialogs.dart';
 import 'package:kora_ops_mobile/core/widgets/app_loading.dart';
 import 'package:kora_ops_mobile/core/widgets/app_state_placeholder.dart';
 import 'package:widgetbook/widgetbook.dart';
@@ -23,12 +24,11 @@ final List<WidgetbookNode> stateUseCases = <WidgetbookNode>[
     ),
   ),
   WidgetbookUseCase(
-    name: 'Success (via SnackBar)',
+    name: 'Success (via KoraDialogs)',
     builder: (BuildContext context) => Center(
       child: ElevatedButton(
-        onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Embarquement confirmé ✓')),
-        ),
+        onPressed: () => KoraDialogs.success(context,
+            title: 'Succès', description: 'Embarquement confirmé ✓'),
         child: const Text('Déclencher succès'),
       ),
     ),

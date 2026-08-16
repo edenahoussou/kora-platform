@@ -31,9 +31,9 @@ void main() {
 
   const UserEntity user = UserEntity(
     id: 'agent-001',
-    fullName: 'aicha.hounkpe',
+    fullName: 'Aïcha Hounkpé',
     role: 'Convoyeur',
-    email: 'aicha.hounkpe@example.com',
+    email: 'aicha.hounkpe@kora-express.com',
   );
   const DeviceInfo device = DeviceInfo(
     deviceModel: 'Tecno CAMON',
@@ -57,78 +57,16 @@ void main() {
         getCurrentDeviceInfo: getCurrentDeviceInfo,
       );
 
-  group('submitEmail', () {
-    blocTest<LoginCubit, LoginState>(
-      'émet submitting puis success (accountCreation) quand sendOtp réussit',
-      build: () {
-        when(() => sendOtp(email: any(named: 'email')))
-            .thenAnswer((_) async => const Result<void>.success(null));
-        return buildCubit();
-      },
-      act: (LoginCubit cubit) => cubit.submitEmail('aicha.hounkpe@example.com'),
-      expect: () => <dynamic>[
-        predicate<LoginState>((s) => s.status == LoginStatus.submitting),
-        predicate<LoginState>(
-          (s) =>
-              s.status == LoginStatus.success &&
-              s.otpPurpose == OtpPurpose.accountCreation,
-        ),
-      ],
-    );
-
-    test('retourne true en cas de succès', () async {
-      when(() => sendOtp(email: any(named: 'email')))
-          .thenAnswer((_) async => const Result<void>.success(null));
+  group('loadSavedEmail', () {
+    test('stocke l\'email dans le state et le retourne', () async {
+      when(() => getSavedEmail()).thenAnswer((_) async =>
+          const Result<String?>.success('aicha.hounkpe@kora-express.com'));
       final cubit = buildCubit();
-      final result = await cubit.submitEmail('aicha.hounkpe@example.com');
-      expect(result, isTrue);
-    });
 
-    test('retourne false et expose le message d\'erreur en cas d\'échec',
-        () async {
-      when(() => sendOtp(email: any(named: 'email'))).thenAnswer((_) async =>
-          const Result<void>.failure(NetworkFailure('Pas de réseau.')));
-      final cubit = buildCubit();
-      final result = await cubit.submitEmail('aicha.hounkpe@example.com');
-      expect(result, isFalse);
-      expect(cubit.state.errorMessage, 'Pas de réseau.');
-    });
-  });
+      final result = await cubit.loadSavedEmail();
 
-  group('submitOtp', () {
-    test('retourne true et stocke l\'utilisateur quand le code est correct',
-        () async {
-      when(() => sendOtp(email: any(named: 'email')))
-          .thenAnswer((_) async => const Result<void>.success(null));
-      final cubit = buildCubit();
-      await cubit.submitEmail(user.email);
-
-      when(() =>
-              verifyOtp(email: any(named: 'email'), code: any(named: 'code')))
-          .thenAnswer((_) async => const Result<UserEntity>.success(user));
-
-      final result = await cubit.submitOtp('583187');
-
-      expect(result, isTrue);
-      expect(cubit.state.user, user);
-    });
-
-    test('retourne false quand le code est incorrect', () async {
-      when(() => sendOtp(email: any(named: 'email')))
-          .thenAnswer((_) async => const Result<void>.success(null));
-      final cubit = buildCubit();
-      await cubit.submitEmail(user.email);
-
-      when(() =>
-              verifyOtp(email: any(named: 'email'), code: any(named: 'code')))
-          .thenAnswer(
-        (_) async => const Result<UserEntity>.failure(
-            ValidationFailure('Code incorrect.')),
-      );
-
-      final result = await cubit.submitOtp('000000');
-
-      expect(result, isFalse);
+      expect(result, 'aicha.hounkpe@kora-express.com');
+      expect(cubit.state.email, 'aicha.hounkpe@kora-express.com');
     });
   });
 
@@ -173,29 +111,95 @@ void main() {
         ),
       ],
     );
+
+    test('retourne un booléen reflétant le succès/échec', () async {
+      when(() => verifyPin(pin: any(named: 'pin')))
+          .thenAnswer((_) async => const Result<UserEntity>.success(user));
+      when(() => getCurrentDeviceInfo())
+          .thenAnswer((_) async => const Result<DeviceInfo>.success(device));
+      final cubit = buildCubit();
+
+      final result = await cubit.submitPin('1234');
+
+      expect(result, isTrue);
+    });
   });
 
   group('requestDeviceConfirmationOtp', () {
-    test('bascule otpPurpose vers deviceConfirmation en cas de succès',
+    test('retourne false sans email connu', () async {
+      final cubit = buildCubit();
+      final result = await cubit.requestDeviceConfirmationOtp();
+      expect(result, isFalse);
+    });
+
+    test(
+        'envoie un OTP quand un email est déjà présent dans le state (post-PIN)',
         () async {
+      when(() => verifyPin(pin: any(named: 'pin')))
+          .thenAnswer((_) async => const Result<UserEntity>.success(user));
+      when(() => getCurrentDeviceInfo())
+          .thenAnswer((_) async => const Result<DeviceInfo>.success(device));
       when(() => sendOtp(email: any(named: 'email')))
           .thenAnswer((_) async => const Result<void>.success(null));
-      final cubit = buildCubit();
-      await cubit.submitEmail(user.email);
 
-      final result = await cubit.requestDeviceConfirmationOtp();
+      final cubit = buildCubit();
+      await cubit.loadSavedEmail().catchError((_) => null);
+      // Simule le passage par l'écran PIN, qui alimente state.user (email
+      // du provisionné, cohérent avec le flux réel PIN → nouvel appareil).
+      when(() => getSavedEmail()).thenAnswer((_) async =>
+          const Result<String?>.success('aicha.hounkpe@kora-express.com'));
+      await cubit.loadSavedEmail();
+
+      final bool result = await cubit.requestDeviceConfirmationOtp();
 
       expect(result, isTrue);
-      expect(cubit.state.otpPurpose, OtpPurpose.deviceConfirmation);
+      verify(() => sendOtp(email: 'aicha.hounkpe@kora-express.com')).called(1);
+    });
+  });
+
+  group('submitOtp', () {
+    test('retourne true et stocke l\'utilisateur quand le code est correct',
+        () async {
+      when(() => getSavedEmail())
+          .thenAnswer((_) async => Result<String?>.success(user.email));
+      final cubit = buildCubit();
+      await cubit.loadSavedEmail();
+
+      when(() =>
+              verifyOtp(email: any(named: 'email'), code: any(named: 'code')))
+          .thenAnswer((_) async => const Result<UserEntity>.success(user));
+
+      final result = await cubit.submitOtp('583187');
+
+      expect(result, isTrue);
+      expect(cubit.state.user, user);
+    });
+
+    test('retourne false quand le code est incorrect', () async {
+      when(() => getSavedEmail())
+          .thenAnswer((_) async => Result<String?>.success(user.email));
+      final cubit = buildCubit();
+      await cubit.loadSavedEmail();
+
+      when(() =>
+              verifyOtp(email: any(named: 'email'), code: any(named: 'code')))
+          .thenAnswer(
+        (_) async => const Result<UserEntity>.failure(
+            ValidationFailure('Code incorrect.')),
+      );
+
+      final result = await cubit.submitOtp('000000');
+
+      expect(result, isFalse);
     });
   });
 
   group('reset', () {
     test('revient à un état initial vide', () async {
-      when(() => sendOtp(email: any(named: 'email')))
-          .thenAnswer((_) async => const Result<void>.success(null));
+      when(() => getSavedEmail())
+          .thenAnswer((_) async => Result<String?>.success(user.email));
       final cubit = buildCubit();
-      await cubit.submitEmail(user.email);
+      await cubit.loadSavedEmail();
 
       cubit.reset();
 

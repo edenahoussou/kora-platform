@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- Caméra : scan des billets QR sur l'écran Scan boarding
+	     (mobile_scanner) — voir document.md § Scan boarding. -->
+	<key>NSCameraUsageDescription</key>
+	<string>KORA OPS a besoin d'accéder à l'appareil photo pour scanner les billets QR des passagers.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

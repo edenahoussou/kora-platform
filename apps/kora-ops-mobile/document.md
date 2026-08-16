@@ -2,13 +2,15 @@
 
 ## 1. Présentation
 
-**KORA OPS Mobile / P501** est l'application terrain de **KORA EXPRESS**, destinée aux chauffeurs bus, convoyeurs et agences. Elle couvre : manifestes, validation par QR/code court, embarquement en mode offline, impression, dépose anticipée, synchronisation et statuts opérationnels.
+**KORA OPS Mobile / P501** est l'application terrain de **KORA EXPRESS**, destinée aux chauffeurs bus, convoyeurs et agences. Elle couvre : manifestes, validation par QR/code court, embarquement, impression, descente anticipée, synchronisation et statuts opérationnels.
 
-Ce n'est **pas** KORA Driver (future application des conducteurs Ride) ni l'app passagers KORA EXPRESS (prototype web `KORA_App_Final.zip`).
+Ce n'est **pas** KORA Driver (future application des conducteurs Ride) ni l'app passagers **kora-passager** (dont ce projet reprend le design system et les patterns — voir § 10).
+
+**Pas d'auto-inscription** : les agents KORA OPS sont provisionnés par un administrateur. L'app n'a donc ni écran de bienvenue, ni création de compte — l'entrée unique est l'écran PIN (voir § 17).
 
 ## 2. Important — limites de cet environnement de génération
 
-Ce scaffolding a été écrit entièrement à la main (pas de `flutter create`/`pub get`/`analyze`/`test` exécutés ici, le SDK Flutter n'étant pas disponible dans l'environnement qui a produit ce code). **Avant tout développement**, exécuter impérativement :
+Ce projet a été écrit entièrement à la main (pas de `flutter create`/`pub get`/`analyze`/`test` exécutés ici, le SDK Flutter n'étant pas disponible dans l'environnement qui a produit ce code). **Avant tout développement**, exécuter impérativement :
 
 ```bash
 flutter pub get
@@ -16,20 +18,24 @@ flutter analyze
 flutter test
 ```
 
-et corriger les éventuels écarts de version d'API entre les packages listés dans `pubspec.yaml` (versions choisies à la date de rédaction) et les versions réellement résolues par pub.
+et corriger les éventuels écarts de version d'API entre les packages listés dans `pubspec.yaml` et les versions réellement résolues par pub.
 
 ## 3. Stack technique
 
 | Domaine | Choix | Justification |
 |---|---|---|
 | State management | `flutter_bloc` (Bloc/Cubit) | Séparation stricte UI / logique, testable via `bloc_test` |
-| Navigation | `go_router` | Navigation déclarative + redirections (AuthGuard) |
+| Navigation | `go_router` (`StatefulShellRoute.indexedStack`) | Bottom nav à état préservé par onglet — voir § 6 |
 | DI | `get_it` | Simple, sans génération de code obligatoire |
 | Réseau | `dio` | Intercepteurs, timeouts, gestion d'erreurs typée |
 | Résultat métier | `Result<Failure, T>` maison | Voir § 8 |
 | Stockage local | `shared_preferences` / `flutter_secure_storage` | Session non sensible / tokens sensibles |
 | Logs | `logger` | Remplace `print()` (interdit par le lint) |
 | Responsivité | `flutter_screenutil` + helpers maison | Voir § 9 |
+| Squelettes de chargement | `shimmer` | Voir § 10.4 |
+| Dialogues | `pro_dialog` (via `KoraDialogs`) | Voir § 12 — jamais de `SnackBar`/dialogue natif |
+| Scanner caméra | `mobile_scanner` | Caméra réelle, Scan boarding — voir § 17bis |
+| QR code affiché | `qr_flutter` | `TicketCard` — voir § 17bis |
 | Documentation UI | `widgetbook` (module séparé) | Voir § 11 |
 
 ## 4. Architecture
@@ -56,27 +62,44 @@ features/<nom>/
     └── widgets/
 ```
 
+Les features `manifeste`, `scan`, `descente`, `synchro`, `home` (Accueil) partagent des entités communes vivant dans `features/ops/domain/` (`Depart`, `Passenger`, `Ticket`, `Seat`) plutôt qu'un Clean Architecture complet par feature — proportionné au périmètre "écrans mockés" du ticket MEZ-11 (voir § 17bis pour le détail).
+
 ### Créer une nouvelle feature
 
-Dupliquer la structure ci-dessus dans `lib/features/<nom>/`. Exemple prévu par `AGENTS.md` : `boarding`, `manifest`, `printing`, `sync`. Isoler les intégrations matérielles (scanner P501, imprimante thermique) derrière des adaptateurs dans `data/datasources/` pour garder la logique métier testable sans hardware.
+Dupliquer la structure ci-dessus dans `lib/features/<nom>/`. Isoler les intégrations matérielles (scanner P501, imprimante thermique) derrière des adaptateurs dans `data/datasources/` pour garder la logique métier testable sans hardware (voir § 18, MEZ-10).
 
 ## 5. State management — Bloc vs Cubit
 
-- **Cubit** : flux simples, un état résultant d'une action directe (ex. `AuthCubit` : login/logout/checkAuthStatus). Utilisé par défaut.
-- **Bloc** : dès qu'il faut réagir à des événements multiples/asynchrones combinés (ex. scan continu + timer de synchronisation offline). À privilégier pour les futures features `boarding`/`sync`.
+- **Cubit** : flux simples, un état résultant d'une action directe (`AuthCubit`, `LoginCubit`, `ManifesteCubit`, `SyncCubit`, `SelectedDepartCubit`, `ScanBoardingCubit`, `ThemeCubit`, `PrintingCubit`). Utilisé par défaut dans ce projet.
+- **Bloc** : dès qu'il faut réagir à des événements multiples/asynchrones combinés. Pas encore nécessaire ici — à réévaluer si un flux de scan continu en rafale est ajouté.
 
-Les widgets ne contiennent aucune logique métier : `BlocConsumer`/`BlocBuilder` seulement.
+Les widgets ne contiennent aucune logique métier : `BlocConsumer`/`BlocBuilder`/`context.watch` seulement.
 
-## 6. Navigation — GoRouter & AuthGuard
+## 6. Navigation — GoRouter, AuthGuard & bottom nav
 
-Routes déclarées dans `AppRoutes` (`app/router/app_routes.dart`). `AuthGuard` (`ChangeNotifier` alimenté par le flux `AuthCubit`) ne redirige automatiquement que depuis `/` (splash) et `/home` (déconnexion) :
+Routes déclarées dans `AppRoutes` (`app/router/app_routes.dart`). `AuthGuard` (`ChangeNotifier` alimenté par `AuthCubit`) ne redirige automatiquement que depuis `/` (splash) et `/home` (déconnexion) :
 
 - état en cours de résolution → reste sur `/` (splash)
-- non authentifié, aucun email enregistré → `/login/email`
-- non authentifié, email déjà enregistré → `/login/pin`
+- non authentifié → `/login/pin` (entrée unique, voir § 1 et § 17)
 - authentifié → `/home`
 
-Une fois entré dans le parcours `/login/*` (email → OTP → PIN → nouvel appareil), chaque écran gère sa propre navigation explicite (`context.push`/`context.go`) — voir § 17 pour le détail du parcours.
+Une fois entré dans `/login/*` (pin → otp → nouvel appareil), chaque écran gère sa propre navigation explicite (`context.push`/`context.go`).
+
+### Bottom nav (5 onglets)
+
+`StatefulShellRoute.indexedStack` (`app/router/app_router.dart`), pattern recommandé par `go_router` : chaque onglet garde son propre historique de navigation même en changeant d'onglet. Portée par `KoraBottomNav` (`core/widgets/kora_bottom_nav.dart`), fidèle au style flottant de `kora-passager` :
+
+| Onglet | Route | Écran |
+|---|---|---|
+| Accueil | `/home` | `AccueilPage` — tableau de bord, départ géré, accès rapides |
+| Manifeste | `/manifeste` | `ManifestePage` |
+| Scan | `/scan` | `ScanBoardingPage` |
+| Descente | `/descente-anticipee` | `DescenteAnticipeePage` |
+| Synchro | `/synchro` | `SynchroPage` |
+
+Écrans empilés au-dessus de la bottom nav (`context.push`) : `SelectionDepartPage` (`/depart/selection`), `DetailPassagerPage` (`/manifeste/passager`), `ScanResultPage` (`/scan/resultat`), les écrans `/login/*`, et `PrinterTestPage` (`/printer-test`, MEZ-10).
+
+**Important** : les Cubits partagés entre onglets ET écrans empilés (`SelectedDepartCubit`, `SyncCubit`, `ManifesteCubit`, `ScanBoardingCubit`) sont fournis en singleton au niveau racine (`app/app.dart`, `MultiBlocProvider`), pas localement dans une route — un écran poussé via `context.push` (ex. `ScanResultPage`) n'est **pas** un descendant du `builder` de sa route sœur dans l'arbre `go_router`, donc un `BlocProvider` local n'y serait pas visible.
 
 ## 7. Dependency Injection — GetIt
 
@@ -91,7 +114,7 @@ Repository (implémentation)
       ↓
 UseCase
       ↓
-Cubit/Bloc
+Cubit/Bloc (singleton si partagé entre plusieurs écrans — voir § 6)
       ↓
 UI
 ```
@@ -100,63 +123,71 @@ UI
 
 ## 8. Gestion des erreurs
 
-Stratégie retenue : un type **`Result<Failure, T>`** maison (`core/result/result.dart`) plutôt que `dartz`'s `Either`, pour limiter les dépendances et le vocabulaire fonctionnel. Les datasources lèvent des `AppException` (`core/exceptions`), les repositories les convertissent en `Failure` (`core/errors`) — jamais d'exception ne remonte à Presentation.
+Stratégie retenue : un type **`Result<Failure, T>`** maison (`core/result/result.dart`) plutôt que `dartz`'s `Either` (utilisé côté `kora-passager`) — choix conservé pour limiter les dépendances côté OPS. Les datasources lèvent des `AppException` (`core/exceptions`), les repositories les convertissent en `Failure` (`core/errors`) — jamais d'exception ne remonte à Presentation.
 
 ## 9. Responsivité
 
 Deux mécanismes complémentaires :
 
-1. **`flutter_screenutil`** (`ScreenUtilInit` dans `app/app.dart`, design de référence 375×812) pour la mise à l'échelle proportionnelle des tailles/polices (`.w`, `.h`, `.sp`, `.r`) — utile pour les petits terminaux P501.
-2. **`core/helpers/responsive.dart`** (`Responsive`, `ResponsiveContextX`) : breakpoints mobile/tablette/desktop, `Responsive.value(...)` pour choisir une valeur selon la largeur d'écran, `Responsive.gridColumns(...)` pour les grilles (voir `HomePage`). Ne dépend d'aucun package tiers.
+1. **`flutter_screenutil`** (`ScreenUtilInit` dans `app/app.dart`, design de référence 375×812) pour la mise à l'échelle proportionnelle des tailles/polices — utile pour les petits terminaux P501.
+2. **`core/helpers/responsive.dart`** (`Responsive`, `ResponsiveContextX`) : breakpoints mobile/tablette/desktop, `Responsive.value(...)`. Ne dépend d'aucun package tiers.
 
 ## 10. Design System KORA
 
-Tokens extraits des variables CSS du prototype web passagers (`KORA_App_Final.zip` → `css/style.css`), afin que KORA OPS Mobile partage la même identité visuelle bien que ce soit une app distincte :
+**Nomenclature entièrement alignée sur `packages/flutter-design-system` de `kora-passager`** (voir échange du 16/08/2026) : mêmes noms de tokens et de composants, pour que les deux apps du monorepo restent uniformes. Le code source de ce package n'étant pas disponible dans cet environnement (dépendance `path: ../../packages/flutter-design-system` du monorepo), les équivalents ont été **recréés localement** dans `kora-ops-mobile` avec la même API — à remplacer par une vraie dépendance partagée si/quand le monorepo est accessible.
 
-| Variable CSS / rôle | Token Flutter | Valeur |
+### 10.1 Couleurs — `AppColors` (fixes) et `KoraColors` (contextuelles)
+
+`app/theme/app_colors.dart` — couleurs de marque, identiques clair/sombre :
+
+| Token | Valeur | Rôle |
 |---|---|---|
-| `--kora` (marine, en-têtes, écrans de sécurité) | `AppColors.primary` | `#001D4E` |
-| `--gold` (**CTA principal** — voir ci-dessous) | `AppColors.accent` | `#F6B000` |
-| `--digital` | `AppColors.secondary` | `#0057B8` |
-| `--mist` | `AppColors.background` | `#F4F6F8` |
-| `--graphite` | `AppColors.textPrimary` | `#111827` |
-| `--muted` | `AppColors.textSecondary` | `rgba(17,24,39,.6)` |
-| `--line` | `AppColors.border` | `rgba(0,29,78,.11)` |
-| Police titres | `AppTypography` (`_displayFontFamily`) | `"Aptos Display", Aptos, "Segoe UI"` |
-| Police texte | `AppTypography` (`_bodyFontFamily`) | `Aptos, "Segoe UI", Arial` |
+| `AppColors.kora` | `#001D4E` | Marine — en-têtes, écran PIN, cartes `navy` |
+| `AppColors.gold` | `#F6B000` | **CTA principal** (voir maquettes d'authentification) |
+| `AppColors.digital` | `#0057B8` | Bleu secondaire |
+| `AppColors.onGold` | `#1A1400` | Texte sur fond `gold`/`warning` |
+| `AppColors.success` / `warning` / `danger` | `#2D7A51` / `#C77700` / `#9C2430` | États sémantiques — `warning` est volontairement distinct de `gold` |
 
-**Correction issue des maquettes d'authentification** (5 écrans fournis) : le bouton d'action principal de l'app est **doré** (`AppColors.accent`), pas marine — le marine est réservé aux en-têtes et aux écrans de sécurité (PIN, nouvel appareil). `AppButtonVariant.primary` et le thème `ElevatedButton` par défaut utilisent donc `accent`/`onAccent`.
+`app/theme/kora_colors.dart` — `KoraColors extends ThemeExtension`, accessible via `context.koraColors.{surface,background,textPrimary,textMuted,line,shadow}`, avec des valeurs différentes en clair (`KoraColors.light`) et en sombre (`KoraColors.dark`), enregistrée dans `AppTheme` (§ 10bis).
 
-### Variantes de bouton (`AppButton`, `core/widgets/app_button.dart`)
+### 10.2 Typographie — `AppTextStyles`
 
-| Variante | Couleur de fond | Usage |
+`app/theme/app_text_styles.dart` — API **par fonction** (`AppTextStyles.eyebrow(color)`, `heading1(color)`, `heading2(color)`, `titleMedium(color)`, `lead(color)`, `body(color)`, `caption(color)`, `button(color)`), la couleur étant passée par l'appelant (`context.koraColors.textPrimary`/`textMuted` selon le contexte) plutôt que figée dans le style — fidèle à `kora-passager`. Police "Aptos Display"/"Aptos" avec `fontFamilyFallback` (police non fournie en asset ce sprint).
+
+### 10.3 Composants
+
+| Composant | Fichier | Usage |
 |---|---|---|
-| `primary` | `accent` (or) | CTA principal — la grande majorité des écrans |
-| `secondary` | `secondary` (bleu digital) | Action secondaire pleine couleur |
-| `outline` | transparent, bordure `primary`/blanc selon le thème | Action secondaire discrète ("Ce n'est pas moi", "Modifier l'email"…) |
-| `success` | `success` | Confirmation/validation |
-| `warning` | `warning` (ambre, **distinct** de `accent` pour rester identifiable) | Alerte non bloquante |
-| `danger` | `error` | Action destructive/bloquante |
+| `KoraButton` | `core/widgets/kora_button.dart` | `primary`(or)/`secondary`/`ghost`/`success`/`warning`/`danger` |
+| `KoraCard` | `core/widgets/kora_card.dart` | `surface`/`navy`/`gold`/`mist` |
+| `KoraIconButton` | `core/widgets/kora_icon_button.dart` | Bouton rond (retour, actions compactes) |
+| `KoraTag` | `core/widgets/kora_tag.dart` | Badge/pastille — base de `StatutBadge` |
+| `ScreenHeader` | `core/widgets/screen_header.dart` | **`AppBar`** (`PreferredSizeWidget`) commun aux écrans empilés — se passe en `Scaffold(appBar: ScreenHeader(...))`, jamais dans le `body` |
+| `PinDots` / `PinKeypad` | `core/widgets/pin_pad.dart` | Écran PIN |
+| `KoraBottomNav` | `core/widgets/kora_bottom_nav.dart` | Bottom nav 5 onglets (§ 6) — fond clair flottant, icône/libellé actifs sombres+gras sur fond doré discret, inactifs gris (fidèle trait pour trait à `kora-passager`, voir échange du 16/08/2026) |
+| `TicketCard` | `core/widgets/ticket_card.dart` | Affichage du billet en app (§ 17bis) |
 
-"Aptos" n'étant pas une police système Android/iOS, un `fontFamilyFallback` est déclaré. Si les fichiers de police sont fournis par la marque, les ajouter dans `pubspec.yaml > flutter > fonts` et adapter `AppTypography`.
+Aucune couleur codée en dur (`Color(0xFF...)`) ni bouton/carte/AppBar natif Flutter ne doit apparaître dans un écran — toujours passer par ces composants.
 
-Fichiers : `app/theme/app_colors.dart`, `app_typography.dart`, `app_spacing.dart`, `app_radius.dart`, `app_theme.dart`. Aucune couleur codée en dur (`Color(0xFF...)`) ne doit apparaître dans un écran.
+### 10.4 Squelettes de chargement (shimmer)
+
+`core/widgets/kora_skeleton.dart`, sur le package **[shimmer](https://pub.dev/packages/shimmer)** (`^3.0.0`) : `KoraShimmer` (enveloppe colorée selon `context.koraColors`), `SkeletonBox`, `SkeletonListTile`, `SkeletonList` (Manifeste), `SkeletonCard` (Descente anticipée). Utilisés pour tout état `loading` d'écran avec données mockées asynchrones.
 
 ## 10bis. Dark mode
 
 Bascule **automatique (système) et manuelle**, pilotée par `ThemeCubit` (`app/theme/theme_cubit.dart`, singleton GetIt) :
 
-- Par défaut : `ThemeMode.system` — suit les réglages de l'appareil.
-- Bascule manuelle : bouton dans l'`AppBar` de `HomePage` (icône soleil/lune/auto) qui fait défiler `system → light → dark → system` via `ThemeCubit.cycle()`. Le choix est persisté dans `SharedPreferences` (`app.theme_mode`) et relu au lancement suivant.
-- `AppTheme.light` et `AppTheme.dark` partagent la même structure (`AppTheme._build(...)`) et ne diffèrent que par les couleurs de surface/texte (`AppColors.*Dark`).
+- Par défaut : `ThemeMode.system`.
+- Bascule manuelle : bouton dans l'`AppBar` d'`AccueilPage` (icône soleil/lune/auto), `system → light → dark → system` via `ThemeCubit.cycle()`, persisté dans `SharedPreferences`.
+- `AppTheme.light`/`dark` (`app/theme/app_theme.dart`) partagent la même structure et enregistrent `KoraColors.light`/`dark` comme `ThemeExtension`.
 
-**Cas particulier — écran PIN KORA** (`PinEntryPage`) : son fond bleu marine plein écran est un choix de **design de marque fixe**, indépendant de `ThemeMode` (il reste marine que l'app soit en thème clair ou sombre) — ce n'est pas un mode sombre activable/désactivable, conformément à la maquette fournie. Idem pour le bandeau marine de `NewDeviceDetectedPage`.
+**Cas particulier — écran PIN** (`PinEntryPage`) : fond bleu marine plein écran fixe, indépendant de `ThemeMode` (choix de marque, pas un mode sombre désactivable), fidèle à `kora-passager`.
 
-`pro_dialog` gère nativement le dark mode (il lit `Theme.of(context)`), aucune adaptation manuelle n'a été nécessaire dans `DialogService`.
+`pro_dialog` gère nativement le dark mode (il lit `Theme.of(context)`).
 
 ## 11. Widgetbook
 
-Module indépendant dans `/widgetbook`, dépendance `path: ../` vers l'app principale — les composants affichés sont les vrais composants de `lib/`, jamais des copies.
+Module indépendant dans `/widgetbook`, dépendance `path: ../` vers l'app principale.
 
 ```bash
 cd widgetbook
@@ -164,26 +195,27 @@ flutter pub get
 flutter run -t lib/main.dart
 ```
 
-Use cases fournis : Buttons (les 6 variantes), Inputs (enabled/error/obscured), Cards, Loading, Empty state, Error state, Dialogs ProDialog (success/error/warning/info/confirmation/loading), Colors, Typography — le `ThemeAddon` propose "KORA Clair" et "KORA Sombre".
+Use cases : Buttons (6 variantes), Inputs, Cards (surface/navy/gold), Loading & States, Dialogs (`KoraDialogs`), Colors, Typography — `ThemeAddon` "KORA Clair"/"KORA Sombre".
 
-## 12. ProDialog
+## 12. Dialogues — `KoraDialogs` (pro_dialog)
 
-Intégration réelle du package **[pro_dialog](https://pub.dev/packages/pro_dialog)** (v1.0.9, vérifié sur pub.dev — Flutter ≥3.22, Dart ≥3.4, compatible avec ce projet), suite à la demande explicite du client. `core/services/dialog_service.dart` expose :
+Intégration réelle du package **[pro_dialog](https://pub.dev/packages/pro_dialog)** (v1.0.9, vérifié sur pub.dev). `core/services/kora_dialogs.dart` expose (noms alignés sur `KoraDialogs` de `kora-passager`) :
 
 ```dart
-DialogService.showSuccess(...)
-DialogService.showError(...)
-DialogService.showWarning(...)
-DialogService.showInfo(...)
-DialogService.showConfirmation(...)  // retourne Future<bool>
-DialogService.showLoading(...)
+KoraDialogs.success(context, title: ..., description: ...)
+KoraDialogs.error(context, title: ..., description: ...)
+KoraDialogs.warning(context, title: ..., description: ...)
+KoraDialogs.info(context, title: ..., description: ...)
+KoraDialogs.confirm(context, title: ..., description: ...)   // Future<bool>
+KoraDialogs.showLoading(context, message: ...)
+KoraDialogs.hideLoading(context)                              // toujours en paire avec showLoading
 ```
 
-Implémentation : `showProDialog` avec `DialogType.success/error/warning/info/question`, thème commun `ProDialogTheme(borderRadius: AppRadius.lg, animationStyle: scale, iconAnimationStyle: pulse)`. `showConfirmation` utilise un `Completer<bool>` complété par les `DialogButton` (annuler/confirmer), suivant le pattern documenté par le package. Aucun écran n'appelle `showDialog()` ni un dialogue natif directement — tout passe par `DialogService`.
+**Aucun écran n'utilise `showDialog()`, un dialogue natif Flutter, ni `SnackBar`/`ScaffoldMessenger`** — y compris pour les messages transitoires ("code renvoyé", "statut mis à jour"…) qui utiliseraient un `SnackBar` ailleurs. Tout passe par `KoraDialogs`.
 
 ## 13. Environnements
 
-`app/config/environment.dart` (enum `dev`/`staging`/`prod`) + `app/config/app_config.dart` (URL API, nom d'app, flags debug/logging). Aucune URL n'est dispersée dans le code.
+`app/config/environment.dart` + `app/config/app_config.dart` (URL API, nom d'app, flags debug/logging, `useMockHardware` — voir § 18).
 
 ```bash
 flutter run --dart-define=ENV=dev
@@ -193,192 +225,162 @@ flutter run --dart-define=ENV=prod
 
 ## 14. Code generation
 
-`json_annotation`/`json_serializable` sont déclarés pour les futurs modèles générés. Si des classes `@JsonSerializable()` sont ajoutées :
+`json_annotation`/`json_serializable` déclarés pour de futurs modèles générés. Si des classes `@JsonSerializable()` sont ajoutées :
 
 ```bash
 dart run build_runner build --delete-conflicting-outputs
 ```
 
-Le modèle `UserModel` actuel est écrit à la main (`fromJson`/`toJson` manuels) car trop simple pour justifier la génération.
+Aucun modèle du projet actuel n'en a besoin (tous écrits à la main, volontairement simples).
 
 ## 15. Tests
 
 ```
 test/
-├── app/theme/theme_cubit_test.dart                     # bascule dark mode
-├── features/auth/domain/auth_usecases_test.dart        # UseCases OTP/PIN
-├── features/auth/data/auth_repository_impl_test.dart   # Repository mocké
-├── features/auth/presentation/auth_cubit_test.dart     # session globale (bloc_test)
-├── features/auth/presentation/login_cubit_test.dart    # flux email→OTP→PIN (bloc_test)
-├── features/printing/…                                 # voir § 17bis
-└── features/home_page_widget_test.dart                 # Widget
+├── app/theme/theme_cubit_test.dart
+├── features/auth/domain/auth_usecases_test.dart
+├── features/auth/data/auth_repository_impl_test.dart
+├── features/auth/presentation/auth_cubit_test.dart
+├── features/auth/presentation/login_cubit_test.dart      # PIN + OTP (pas de submitEmail)
+├── features/ops/data/mock_ops_data_source_test.dart
+├── features/synchro/presentation/cubit/sync_cubit_test.dart
+└── features/printing/…                                    # voir § 18
 ```
 
 ```bash
 flutter test
 ```
 
+Couverture manquante à ce stade (voir § 20) : `ManifesteCubit`, `ScanBoardingCubit`, widgets `SeatMap`/`PassengerListTile`/`KoraBottomNav`.
+
 ## 16. Analyse & Lint
 
-`analysis_options.yaml` étend `flutter_lints` avec des règles strictes supplémentaires (`avoid_print`, `always_declare_return_types`, `avoid_dynamic_calls`, etc.).
+`analysis_options.yaml` étend `flutter_lints` avec des règles strictes supplémentaires.
 
 ```bash
 flutter analyze
 ```
 
-## 17. Flux d'authentification (écrans mockés)
+## 17. Flux d'authentification — PIN pur + OTP (MEZ-11)
 
-Reproduction fidèle des 5 maquettes fournies par le client — voir `features/auth/`. Toutes les données sont mockées ce sprint (`AuthLocalDataSource`) ; la connexion aux API réelles est prévue au Sprint 5.
+**Pas d'auto-inscription** (voir § 1) : contrairement à `kora-passager` (qui a un parcours `Welcome → SignupEmail → Otp → CreatePin` pour les nouveaux clients), KORA OPS Mobile n'a **qu'un seul point d'entrée : l'écran PIN**. L'OTP ne sert qu'à confirmer un appareil non reconnu, jamais à créer un compte.
 
 ### Parcours
 
 ```
 Splash
   │
-  ├─ AuthGuard : email déjà enregistré sur l'appareil ?
-  │      NON → EmailEntryPage (/login/email)
-  │      OUI → PinEntryPage (/login/pin)
+  └─ AuthGuard : non authentifié → toujours /login/pin
+       │
+PinEntryPage (fond marine, fidèle à LoginPage de kora-passager)
   │
-EmailEntryPage ──"Recevoir mon code"──► OtpVerificationPage (/login/otp, purpose=accountCreation)
-  │                                           │
-  │                                    code correct → Home (authentifié)
-  │                                    code incorrect → OtpInvalidPage (/login/otp-invalid)
-  │                                                        │
-  │                                          "Recevoir un nouveau code" → retour OtpVerificationPage
-  │                                          "Modifier l'email" → retour EmailEntryPage
+  ├─ PIN correct → NewDeviceDetectedPage (systématique, pour la démo —
+  │                un vrai fingerprint arrivera avec l'API)
+  │                    │
+  │      "Recevoir le code OTP" → OtpVerificationPage
+  │                                    │
+  │                     code correct → authenticate() + /home
+  │                     code incorrect → OtpInvalidPage
+  │                                        │
+  │                          "Recevoir un nouveau code" → retour OTP
+  │                          "Retour à la connexion" → /login/pin
+  │      "Ce n'est pas moi" → confirmation KoraDialogs → /login/pin
   │
-PinEntryPage ──PIN correct──► NewDeviceDetectedPage (/login/new-device)
-  │                                  │
-  │                     "Recevoir le code OTP" → OtpVerificationPage (purpose=deviceConfirmation) → Home
-  │                     "Ce n'est pas moi" → confirmation ProDialog → retour EmailEntryPage
-  │
-  └─PIN incorrect → DialogService.showError + réinitialisation du clavier
+  └─ PIN incorrect → KoraDialogs.error + clavier réinitialisé
 ```
 
 ### Données mockées (`AuthLocalDataSource`)
 
-- Code OTP accepté : **`583187`** (toute autre valeur à 6 chiffres → `OtpInvalidPage`)
-- PIN accepté : **`1234`** (toute autre valeur à 4 chiffres → erreur inline + clavier réinitialisé)
-- Appareil mocké pour `NewDeviceDetectedPage` : `Tecno CAMON · Cotonou · À l'instant`
+- **Compte provisionné par défaut** (pas de saisie) : `aicha.hounkpe@kora-express.com` / *Aïcha Hounkpé* / *Convoyeur* — écrit en `SharedPreferences` au premier lancement (`_seedProvisionedAccountIfNeeded`)
+- PIN accepté : **`1234`**
+- Code OTP accepté : **`583187`**
+- Appareil mocké (`NewDeviceDetectedPage`) : `Tecno CAMON · Cotonou · À l'instant`
 
-### Écrans (fidèles aux 5 maquettes fournies)
+### Écrans
 
 | Écran | Route | Fichier |
 |---|---|---|
-| Votre adresse email | `/login/email` | `presentation/pages/email_entry_page.dart` |
-| Code de vérification (OTP) | `/login/otp` | `presentation/pages/otp_verification_page.dart` |
-| Code non valide | `/login/otp-invalid` | `presentation/pages/otp_invalid_page.dart` |
-| Votre PIN KORA (fond marine) | `/login/pin` | `presentation/pages/pin_entry_page.dart` |
-| Nouvel appareil détecté | `/login/new-device` | `presentation/pages/new_device_detected_page.dart` |
+| Votre PIN KORA OPS (fond marine) | `/login/pin` | `pin_entry_page.dart` |
+| Code de vérification | `/login/otp` | `otp_verification_page.dart` |
+| Code non valide | `/login/otp-invalid` | `otp_invalid_page.dart` |
+| Nouvel appareil détecté | `/login/new-device` | `new_device_detected_page.dart` |
 
-### Architecture Cubit
+### Cubits
 
-- **`AuthCubit`** (singleton) : état de session global (`AuthInitial`/`AuthLoading`/`AuthAuthenticated`/`AuthUnauthenticated(savedEmail)`), seule source de vérité pour `AuthGuard`.
-- **`LoginCubit`** (singleton, partagé entre toutes les routes `/login/*` via `BlocProvider.value`) : orchestre les étapes (email, OTP, PIN, nouvel appareil) dans un état unique (`LoginState` avec `status`/`email`/`otpPurpose`/`deviceInfo`/`user`). Ses méthodes retournent `Future<bool>` en plus d'émettre un état : l'écran utilise le booléen pour naviguer (`context.push`), l'état pour l'affichage (spinner, erreur).
-- Une fois l'OTP vérifié avec succès (création de compte ou confirmation d'appareil), l'écran appelle `AuthCubit.authenticate(user)` avant de naviguer vers `/home`, pour que `AuthGuard` laisse passer.
+- **`AuthCubit`** (singleton) : état de session global, seule source de vérité pour `AuthGuard`.
+- **`LoginCubit`** (singleton, partagé entre les routes `/login/*`) : `submitPin`, `requestDeviceConfirmationOtp`, `submitOtp`, `resendOtp`, `loadSavedEmail`, `reset`. Méthodes `Future<bool>` (navigation) + état émis (affichage).
+- Une fois l'OTP vérifié, l'écran appelle `AuthCubit.authenticate(user)` avant `context.go('/home')`.
 
-Widgets réutilisables : `OtpCodeInput` (`core/widgets/`, 6 cases, avance automatique), `NumericKeypad` et `AuthScreenHeader` (`features/auth/presentation/widgets/`).
+## 17bis. Écrans OPS mockés (MEZ-11) — Manifeste, Scan, Descente anticipée, Synchro, Accueil
 
-## 17bis. Adaptateurs P501 — scanner QR et imprimante thermique 58mm
+### Modèles (`features/ops/domain/entities/`)
 
-Feature `lib/features/printing/`, même structure Clean Architecture que les autres :
+- **`Depart`** — id, route, date, heure, immatriculation, places totales/occupées
+- **`Passenger`** — id, nom, siège, `BoardingStatus` (`enAttente`/`embarque`/`refuse`/`descenduAnticipe`), segment O/D, ticketId, téléphone
+- **`Ticket`** — numéro, passager, départ, siège, segment, `qrData` (cohérent avec `TicketPayload` de MEZ-10)
+- **`Seat`** — numéro, `SeatStatus` (`occupe`/`libere`/`reserve`), passager, segment de libération
 
-```
-features/printing/
-├── data/
-│   ├── formatters/ticket_formatter.dart   # formatage 58mm, testé unitairement
-│   └── services/
-│       ├── mock_barcode_scanner.dart      # défaut dev/staging
-│       ├── mock_thermal_printer.dart      # défaut dev/staging
-│       ├── p501_barcode_scanner.dart      # MethodChannel 'kora.ops/p501_scanner'
-│       └── p501_thermal_printer.dart      # MethodChannel 'kora.ops/p501_printer'
-├── domain/
-│   ├── entities/ticket_payload.dart
-│   ├── services/barcode_scanner.dart      # interface BarcodeScanner
-│   ├── services/thermal_printer.dart      # interface ThermalPrinter
-│   └── usecases/scan_barcode.dart, print_ticket.dart
-└── presentation/
-    ├── cubit/printing_cubit.dart
-    └── pages/printer_test_page.dart       # test manuel sans hardware
-```
+`features/ops/data/mock_ops_data_source.dart` génère 3 départs et des listes de passagers déterministes (seed = id du départ) — remplacé par de vraies API au Sprint 5.
 
-### Interfaces
+### Sélection du départ à gérer
 
-```dart
-abstract interface class BarcodeScanner {
-  Future<String> scan();
-}
+Accessible **des deux côtés**, comme demandé : écran plein `SelectionDepartPage` (`/depart/selection`, depuis `AccueilPage` ou le bouton "Changer de départ") **et** sélecteur compact dans l'en-tête de `ManifestePage`. Les deux écrivent dans `SelectedDepartCubit` (singleton), qui notifie `ManifesteCubit` pour recharger automatiquement.
 
-abstract interface class ThermalPrinter {
-  Future<bool> printTicket(TicketPayload payload);
-}
-```
+### Manifeste (`features/manifeste/`)
 
-### Switch Mock / P501
+`ManifestePage` : liste `PassengerListTile` (nom, siège, `StatutBadge`, segment O/D), squelette `SkeletonList` pendant le chargement, états vide/erreur (`AppStatePlaceholder`), `RefreshIndicator`. `ManifesteCubit` recharge automatiquement au changement de départ et expose `updateStatut(passengerId, statut)`, qui journalise l'opération dans `SyncCubit` (voir Synchro ci-dessous).
 
-Piloté par `AppConfig.useMockHardware` (`app/config/app_config.dart`), résolu ainsi :
+`DetailPassagerPage` (`/manifeste/passager`, poussé depuis une ligne du Manifeste) : infos billet, segment, siège, statut, actions Embarquer/Refuser/Descente anticipée.
 
-- Par défaut : `true` en `dev`/`staging`, `false` en `prod`.
-- Override explicite : `--dart-define=USE_MOCK_HARDWARE=true|false`.
+### Scan boarding (`features/scan/`)
 
-```bash
-# Forcer le mock même en prod (démo, recette sans terminal)
-flutter run --dart-define=ENV=prod --dart-define=USE_MOCK_HARDWARE=true
+`ScanBoardingPage` allume une **vraie caméra en direct** (package **[mobile_scanner](https://pub.dev/packages/mobile_scanner)** `^7.4.0`, vérifié sur pub.dev) dès l'ouverture de l'écran — pas de bouton à presser, la détection de QR code est continue (`MobileScannerController`, formats restreints à `qrCode`). Permissions déclarées : `android.permission.CAMERA` (`AndroidManifest.xml`) et `NSCameraUsageDescription` (`Info.plist`).
 
-# Forcer le matériel réel en dev (test sur un vrai P501)
-flutter run --dart-define=ENV=dev --dart-define=USE_MOCK_HARDWARE=false
-```
+Chaque QR détecté appelle `ScanBoardingCubit.handleDetectedCode(code)`. Un bouton secondaire "Scanner (P501)" reste disponible pour déclencher l'adaptateur matériel dédié `ScanBarcode` de MEZ-10 (`BarcodeScanner`, Mock par défaut) — utile sur le terminal P501 en production ou pour tester sans caméra. Les deux chemins convergent vers la même logique de validation (`ScanBoardingCubit._processCode`) : le code lu (caméra ou SDK matériel) ne correspondant pas à nos identifiants de billets mockés, la validation se fait contre le **prochain passager `enAttente` du manifeste courant** : trouvé → `ScanResultPage` "Billet valide" (marque le passager `embarque`, propose "Voir le billet") ; aucun passager en attente → "Billet refusé".
 
-L'enregistrement DI correspondant est dans `injection/injection.dart` — un seul point de bascule, aucun `if` dispersé ailleurs dans le code.
+### Affichage du billet — `TicketCard`
 
-### Format du ticket 58mm
+`core/widgets/ticket_card.dart` : présentation "carte d'embarquement" intégrée au design system, reprenant le contenu requis par MEZ-10 (header KORA, infos départ, passager, siège, **QR code réel** via **[qr_flutter](https://pub.dev/packages/qr_flutter)** `^4.1.0`, footer fiscal), avec une séparation perforée imitant un billet à détacher. Accessible via un bouton "Voir le billet" (bottom sheet) depuis `DetailPassagerPage` et `ScanResultPage` (après un scan valide). Distinct de `TicketFormatter` (MEZ-10, 58mm/32 caractères) qui reste l'unique format pour l'**impression physique** — `TicketCard` est la présentation à l'écran.
 
-`TicketFormatter` (`data/formatters/ticket_formatter.dart`) produit des lignes de **32 caractères maximum** (largeur standard imprimante 58mm) :
+### Descente anticipée (`features/descente/`)
 
-1. En-tête "KORA EXPRESS" centré
-2. Ligne de séparation
-3. Trajet, date, heure
-4. Ligne de séparation
-5. Passager, siège
-6. Ligne de séparation
-7. Marqueur `[ QR CODE ]` centré — le QR réel est généré côté SDK natif à partir de `TicketPayload.qrData`, ce marqueur ASCII ne sert qu'à la prévisualisation écran et aux tests
-8. Ligne de séparation
-9. Pied de page fiscal
+`DescenteAnticipeePage` : `SeatMap` (`core/widgets/seat_map.dart`) — plan des sièges du véhicule, légende Libéré/Se libère bientôt/Occupé, squelette `SkeletonCard` pendant le chargement.
 
-`TicketFormatter.isValid(lines)` vérifie ce format ; `TicketFormatter.formatAsText(payload)` assemble le tout pour affichage/logs.
+### Synchro (`features/synchro/`)
 
-### Implémentation P501 (MethodChannel)
+**Mocké** (voir § 20) : `SyncCubit` (singleton) gère `isOnline`, `isSyncing`, `pending: List<PendingOperation>`. `ManifesteCubit.updateStatut` enfile une opération à chaque changement de statut. `SynchroPage` : bascule manuelle en/hors-ligne, file d'attente, "Synchroniser maintenant", **déconnexion** (voir § Accueil ci-dessous). `SyncStatusBanner` (`core/widgets`, pastille compacte ou bandeau) est visible sur les 5 onglets (intégrée à `_ScaffoldWithBottomNav`) et sur les écrans empilés via `ScreenHeader.action`.
 
-`P501BarcodeScanner` et `P501ThermalPrinter` appellent respectivement les canaux `kora.ops/p501_scanner` (méthode `scan`) et `kora.ops/p501_printer` (méthode `printTicket`, arguments `{lines: List<String>, qrData: String}`). **Aucun SDK P501 n'ayant été fourni au moment de ce scaffold**, le côté natif (`android/.../MainActivity.kt`) reste à implémenter — les deux classes Dart sont prêtes à l'emploi dès que le handler natif existe, et lèvent une `ScannerException`/`PrinterException` explicite (`MissingPluginException`) tant que ce n'est pas le cas.
+### Accueil (`features/home/`)
 
-### Tester sans hardware P501
+`AccueilPage` reproduit trait pour trait la mise en page de l'accueil `kora-passager` (voir échange du 16/08/2026), adaptée au métier OPS :
 
-1. **Tests unitaires** (aucun appareil requis) :
-   ```bash
-   flutter test test/features/printing/
-   ```
-   Couvrent : format du ticket (largeur, centrage, troncature), `MockBarcodeScanner`/`MockThermalPrinter`, UseCases (`ScanBarcode`, `PrintTicket`), `PrintingCubit`.
+- **En-tête marine incurvé** (coins arrondis en bas) : logo KORA à gauche, bascule de thème à droite (pastille dorée si des opérations de synchro sont en attente) ; salutation + accroche 2 lignes ("Votre départ à gérer vous attend.")
+- **Carte blanche flottante** qui chevauche l'en-tête (`Stack` + `Positioned` à décalage négatif) : bandeau "Départ géré aujourd'hui" (au lieu de "Où souhaitez-vous voyager ?"), DÉPART/ARRIVÉE (au lieu d'un formulaire de recherche), bouton rond doré pour changer de départ (au lieu du swap origine/destination), DATE/EMBARQUÉS (au lieu de DATE/PASSAGERS)
+- Bouton doré pleine largeur **"Voir le manifeste"** (position équivalente à "Rechercher un voyage")
+- **Accès rapides** : 4 tuiles Manifeste (mise en avant, bordure dorée) / Scan / Descente / Synchro, même ordre que la bottom nav
+- **Bandeau promo marine** : raccourci vers `PrinterTestPage` (test des adaptateurs P501, "affiche le résultat immédiatement")
 
-2. **Test manuel dans l'app** : lancer en mode Mock (par défaut), depuis `HomePage` ouvrir la tuile **Impression** → écran "Test scanner & imprimante" (`PrinterTestPage`) : bouton "Scanner (mock)" renvoie un code de test cyclique, bouton "Imprimer un ticket de test" affiche l'aperçu formaté à l'écran (police monospace, 32 colonnes) et confirme le succès simulé.
+La **déconnexion** n'apparaît pas sur l'Accueil (absente de la maquette source) : elle est sur `SynchroPage`, en bas, pour rester accessible sans casser la fidélité visuelle de l'accueil.
 
-## 18. Build
+## 18. Adaptateurs P501 — scanner QR et imprimante thermique 58mm (MEZ-10)
+
+Feature `lib/features/printing/` — interfaces `BarcodeScanner`/`ThermalPrinter`, implémentations `Mock*`/`P501*` (MethodChannel `kora.ops/p501_scanner` et `kora.ops/p501_printer`, handler natif Android/iOS à écrire), `TicketFormatter` (58mm, 32 caractères, QR centré — impression physique uniquement, voir § 17bis pour l'affichage à l'écran). Switch Mock/P501 via `AppConfig.useMockHardware` (`--dart-define=USE_MOCK_HARDWARE=true|false`, défaut Mock en dev/staging).
+
+Testé sans hardware via `flutter test test/features/printing/` et l'écran `PrinterTestPage` (`/printer-test`, accessible depuis le bandeau promo de l'Accueil). Le scan d'embarquement (§ 17bis) réutilise directement `ScanBarcode` de cette feature comme chemin matériel alternatif à la caméra.
+
+## 19. Build
 
 ```bash
 flutter build apk --dart-define=ENV=prod
 flutter build appbundle --dart-define=ENV=prod
 ```
 
-## 19. Git
-
-`.gitignore` Flutter standard déjà présent (généré par `flutter create`) : `.dart_tool/`, `build/`, `.idea/`, `*.iml` exclus.
-
 ## 20. Prochaines étapes suggérées
 
-- Créer les écrans restants du ticket [OPS Mobile] écrans mockés : Manifeste (liste passagers avec `PassengerListTile`, `StatutBadge`), Scan boarding (caméra/scanner + feedback valide/refusé), Détail passager, Descente anticipée (`SeatMap`), Synchro (indicateur de connexion, file d'attente) — modèles mockés `Depart`/`Passenger`/`Ticket`/`Seat` à créer.
-- Ajouter la sélection du départ à gérer (hors périmètre de ce sprint, voir échange du 14/08/2026).
-- Remplacer `AuthLocalDataSource` par un vrai flux API (`AuthRemoteDataSource` + `NetworkClient`) quand le backend sera prêt, y compris un vrai fingerprint d'appareil pour `NewDeviceDetectedPage`.
-- Intégrer les vrais packages `flutter-networking` / `flutter-design-system` du monorepo s'ils existent, à la place des abstractions temporaires actuelles.
+- Écrire les tests manquants : `ManifesteCubit`, `ScanBoardingCubit`, `SeatMap`, `PassengerListTile`, `KoraBottomNav`.
+- Remplacer `AuthLocalDataSource`/`MockOpsDataSource` par de vrais flux API au Sprint 5.
+- Remplacer la Synchro mockée (bascule manuelle) par une vraie détection réseau (`connectivity_plus`, déjà utilisé côté `kora-passager`) et un vrai appel de synchronisation.
+- Intégrer les vrais packages `flutter-networking`/`flutter-design-system` du monorepo s'ils deviennent accessibles, à la place des équivalents locaux (§ 10).
 - Ajouter les polices Aptos en assets si fournies par la marque.
-- Déplacer la bascule manuelle du thème (§ 10bis) vers un écran Paramètres dédié.
-- Implémenter le handler natif Android/iOS des canaux `kora.ops/p501_scanner` et `kora.ops/p501_printer` (§ 17bis) une fois le SDK P501 disponible.
-
+- Implémenter le handler natif Android/iOS des canaux P501 (§ 18) une fois le SDK disponible.
+- Déplacer la bascule manuelle du thème vers un écran Paramètres dédié.

@@ -1,56 +1,62 @@
 import 'package:flutter/material.dart';
-import 'package:kora_ops_mobile/core/services/dialog_service.dart';
+import 'package:kora_ops_mobile/core/services/kora_dialogs.dart';
 import 'package:widgetbook/widgetbook.dart';
-
-final DialogService _dialogService = DialogService();
 
 final List<WidgetbookNode> dialogUseCases = <WidgetbookNode>[
   WidgetbookUseCase(
     name: 'Success',
     builder: (BuildContext context) => _DialogTrigger(
       label: 'Afficher succès',
-      onPressed: () => _dialogService.showSuccess(context,
-          message: 'Colis livré avec succès.'),
+      onPressed: () => KoraDialogs.success(context,
+          title: 'Succès', description: 'Colis livré avec succès.'),
     ),
   ),
   WidgetbookUseCase(
     name: 'Error',
     builder: (BuildContext context) => _DialogTrigger(
       label: 'Afficher erreur',
-      onPressed: () => _dialogService.showError(context,
-          message: 'Échec de synchronisation.'),
+      onPressed: () => KoraDialogs.error(context,
+          title: 'Erreur', description: 'Échec de synchronisation.'),
     ),
   ),
   WidgetbookUseCase(
     name: 'Warning',
     builder: (BuildContext context) => _DialogTrigger(
       label: 'Afficher avertissement',
-      onPressed: () => _dialogService.showWarning(context,
-          message: 'Connexion instable — certaines données sont en attente.'),
+      onPressed: () => KoraDialogs.warning(
+        context,
+        title: 'Attention',
+        description: 'Connexion instable — certaines données sont en attente.',
+      ),
     ),
   ),
   WidgetbookUseCase(
     name: 'Info',
     builder: (BuildContext context) => _DialogTrigger(
       label: 'Afficher info',
-      onPressed: () => _dialogService.showInfo(context,
-          message: 'Nouvelle mise à jour disponible.'),
+      onPressed: () => KoraDialogs.info(context,
+          title: 'Information',
+          description: 'Nouvelle mise à jour disponible.'),
     ),
   ),
   WidgetbookUseCase(
     name: 'Confirmation',
     builder: (BuildContext context) => _DialogTrigger(
       label: 'Afficher confirmation',
-      onPressed: () => _dialogService.showConfirmation(context,
-          message: 'Clôturer la tournée ?'),
+      onPressed: () =>
+          KoraDialogs.confirm(context, title: 'Clôturer la tournée ?'),
     ),
   ),
   WidgetbookUseCase(
     name: 'Loading',
     builder: (BuildContext context) => _DialogTrigger(
       label: 'Afficher chargement',
-      onPressed: () =>
-          _dialogService.showLoading(context, message: 'Synchronisation…'),
+      onPressed: () {
+        KoraDialogs.showLoading(context, message: 'Synchronisation…');
+        Future<void>.delayed(const Duration(seconds: 2), () {
+          if (context.mounted) KoraDialogs.hideLoading(context);
+        });
+      },
     ),
   ),
 ];

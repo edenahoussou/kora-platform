@@ -35,7 +35,6 @@ void main() {
 
       expect(header.trim(), 'KORA EXPRESS');
       expect(header.length, TicketFormatter.lineWidth);
-      // Centré : le texte ne colle pas au bord gauche.
       expect(header.startsWith(' '), isTrue);
     });
 
@@ -49,7 +48,6 @@ void main() {
 
       final int leftPadding = qrLine.length - qrLine.trimLeft().length;
       final int rightPadding = qrLine.length - qrLine.trimRight().length;
-      // Centrage à +/-1 caractère près (largeur totale peut être impaire).
       expect((leftPadding - rightPadding).abs(), lessThanOrEqualTo(1));
     });
 
@@ -63,13 +61,11 @@ void main() {
       expect(joined, contains('14/08/2026'));
     });
 
-    test('contient le pied de page fiscal (tronqué si nécessaire)', () {
+    test('contient le pied de page fiscal compatible 32 caractères', () {
       final List<String> lines = TicketFormatter.format(payload);
       final String footer = lines.last.trim();
 
-      // Le pied de page doit contenir "KORA" (version tronquée acceptée)
       expect(footer, contains('KORA'));
-      // Et ne pas dépasser la largeur max
       expect(lines.last.length, lessThanOrEqualTo(TicketFormatter.lineWidth));
     });
 
@@ -91,8 +87,9 @@ void main() {
 
     test('un diviseur fait exactement 32 caractères', () {
       final List<String> lines = TicketFormatter.format(payload);
-      final String divider =
-          lines.firstWhere((String l) => l.trim() == '-' * 32 || l == '-' * 32);
+      final String divider = lines.firstWhere(
+        (String l) => l.trim() == '-' * 32 || l == '-' * 32,
+      );
       expect(divider.length, TicketFormatter.lineWidth);
     });
   });

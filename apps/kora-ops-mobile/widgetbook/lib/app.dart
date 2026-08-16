@@ -24,7 +24,7 @@ class WidgetbookApp extends StatelessWidget {
         ),
         WidgetbookFolder(
           name: 'Buttons',
-          children: appButtonUseCases,
+          children: koraButtonUseCases,
         ),
         WidgetbookFolder(
           name: 'Inputs',
@@ -32,7 +32,7 @@ class WidgetbookApp extends StatelessWidget {
         ),
         WidgetbookFolder(
           name: 'Cards',
-          children: <WidgetbookNode>[appCardUseCase],
+          children: koraCardUseCases,
         ),
         WidgetbookFolder(
           name: 'Loading & States',

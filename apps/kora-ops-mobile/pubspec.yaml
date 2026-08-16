@@ -36,6 +36,15 @@ dependencies:
   # Responsivité
   flutter_screenutil: ^5.9.3
 
+  # Squelettes de chargement (shimmer) — voir document.md § États visuels
+  shimmer: ^3.0.0
+
+  # Scanner caméra QR (écran Scan boarding) — voir document.md § Scan boarding
+  mobile_scanner: ^7.4.0
+
+  # Rendu du QR code sur le billet affiché en app — voir document.md § Ticket
+  qr_flutter: ^4.1.0
+
   # Serialization
   json_annotation: ^4.9.0
 
@@ -61,6 +70,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  # assets:
-  #   - assets/images/
-  #   - assets/icons/
+  assets:
+    - assets/images/
