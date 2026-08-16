@@ -3,7 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../app/config/app_config.dart';
 import '../app/theme/theme_cubit.dart';
 import '../core/network/network_client.dart';
-import '../core/services/dialog_service.dart';
 import '../features/auth/data/datasources/auth_local_datasource.dart';
 import '../features/auth/data/repositories/auth_repository_impl.dart';
 import '../features/auth/domain/repositories/auth_repository.dart';
@@ -16,6 +15,8 @@ import '../features/auth/domain/usecases/verify_otp.dart';
 import '../features/auth/domain/usecases/verify_pin.dart';
 import '../features/auth/presentation/cubit/auth_cubit.dart';
 import '../features/auth/presentation/cubit/login_cubit.dart';
+import '../features/manifeste/presentation/cubit/manifeste_cubit.dart';
+import '../features/ops/presentation/cubit/selected_depart_cubit.dart';
 import '../features/printing/data/services/mock_barcode_scanner.dart';
 import '../features/printing/data/services/mock_thermal_printer.dart';
 import '../features/printing/data/services/p501_barcode_scanner.dart';
@@ -25,6 +26,8 @@ import '../features/printing/domain/services/thermal_printer.dart';
 import '../features/printing/domain/usecases/print_ticket.dart';
 import '../features/printing/domain/usecases/scan_barcode.dart';
 import '../features/printing/presentation/cubit/printing_cubit.dart';
+import '../features/scan/presentation/cubit/scan_boarding_cubit.dart';
+import '../features/synchro/presentation/cubit/sync_cubit.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -53,12 +56,10 @@ Future<void> configureDependencies() async {
     ),
   );
 
-  getIt.registerSingleton<DialogService>(DialogService());
-
   // --- Thème (dark mode auto + bascule manuelle) ---
   getIt.registerSingleton<ThemeCubit>(ThemeCubit(getIt<SharedPreferences>()));
 
-  // --- Feature: auth ---
+  // --- Feature: auth (PIN pur + OTP de confirmation d'appareil) ---
   getIt.registerLazySingleton<AuthLocalDataSource>(
     () => AuthLocalDataSource(getIt<SharedPreferences>()),
   );
@@ -80,8 +81,6 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<LogoutUser>(
       () => LogoutUser(getIt<AuthRepository>()));
 
-  // AuthCubit : état de session global, utilisé par AuthGuard — un seul
-  // singleton pour toute l'app (voir features/auth/presentation/cubit).
   getIt.registerSingleton<AuthCubit>(
     AuthCubit(
       getCurrentUser: getIt<GetCurrentUser>(),
@@ -90,9 +89,6 @@ Future<void> configureDependencies() async {
     ),
   );
 
-  // LoginCubit : orchestre les écrans /login/* (email → otp → pin → nouvel
-  // appareil). Singleton également, pour conserver l'email/le contexte OTP
-  // en changeant d'écran — voir app/router/app_router.dart.
   getIt.registerSingleton<LoginCubit>(
     LoginCubit(
       getSavedEmail: getIt<GetSavedEmail>(),
@@ -103,7 +99,7 @@ Future<void> configureDependencies() async {
     ),
   );
 
-  // --- Feature: printing (adaptateurs P501) ---
+  // --- Feature: printing (adaptateurs P501 — MEZ-10) ---
   //
   // Switch Mock/P501 piloté par AppConfig.useMockHardware, lui-même résolu
   // depuis --dart-define=USE_MOCK_HARDWARE (voir app/config/app_config.dart
@@ -126,10 +122,22 @@ Future<void> configureDependencies() async {
     () => PrintingCubit(
         scanBarcode: getIt<ScanBarcode>(), printTicket: getIt<PrintTicket>()),
   );
-}
 
-/// Raccourci pour accéder au [DialogService] depuis un widget sans
-/// `getIt<DialogService>()` répété partout.
-extension GetItDialogServiceX on GetIt {
-  DialogService get dialogService => get<DialogService>();
+  // --- Feature: ops / manifeste / scan / synchro (MEZ-11 — écrans mockés) ---
+  //
+  // Tous singletons : partagés entre les 5 onglets de la bottom nav et les
+  // écrans empilés au-dessus (détail passager, résultat de scan) — voir
+  // document.md § Navigation et app/app.dart.
+  getIt.registerSingleton<SelectedDepartCubit>(SelectedDepartCubit());
+  getIt.registerSingleton<SyncCubit>(SyncCubit());
+  getIt.registerSingleton<ManifesteCubit>(
+    ManifesteCubit(
+        selectedDepartCubit: getIt<SelectedDepartCubit>(),
+        syncCubit: getIt<SyncCubit>()),
+  );
+  getIt.registerSingleton<ScanBoardingCubit>(
+    ScanBoardingCubit(
+        scanBarcode: getIt<ScanBarcode>(),
+        manifesteCubit: getIt<ManifesteCubit>()),
+  );
 }

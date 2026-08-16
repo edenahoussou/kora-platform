@@ -1,20 +1,23 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_radius.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../app/theme/kora_colors.dart';
 import '../../../../core/helpers/responsive.dart';
-import '../../../../core/widgets/app_button.dart';
-import '../../../../core/widgets/otp_code_input.dart';
+import '../../../../core/services/kora_dialogs.dart';
+import '../../../../core/widgets/kora_button.dart';
+import '../../../../core/widgets/screen_header.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/login_cubit.dart';
-import '../widgets/auth_screen_header.dart';
 
-/// Écran "Code de vérification" — saisie de l'OTP à 6 chiffres, fidèle à la
-/// maquette (timer, renvoi, lien de démonstration vers l'état invalide).
-/// Route : `/login/otp`.
+/// Confirmation d'un appareil non reconnu — seul cas d'usage de l'OTP côté
+/// OPS (voir document.md § Flux d'authentification, pas de création de
+/// compte). Route : `/login/otp`.
 class OtpVerificationPage extends StatefulWidget {
   const OtpVerificationPage({super.key});
 
@@ -23,57 +26,75 @@ class OtpVerificationPage extends StatefulWidget {
 }
 
 class _OtpVerificationPageState extends State<OtpVerificationPage> {
-  static const int _codeLength = 6;
-  static const Duration _codeValidity = Duration(minutes: 5);
+  static const int _length = 6;
+  static const Duration _validity = Duration(minutes: 5);
 
-  String _code = '';
-  Timer? _timer;
-  Duration _remaining = _codeValidity;
+  final List<TextEditingController> _controllers =
+      List<TextEditingController>.generate(
+          _length, (_) => TextEditingController());
+  final List<FocusNode> _focusNodes =
+      List<FocusNode>.generate(_length, (_) => FocusNode());
+
+  Timer? _ticker;
+  Duration _remaining = _validity;
 
   @override
   void initState() {
     super.initState();
-    _startTimer();
+    _startCountdown();
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _ticker?.cancel();
+    for (final TextEditingController controller in _controllers) {
+      controller.dispose();
+    }
+    for (final FocusNode node in _focusNodes) {
+      node.dispose();
+    }
     super.dispose();
   }
 
-  void _startTimer() {
-    _timer?.cancel();
-    setState(() => _remaining = _codeValidity);
-    _timer = Timer.periodic(const Duration(seconds: 1), (Timer timer) {
-      if (_remaining.inSeconds <= 0) {
+  void _startCountdown() {
+    _ticker?.cancel();
+    setState(() => _remaining = _validity);
+    _ticker = Timer.periodic(const Duration(seconds: 1), (Timer timer) {
+      if (_remaining.inSeconds <= 1) {
         timer.cancel();
+        setState(() => _remaining = Duration.zero);
         return;
       }
       setState(() => _remaining -= const Duration(seconds: 1));
     });
   }
 
-  String get _formattedRemaining {
-    final int minutes = _remaining.inMinutes;
-    final int seconds = _remaining.inSeconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-  }
+  String get _code =>
+      _controllers.map((TextEditingController c) => c.text).join();
 
-  String _maskedEmail(String? email) {
-    if (email == null || !email.contains('@')) return '••••@••••';
-    final List<String> parts = email.split('@');
-    final String local = parts.first;
-    final String masked =
-        local.isEmpty ? '' : '${local[0]}${'*' * (local.length - 1)}';
-    return '$masked@${parts.last}';
+  bool get _isExpired => _remaining == Duration.zero;
+
+  void _onDigitChanged(int index, String value) {
+    if (value.isNotEmpty && index < _length - 1) {
+      _focusNodes[index + 1].requestFocus();
+    } else if (value.isEmpty && index > 0) {
+      _focusNodes[index - 1].requestFocus();
+    }
+    setState(() {});
   }
 
   Future<void> _verify(BuildContext context) async {
-    if (_code.length != _codeLength) return;
+    if (_isExpired) {
+      await KoraDialogs.warning(context,
+          title: 'Code expiré', description: 'Demandez-en un nouveau.');
+      return;
+    }
+    if (_code.length < _length) return;
+
     final LoginCubit loginCubit = context.read<LoginCubit>();
     final bool success = await loginCubit.submitOtp(_code);
     if (!context.mounted) return;
+
     if (success) {
       final user = loginCubit.state.user;
       if (user != null) context.read<AuthCubit>().authenticate(user);
@@ -84,13 +105,40 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
   }
 
   Future<void> _resend(BuildContext context) async {
+    for (final TextEditingController controller in _controllers) {
+      controller.clear();
+    }
+    _focusNodes.first.requestFocus();
     await context.read<LoginCubit>().resendOtp();
-    if (mounted) _startTimer();
+    if (mounted) _startCountdown();
+    if (context.mounted) {
+      await KoraDialogs.success(
+        context,
+        title: 'Code renvoyé',
+        description: 'Un nouveau code a été envoyé.',
+      );
+    }
+  }
+
+  String _maskEmail(String? email) {
+    if (email == null) return '';
+    final int at = email.indexOf('@');
+    if (at <= 1) return email;
+    return '${email[0]}${'•' * (at - 1)}${email.substring(at)}';
+  }
+
+  String _formatRemaining(Duration remaining) {
+    final String minutes = remaining.inMinutes.toString().padLeft(2, '0');
+    final String seconds =
+        remaining.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: const ScreenHeader(
+          eyebrow: 'Sécurité', title: 'Code de vérification'),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -98,48 +146,62 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
               maxWidth: Responsive.value<double>(context,
                   mobile: double.infinity, tablet: 480),
             ),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               child: BlocBuilder<LoginCubit, LoginState>(
                 builder: (BuildContext context, LoginState state) {
                   final bool isSubmitting =
                       state.status == LoginStatus.submitting;
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                  return ListView(
+                    padding: EdgeInsets.zero,
                     children: <Widget>[
-                      const AuthScreenHeader(
-                          eyebrow: 'Sécurité', title: 'Code de vérification'),
-                      const SizedBox(height: AppSpacing.md),
                       Text.rich(
                         TextSpan(
-                          style: Theme.of(context).textTheme.bodyMedium,
+                          style: Theme.of(context).textTheme.bodyLarge,
                           children: <InlineSpan>[
                             const TextSpan(text: 'Saisissez le code envoyé à '),
                             TextSpan(
-                              text: _maskedEmail(state.email),
+                              text: _maskEmail(state.email),
                               style:
-                                  const TextStyle(fontWeight: FontWeight.w700),
+                                  const TextStyle(fontWeight: FontWeight.w800),
                             ),
                             const TextSpan(text: '.'),
                           ],
                         ),
                       ),
                       const SizedBox(height: AppSpacing.lg),
-                      OtpCodeInput(
-                        length: _codeLength,
-                        onChanged: (String value) =>
-                            setState(() => _code = value),
-                        onCompleted: (_) => _verify(context),
+                      Row(
+                        children: <Widget>[
+                          for (int i = 0; i < _length; i++) ...<Widget>[
+                            if (i != 0) const SizedBox(width: 7),
+                            Expanded(
+                              child: _CodeBox(
+                                controller: _controllers[i],
+                                focusNode: _focusNodes[i],
+                                autofocus: i == 0,
+                                onChanged: (String value) =>
+                                    _onDigitChanged(i, value),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       const SizedBox(height: AppSpacing.md),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: <Widget>[
-                          Text(
-                            _remaining.inSeconds > 0
-                                ? 'Code valable pendant $_formattedRemaining'
-                                : 'Code expiré',
-                            style: Theme.of(context).textTheme.bodySmall,
+                          Flexible(
+                            child: Text(
+                              _isExpired
+                                  ? 'Code expiré'
+                                  : 'Code valable pendant ${_formatRemaining(_remaining)}',
+                              style: TextStyle(
+                                color: _isExpired
+                                    ? AppColors.danger
+                                    : context.koraColors.textMuted,
+                                fontSize: 10,
+                              ),
+                            ),
                           ),
                           TextButton(
                             onPressed:
@@ -149,36 +211,105 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                         ],
                       ),
                       const SizedBox(height: AppSpacing.lg),
-                      AppButton(
+                      KoraButton(
                         label: 'Vérifier le code',
                         isLoading: isSubmitting,
-                        onPressed: _code.length == _codeLength
+                        onPressed: _code.length == _length
                             ? () => _verify(context)
                             : null,
                       ),
                       const SizedBox(height: AppSpacing.sm),
-                      AppButton(
+                      KoraButton(
                         label: 'Je n\'ai pas reçu le code',
-                        variant: AppButtonVariant.outline,
+                        variant: KoraButtonVariant.ghost,
                         onPressed: isSubmitting ? null : () => _resend(context),
                       ),
-                      const SizedBox(height: AppSpacing.md),
-                      Center(
-                        child: TextButton(
-                          onPressed: () =>
-                              context.push(AppRoutes.loginOtpInvalid),
-                          child: const Text(
-                            'Voir l\'état code invalide',
-                            style: TextStyle(color: AppColors.secondary),
-                          ),
-                        ),
-                      ),
+                      const SizedBox(height: AppSpacing.lg),
                     ],
                   );
                 },
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CodeBox extends StatefulWidget {
+  const _CodeBox({
+    required this.controller,
+    required this.focusNode,
+    required this.onChanged,
+    this.autofocus = false,
+  });
+
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final ValueChanged<String> onChanged;
+  final bool autofocus;
+
+  @override
+  State<_CodeBox> createState() => _CodeBoxState();
+}
+
+class _CodeBoxState extends State<_CodeBox> {
+  @override
+  void initState() {
+    super.initState();
+    widget.focusNode.addListener(_onFocusChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.focusNode.removeListener(_onFocusChanged);
+    super.dispose();
+  }
+
+  void _onFocusChanged() => setState(() {});
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isActive = widget.focusNode.hasFocus;
+
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        color: context.koraColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(
+            color: isActive ? AppColors.gold : context.koraColors.line),
+        boxShadow: isActive
+            ? <BoxShadow>[
+                BoxShadow(
+                    color: AppColors.gold.withValues(alpha: 0.15),
+                    spreadRadius: 3)
+              ]
+            : null,
+      ),
+      child: TextField(
+        controller: widget.controller,
+        focusNode: widget.focusNode,
+        autofocus: widget.autofocus,
+        textAlign: TextAlign.center,
+        keyboardType: TextInputType.number,
+        maxLength: 1,
+        inputFormatters: <TextInputFormatter>[
+          FilteringTextInputFormatter.digitsOnly
+        ],
+        onChanged: widget.onChanged,
+        style: TextStyle(
+            color: context.koraColors.textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.w900),
+        decoration: const InputDecoration(
+          counterText: '',
+          filled: false,
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          contentPadding: EdgeInsets.zero,
         ),
       ),
     );

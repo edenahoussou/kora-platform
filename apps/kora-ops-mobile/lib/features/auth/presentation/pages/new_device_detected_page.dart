@@ -5,15 +5,15 @@ import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radius.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../app/theme/kora_colors.dart';
 import '../../../../core/helpers/responsive.dart';
-import '../../../../core/widgets/app_button.dart';
-import '../../../../injection/injection.dart';
+import '../../../../core/services/kora_dialogs.dart';
+import '../../../../core/widgets/kora_button.dart';
+import '../../../../core/widgets/screen_header.dart';
 import '../cubit/login_cubit.dart';
-import '../widgets/auth_screen_header.dart';
 
-/// Écran "Nouvel appareil détecté" — affiché après un PIN valide sur un
-/// appareil non reconnu (voir document.md § Flux d'authentification).
-/// Route : `/login/new-device`.
+/// Affiché après un PIN valide sur un appareil non reconnu — voir
+/// document.md § Flux d'authentification. Route : `/login/new-device`.
 class NewDeviceDetectedPage extends StatelessWidget {
   const NewDeviceDetectedPage({super.key});
 
@@ -26,28 +26,31 @@ class NewDeviceDetectedPage extends StatelessWidget {
     } else {
       final String message =
           context.read<LoginCubit>().state.errorMessage ?? 'Erreur inattendue.';
-      await getIt.dialogService.showError(context, message: message);
+      await KoraDialogs.error(context,
+          title: 'Échec de l\'envoi', description: message);
     }
   }
 
   Future<void> _rejectDevice(BuildContext context) async {
-    final bool confirmed = await getIt.dialogService.showConfirmation(
+    final bool confirmed = await KoraDialogs.confirm(
       context,
       title: 'Ce n\'est pas moi',
-      message:
-          'Cette tentative de connexion sera bloquée et votre email devra être '
-          'reconfirmé pour vous reconnecter.',
+      description:
+          'Cette tentative de connexion sera bloquée. Contactez votre superviseur '
+          'd\'agence si le problème persiste.',
       confirmLabel: 'Bloquer la tentative',
       cancelLabel: 'Annuler',
     );
     if (!context.mounted || !confirmed) return;
     context.read<LoginCubit>().reset();
-    context.go(AppRoutes.loginEmail);
+    context.go(AppRoutes.loginPin);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: const ScreenHeader(
+          eyebrow: 'Protection du compte', title: 'Nouvel appareil détecté'),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -63,17 +66,12 @@ class NewDeviceDetectedPage extends StatelessWidget {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
-                      const AuthScreenHeader(
-                        eyebrow: 'Protection du compte',
-                        title: 'Nouvel appareil détecté',
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
                       Container(
                         width: double.infinity,
                         padding:
                             const EdgeInsets.symmetric(vertical: AppSpacing.lg),
                         decoration: BoxDecoration(
-                          color: AppColors.primary,
+                          color: AppColors.kora,
                           borderRadius: BorderRadius.circular(AppRadius.lg),
                         ),
                         child: Column(
@@ -81,12 +79,12 @@ class NewDeviceDetectedPage extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.all(AppSpacing.sm),
                               decoration: BoxDecoration(
-                                color: AppColors.accent,
+                                color: AppColors.gold,
                                 borderRadius:
                                     BorderRadius.circular(AppRadius.md),
                               ),
                               child: const Icon(Icons.pending_actions,
-                                  color: AppColors.onAccent),
+                                  color: AppColors.onGold),
                             ),
                             const SizedBox(height: AppSpacing.sm),
                             const Text(
@@ -113,13 +111,11 @@ class NewDeviceDetectedPage extends StatelessWidget {
                       const SizedBox(height: AppSpacing.lg),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
-                          vertical: AppSpacing.xs,
-                        ),
+                            horizontal: AppSpacing.md, vertical: AppSpacing.xs),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
+                          color: context.koraColors.surface,
                           borderRadius: BorderRadius.circular(AppRadius.lg),
-                          border: Border.all(color: AppColors.border),
+                          border: Border.all(color: context.koraColors.line),
                         ),
                         child: Column(
                           children: <Widget>[
@@ -137,15 +133,15 @@ class NewDeviceDetectedPage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: AppSpacing.lg),
-                      AppButton(
+                      KoraButton(
                         label: 'Recevoir le code OTP',
                         isLoading: state.status == LoginStatus.submitting,
                         onPressed: () => _requestOtp(context),
                       ),
                       const SizedBox(height: AppSpacing.sm),
-                      AppButton(
+                      KoraButton(
                         label: 'Ce n\'est pas moi',
-                        variant: AppButtonVariant.outline,
+                        variant: KoraButtonVariant.ghost,
                         onPressed: () => _rejectDevice(context),
                       ),
                     ],
@@ -174,13 +170,11 @@ class _InfoRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: <Widget>[
           Text(label, style: Theme.of(context).textTheme.bodyMedium),
-          Text(
-            value,
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(fontWeight: FontWeight.w700),
-          ),
+          Text(value,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(fontWeight: FontWeight.w700)),
         ],
       ),
     );

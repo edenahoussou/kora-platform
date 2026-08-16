@@ -6,17 +6,14 @@ final WidgetbookUseCase colorsUseCase = WidgetbookUseCase(
   name: 'Colors',
   builder: (BuildContext context) {
     final Map<String, Color> swatches = <String, Color>{
-      'primary (--kora, navy)': AppColors.primary,
-      'accent (--gold, CTA principal)': AppColors.accent,
-      'onAccent (texte sur accent/warning)': AppColors.onAccent,
-      'secondary (--digital)': AppColors.secondary,
-      'background (--mist)': AppColors.background,
-      'backgroundDark': AppColors.backgroundDark,
-      'surfaceDark': AppColors.surfaceDark,
-      'textPrimary (--graphite)': AppColors.textPrimary,
+      'kora (navy)': AppColors.kora,
+      'gold (CTA principal)': AppColors.gold,
+      'onGold (texte sur gold/warning)': AppColors.onGold,
+      'digital (secondaire)': AppColors.digital,
+      'mist (fond clair)': AppColors.mist,
       'success': AppColors.success,
-      'warning (distinct de accent)': AppColors.warning,
-      'error / danger': AppColors.error,
+      'warning (distinct de gold)': AppColors.warning,
+      'danger': AppColors.danger,
       'info': AppColors.info,
     };
 

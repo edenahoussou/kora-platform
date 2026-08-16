@@ -2,20 +2,19 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_radius.dart';
 
-enum AppButtonVariant { primary, secondary, outline, success, warning, danger }
+/// Variantes alignées sur `kora-passager` (`primary`/`secondary`/`ghost`/
+/// `danger`), complétées par `success`/`warning` pour les besoins
+/// opérationnels de KORA OPS (feedback de scan, alertes).
+enum KoraButtonVariant { primary, secondary, ghost, success, warning, danger }
 
-/// Bouton unique de l'application — les écrans ne doivent pas appeler
-/// `ElevatedButton`/`OutlinedButton` directement pour rester cohérents avec
-/// le Design System KORA. Couvre les 6 variantes du kit UI.
-///
-/// `primary` utilise l'or de marque (`AppColors.accent`), conformément aux
-/// maquettes d'authentification fournies (CTA doré, marine réservé aux
-/// en-têtes et aux écrans de sécurité) — pas le bleu marine.
-class AppButton extends StatelessWidget {
-  const AppButton({
+/// Bouton unique de l'application — les écrans n'appellent jamais
+/// `ElevatedButton`/`OutlinedButton` directement. `primary` utilise l'or de
+/// marque (`AppColors.gold`), conformément aux maquettes.
+class KoraButton extends StatelessWidget {
+  const KoraButton({
     required this.label,
     required this.onPressed,
-    this.variant = AppButtonVariant.primary,
+    this.variant = KoraButtonVariant.primary,
     this.isLoading = false,
     this.icon,
     this.fullWidth = true,
@@ -24,30 +23,28 @@ class AppButton extends StatelessWidget {
 
   final String label;
   final VoidCallback? onPressed;
-  final AppButtonVariant variant;
+  final KoraButtonVariant variant;
   final bool isLoading;
   final IconData? icon;
 
-  /// Les boutons KORA sont pleine largeur par défaut (voir maquette : tous
-  /// les boutons d'action occupent la largeur de l'écran). Passer `false`
-  /// pour un bouton de taille intrinsèque.
+  /// Les boutons KORA sont pleine largeur par défaut (voir maquette).
   final bool fullWidth;
 
-  Color _foregroundColor(AppButtonVariant variant) => switch (variant) {
-        AppButtonVariant.primary ||
-        AppButtonVariant.warning =>
-          AppColors.onAccent,
-        AppButtonVariant.outline => AppColors.primary,
+  Color _foregroundColor(KoraButtonVariant variant) => switch (variant) {
+        KoraButtonVariant.primary ||
+        KoraButtonVariant.warning =>
+          AppColors.onGold,
+        KoraButtonVariant.ghost => AppColors.kora,
         _ => AppColors.white,
       };
 
-  Color? _backgroundColor(AppButtonVariant variant) => switch (variant) {
-        AppButtonVariant.primary => AppColors.accent,
-        AppButtonVariant.secondary => AppColors.secondary,
-        AppButtonVariant.success => AppColors.success,
-        AppButtonVariant.warning => AppColors.warning,
-        AppButtonVariant.danger => AppColors.danger,
-        AppButtonVariant.outline => null,
+  Color? _backgroundColor(KoraButtonVariant variant) => switch (variant) {
+        KoraButtonVariant.primary => AppColors.gold,
+        KoraButtonVariant.secondary => AppColors.digital,
+        KoraButtonVariant.success => AppColors.success,
+        KoraButtonVariant.warning => AppColors.warning,
+        KoraButtonVariant.danger => AppColors.danger,
+        KoraButtonVariant.ghost => null,
       };
 
   @override
@@ -73,7 +70,7 @@ class AppButton extends StatelessWidget {
           );
 
     final Widget button = switch (variant) {
-      AppButtonVariant.outline =>
+      KoraButtonVariant.ghost =>
         OutlinedButton(onPressed: handler, child: child),
       _ => ElevatedButton(
           style: ElevatedButton.styleFrom(

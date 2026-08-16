@@ -4,7 +4,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../cubit/auth_cubit.dart';
 
 /// Écran de démarrage — déclenche la vérification de session puis laisse
-/// [AuthGuard] rediriger vers /login ou /home.
+/// [AuthGuard] rediriger vers /login/pin ou /home.
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
 
@@ -22,7 +22,7 @@ class _SplashPageState extends State<SplashPage> {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: AppColors.kora,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -38,7 +38,7 @@ class _SplashPageState extends State<SplashPage> {
                   fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 24),
-            CircularProgressIndicator(color: AppColors.accent),
+            CircularProgressIndicator(color: AppColors.gold),
           ],
         ),
       ),

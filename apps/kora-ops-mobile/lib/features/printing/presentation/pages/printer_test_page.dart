@@ -1,34 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
-import '../../../../core/widgets/app_button.dart';
-import '../../../../core/widgets/app_card.dart';
+import '../../../../app/theme/kora_colors.dart';
+import '../../../../core/services/kora_dialogs.dart';
+import '../../../../core/widgets/kora_button.dart';
+import '../../../../core/widgets/kora_card.dart';
+import '../../../../core/widgets/screen_header.dart';
+import '../../../synchro/presentation/widgets/sync_status_banner.dart';
 import '../cubit/printing_cubit.dart';
 
 /// Écran de test des adaptateurs P501 — permet de vérifier le scan et
 /// l'impression **sans terminal physique**, en s'appuyant sur
 /// [MockBarcodeScanner]/[MockThermalPrinter] (voir document.md § Adaptateurs
-/// P501 pour la procédure complète).
+/// P501 pour la procédure complète). Accessible depuis Accueil ou Réglages.
 class PrinterTestPage extends StatelessWidget {
   const PrinterTestPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Test scanner & imprimante')),
+      appBar: const ScreenHeader(
+        eyebrow: 'Adaptateurs P501',
+        title: 'Test scanner & imprimante',
+        action: SyncStatusBanner(compact: true),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.md),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
           child: BlocConsumer<PrintingCubit, PrintingState>(
             listener: (BuildContext context, PrintingState state) {
               if (state case PrintingFailure(:final String message)) {
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(SnackBar(content: Text(message)));
+                KoraDialogs.error(context,
+                    title: 'Erreur', description: message);
               }
               if (state is PrintingSuccess) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Ticket imprimé ✓')));
+                KoraDialogs.success(context,
+                    title: 'Ticket imprimé',
+                    description: 'Impression réussie ✓');
               }
             },
             builder: (BuildContext context, PrintingState state) {
@@ -49,7 +57,8 @@ class PrinterTestPage extends StatelessWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  AppCard(
+                  const SizedBox(height: AppSpacing.sm),
+                  KoraCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
@@ -63,7 +72,7 @@ class PrinterTestPage extends StatelessWidget {
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                         const SizedBox(height: AppSpacing.md),
-                        AppButton(
+                        KoraButton(
                           label: 'Scanner (mock)',
                           isLoading: state is PrintingScanning,
                           onPressed: isBusy
@@ -74,17 +83,17 @@ class PrinterTestPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.md),
-                  AppCard(
+                  KoraCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Text('Imprimante 58mm',
                             style: Theme.of(context).textTheme.titleMedium),
                         const SizedBox(height: AppSpacing.sm),
-                        AppButton(
+                        KoraButton(
                           label: 'Imprimer un ticket de test',
                           isLoading: state is PrintingInProgress,
-                          variant: AppButtonVariant.secondary,
+                          variant: KoraButtonVariant.secondary,
                           onPressed: isBusy
                               ? null
                               : () => context
@@ -98,6 +107,7 @@ class PrinterTestPage extends StatelessWidget {
                       ],
                     ),
                   ),
+                  const SizedBox(height: AppSpacing.md),
                 ],
               );
             },
@@ -108,7 +118,7 @@ class PrinterTestPage extends StatelessWidget {
   }
 }
 
-/// Rendu monospace du ticket formaté par [TicketFormatter], à largeur fixe
+/// Rendu monospace du ticket formaté par `TicketFormatter`, à largeur fixe
 /// 32 caractères — sert de "prévisualisation imprimante" à l'écran.
 class _TicketPreview extends StatelessWidget {
   const _TicketPreview({required this.lines});
@@ -121,8 +131,8 @@ class _TicketPreview extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.background,
-        border: Border.all(color: AppColors.border),
+        color: context.koraColors.background,
+        border: Border.all(color: context.koraColors.line),
       ),
       child: Text(
         lines.join('\n'),

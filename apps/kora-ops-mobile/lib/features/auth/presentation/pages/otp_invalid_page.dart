@@ -4,12 +4,12 @@ import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radius.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../app/theme/kora_colors.dart';
 import '../../../../core/helpers/responsive.dart';
-import '../../../../core/widgets/app_button.dart';
-import '../widgets/auth_screen_header.dart';
+import '../../../../core/widgets/kora_button.dart';
+import '../../../../core/widgets/screen_header.dart';
 
-/// Écran "Code non valide" — état d'erreur dédié affiché après un OTP
-/// refusé (fidèle à la maquette : icône, message, deux actions). Route :
+/// État d'erreur dédié affiché après un OTP refusé. Route :
 /// `/login/otp-invalid`.
 class OtpInvalidPage extends StatelessWidget {
   const OtpInvalidPage({super.key});
@@ -17,6 +17,8 @@ class OtpInvalidPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: const ScreenHeader(
+          eyebrow: 'Vérification OTP', title: 'Code non valide'),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -29,21 +31,20 @@ class OtpInvalidPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  const AuthScreenHeader(
-                      eyebrow: 'Vérification OTP', title: 'Code non valide'),
-                  const SizedBox(height: AppSpacing.xl),
+                  const SizedBox(height: AppSpacing.md),
                   Center(
                     child: Container(
                       width: 96,
                       height: 96,
-                      decoration: const BoxDecoration(
-                          color: AppColors.background, shape: BoxShape.circle),
+                      decoration: BoxDecoration(
+                          color: context.koraColors.background,
+                          shape: BoxShape.circle),
                       child: Center(
                         child: Container(
                           width: 56,
                           height: 56,
                           decoration: BoxDecoration(
-                            color: AppColors.primary,
+                            color: AppColors.kora,
                             borderRadius: BorderRadius.circular(AppRadius.lg),
                           ),
                           child: const Icon(Icons.priority_high_rounded,
@@ -66,16 +67,16 @@ class OtpInvalidPage extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   const SizedBox(height: AppSpacing.xl),
-                  AppButton(
+                  KoraButton(
                     label: 'Recevoir un nouveau code',
                     onPressed: () =>
                         context.pushReplacement(AppRoutes.loginOtp),
                   ),
                   const SizedBox(height: AppSpacing.sm),
-                  AppButton(
-                    label: 'Modifier l\'email',
-                    variant: AppButtonVariant.outline,
-                    onPressed: () => context.go(AppRoutes.loginEmail),
+                  KoraButton(
+                    label: 'Retour à la connexion',
+                    variant: KoraButtonVariant.ghost,
+                    onPressed: () => context.go(AppRoutes.loginPin),
                   ),
                 ],
               ),

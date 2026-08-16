@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../features/auth/presentation/cubit/auth_cubit.dart';
+import '../features/manifeste/presentation/cubit/manifeste_cubit.dart';
+import '../features/ops/presentation/cubit/selected_depart_cubit.dart';
+import '../features/scan/presentation/cubit/scan_boarding_cubit.dart';
+import '../features/synchro/presentation/cubit/sync_cubit.dart';
 import '../injection/injection.dart';
 import 'config/app_config.dart';
 import 'router/app_router.dart';
@@ -18,6 +22,15 @@ class App extends StatelessWidget {
       providers: [
         BlocProvider<AuthCubit>.value(value: getIt<AuthCubit>()),
         BlocProvider<ThemeCubit>.value(value: getIt<ThemeCubit>()),
+        // Cubits partagés par les 5 onglets ET les écrans empilés
+        // au-dessus (détail passager, résultat de scan…) — voir
+        // document.md § Navigation.
+        BlocProvider<SelectedDepartCubit>.value(
+            value: getIt<SelectedDepartCubit>()),
+        BlocProvider<SyncCubit>.value(value: getIt<SyncCubit>()),
+        BlocProvider<ManifesteCubit>.value(value: getIt<ManifesteCubit>()),
+        BlocProvider<ScanBoardingCubit>.value(
+            value: getIt<ScanBoardingCubit>()),
       ],
       child: Builder(
         builder: (BuildContext context) {
