@@ -26,8 +26,8 @@ class KoraColors extends ThemeExtension<KoraColors> {
   static const KoraColors light = KoraColors(
     surface: AppColors.white,
     background: AppColors.mist,
-    textPrimary: Color(0xFF111827),
-    textMuted: Color(0x99111827),
+    textPrimary: AppColors.kora,
+    textMuted: Color(0x99001D4E),
     line: Color(0x1C001D4E),
     shadow: Color(0x24001D4E),
   );

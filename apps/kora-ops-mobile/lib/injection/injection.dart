@@ -6,9 +6,10 @@ import '../core/network/network_client.dart';
 import '../features/auth/data/datasources/auth_local_datasource.dart';
 import '../features/auth/data/repositories/auth_repository_impl.dart';
 import '../features/auth/domain/repositories/auth_repository.dart';
-import '../features/auth/domain/usecases/get_current_device_info.dart';
+import '../features/auth/domain/usecases/forgot_password.dart';
 import '../features/auth/domain/usecases/get_current_user.dart';
 import '../features/auth/domain/usecases/get_saved_email.dart';
+import '../features/auth/domain/usecases/login_with_password.dart';
 import '../features/auth/domain/usecases/logout_user.dart';
 import '../features/auth/domain/usecases/send_otp.dart';
 import '../features/auth/domain/usecases/verify_otp.dart';
@@ -70,14 +71,15 @@ Future<void> configureDependencies() async {
       () => GetCurrentUser(getIt<AuthRepository>()));
   getIt.registerLazySingleton<GetSavedEmail>(
       () => GetSavedEmail(getIt<AuthRepository>()));
+  getIt.registerLazySingleton<LoginWithPassword>(
+      () => LoginWithPassword(getIt<AuthRepository>()));
+  getIt.registerLazySingleton<ForgotPassword>(
+      () => ForgotPassword(getIt<AuthRepository>()));
   getIt.registerLazySingleton<SendOtp>(() => SendOtp(getIt<AuthRepository>()));
   getIt.registerLazySingleton<VerifyOtp>(
       () => VerifyOtp(getIt<AuthRepository>()));
   getIt.registerLazySingleton<VerifyPin>(
       () => VerifyPin(getIt<AuthRepository>()));
-  getIt.registerLazySingleton<GetCurrentDeviceInfo>(
-    () => GetCurrentDeviceInfo(getIt<AuthRepository>()),
-  );
   getIt.registerLazySingleton<LogoutUser>(
       () => LogoutUser(getIt<AuthRepository>()));
 
@@ -92,10 +94,11 @@ Future<void> configureDependencies() async {
   getIt.registerSingleton<LoginCubit>(
     LoginCubit(
       getSavedEmail: getIt<GetSavedEmail>(),
+      loginWithPassword: getIt<LoginWithPassword>(),
+      forgotPassword: getIt<ForgotPassword>(),
       sendOtp: getIt<SendOtp>(),
       verifyOtp: getIt<VerifyOtp>(),
       verifyPin: getIt<VerifyPin>(),
-      getCurrentDeviceInfo: getIt<GetCurrentDeviceInfo>(),
     ),
   );
 

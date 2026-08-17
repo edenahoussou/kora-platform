@@ -103,7 +103,7 @@ class DetailPassagerPage extends StatelessWidget {
                   Expanded(
                     child: KoraButton(
                       label: 'Embarquer',
-                      variant: KoraButtonVariant.success,
+                      variant: KoraButtonVariant.primary,
                       onPressed: passenger.statut == BoardingStatus.embarque
                           ? null
                           : () =>
@@ -125,7 +125,7 @@ class DetailPassagerPage extends StatelessWidget {
               const SizedBox(height: AppSpacing.sm),
               KoraButton(
                 label: 'Descente anticipée',
-                variant: KoraButtonVariant.secondary,
+                variant: KoraButtonVariant.ghost,
                 icon: Icons.move_down,
                 onPressed: passenger.statut == BoardingStatus.descenduAnticipe
                     ? null

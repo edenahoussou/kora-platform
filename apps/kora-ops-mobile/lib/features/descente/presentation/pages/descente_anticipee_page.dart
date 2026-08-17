@@ -4,6 +4,7 @@ import '../../../../app/theme/app_spacing.dart';
 import '../../../../core/widgets/app_state_placeholder.dart';
 import '../../../../core/widgets/kora_card.dart';
 import '../../../../core/widgets/kora_skeleton.dart';
+import '../../../../core/widgets/main_app_bar.dart';
 import '../../../../core/widgets/seat_map.dart';
 import '../../../ops/data/mock_ops_data_source.dart';
 import '../../../ops/domain/entities/depart.dart';
@@ -54,40 +55,45 @@ class _DescenteAnticipeePageState extends State<DescenteAnticipeePage> {
         .toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Descente anticipée'),
-        actions: const <Widget>[
-          Padding(
-              padding: EdgeInsets.only(right: AppSpacing.md),
-              child: SyncStatusBanner(compact: true)),
-        ],
-      ),
+      appBar: const MainAppBar(eyebrow: 'Gestion', title: 'Descente anticipée'),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.md),
-          child: depart == null
-              ? const AppStatePlaceholder.empty(
-                  message:
-                      'Sélectionnez un départ à gérer pour voir les places libérées.',
-                )
-              : _loading
-                  ? const SkeletonCard(height: 260)
-                  : RefreshIndicator(
-                      onRefresh: _load,
-                      child: ListView(
-                        children: <Widget>[
-                          Text(depart.route,
-                              style: Theme.of(context).textTheme.titleMedium),
-                          const SizedBox(height: AppSpacing.md),
-                          KoraCard(child: SeatMap(seats: _seats)),
-                          const SizedBox(height: AppSpacing.lg),
-                          Text(
-                            '${liberes.length} place(s) concernée(s) par une descente anticipée',
-                            style: Theme.of(context).textTheme.bodyMedium,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              const Align(
+                  alignment: Alignment.centerLeft, child: SyncStatusBanner()),
+              const SizedBox(height: AppSpacing.sm),
+              Expanded(
+                child: depart == null
+                    ? const AppStatePlaceholder.empty(
+                        message:
+                            'Sélectionnez un départ à gérer pour voir les places libérées.',
+                      )
+                    : _loading
+                        ? const SkeletonCard(height: 260)
+                        : RefreshIndicator(
+                            onRefresh: _load,
+                            child: ListView(
+                              children: <Widget>[
+                                Text(depart.route,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium),
+                                const SizedBox(height: AppSpacing.md),
+                                KoraCard(child: SeatMap(seats: _seats)),
+                                const SizedBox(height: AppSpacing.lg),
+                                Text(
+                                  '${liberes.length} place(s) concernée(s) par une descente anticipée',
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              ],
+                            ),
                           ),
-                        ],
-                      ),
-                    ),
+              ),
+            ],
+          ),
         ),
       ),
     );

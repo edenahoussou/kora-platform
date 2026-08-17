@@ -1,7 +1,6 @@
 import '../../../../core/errors/failures.dart';
 import '../../../../core/exceptions/app_exceptions.dart';
 import '../../../../core/result/result.dart';
-import '../../domain/entities/device_info.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_local_datasource.dart';
@@ -18,6 +17,27 @@ class AuthRepositoryImpl implements AuthRepository {
       return Result<String?>.success(email);
     } on AppException catch (error) {
       return Result<String?>.failure(_mapException(error));
+    }
+  }
+
+  @override
+  Future<Result<void>> login(
+      {required String email, required String password}) async {
+    try {
+      await _localDataSource.login(email: email, password: password);
+      return const Result<void>.success(null);
+    } on AppException catch (error) {
+      return Result<void>.failure(_mapException(error));
+    }
+  }
+
+  @override
+  Future<Result<void>> forgotPassword({required String email}) async {
+    try {
+      await _localDataSource.forgotPassword(email: email);
+      return const Result<void>.success(null);
+    } on AppException catch (error) {
+      return Result<void>.failure(_mapException(error));
     }
   }
 
@@ -44,22 +64,14 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Result<UserEntity>> verifyPin({required String pin}) async {
+  Future<Result<UserEntity>> verifyPin(
+      {required String email, required String pin}) async {
     try {
-      final UserEntity user = await _localDataSource.verifyPin(pin: pin);
+      final UserEntity user =
+          await _localDataSource.verifyPin(email: email, pin: pin);
       return Result<UserEntity>.success(user);
     } on AppException catch (error) {
       return Result<UserEntity>.failure(_mapException(error));
-    }
-  }
-
-  @override
-  Future<Result<DeviceInfo>> getCurrentDeviceInfo() async {
-    try {
-      final DeviceInfo info = await _localDataSource.getCurrentDeviceInfo();
-      return Result<DeviceInfo>.success(info);
-    } on AppException catch (error) {
-      return Result<DeviceInfo>.failure(_mapException(error));
     }
   }
 

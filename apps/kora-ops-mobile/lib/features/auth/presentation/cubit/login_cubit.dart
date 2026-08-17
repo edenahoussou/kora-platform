@@ -1,66 +1,116 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/result/result.dart';
-import '../../domain/entities/device_info.dart';
 import '../../domain/entities/user_entity.dart';
-import '../../domain/usecases/get_current_device_info.dart';
+import '../../domain/usecases/forgot_password.dart';
 import '../../domain/usecases/get_saved_email.dart';
+import '../../domain/usecases/login_with_password.dart';
 import '../../domain/usecases/send_otp.dart';
 import '../../domain/usecases/verify_otp.dart';
 import '../../domain/usecases/verify_pin.dart';
 
 part 'login_state.dart';
 
-/// LoginCubit plutôt qu'un LoginBloc : chaque étape (PIN, nouvel appareil,
-/// OTP) est déclenchée directement par une action utilisateur sur l'écran
-/// courant — voir document.md § Bloc vs Cubit.
+/// LoginCubit plutôt qu'un LoginBloc : chaque étape (email+mot de passe,
+/// PIN, OTP) est déclenchée directement par une action utilisateur sur
+/// l'écran courant — voir document.md § Bloc vs Cubit.
 ///
-/// Les agents KORA OPS sont provisionnés par un administrateur : il n'y a
-/// pas d'auto-inscription. L'écran d'entrée est donc directement le PIN
-/// (voir document.md § Flux d'authentification) ; l'OTP ne sert qu'à
-/// confirmer un appareil non reconnu, jamais à créer un compte.
+/// Deux parcours (voir document.md § Flux d'authentification) :
+///   - **Première connexion sur cet appareil** : email + mot de passe →
+///     PIN → OTP d'activation → connecté.
+///   - **Appareil déjà reconnu** (email déjà activé une fois) : PIN seul →
+///     connecté, sans repasser par l'email ni l'OTP.
 class LoginCubit extends Cubit<LoginState> {
   LoginCubit({
     required GetSavedEmail getSavedEmail,
+    required LoginWithPassword loginWithPassword,
+    required ForgotPassword forgotPassword,
     required SendOtp sendOtp,
     required VerifyOtp verifyOtp,
     required VerifyPin verifyPin,
-    required GetCurrentDeviceInfo getCurrentDeviceInfo,
   })  : _getSavedEmail = getSavedEmail,
+        _loginWithPassword = loginWithPassword,
+        _forgotPassword = forgotPassword,
         _sendOtp = sendOtp,
         _verifyOtp = verifyOtp,
         _verifyPin = verifyPin,
-        _getCurrentDeviceInfo = getCurrentDeviceInfo,
         super(const LoginState());
 
   final GetSavedEmail _getSavedEmail;
+  final LoginWithPassword _loginWithPassword;
+  final ForgotPassword _forgotPassword;
   final SendOtp _sendOtp;
   final VerifyOtp _verifyOtp;
   final VerifyPin _verifyPin;
-  final GetCurrentDeviceInfo _getCurrentDeviceInfo;
 
-  /// Relit l'email de l'agent provisionné sur l'appareil, pour l'afficher
-  /// en sous-titre de l'écran PIN.
+  /// Relit l'email déjà activé sur l'appareil (reconnexion), pour
+  /// l'afficher en sous-titre de l'écran PIN et l'utiliser lors de la
+  /// vérification.
   Future<String?> loadSavedEmail() async {
     final result = await _getSavedEmail();
     final String? email =
         result.when(onSuccess: (value) => value, onFailure: (_) => null);
-    if (email != null) emit(state.copyWith(email: email));
+    if (email != null) {
+      emit(state.copyWith(email: email, pendingOtpActivation: false));
+    }
     return email;
   }
 
-  Future<bool> submitPin(String pin) async {
+  Future<bool> submitEmailPassword(String email, String password) async {
     emit(state.copyWith(status: LoginStatus.submitting, clearError: true));
-    final result = await _verifyPin(pin: pin);
+    final result = await _loginWithPassword(email: email, password: password);
+    return result.when(
+      onSuccess: (_) {
+        emit(
+          state.copyWith(
+            status: LoginStatus.success,
+            email: email,
+            pendingOtpActivation: true,
+          ),
+        );
+        return true;
+      },
+      onFailure: (failure) {
+        emit(state.copyWith(
+            status: LoginStatus.failure, errorMessage: failure.message));
+        return false;
+      },
+    );
+  }
+
+  Future<bool> submitForgotPassword(String email) async {
+    emit(state.copyWith(status: LoginStatus.submitting, clearError: true));
+    final result = await _forgotPassword(email: email);
+    return result.when(
+      onSuccess: (_) {
+        emit(state.copyWith(status: LoginStatus.success));
+        return true;
+      },
+      onFailure: (failure) {
+        emit(state.copyWith(
+            status: LoginStatus.failure, errorMessage: failure.message));
+        return false;
+      },
+    );
+  }
+
+  /// Vérifie le PIN pour [state.email]. Ne déclenche **pas** l'envoi de
+  /// l'OTP lui-même — l'écran appelant décide, selon
+  /// [LoginState.pendingOtpActivation], d'appeler [requestActivationOtp]
+  /// (première connexion) ou d'authentifier directement (reconnexion).
+  Future<bool> submitPin(String pin) async {
+    final String? email = state.email;
+    if (email == null) {
+      emit(state.copyWith(
+          status: LoginStatus.failure, errorMessage: 'Email manquant.'));
+      return false;
+    }
+
+    emit(state.copyWith(status: LoginStatus.submitting, clearError: true));
+    final result = await _verifyPin(email: email, pin: pin);
     switch (result) {
       case Success<UserEntity>(value: final UserEntity user):
-        final deviceResult = await _getCurrentDeviceInfo();
-        final DeviceInfo? device = deviceResult.when(
-          onSuccess: (info) => info,
-          onFailure: (_) => null,
-        );
-        emit(state.copyWith(
-            status: LoginStatus.success, user: user, deviceInfo: device));
+        emit(state.copyWith(status: LoginStatus.success, user: user));
         return true;
       case ResultFailure<UserEntity>(failure: final failure):
         emit(state.copyWith(
@@ -69,9 +119,9 @@ class LoginCubit extends Cubit<LoginState> {
     }
   }
 
-  /// Depuis l'écran "Nouvel appareil détecté" : demande un OTP de
-  /// confirmation.
-  Future<bool> requestDeviceConfirmationOtp() async {
+  /// Envoie l'OTP d'activation — première connexion sur cet appareil
+  /// uniquement (après un PIN valide).
+  Future<bool> requestActivationOtp() async {
     final String? email = state.email;
     if (email == null) return false;
 
@@ -102,7 +152,10 @@ class LoginCubit extends Cubit<LoginState> {
     final result = await _verifyOtp(email: email, code: code);
     return result.when(
       onSuccess: (UserEntity user) {
-        emit(state.copyWith(status: LoginStatus.success, user: user));
+        emit(state.copyWith(
+            status: LoginStatus.success,
+            user: user,
+            pendingOtpActivation: false));
         return true;
       },
       onFailure: (failure) {

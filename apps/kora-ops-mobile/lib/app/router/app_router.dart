@@ -3,21 +3,26 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/widgets/kora_bottom_nav.dart';
 import '../../features/auth/presentation/cubit/login_cubit.dart';
-import '../../features/auth/presentation/pages/new_device_detected_page.dart';
+import '../../features/auth/presentation/pages/forgot_password_page.dart';
+import '../../features/auth/presentation/pages/login_email_page.dart';
 import '../../features/auth/presentation/pages/otp_invalid_page.dart';
 import '../../features/auth/presentation/pages/otp_verification_page.dart';
 import '../../features/auth/presentation/pages/pin_entry_page.dart';
-import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/descente/presentation/pages/descente_anticipee_page.dart';
 import '../../features/home/presentation/pages/accueil_page.dart';
-import '../../features/home/presentation/pages/selection_depart_page.dart';
 import '../../features/manifeste/presentation/pages/detail_passager_page.dart';
 import '../../features/manifeste/presentation/pages/manifeste_page.dart';
 import '../../features/printing/presentation/cubit/printing_cubit.dart';
 import '../../features/printing/presentation/pages/printer_test_page.dart';
+import '../../features/profil/presentation/pages/mes_informations_page.dart';
+import '../../features/profil/presentation/pages/preferences_page.dart';
+import '../../features/profil/presentation/pages/profil_page.dart';
+import '../../features/profil/presentation/pages/securite_page.dart';
 import '../../features/scan/presentation/pages/scan_boarding_page.dart';
 import '../../features/scan/presentation/pages/scan_result_page.dart';
+import '../../features/splash/presentation/pages/splash_page.dart';
 import '../../features/synchro/presentation/pages/synchro_page.dart';
+import '../../features/tournee/presentation/pages/tournee_page.dart';
 import '../../injection/injection.dart';
 import 'app_routes.dart';
 import 'auth_guard.dart';
@@ -44,6 +49,15 @@ class AppRouter {
           path: AppRoutes.splash,
           builder: (context, state) => const SplashPage()),
       GoRoute(
+        path: AppRoutes.loginEmail,
+        builder: (context, state) => _withLoginCubit(const LoginEmailPage()),
+      ),
+      GoRoute(
+        path: AppRoutes.loginForgotPassword,
+        builder: (context, state) =>
+            _withLoginCubit(const ForgotPasswordPage()),
+      ),
+      GoRoute(
         path: AppRoutes.loginPin,
         builder: (context, state) => _withLoginCubit(const PinEntryPage()),
       ),
@@ -57,13 +71,8 @@ class AppRouter {
         builder: (context, state) => _withLoginCubit(const OtpInvalidPage()),
       ),
       GoRoute(
-        path: AppRoutes.loginNewDevice,
-        builder: (context, state) =>
-            _withLoginCubit(const NewDeviceDetectedPage()),
-      ),
-      GoRoute(
-        path: AppRoutes.selectionDepart,
-        builder: (context, state) => const SelectionDepartPage(),
+        path: AppRoutes.manifeste,
+        builder: (context, state) => const ManifestePage(),
       ),
       GoRoute(
         path: AppRoutes.detailPassager,
@@ -73,6 +82,22 @@ class AppRouter {
       GoRoute(
         path: AppRoutes.scanResult,
         builder: (context, state) => const ScanResultPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.synchro,
+        builder: (context, state) => const SynchroPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.mesInformations,
+        builder: (context, state) => const MesInformationsPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.securite,
+        builder: (context, state) => const SecuritePage(),
+      ),
+      GoRoute(
+        path: AppRoutes.preferences,
+        builder: (context, state) => const PreferencesPage(),
       ),
       GoRoute(
         path: AppRoutes.printerTest,
@@ -95,8 +120,8 @@ class AppRouter {
           StatefulShellBranch(
             routes: <RouteBase>[
               GoRoute(
-                  path: AppRoutes.manifeste,
-                  builder: (context, state) => const ManifestePage()),
+                  path: AppRoutes.tournee,
+                  builder: (context, state) => const TourneePage()),
             ],
           ),
           StatefulShellBranch(
@@ -117,8 +142,8 @@ class AppRouter {
           StatefulShellBranch(
             routes: <RouteBase>[
               GoRoute(
-                  path: AppRoutes.synchro,
-                  builder: (context, state) => const SynchroPage()),
+                  path: AppRoutes.profil,
+                  builder: (context, state) => const ProfilPage()),
             ],
           ),
         ],

@@ -1,48 +1,64 @@
-import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/exceptions/app_exceptions.dart';
-import '../../domain/entities/device_info.dart';
 import '../models/user_model.dart';
 
 /// Datasource locale — simule tout le flux d'authentification (voir spec
-/// ticket : "connectés aux API réelles au Sprint 5"). Le code OTP et le PIN
-/// sont des valeurs fixes documentées ci-dessous et dans document.md §
-/// Flux d'authentification.
+/// ticket : "connectés aux API réelles au Sprint 5"). Identifiants, PIN et
+/// code OTP sont des valeurs fixes documentées ci-dessous et dans
+/// document.md § Flux d'authentification.
 ///
-/// **Pas d'auto-inscription côté OPS** : les agents sont provisionnés par
-/// un administrateur, donc l'email de l'agent est pré-enregistré sur
-/// l'appareil dès le premier lancement ([_seedProvisionedAccountIfNeeded])
-/// plutôt que saisi via un écran de création de compte.
+/// **L'email n'est enregistré comme "activé sur cet appareil" qu'après un
+/// parcours OTP réussi** ([verifyOtp]) — tant que ce n'est pas fait,
+/// [getSavedEmail] retourne `null` et l'app redemande email + mot de passe
+/// à chaque lancement.
+///
+/// **La session (`current_user`) reste en mémoire uniquement, jamais
+/// persistée** (voir échange du 18/08/2026 — app en mode démo) : à chaque
+/// redémarrage à froid, le PIN (ou email + mot de passe pour un appareil
+/// jamais activé) est redemandé, même si l'appareil est déjà activé —
+/// seule l'activation de l'appareil (`saved_email`) survit à un
+/// redémarrage, pas la session en cours.
 class AuthLocalDataSource {
   AuthLocalDataSource(this._preferences);
 
   final SharedPreferences _preferences;
 
   static const String _savedEmailKey = 'auth.saved_email';
-  static const String _currentUserKey = 'auth.current_user';
 
-  /// Compte provisionné par défaut sur ce terminal (mock — un vrai
-  /// provisioning arrivera avec l'API au Sprint 5).
-  static const String provisionedEmail = 'aicha.hounkpe@kora-express.com';
+  /// Session en cours — volontairement **non persistée**, voir docstring.
+  UserModel? _currentUser;
+
   static const String provisionedFullName = 'Aïcha Hounkpé';
   static const String provisionedRole = 'Convoyeur';
+
+  /// Identifiants acceptés par le mock — toute autre combinaison échoue.
+  static const String mockEmail = 'aicha.hounkpe@kora-express.com';
+  static const String mockPassword = 'Kora@2026';
+
+  /// PIN accepté par le mock — toute autre valeur à 4 chiffres est refusée.
+  static const String mockPin = '1234';
 
   /// Code OTP accepté par le mock — toute autre valeur à 6 chiffres déclenche
   /// l'écran "Code non valide".
   static const String mockOtpCode = '583187';
 
-  /// PIN accepté par le mock — toute autre valeur à 4 chiffres est refusée.
-  static const String mockPin = '1234';
+  Future<String?> getSavedEmail() async =>
+      _preferences.getString(_savedEmailKey);
 
-  Future<String?> getSavedEmail() async {
-    await _seedProvisionedAccountIfNeeded();
-    return _preferences.getString(_savedEmailKey);
+  Future<void> login({required String email, required String password}) async {
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+    if (email.trim().toLowerCase() != mockEmail || password != mockPassword) {
+      throw const ApiException('Email ou mot de passe incorrect.');
+    }
   }
 
-  Future<void> _seedProvisionedAccountIfNeeded() async {
-    if (_preferences.getString(_savedEmailKey) == null) {
-      await _preferences.setString(_savedEmailKey, provisionedEmail);
+  Future<void> forgotPassword({required String email}) async {
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+    if (email.trim().toLowerCase() != mockEmail) {
+      throw const ApiException('Aucun compte associé à cet email.');
     }
+    // Simule l'envoi d'un lien de réinitialisation — aucun envoi réel à ce
+    // sprint.
   }
 
   Future<void> sendOtp({required String email}) async {
@@ -63,19 +79,19 @@ class AuthLocalDataSource {
       role: provisionedRole,
       email: email,
     );
-    await _preferences.setString(_currentUserKey, jsonEncode(user.toJson()));
+    // L'appareil est désormais reconnu pour cet email — les prochaines
+    // connexions n'auront plus qu'à saisir le PIN (mais toujours à chaque
+    // lancement, voir docstring de la classe).
+    await _preferences.setString(_savedEmailKey, email);
+    _currentUser = user;
     return user;
   }
 
-  Future<UserModel> verifyPin({required String pin}) async {
+  Future<UserModel> verifyPin(
+      {required String email, required String pin}) async {
     await Future<void>.delayed(const Duration(milliseconds: 400));
     if (pin != mockPin) {
       throw const ApiException('PIN incorrect.');
-    }
-
-    final String? email = await getSavedEmail();
-    if (email == null) {
-      throw const ApiException('Aucun compte provisionné sur cet appareil.');
     }
 
     final UserModel user = UserModel(
@@ -84,36 +100,16 @@ class AuthLocalDataSource {
       role: provisionedRole,
       email: email,
     );
-    await _preferences.setString(_currentUserKey, jsonEncode(user.toJson()));
+    _currentUser = user;
     return user;
   }
 
-  Future<DeviceInfo> getCurrentDeviceInfo() async {
-    // Mocké — un vrai fingerprint (modèle, ville via géoloc/IP) sera
-    // branché avec l'API au Sprint 5. La détection "nouvel appareil"
-    // elle-même est toujours déclenchée après un PIN valide, pour la
-    // démonstration du parcours (voir document.md).
-    await Future<void>.delayed(const Duration(milliseconds: 300));
-    return const DeviceInfo(
-      deviceModel: 'Tecno CAMON',
-      city: 'Cotonou',
-      attemptLabel: 'À l\'instant',
-    );
-  }
-
   Future<void> logout() async {
-    // On efface la session courante mais on garde l'email provisionné, pour
-    // retomber sur l'écran PIN à la reconnexion.
-    await _preferences.remove(_currentUserKey);
+    // On efface la session courante mais on garde l'email activé, pour
+    // retomber sur l'écran PIN (et non email + mot de passe) à la
+    // reconnexion.
+    _currentUser = null;
   }
 
-  Future<UserModel?> getCurrentUser() async {
-    final String? raw = _preferences.getString(_currentUserKey);
-    if (raw == null) return null;
-    try {
-      return UserModel.fromJson(jsonDecode(raw) as Map<String, dynamic>);
-    } catch (_) {
-      throw const CacheException('Session locale corrompue.');
-    }
-  }
+  Future<UserModel?> getCurrentUser() async => _currentUser;
 }

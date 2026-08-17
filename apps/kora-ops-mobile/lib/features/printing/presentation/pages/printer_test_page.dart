@@ -93,7 +93,7 @@ class PrinterTestPage extends StatelessWidget {
                         KoraButton(
                           label: 'Imprimer un ticket de test',
                           isLoading: state is PrintingInProgress,
-                          variant: KoraButtonVariant.secondary,
+                          variant: KoraButtonVariant.ghost,
                           onPressed: isBusy
                               ? null
                               : () => context

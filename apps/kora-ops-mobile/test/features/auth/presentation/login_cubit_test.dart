@@ -2,10 +2,10 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_ops_mobile/core/errors/failures.dart';
 import 'package:kora_ops_mobile/core/result/result.dart';
-import 'package:kora_ops_mobile/features/auth/domain/entities/device_info.dart';
 import 'package:kora_ops_mobile/features/auth/domain/entities/user_entity.dart';
-import 'package:kora_ops_mobile/features/auth/domain/usecases/get_current_device_info.dart';
+import 'package:kora_ops_mobile/features/auth/domain/usecases/forgot_password.dart';
 import 'package:kora_ops_mobile/features/auth/domain/usecases/get_saved_email.dart';
+import 'package:kora_ops_mobile/features/auth/domain/usecases/login_with_password.dart';
 import 'package:kora_ops_mobile/features/auth/domain/usecases/send_otp.dart';
 import 'package:kora_ops_mobile/features/auth/domain/usecases/verify_otp.dart';
 import 'package:kora_ops_mobile/features/auth/domain/usecases/verify_pin.dart';
@@ -14,20 +14,23 @@ import 'package:mocktail/mocktail.dart';
 
 class MockGetSavedEmail extends Mock implements GetSavedEmail {}
 
+class MockLoginWithPassword extends Mock implements LoginWithPassword {}
+
+class MockForgotPassword extends Mock implements ForgotPassword {}
+
 class MockSendOtp extends Mock implements SendOtp {}
 
 class MockVerifyOtp extends Mock implements VerifyOtp {}
 
 class MockVerifyPin extends Mock implements VerifyPin {}
 
-class MockGetCurrentDeviceInfo extends Mock implements GetCurrentDeviceInfo {}
-
 void main() {
   late MockGetSavedEmail getSavedEmail;
+  late MockLoginWithPassword loginWithPassword;
+  late MockForgotPassword forgotPassword;
   late MockSendOtp sendOtp;
   late MockVerifyOtp verifyOtp;
   late MockVerifyPin verifyPin;
-  late MockGetCurrentDeviceInfo getCurrentDeviceInfo;
 
   const UserEntity user = UserEntity(
     id: 'agent-001',
@@ -35,135 +38,124 @@ void main() {
     role: 'Convoyeur',
     email: 'aicha.hounkpe@kora-express.com',
   );
-  const DeviceInfo device = DeviceInfo(
-    deviceModel: 'Tecno CAMON',
-    city: 'Cotonou',
-    attemptLabel: 'À l\'instant',
-  );
 
   setUp(() {
     getSavedEmail = MockGetSavedEmail();
+    loginWithPassword = MockLoginWithPassword();
+    forgotPassword = MockForgotPassword();
     sendOtp = MockSendOtp();
     verifyOtp = MockVerifyOtp();
     verifyPin = MockVerifyPin();
-    getCurrentDeviceInfo = MockGetCurrentDeviceInfo();
   });
 
   LoginCubit buildCubit() => LoginCubit(
         getSavedEmail: getSavedEmail,
+        loginWithPassword: loginWithPassword,
+        forgotPassword: forgotPassword,
         sendOtp: sendOtp,
         verifyOtp: verifyOtp,
         verifyPin: verifyPin,
-        getCurrentDeviceInfo: getCurrentDeviceInfo,
       );
 
-  group('loadSavedEmail', () {
-    test('stocke l\'email dans le state et le retourne', () async {
-      when(() => getSavedEmail()).thenAnswer((_) async =>
-          const Result<String?>.success('aicha.hounkpe@kora-express.com'));
-      final cubit = buildCubit();
-
-      final result = await cubit.loadSavedEmail();
-
-      expect(result, 'aicha.hounkpe@kora-express.com');
-      expect(cubit.state.email, 'aicha.hounkpe@kora-express.com');
-    });
-  });
-
-  group('submitPin', () {
+  group('submitEmailPassword (première connexion)', () {
     blocTest<LoginCubit, LoginState>(
-      'charge les infos de l\'appareil et émet success quand le PIN est correct',
+      'émet success + pendingOtpActivation=true quand les identifiants sont valides',
       build: () {
-        when(() => verifyPin(pin: any(named: 'pin')))
-            .thenAnswer((_) async => const Result<UserEntity>.success(user));
-        when(() => getCurrentDeviceInfo())
-            .thenAnswer((_) async => const Result<DeviceInfo>.success(device));
+        when(() => loginWithPassword(
+                email: any(named: 'email'), password: any(named: 'password')))
+            .thenAnswer((_) async => const Result<void>.success(null));
         return buildCubit();
       },
-      act: (LoginCubit cubit) => cubit.submitPin('1234'),
+      act: (LoginCubit cubit) =>
+          cubit.submitEmailPassword(user.email, 'Kora@2026'),
       expect: () => <dynamic>[
         predicate<LoginState>((s) => s.status == LoginStatus.submitting),
         predicate<LoginState>(
           (s) =>
               s.status == LoginStatus.success &&
-              s.user == user &&
-              s.deviceInfo == device,
+              s.email == user.email &&
+              s.pendingOtpActivation,
         ),
       ],
     );
 
-    blocTest<LoginCubit, LoginState>(
-      'émet failure quand le PIN est incorrect',
-      build: () {
-        when(() => verifyPin(pin: any(named: 'pin'))).thenAnswer(
-          (_) async => const Result<UserEntity>.failure(
-              ValidationFailure('PIN incorrect.')),
-        );
-        return buildCubit();
-      },
-      act: (LoginCubit cubit) => cubit.submitPin('0000'),
-      expect: () => <dynamic>[
-        predicate<LoginState>((s) => s.status == LoginStatus.submitting),
-        predicate<LoginState>(
-          (s) =>
-              s.status == LoginStatus.failure &&
-              s.errorMessage == 'PIN incorrect.',
-        ),
-      ],
-    );
-
-    test('retourne un booléen reflétant le succès/échec', () async {
-      when(() => verifyPin(pin: any(named: 'pin')))
-          .thenAnswer((_) async => const Result<UserEntity>.success(user));
-      when(() => getCurrentDeviceInfo())
-          .thenAnswer((_) async => const Result<DeviceInfo>.success(device));
+    test('émet failure quand les identifiants sont invalides', () async {
+      when(() => loginWithPassword(
+              email: any(named: 'email'), password: any(named: 'password')))
+          .thenAnswer((_) async => const Result<void>.failure(
+              ValidationFailure('Identifiants invalides.')));
       final cubit = buildCubit();
 
-      final result = await cubit.submitPin('1234');
+      final result = await cubit.submitEmailPassword(user.email, 'wrong');
 
-      expect(result, isTrue);
-    });
-  });
-
-  group('requestDeviceConfirmationOtp', () {
-    test('retourne false sans email connu', () async {
-      final cubit = buildCubit();
-      final result = await cubit.requestDeviceConfirmationOtp();
       expect(result, isFalse);
-    });
-
-    test(
-        'envoie un OTP quand un email est déjà présent dans le state (post-PIN)',
-        () async {
-      when(() => verifyPin(pin: any(named: 'pin')))
-          .thenAnswer((_) async => const Result<UserEntity>.success(user));
-      when(() => getCurrentDeviceInfo())
-          .thenAnswer((_) async => const Result<DeviceInfo>.success(device));
-      when(() => sendOtp(email: any(named: 'email')))
-          .thenAnswer((_) async => const Result<void>.success(null));
-
-      final cubit = buildCubit();
-      await cubit.loadSavedEmail().catchError((_) => null);
-      // Simule le passage par l'écran PIN, qui alimente state.user (email
-      // du provisionné, cohérent avec le flux réel PIN → nouvel appareil).
-      when(() => getSavedEmail()).thenAnswer((_) async =>
-          const Result<String?>.success('aicha.hounkpe@kora-express.com'));
-      await cubit.loadSavedEmail();
-
-      final bool result = await cubit.requestDeviceConfirmationOtp();
-
-      expect(result, isTrue);
-      verify(() => sendOtp(email: 'aicha.hounkpe@kora-express.com')).called(1);
+      expect(cubit.state.pendingOtpActivation, isFalse);
     });
   });
 
-  group('submitOtp', () {
-    test('retourne true et stocke l\'utilisateur quand le code est correct',
+  group('loadSavedEmail (reconnexion)', () {
+    test('renseigne email sans activer pendingOtpActivation', () async {
+      when(() => getSavedEmail())
+          .thenAnswer((_) async => Result<String?>.success(user.email));
+      final cubit = buildCubit();
+
+      final email = await cubit.loadSavedEmail();
+
+      expect(email, user.email);
+      expect(cubit.state.pendingOtpActivation, isFalse);
+    });
+  });
+
+  group('submitPin', () {
+    test('retourne true et stocke l\'utilisateur quand le PIN est correct',
         () async {
       when(() => getSavedEmail())
           .thenAnswer((_) async => Result<String?>.success(user.email));
       final cubit = buildCubit();
       await cubit.loadSavedEmail();
+
+      when(() => verifyPin(email: any(named: 'email'), pin: any(named: 'pin')))
+          .thenAnswer((_) async => const Result<UserEntity>.success(user));
+
+      final result = await cubit.submitPin('1234');
+
+      expect(result, isTrue);
+      expect(cubit.state.user, user);
+    });
+
+    test('retourne false sans email connu', () async {
+      final cubit = buildCubit();
+      final result = await cubit.submitPin('1234');
+      expect(result, isFalse);
+    });
+  });
+
+  group('requestActivationOtp', () {
+    test('envoie un OTP pour l\'email courant', () async {
+      when(() => loginWithPassword(
+              email: any(named: 'email'), password: any(named: 'password')))
+          .thenAnswer((_) async => const Result<void>.success(null));
+      when(() => sendOtp(email: any(named: 'email')))
+          .thenAnswer((_) async => const Result<void>.success(null));
+      final cubit = buildCubit();
+      await cubit.submitEmailPassword(user.email, 'Kora@2026');
+
+      final result = await cubit.requestActivationOtp();
+
+      expect(result, isTrue);
+      verify(() => sendOtp(email: user.email)).called(1);
+    });
+  });
+
+  group('submitOtp', () {
+    test(
+        'retourne true, stocke l\'utilisateur et désactive pendingOtpActivation',
+        () async {
+      when(() => loginWithPassword(
+              email: any(named: 'email'), password: any(named: 'password')))
+          .thenAnswer((_) async => const Result<void>.success(null));
+      final cubit = buildCubit();
+      await cubit.submitEmailPassword(user.email, 'Kora@2026');
 
       when(() =>
               verifyOtp(email: any(named: 'email'), code: any(named: 'code')))
@@ -173,13 +165,15 @@ void main() {
 
       expect(result, isTrue);
       expect(cubit.state.user, user);
+      expect(cubit.state.pendingOtpActivation, isFalse);
     });
 
     test('retourne false quand le code est incorrect', () async {
-      when(() => getSavedEmail())
-          .thenAnswer((_) async => Result<String?>.success(user.email));
+      when(() => loginWithPassword(
+              email: any(named: 'email'), password: any(named: 'password')))
+          .thenAnswer((_) async => const Result<void>.success(null));
       final cubit = buildCubit();
-      await cubit.loadSavedEmail();
+      await cubit.submitEmailPassword(user.email, 'Kora@2026');
 
       when(() =>
               verifyOtp(email: any(named: 'email'), code: any(named: 'code')))
@@ -194,12 +188,25 @@ void main() {
     });
   });
 
+  group('submitForgotPassword', () {
+    test('retourne true quand l\'envoi réussit', () async {
+      when(() => forgotPassword(email: any(named: 'email')))
+          .thenAnswer((_) async => const Result<void>.success(null));
+      final cubit = buildCubit();
+
+      final result = await cubit.submitForgotPassword(user.email);
+
+      expect(result, isTrue);
+    });
+  });
+
   group('reset', () {
     test('revient à un état initial vide', () async {
-      when(() => getSavedEmail())
-          .thenAnswer((_) async => Result<String?>.success(user.email));
+      when(() => loginWithPassword(
+              email: any(named: 'email'), password: any(named: 'password')))
+          .thenAnswer((_) async => const Result<void>.success(null));
       final cubit = buildCubit();
-      await cubit.loadSavedEmail();
+      await cubit.submitEmailPassword(user.email, 'Kora@2026');
 
       cubit.reset();
 
