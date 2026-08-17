@@ -105,7 +105,7 @@ export default function Login({ status, canResetPassword }: Props) {
 
                             <Button
                                 type="submit"
-                                className="kora-auth-submit relative mt-4 h-[3.25rem] w-full overflow-hidden rounded-[0.6875rem] bg-gold text-[0.8125rem] font-extrabold text-[var(--kora)] shadow-[0_9px_22px_rgba(246,176,0,0.22)] transition-[color,background,transform] hover:translate-y-[-1px] hover:bg-[var(--kora)] hover:text-white"
+                                className="kora-auth-submit relative mt-4 h-[3.25rem] w-full overflow-hidden rounded-[0.6875rem] bg-gold text-[0.8125rem] font-medium text-[var(--kora)] shadow-[0_9px_22px_rgba(246,176,0,0.22)] transition-[color,background,transform] hover:translate-y-[-1px] hover:bg-[var(--kora)] hover:text-white"
                                 tabIndex={4}
                                 disabled={processing}
                                 data-test="login-button"
@@ -217,7 +217,7 @@ function ForgotPasswordDialog({
                         <Button
                             type="button"
                             onClick={() => handleClose(false)}
-                            className="mt-6 h-[3.25rem] w-full rounded-[0.6875rem] bg-gold text-[0.8125rem] font-extrabold text-[var(--kora)] shadow-[0_9px_22px_rgba(246,176,0,0.22)] transition-[color,background,transform] hover:translate-y-[-1px] hover:bg-[var(--kora)] hover:text-white"
+                            className="mt-6 h-[3.25rem] w-full rounded-[0.6875rem] bg-gold text-[0.8125rem] font-medium text-[var(--kora)] shadow-[0_9px_22px_rgba(246,176,0,0.22)] transition-[color,background,transform] hover:translate-y-[-1px] hover:bg-[var(--kora)] hover:text-white"
                         >
                             Retour à la connexion
                         </Button>
@@ -277,7 +277,7 @@ function ForgotPasswordDialog({
                         <Button
                             type="submit"
                             disabled={processing}
-                            className="h-[3.25rem] w-full rounded-[0.6875rem] bg-gold text-[0.8125rem] font-extrabold text-[var(--kora)] shadow-[0_9px_22px_rgba(246,176,0,0.22)] transition-[color,background,transform] hover:translate-y-[-1px] hover:bg-[var(--kora)] hover:text-white"
+                            className="h-[3.25rem] w-full rounded-[0.6875rem] bg-gold text-[0.8125rem] font-medium text-[var(--kora)] shadow-[0_9px_22px_rgba(246,176,0,0.22)] transition-[color,background,transform] hover:translate-y-[-1px] hover:bg-[var(--kora)] hover:text-white"
                         >
                             {processing ? (
                                 <Spinner />
