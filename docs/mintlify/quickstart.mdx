@@ -1,0 +1,102 @@
+---
+title: Quickstart
+description: Premier appel API en moins de 5 minutes.
+---
+
+# Quickstart
+
+Ce guide vous accompagne pour faire votre premier appel à l'API KORA BUS depuis une application Flutter.
+
+## 1. Obtenir la base URL
+
+Choisissez l'environnement cible :
+
+| Environnement | Base URL |
+|---------------|----------|
+| Local | `http://kora-ops-web.local` |
+| Staging | `https://staging-api.korabus.app` |
+| Production | `https://api.korabus.app` |
+
+## 2. Configurer le client HTTP
+
+<CodeGroup>
+
+```dart
+// lib/core/api/kora_api_client.dart
+import 'package:dio/dio.dart';
+
+class KoraApiClient {
+  static const String baseUrl = String.fromEnvironment(
+    'KORA_API_BASE_URL',
+    defaultValue: 'https://staging-api.korabus.app',
+  );
+
+  static Dio create({String? authToken}) {
+    final dio = Dio(BaseOptions(
+      baseUrl: baseUrl,
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 30),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        if (authToken != null) 'Authorization': 'Bearer $authToken',
+      },
+    ));
+
+    return dio;
+  }
+}
+```
+
+</CodeGroup>
+
+## 3. Lister les villes desservies
+
+Premier appel public, sans authentification :
+
+<CodeGroup>
+
+```dart
+final dio = KoraApiClient.create();
+
+final response = await dio.get('/api/v1/bus/cities');
+final cities = response.data['data'] as List;
+
+for (final city in cities) {
+  print('${city['uuid']} — ${city['name']}');
+}
+// 6ff8f7f6-... — Cotonou
+// 6b72fe4a-... — Abidjan
+```
+
+</CodeGroup>
+
+## 4. Rechercher des départs
+
+<CodeGroup>
+
+```dart
+final response = await dio.get(
+  '/api/v1/bus/departures',
+  queryParameters: {
+    'date': '2026-08-20',
+    'from': 'Cotonou',
+    'to': 'Abidjan',
+  },
+);
+
+final departures = response.data['data'] as List;
+for (final d in departures) {
+  print('${d['uuid']} — ${d['departure_time']} — ${d['available_seats']} places');
+}
+```
+
+</CodeGroup>
+
+## 5. Authentification (optionnel)
+
+Pour accéder aux endpoints protégés (`/me`, `/preferences`, `/devices`), vous devez obtenir un token Sanctum via le flow OTP + PIN. Voir le guide [Authentication](/authentication).
+
+<Card title="Aller plus loin" href="/guides/bus-search" icon="arrow-right" iconType="solid">
+  Consultez le guide complet **Recherche Bus** pour enchaîner villes → lignes → départs → sièges.
+</Card>

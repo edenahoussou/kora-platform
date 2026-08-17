@@ -1,0 +1,13 @@
+{
+    "name": "kora-mintlify-docs",
+    "private": true,
+    "description": "KORA BUS API documentation for mobile developers (Mintlify)",
+    "scripts": {
+        "dev": "mintlify dev",
+        "build": "mintlify build",
+        "snippets": "mintlify snippets"
+    },
+    "devDependencies": {
+        "mintlify": "^1.0.0"
+    }
+}

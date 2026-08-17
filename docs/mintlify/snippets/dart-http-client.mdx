@@ -1,0 +1,105 @@
+---
+title: Snippet — HTTP Client Dart
+description: Client Dio configuré avec interceptors, auth et gestion d'erreurs.
+---
+
+# Snippet : HTTP Client Dart
+
+Client Dio prêt à l'emploi avec gestion du token Sanctum, interceptors d'erreur et retry.
+
+<CodeGroup>
+
+```dart
+// lib/core/api/kora_api_client.dart
+import 'package:dio/dio.dart';
+
+class KoraApiClient {
+  static const String baseUrl = String.fromEnvironment(
+    'KORA_API_BASE_URL',
+    defaultValue: 'https://staging-api.korabus.app',
+  );
+
+  static Dio create({String? authToken}) {
+    final dio = Dio(BaseOptions(
+      baseUrl: baseUrl,
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 30),
+      sendTimeout: const Duration(seconds: 10),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        if (authToken != null) 'Authorization': 'Bearer $authToken',
+      },
+    ));
+
+    // Interceptor : logging en dev
+    if (bool.fromEnvironment('KORA_DEBUG', defaultValue: false)) {
+      dio.interceptors.add(LogInterceptor(
+        requestHeader: true,
+        requestBody: true,
+        responseHeader: false,
+        responseBody: true,
+        error: true,
+      ));
+    }
+
+    // Interceptor : gestion d'erreurs KORA
+    dio.interceptors.add(InterceptorsWrapper(
+      onError: (e, handler) {
+        if (e.response?.statusCode == 401 && authToken != null) {
+          // Token expiré → purger et rediriger vers login
+        }
+        return handler.next(e);
+      },
+    ));
+
+    return dio;
+  }
+}
+
+// Singleton avec token persisté
+class KoraApi {
+  static Dio? _instance;
+  static String? _token;
+
+  static Dio get client {
+    if (_instance == null || _token != _currentToken) {
+      _token = _currentToken;
+      _instance = KoraApiClient.create(authToken: _token);
+    }
+    return _instance!;
+  }
+
+  static String? _currentToken;
+
+  static void setToken(String token) {
+    _currentToken = token;
+    _instance = null; // Force recréation au prochain accès
+  }
+
+  static void clearToken() {
+    _currentToken = null;
+    _instance = null;
+  }
+}
+```
+
+</CodeGroup>
+
+## Usage
+
+<CodeGroup>
+
+```dart
+// Après login
+KoraApi.setToken(authResult.token);
+
+// Appels authentifiés
+final response = await KoraApi.client.get('/api/v1/auth/me');
+final preferences = await KoraApi.client.get('/api/v1/auth/preferences');
+
+// Appels publics (le token est juste ignoré)
+final cities = await KoraApi.client.get('/api/v1/bus/cities');
+```
+
+</CodeGroup>

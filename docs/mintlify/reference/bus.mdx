@@ -1,0 +1,43 @@
+---
+title: Bus
+description: Endpoints publics du catalogue Bus — villes, lignes, départs et sièges.
+openapi: api/openapi.yaml
+---
+
+# Bus
+
+Endpoints publics de lecture pour la recherche KORA BUS. Ces routes sont limitées par `throttle:bus-search` et exposent uniquement des UUID ou codes métier.
+
+Le parcours complet est décrit dans le guide [Recherche Bus](/guides/bus-search).
+
+## Endpoints
+
+<Method
+  method="GET"
+  path="/api/v1/bus/cities"
+/>
+
+<Method
+  method="GET"
+  path="/api/v1/bus/lines"
+/>
+
+<Method
+  method="GET"
+  path="/api/v1/bus/lines/{uuid}"
+/>
+
+<Method
+  method="GET"
+  path="/api/v1/bus/departures"
+/>
+
+<Method
+  method="GET"
+  path="/api/v1/bus/departures/{uuid}"
+/>
+
+<Method
+  method="GET"
+  path="/api/v1/bus/departures/{departure_uuid}/seats"
+/>

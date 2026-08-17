@@ -1,0 +1,74 @@
+---
+title: Introduction
+description: KORA BUS MVP REST API pour les applications mobiles Flutter.
+---
+
+# Introduction
+
+KORA BUS est la plateforme de transport interurbain du MVP validé par le client. Cette documentation s'adresse aux **développeurs mobile** intégrant l'API REST V1 dans les applications Flutter :
+
+- **KORA App Passager** — parcours client Bus (recherche, réservation, paiement, billet, suivi).
+- **KORA OPS Mobile / P501** — application terrain interne (planning, manifeste, scan, embarquement).
+
+## Périmètre MVP
+
+L'API V1 expose actuellement :
+
+| Domaine | Endpoints | Auth |
+|---------|-----------|------|
+| **Auth** | OTP, connexion PIN, profil, préférences, appareils | Public + Sanctum |
+| **Bus** | Villes, lignes, départs, sièges | Public |
+| **Health** | Healthcheck, liveness probe | Public |
+
+Les endpoints `pricing`, `bookings`, `payments`, `tickets`, `ops/*` et `fiscalization` seront ajoutés progressivement et documentés ici dès qu'ils sont implémentés.
+
+## Conventions
+
+### Identifiants publics
+
+Tous les identifiants exposés dans l'API sont des **UUID v3** ou des **codes métier** (ex: `Cotonou`, `Abidjan`). Les IDs numériques internes ne sont jamais exposés.
+
+```json
+{
+    "uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
+    "name": "Cotonou"
+}
+```
+
+### Format des réponses
+
+- **Succès** : données dans `data` (objet ou tableau).
+- **Erreur** : structure `error` avec `code`, `message` et contexte optionnel.
+
+```json
+{
+    "error": {
+        "code": "account_locked",
+        "message": "Le compte est temporairement bloqué après plusieurs tentatives incorrectes.",
+        "locked_until": "2026-08-17T13:00:00.000Z"
+    }
+}
+```
+
+### Versionnement
+
+L'API est préfixée par `/api/v1/`. Les changements cassants introduiront `/api/v2/` avec une période de coexistence.
+
+### Rate limiting
+
+- Endpoints auth : `throttle:auth-otp`, `throttle:auth-login`
+- Endpoints bus : `throttle:bus-search`
+
+Les réponses incluent les headers `X-RateLimit-Limit` et `X-RateLimit-Remaining`.
+
+## Base URL
+
+| Environnement | Base URL |
+|---------------|----------|
+| Local | `http://kora-ops-web.local` ou `http://localhost:8080` |
+| Staging | `https://staging-api.korabus.app` |
+| Production | `https://api.korabus.app` |
+
+<Card title="Prochaine étape" href="/quickstart" icon="arrow-right" iconType="solid">
+  Consultez le **Quickstart** pour faire votre premier appel API en moins de 5 minutes.
+</Card>
