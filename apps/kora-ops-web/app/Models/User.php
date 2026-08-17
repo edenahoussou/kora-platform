@@ -4,14 +4,16 @@ namespace App\Models;
 
 use App\Models\Concerns\HasPublicUuid;
 use App\Modules\IdentityAccess\Data\UserStatus;
+use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\IdentityAccess\Models\UserDevice;
 use App\Modules\IdentityAccess\Models\UserPreference;
 use App\Notifications\IdentityAccess\ResetPassword;
-use Database\Factories\UserFactory;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -65,6 +67,31 @@ class User extends Authenticatable implements PasskeyUser
     public function preference(): HasOne
     {
         return $this->hasOne(UserPreference::class);
+    }
+
+    /**
+     * @return BelongsTo<Agency, $this>
+     */
+    public function agency(): BelongsTo
+    {
+        return $this->belongsTo(Agency::class);
+    }
+
+    /**
+     * Vrai si l'utilisateur est rattaché à une agence (rôle terrain).
+     * Un utilisateur de la direction n'a pas d'agence.
+     */
+    public function belongsToAgency(): bool
+    {
+        return $this->agency_id !== null;
+    }
+
+    /**
+     * Vrai si l'utilisateur est un personnel de direction (non rattaché à une agence).
+     */
+    public function isManagementStaff(): bool
+    {
+        return $this->agency_id === null;
     }
 
     /**
