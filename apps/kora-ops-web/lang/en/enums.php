@@ -18,6 +18,7 @@ return [
         'bus_driver' => 'Bus Driver',
         'conductor' => 'Conductor',
         'agency_agent' => 'Agency Agent',
+        'agency_manager' => 'Agency Manager',
         'operations_director' => 'Operations Director',
         'commercial_director' => 'Commercial Director',
         'general_management' => 'General Management',

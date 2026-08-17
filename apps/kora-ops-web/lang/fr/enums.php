@@ -18,6 +18,7 @@ return [
         'bus_driver' => 'Chauffeur de bus',
         'conductor' => 'Convoyeur',
         'agency_agent' => "Agent d'agence",
+        'agency_manager' => "Chef d'agence",
         'operations_director' => 'Directeur des opérations',
         'commercial_director' => 'Directeur commercial',
         'general_management' => 'Direction générale',
