@@ -69,3 +69,56 @@ jobs:
 
       - name: Pest (tests)
         run: php artisan test
+
+  docs:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/kora-ops-web
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+          extensions: bcmath, intl, pdo_pgsql, pdo_sqlite, zip
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: docs/mintlify/package.json
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Prepare Laravel
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Generate OpenAPI spec
+        run: composer docs:generate
+
+      - name: Verify spec is up to date
+        continue-on-error: true
+        run: |
+          if ! git diff --exit-code -- ../docs/mintlify/api/openapi.yaml; then
+            echo "::warning::OpenAPI spec is stale. Run 'composer docs:generate' and commit the updated spec."
+            exit 1
+          fi
+
+      - name: Install Mintlify CLI
+        run: npm install -g mintlify
+        working-directory: docs/mintlify
+
+      - name: Mintlify build
+        continue-on-error: true
+        run: mintlify build
+        working-directory: docs/mintlify
