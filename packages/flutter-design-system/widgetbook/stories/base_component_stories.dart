@@ -5,8 +5,8 @@ import 'package:widgetbook/widgetbook.dart';
 import '../widgets/story_scaffold.dart';
 
 /// Stories des composants de base du design system (pas de logique
-/// métier KORA) : bouton, champ de saisie, card, badge, indicateur de
-/// chargement.
+/// métier KORA) : bouton, champ de saisie, card, badge, alerte,
+/// indicateur de chargement et brique de squelette.
 final baseComponentStories = WidgetbookFolder(
   name: 'Composants de base',
   children: [
@@ -307,6 +307,222 @@ final baseComponentStories = WidgetbookFolder(
                 variant: KoraLoadingIndicatorVariant.skeleton,
                 skeletonLines: 3,
               ),
+            ),
+          ),
+        ),
+      ],
+    ),
+    WidgetbookComponent(
+      name: 'KoraAlert',
+      useCases: [
+        // `.connection-alert` du prototype (`js/app.js`, L613).
+        WidgetbookUseCase(
+          name: 'Info — doré translucide',
+          builder: (context) => const StoryScaffold(
+            child: KoraAlert(
+              title: 'Changement de bus à Bohicon',
+              message: 'Temps prévu : 35 minutes · assistance KORA sur place',
+            ),
+          ),
+        ),
+        // `.offline-ride-banner` (`js/app.js`, L1762).
+        WidgetbookUseCase(
+          name: 'Warning — doré plein',
+          builder: (context) => const StoryScaffold(
+            child: KoraAlert(
+              variant: KoraAlertVariant.warning,
+              icon: Icons.wifi_off_rounded,
+              title: 'Mode hors ligne',
+              message:
+                  'Course enregistrée · synchronisation automatique au '
+                  'retour du réseau',
+            ),
+          ),
+        ),
+        // `.incident-alert` (`js/app.js`, L977).
+        WidgetbookUseCase(
+          name: 'Critical — bleu KORA',
+          builder: (context) => const StoryScaffold(
+            child: KoraAlert(
+              variant: KoraAlertVariant.critical,
+              title: 'Votre signalement sera prioritaire',
+              message:
+                  'KORA ouvre un dossier et informe immédiatement '
+                  'l’expéditeur.',
+            ),
+          ),
+        ),
+        // Un titre qui se suffit à lui-même : pas de message, pas de
+        // deuxième ligne vide.
+        WidgetbookUseCase(
+          name: 'Titre seul',
+          builder: (context) => const StoryScaffold(
+            child: KoraAlert(
+              icon: Icons.schedule_rounded,
+              title: 'Embarquement 30 min avant le départ',
+            ),
+          ),
+        ),
+        WidgetbookUseCase(
+          name: 'Avec action',
+          builder: (context) => StoryScaffold(
+            child: KoraAlert(
+              variant: KoraAlertVariant.critical,
+              title: 'Paiement en attente',
+              message: 'Votre place est bloquée encore 9 minutes.',
+              trailing: KoraIconButton(
+                icon: Icons.chevron_right_rounded,
+                size: 34,
+                onTap: () {},
+              ),
+            ),
+          ),
+        ),
+        // Les trois tons côte à côte : c'est la comparaison qui dit
+        // laquelle choisir, pas la définition de chacune prise seule.
+        WidgetbookUseCase(
+          name: 'Les trois tons',
+          builder: (context) => const StoryScaffold(
+            child: Column(
+              children: [
+                KoraAlert(
+                  title: 'Changement de bus à Bohicon',
+                  message: 'Temps prévu : 35 minutes',
+                ),
+                SizedBox(height: KoraSpacing.md),
+                KoraAlert(
+                  variant: KoraAlertVariant.warning,
+                  icon: Icons.wifi_off_rounded,
+                  title: 'Mode hors ligne',
+                  message: 'Synchronisation au retour du réseau',
+                ),
+                SizedBox(height: KoraSpacing.md),
+                KoraAlert(
+                  variant: KoraAlertVariant.critical,
+                  title: 'Votre signalement sera prioritaire',
+                  message: 'KORA ouvre un dossier immédiatement.',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ),
+    WidgetbookComponent(
+      name: 'KoraSkeleton',
+      useCases: [
+        WidgetbookUseCase(
+          name: 'Ligne de texte',
+          builder: (context) => const StoryScaffold(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                KoraSkeleton(height: 18, width: 160),
+                SizedBox(height: KoraSpacing.sm),
+                KoraSkeleton(height: 12),
+                SizedBox(height: KoraSpacing.sm),
+                KoraSkeleton(height: 12, width: 220),
+              ],
+            ),
+          ),
+        ),
+        WidgetbookUseCase(
+          name: 'Pastille et bloc',
+          builder: (context) => const StoryScaffold(
+            child: Row(
+              children: [
+                KoraSkeleton(width: 38, height: 38, radius: 12),
+                SizedBox(width: KoraSpacing.md),
+                Expanded(
+                  child: KoraSkeleton(height: 58, radius: KoraRadius.lg),
+                ),
+              ],
+            ),
+          ),
+        ),
+        // `onWhite` : sur une carte blanche, le bloc ne doit pas
+        // s'éclaircir avec le thème sombre — il disparaîtrait.
+        WidgetbookUseCase(
+          name: 'Sur une carte blanche (onWhite)',
+          builder: (context) => StoryScaffold(
+            child: Container(
+              padding: const EdgeInsets.all(KoraSpacing.lg),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(KoraRadius.lg),
+                boxShadow: AppShadows.card,
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  KoraSkeleton(height: 18, width: 120, onWhite: true),
+                  SizedBox(height: KoraSpacing.sm),
+                  KoraSkeleton(height: 12, onWhite: true),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+    WidgetbookComponent(
+      name: 'KoraToast',
+      useCases: [
+        // Le message tel qu'il s'affiche, sorti de son coin d'écran pour
+        // pouvoir l'inspecter.
+        WidgetbookUseCase(
+          name: 'Message',
+          builder: (context) => const StoryScaffold(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: KoraToast(message: 'Un nouveau code a été envoyé.'),
+            ),
+          ),
+        ),
+        WidgetbookUseCase(
+          name: 'Message long (deux lignes)',
+          builder: (context) => const StoryScaffold(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: KoraToast(
+                message:
+                    'Les 10 billets ont été préparés pour WhatsApp et vous '
+                    'seront envoyés dans un instant.',
+              ),
+            ),
+          ),
+        ),
+        // Le comportement réel : posé en bas à droite par-dessus l'écran,
+        // empilé si on enchaîne, et retiré tout seul au bout de 2,6 s.
+        WidgetbookUseCase(
+          name: 'En situation (KoraToaster)',
+          builder: (context) => StoryScaffold(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                KoraButton(
+                  label: 'Renvoyer le code',
+                  onPressed: () => KoraToaster.show(
+                    context,
+                    'Un nouveau code a été envoyé.',
+                  ),
+                ),
+                const SizedBox(height: KoraSpacing.md),
+                KoraButton(
+                  label: 'Inverser les villes',
+                  variant: KoraButtonVariant.ghost,
+                  onPressed: () => KoraToaster.show(
+                    context,
+                    'Origine et destination inversées',
+                  ),
+                ),
+                const SizedBox(height: KoraSpacing.xl),
+                Text(
+                  'Enchaînez les deux boutons : les messages s’empilent au '
+                  'lieu de se remplacer.',
+                  style: AppTextStyles.lead(context.koraColors.textMuted),
+                ),
+              ],
             ),
           ),
         ),
