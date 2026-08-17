@@ -5,13 +5,17 @@ namespace App\Providers;
 use App\Modules\Boarding\Models\BoardingEvent;
 use App\Modules\Boarding\Models\SeatReleaseEvent;
 use App\Modules\Booking\Models\Reservation;
+use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\Cash\Models\CashSession;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Models\Fare;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
+use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\IdentityAccess\Models\TerminalP501;
 use App\Modules\Ticketing\Models\Ticket;
+use App\Policies\AgencyPolicy;
 use App\Policies\BoardingEventPolicy;
+use App\Policies\BusPolicy;
 use App\Policies\CashSessionPolicy;
 use App\Policies\DeparturePolicy;
 use App\Policies\FarePolicy;
@@ -55,7 +59,9 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function registerPolicies(): void
     {
+        Gate::policy(Agency::class, AgencyPolicy::class);
         Gate::policy(BoardingEvent::class, BoardingEventPolicy::class);
+        Gate::policy(Bus::class, BusPolicy::class);
         Gate::policy(CashSession::class, CashSessionPolicy::class);
         Gate::policy(Departure::class, DeparturePolicy::class);
         Gate::policy(Fare::class, FarePolicy::class);

@@ -1,5 +1,7 @@
 <?php
 
+use App\Modules\BusNetwork\Http\Controllers\BusController;
+use App\Modules\IdentityAccess\Http\Controllers\AgencyController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -26,10 +28,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('tickets', 'tickets')->name('tickets');
 
     // V1 MVP — Flotte (Ressources)
-    Route::inertia('fleet', 'fleet')->name('fleet');
+    Route::get('fleet', [BusController::class, 'index'])->name('fleet.index');
+    Route::post('fleet', [BusController::class, 'store'])->name('fleet.store');
+    Route::put('fleet/{bus:uuid}', [BusController::class, 'update'])->name('fleet.update');
+    Route::patch('fleet/{bus:uuid}/status', [BusController::class, 'changeStatus'])->name('fleet.status');
 
     // V1 MVP — Agences (Ressources — référentiel parent de la flotte et des utilisateurs)
-    Route::inertia('agencies', 'agencies')->name('agencies');
+    Route::get('agencies', [AgencyController::class, 'index'])->name('agencies.index');
+    Route::post('agencies', [AgencyController::class, 'store'])->name('agencies.store');
+    Route::put('agencies/{agency:uuid}', [AgencyController::class, 'update'])->name('agencies.update');
+    Route::patch('agencies/{agency:uuid}/status', [AgencyController::class, 'changeStatus'])->name('agencies.status');
 
     // V1 MVP — Tarification dynamique (Réseau commercial)
     Route::inertia('dynamic-pricing', 'dynamic-pricing')->name('dynamic-pricing');
