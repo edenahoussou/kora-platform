@@ -1,5 +1,7 @@
-name: Endpoints
-description: ''
+name: Health
+description: |-
+
+  Application health and liveness probes for load balancers and monitoring.
 endpoints:
   -
     custom: []
@@ -8,11 +10,50 @@ endpoints:
     uri: api/v1/health
     metadata:
       custom: []
-      groupName: Endpoints
-      groupDescription: ''
+      groupName: Health
+      groupDescription: |-
+
+        Application health and liveness probes for load balancers and monitoring.
       subgroup: ''
       subgroupDescription: ''
-      title: ''
+      title: 'Full application health: database, cache (Redis), and API version.'
+      description: |-
+        Returns 200 when every dependency is reachable, 503 otherwise so load
+        balancers and monitoring can drain traffic from an unhealthy instance.
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/health/ping
+    metadata:
+      custom: []
+      groupName: Health
+      groupDescription: |-
+
+        Application health and liveness probes for load balancers and monitoring.
+      subgroup: ''
+      subgroupDescription: ''
+      title: |-
+        Lightweight liveness probe for load balancers: always 200 when the
+        process can answer, with no dependency checks.
       description: ''
       authenticated: false
       deprecated: false

@@ -8,6 +8,11 @@ use App\Modules\IdentityAccess\Http\Requests\VerifyOtpRequest;
 use App\Modules\IdentityAccess\Services\AuthOtpService;
 use Illuminate\Http\JsonResponse;
 
+/**
+ * @group Auth
+ *
+ * OTP challenge request and verification for registration, login, PIN reset and account unlock.
+ */
 class AuthOtpController extends Controller
 {
     public function __construct(private AuthOtpService $authOtpService) {}

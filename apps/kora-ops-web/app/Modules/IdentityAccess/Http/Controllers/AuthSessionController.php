@@ -18,6 +18,11 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * @group Auth
+ *
+ * Authentication session management: registration, login, PIN, profile and logout.
+ */
 class AuthSessionController extends Controller
 {
     public function __construct(private AuthSessionService $authSessionService) {}
