@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 /// Un départ (course) que l'agent peut avoir à gérer — sélectionné depuis
-/// [SelectionDepartPage], affiché en résumé sur `AccueilPage` et utilisé
+/// [TourneePage], affiché en résumé sur `AccueilPage` et utilisé
 /// pour filtrer le Manifeste / la Descente anticipée.
 class Depart extends Equatable {
   const Depart({

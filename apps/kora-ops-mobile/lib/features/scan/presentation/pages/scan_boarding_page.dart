@@ -10,6 +10,7 @@ import '../../../../app/theme/app_radius.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../core/services/kora_dialogs.dart';
 import '../../../../core/widgets/kora_button.dart';
+import '../../../../core/widgets/main_app_bar.dart';
 import '../../../ops/domain/entities/depart.dart';
 import '../../../ops/presentation/cubit/selected_depart_cubit.dart';
 import '../../../synchro/presentation/widgets/sync_status_banner.dart';
@@ -105,9 +106,10 @@ class _ScanBoardingPageState extends State<ScanBoardingPage>
     final Depart? depart = context.watch<SelectedDepartCubit>().state;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Scan boarding'),
-        actions: <Widget>[
+      appBar: MainAppBar(
+        eyebrow: 'Embarquement',
+        title: 'Scan boarding',
+        extraActions: <Widget>[
           IconButton(
             icon: Icon(_torchOn ? Icons.flash_on : Icons.flash_off),
             tooltip: 'Torche',
@@ -116,9 +118,6 @@ class _ScanBoardingPageState extends State<ScanBoardingPage>
               setState(() => _torchOn = !_torchOn);
             },
           ),
-          const Padding(
-              padding: EdgeInsets.only(right: AppSpacing.md),
-              child: SyncStatusBanner(compact: true)),
         ],
       ),
       body: SafeArea(
@@ -134,6 +133,10 @@ class _ScanBoardingPageState extends State<ScanBoardingPage>
                 )
               : Column(
                   children: <Widget>[
+                    const Align(
+                        alignment: Alignment.centerLeft,
+                        child: SyncStatusBanner()),
+                    const SizedBox(height: AppSpacing.sm),
                     Text(depart.route,
                         style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: AppSpacing.sm),

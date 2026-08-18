@@ -4,10 +4,21 @@ import 'package:widgetbook/widgetbook.dart';
 
 final List<WidgetbookNode> koraButtonUseCases = <WidgetbookNode>[
   WidgetbookUseCase(
-    name: 'Primary (or — CTA principal)',
+    name: 'Primary (jaune orangé KORA)',
     builder: (BuildContext context) => Padding(
       padding: const EdgeInsets.all(16),
       child: KoraButton(label: 'Vérifier le code', onPressed: () {}),
+    ),
+  ),
+  WidgetbookUseCase(
+    name: 'Secondary (bleu nuit KORA)',
+    builder: (BuildContext context) => Padding(
+      padding: const EdgeInsets.all(16),
+      child: KoraButton(
+        label: 'Changer de tournée',
+        variant: KoraButtonVariant.secondary,
+        onPressed: () {},
+      ),
     ),
   ),
   WidgetbookUseCase(
@@ -26,43 +37,14 @@ final List<WidgetbookNode> koraButtonUseCases = <WidgetbookNode>[
     ),
   ),
   WidgetbookUseCase(
-    name: 'Secondary',
-    builder: (BuildContext context) => Padding(
-      padding: const EdgeInsets.all(16),
-      child: KoraButton(
-          label: 'Changer de départ',
-          variant: KoraButtonVariant.secondary,
-          onPressed: () {}),
-    ),
-  ),
-  WidgetbookUseCase(
     name: 'Ghost',
     builder: (BuildContext context) => Padding(
       padding: const EdgeInsets.all(16),
       child: KoraButton(
-          label: 'Ce n\'est pas moi',
-          variant: KoraButtonVariant.ghost,
-          onPressed: () {}),
-    ),
-  ),
-  WidgetbookUseCase(
-    name: 'Success',
-    builder: (BuildContext context) => Padding(
-      padding: const EdgeInsets.all(16),
-      child: KoraButton(
-          label: 'Embarquer',
-          variant: KoraButtonVariant.success,
-          onPressed: () {}),
-    ),
-  ),
-  WidgetbookUseCase(
-    name: 'Warning',
-    builder: (BuildContext context) => Padding(
-      padding: const EdgeInsets.all(16),
-      child: KoraButton(
-          label: 'Attention requise',
-          variant: KoraButtonVariant.warning,
-          onPressed: () {}),
+        label: 'Ce n\'est pas moi',
+        variant: KoraButtonVariant.ghost,
+        onPressed: () {},
+      ),
     ),
   ),
   WidgetbookUseCase(
@@ -70,9 +52,10 @@ final List<WidgetbookNode> koraButtonUseCases = <WidgetbookNode>[
     builder: (BuildContext context) => Padding(
       padding: const EdgeInsets.all(16),
       child: KoraButton(
-          label: 'Refuser',
-          variant: KoraButtonVariant.danger,
-          onPressed: () {}),
+        label: 'Refuser',
+        variant: KoraButtonVariant.danger,
+        onPressed: () {},
+      ),
     ),
   ),
 ];

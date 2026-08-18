@@ -12,10 +12,11 @@ class KoraBottomNavItem {
   final String label;
 }
 
-/// Barre de navigation flottante à 5 onglets — Accueil / Manifeste / Scan
-/// boarding / Descente anticipée / Synchro. Fond clair flottant, icône +
-/// libellé actifs en sombre/gras avec un fond doré discret, inactifs en
-/// gris — fidèle trait pour trait à la bottom nav de `kora-passager`.
+/// Barre de navigation flottante à 5 onglets — Accueil / Tournée / Scan
+/// boarding / Descente anticipée / Profil (voir échange du 17/08/2026).
+/// Fond clair flottant, icône + libellé actifs en sombre/gras avec un fond
+/// doré discret, inactifs en gris — fidèle trait pour trait à la bottom
+/// nav de `kora-passager`.
 class KoraBottomNav extends StatelessWidget {
   const KoraBottomNav(
       {required this.currentIndex, required this.onTap, super.key});
@@ -29,9 +30,9 @@ class KoraBottomNav extends StatelessWidget {
         activeIcon: Icons.home_rounded,
         label: 'Accueil'),
     KoraBottomNavItem(
-        icon: Icons.list_alt_outlined,
-        activeIcon: Icons.list_alt,
-        label: 'Manifeste'),
+        icon: Icons.directions_bus_outlined,
+        activeIcon: Icons.directions_bus_filled,
+        label: 'Tournée'),
     KoraBottomNavItem(
       icon: Icons.qr_code_scanner_outlined,
       activeIcon: Icons.qr_code_scanner,
@@ -42,7 +43,9 @@ class KoraBottomNav extends StatelessWidget {
         activeIcon: Icons.move_down,
         label: 'Descente'),
     KoraBottomNavItem(
-        icon: Icons.sync_outlined, activeIcon: Icons.sync, label: 'Synchro'),
+        icon: Icons.person_outline_rounded,
+        activeIcon: Icons.person_rounded,
+        label: 'Profil'),
   ];
 
   @override
@@ -62,8 +65,10 @@ class KoraBottomNav extends StatelessWidget {
       ),
       child: SafeArea(
         top: false,
+        bottom:
+            false, // ✅ CORRIGÉ : Désactivation du SafeArea en bas pour supprimer l'espacement excessif
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: List<Widget>.generate(items.length, (int index) {
@@ -78,7 +83,7 @@ class KoraBottomNav extends StatelessWidget {
                   onTap: () => onTap(index),
                   child: Padding(
                     padding:
-                        const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+                        const EdgeInsets.symmetric(vertical: 5, horizontal: 2),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[

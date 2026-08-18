@@ -2,6 +2,7 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:kora_ops_mobile/app/theme/app_colors.dart';
 import 'package:pro_dialog/pro_dialog.dart';
 import '../../app/theme/app_radius.dart';
 
@@ -63,6 +64,16 @@ abstract final class KoraDialogs {
   }
 
   /// Dialogue de confirmation — retourne `true` si l'utilisateur confirme.
+  ///
+  /// **Bug corrigé le 18/08/2026** : les boutons fermaient le dialogue via
+  /// `Navigator.of(context).pop()` (navigateur local), alors que
+  /// `showProDialog` pousse sur le navigateur **racine**. Sur un écran de
+  /// la bottom nav (ex. `ProfilPage`), ce navigateur local est celui, très
+  /// restreint, de la branche `StatefulShellRoute` — le vider provoquait
+  /// `'currentConfiguration.isNotEmpty'` (« popped the last page »). On
+  /// pop désormais explicitement le navigateur racine, comme le fait déjà
+  /// [hideLoading].
+
   static Future<bool> confirm(
     BuildContext context, {
     required String title,
@@ -72,6 +83,12 @@ abstract final class KoraDialogs {
   }) async {
     final Completer<bool> completer = Completer<bool>();
 
+    void closeDialog() {
+      final NavigatorState rootNavigator =
+          Navigator.of(context, rootNavigator: true);
+      if (rootNavigator.canPop()) rootNavigator.pop();
+    }
+
     await showProDialog(
       context,
       type: DialogType.question,
@@ -79,22 +96,24 @@ abstract final class KoraDialogs {
       description: description ?? '',
       theme: _theme,
       barrierDismissible: false,
+      iconBackgroundColor: AppColors.kora,
       buttons: <DialogButton>[
         DialogButton(
-          text: cancelLabel,
-          style: DialogButtonStyle.outlined,
-          onPressed: () {
-            if (!completer.isCompleted) completer.complete(false);
-            Navigator.of(context).pop();
-          },
-        ),
+            text: cancelLabel,
+            style: DialogButtonStyle.outlined,
+            onPressed: () {
+              if (!completer.isCompleted) completer.complete(false);
+              closeDialog();
+            },
+            color: AppColors.kora),
         DialogButton(
           text: confirmLabel,
           isPrimary: true,
           onPressed: () {
             if (!completer.isCompleted) completer.complete(true);
-            Navigator.of(context).pop();
+            closeDialog();
           },
+          color: AppColors.kora,
         ),
       ],
     );

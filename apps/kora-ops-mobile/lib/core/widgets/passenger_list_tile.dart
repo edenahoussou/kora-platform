@@ -37,11 +37,11 @@ class PassengerListTile extends StatelessWidget {
             children: <Widget>[
               CircleAvatar(
                 radius: 22,
-                backgroundColor: AppColors.kora.withValues(alpha: 0.1),
+                backgroundColor: AppColors.gold,
                 child: Text(
                   _initials,
                   style: const TextStyle(
-                      color: AppColors.kora, fontWeight: FontWeight.w700),
+                      color: AppColors.onGold, fontWeight: FontWeight.w700),
                 ),
               ),
               const SizedBox(width: AppSpacing.md),

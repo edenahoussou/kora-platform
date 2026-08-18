@@ -6,7 +6,7 @@
 
 Ce n'est **pas** KORA Driver (future application des conducteurs Ride) ni l'app passagers **kora-passager** (dont ce projet reprend le design system et les patterns — voir § 10).
 
-**Pas d'auto-inscription** : les agents KORA OPS sont provisionnés par un administrateur. L'app n'a donc ni écran de bienvenue, ni création de compte — l'entrée unique est l'écran PIN (voir § 17).
+**Pas d'auto-inscription** : les agents KORA OPS sont provisionnés par un administrateur — ils ne créent jamais de compte dans l'app. Ils s'authentifient avec email + mot de passe **une seule fois par appareil** ; ensuite, seul le PIN est demandé (voir § 17).
 
 ## 2. Important — limites de cet environnement de génération
 
@@ -36,6 +36,7 @@ et corriger les éventuels écarts de version d'API entre les packages listés d
 | Dialogues | `pro_dialog` (via `KoraDialogs`) | Voir § 12 — jamais de `SnackBar`/dialogue natif |
 | Scanner caméra | `mobile_scanner` | Caméra réelle, Scan boarding — voir § 17bis |
 | QR code affiché | `qr_flutter` | `TicketCard` — voir § 17bis |
+| Connectivité | `connectivity_plus` | Vérification réseau au splash (non bloquante) — voir § 6bis |
 | Documentation UI | `widgetbook` (module séparé) | Voir § 11 |
 
 ## 4. Architecture
@@ -80,10 +81,11 @@ Les widgets ne contiennent aucune logique métier : `BlocConsumer`/`BlocBuilder`
 Routes déclarées dans `AppRoutes` (`app/router/app_routes.dart`). `AuthGuard` (`ChangeNotifier` alimenté par `AuthCubit`) ne redirige automatiquement que depuis `/` (splash) et `/home` (déconnexion) :
 
 - état en cours de résolution → reste sur `/` (splash)
-- non authentifié → `/login/pin` (entrée unique, voir § 1 et § 17)
+- non authentifié, email jamais activé sur cet appareil → `/login/email` (voir § 17)
+- non authentifié, email déjà activé sur cet appareil → `/login/pin`
 - authentifié → `/home`
 
-Une fois entré dans `/login/*` (pin → otp → nouvel appareil), chaque écran gère sa propre navigation explicite (`context.push`/`context.go`).
+Une fois entré dans `/login/*`, chaque écran gère sa propre navigation explicite (`context.push`/`context.go`).
 
 ### Bottom nav (5 onglets)
 
@@ -92,14 +94,22 @@ Une fois entré dans `/login/*` (pin → otp → nouvel appareil), chaque écran
 | Onglet | Route | Écran |
 |---|---|---|
 | Accueil | `/home` | `AccueilPage` — tableau de bord, départ géré, accès rapides |
-| Manifeste | `/manifeste` | `ManifestePage` |
+| Tournée | `/tournee` | `TourneePage` — liste des courses de l'agent |
 | Scan | `/scan` | `ScanBoardingPage` |
 | Descente | `/descente-anticipee` | `DescenteAnticipeePage` |
-| Synchro | `/synchro` | `SynchroPage` |
+| Profil | `/profil` | `ProfilPage` |
 
-Écrans empilés au-dessus de la bottom nav (`context.push`) : `SelectionDepartPage` (`/depart/selection`), `DetailPassagerPage` (`/manifeste/passager`), `ScanResultPage` (`/scan/resultat`), les écrans `/login/*`, et `PrinterTestPage` (`/printer-test`, MEZ-10).
+**Le Manifeste n'est plus un onglet** (voir échange du 17/08/2026) : on y accède en sélectionnant une course depuis l'onglet Tournée, qui enregistre le départ choisi (`SelectedDepartCubit.select`) puis pousse `ManifestePage` (`/tournee/manifeste`).
+
+Écrans empilés au-dessus de la bottom nav (`context.push`) : `ManifestePage`, `DetailPassagerPage` (`/tournee/manifeste/passager`), `ScanResultPage` (`/scan/resultat`), `SynchroPage` (`/synchro`, accessible depuis Profil), les écrans `/login/*`, et `PrinterTestPage` (`/printer-test`, MEZ-10).
 
 **Important** : les Cubits partagés entre onglets ET écrans empilés (`SelectedDepartCubit`, `SyncCubit`, `ManifesteCubit`, `ScanBoardingCubit`) sont fournis en singleton au niveau racine (`app/app.dart`, `MultiBlocProvider`), pas localement dans une route — un écran poussé via `context.push` (ex. `ScanResultPage`) n'est **pas** un descendant du `builder` de sa route sœur dans l'arbre `go_router`, donc un `BlocProvider` local n'y serait pas visible.
+
+## 6bis. Splash
+
+`features/splash/presentation/pages/splash_page.dart` (déplacé hors de `features/auth/`, voir échange du 17/08/2026) : fond blanc, logo KORA bien visible, affiché **3 secondes minimum** à chaque lancement (`Stopwatch` + `Future.delayed` du temps restant).
+
+En parallèle, vérifie la connexion réseau (`connectivity_plus`) pour initialiser `SyncCubit.goOnline()`/`goOffline()` — **jamais bloquant** : une base de données locale est prévue pour le travail hors-ligne avec synchronisation ultérieure (voir § 17bis Synchro), donc l'absence de réseau au démarrage n'empêche jamais de continuer vers la connexion. En cas d'erreur de vérification (émulateur sans capteur réseau, etc.), l'app démarre simplement en ligne par défaut.
 
 ## 7. Dependency Injection — GetIt
 
@@ -142,13 +152,15 @@ Deux mécanismes complémentaires :
 
 | Token | Valeur | Rôle |
 |---|---|---|
-| `AppColors.kora` | `#001D4E` | Marine — en-têtes, écran PIN, cartes `navy` |
-| `AppColors.gold` | `#F6B000` | **CTA principal** (voir maquettes d'authentification) |
+| `AppColors.kora` | `#001D4E` | Marine — **CTA principal** (voir échange du 17/08/2026), en-têtes, écran PIN, cartes `navy` |
+| `AppColors.gold` | `#F6B000` | Accent — badges, mises en avant ponctuelles |
 | `AppColors.digital` | `#0057B8` | Bleu secondaire |
 | `AppColors.onGold` | `#1A1400` | Texte sur fond `gold`/`warning` |
-| `AppColors.success` / `warning` / `danger` | `#2D7A51` / `#C77700` / `#9C2430` | États sémantiques — `warning` est volontairement distinct de `gold` |
+| `AppColors.success` / `warning` / `danger` | `#2D7A51` / `#C77700` / `#9C2430` | États sémantiques — `danger` seul reste utilisé comme couleur de bouton (voir § 10.3) |
 
 `app/theme/kora_colors.dart` — `KoraColors extends ThemeExtension`, accessible via `context.koraColors.{surface,background,textPrimary,textMuted,line,shadow}`, avec des valeurs différentes en clair (`KoraColors.light`) et en sombre (`KoraColors.dark`), enregistrée dans `AppTheme` (§ 10bis).
+
+**Aucun texte noir/gris-noir** (voir échange du 17/08/2026) : `KoraColors.light.textPrimary`/`textMuted` utilisent `AppColors.kora` (et ses dérivés en transparence) plutôt qu'un gris proche du noir — tout le texte de l'app est bleu KORA en mode clair, blanc/clair en mode sombre.
 
 ### 10.2 Typographie — `AppTextStyles`
 
@@ -158,13 +170,15 @@ Deux mécanismes complémentaires :
 
 | Composant | Fichier | Usage |
 |---|---|---|
-| `KoraButton` | `core/widgets/kora_button.dart` | `primary`(or)/`secondary`/`ghost`/`success`/`warning`/`danger` |
+| `KoraButton` | `core/widgets/kora_button.dart` | **3 variantes seulement** (voir échange du 17/08/2026) : `primary` (fond bleu nuit KORA), `ghost` (contour, actions secondaires), `danger` (fond rouge) |
 | `KoraCard` | `core/widgets/kora_card.dart` | `surface`/`navy`/`gold`/`mist` |
 | `KoraIconButton` | `core/widgets/kora_icon_button.dart` | Bouton rond (retour, actions compactes) |
 | `KoraTag` | `core/widgets/kora_tag.dart` | Badge/pastille — base de `StatutBadge` |
-| `ScreenHeader` | `core/widgets/screen_header.dart` | **`AppBar`** (`PreferredSizeWidget`) commun aux écrans empilés — se passe en `Scaffold(appBar: ScreenHeader(...))`, jamais dans le `body` |
+| `ScreenHeader` | `core/widgets/screen_header.dart` | `AppBar` (`PreferredSizeWidget`) des écrans **empilés** — bouton retour, surtitre + titre |
+| `MainAppBar` | `core/widgets/main_app_bar.dart` | `AppBar` des écrans **racines des 5 onglets** — logo KORA à gauche, surtitre + titre, `NotificationButton` à droite |
+| `NotificationButton` | `core/widgets/notification_button.dart` | Icône notification (état vide via `KoraDialogs`, pastille dorée si opérations de synchro en attente) |
 | `PinDots` / `PinKeypad` | `core/widgets/pin_pad.dart` | Écran PIN |
-| `KoraBottomNav` | `core/widgets/kora_bottom_nav.dart` | Bottom nav 5 onglets (§ 6) — fond clair flottant, icône/libellé actifs sombres+gras sur fond doré discret, inactifs gris (fidèle trait pour trait à `kora-passager`, voir échange du 16/08/2026) |
+| `KoraBottomNav` | `core/widgets/kora_bottom_nav.dart` | Bottom nav 5 onglets (§ 6) |
 | `TicketCard` | `core/widgets/ticket_card.dart` | Affichage du billet en app (§ 17bis) |
 
 Aucune couleur codée en dur (`Color(0xFF...)`) ni bouton/carte/AppBar natif Flutter ne doit apparaître dans un écran — toujours passer par ces composants.
@@ -241,7 +255,7 @@ test/
 ├── features/auth/domain/auth_usecases_test.dart
 ├── features/auth/data/auth_repository_impl_test.dart
 ├── features/auth/presentation/auth_cubit_test.dart
-├── features/auth/presentation/login_cubit_test.dart      # PIN + OTP (pas de submitEmail)
+├── features/auth/presentation/login_cubit_test.dart      # email+mdp, PIN, OTP
 ├── features/ops/data/mock_ops_data_source_test.dart
 ├── features/synchro/presentation/cubit/sync_cubit_test.dart
 └── features/printing/…                                    # voir § 18
@@ -251,7 +265,7 @@ test/
 flutter test
 ```
 
-Couverture manquante à ce stade (voir § 20) : `ManifesteCubit`, `ScanBoardingCubit`, widgets `SeatMap`/`PassengerListTile`/`KoraBottomNav`.
+Couverture manquante à ce stade (voir § 20) : `ManifesteCubit`, `ScanBoardingCubit`, widgets `SeatMap`/`PassengerListTile`/`KoraBottomNav`, `ProfilPage`, `TourneePage`.
 
 ## 16. Analyse & Lint
 
@@ -261,57 +275,71 @@ Couverture manquante à ce stade (voir § 20) : `ManifesteCubit`, `ScanBoardingC
 flutter analyze
 ```
 
-## 17. Flux d'authentification — PIN pur + OTP (MEZ-11)
+## 17. Flux d'authentification — email + mot de passe, PIN, OTP (MEZ-11)
 
-**Pas d'auto-inscription** (voir § 1) : contrairement à `kora-passager` (qui a un parcours `Welcome → SignupEmail → Otp → CreatePin` pour les nouveaux clients), KORA OPS Mobile n'a **qu'un seul point d'entrée : l'écran PIN**. L'OTP ne sert qu'à confirmer un appareil non reconnu, jamais à créer un compte.
+**Pas d'auto-inscription** (voir § 1) : les agents sont provisionnés par un administrateur. L'email + mot de passe ne sert **qu'à activer un nouvel appareil**, une seule fois — ensuite, seul le PIN est demandé.
 
 ### Parcours
 
 ```
-Splash
+Splash (§ 6bis)
   │
-  └─ AuthGuard : non authentifié → toujours /login/pin
+  └─ AuthGuard : email jamais activé sur cet appareil ?
        │
-PinEntryPage (fond marine, fidèle à LoginPage de kora-passager)
-  │
-  ├─ PIN correct → NewDeviceDetectedPage (systématique, pour la démo —
-  │                un vrai fingerprint arrivera avec l'API)
-  │                    │
-  │      "Recevoir le code OTP" → OtpVerificationPage
-  │                                    │
-  │                     code correct → authenticate() + /home
-  │                     code incorrect → OtpInvalidPage
-  │                                        │
-  │                          "Recevoir un nouveau code" → retour OTP
-  │                          "Retour à la connexion" → /login/pin
-  │      "Ce n'est pas moi" → confirmation KoraDialogs → /login/pin
-  │
-  └─ PIN incorrect → KoraDialogs.error + clavier réinitialisé
+       ├─ OUI → LoginEmailPage (/login/email)
+       │           │
+       │  email + mot de passe valides
+       │           │
+       │           ▼
+       │      PinEntryPage (/login/pin) ── pendingOtpActivation=true
+       │           │
+       │      PIN correct → requestActivationOtp() → OtpVerificationPage (/login/otp)
+       │           │                                       │
+       │           │                        code correct → authenticate() + /home
+       │           │                        code incorrect → OtpInvalidPage (/login/otp-invalid)
+       │           │                                             │
+       │           │                          "Recevoir un nouveau code" → retour OTP
+       │           │                          "Retour à la connexion" → /login/pin
+       │           │
+       │      PIN incorrect → KoraDialogs.error + clavier réinitialisé
+       │
+       └─ NON (email déjà activé) → PinEntryPage (/login/pin) directement
+                   │
+              PIN correct → authenticate() + /home directement, PAS d'OTP
+                   │
+              PIN incorrect → KoraDialogs.error + clavier réinitialisé
+
+"Mot de passe oublié ?" (depuis LoginEmailPage) → ForgotPasswordPage
+  (/login/forgot-password) → email → KoraDialogs.success + retour
 ```
+
+`LoginState.pendingOtpActivation` (voir `LoginCubit`) distingue les deux parcours : `true` juste après un `submitEmailPassword` réussi (première connexion, OTP à venir après le PIN), `false` après un `loadSavedEmail` (reconnexion, PIN seul). `PinEntryPage._submit()` bifurque sur ce booléen.
 
 ### Données mockées (`AuthLocalDataSource`)
 
-- **Compte provisionné par défaut** (pas de saisie) : `aicha.hounkpe@kora-express.com` / *Aïcha Hounkpé* / *Convoyeur* — écrit en `SharedPreferences` au premier lancement (`_seedProvisionedAccountIfNeeded`)
+- Email/mot de passe acceptés : **`aicha.hounkpe@kora-express.com`** / **`Kora@2026`**
 - PIN accepté : **`1234`**
 - Code OTP accepté : **`583187`**
-- Appareil mocké (`NewDeviceDetectedPage`) : `Tecno CAMON · Cotonou · À l'instant`
+- L'email n'est enregistré comme "activé sur cet appareil" (`getSavedEmail()` non-null) qu'**après un OTP réussi** — jamais au moment du login email/mot de passe lui-même.
+- `logout()` efface la session courante mais conserve l'email activé, pour retomber sur le PIN (pas email/mot de passe) à la reconnexion.
 
 ### Écrans
 
 | Écran | Route | Fichier |
 |---|---|---|
+| Se connecter (email + mot de passe) | `/login/email` | `login_email_page.dart` |
+| Mot de passe oublié | `/login/forgot-password` | `forgot_password_page.dart` |
 | Votre PIN KORA OPS (fond marine) | `/login/pin` | `pin_entry_page.dart` |
 | Code de vérification | `/login/otp` | `otp_verification_page.dart` |
 | Code non valide | `/login/otp-invalid` | `otp_invalid_page.dart` |
-| Nouvel appareil détecté | `/login/new-device` | `new_device_detected_page.dart` |
 
 ### Cubits
 
-- **`AuthCubit`** (singleton) : état de session global, seule source de vérité pour `AuthGuard`.
-- **`LoginCubit`** (singleton, partagé entre les routes `/login/*`) : `submitPin`, `requestDeviceConfirmationOtp`, `submitOtp`, `resendOtp`, `loadSavedEmail`, `reset`. Méthodes `Future<bool>` (navigation) + état émis (affichage).
-- Une fois l'OTP vérifié, l'écran appelle `AuthCubit.authenticate(user)` avant `context.go('/home')`.
+- **`AuthCubit`** (singleton) : état de session global (`AuthUnauthenticated(savedEmail)`), seule source de vérité pour `AuthGuard`.
+- **`LoginCubit`** (singleton, partagé entre toutes les routes `/login/*`) : `submitEmailPassword`, `submitForgotPassword`, `loadSavedEmail`, `submitPin`, `requestActivationOtp`, `submitOtp`, `resendOtp`, `reset`. Méthodes `Future<bool>` (navigation) + état émis (affichage). **`reset()` est appelé à la déconnexion** (`ProfilPage`, via `getIt<LoginCubit>()`) pour ne pas laisser fuiter `pendingOtpActivation` d'une session à l'autre.
+- Authentification finale : l'écran (PIN direct pour une reconnexion, ou OTP pour une première connexion) appelle `AuthCubit.authenticate(user)` avant `context.go('/home')`.
 
-## 17bis. Écrans OPS mockés (MEZ-11) — Manifeste, Scan, Descente anticipée, Synchro, Accueil
+## 17bis. Écrans OPS mockés (MEZ-11) — Tournée, Manifeste, Scan, Descente anticipée, Profil, Accueil
 
 ### Modèles (`features/ops/domain/entities/`)
 
@@ -322,15 +350,15 @@ PinEntryPage (fond marine, fidèle à LoginPage de kora-passager)
 
 `features/ops/data/mock_ops_data_source.dart` génère 3 départs et des listes de passagers déterministes (seed = id du départ) — remplacé par de vraies API au Sprint 5.
 
-### Sélection du départ à gérer
+### Tournée (`features/tournee/`)
 
-Accessible **des deux côtés**, comme demandé : écran plein `SelectionDepartPage` (`/depart/selection`, depuis `AccueilPage` ou le bouton "Changer de départ") **et** sélecteur compact dans l'en-tête de `ManifestePage`. Les deux écrivent dans `SelectedDepartCubit` (singleton), qui notifie `ManifesteCubit` pour recharger automatiquement.
+`TourneePage` (onglet, voir échange du 17/08/2026) : liste des courses de l'agent, remplace l'ancien écran "Sélection du départ". Sélectionner une course l'enregistre dans `SelectedDepartCubit` **et** pousse directement `ManifestePage` — on prend désormais par la tournée avant d'accéder au manifeste, plus l'inverse.
 
 ### Manifeste (`features/manifeste/`)
 
-`ManifestePage` : liste `PassengerListTile` (nom, siège, `StatutBadge`, segment O/D), squelette `SkeletonList` pendant le chargement, états vide/erreur (`AppStatePlaceholder`), `RefreshIndicator`. `ManifesteCubit` recharge automatiquement au changement de départ et expose `updateStatut(passengerId, statut)`, qui journalise l'opération dans `SyncCubit` (voir Synchro ci-dessous).
+`ManifestePage` (**écran empilé**, `/tournee/manifeste`, plus un onglet) : liste `PassengerListTile` (nom, siège, `StatutBadge`, segment O/D), squelette `SkeletonList` pendant le chargement, états vide/erreur (`AppStatePlaceholder`), `RefreshIndicator`. `ManifesteCubit` recharge automatiquement au changement de départ (écoute `SelectedDepartCubit`) et expose `updateStatut(passengerId, statut)`, qui journalise l'opération dans `SyncCubit`.
 
-`DetailPassagerPage` (`/manifeste/passager`, poussé depuis une ligne du Manifeste) : infos billet, segment, siège, statut, actions Embarquer/Refuser/Descente anticipée.
+`DetailPassagerPage` (`/tournee/manifeste/passager`, poussé depuis une ligne du Manifeste) : infos billet, segment, siège, statut, actions Embarquer (`primary`)/Refuser (`danger`)/Descente anticipée (`ghost`), bouton "Voir le billet" (`TicketCard`).
 
 ### Scan boarding (`features/scan/`)
 
@@ -344,23 +372,25 @@ Chaque QR détecté appelle `ScanBoardingCubit.handleDetectedCode(code)`. Un bou
 
 ### Descente anticipée (`features/descente/`)
 
-`DescenteAnticipeePage` : `SeatMap` (`core/widgets/seat_map.dart`) — plan des sièges du véhicule, légende Libéré/Se libère bientôt/Occupé, squelette `SkeletonCard` pendant le chargement.
+`DescenteAnticipeePage` : `SeatMap` (`core/widgets/seat_map.dart`) — **plan de bus** (voir échange du 17/08/2026) : places Chauffeur/Convoyeur à l'avant, porte, puis rangées de sièges 1+2 séparées par l'allée centrale (1 siège à gauche, 2 à droite, fidèle au séquençage `MockOpsDataSource` : A à gauche, B/C à droite). Légende Libéré/Se libère bientôt/Occupé, squelette `SkeletonCard` pendant le chargement.
 
 ### Synchro (`features/synchro/`)
 
-**Mocké** (voir § 20) : `SyncCubit` (singleton) gère `isOnline`, `isSyncing`, `pending: List<PendingOperation>`. `ManifesteCubit.updateStatut` enfile une opération à chaque changement de statut. `SynchroPage` : bascule manuelle en/hors-ligne, file d'attente, "Synchroniser maintenant", **déconnexion** (voir § Accueil ci-dessous). `SyncStatusBanner` (`core/widgets`, pastille compacte ou bandeau) est visible sur les 5 onglets (intégrée à `_ScaffoldWithBottomNav`) et sur les écrans empilés via `ScreenHeader.action`.
+**Mocké** (voir § 20) : `SyncCubit` (singleton) gère `isOnline`, `isSyncing`, `pending: List<PendingOperation>`, initialisé au splash (§ 6bis) puis mis à jour par `ManifesteCubit.updateStatut` (une opération enfilée à chaque changement de statut). `SynchroPage` (**écran empilé**, `/synchro`, accessible depuis Profil — plus un onglet dédié, voir échange du 17/08/2026) : bascule manuelle en/hors-ligne, file d'attente, "Synchroniser maintenant". `SyncStatusBanner` (`core/widgets`, pastille compacte ou bandeau) reste visible sur les 4 onglets qui en ont besoin (`ScreenHeader.action` ou ligne dédiée sous `MainAppBar`) et sur les écrans empilés.
+
+### Profil (`features/profil/`)
+
+`ProfilPage` (onglet, remplace Synchro dans la bottom nav — voir échange du 17/08/2026) : carte agent (avatar initiales, nom, rôle, email), section Préférences avec la **bascule de thème clair/sombre** (déplacée ici depuis l'Accueil), accès à Synchronisation et aux Adaptateurs P501, et le bouton **Se déconnecter** (confirmation `KoraDialogs`, réinitialise aussi `LoginCubit` — voir § 17).
 
 ### Accueil (`features/home/`)
 
-`AccueilPage` reproduit trait pour trait la mise en page de l'accueil `kora-passager` (voir échange du 16/08/2026), adaptée au métier OPS :
+`AccueilPage` reproduit trait pour trait la mise en page de l'accueil `kora-passager` (voir échanges des 16 et 17/08/2026), adaptée au métier OPS :
 
-- **En-tête marine incurvé** (coins arrondis en bas) : logo KORA à gauche, bascule de thème à droite (pastille dorée si des opérations de synchro sont en attente) ; salutation + accroche 2 lignes ("Votre départ à gérer vous attend.")
-- **Carte blanche flottante** qui chevauche l'en-tête (`Stack` + `Positioned` à décalage négatif) : bandeau "Départ géré aujourd'hui" (au lieu de "Où souhaitez-vous voyager ?"), DÉPART/ARRIVÉE (au lieu d'un formulaire de recherche), bouton rond doré pour changer de départ (au lieu du swap origine/destination), DATE/EMBARQUÉS (au lieu de DATE/PASSAGERS)
-- Bouton doré pleine largeur **"Voir le manifeste"** (position équivalente à "Rechercher un voyage")
-- **Accès rapides** : 4 tuiles Manifeste (mise en avant, bordure dorée) / Scan / Descente / Synchro, même ordre que la bottom nav
-- **Bandeau promo marine** : raccourci vers `PrinterTestPage` (test des adaptateurs P501, "affiche le résultat immédiatement")
-
-La **déconnexion** n'apparaît pas sur l'Accueil (absente de la maquette source) : elle est sur `SynchroPage`, en bas, pour rester accessible sans casser la fidélité visuelle de l'accueil.
+- **En-tête marine incurvé** (coins arrondis en bas) : logo KORA à gauche, `NotificationButton` à droite (pastille dorée si des opérations de synchro sont en attente — la bascule clair/sombre n'est **plus** ici, voir § Profil) ; salutation + accroche 2 lignes ("Votre départ à gérer vous attend.")
+- **Bloc "trajet" soudé en 3 pièces** (voir échange du 17/08/2026) : header bleu ("Départ géré aujourd'hui" / "KORA OPS") et footer (DATE/EMBARQUÉS, fond légèrement plus sombre qu'un blanc pur) tous deux en retrait, la **carte blanche** (DÉPART/ARRIVÉE) occupant toute la largeur du bloc — les trois empilés sans espace, header/footer visuellement soudés à la carte. Bouton switch doré entièrement à l'extérieur de la carte, centré sur le séparateur départ/arrivée, ouvre l'onglet Tournée.
+- Bouton pleine largeur **"Voir le manifeste"** (ou "Choisir une course" si aucun départ sélectionné)
+- **Accès rapides** : 4 tuiles Tournée (mise en avant, bordure dorée) / Scan / Descente / (plus de tuile Synchro, remplacée par l'accès Profil via la bottom nav)
+- **Bandeau promo marine** : raccourci vers `PrinterTestPage` (test des adaptateurs P501, affiche le résultat immédiatement)
 
 ## 18. Adaptateurs P501 — scanner QR et imprimante thermique 58mm (MEZ-10)
 
@@ -377,10 +407,10 @@ flutter build appbundle --dart-define=ENV=prod
 
 ## 20. Prochaines étapes suggérées
 
-- Écrire les tests manquants : `ManifesteCubit`, `ScanBoardingCubit`, `SeatMap`, `PassengerListTile`, `KoraBottomNav`.
-- Remplacer `AuthLocalDataSource`/`MockOpsDataSource` par de vrais flux API au Sprint 5.
-- Remplacer la Synchro mockée (bascule manuelle) par une vraie détection réseau (`connectivity_plus`, déjà utilisé côté `kora-passager`) et un vrai appel de synchronisation.
+- Écrire les tests manquants : `ManifesteCubit`, `ScanBoardingCubit`, `SeatMap`, `PassengerListTile`, `KoraBottomNav`, `ProfilPage`, `TourneePage`.
+- Remplacer `AuthLocalDataSource`/`MockOpsDataSource` par de vrais flux API au Sprint 5 — en particulier remplacer les identifiants/PIN/OTP mockés (§ 17) par un vrai provisioning administrateur.
+- Remplacer la Synchro mockée (bascule manuelle) par un vrai appel de synchronisation vers le serveur, en s'appuyant sur la base de données locale prévue (voir § 6bis) et la détection réseau déjà en place (`connectivity_plus`, § 6bis).
 - Intégrer les vrais packages `flutter-networking`/`flutter-design-system` du monorepo s'ils deviennent accessibles, à la place des équivalents locaux (§ 10).
 - Ajouter les polices Aptos en assets si fournies par la marque.
 - Implémenter le handler natif Android/iOS des canaux P501 (§ 18) une fois le SDK disponible.
-- Déplacer la bascule manuelle du thème vers un écran Paramètres dédié.
+- Ajouter un bouton retour désactivé/masqué sur `LoginEmailPage` (écran d'entrée sans route précédente) plutôt que de laisser le comportement par défaut de `ScreenHeader`.

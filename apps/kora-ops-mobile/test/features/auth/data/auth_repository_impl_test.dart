@@ -3,7 +3,6 @@ import 'package:kora_ops_mobile/core/exceptions/app_exceptions.dart';
 import 'package:kora_ops_mobile/features/auth/data/datasources/auth_local_datasource.dart';
 import 'package:kora_ops_mobile/features/auth/data/models/user_model.dart';
 import 'package:kora_ops_mobile/features/auth/data/repositories/auth_repository_impl.dart';
-import 'package:kora_ops_mobile/features/auth/domain/entities/device_info.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockAuthLocalDataSource extends Mock implements AuthLocalDataSource {}
@@ -24,7 +23,6 @@ void main() {
 
       final result = await repository.getSavedEmail();
 
-      expect(result.isSuccess, isTrue);
       result.when(
         onSuccess: (email) => expect(email, 'aicha@example.com'),
         onFailure: (_) => fail('ne devrait pas échouer'),
@@ -42,13 +40,49 @@ void main() {
     });
   });
 
+  group('login', () {
+    test('réussit avec des identifiants valides', () async {
+      when(() => dataSource.login(
+          email: any(named: 'email'),
+          password: any(named: 'password'))).thenAnswer((_) async {});
+
+      final result =
+          await repository.login(email: 'x@example.com', password: 'secret');
+
+      expect(result.isSuccess, isTrue);
+    });
+
+    test('mappe ApiException (identifiants invalides) en ValidationFailure',
+        () async {
+      when(() => dataSource.login(
+              email: any(named: 'email'), password: any(named: 'password')))
+          .thenThrow(const ApiException('Email ou mot de passe incorrect.'));
+
+      final result =
+          await repository.login(email: 'x@example.com', password: 'wrong');
+
+      expect(result.isFailure, isTrue);
+    });
+  });
+
+  group('forgotPassword', () {
+    test('réussit pour un email connu', () async {
+      when(() => dataSource.forgotPassword(email: any(named: 'email')))
+          .thenAnswer((_) async {});
+
+      final result = await repository.forgotPassword(email: 'x@example.com');
+
+      expect(result.isSuccess, isTrue);
+    });
+  });
+
   group('verifyOtp', () {
     test('retourne un UserEntity en cas de succès', () async {
       const UserModel user = UserModel(
         id: 'agent-001',
-        fullName: 'aicha.hounkpe',
+        fullName: 'Aïcha Hounkpé',
         role: 'Convoyeur',
-        email: 'aicha.hounkpe@example.com',
+        email: 'aicha.hounkpe@kora-express.com',
       );
       when(() => dataSource.verifyOtp(
           email: any(named: 'email'),
@@ -76,44 +110,28 @@ void main() {
     test('retourne un UserEntity en cas de succès', () async {
       const UserModel user = UserModel(
         id: 'agent-001',
-        fullName: 'aicha',
+        fullName: 'Aïcha',
         role: 'Convoyeur',
         email: 'aicha@example.com',
       );
-      when(() => dataSource.verifyPin(pin: any(named: 'pin')))
-          .thenAnswer((_) async => user);
+      when(() => dataSource.verifyPin(
+          email: any(named: 'email'),
+          pin: any(named: 'pin'))).thenAnswer((_) async => user);
 
-      final result = await repository.verifyPin(pin: '1234');
+      final result = await repository.verifyPin(email: user.email, pin: '1234');
 
       expect(result.isSuccess, isTrue);
     });
 
     test('mappe ApiException (PIN incorrect) en ValidationFailure', () async {
-      when(() => dataSource.verifyPin(pin: any(named: 'pin')))
+      when(() => dataSource.verifyPin(
+              email: any(named: 'email'), pin: any(named: 'pin')))
           .thenThrow(const ApiException('PIN incorrect.'));
 
-      final result = await repository.verifyPin(pin: '0000');
+      final result =
+          await repository.verifyPin(email: 'x@example.com', pin: '0000');
 
       expect(result.isFailure, isTrue);
-    });
-  });
-
-  group('getCurrentDeviceInfo', () {
-    test('retourne les informations mockées', () async {
-      const DeviceInfo device = DeviceInfo(
-        deviceModel: 'Tecno CAMON',
-        city: 'Cotonou',
-        attemptLabel: 'À l\'instant',
-      );
-      when(() => dataSource.getCurrentDeviceInfo())
-          .thenAnswer((_) async => device);
-
-      final result = await repository.getCurrentDeviceInfo();
-
-      result.when(
-        onSuccess: (info) => expect(info, device),
-        onFailure: (_) => fail('ne devrait pas échouer'),
-      );
     });
   });
 }

@@ -39,6 +39,10 @@ dependencies:
   # Squelettes de chargement (shimmer) — voir document.md § États visuels
   shimmer: ^3.0.0
 
+  # Vérification de connexion au démarrage (non bloquante, voir splash) —
+  # voir document.md § Splash
+  connectivity_plus: ^7.0.0
+
   # Scanner caméra QR (écran Scan boarding) — voir document.md § Scan boarding
   mobile_scanner: ^7.4.0
 

@@ -12,7 +12,7 @@ class AppLoading extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          const CircularProgressIndicator(color: AppColors.kora),
+          const CircularProgressIndicator(color: AppColors.gold),
           if (message != null) ...<Widget>[
             const SizedBox(height: 12),
             Text(message!, style: Theme.of(context).textTheme.bodyMedium),

@@ -52,17 +52,10 @@ class TicketCard extends StatelessWidget {
                 decoration: const BoxDecoration(color: AppColors.kora),
                 child: Row(
                   children: <Widget>[
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: AppColors.white,
-                        borderRadius: BorderRadius.circular(AppRadius.sm),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: Image.asset('assets/images/kora_logo.png',
-                            height: 22, fit: BoxFit.contain),
-                      ),
+                    Image.asset(
+                      'assets/images/kora_logo_light.png',
+                      height: 30,
+                      fit: BoxFit.contain,
                     ),
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
@@ -148,6 +141,7 @@ class TicketCard extends StatelessWidget {
                         version: QrVersions.auto,
                         size: 140,
                         gapless: true,
+                        backgroundColor: AppColors.white,
                         eyeStyle: const QrEyeStyle(
                             eyeShape: QrEyeShape.square, color: AppColors.kora),
                         dataModuleStyle: const QrDataModuleStyle(

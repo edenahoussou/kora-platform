@@ -6,20 +6,22 @@ import '../../../../app/theme/kora_colors.dart';
 import '../../../../core/widgets/app_state_placeholder.dart';
 import '../../../../core/widgets/kora_button.dart';
 import '../../../../core/widgets/kora_card.dart';
-import '../../../auth/presentation/cubit/auth_cubit.dart';
+import '../../../../core/widgets/screen_header.dart';
 import '../cubit/sync_cubit.dart';
 
-/// Onglet Synchro : indicateur de connexion détaillé + file d'attente des
-/// opérations en attente (embarquements/refus/descentes saisis pendant
-/// que l'app était considérée hors-ligne). Bascule manuelle en/hors-ligne
-/// pour la démonstration — voir document.md § Synchro.
+/// Écran Synchro (empilé, accessible depuis l'onglet Profil — voir échange
+/// du 17/08/2026, la bottom nav n'a plus d'onglet Synchro dédié) :
+/// indicateur de connexion détaillé + file d'attente des opérations en
+/// attente (embarquements/refus/descentes saisis pendant que l'app était
+/// considérée hors-ligne). Bascule manuelle en/hors-ligne pour la
+/// démonstration — voir document.md § Synchro.
 class SynchroPage extends StatelessWidget {
   const SynchroPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Synchronisation')),
+      appBar: const ScreenHeader(eyebrow: 'Connexion', title: 'Synchro'),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.md),
@@ -150,15 +152,6 @@ class SynchroPage extends StatelessWidget {
                         ),
                       ),
                     ),
-                  const SizedBox(height: AppSpacing.xl),
-                  Divider(color: context.koraColors.line),
-                  const SizedBox(height: AppSpacing.sm),
-                  KoraButton(
-                    label: 'Se déconnecter',
-                    variant: KoraButtonVariant.ghost,
-                    icon: Icons.logout,
-                    onPressed: () => context.read<AuthCubit>().logout(),
-                  ),
                 ],
               );
             },
