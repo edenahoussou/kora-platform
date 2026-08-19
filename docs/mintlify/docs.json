@@ -1,0 +1,115 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "KORA BUS API",
+  "colors": {
+    "primary": "#0057B8",
+    "light": "#F6B000",
+    "dark": "#001D4E"
+  },
+  "appearance": {
+    "default": "dark",
+    "strict": true
+  },
+  "favicon": "/icon.png",
+  "navigation": {
+    "anchors": [
+      {
+        "anchor": "Documentation",
+        "icon": "book-open",
+        "tabs": [
+          {
+            "tab": "Getting Started",
+            "groups": [
+              {
+                "group": "Getting Started",
+                "pages": [
+                  "introduction",
+                  "quickstart",
+                  "authentication"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "Guides",
+            "groups": [
+              {
+                "group": "Guides",
+                "pages": [
+                  "guides/bus-search",
+                  "guides/seat-selection",
+                  "guides/error-handling"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "API Reference",
+            "groups": [
+              {
+                "group": "API Reference",
+                "pages": [
+                  {
+                    "group": "Auth",
+                    "pages": [
+                      "reference/auth"
+                    ]
+                  },
+                  {
+                    "group": "Bus",
+                    "pages": [
+                      "reference/bus"
+                    ]
+                  },
+                  {
+                    "group": "Health",
+                    "pages": [
+                      "reference/health"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "anchor": "WhatsApp",
+        "href": "https://chat.whatsapp.com/JXi4lop1BQNCcfsQxuah2a",
+        "icon": "whatsapp"
+      }
+    ]
+  },
+  "logo": {
+    "light": "/logo.light.png",
+    "dark": "/logo.dark.png"
+  },
+  "api": {
+    "openapi": "api/openapi.yaml"
+  },
+  "background": {
+    "decoration": "gradient",
+    "color": {
+      "dark": "#001D4E"
+    }
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Support",
+        "href": "mailto:tech@korabus.app"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Dashboard",
+      "href": "https://kora-ops-web.local"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/edenahoussou/kora-platform"
+    }
+  }
+}
