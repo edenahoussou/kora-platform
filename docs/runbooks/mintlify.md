@@ -6,7 +6,7 @@ La documentation d'intégration API destinée aux développeurs mobile est gér�
 
 ```
 docs/mintlify/
-├── mint.json              # Config Mintlify (navigation, thème, auth)
+├── docs.json              # Config Mintlify 4.x (navigation, thème, auth)
 ├── api/
 │   └── openapi.yaml       # Spec OpenAPI 3.0.3 généré par Scribe (commité)
 ├── introduction.mdx       # Page d'accueil
@@ -84,12 +84,12 @@ L'accès à la documentation est restreint. Les développeurs mobile doivent êt
 
 1. Implémenter le controller avec les annotations Scribe (`@group`, `@bodyParam`, `@queryParam`, `@response`)
 2. Régénérer le spec : `composer docs:generate`
-3. Si l'endpoint appartient à un nouveau groupe, créer `reference/<group>.mdx` et l'ajouter dans `mint.json`
+3. Si l'endpoint appartient à un nouveau groupe, créer `reference/<group>.mdx` et l'ajouter dans `docs.json`
 4. Commiter le spec mis à jour + les changements
-5. La CI valide que `mintlify build` passe
+5. La CI valide que `mintlify validate` passe
 
 ## Ajouter un guide
 
 1. Créer `guides/<nom>.mdx`
-2. L'ajouter dans la navigation de `mint.json` (groupe "Guides")
+2. L'ajouter dans la navigation de `docs.json` (groupe "Guides")
 3. Valider avec `npm run build`

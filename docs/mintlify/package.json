@@ -4,7 +4,7 @@
     "description": "KORA BUS API documentation for mobile developers (Mintlify)",
     "scripts": {
         "dev": "mintlify dev",
-        "build": "mintlify build",
+        "build": "mintlify validate",
         "snippets": "mintlify snippets"
     },
     "devDependencies": {

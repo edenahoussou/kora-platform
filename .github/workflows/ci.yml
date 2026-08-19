@@ -141,7 +141,7 @@ jobs:
         run: npm ci
         working-directory: docs/mintlify
 
-      - name: Mintlify build (validate docs)
+      - name: Mintlify validate (validate docs)
         if: steps.filter.outputs.docs == 'true'
-        run: npx mintlify build
+        run: npx mintlify validate
         working-directory: docs/mintlify
