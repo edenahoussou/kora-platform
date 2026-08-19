@@ -33,6 +33,7 @@ type KoraTableProps<T> = {
     emptyIcon?: LucideIcon;
     actions?: ReactNode;
     pagination?: PaginationMeta;
+    onRowClick?: (row: T) => void;
 };
 
 /**
@@ -57,6 +58,7 @@ export function KoraTable<T>({
     emptyIcon: EmptyIcon,
     actions,
     pagination,
+    onRowClick,
 }: KoraTableProps<T>) {
     const alignClass = (align?: string): string => {
         if (align === 'right') {
@@ -194,7 +196,15 @@ export function KoraTable<T>({
                             {data.map((row) => (
                                 <tr
                                     key={rowKey(row)}
-                                    className="transition-colors hover:bg-muted/25"
+                                    onClick={
+                                        onRowClick
+                                            ? () => onRowClick(row)
+                                            : undefined
+                                    }
+                                    className={`transition-colors hover:bg-muted/25 ${onRowClick
+                                        ? 'cursor-pointer'
+                                        : ''
+                                        }`}
                                 >
                                     {columns.map((column) => (
                                         <td

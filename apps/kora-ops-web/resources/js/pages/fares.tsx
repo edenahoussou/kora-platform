@@ -3,15 +3,16 @@ import {
     Archive,
     CheckCircle,
     Edit3,
+    Eye,
     MoreHorizontal,
     Plus,
     Tag,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { KoraFilterBar } from '@/components/kora-filter-bar';
-import type { FilterConfig } from '@/components/kora-filter-bar';
 import { FareFormDialog } from '@/components/fares/fare-form-dialog';
 import type { FareRecord } from '@/components/fares/fare-form-dialog';
+import { KoraFilterBar } from '@/components/kora-filter-bar';
+import type { FilterConfig } from '@/components/kora-filter-bar';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { KoraTable } from '@/components/kora-table';
 import type { PaginationMeta, TableColumn } from '@/components/kora-table';
@@ -22,7 +23,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import fares from '@/routes/fares';
+import faresRoutes from '@/routes/fares';
 import type { BreadcrumbItem } from '@/types';
 
 type ServiceClassOption = {
@@ -149,7 +150,7 @@ export default function FaresPage({
 
     const changeStatus = (fare: FareRecord, status: string) => {
         router.patch(
-            fares.status.url({ fare: fare.uuid }),
+            faresRoutes.status.url({ fare: fare.uuid }),
             { status },
             { preserveScroll: true },
         );
@@ -224,7 +225,10 @@ export default function FaresPage({
             header: 'Actions',
             align: 'right',
             render: (fare) => (
-                <div className="flex justify-end">
+                <div
+                    className="flex justify-end"
+                    onClick={(e) => e.stopPropagation()}
+                >
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button
@@ -236,6 +240,14 @@ export default function FaresPage({
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                                onClick={() =>
+                                    router.get(faresRoutes.show.url({ fare: fare.uuid }))
+                                }
+                            >
+                                <Eye className="size-4" />
+                                Voir le détail
+                            </DropdownMenuItem>
                             {permissions.canUpdate && (
                                 <DropdownMenuItem
                                     onClick={() => {
@@ -317,6 +329,7 @@ export default function FaresPage({
                 columns={columns}
                 data={fares.data}
                 rowKey={(fare) => fare.uuid}
+                onRowClick={(fare) => router.get(faresRoutes.show.url({ fare: fare.uuid }))}
                 emptyTitle="Aucun tarif trouvé"
                 emptyMessage="Ajustez vos filtres ou créez la première grille tarifaire."
                 emptyIcon={Tag}

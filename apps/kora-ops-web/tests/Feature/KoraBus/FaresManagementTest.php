@@ -398,3 +398,109 @@ it('rejects fare creation from unauthorized agency agents', function (): void {
         'effective_from' => '2026-09-01',
     ])->assertForbidden();
 });
+
+it('shows fare detail with segment, price, reference, versions and timeline without exposing numeric ids', function (): void {
+    [$line, $origin, $destination] = lineWithStops();
+    $confort = ServiceClass::query()->where('code', 'confort')->firstOrFail();
+
+    $fare = Fare::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'line_id' => $line->id,
+        'service_class_id' => $confort->id,
+        'origin_stop_id' => $origin->id,
+        'destination_stop_id' => $destination->id,
+        'base_amount' => 8500,
+        'currency' => 'XOF',
+        'effective_from' => '2026-08-01',
+        'status' => 'active',
+    ]);
+
+    $this->actingAs(commercialDirector())
+        ->get(route('fares.show', $fare))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('fares/detail')
+            ->where('fare.uuid', $fare->uuid)
+            ->where('fare.reference', "TAR-{$line->code}-confort-2026-08")
+            ->where('fare.lineCode', $line->code)
+            ->where('fare.lineName', $line->name)
+            ->where('fare.originName', 'Cotonou')
+            ->where('fare.destinationName', 'Parakou')
+            ->where('fare.serviceClassCode', 'confort')
+            ->where('fare.serviceClassName', 'KORA Confort')
+            ->where('fare.baseAmount', 8500)
+            ->where('fare.currency', 'XOF')
+            ->where('fare.status', 'active')
+            ->missing('fare.id')
+            ->has('versions', 1)
+            ->where('versions.0.uuid', $fare->uuid)
+            ->where('versions.0.isCurrent', true)
+            ->has('timeline')
+            ->has('serviceClasses')
+            ->has('lines')
+            ->where('permissions.canUpdate', true));
+});
+
+it('lists sibling fares on the same segment as versions ordered by effective_from', function (): void {
+    [$line, $origin, $destination] = lineWithStops();
+    $confort = ServiceClass::query()->where('code', 'confort')->firstOrFail();
+
+    $older = Fare::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'line_id' => $line->id,
+        'service_class_id' => $confort->id,
+        'origin_stop_id' => $origin->id,
+        'destination_stop_id' => $destination->id,
+        'base_amount' => 7000,
+        'currency' => 'XOF',
+        'effective_from' => '2026-01-01',
+        'effective_until' => '2026-07-31',
+        'status' => 'archived',
+    ]);
+
+    $current = Fare::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'line_id' => $line->id,
+        'service_class_id' => $confort->id,
+        'origin_stop_id' => $origin->id,
+        'destination_stop_id' => $destination->id,
+        'base_amount' => 8500,
+        'currency' => 'XOF',
+        'effective_from' => '2026-08-01',
+        'status' => 'active',
+    ]);
+
+    $this->actingAs(commercialDirector())
+        ->get(route('fares.show', $current))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('versions', 2)
+            ->where('versions.0.uuid', $older->uuid)
+            ->where('versions.0.effectiveFrom', '2026-01-01')
+            ->where('versions.0.isCurrent', false)
+            ->where('versions.1.uuid', $current->uuid)
+            ->where('versions.1.effectiveFrom', '2026-08-01')
+            ->where('versions.1.isCurrent', true));
+});
+
+it('rejects unauthorized fare detail access for agency agents', function (): void {
+    [$line, $origin, $destination] = lineWithStops();
+    $confort = ServiceClass::query()->where('code', 'confort')->firstOrFail();
+
+    $fare = Fare::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'line_id' => $line->id,
+        'service_class_id' => $confort->id,
+        'origin_stop_id' => $origin->id,
+        'destination_stop_id' => $destination->id,
+        'base_amount' => 8500,
+        'currency' => 'XOF',
+        'effective_from' => '2026-08-01',
+        'status' => 'active',
+    ]);
+
+    $agent = User::factory()->create();
+    $agent->assignRole('agency_agent');
+
+    $this->actingAs($agent)->get(route('fares.show', $fare))->assertForbidden();
+});

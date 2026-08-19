@@ -25,6 +25,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('boarding', 'boarding')->name('boarding');
     Route::inertia('manifest', 'manifest')->name('manifest');
     Route::get('fares', [FareController::class, 'index'])->name('fares.index');
+    Route::get('fares/{fare:uuid}', [FareController::class, 'show'])->name('fares.show');
     Route::post('fares', [FareController::class, 'store'])->name('fares.store');
     Route::put('fares/{fare:uuid}', [FareController::class, 'update'])->name('fares.update');
     Route::patch('fares/{fare:uuid}/status', [FareController::class, 'changeStatus'])->name('fares.status');

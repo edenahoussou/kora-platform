@@ -91,6 +91,55 @@ class FareController extends Controller
         ]);
     }
 
+    public function show(Request $request, Fare $fare): Response
+    {
+        Gate::authorize('view', $fare);
+
+        $fare->load([
+            'line:id,uuid,code,name',
+            'originStop:id,uuid,name,city,country',
+            'destinationStop:id,uuid,name,city,country',
+            'serviceClass:id,uuid,code,name',
+        ]);
+
+        // Versions : autres grilles sur le même segment (ligne + O/D + classe de service),
+        // ordonnées par date d'effet pour visualiser l'historique tarifaire du segment.
+        $versions = Fare::query()
+            ->where('line_id', $fare->line_id)
+            ->where('origin_stop_id', $fare->origin_stop_id)
+            ->where('destination_stop_id', $fare->destination_stop_id)
+            ->where('service_class_id', $fare->service_class_id)
+            ->orderBy('effective_from')
+            ->get()
+            ->map(fn (Fare $version): array => $this->serializeVersion($version, $fare))
+            ->values()
+            ->all();
+
+        return inertia('fares/detail', [
+            'fare' => $this->serializeFareDetail($fare),
+            'versions' => $versions,
+            'timeline' => $this->buildTimeline($fare),
+            'serviceClasses' => ServiceClass::ordered()->get()->map(fn (ServiceClass $class): array => [
+                'uuid' => $class->uuid,
+                'code' => $class->code,
+                'name' => $class->name,
+            ]),
+            'lines' => Line::query()->orderBy('code')->get()->map(fn (Line $line): array => [
+                'uuid' => $line->uuid,
+                'code' => $line->code,
+                'name' => $line->name,
+                'stops' => $line->stops()->orderBy('stop_order')->where('status', 'active')->get()->map(fn (Stop $stop): array => [
+                    'uuid' => $stop->uuid,
+                    'name' => $stop->name,
+                    'stopOrder' => (int) $stop->stop_order,
+                ]),
+            ]),
+            'permissions' => [
+                'canUpdate' => Gate::allows('update', $fare),
+            ],
+        ]);
+    }
+
     public function store(StoreFareRequest $request, CreateFareAction $createFare): RedirectResponse
     {
         $createFare->execute($request->payload());
@@ -147,5 +196,109 @@ class FareController extends Controller
             'effectiveUntil' => $fare->effective_until?->toDateString(),
             'status' => FareStatus::from((string) $fare->getRawOriginal('status'))->value,
         ];
+    }
+
+    /** @return array<string, mixed> */
+    private function serializeFareDetail(Fare $fare): array
+    {
+        $status = FareStatus::from((string) $fare->getRawOriginal('status'));
+
+        return [
+            'uuid' => $fare->uuid,
+            'reference' => $this->buildReference($fare),
+            'lineUuid' => $fare->line?->uuid,
+            'lineCode' => $fare->line?->code,
+            'lineName' => $fare->line?->name,
+            'originName' => $fare->originStop?->name,
+            'originCity' => $fare->originStop?->city,
+            'originCountry' => $fare->originStop?->country,
+            'destinationName' => $fare->destinationStop?->name,
+            'destinationCity' => $fare->destinationStop?->city,
+            'destinationCountry' => $fare->destinationStop?->country,
+            'serviceClassCode' => $fare->serviceClass?->code,
+            'serviceClassName' => $fare->serviceClass?->name,
+            'baseAmount' => (int) $fare->base_amount,
+            'currency' => $fare->currency,
+            'effectiveFrom' => $fare->effective_from?->toDateString(),
+            'effectiveUntil' => $fare->effective_until?->toDateString(),
+            'status' => $status->value,
+            'createdAt' => $fare->created_at?->toIso8601String(),
+            'updatedAt' => $fare->updated_at?->toIso8601String(),
+        ];
+    }
+
+    /**
+     * Build a readable reference code: TAR-{lineCode}-{serviceCode}-{YYYY-MM}.
+     */
+    private function buildReference(Fare $fare): string
+    {
+        $lineCode = $fare->line?->code ?? '---';
+        $serviceCode = $fare->serviceClass?->code ?? '---';
+        $period = $fare->effective_from?->format('Y-m') ?? '----';
+
+        return "TAR-{$lineCode}-{$serviceCode}-{$period}";
+    }
+
+    /**
+     * Serialize a sibling fare as a version row for the Périodes tab.
+     *
+     * @return array<string, mixed>
+     */
+    private function serializeVersion(Fare $version, Fare $current): array
+    {
+        $status = FareStatus::from((string) $version->getRawOriginal('status'));
+
+        return [
+            'uuid' => $version->uuid,
+            'reference' => $this->buildReference($version),
+            'baseAmount' => (int) $version->base_amount,
+            'currency' => $version->currency,
+            'effectiveFrom' => $version->effective_from?->toDateString(),
+            'effectiveUntil' => $version->effective_until?->toDateString(),
+            'status' => $status->value,
+            'isCurrent' => $version->is($current),
+        ];
+    }
+
+    /**
+     * Build a lightweight timeline of key fare events from the activity log,
+     * with a graceful fallback to model timestamps when no activity is logged.
+     *
+     * @return array<int, array{label: string, date: string|null}>
+     */
+    private function buildTimeline(Fare $fare): array
+    {
+        $events = [];
+
+        if ($fare->created_at) {
+            $events[] = [
+                'label' => 'Tarif créé',
+                'date' => $fare->created_at->toIso8601String(),
+            ];
+        }
+
+        if ($fare->effective_from && $fare->effective_from->isPast()) {
+            $events[] = [
+                'label' => 'Période contrôlée',
+                'date' => $fare->effective_from->toIso8601String(),
+            ];
+        }
+
+        $status = FareStatus::from((string) $fare->getRawOriginal('status'));
+        if ($status === FareStatus::Active) {
+            $events[] = [
+                'label' => 'Grille approuvée',
+                'date' => $fare->updated_at?->toIso8601String(),
+            ];
+        }
+
+        if ($fare->updated_at && $fare->updated_at->notEqualTo($fare->created_at)) {
+            $events[] = [
+                'label' => 'Tarif mis à jour',
+                'date' => $fare->updated_at->toIso8601String(),
+            ];
+        }
+
+        return $events;
     }
 }
