@@ -13,7 +13,7 @@ Choisissez l'environnement cible :
 
 | Environnement | Base URL |
 |---------------|----------|
-| Local | `http://kora-ops-web.local` |
+| Local | `http://kora-ops-web.local` ou `http://localhost:8080` |
 | Staging | `https://staging-api.korabus.app` |
 | Production | `https://api.korabus.app` |
 
@@ -21,7 +21,7 @@ Choisissez l'environnement cible :
 
 <CodeGroup>
 
-```dart
+```dart Dart
 // lib/core/api/kora_api_client.dart
 import 'package:dio/dio.dart';
 
@@ -56,26 +56,55 @@ Premier appel public, sans authentification :
 
 <CodeGroup>
 
-```dart
+```bash Curl
+curl -X GET https://api.korabus.app/api/v1/bus/cities \
+  -H 'Accept: application/json'
+```
+
+```dart Dart
 final dio = KoraApiClient.create();
 
 final response = await dio.get('/api/v1/bus/cities');
 final cities = response.data['data'] as List;
 
 for (final city in cities) {
-  print('${city['uuid']} — ${city['name']}');
+  print('${city['city']} (${city['country']})');
 }
-// 6ff8f7f6-... — Cotonou
-// 6b72fe4a-... — Abidjan
+// Cotonou (BJ)
+// Abidjan (CI)
 ```
 
 </CodeGroup>
+
+**Réponse attendue (200) :**
+
+```json
+{
+  "data": [
+    {
+      "city": "Cotonou",
+      "country": "BJ",
+      "stops_count": 3
+    },
+    {
+      "city": "Abidjan",
+      "country": "CI",
+      "stops_count": 2
+    }
+  ]
+}
+```
 
 ## 4. Rechercher des départs
 
 <CodeGroup>
 
-```dart
+```bash Curl
+curl -X GET 'https://api.korabus.app/api/v1/bus/departures?date=2026-08-20&from=Cotonou&to=Abidjan' \
+  -H 'Accept: application/json'
+```
+
+```dart Dart
 final response = await dio.get(
   '/api/v1/bus/departures',
   queryParameters: {
@@ -87,11 +116,56 @@ final response = await dio.get(
 
 final departures = response.data['data'] as List;
 for (final d in departures) {
-  print('${d['uuid']} — ${d['departure_time']} — ${d['available_seats']} places');
+  print('${d['departure_time']} — ${d['available_seats_count']} places — ${d['fare_preview']['label']}');
 }
+// 06:00 — 32 places — 15 000 FCFA
 ```
 
 </CodeGroup>
+
+**Réponse attendue (200) :**
+
+```json
+{
+  "data": [
+    {
+      "uuid": "a3091549-9179-454e-8440-58179f2208df",
+      "departure_date": "2026-08-20",
+      "departure_time": "06:00",
+      "estimated_arrival_at": "2026-08-20T14:00:00.000Z",
+      "status": "scheduled",
+      "line": {
+        "uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
+        "code": "COT-ABJ",
+        "name": "Cotonou — Abidjan"
+      },
+      "bus": {
+        "uuid": "b4102650-a280-4655-9551-69280321aaef",
+        "registration_number": "BJ-2024-AB-1234",
+        "brand": "Mercedes",
+        "model": "O500",
+        "seat_count": 49
+      },
+      "origin_stop": {
+        "uuid": "6b72fe4a-5b40-307c-bc24-f79acf9a1bb9",
+        "name": "Gare de Cotonou",
+        "city": "Cotonou"
+      },
+      "destination_stop": {
+        "uuid": "8d94f06c-7d62-529e-de46-9bce1cbc3dd1",
+        "name": "Gare d'Abidjan",
+        "city": "Abidjan"
+      },
+      "available_seats_count": 32,
+      "fare_preview": {
+        "amount": 15000,
+        "currency": "XOF",
+        "label": "15 000 FCFA"
+      }
+    }
+  ]
+}
+```
 
 ## 5. Authentification (optionnel)
 

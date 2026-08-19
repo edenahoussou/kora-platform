@@ -9,213 +9,593 @@ KORA BUS utilise un flow d'authentification basé sur **OTP email + PIN** avec �
 
 ## Vue d'ensemble du flow
 
-```mermaid
-sequenceDiagram
-    participant App
-    participant API
-    participant Email
-
-    Note over App,API: 1. Demande OTP
-    App->>API: POST /auth/otp/request {email, purpose}
-    API->>Email: Envoi code OTP
-    API-->>App: 200 {otp_challenge_uuid}
-
-    Note over App,API: 2. Vérification OTP
-    App->>API: POST /auth/otp/verify {otp_challenge_uuid, code, purpose}
-    API-->>App: 200 {verification_token}
-
-    Note over App,API: 3a. Nouvel utilisateur — complétion
-    App->>API: POST /auth/register/complete {otp_challenge_uuid, verification_token, pin, device_*}
-    API-->>App: 201 {token, user}
-
-    Note over App,API: 3b. Utilisateur existant — login
-    App->>API: POST /auth/login {email, pin, device_*}
-    API-->>App: 200 {token, user}
-    Note right of API: Si nouvel appareil → 403 requires_otp
-```
-
-## 1. Demander un OTP
-
-<Endpoint
-  method="POST"
-  path="/api/v1/auth/otp/request"
-/>
-
-### Paramètres
-
-| Champ | Type | Requis | Description |
-|-------|------|--------|-------------|
-| `email` | string | oui | Email de l'utilisateur |
-| `purpose` | enum | oui | `registration`, `login_new_device`, `pin_reset`, `account_unlock` |
-
-### Exemple Dart
+<Steps>
+  <Step title="Demander un OTP">
+    L'utilisateur saisit son email. L'API envoie un code OTP à 6 chiffres par email et retourne un `otp_challenge_uuid`.
 
 <CodeGroup>
 
-```dart
+```bash Curl
+curl -X POST https://api.korabus.app/api/v1/auth/otp/request \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "email": "passager@korabus.app",
+    "purpose": "registration"
+  }'
+```
+
+```dart Dart
 final response = await dio.post('/api/v1/auth/otp/request', data: {
   'email': 'passager@korabus.app',
   'purpose': 'registration',
 });
 
-final challengeUuid = response.data['otp_challenge_uuid'];
+final challengeUuid = response.data['data']['otp_challenge_uuid'];
 ```
 
 </CodeGroup>
 
-## 2. Vérifier l'OTP
+**Réponse attendue (202) :**
 
-<Endpoint
-  method="POST"
-  path="/api/v1/auth/otp/verify"
-/>
+```json
+{
+  "data": {
+    "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
+    "purpose": "registration",
+    "email": "passager@korabus.app",
+    "expires_at": "2026-08-17T13:10:00.000Z"
+  }
+}
+```
+  </Step>
 
-### Paramètres
-
-| Champ | Type | Requis | Description |
-|-------|------|--------|-------------|
-| `otp_challenge_uuid` | uuid | oui | UUID reçu à l'étape 1 |
-| `purpose` | enum | oui | Même `purpose` qu'à l'étape 1 |
-| `code` | string (6 digits) | oui | Code OTP reçu par email |
-
-### Exemple Dart
+  <Step title="Vérifier l'OTP">
+    L'utilisateur saisit le code reçu par email. L'API retourne un `verification_token` à usage unique.
 
 <CodeGroup>
 
-```dart
+```bash Curl
+curl -X POST https://api.korabus.app/api/v1/auth/otp/verify \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
+    "purpose": "registration",
+    "code": "569775"
+  }'
+```
+
+```dart Dart
 final response = await dio.post('/api/v1/auth/otp/verify', data: {
   'otp_challenge_uuid': challengeUuid,
   'purpose': 'registration',
   'code': '569775',
 });
 
-final verificationToken = response.data['verification_token'];
+final verificationToken = response.data['data']['verification_token'];
 ```
 
 </CodeGroup>
 
-## 3a. Compléter l'inscription (nouvel utilisateur)
-
-<Endpoint
-  method="POST"
-  path="/api/v1/auth/register/complete"
-/>
-
-### Paramètres
-
-| Champ | Type | Requis | Description |
-|-------|------|--------|-------------|
-| `otp_challenge_uuid` | uuid | oui | UUID de l'étape 1 |
-| `verification_token` | string | oui | Token de l'étape 2 |
-| `pin` | string (4 digits) | oui | PIN choisi par l'utilisateur |
-| `device_name` | string | oui | Nom lisible de l'appareil |
-| `platform` | enum | oui | `android`, `ios`, `web`, `unknown` |
-| `device_fingerprint` | string | oui | Empreinte unique de l'appareil |
-| `push_token` | string | non | Token Firebase / APNs |
-
-### Réponse (201)
+**Réponse attendue (200) :**
 
 ```json
 {
-    "data": {
-        "token": "1|aBcDeFgHiJkLmNoPqRsTuVwXyZ...",
-        "user": {
-            "uuid": "...",
-            "name": "...",
-            "email": "..."
-        }
-    }
+  "data": {
+    "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
+    "purpose": "registration",
+    "verification_token": "gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn",
+    "verified_at": "2026-08-17T13:05:00.000Z"
+  }
 }
 ```
+  </Step>
 
-## 3b. Connexion (utilisateur existant)
-
-<Endpoint
-  method="POST"
-  path="/api/v1/auth/login"
-/>
-
-### Paramètres
-
-| Champ | Type | Requis | Description |
-|-------|------|--------|-------------|
-| `email` | string | oui | Email |
-| `pin` | string (4 digits) | oui | PIN |
-| `device_name` | string | oui | Nom de l'appareil |
-| `platform` | enum | oui | `android`, `ios`, `web`, `unknown` |
-| `device_fingerprint` | string | oui | Empreinte |
-| `push_token` | string | non | Token push |
-| `otp_challenge_uuid` | uuid | conditionnel | Requis si nouvel appareil |
-| `verification_token` | string | conditionnel | Requis si nouvel appareil |
-
-### Réponse (200)
-
-```json
-{
-    "data": {
-        "token": "2|xYzAbCdEfGhIjKlMnOpQrStUvWxYz...",
-        "user": { ... }
-    }
-}
-```
-
-### Réponse nouvel appareil (403)
-
-Si la connexion provient d'un appareil inconnu, l'API retourne un challenge OTP :
-
-```json
-{
-    "error": {
-        "code": "otp_required",
-        "message": "Nouvel appareil détecté. Vérification OTP requise.",
-        "challenge": {
-            "otp_challenge_uuid": "..."
-        }
-    }
-}
-```
-
-Le client doit alors enchaîner : `otp/request` → `otp/verify` → `login` avec `otp_challenge_uuid` + `verification_token`.
-
-## Utiliser le token
-
-Tous les endpoints protégés requièrent le header `Authorization: Bearer <token>` :
+  <Step title="Compléter l'inscription (nouvel utilisateur)">
+    L'utilisateur choisit un PIN à 4 chiffres et enregistre son appareil. L'API crée le compte et émet un token Sanctum.
 
 <CodeGroup>
 
-```dart
-final authDio = KoraApiClient.create(authToken: token);
+```bash Curl
+curl -X POST https://api.korabus.app/api/v1/auth/register/complete \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
+    "verification_token": "gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn",
+    "pin": "9775",
+    "device_name": "iPhone 15 Pro",
+    "platform": "ios",
+    "device_fingerprint": "a1b2c3d4e5f6",
+    "push_token": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]"
+  }'
+```
 
-final me = await authDio.get('/api/v1/auth/me');
-print(me.data['data']['name']);
+```dart Dart
+final response = await dio.post('/api/v1/auth/register/complete', data: {
+  'otp_challenge_uuid': challengeUuid,
+  'verification_token': verificationToken,
+  'pin': '9775',
+  'device_name': 'iPhone 15 Pro',
+  'platform': 'ios',
+  'device_fingerprint': 'a1b2c3d4e5f6',
+  'push_token': pushToken,
+});
+
+final token = response.data['data']['token'];
+final user = response.data['data']['user'];
 ```
 
 </CodeGroup>
+
+**Réponse attendue (201) :**
+
+```json
+{
+  "data": {
+    "token": "1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef",
+    "token_type": "Bearer",
+    "expires_at": "2026-08-24T13:05:00.000Z",
+    "user": {
+      "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
+      "name": "Passager KORA",
+      "email": "passager@korabus.app",
+      "phone": "+22902000001",
+      "country_code": "BJ",
+      "birth_date": null,
+      "status": "active",
+      "permissions": ["bookings.create", "bookings.view-own", "tickets.view"]
+    },
+    "device": {
+      "uuid": "a3091549-9179-454e-8440-58179f2208df",
+      "name": "iPhone 15 Pro",
+      "platform": "ios",
+      "trusted_at": "2026-08-17T13:05:00.000Z",
+      "last_seen_at": "2026-08-17T13:05:00.000Z",
+      "status": "trusted"
+    }
+  }
+}
+```
+  </Step>
+
+  <Step title="Connexion (utilisateur existant)">
+    Si l'utilisateur a déjà un compte, il se connecte avec son email + PIN. Si c'est un nouvel appareil, l'API exige un OTP supplémentaire.
+
+<CodeGroup>
+
+```bash Curl
+curl -X POST https://api.korabus.app/api/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "email": "passager@korabus.app",
+    "pin": "9775",
+    "device_name": "Samsung Galaxy S24",
+    "platform": "android",
+    "device_fingerprint": "f6e5d4c3b2a1"
+  }'
+```
+
+```dart Dart
+final response = await dio.post('/api/v1/auth/login', data: {
+  'email': 'passager@korabus.app',
+  'pin': '9775',
+  'device_name': 'Samsung Galaxy S24',
+  'platform': 'android',
+  'device_fingerprint': 'f6e5d4c3b2a1',
+});
+
+final token = response.data['data']['token'];
+```
+
+</CodeGroup>
+
+**Réponse attendue (200) :**
+
+```json
+{
+  "data": {
+    "token": "2|xYzAbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcdef",
+    "token_type": "Bearer",
+    "expires_at": "2026-08-24T13:10:00.000Z",
+    "user": {
+      "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
+      "name": "Passager KORA",
+      "email": "passager@korabus.app",
+      "phone": "+22902000001",
+      "country_code": "BJ",
+      "birth_date": null,
+      "status": "active",
+      "permissions": ["bookings.create", "bookings.view-own", "tickets.view"]
+    },
+    "device": {
+      "uuid": "b4102650-a280-4655-9551-69280321aaef",
+      "name": "Samsung Galaxy S24",
+      "platform": "android",
+      "trusted_at": "2026-08-17T13:10:00.000Z",
+      "last_seen_at": "2026-08-17T13:10:00.000Z",
+      "status": "trusted"
+    }
+  }
+}
+```
+
+<Warning>
+  **Nouvel appareil détecté** : Si la connexion provient d'un appareil inconnu, l'API retourne un statut **202** avec `requires_otp: true` au lieu d'un token. Le client doit alors enchaîner : `otp/request` → `otp/verify` → `login` avec `otp_challenge_uuid` + `verification_token`.
+</Warning>
+
+**Réponse nouvel appareil (202) :**
+
+```json
+{
+  "data": {
+    "requires_otp": true,
+    "otp_challenge_uuid": "c5216701-9e2a-4f3b-8c1d-0a4e5f6789ab",
+    "purpose": "login_new_device",
+    "expires_at": "2026-08-17T13:15:00.000Z"
+  }
+}
+```
+  </Step>
+
+  <Step title="Utiliser le token">
+    Tous les endpoints protégés requièrent le header `Authorization: Bearer <token>`.
+
+<CodeGroup>
+
+```bash Curl
+curl -X GET https://api.korabus.app/api/v1/auth/me \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Accept: application/json'
+```
+
+```dart Dart
+final authDio = KoraApiClient.create(authToken: token);
+
+final me = await authDio.get('/api/v1/auth/me');
+print(me.data['data']['user']['name']);
+// Passager KORA
+```
+
+</CodeGroup>
+
+**Réponse attendue (200) :**
+
+```json
+{
+  "data": {
+    "user": {
+      "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
+      "name": "Passager KORA",
+      "email": "passager@korabus.app",
+      "phone": "+22902000001",
+      "country_code": "BJ",
+      "birth_date": null,
+      "status": "active",
+      "permissions": ["bookings.create", "bookings.view-own", "tickets.view"]
+    }
+  }
+}
+```
+  </Step>
+</Steps>
 
 ## Réinitialisation de PIN
 
 Si l'utilisateur oublie son PIN :
 
-1. `POST /auth/otp/request` avec `purpose: "pin_reset"`
-2. `POST /auth/otp/verify` avec le code reçu
-3. `POST /auth/pin/reset` avec `otp_challenge_uuid`, `verification_token`, nouveau `pin`
+<Steps>
+  <Step title="Demander un OTP pour reset PIN">
+
+<CodeGroup>
+
+```bash Curl
+curl -X POST https://api.korabus.app/api/v1/auth/otp/request \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "email": "passager@korabus.app",
+    "purpose": "pin_reset"
+  }'
+```
+
+```dart Dart
+final response = await dio.post('/api/v1/auth/otp/request', data: {
+  'email': 'passager@korabus.app',
+  'purpose': 'pin_reset',
+});
+```
+
+</CodeGroup>
+  </Step>
+
+  <Step title="Vérifier l'OTP">
+
+<CodeGroup>
+
+```bash Curl
+curl -X POST https://api.korabus.app/api/v1/auth/otp/verify \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
+    "purpose": "pin_reset",
+    "code": "569775"
+  }'
+```
+
+```dart Dart
+final response = await dio.post('/api/v1/auth/otp/verify', data: {
+  'otp_challenge_uuid': challengeUuid,
+  'purpose': 'pin_reset',
+  'code': '569775',
+});
+```
+
+</CodeGroup>
+  </Step>
+
+  <Step title="Réinitialiser le PIN">
+
+<CodeGroup>
+
+```bash Curl
+curl -X POST https://api.korabus.app/api/v1/auth/pin/reset \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
+    "verification_token": "gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn",
+    "pin": "1234"
+  }'
+```
+
+```dart Dart
+await dio.post('/api/v1/auth/pin/reset', data: {
+  'otp_challenge_uuid': challengeUuid,
+  'verification_token': verificationToken,
+  'pin': '1234',
+});
+```
+
+</CodeGroup>
+
+**Réponse attendue (200) :**
+
+```json
+{
+  "data": {
+    "user": {
+      "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
+      "name": "Passager KORA",
+      "email": "passager@korabus.app",
+      "phone": "+22902000001",
+      "country_code": "BJ",
+      "birth_date": null,
+      "status": "active",
+      "permissions": ["bookings.create", "bookings.view-own", "tickets.view"]
+    }
+  }
+}
+```
+  </Step>
+</Steps>
 
 ## Déverrouillage de compte
 
 Après plusieurs PIN incorrects, le compte est verrouillé (`423 account_locked`). Le client doit :
 
-1. `POST /auth/otp/request` avec `purpose: "account_unlock"`
-2. `POST /auth/otp/verify`
-3. `POST /auth/unlock` avec `otp_challenge_uuid` + `verification_token`
+<Steps>
+  <Step title="Demander un OTP pour déverrouillage">
+
+<CodeGroup>
+
+```bash Curl
+curl -X POST https://api.korabus.app/api/v1/auth/otp/request \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "email": "passager@korabus.app",
+    "purpose": "account_unlock"
+  }'
+```
+
+```dart Dart
+final response = await dio.post('/api/v1/auth/otp/request', data: {
+  'email': 'passager@korabus.app',
+  'purpose': 'account_unlock',
+});
+```
+
+</CodeGroup>
+  </Step>
+
+  <Step title="Vérifier l'OTP puis déverrouiller">
+
+<CodeGroup>
+
+```bash Curl
+curl -X POST https://api.korabus.app/api/v1/auth/unlock \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
+    "verification_token": "gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn"
+  }'
+```
+
+```dart Dart
+await dio.post('/api/v1/auth/unlock', data: {
+  'otp_challenge_uuid': challengeUuid,
+  'verification_token': verificationToken,
+});
+```
+
+</CodeGroup>
+  </Step>
+</Steps>
+
+## Changer de PIN (authentifié)
+
+<CodeGroup>
+
+```bash Curl
+curl -X POST https://api.korabus.app/api/v1/auth/pin/change \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "current_pin": "9775",
+    "new_pin": "1234"
+  }'
+```
+
+```dart Dart
+await authDio.post('/api/v1/auth/pin/change', data: {
+  'current_pin': '9775',
+  'new_pin': '1234',
+});
+```
+
+</CodeGroup>
+
+## Gérer les appareils de confiance
+
+### Lister les appareils
+
+<CodeGroup>
+
+```bash Curl
+curl -X GET https://api.korabus.app/api/v1/auth/devices \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Accept: application/json'
+```
+
+```dart Dart
+final response = await authDio.get('/api/v1/auth/devices');
+final devices = response.data['data'] as List;
+```
+
+</CodeGroup>
+
+**Réponse attendue (200) :**
+
+```json
+{
+  "data": [
+    {
+      "uuid": "a3091549-9179-454e-8440-58179f2208df",
+      "name": "iPhone 15 Pro",
+      "platform": "ios",
+      "trusted_at": "2026-08-17T13:05:00.000Z",
+      "last_seen_at": "2026-08-17T13:05:00.000Z",
+      "status": "trusted"
+    },
+    {
+      "uuid": "b4102650-a280-4655-9551-69280321aaef",
+      "name": "Samsung Galaxy S24",
+      "platform": "android",
+      "trusted_at": "2026-08-17T13:10:00.000Z",
+      "last_seen_at": "2026-08-17T13:10:00.000Z",
+      "status": "trusted"
+    }
+  ]
+}
+```
+
+### Révoquer un appareil
+
+<CodeGroup>
+
+```bash Curl
+curl -X DELETE https://api.korabus.app/api/v1/auth/devices/b4102650-a280-4655-9551-69280321aaef \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef'
+```
+
+```dart Dart
+await authDio.delete('/api/v1/auth/devices/b4102650-a280-4655-9551-69280321aaef');
+```
+
+</CodeGroup>
+
+**Réponse attendue (204) :** Pas de body.
+
+## Préférences utilisateur
+
+### Consulter les préférences
+
+<CodeGroup>
+
+```bash Curl
+curl -X GET https://api.korabus.app/api/v1/auth/preferences \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Accept: application/json'
+```
+
+```dart Dart
+final response = await authDio.get('/api/v1/auth/preferences');
+```
+
+</CodeGroup>
+
+**Réponse attendue (200) :**
+
+```json
+{
+  "data": {
+    "push_notifications": true,
+    "whatsapp_notifications": true,
+    "email_notifications": true,
+    "locale": "fr",
+    "theme": "light"
+  }
+}
+```
+
+### Mettre à jour les préférences
+
+<CodeGroup>
+
+```bash Curl
+curl -X PUT https://api.korabus.app/api/v1/auth/preferences \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "push_notifications": true,
+    "whatsapp_notifications": false,
+    "email_notifications": true,
+    "locale": "fr",
+    "theme": "dark"
+  }'
+```
+
+```dart Dart
+await authDio.put('/api/v1/auth/preferences', data: {
+  'push_notifications': true,
+  'whatsapp_notifications': false,
+  'email_notifications': true,
+  'locale': 'fr',
+  'theme': 'dark',
+});
+```
+
+</CodeGroup>
 
 ## Déconnexion
 
-<Endpoint
-  method="POST"
-  path="/api/v1/auth/logout"
-/>
-
 Révoque le token courant. Le client doit purger le token stocké localement.
+
+<CodeGroup>
+
+```bash Curl
+curl -X POST https://api.korabus.app/api/v1/auth/logout \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef'
+```
+
+```dart Dart
+await authDio.post('/api/v1/auth/logout');
+KoraApi.clearToken();
+```
+
+</CodeGroup>
+
+**Réponse attendue (204) :** Pas de body.
+
+<Info>
+  Après déconnexion, le token est immédiatement révoqué côté serveur. Les autres appareils restent connectés avec leurs propres tokens.
+</Info>
 
 <Card title="Guide suivant" href="/guides/bus-search" icon="arrow-right" iconType="solid">
   Maintenant que vous êtes authentifié, explorez la **recherche de bus**.

@@ -17,7 +17,18 @@ paths:
       operationId: listServedCities
       description: 'Returns active cities derived from active Bus stops.'
       parameters: []
-      responses: {}
+      responses:
+              '200':
+                description: 'Successful response.'
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        data:
+                          type: array
+                          items:
+                            type: object
       tags:
         - Bus
       security: []
@@ -47,7 +58,16 @@ paths:
             type: string
             description: 'Optional destination city filter.'
             example: Abidjan
-      responses: {}
+      responses:
+              '200':
+                description: 'Successful response.'
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        data:
+                          type: object
       tags:
         - Bus
       requestBody:
@@ -74,7 +94,16 @@ paths:
       operationId: showABusLine
       description: ''
       parameters: []
-      responses: {}
+      responses:
+              '200':
+                description: 'Successful response.'
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        data:
+                          type: object
       tags:
         - Bus
       security: []
@@ -123,7 +152,16 @@ paths:
             type: string
             description: 'Optional destination city filter.'
             example: Abidjan
-      responses: {}
+      responses:
+              '200':
+                description: 'Successful response.'
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        data:
+                          type: object
       tags:
         - Bus
       requestBody:
@@ -176,7 +214,16 @@ paths:
             type: string
             description: 'Optional destination city.'
             example: Abidjan
-      responses: {}
+      responses:
+              '200':
+                description: 'Successful response.'
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        data:
+                          type: object
       tags:
         - Bus
       requestBody:
@@ -232,7 +279,16 @@ paths:
             type: string
             description: 'Public UUID of the drop-off stop.'
             example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-      responses: {}
+      responses:
+              '200':
+                description: 'Successful response.'
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        data:
+                          type: object
       tags:
         - Bus
       requestBody:
@@ -269,7 +325,16 @@ paths:
       operationId: fullApplicationHealthDatabaseCacheRedisAndAPIVersion
       description: "Returns 200 when every dependency is reachable, 503 otherwise so load\nbalancers and monitoring can drain traffic from an unhealthy instance."
       parameters: []
-      responses: {}
+      responses:
+              '200':
+                description: 'Successful response.'
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        data:
+                          type: object
       tags:
         - Endpoints
       security: []
@@ -279,7 +344,16 @@ paths:
       operationId: lightweightLivenessProbeForLoadBalancersAlways200WhenTheProcessCanAnswerWithNoDependencyChecks
       description: ''
       parameters: []
-      responses: {}
+      responses:
+              '200':
+                description: 'Successful response.'
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        data:
+                          type: object
       tags:
         - Endpoints
       security: []
@@ -289,7 +363,16 @@ paths:
       operationId: postApiV1AuthOtpRequest
       description: ''
       parameters: []
-      responses: {}
+      responses:
+              '202':
+                description: 'Request accepted, action pending.'
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        data:
+                          type: object
       tags:
         - Endpoints
       requestBody:
@@ -322,7 +405,16 @@ paths:
       operationId: postApiV1AuthOtpVerify
       description: ''
       parameters: []
-      responses: {}
+      responses:
+              '200':
+                description: 'Successful response.'
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        data:
+                          type: object
       tags:
         - Endpoints
       requestBody:
@@ -360,7 +452,16 @@ paths:
       operationId: postApiV1AuthPinReset
       description: ''
       parameters: []
-      responses: {}
+      responses:
+              '200':
+                description: 'Successful response.'
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        data:
+                          type: object
       tags:
         - Endpoints
       requestBody:
@@ -393,7 +494,16 @@ paths:
       operationId: postApiV1AuthUnlock
       description: ''
       parameters: []
-      responses: {}
+      responses:
+              '202':
+                description: 'Request accepted, action pending.'
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        data:
+                          type: object
       tags:
         - Endpoints
       requestBody:
@@ -421,7 +531,16 @@ paths:
       operationId: postApiV1AuthRegisterComplete
       description: ''
       parameters: []
-      responses: {}
+      responses:
+              '201':
+                description: 'Resource created.'
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        data:
+                          type: object
       tags:
         - Endpoints
       requestBody:
@@ -479,7 +598,16 @@ paths:
       operationId: postApiV1AuthLogin
       description: ''
       parameters: []
-      responses: {}
+      responses:
+              '200':
+                description: 'Successful response.'
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        data:
+                          type: object
       tags:
         - Endpoints
       requestBody:
@@ -542,7 +670,16 @@ paths:
       operationId: getApiV1AuthMe
       description: ''
       parameters: []
-      responses: {}
+      responses:
+              '200':
+                description: 'Successful response.'
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        data:
+                          type: object
       tags:
         - Endpoints
       security: []
@@ -551,7 +688,16 @@ paths:
       operationId: putApiV1AuthMe
       description: ''
       parameters: []
-      responses: {}
+      responses:
+              '200':
+                description: 'Successful response.'
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        data:
+                          type: object
       tags:
         - Endpoints
       requestBody:
@@ -594,7 +740,16 @@ paths:
       operationId: postApiV1AuthPinChange
       description: ''
       parameters: []
-      responses: {}
+      responses:
+              '200':
+                description: 'Successful response.'
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        data:
+                          type: object
       tags:
         - Endpoints
       requestBody:
@@ -622,7 +777,16 @@ paths:
       operationId: getApiV1AuthPreferences
       description: ''
       parameters: []
-      responses: {}
+      responses:
+              '200':
+                description: 'Successful response.'
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        data:
+                          type: object
       tags:
         - Endpoints
       security: []
@@ -631,7 +795,16 @@ paths:
       operationId: putApiV1AuthPreferences
       description: ''
       parameters: []
-      responses: {}
+      responses:
+              '200':
+                description: 'Successful response.'
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        data:
+                          type: object
       tags:
         - Endpoints
       requestBody:
@@ -680,7 +853,18 @@ paths:
       operationId: getApiV1AuthDevices
       description: ''
       parameters: []
-      responses: {}
+      responses:
+              '200':
+                description: 'Successful response.'
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        data:
+                          type: array
+                          items:
+                            type: object
       tags:
         - Endpoints
       security: []
@@ -690,7 +874,9 @@ paths:
       operationId: deleteApiV1AuthDevicesUuid
       description: ''
       parameters: []
-      responses: {}
+      responses:
+              '204':
+                description: 'No content.'
       tags:
         - Endpoints
       security: []
@@ -709,7 +895,16 @@ paths:
       operationId: postApiV1AuthLogout
       description: ''
       parameters: []
-      responses: {}
+      responses:
+              '200':
+                description: 'Successful response.'
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        data:
+                          type: object
       tags:
         - Endpoints
       security: []

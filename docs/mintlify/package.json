@@ -8,6 +8,6 @@
         "snippets": "mintlify snippets"
     },
     "devDependencies": {
-        "mintlify": "^1.0.0"
+        "mintlify": "^4.2.0"
     }
 }

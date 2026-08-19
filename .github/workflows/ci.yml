@@ -72,15 +72,28 @@ jobs:
 
   docs:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/kora-ops-web
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check if docs-relevant files changed
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            docs:
+              - 'apps/kora-ops-web/app/Modules/**/Http/Controllers/**'
+              - 'apps/kora-ops-web/app/Modules/**/Http/Requests/**'
+              - 'apps/kora-ops-web/app/Modules/**/Http/Resources/**'
+              - 'apps/kora-ops-web/routes/**'
+              - 'apps/kora-ops-web/composer.json'
+              - 'apps/kora-ops-web/composer.lock'
+              - 'docs/mintlify/**'
+              - '.github/workflows/ci.yml'
+
       - name: Setup PHP
+        if: steps.filter.outputs.docs == 'true'
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
@@ -89,36 +102,45 @@ jobs:
           extensions: bcmath, intl, pdo_pgsql, pdo_sqlite, zip
 
       - name: Setup Node
+        if: steps.filter.outputs.docs == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: npm
-          cache-dependency-path: docs/mintlify/package.json
+          cache-dependency-path: docs/mintlify/package-lock.json
 
       - name: Install PHP dependencies
+        if: steps.filter.outputs.docs == 'true'
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
+        working-directory: apps/kora-ops-web
 
       - name: Prepare Laravel
+        if: steps.filter.outputs.docs == 'true'
         run: |
           cp .env.example .env
           php artisan key:generate
+        working-directory: apps/kora-ops-web
 
-      - name: Generate OpenAPI spec
+      - name: Generate OpenAPI spec (Scribe)
+        if: steps.filter.outputs.docs == 'true'
         run: composer docs:generate
+        working-directory: apps/kora-ops-web
 
-      - name: Verify spec is up to date
-        continue-on-error: true
+      - name: Verify OpenAPI spec is up to date
+        if: steps.filter.outputs.docs == 'true'
         run: |
-          if ! git diff --exit-code -- ../docs/mintlify/api/openapi.yaml; then
-            echo "::warning::OpenAPI spec is stale. Run 'composer docs:generate' and commit the updated spec."
+          if ! git diff --exit-code -- docs/mintlify/api/openapi.yaml; then
+            echo "::error::OpenAPI spec is stale. Run 'composer docs:generate' locally and commit the updated spec."
+            git diff -- docs/mintlify/api/openapi.yaml
             exit 1
           fi
 
       - name: Install Mintlify CLI
-        run: npm install -g mintlify
+        if: steps.filter.outputs.docs == 'true'
+        run: npm ci
         working-directory: docs/mintlify
 
-      - name: Mintlify build
-        continue-on-error: true
-        run: mintlify build
+      - name: Mintlify build (validate docs)
+        if: steps.filter.outputs.docs == 'true'
+        run: npx mintlify build
         working-directory: docs/mintlify
