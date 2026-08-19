@@ -3,6 +3,7 @@
 namespace App\Modules\BusNetwork\Models;
 
 use App\Modules\BusNetwork\Data\LineStatus;
+use App\Modules\BusNetwork\Data\LineType;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Models\Fare;
 use App\Modules\Support\Models\KoraModel;
@@ -17,6 +18,7 @@ class Line extends KoraModel
         'uuid',
         'code',
         'name',
+        'type',
         'countries_crossed',
         'distance_km',
         'estimated_duration_minutes',
@@ -52,6 +54,7 @@ class Line extends KoraModel
         return [
             'countries_crossed' => 'array',
             'status' => LineStatus::class,
+            'type' => LineType::class,
         ];
     }
 }

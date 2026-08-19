@@ -32,6 +32,7 @@ class KoraBusReferenceSeeder extends Seeder
             [
                 'uuid' => (string) Str::uuid(),
                 'name' => 'Cotonou - Abidjan',
+                'type' => 'internationale',
                 'countries_crossed' => ['BJ', 'TG', 'GH', 'CI'],
                 'distance_km' => 1020,
                 'estimated_duration_minutes' => 1260,

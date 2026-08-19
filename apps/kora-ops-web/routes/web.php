@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\BusNetwork\Http\Controllers\BusController;
+use App\Modules\BusNetwork\Http\Controllers\LineController;
 use App\Modules\IdentityAccess\Http\Controllers\AgencyController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -22,10 +23,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('departures', 'departures')->name('departures');
     Route::inertia('boarding', 'boarding')->name('boarding');
     Route::inertia('manifest', 'manifest')->name('manifest');
-    Route::inertia('network', 'network')->name('network');
     Route::inertia('fares', 'fares')->name('fares');
     Route::inertia('passengers', 'passengers')->name('passengers');
     Route::inertia('tickets', 'tickets')->name('tickets');
+
+    // V1 MVP — Réseau (Lignes & arrêts)
+    Route::get('network', [LineController::class, 'index'])->name('network.index');
+    Route::get('network/{line:uuid}', [LineController::class, 'show'])->name('network.show');
+    Route::post('network', [LineController::class, 'store'])->name('network.store');
+    Route::put('network/{line:uuid}', [LineController::class, 'update'])->name('network.update');
+    Route::patch('network/{line:uuid}/status', [LineController::class, 'changeStatus'])->name('network.status');
+    Route::post('network/{line:uuid}/stops', [LineController::class, 'storeStop'])->name('network.stops.store');
+    Route::put('network/{line:uuid}/stops/{stop:uuid}', [LineController::class, 'updateStop'])->name('network.stops.update');
+    Route::patch('network/{line:uuid}/stops/{stop:uuid}/deactivate', [LineController::class, 'deactivateStop'])->name('network.stops.deactivate');
 
     // V1 MVP — Flotte (Ressources)
     Route::get('fleet', [BusController::class, 'index'])->name('fleet.index');

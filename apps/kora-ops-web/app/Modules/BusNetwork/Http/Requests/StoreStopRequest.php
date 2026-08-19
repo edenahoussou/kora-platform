@@ -1,0 +1,44 @@
+<?php
+
+namespace App\Modules\BusNetwork\Http\Requests;
+
+use App\Modules\BusNetwork\Models\Stop;
+use Illuminate\Foundation\Http\FormRequest;
+
+class StoreStopRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return $this->user()?->can('create', Stop::class) ?? false;
+    }
+
+    /** @return array<string, array<int, mixed>> */
+    public function rules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'city' => ['required', 'string', 'max:255'],
+            'country' => ['required', 'string', 'max:2'],
+            'stop_order' => ['required', 'integer', 'min:1'],
+            'km_from_origin' => ['nullable', 'numeric', 'min:0'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+        ];
+    }
+
+    /**
+     * @return array{name: string, city: string, country: string, stop_order: int, km_from_origin: float, latitude: float|null, longitude: float|null}
+     */
+    public function payload(): array
+    {
+        return [
+            'name' => $this->string('name')->trim()->value(),
+            'city' => $this->string('city')->trim()->value(),
+            'country' => strtoupper($this->string('country')->trim()->value()),
+            'stop_order' => (int) $this->input('stop_order'),
+            'km_from_origin' => $this->has('km_from_origin') ? (float) $this->input('km_from_origin') : 0.0,
+            'latitude' => $this->has('latitude') ? (float) $this->input('latitude') : null,
+            'longitude' => $this->has('longitude') ? (float) $this->input('longitude') : null,
+        ];
+    }
+}
