@@ -7,12 +7,11 @@ import {
     MoreHorizontal,
     Plus,
     RotateCcw,
-    Route,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { KoraFilterBar } from '@/components/kora-filter-bar';
 import type { FilterConfig } from '@/components/kora-filter-bar';
+import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { KoraTable } from '@/components/kora-table';
 import type { PaginationMeta, TableColumn } from '@/components/kora-table';
 import type { LineRecord } from '@/components/lines/line-form-dialog';
@@ -38,6 +37,7 @@ type PageProps = {
         to: number | null;
     };
     statuses: Record<string, string>;
+    types: Record<string, string>;
     permissions: {
         canCreate: boolean;
         canUpdate: boolean;
@@ -56,10 +56,16 @@ const statusTones: Record<string, 'navy' | 'gold' | 'muted'> = {
     draft: 'gold',
     archived: 'muted',
 };
+const typeLabels: Record<string, string> = {
+    nationale: 'Nationale',
+    internationale: 'Internationale',
+    regionale: 'Régionale',
+};
 
 export default function NetworkPage({
     lines,
     statuses,
+    types,
     permissions,
 }: PageProps) {
     const [open, setOpen] = useState(false);
@@ -76,8 +82,17 @@ export default function NetworkPage({
                     label: statusLabels[value] ?? label,
                 })),
             },
+            {
+                name: 'type',
+                label: 'Type',
+                placeholder: 'Tout le réseau',
+                options: Object.entries(types).map(([value, label]) => ({
+                    value,
+                    label: typeLabels[value] ?? label,
+                })),
+            },
         ],
-        [statuses],
+        [statuses, types],
     );
 
     const pagination: PaginationMeta = {
@@ -109,33 +124,41 @@ export default function NetworkPage({
             key: 'line',
             header: 'Ligne',
             render: (line) => (
-                <div className="flex items-center gap-3">
-                    <span className="grid size-9 place-items-center rounded-[0.65rem] bg-gold/12 text-[var(--kora)]">
-                        <Route className="size-4" />
+                <div>
+                    <span className="cell-main block font-bold text-foreground">
+                        {line.code} {typeLabels[line.type] ?? ''}
                     </span>
-                    <div>
-                        <strong className="block font-bold text-foreground">
-                            {line.code}
-                        </strong>
-                        <span className="text-xs text-muted-foreground">
-                            {line.name}
-                        </span>
-                    </div>
+                    <span className="cell-sub block text-xs text-muted-foreground">
+                        {line.name}
+                    </span>
                 </div>
+            ),
+        },
+        {
+            key: 'itinerary',
+            header: 'Itinéraire',
+            render: (line) => (
+                <span className="font-medium text-foreground">
+                    {line.itinerary}
+                </span>
             ),
         },
         {
             key: 'stops',
             header: 'Arrêts',
             render: (line) => (
-                <div>
-                    <span className="block font-medium text-foreground">
-                        {line.activeStopsCount} actifs
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                        sur {line.stopsCount} au total
-                    </span>
-                </div>
+                <span className="font-medium text-foreground">
+                    {line.activeStopsCount}
+                </span>
+            ),
+        },
+        {
+            key: 'segments',
+            header: 'Segments',
+            render: (line) => (
+                <span className="font-medium text-foreground">
+                    {line.segmentsCount}
+                </span>
             ),
         },
         {
@@ -143,27 +166,11 @@ export default function NetworkPage({
             header: 'Distance',
             render: (line) => (
                 <span className="font-medium text-foreground">
-                    {line.distanceKm ? `${line.distanceKm} km` : '—'}
+                    {line.distanceKm
+                        ? `${line.distanceKm.toLocaleString('fr-FR')} km`
+                        : '—'}
                 </span>
             ),
-        },
-        {
-            key: 'duration',
-            header: 'Durée estimée',
-            render: (line) => {
-                if (!line.estimatedDurationMinutes) {
-                    return <span>—</span>;
-                }
-
-                const h = Math.floor(line.estimatedDurationMinutes / 60);
-                const m = line.estimatedDurationMinutes % 60;
-
-                return (
-                    <span className="font-medium text-foreground">
-                        {h}h{m.toString().padStart(2, '0')}
-                    </span>
-                );
-            },
         },
         {
             key: 'status',

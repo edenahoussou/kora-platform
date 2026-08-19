@@ -19,8 +19,10 @@ export type LineRecord = {
     code: string;
     name: string;
     type: string;
+    itinerary: string;
     stopsCount: number;
     activeStopsCount: number;
+    segmentsCount: number;
     distanceKm: number | null;
     estimatedDurationMinutes: number | null;
     status: string;

@@ -19,6 +19,7 @@ use App\Modules\BusNetwork\Models\Line;
 use App\Modules\BusNetwork\Models\Stop;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -32,6 +33,7 @@ class LineController extends Controller
         $query = Line::query()
             ->withCount(['stops as stops_count' => fn ($q) => $q])
             ->withCount(['stops as active_stops_count' => fn ($q) => $q->where('status', 'active')])
+            ->with(['stops' => fn ($q) => $q->orderBy('stop_order')])
             ->orderBy('code');
 
         $search = $request->string('q')->trim()->value();
@@ -48,11 +50,17 @@ class LineController extends Controller
             $query->where('status', $status);
         }
 
+        $type = $request->string('type')->trim()->value();
+        if ($type !== '' && in_array($type, array_column(LineType::cases(), 'value'), true)) {
+            $query->where('type', $type);
+        }
+
         $lines = $query->paginate(15)->through(fn (Line $line): array => $this->serializeLine($line));
 
         return inertia('network', [
             'lines' => $lines,
             'statuses' => LineStatus::options(),
+            'types' => LineType::options(),
             'permissions' => [
                 'canCreate' => Gate::allows('create', Line::class),
                 'canUpdate' => Gate::allows('update', new Line),
@@ -147,12 +155,28 @@ class LineController extends Controller
     /** @return array<string, mixed> */
     private function serializeLine(Line $line): array
     {
+        /** @var Collection<int, Stop> $allStops */
+        $allStops = $line->stops ?? collect();
+        $activeStops = $allStops->filter(fn (Stop $s) => (string) $s->getRawOriginal('status') === 'active')->values();
+        $firstStop = $activeStops->first();
+        $lastStop = $activeStops->last();
+        $activeCount = (int) ($line->active_stops_count ?? $activeStops->count());
+
+        $itinerary = match (true) {
+            $firstStop !== null && $lastStop !== null && $firstStop->name !== $lastStop->name => "{$firstStop->name} → {$lastStop->name}",
+            $firstStop !== null => $firstStop->name,
+            default => '—',
+        };
+
         return [
             'uuid' => $line->uuid,
             'code' => $line->code,
             'name' => $line->name,
+            'type' => (string) LineType::from((string) $line->getRawOriginal('type'))->value,
+            'itinerary' => $itinerary,
             'stopsCount' => (int) ($line->stops_count ?? 0),
-            'activeStopsCount' => (int) ($line->active_stops_count ?? 0),
+            'activeStopsCount' => $activeCount,
+            'segmentsCount' => max(0, $activeCount - 1),
             'distanceKm' => $line->distance_km !== null ? (int) $line->distance_km : null,
             'estimatedDurationMinutes' => $line->estimated_duration_minutes !== null ? (int) $line->estimated_duration_minutes : null,
             'status' => (string) LineStatus::from((string) $line->getRawOriginal('status'))->value,

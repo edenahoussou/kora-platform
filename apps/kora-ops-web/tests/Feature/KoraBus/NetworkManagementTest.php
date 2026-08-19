@@ -25,6 +25,7 @@ it('lists lines with stops count and permissions without exposing numeric ids', 
         'uuid' => Str::uuid()->toString(),
         'code' => 'L2',
         'name' => 'Ligne nationale',
+        'type' => 'nationale',
         'status' => 'active',
         'distance_km' => 420,
         'estimated_duration_minutes' => 360,
@@ -47,8 +48,11 @@ it('lists lines with stops count and permissions without exposing numeric ids', 
             ->component('network')
             ->where('lines.data.0.uuid', $line->uuid)
             ->where('lines.data.0.code', 'L2')
+            ->where('lines.data.0.type', 'nationale')
+            ->where('lines.data.0.itinerary', 'Cotonou')
             ->where('lines.data.0.stopsCount', 1)
             ->where('lines.data.0.activeStopsCount', 1)
+            ->where('lines.data.0.segmentsCount', 0)
             ->where('lines.data.0.distanceKm', 420)
             ->missing('lines.data.0.id')
             ->where('permissions.canCreate', true));
@@ -187,4 +191,33 @@ it('rejects unauthorized network access for agency agents', function (): void {
     $agent->assignRole('agency_agent');
 
     $this->actingAs($agent)->get(route('network.index'))->assertForbidden();
+});
+
+it('filters lines by type and builds itinerary from active stops', function (): void {
+    $nationale = Line::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'code' => 'L10',
+        'name' => 'Nationale',
+        'type' => 'nationale',
+        'status' => 'active',
+    ]);
+    Stop::query()->create(['uuid' => Str::uuid()->toString(), 'line_id' => $nationale->id, 'name' => 'Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0, 'status' => 'active']);
+    Stop::query()->create(['uuid' => Str::uuid()->toString(), 'line_id' => $nationale->id, 'name' => 'Parakou', 'city' => 'Parakou', 'country' => 'BJ', 'stop_order' => 2, 'km_from_origin' => 420, 'status' => 'active']);
+
+    $internationale = Line::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'code' => 'L20',
+        'name' => 'Internationale',
+        'type' => 'internationale',
+        'status' => 'active',
+    ]);
+
+    $this->actingAs(networkManager())
+        ->get(route('network.index', ['type' => 'nationale']))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('lines.data.0.code', 'L10')
+            ->where('lines.data.0.itinerary', 'Cotonou → Parakou')
+            ->where('lines.data.0.segmentsCount', 1)
+            ->where('lines.total', 1));
 });
