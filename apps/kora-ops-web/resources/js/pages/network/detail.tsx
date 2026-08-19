@@ -1,12 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import {
-    ArrowLeft,
-    MapPin,
-    Pencil,
-    Plus,
-    Power,
-    Tag,
-} from 'lucide-react';
+import { ArrowLeft, MapPin, Pencil, Plus, Power, Tag } from 'lucide-react';
 import { useState } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { LineFormDialog } from '@/components/lines/line-form-dialog';
@@ -180,8 +173,8 @@ export default function NetworkDetailPage({
                         Ligne commerciale
                     </h1>
                     <p className="mt-1.5 text-sm text-muted-foreground">
-                        {line.code} · {line.name} · informations métier et
-                        suivi opérationnel
+                        {line.code} · {line.name} · informations métier et suivi
+                        opérationnel
                     </p>
                 </div>
                 <div className="flex flex-wrap gap-2.5">
@@ -210,10 +203,11 @@ export default function NetworkDetailPage({
                     <button
                         key={key}
                         onClick={() => setTab(key)}
-                        className={`border-b-2 px-4 py-3 text-[0.6875rem] font-extrabold tracking-[0.035em] transition-colors ${tab === key
-                            ? 'border-gold text-foreground'
-                            : 'border-transparent text-muted-foreground hover:text-foreground'
-                            }`}
+                        className={`border-b-2 px-4 py-3 text-[0.6875rem] font-extrabold tracking-[0.035em] transition-colors ${
+                            tab === key
+                                ? 'border-gold text-foreground'
+                                : 'border-transparent text-muted-foreground hover:text-foreground'
+                        }`}
                     >
                         {label}
                     </button>
@@ -223,7 +217,7 @@ export default function NetworkDetailPage({
             {/* 3. DETAIL-IDENTITY (banner gradient navy→digital) */}
             <section className="relative mb-6 flex items-center justify-between gap-6 overflow-hidden rounded-[1.25rem] bg-gradient-to-br from-[var(--kora)] to-[var(--digital)] p-7 text-white shadow-[0_18px_42px_rgba(0,29,78,0.16)]">
                 <div className="relative z-10 max-w-[760px]">
-                    <span className="mb-1.5 block text-[0.5625rem] font-black uppercase tracking-[0.13em] text-gold">
+                    <span className="mb-1.5 block text-[0.5625rem] font-black tracking-[0.13em] text-gold uppercase">
                         Ligne commerciale
                     </span>
                     <h2 className="text-[1.6875rem] font-extrabold tracking-[-0.03em]">
@@ -235,9 +229,7 @@ export default function NetworkDetailPage({
                 </div>
                 <span className="relative z-10 shrink-0">
                     <KoraStatusBadge
-                        label={
-                            statusLabels[line.status] ?? line.status
-                        }
+                        label={statusLabels[line.status] ?? line.status}
                         tone={statusTones[line.status] ?? 'gold'}
                         className="border border-white/20 bg-white/5 shadow-[0_8px_24px_rgba(0,29,78,0.18)]"
                     />
@@ -283,7 +275,7 @@ export default function NetworkDetailPage({
                         <div className="space-y-4">
                             <div className="flex items-end justify-between gap-5 border-b border-border/60 pb-4">
                                 <div>
-                                    <span className="mb-1 block text-[0.5625rem] font-black uppercase tracking-[0.13em] text-[var(--digital)]">
+                                    <span className="mb-1 block text-[0.5625rem] font-black tracking-[0.13em] text-[var(--digital)] uppercase">
                                         Itinéraire ordonné
                                     </span>
                                     <h3 className="text-[1.1875rem] font-bold text-foreground">
@@ -293,9 +285,8 @@ export default function NetworkDetailPage({
                                             : ''}
                                     </h3>
                                     <p className="mt-1 text-[0.625rem] text-muted-foreground">
-                                        Le déplacement ou la désactivation
-                                        d'un arrêt conserve les billets déjà
-                                        émis.
+                                        Le déplacement ou la désactivation d'un
+                                        arrêt conserve les billets déjà émis.
                                     </p>
                                 </div>
                                 {permissions.canManageStops && (
@@ -335,12 +326,12 @@ export default function NetworkDetailPage({
                                                 <KoraStatusBadge
                                                     label={
                                                         stopStatusLabels[
-                                                        stop.status
+                                                            stop.status
                                                         ] ?? 'Actif'
                                                     }
                                                     tone={
                                                         stopStatusTones[
-                                                        stop.status
+                                                            stop.status
                                                         ] ?? 'navy'
                                                     }
                                                 />
@@ -360,7 +351,8 @@ export default function NetworkDetailPage({
                                                     </button>
                                                 )}
                                                 {permissions.canDeactivateStop &&
-                                                    stop.status === 'active' && (
+                                                    stop.status ===
+                                                        'active' && (
                                                         <button
                                                             onClick={() =>
                                                                 setImpactStop(
@@ -403,8 +395,8 @@ export default function NetworkDetailPage({
                                                             deactivateStop(stop)
                                                         }
                                                     >
-                                                        Confirmer et notifier
-                                                        la Direction
+                                                        Confirmer et notifier la
+                                                        Direction
                                                     </Button>
                                                 </div>
                                             </section>
@@ -432,7 +424,7 @@ export default function NetworkDetailPage({
                         <div>
                             <div className="mb-4 flex items-end justify-between gap-5 border-b border-border/60 pb-4">
                                 <div>
-                                    <span className="mb-1 block text-[0.5625rem] font-black uppercase tracking-[0.13em] text-[var(--digital)]">
+                                    <span className="mb-1 block text-[0.5625rem] font-black tracking-[0.13em] text-[var(--digital)] uppercase">
                                         Horaires théoriques
                                     </span>
                                     <h3 className="text-[1.1875rem] font-bold text-foreground">
@@ -448,13 +440,13 @@ export default function NetworkDetailPage({
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-border/60 text-left text-xs text-muted-foreground">
-                                            <th className="pb-3 pr-4 font-medium">
+                                            <th className="pr-4 pb-3 font-medium">
                                                 Arrêt
                                             </th>
-                                            <th className="pb-3 pr-4 font-medium">
+                                            <th className="pr-4 pb-3 font-medium">
                                                 Arrivée
                                             </th>
-                                            <th className="pb-3 pr-4 font-medium">
+                                            <th className="pr-4 pb-3 font-medium">
                                                 Départ
                                             </th>
                                             <th className="pb-3 font-medium">
@@ -478,13 +470,13 @@ export default function NetworkDetailPage({
                                                 </td>
                                                 <td className="py-3 pr-4 text-muted-foreground">
                                                     {idx ===
-                                                        line.stops.length - 1
+                                                    line.stops.length - 1
                                                         ? '—'
                                                         : 'À définir'}
                                                 </td>
                                                 <td className="py-3 text-muted-foreground">
                                                     {idx === 0 ||
-                                                        idx ===
+                                                    idx ===
                                                         line.stops.length - 1
                                                         ? idx === 0
                                                             ? 'Origine'
@@ -508,7 +500,7 @@ export default function NetworkDetailPage({
                         <div>
                             <div className="mb-4 flex items-end justify-between gap-5 border-b border-border/60 pb-4">
                                 <div>
-                                    <span className="mb-1 block text-[0.5625rem] font-black uppercase tracking-[0.13em] text-[var(--digital)]">
+                                    <span className="mb-1 block text-[0.5625rem] font-black tracking-[0.13em] text-[var(--digital)] uppercase">
                                         Matrice O/D active
                                     </span>
                                     <h3 className="text-[1.1875rem] font-bold text-foreground">
@@ -516,8 +508,8 @@ export default function NetworkDetailPage({
                                     </h3>
                                     <p className="mt-1 text-[0.625rem] text-muted-foreground">
                                         Chaque combinaison origine–destination
-                                        possède son prix commercial par
-                                        classe de service.
+                                        possède son prix commercial par classe
+                                        de service.
                                     </p>
                                 </div>
                                 <Button
@@ -535,16 +527,16 @@ export default function NetworkDetailPage({
                                     <table className="w-full text-sm">
                                         <thead>
                                             <tr className="border-b border-border/60 text-left text-xs text-muted-foreground">
-                                                <th className="pb-3 pr-4 font-medium">
+                                                <th className="pr-4 pb-3 font-medium">
                                                     Origine
                                                 </th>
-                                                <th className="pb-3 pr-4 font-medium">
+                                                <th className="pr-4 pb-3 font-medium">
                                                     Destination
                                                 </th>
-                                                <th className="pb-3 pr-4 font-medium">
+                                                <th className="pr-4 pb-3 font-medium">
                                                     Service
                                                 </th>
-                                                <th className="pb-3 pr-4 font-medium">
+                                                <th className="pr-4 pb-3 font-medium">
                                                     Prix
                                                 </th>
                                                 <th className="pb-3 font-medium">
@@ -566,7 +558,9 @@ export default function NetworkDetailPage({
                                                     </td>
                                                     <td className="py-3 pr-4">
                                                         <span className="inline-flex items-center rounded-[0.375rem] bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
-                                                            {fare.serviceClassName}
+                                                            {
+                                                                fare.serviceClassName
+                                                            }
                                                         </span>
                                                     </td>
                                                     <td className="py-3 pr-4 font-bold text-foreground">
@@ -583,15 +577,15 @@ export default function NetworkDetailPage({
                                                     <td className="py-3 text-xs text-muted-foreground">
                                                         {fare.effectiveFrom
                                                             ? new Date(
-                                                                fare.effectiveFrom,
-                                                            ).toLocaleDateString(
-                                                                'fr-FR',
-                                                                {
-                                                                    day: '2-digit',
-                                                                    month: 'short',
-                                                                    year: 'numeric',
-                                                                },
-                                                            )
+                                                                  fare.effectiveFrom,
+                                                              ).toLocaleDateString(
+                                                                  'fr-FR',
+                                                                  {
+                                                                      day: '2-digit',
+                                                                      month: 'short',
+                                                                      year: 'numeric',
+                                                                  },
+                                                              )
                                                             : '—'}
                                                     </td>
                                                 </tr>
@@ -608,13 +602,11 @@ export default function NetworkDetailPage({
                                     <p className="mt-1 text-sm text-muted-foreground">
                                         {activeStops.length >= 2
                                             ? 'Définissez les tarifs pour les segments de cette ligne.'
-                                            : "Ajoutez au moins 2 arrêts actifs pour générer la matrice O/D."}
+                                            : 'Ajoutez au moins 2 arrêts actifs pour générer la matrice O/D.'}
                                     </p>
                                     {permissions.canManageFares && (
                                         <Button
-                                            onClick={() =>
-                                                router.get('/fares')
-                                            }
+                                            onClick={() => router.get('/fares')}
                                             className="mt-4 h-10 rounded-[0.75rem] bg-gold px-4 font-medium text-[var(--kora)] hover:bg-[var(--kora)] hover:text-white"
                                         >
                                             <Tag className="size-4" />
@@ -628,7 +620,7 @@ export default function NetworkDetailPage({
 
                     {/* Detail-rule (Règle métier) */}
                     <div className="mt-5 rounded-r-[0.875rem] border-l-[3px] border-gold bg-muted p-4">
-                        <span className="block text-[0.5rem] font-black uppercase tracking-[0.13em] text-[var(--digital)]">
+                        <span className="block text-[0.5rem] font-black tracking-[0.13em] text-[var(--digital)] uppercase">
                             Règle métier
                         </span>
                         <p className="mt-1.5 text-[0.6875rem] leading-relaxed text-foreground/80">
@@ -653,9 +645,9 @@ export default function NetworkDetailPage({
                                 key={i}
                                 className="relative pb-5 pl-8 last:pb-0"
                             >
-                                <span className="absolute left-[7px] top-[3px] h-[10px] w-[10px] rounded-full border-[3px] border-card bg-[var(--digital)] shadow-[0_0_0_1px_var(--digital)]" />
+                                <span className="absolute top-[3px] left-[7px] h-[10px] w-[10px] rounded-full border-[3px] border-card bg-[var(--digital)] shadow-[0_0_0_1px_var(--digital)]" />
                                 {i < timeline.length - 1 && (
-                                    <span className="absolute left-[8px] top-[14px] bottom-[-8px] w-px bg-border" />
+                                    <span className="absolute top-[14px] bottom-[-8px] left-[8px] w-px bg-border" />
                                 )}
                                 <strong className="block text-[0.6875rem] text-foreground">
                                     {event.label}

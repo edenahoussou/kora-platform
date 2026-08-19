@@ -8,7 +8,12 @@ use App\Modules\DynamicPricing\Data\FareStatus;
 use App\Modules\Support\Models\KoraModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property Carbon|null $effective_from
+ * @property Carbon|null $effective_until
+ */
 class Fare extends KoraModel
 {
     use SoftDeletes;

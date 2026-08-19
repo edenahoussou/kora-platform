@@ -99,7 +99,7 @@ class KoraBusReferenceSeeder extends Seeder
     }
 
     /**
-     * @return array<int, string>
+     * @return list<array{type: string, codes: list<string>}>
      */
     private function compositionLayout(): array
     {
@@ -112,6 +112,9 @@ class KoraBusReferenceSeeder extends Seeder
         return $layout;
     }
 
+    /**
+     * @return list<string>
+     */
     private function seatCodes(): array
     {
         $codes = [];

@@ -124,9 +124,7 @@ export function StopFormDialog({
                                             placeholder="Cotonou"
                                             className="h-12 rounded-[0.875rem] border-0 bg-muted shadow-[inset_0_0_0_1px_var(--border)]"
                                         />
-                                        <InputError
-                                            message={errors.city}
-                                        />
+                                        <InputError message={errors.city} />
                                     </div>
                                     <div className="grid gap-2">
                                         <Label htmlFor="stop-country">
@@ -141,9 +139,7 @@ export function StopFormDialog({
                                             placeholder="BJ"
                                             className="h-12 rounded-[0.875rem] border-0 bg-muted uppercase shadow-[inset_0_0_0_1px_var(--border)]"
                                         />
-                                        <InputError
-                                            message={errors.country}
-                                        />
+                                        <InputError message={errors.country} />
                                     </div>
                                 </div>
                                 <div className="grid gap-5 sm:grid-cols-2">
@@ -176,7 +172,9 @@ export function StopFormDialog({
                                             type="number"
                                             min="0"
                                             step="0.01"
-                                            defaultValue={stop?.kmFromOrigin ?? 0}
+                                            defaultValue={
+                                                stop?.kmFromOrigin ?? 0
+                                            }
                                             className="h-12 rounded-[0.875rem] border-0 bg-muted shadow-[inset_0_0_0_1px_var(--border)]"
                                         />
                                         <InputError
@@ -198,9 +196,7 @@ export function StopFormDialog({
                                             placeholder="6.3703"
                                             className="h-12 rounded-[0.875rem] border-0 bg-muted shadow-[inset_0_0_0_1px_var(--border)]"
                                         />
-                                        <InputError
-                                            message={errors.latitude}
-                                        />
+                                        <InputError message={errors.latitude} />
                                     </div>
                                     <div className="grid gap-2">
                                         <Label htmlFor="stop-lng">

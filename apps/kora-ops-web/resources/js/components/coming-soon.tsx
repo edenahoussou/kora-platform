@@ -22,10 +22,7 @@ export function ComingSoon({
     icon: Icon,
     breadcrumbs = [],
 }: ComingSoonProps) {
-    const crumbs: BreadcrumbItem[] = [
-        ...breadcrumbs,
-        { title, href: '' },
-    ];
+    const crumbs: BreadcrumbItem[] = [...breadcrumbs, { title, href: '' }];
 
     return (
         <>
@@ -56,7 +53,7 @@ export function ComingSoon({
                         <Icon className="size-8" />
                     </div>
                 )}
-                <span className="mb-2 inline-block rounded-full bg-muted px-3 py-1 text-[0.6875rem] font-bold uppercase tracking-wider text-muted-foreground">
+                <span className="mb-2 inline-block rounded-full bg-muted px-3 py-1 text-[0.6875rem] font-bold tracking-wider text-muted-foreground uppercase">
                     {module ?? 'Bientôt disponible'}
                 </span>
                 <h2 className="text-[1.25rem] font-bold text-foreground">

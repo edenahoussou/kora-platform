@@ -90,7 +90,12 @@ export function KoraTable<T>({
             url.searchParams.set('page', String(page));
         }
 
-        router.get(url.pathname + (url.search ? `?${url.searchParams.toString()}` : ''), {}, { preserveScroll: true, preserveState: true });
+        router.get(
+            url.pathname +
+                (url.search ? `?${url.searchParams.toString()}` : ''),
+            {},
+            { preserveScroll: true, preserveState: true },
+        );
     };
 
     const renderPageButtons = () => {
@@ -108,9 +113,11 @@ export function KoraTable<T>({
         const delta = 1;
 
         for (let i = 1; i <= lastPage; i++) {
-            if (i === 1
-                || i === lastPage
-                || (i >= currentPage - delta && i <= currentPage + delta)) {
+            if (
+                i === 1 ||
+                i === lastPage ||
+                (i >= currentPage - delta && i <= currentPage + delta)
+            ) {
                 pages.push(i);
             } else if (pages[pages.length - 1] !== '...') {
                 pages.push('...');
@@ -121,7 +128,10 @@ export function KoraTable<T>({
             <div className="flex gap-[5px]">
                 {pages.map((page, index) =>
                     page === '...' ? (
-                        <span key={`ellipsis-${index}`} className="grid size-[31px] place-items-center text-[0.6875rem] text-muted-foreground">
+                        <span
+                            key={`ellipsis-${index}`}
+                            className="grid size-[31px] place-items-center text-[0.6875rem] text-muted-foreground"
+                        >
                             …
                         </span>
                     ) : (
@@ -129,10 +139,11 @@ export function KoraTable<T>({
                             key={page}
                             type="button"
                             onClick={() => goToPage(page)}
-                            className={`grid size-[31px] place-items-center rounded-[8px] border text-[0.6875rem] font-medium transition-colors ${page === currentPage
-                                ? 'border-[var(--kora)] bg-[var(--kora)] text-white'
-                                : 'border-border bg-card text-foreground hover:bg-muted'
-                                }`}
+                            className={`grid size-[31px] place-items-center rounded-[8px] border text-[0.6875rem] font-medium transition-colors ${
+                                page === currentPage
+                                    ? 'border-[var(--kora)] bg-[var(--kora)] text-white'
+                                    : 'border-border bg-card text-foreground hover:bg-muted'
+                            }`}
                         >
                             {page}
                         </button>
@@ -166,9 +177,9 @@ export function KoraTable<T>({
                     <div className="mb-4 grid size-14 place-items-center rounded-2xl bg-gold/10 text-gold">
                         {EmptyIcon ? (
                             <EmptyIcon className="size-7" />
-                        ) : (
-                            Icon ? <Icon className="size-7" /> : null
-                        )}
+                        ) : Icon ? (
+                            <Icon className="size-7" />
+                        ) : null}
                     </div>
                     <h3 className="text-base font-bold text-foreground">
                         {emptyTitle}
@@ -201,10 +212,9 @@ export function KoraTable<T>({
                                             ? () => onRowClick(row)
                                             : undefined
                                     }
-                                    className={`transition-colors hover:bg-muted/25 ${onRowClick
-                                        ? 'cursor-pointer'
-                                        : ''
-                                        }`}
+                                    className={`transition-colors hover:bg-muted/25 ${
+                                        onRowClick ? 'cursor-pointer' : ''
+                                    }`}
                                 >
                                     {columns.map((column) => (
                                         <td
@@ -240,7 +250,9 @@ export function KoraTable<T>({
                         <button
                             type="button"
                             onClick={() => goToPage(pagination.currentPage + 1)}
-                            disabled={pagination.currentPage >= pagination.lastPage}
+                            disabled={
+                                pagination.currentPage >= pagination.lastPage
+                            }
                             className="grid size-[31px] place-items-center rounded-[8px] border border-border bg-card text-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
                         >
                             <ChevronRight className="size-3.5" />

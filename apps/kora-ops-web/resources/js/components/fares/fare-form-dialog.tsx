@@ -79,15 +79,15 @@ export function FareFormDialog({
 
     const [selectedLineUuid, setSelectedLineUuid] = useState<string>(
         fare?.lineCode
-            ? lines.find((l) => l.code === fare.lineCode)?.uuid ?? ''
+            ? (lines.find((l) => l.code === fare.lineCode)?.uuid ?? '')
             : '',
     );
 
     const [selectedOriginUuid, setSelectedOriginUuid] = useState<string>(
         fare?.originName
-            ? lines
-                .flatMap((l) => l.stops)
-                .find((s) => s.name === fare.originName)?.uuid ?? ''
+            ? (lines
+                  .flatMap((l) => l.stops)
+                  .find((s) => s.name === fare.originName)?.uuid ?? '')
             : '',
     );
 
@@ -105,7 +105,10 @@ export function FareFormDialog({
 
     // Destinations possibles : seulement les arrêts après l'origine dans l'itinéraire
     const destinationStops = useMemo(() => {
-        if (!selectedOrigin) return availableStops;
+        if (!selectedOrigin) {
+            return availableStops;
+        }
+
         return availableStops.filter(
             (s) => s.stopOrder > selectedOrigin.stopOrder,
         );
@@ -121,7 +124,7 @@ export function FareFormDialog({
             </DialogPortal>
             <DialogContent
                 overlay={false}
-                className="!max-w-[52rem] !max-h-[85vh] overflow-y-auto rounded-[1.75rem] border-border/50 bg-card p-0 shadow-[0_30px_80px_rgba(0,29,78,0.35)] [&>button]:hidden"
+                className="!max-h-[85vh] !max-w-[52rem] overflow-y-auto rounded-[1.75rem] border-border/50 bg-card p-0 shadow-[0_30px_80px_rgba(0,29,78,0.35)] [&>button]:hidden"
             >
                 <Form
                     {...form}
@@ -148,8 +151,8 @@ export function FareFormDialog({
                                                 : 'Nouvelle grille'}
                                         </DialogTitle>
                                         <DialogDescription className="mt-1.5 text-sm text-muted-foreground">
-                                            Définissez le segment, la classe
-                                            de service et la période d'effet.
+                                            Définissez le segment, la classe de
+                                            service et la période d'effet.
                                         </DialogDescription>
                                     </div>
                                 </div>
@@ -170,15 +173,14 @@ export function FareFormDialog({
                                         <Info className="mt-0.5 size-4 shrink-0 text-gold" />
                                         <div>
                                             <p className="text-[0.8125rem] font-medium text-foreground">
-                                                Le tarif sera créé en
-                                                brouillon
+                                                Le tarif sera créé en brouillon
                                             </p>
                                             <p className="mt-1 text-[0.75rem] leading-relaxed text-muted-foreground">
                                                 Vous devrez l'activer
-                                                explicitement pour qu'il
-                                                soit vendable. Les billets
-                                                déjà émis ne sont jamais
-                                                modifiés rétroactivement.
+                                                explicitement pour qu'il soit
+                                                vendable. Les billets déjà émis
+                                                ne sont jamais modifiés
+                                                rétroactivement.
                                             </p>
                                         </div>
                                     </div>
@@ -190,15 +192,15 @@ export function FareFormDialog({
                                                 {fare?.status === 'active'
                                                     ? 'Tarif actif — modification sensible'
                                                     : fare?.status === 'draft'
-                                                        ? 'Tarif en brouillon — libre modification'
-                                                        : 'Tarif archivé — lecture seule'}
+                                                      ? 'Tarif en brouillon — libre modification'
+                                                      : 'Tarif archivé — lecture seule'}
                                             </p>
                                             <p className="mt-1 text-[0.75rem] leading-relaxed text-muted-foreground">
                                                 {fare?.status === 'active'
                                                     ? "Modifier le prix ou la période impacte immédiatement les nouvelles recherches. Les billets déjà vendus conservent leur prix d'origine."
                                                     : fare?.status === 'draft'
-                                                        ? "Ce tarif n'est pas encore vendable. Vous pouvez ajuster librement le prix et la période."
-                                                        : "Ce tarif n'est plus vendable. Créez un nouveau tarif pour le remplacer."}
+                                                      ? "Ce tarif n'est pas encore vendable. Vous pouvez ajuster librement le prix et la période."
+                                                      : "Ce tarif n'est plus vendable. Créez un nouveau tarif pour le remplacer."}
                                             </p>
                                         </div>
                                     </div>
@@ -240,9 +242,7 @@ export function FareFormDialog({
                                             La ligne détermine les arrêts
                                             disponibles pour le segment.
                                         </HelpText>
-                                        <InputError
-                                            message={errors.line_id}
-                                        />
+                                        <InputError message={errors.line_id} />
                                     </div>
                                     <div className="grid gap-2.5">
                                         <Label htmlFor="fare-service">
@@ -253,11 +253,11 @@ export function FareFormDialog({
                                             name="service_class_id"
                                             defaultValue={
                                                 fare?.serviceClassCode
-                                                    ? serviceClasses.find(
-                                                        (s) =>
-                                                            s.code ===
-                                                            fare.serviceClassCode,
-                                                    )?.uuid ?? ''
+                                                    ? (serviceClasses.find(
+                                                          (s) =>
+                                                              s.code ===
+                                                              fare.serviceClassCode,
+                                                      )?.uuid ?? '')
                                                     : ''
                                             }
                                             required
@@ -323,8 +323,7 @@ export function FareFormDialog({
                                             ))}
                                         </select>
                                         <HelpText>
-                                            Point de départ du segment
-                                            vendable.
+                                            Point de départ du segment vendable.
                                         </HelpText>
                                         <InputError
                                             message={errors.origin_stop_id}
@@ -339,11 +338,11 @@ export function FareFormDialog({
                                             name="destination_stop_id"
                                             defaultValue={
                                                 fare?.destinationName
-                                                    ? availableStops.find(
-                                                        (s) =>
-                                                            s.name ===
-                                                            fare.destinationName,
-                                                    )?.uuid ?? ''
+                                                    ? (availableStops.find(
+                                                          (s) =>
+                                                              s.name ===
+                                                              fare.destinationName,
+                                                      )?.uuid ?? '')
                                                     : ''
                                             }
                                             required
@@ -357,10 +356,11 @@ export function FareFormDialog({
                                                 {availableStops.length === 0
                                                     ? "Sélectionner d'abord une ligne"
                                                     : selectedOriginUuid === ''
-                                                        ? "Sélectionner d'abord l'origine"
-                                                        : destinationStops.length === 0
-                                                            ? 'Aucune destination disponible'
-                                                            : 'Sélectionner la destination'}
+                                                      ? "Sélectionner d'abord l'origine"
+                                                      : destinationStops.length ===
+                                                          0
+                                                        ? 'Aucune destination disponible'
+                                                        : 'Sélectionner la destination'}
                                             </option>
                                             {destinationStops.map((stop) => (
                                                 <option
@@ -376,9 +376,7 @@ export function FareFormDialog({
                                             dans l'itinéraire de la ligne.
                                         </HelpText>
                                         <InputError
-                                            message={
-                                                errors.destination_stop_id
-                                            }
+                                            message={errors.destination_stop_id}
                                         />
                                     </div>
                                 </div>
@@ -402,20 +400,18 @@ export function FareFormDialog({
                                         Montant en Francs CFA (XOF), entier,
                                         sans décimale. Taxes incluses.
                                     </HelpText>
-                                    <InputError
-                                        message={errors.base_amount}
-                                    />
+                                    <InputError message={errors.base_amount} />
                                 </div>
 
                                 {/* Période d'effet */}
                                 <div className="rounded-[1rem] bg-muted/40 p-6">
-                                    <span className="mb-2 block text-[0.5625rem] font-black uppercase tracking-[0.13em] text-[var(--digital)]">
+                                    <span className="mb-2 block text-[0.5625rem] font-black tracking-[0.13em] text-[var(--digital)] uppercase">
                                         Période d'effet
                                     </span>
                                     <p className="mb-5 text-[0.6875rem] leading-relaxed text-muted-foreground">
-                                        Définit la fenêtre de validité du
-                                        tarif. En dehors de cette période, le
-                                        tarif n'est pas proposé à la vente.
+                                        Définit la fenêtre de validité du tarif.
+                                        En dehors de cette période, le tarif
+                                        n'est pas proposé à la vente.
                                     </p>
                                     <div className="grid gap-7 sm:grid-cols-2">
                                         <div className="grid gap-2.5">
@@ -433,9 +429,9 @@ export function FareFormDialog({
                                                 className="h-12 rounded-[0.875rem] border-0 bg-muted shadow-[inset_0_0_0_1px_var(--border)]"
                                             />
                                             <HelpText>
-                                                À partir de cette date, le
-                                                tarif est proposé à la vente
-                                                (après activation).
+                                                À partir de cette date, le tarif
+                                                est proposé à la vente (après
+                                                activation).
                                             </HelpText>
                                             <InputError
                                                 message={errors.effective_from}
@@ -456,14 +452,12 @@ export function FareFormDialog({
                                             />
                                             <HelpText>
                                                 Laisser vide pour un tarif
-                                                permanent (indéterminé).
-                                                Sinon, le tarif cesse
-                                                automatiquement à cette date.
+                                                permanent (indéterminé). Sinon,
+                                                le tarif cesse automatiquement à
+                                                cette date.
                                             </HelpText>
                                             <InputError
-                                                message={
-                                                    errors.effective_until
-                                                }
+                                                message={errors.effective_until}
                                             />
                                         </div>
                                     </div>
@@ -496,8 +490,8 @@ export function FareFormDialog({
                                     {processing
                                         ? 'Enregistrement…'
                                         : editing
-                                            ? 'Enregistrer les changements'
-                                            : 'Valider et continuer'}
+                                          ? 'Enregistrer les changements'
+                                          : 'Valider et continuer'}
                                 </Button>
                             </div>
                         </>

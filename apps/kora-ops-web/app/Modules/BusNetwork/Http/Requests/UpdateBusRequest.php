@@ -3,6 +3,7 @@
 namespace App\Modules\BusNetwork\Http\Requests;
 
 use App\Modules\BusNetwork\Data\BusStatus;
+use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\BusComposition;
 use App\Modules\BusNetwork\Models\BusModel;
 use App\Modules\IdentityAccess\Models\Agency;
@@ -19,6 +20,7 @@ class UpdateBusRequest extends FormRequest
     /** @return array<string, array<int, mixed>> */
     public function rules(): array
     {
+        /** @var Bus|null $bus */
         $bus = $this->route('bus');
 
         return [

@@ -6,6 +6,9 @@ use App\Modules\Support\Models\KoraModel;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @property list<array{type?: string, codes: list<string>}> $layout
+ */
 class BusComposition extends KoraModel
 {
     use SoftDeletes;

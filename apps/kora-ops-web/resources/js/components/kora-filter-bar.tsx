@@ -60,8 +60,10 @@ export function KoraFilterBar({
     );
 
     const hasActiveFilters = useMemo(() => {
-        return searchValue.trim() !== ''
-            || Object.values(filterValues).some((v) => v !== '');
+        return (
+            searchValue.trim() !== '' ||
+            Object.values(filterValues).some((v) => v !== '')
+        );
     }, [searchValue, filterValues]);
 
     const buildUrl = useCallback(
@@ -121,7 +123,7 @@ export function KoraFilterBar({
                 value={searchValue}
                 onChange={(event) => setSearchValue(event.target.value)}
                 placeholder={searchPlaceholder}
-                className="h-10 min-w-0 flex-1 rounded-[0.625rem] border border-border bg-background px-3 text-xs text-foreground outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground focus:border-gold focus:ring-[3px] focus:ring-[rgba(246,176,0,0.16)]"
+                className="h-10 min-w-0 flex-1 rounded-[0.625rem] border border-border bg-background px-3 text-xs text-foreground transition-[border-color,box-shadow] outline-none placeholder:text-muted-foreground focus:border-gold focus:ring-[3px] focus:ring-[rgba(246,176,0,0.16)]"
             />
             {filters.map((filter) => (
                 <select
@@ -133,10 +135,11 @@ export function KoraFilterBar({
                             [filter.name]: event.target.value,
                         }))
                     }
-                    className="h-10 min-w-[10rem] rounded-[0.625rem] border border-border bg-background px-3 text-xs text-foreground outline-none transition-[border-color,box-shadow] focus:border-gold focus:ring-[3px] focus:ring-[rgba(246,176,0,0.16)]"
+                    className="h-10 min-w-[10rem] rounded-[0.625rem] border border-border bg-background px-3 text-xs text-foreground transition-[border-color,box-shadow] outline-none focus:border-gold focus:ring-[3px] focus:ring-[rgba(246,176,0,0.16)]"
                 >
                     <option value="">
-                        {filter.placeholder ?? `Tous les ${filter.label.toLowerCase()}`}
+                        {filter.placeholder ??
+                            `Tous les ${filter.label.toLowerCase()}`}
                     </option>
                     {filter.options.map((option) => (
                         <option key={option.value} value={option.value}>

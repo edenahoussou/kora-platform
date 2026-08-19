@@ -1,11 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import {
-    ArrowLeft,
-    Calendar,
-    Clock,
-    MapPin,
-    Pencil,
-} from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, MapPin, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { FareFormDialog } from '@/components/fares/fare-form-dialog';
 import type { FareRecord } from '@/components/fares/fare-form-dialog';
@@ -181,9 +175,8 @@ export default function FareDetailPage({
                         Grille tarifaire
                     </h1>
                     <p className="mt-1.5 text-sm text-muted-foreground">
-                        {fare.reference} · {fare.lineCode} ·{' '}
-                        {fare.originName} → {fare.destinationName} ·{' '}
-                        {fare.serviceClassName}
+                        {fare.reference} · {fare.lineCode} · {fare.originName} →{' '}
+                        {fare.destinationName} · {fare.serviceClassName}
                     </p>
                 </div>
                 <div className="flex flex-wrap gap-2.5">
@@ -212,10 +205,11 @@ export default function FareDetailPage({
                     <button
                         key={key}
                         onClick={() => setTab(key)}
-                        className={`border-b-2 px-4 py-3 text-[0.6875rem] font-extrabold tracking-[0.035em] transition-colors ${tab === key
-                            ? 'border-gold text-foreground'
-                            : 'border-transparent text-muted-foreground hover:text-foreground'
-                            }`}
+                        className={`border-b-2 px-4 py-3 text-[0.6875rem] font-extrabold tracking-[0.035em] transition-colors ${
+                            tab === key
+                                ? 'border-gold text-foreground'
+                                : 'border-transparent text-muted-foreground hover:text-foreground'
+                        }`}
                     >
                         {label}
                     </button>
@@ -225,7 +219,7 @@ export default function FareDetailPage({
             {/* 3. DETAIL-IDENTITY */}
             <section className="relative mb-6 flex items-center justify-between gap-6 overflow-hidden rounded-[1.25rem] bg-gradient-to-br from-[var(--kora)] to-[var(--digital)] p-7 text-white shadow-[0_18px_42px_rgba(0,29,78,0.16)]">
                 <div className="relative z-10 max-w-[760px]">
-                    <span className="mb-1.5 block text-[0.5625rem] font-black uppercase tracking-[0.13em] text-gold">
+                    <span className="mb-1.5 block text-[0.5625rem] font-black tracking-[0.13em] text-gold uppercase">
                         Grille tarifaire
                     </span>
                     <h2 className="text-[1.6875rem] font-extrabold tracking-[-0.03em]">
@@ -287,7 +281,7 @@ export default function FareDetailPage({
                                         <span className="grid size-7 place-items-center rounded-full bg-gold text-[var(--kora)]">
                                             <MapPin className="size-3.5" />
                                         </span>
-                                        <span className="text-[0.5625rem] font-black uppercase tracking-[0.13em] text-[var(--digital)]">
+                                        <span className="text-[0.5625rem] font-black tracking-[0.13em] text-[var(--digital)] uppercase">
                                             Origine
                                         </span>
                                     </div>
@@ -306,7 +300,7 @@ export default function FareDetailPage({
                                         <span className="grid size-7 place-items-center rounded-full bg-[var(--digital)] text-white">
                                             <MapPin className="size-3.5" />
                                         </span>
-                                        <span className="text-[0.5625rem] font-black uppercase tracking-[0.13em] text-gold">
+                                        <span className="text-[0.5625rem] font-black tracking-[0.13em] text-gold uppercase">
                                             Destination
                                         </span>
                                     </div>
@@ -329,7 +323,7 @@ export default function FareDetailPage({
                         <div>
                             <div className="mb-4 flex items-end justify-between gap-5 border-b border-border/60 pb-4">
                                 <div>
-                                    <span className="mb-1 block text-[0.5625rem] font-black uppercase tracking-[0.13em] text-[var(--digital)]">
+                                    <span className="mb-1 block text-[0.5625rem] font-black tracking-[0.13em] text-[var(--digital)] uppercase">
                                         Historique tarifaire du segment
                                     </span>
                                     <h3 className="text-[1.1875rem] font-bold text-foreground">
@@ -337,9 +331,8 @@ export default function FareDetailPage({
                                         {versions.length > 1 ? 's' : ''}
                                     </h3>
                                     <p className="mt-1 text-[0.625rem] text-muted-foreground">
-                                        Toutes les grilles publiées sur le
-                                        même segment, ordonnées par date
-                                        d'effet.
+                                        Toutes les grilles publiées sur le même
+                                        segment, ordonnées par date d'effet.
                                     </p>
                                 </div>
                             </div>
@@ -349,19 +342,19 @@ export default function FareDetailPage({
                                     <table className="w-full text-sm">
                                         <thead>
                                             <tr className="border-b border-border/60 text-left text-xs text-muted-foreground">
-                                                <th className="pb-3 pr-4 font-medium">
+                                                <th className="pr-4 pb-3 font-medium">
                                                     Référence
                                                 </th>
-                                                <th className="pb-3 pr-4 font-medium">
+                                                <th className="pr-4 pb-3 font-medium">
                                                     Effet au
                                                 </th>
-                                                <th className="pb-3 pr-4 font-medium">
+                                                <th className="pr-4 pb-3 font-medium">
                                                     Jusqu'au
                                                 </th>
-                                                <th className="pb-3 pr-4 font-medium">
+                                                <th className="pr-4 pb-3 font-medium">
                                                     Prix
                                                 </th>
-                                                <th className="pb-3 pr-4 font-medium">
+                                                <th className="pr-4 pb-3 font-medium">
                                                     Statut
                                                 </th>
                                             </tr>
@@ -370,10 +363,11 @@ export default function FareDetailPage({
                                             {versions.map((version) => (
                                                 <tr
                                                     key={version.uuid}
-                                                    className={`border-b border-border/30 ${version.isCurrent
-                                                        ? 'bg-gold/5'
-                                                        : ''
-                                                        }`}
+                                                    className={`border-b border-border/30 ${
+                                                        version.isCurrent
+                                                            ? 'bg-gold/5'
+                                                            : ''
+                                                    }`}
                                                 >
                                                     <td className="py-3 pr-4 font-medium text-foreground">
                                                         {version.reference}
@@ -403,13 +397,15 @@ export default function FareDetailPage({
                                                         <KoraStatusBadge
                                                             label={
                                                                 statusLabels[
-                                                                version.status
+                                                                    version
+                                                                        .status
                                                                 ] ??
                                                                 version.status
                                                             }
                                                             tone={
                                                                 statusTones[
-                                                                version.status
+                                                                    version
+                                                                        .status
                                                                 ] ?? 'muted'
                                                             }
                                                         />
@@ -438,7 +434,7 @@ export default function FareDetailPage({
                     {tab === 'history' && (
                         <div>
                             <div className="mb-4 border-b border-border/60 pb-4">
-                                <span className="mb-1 block text-[0.5625rem] font-black uppercase tracking-[0.13em] text-[var(--digital)]">
+                                <span className="mb-1 block text-[0.5625rem] font-black tracking-[0.13em] text-[var(--digital)] uppercase">
                                     Journal des événements
                                 </span>
                                 <h3 className="text-[1.1875rem] font-bold text-foreground">
@@ -457,9 +453,9 @@ export default function FareDetailPage({
                                             key={i}
                                             className="relative pb-5 pl-8 last:pb-0"
                                         >
-                                            <span className="absolute left-[7px] top-[3px] h-[10px] w-[10px] rounded-full border-[3px] border-card bg-[var(--digital)] shadow-[0_0_0_1px_var(--digital)]" />
+                                            <span className="absolute top-[3px] left-[7px] h-[10px] w-[10px] rounded-full border-[3px] border-card bg-[var(--digital)] shadow-[0_0_0_1px_var(--digital)]" />
                                             {i < timeline.length - 1 && (
-                                                <span className="absolute left-[8px] top-[14px] bottom-[-8px] w-px bg-border" />
+                                                <span className="absolute top-[14px] bottom-[-8px] left-[8px] w-px bg-border" />
                                             )}
                                             <strong className="block text-[0.6875rem] text-foreground">
                                                 {event.label}
@@ -477,8 +473,8 @@ export default function FareDetailPage({
                                         Aucun événement enregistré
                                     </p>
                                     <p className="mt-1 text-sm text-muted-foreground">
-                                        Les modifications de prix et de
-                                        statut apparaîtront ici.
+                                        Les modifications de prix et de statut
+                                        apparaîtront ici.
                                     </p>
                                 </div>
                             )}
@@ -487,7 +483,7 @@ export default function FareDetailPage({
 
                     {/* Detail-rule (Règle métier) */}
                     <div className="mt-5 rounded-r-[0.875rem] border-l-[3px] border-gold bg-muted p-4">
-                        <span className="block text-[0.5rem] font-black uppercase tracking-[0.13em] text-[var(--digital)]">
+                        <span className="block text-[0.5rem] font-black tracking-[0.13em] text-[var(--digital)] uppercase">
                             Règle métier
                         </span>
                         <p className="mt-1.5 text-[0.6875rem] leading-relaxed text-foreground/80">
@@ -512,9 +508,9 @@ export default function FareDetailPage({
                                 key={i}
                                 className="relative pb-5 pl-8 last:pb-0"
                             >
-                                <span className="absolute left-[7px] top-[3px] h-[10px] w-[10px] rounded-full border-[3px] border-card bg-gold shadow-[0_0_0_1px_var(--gold)]" />
+                                <span className="absolute top-[3px] left-[7px] h-[10px] w-[10px] rounded-full border-[3px] border-card bg-gold shadow-[0_0_0_1px_var(--gold)]" />
                                 {i < timeline.length - 1 && (
-                                    <span className="absolute left-[8px] top-[14px] bottom-[-8px] w-px bg-border" />
+                                    <span className="absolute top-[14px] bottom-[-8px] left-[8px] w-px bg-border" />
                                 )}
                                 <strong className="block text-[0.6875rem] text-foreground">
                                     {event.label}

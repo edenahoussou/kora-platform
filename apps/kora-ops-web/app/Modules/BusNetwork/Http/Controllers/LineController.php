@@ -206,17 +206,23 @@ class LineController extends Controller
             'status' => (string) $stop->getRawOriginal('status'),
         ])->values()->all();
 
-        /** @var array<int, array{uuid: string, originName: string, destinationName: string, serviceClassCode: string, serviceClassName: string, baseAmount: int, currency: string, effectiveFrom: string|null}> $fares */
-        $fares = $line->fares->map(fn (Fare $fare): array => [
-            'uuid' => $fare->uuid,
-            'originName' => $fare->originStop?->name ?? '—',
-            'destinationName' => $fare->destinationStop?->name ?? '—',
-            'serviceClassCode' => $fare->serviceClass?->code ?? '—',
-            'serviceClassName' => $fare->serviceClass?->name ?? '—',
-            'baseAmount' => (int) $fare->base_amount,
-            'currency' => $fare->currency,
-            'effectiveFrom' => $fare->effective_from?->toDateString(),
-        ])->values()->all();
+        $fares = [];
+        foreach ($line->fares as $fare) {
+            $originName = $fare->originStop?->name;
+            $destinationName = $fare->destinationStop?->name;
+            $serviceClassCode = $fare->serviceClass?->code;
+            $serviceClassName = $fare->serviceClass?->name;
+            $fares[] = [
+                'uuid' => $fare->uuid,
+                'originName' => $originName ?? '—',
+                'destinationName' => $destinationName ?? '—',
+                'serviceClassCode' => $serviceClassCode ?? '—',
+                'serviceClassName' => $serviceClassName ?? '—',
+                'baseAmount' => (int) $fare->base_amount,
+                'currency' => $fare->currency,
+                'effectiveFrom' => $fare->effective_from?->toDateString(),
+            ];
+        }
 
         return [
             'uuid' => $line->uuid,

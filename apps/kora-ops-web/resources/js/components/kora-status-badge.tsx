@@ -22,11 +22,7 @@ const dotStyles: Record<StatusTone, string> = {
     muted: 'bg-muted-foreground',
 };
 
-export function KoraStatusBadge({
-    label,
-    tone = 'blue',
-    className,
-}: Props) {
+export function KoraStatusBadge({ label, tone = 'blue', className }: Props) {
     return (
         <span
             className={cn(
@@ -35,9 +31,7 @@ export function KoraStatusBadge({
                 className,
             )}
         >
-            <span
-                className={cn('size-1.5 rounded-full', dotStyles[tone])}
-            />
+            <span className={cn('size-1.5 rounded-full', dotStyles[tone])} />
             {label}
         </span>
     );

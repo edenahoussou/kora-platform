@@ -242,7 +242,11 @@ export default function FaresPage({
                         <DropdownMenuContent align="end">
                             <DropdownMenuItem
                                 onClick={() =>
-                                    router.get(faresRoutes.show.url({ fare: fare.uuid }))
+                                    router.get(
+                                        faresRoutes.show.url({
+                                            fare: fare.uuid,
+                                        }),
+                                    )
                                 }
                             >
                                 <Eye className="size-4" />
@@ -329,7 +333,9 @@ export default function FaresPage({
                 columns={columns}
                 data={fares.data}
                 rowKey={(fare) => fare.uuid}
-                onRowClick={(fare) => router.get(faresRoutes.show.url({ fare: fare.uuid }))}
+                onRowClick={(fare) =>
+                    router.get(faresRoutes.show.url({ fare: fare.uuid }))
+                }
                 emptyTitle="Aucun tarif trouvé"
                 emptyMessage="Ajustez vos filtres ou créez la première grille tarifaire."
                 emptyIcon={Tag}
@@ -347,7 +353,5 @@ export default function FaresPage({
 }
 
 FaresPage.layout = {
-    breadcrumbs: [
-        { title: 'Tarifs', href: '/fares' } satisfies BreadcrumbItem,
-    ],
+    breadcrumbs: [{ title: 'Tarifs', href: '/fares' } satisfies BreadcrumbItem],
 };

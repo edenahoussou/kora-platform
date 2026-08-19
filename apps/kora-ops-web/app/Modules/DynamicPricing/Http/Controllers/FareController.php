@@ -232,11 +232,11 @@ class FareController extends Controller
      */
     private function buildReference(Fare $fare): string
     {
-        $lineCode = $fare->line?->code ?? '---';
-        $serviceCode = $fare->serviceClass?->code ?? '---';
-        $period = $fare->effective_from?->format('Y-m') ?? '----';
+        $lineCode = $fare->line?->code;
+        $serviceCode = $fare->serviceClass?->code;
+        $period = $fare->effective_from?->format('Y-m');
 
-        return "TAR-{$lineCode}-{$serviceCode}-{$period}";
+        return 'TAR-'.($lineCode ?? '---').'-'.($serviceCode ?? '---').'-'.($period ?? '----');
     }
 
     /**

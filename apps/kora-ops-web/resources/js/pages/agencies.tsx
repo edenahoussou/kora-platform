@@ -1,8 +1,19 @@
 import { Head, router } from '@inertiajs/react';
-import { Archive, Building2, Edit3, MoreHorizontal, Plus, RotateCcw, ShieldOff } from 'lucide-react';
+import {
+    Archive,
+    Building2,
+    Edit3,
+    MoreHorizontal,
+    Plus,
+    RotateCcw,
+    ShieldOff,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { AgencyFormDialog } from '@/components/agencies/agency-form-dialog';
-import type { AgencyRecord, HeadCandidate } from '@/components/agencies/agency-form-dialog';
+import type {
+    AgencyRecord,
+    HeadCandidate,
+} from '@/components/agencies/agency-form-dialog';
 import { KoraFilterBar } from '@/components/kora-filter-bar';
 import type { FilterConfig } from '@/components/kora-filter-bar';
 import { KoraTable } from '@/components/kora-table';
@@ -102,11 +113,12 @@ export default function AgenciesPage({
     };
 
     const changeStatus = (agency: AgencyRecord, status: string) => {
-        const action = status === 'archived'
-            ? 'archiver cette agence'
-            : status === 'suspended'
-                ? 'suspendre cette agence'
-                : 'réactiver cette agence';
+        const action =
+            status === 'archived'
+                ? 'archiver cette agence'
+                : status === 'suspended'
+                  ? 'suspendre cette agence'
+                  : 'réactiver cette agence';
 
         if (!window.confirm(`Voulez-vous vraiment ${action} ?`)) {
             return;
@@ -144,7 +156,9 @@ export default function AgenciesPage({
             header: 'Localisation',
             render: (agency) => (
                 <div className="text-muted-foreground">
-                    <span className="block font-medium text-foreground">{agency.city}</span>
+                    <span className="block font-medium text-foreground">
+                        {agency.city}
+                    </span>
                     <span className="text-xs uppercase">{agency.country}</span>
                 </div>
             ),
@@ -154,16 +168,22 @@ export default function AgenciesPage({
             header: 'Chef d\u2019agence',
             render: (agency) =>
                 agency.headName ? (
-                    <span className="font-medium text-foreground">{agency.headName}</span>
+                    <span className="font-medium text-foreground">
+                        {agency.headName}
+                    </span>
                 ) : (
-                    <span className="text-xs text-muted-foreground italic">Non assigné</span>
+                    <span className="text-xs text-muted-foreground italic">
+                        Non assigné
+                    </span>
                 ),
         },
         {
             key: 'status',
             header: 'Statut',
             render: (agency) => (
-                <span className={`inline-flex rounded-full px-2.5 py-1 text-[0.6875rem] font-bold ${statusStyles[agency.status] ?? statusStyles.draft}`}>
+                <span
+                    className={`inline-flex rounded-full px-2.5 py-1 text-[0.6875rem] font-bold ${statusStyles[agency.status] ?? statusStyles.draft}`}
+                >
                     {statusLabels[agency.status] ?? agency.status}
                 </span>
             ),
@@ -177,35 +197,60 @@ export default function AgenciesPage({
                     <div className="flex justify-end">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" aria-label={`Actions pour ${agency.name}`}>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    aria-label={`Actions pour ${agency.name}`}
+                                >
                                     <MoreHorizontal className="size-4" />
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 {permissions.canUpdate && (
-                                    <DropdownMenuItem onClick={() => openEditDialog(agency)}>
+                                    <DropdownMenuItem
+                                        onClick={() => openEditDialog(agency)}
+                                    >
                                         <Edit3 className="size-4" />
                                         Modifier
                                     </DropdownMenuItem>
                                 )}
-                                {permissions.canDeactivate && agency.status !== 'suspended' && agency.status !== 'archived' && (
-                                    <DropdownMenuItem onClick={() => changeStatus(agency, 'suspended')}>
-                                        <ShieldOff className="size-4" />
-                                        Suspendre
-                                    </DropdownMenuItem>
-                                )}
-                                {permissions.canDeactivate && agency.status !== 'archived' && (
-                                    <DropdownMenuItem onClick={() => changeStatus(agency, 'archived')}>
-                                        <Archive className="size-4" />
-                                        Archiver
-                                    </DropdownMenuItem>
-                                )}
-                                {permissions.canDeactivate && agency.status !== 'active' && (
-                                    <DropdownMenuItem onClick={() => changeStatus(agency, 'active')}>
-                                        <RotateCcw className="size-4" />
-                                        Réactiver
-                                    </DropdownMenuItem>
-                                )}
+                                {permissions.canDeactivate &&
+                                    agency.status !== 'suspended' &&
+                                    agency.status !== 'archived' && (
+                                        <DropdownMenuItem
+                                            onClick={() =>
+                                                changeStatus(
+                                                    agency,
+                                                    'suspended',
+                                                )
+                                            }
+                                        >
+                                            <ShieldOff className="size-4" />
+                                            Suspendre
+                                        </DropdownMenuItem>
+                                    )}
+                                {permissions.canDeactivate &&
+                                    agency.status !== 'archived' && (
+                                        <DropdownMenuItem
+                                            onClick={() =>
+                                                changeStatus(agency, 'archived')
+                                            }
+                                        >
+                                            <Archive className="size-4" />
+                                            Archiver
+                                        </DropdownMenuItem>
+                                    )}
+                                {permissions.canDeactivate &&
+                                    agency.status !== 'active' && (
+                                        <DropdownMenuItem
+                                            onClick={() =>
+                                                changeStatus(agency, 'active')
+                                            }
+                                        >
+                                            <RotateCcw className="size-4" />
+                                            Réactiver
+                                        </DropdownMenuItem>
+                                    )}
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
@@ -226,7 +271,8 @@ export default function AgenciesPage({
                         Agences
                     </h1>
                     <p className="mt-1.5 text-[0.8125rem] text-muted-foreground">
-                        Gérez les sites physiques KORA, leur statut et leur rattachement opérationnel.
+                        Gérez les sites physiques KORA, leur statut et leur
+                        rattachement opérationnel.
                     </p>
                 </div>
                 {permissions.canCreate && (

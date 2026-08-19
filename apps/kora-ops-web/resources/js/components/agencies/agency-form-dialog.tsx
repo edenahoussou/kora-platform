@@ -114,7 +114,9 @@ export function AgencyFormDialog({
 
                             <div className="grid gap-5 p-7">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="agency-code">Code agence *</Label>
+                                    <Label htmlFor="agency-code">
+                                        Code agence *
+                                    </Label>
                                     <Input
                                         id="agency-code"
                                         name="code"
@@ -128,7 +130,9 @@ export function AgencyFormDialog({
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label htmlFor="agency-name">Nom de l’agence *</Label>
+                                    <Label htmlFor="agency-name">
+                                        Nom de l’agence *
+                                    </Label>
                                     <Input
                                         id="agency-name"
                                         name="name"
@@ -142,7 +146,9 @@ export function AgencyFormDialog({
 
                                 <div className="grid gap-5 sm:grid-cols-2">
                                     <div className="grid gap-2">
-                                        <Label htmlFor="agency-city">Ville *</Label>
+                                        <Label htmlFor="agency-city">
+                                            Ville *
+                                        </Label>
                                         <Input
                                             id="agency-city"
                                             name="city"
@@ -154,13 +160,18 @@ export function AgencyFormDialog({
                                         <InputError message={errors.city} />
                                     </div>
                                     <div className="grid gap-2">
-                                        <Label htmlFor="agency-country">Pays *</Label>
+                                        <Label htmlFor="agency-country">
+                                            Pays *
+                                        </Label>
                                         <Input
                                             id="agency-country"
                                             name="country"
-                                            defaultValue={agency?.country ?? 'BJ'}
+                                            defaultValue={
+                                                agency?.country ?? 'BJ'
+                                            }
                                             onChange={(event) => {
-                                                event.currentTarget.value = event.currentTarget.value.toUpperCase();
+                                                event.currentTarget.value =
+                                                    event.currentTarget.value.toUpperCase();
                                             }}
                                             required
                                             maxLength={2}
@@ -172,16 +183,21 @@ export function AgencyFormDialog({
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label htmlFor="agency-head">Chef d’agence</Label>
+                                    <Label htmlFor="agency-head">
+                                        Chef d’agence
+                                    </Label>
                                     <select
                                         id="agency-head"
                                         name="head_user_id"
                                         defaultValue={agency?.headUserId ?? ''}
-                                        className="h-12 w-full rounded-[0.875rem] border-0 bg-muted px-3 text-sm text-foreground shadow-[inset_0_0_0_1px_var(--border)] outline-none transition-[box-shadow,transform,background] focus:translate-y-[-1px] focus:bg-background focus:shadow-[0_0_0_3px_rgba(246,176,0,0.16),inset_0_0_0_1px_var(--gold)]"
+                                        className="h-12 w-full rounded-[0.875rem] border-0 bg-muted px-3 text-sm text-foreground shadow-[inset_0_0_0_1px_var(--border)] transition-[box-shadow,transform,background] outline-none focus:translate-y-[-1px] focus:bg-background focus:shadow-[0_0_0_3px_rgba(246,176,0,0.16),inset_0_0_0_1px_var(--gold)]"
                                     >
                                         <option value="">— Aucun —</option>
                                         {headCandidates.map((candidate) => (
-                                            <option key={candidate.id} value={candidate.id}>
+                                            <option
+                                                key={candidate.id}
+                                                value={candidate.id}
+                                            >
                                                 {candidate.name}
                                             </option>
                                         ))}
@@ -190,17 +206,23 @@ export function AgencyFormDialog({
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label htmlFor="agency-status">Statut *</Label>
+                                    <Label htmlFor="agency-status">
+                                        Statut *
+                                    </Label>
                                     <select
                                         id="agency-status"
                                         name="status"
                                         defaultValue={agency?.status ?? 'draft'}
-                                        className="h-12 w-full rounded-[0.875rem] border-0 bg-muted px-3 text-sm text-foreground shadow-[inset_0_0_0_1px_var(--border)] outline-none transition-[box-shadow,transform,background] focus:translate-y-[-1px] focus:bg-background focus:shadow-[0_0_0_3px_rgba(246,176,0,0.16),inset_0_0_0_1px_var(--gold)]"
+                                        className="h-12 w-full rounded-[0.875rem] border-0 bg-muted px-3 text-sm text-foreground shadow-[inset_0_0_0_1px_var(--border)] transition-[box-shadow,transform,background] outline-none focus:translate-y-[-1px] focus:bg-background focus:shadow-[0_0_0_3px_rgba(246,176,0,0.16),inset_0_0_0_1px_var(--gold)]"
                                     >
                                         {Object.entries(statuses).map(
                                             ([value, label]) => (
-                                                <option key={value} value={value}>
-                                                    {statusLabels[value] ?? label}
+                                                <option
+                                                    key={value}
+                                                    value={value}
+                                                >
+                                                    {statusLabels[value] ??
+                                                        label}
                                                 </option>
                                             ),
                                         )}
@@ -228,8 +250,8 @@ export function AgencyFormDialog({
                                     {processing
                                         ? 'Enregistrement…'
                                         : isEditing
-                                            ? 'Enregistrer les changements'
-                                            : 'Créer l’agence'}
+                                          ? 'Enregistrer les changements'
+                                          : 'Créer l’agence'}
                                 </Button>
                             </div>
                         </>

@@ -50,12 +50,7 @@ const typeLabels: Record<string, string> = {
     regionale: 'Régionale',
 };
 
-export function LineFormDialog({
-    open,
-    line,
-    statuses,
-    onOpenChange,
-}: Props) {
+export function LineFormDialog({ open, line, statuses, onOpenChange }: Props) {
     const editing = Boolean(line);
     const form = editing
         ? network.update.form({ line: line!.uuid })
@@ -136,9 +131,7 @@ export function LineFormDialog({
                                             placeholder="L5"
                                             className="h-12 rounded-[0.875rem] border-0 bg-muted uppercase shadow-[inset_0_0_0_1px_var(--border)]"
                                         />
-                                        <InputError
-                                            message={errors.code}
-                                        />
+                                        <InputError message={errors.code} />
                                     </div>
                                     <FieldSelect
                                         id="line-type"
@@ -153,9 +146,7 @@ export function LineFormDialog({
                                         )}
                                         placeholder="Sélectionner un type"
                                         error={errors.type}
-                                        defaultValue={
-                                            line?.type ?? 'nationale'
-                                        }
+                                        defaultValue={line?.type ?? 'nationale'}
                                     />
                                 </div>
                                 <FieldSelect
@@ -166,8 +157,7 @@ export function LineFormDialog({
                                     options={Object.entries(statuses).map(
                                         ([id, label]) => ({
                                             id,
-                                            label:
-                                                statusLabels[id] ?? label,
+                                            label: statusLabels[id] ?? label,
                                         }),
                                     )}
                                     placeholder="Sélectionner un statut"
@@ -236,8 +226,8 @@ export function LineFormDialog({
                                     {processing
                                         ? 'Enregistrement…'
                                         : editing
-                                            ? 'Enregistrer les changements'
-                                            : 'Créer la ligne'}
+                                          ? 'Enregistrer les changements'
+                                          : 'Créer la ligne'}
                                 </Button>
                             </div>
                         </>

@@ -32,18 +32,22 @@ export function KoraTopbar({ user, onMenuClick }: Props) {
     };
 
     const handleLogout = () => {
-        router.post(logout().url, {}, {
-            onFinish: () => router.flushAll(),
-        });
+        router.post(
+            logout().url,
+            {},
+            {
+                onFinish: () => router.flushAll(),
+            },
+        );
     };
 
     const initials = user
         ? user.name
-            .split(' ')
-            .map((n) => n[0])
-            .slice(0, 2)
-            .join('')
-            .toUpperCase()
+              .split(' ')
+              .map((n) => n[0])
+              .slice(0, 2)
+              .join('')
+              .toUpperCase()
         : 'KO';
 
     return (
