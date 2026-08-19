@@ -16,6 +16,7 @@ class Fare extends KoraModel
     protected $fillable = [
         'uuid',
         'line_id',
+        'service_class_id',
         'origin_stop_id',
         'destination_stop_id',
         'base_amount',
@@ -32,6 +33,14 @@ class Fare extends KoraModel
     public function line(): BelongsTo
     {
         return $this->belongsTo(Line::class);
+    }
+
+    /**
+     * @return BelongsTo<ServiceClass, $this>
+     */
+    public function serviceClass(): BelongsTo
+    {
+        return $this->belongsTo(ServiceClass::class);
     }
 
     /**

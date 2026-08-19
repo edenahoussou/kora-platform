@@ -17,6 +17,8 @@ use App\Modules\BusNetwork\Http\Requests\UpdateLineRequest;
 use App\Modules\BusNetwork\Http\Requests\UpdateStopRequest;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\BusNetwork\Models\Stop;
+use App\Modules\DynamicPricing\Data\FareStatus;
+use App\Modules\DynamicPricing\Models\Fare;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -74,7 +76,10 @@ class LineController extends Controller
     {
         Gate::authorize('view', $line);
 
-        $line->load(['stops' => fn ($q) => $q->orderBy('stop_order')]);
+        $line->load([
+            'stops' => fn ($q) => $q->orderBy('stop_order'),
+            'fares' => fn ($q) => $q->where('status', FareStatus::Active->value)->with('serviceClass:id,uuid,code,name')->orderBy('base_amount'),
+        ]);
 
         return inertia('network/detail', [
             'line' => $this->serializeLineDetail($line),
@@ -86,6 +91,7 @@ class LineController extends Controller
                 'canManageStops' => Gate::allows('create', Stop::class),
                 'canUpdateStop' => Gate::allows('update', new Stop),
                 'canDeactivateStop' => Gate::allows('deactivate', new Stop),
+                'canManageFares' => Gate::allows('create', Fare::class),
             ],
         ]);
     }
@@ -200,6 +206,18 @@ class LineController extends Controller
             'status' => (string) $stop->getRawOriginal('status'),
         ])->values()->all();
 
+        /** @var array<int, array{uuid: string, originName: string, destinationName: string, serviceClassCode: string, serviceClassName: string, baseAmount: int, currency: string, effectiveFrom: string|null}> $fares */
+        $fares = $line->fares->map(fn (Fare $fare): array => [
+            'uuid' => $fare->uuid,
+            'originName' => $fare->originStop?->name ?? '—',
+            'destinationName' => $fare->destinationStop?->name ?? '—',
+            'serviceClassCode' => $fare->serviceClass?->code ?? '—',
+            'serviceClassName' => $fare->serviceClass?->name ?? '—',
+            'baseAmount' => (int) $fare->base_amount,
+            'currency' => $fare->currency,
+            'effectiveFrom' => $fare->effective_from?->toDateString(),
+        ])->values()->all();
+
         return [
             'uuid' => $line->uuid,
             'code' => $line->code,
@@ -211,6 +229,7 @@ class LineController extends Controller
             'countriesCrossed' => $line->countries_crossed,
             'activeStopsCount' => $line->stops->where(fn (Stop $s): bool => $s->getRawOriginal('status') === 'active')->count(),
             'stops' => $stops,
+            'fares' => $fares,
             'createdAt' => $line->created_at?->toIso8601String(),
             'updatedAt' => $line->updated_at?->toIso8601String(),
         ];

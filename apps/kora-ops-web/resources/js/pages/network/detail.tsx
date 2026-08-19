@@ -20,8 +20,20 @@ import type { BreadcrumbItem } from '@/types';
 type LineDetail = LineRecord & {
     stops: StopRecord[];
     activeStopsCount: number;
+    fares: FareSummary[];
     createdAt: string | null;
     updatedAt: string | null;
+};
+
+type FareSummary = {
+    uuid: string;
+    originName: string;
+    destinationName: string;
+    serviceClassCode: string;
+    serviceClassName: string;
+    baseAmount: number;
+    currency: string;
+    effectiveFrom: string | null;
 };
 
 type TimelineEvent = {
@@ -39,6 +51,7 @@ type PageProps = {
         canManageStops: boolean;
         canUpdateStop: boolean;
         canDeactivateStop: boolean;
+        canManageFares: boolean;
     };
 };
 
@@ -503,7 +516,8 @@ export default function NetworkDetailPage({
                                     </h3>
                                     <p className="mt-1 text-[0.625rem] text-muted-foreground">
                                         Chaque combinaison origine–destination
-                                        possède son prix commercial.
+                                        possède son prix commercial par
+                                        classe de service.
                                     </p>
                                 </div>
                                 <Button
@@ -515,63 +529,100 @@ export default function NetworkDetailPage({
                                     Ouvrir la matrice complète
                                 </Button>
                             </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b border-border/60 text-left text-xs text-muted-foreground">
-                                            <th className="pb-3 pr-4 font-medium">
-                                                Origine
-                                            </th>
-                                            <th className="pb-3 pr-4 font-medium">
-                                                Destination
-                                            </th>
-                                            <th className="pb-3 pr-4 font-medium">
-                                                Confort
-                                            </th>
-                                            <th className="pb-3 font-medium">
-                                                Premium
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {activeStops.map((origin, i) =>
-                                            activeStops
-                                                .slice(i + 1)
-                                                .map((dest) => (
-                                                    <tr
-                                                        key={`${origin.uuid}-${dest.uuid}`}
-                                                        className="border-b border-border/30"
-                                                    >
-                                                        <td className="py-3 pr-4 font-medium text-foreground">
-                                                            {origin.name}
-                                                        </td>
-                                                        <td className="py-3 pr-4 text-muted-foreground">
-                                                            {dest.name}
-                                                        </td>
-                                                        <td className="py-3 pr-4 text-muted-foreground">
-                                                            À définir
-                                                        </td>
-                                                        <td className="py-3 text-muted-foreground">
-                                                            À définir
-                                                        </td>
-                                                    </tr>
-                                                )),
-                                        )}
-                                        {activeStops.length < 2 && (
-                                            <tr>
-                                                <td
-                                                    colSpan={4}
-                                                    className="py-8 text-center text-muted-foreground"
-                                                >
-                                                    Ajoutez au moins 2 arrêts
-                                                    actifs pour générer la
-                                                    matrice O/D.
-                                                </td>
+
+                            {line.fares.length > 0 ? (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b border-border/60 text-left text-xs text-muted-foreground">
+                                                <th className="pb-3 pr-4 font-medium">
+                                                    Origine
+                                                </th>
+                                                <th className="pb-3 pr-4 font-medium">
+                                                    Destination
+                                                </th>
+                                                <th className="pb-3 pr-4 font-medium">
+                                                    Service
+                                                </th>
+                                                <th className="pb-3 pr-4 font-medium">
+                                                    Prix
+                                                </th>
+                                                <th className="pb-3 font-medium">
+                                                    Effet au
+                                                </th>
                                             </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
+                                        </thead>
+                                        <tbody>
+                                            {line.fares.map((fare) => (
+                                                <tr
+                                                    key={fare.uuid}
+                                                    className="border-b border-border/30"
+                                                >
+                                                    <td className="py-3 pr-4 font-medium text-foreground">
+                                                        {fare.originName}
+                                                    </td>
+                                                    <td className="py-3 pr-4 text-muted-foreground">
+                                                        {fare.destinationName}
+                                                    </td>
+                                                    <td className="py-3 pr-4">
+                                                        <span className="inline-flex items-center rounded-[0.375rem] bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
+                                                            {fare.serviceClassName}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3 pr-4 font-bold text-foreground">
+                                                        {new Intl.NumberFormat(
+                                                            'fr-FR',
+                                                            {
+                                                                maximumFractionDigits: 0,
+                                                            },
+                                                        ).format(
+                                                            fare.baseAmount,
+                                                        )}{' '}
+                                                        {fare.currency}
+                                                    </td>
+                                                    <td className="py-3 text-xs text-muted-foreground">
+                                                        {fare.effectiveFrom
+                                                            ? new Date(
+                                                                fare.effectiveFrom,
+                                                            ).toLocaleDateString(
+                                                                'fr-FR',
+                                                                {
+                                                                    day: '2-digit',
+                                                                    month: 'short',
+                                                                    year: 'numeric',
+                                                                },
+                                                            )
+                                                            : '—'}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <div className="rounded-[1rem] border border-dashed border-border/60 bg-card p-12 text-center">
+                                    <Tag className="mx-auto mb-3 size-8 text-muted-foreground/50" />
+                                    <p className="font-medium text-foreground">
+                                        Aucun tarif actif
+                                    </p>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        {activeStops.length >= 2
+                                            ? 'Définissez les tarifs pour les segments de cette ligne.'
+                                            : "Ajoutez au moins 2 arrêts actifs pour générer la matrice O/D."}
+                                    </p>
+                                    {permissions.canManageFares && (
+                                        <Button
+                                            onClick={() =>
+                                                router.get('/fares')
+                                            }
+                                            className="mt-4 h-10 rounded-[0.75rem] bg-gold px-4 font-medium text-[var(--kora)] hover:bg-[var(--kora)] hover:text-white"
+                                        >
+                                            <Tag className="size-4" />
+                                            Ouvrir la gestion des tarifs
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
 

@@ -2,6 +2,7 @@
 
 use App\Modules\BusNetwork\Http\Controllers\BusController;
 use App\Modules\BusNetwork\Http\Controllers\LineController;
+use App\Modules\DynamicPricing\Http\Controllers\FareController;
 use App\Modules\IdentityAccess\Http\Controllers\AgencyController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -23,7 +24,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('departures', 'departures')->name('departures');
     Route::inertia('boarding', 'boarding')->name('boarding');
     Route::inertia('manifest', 'manifest')->name('manifest');
-    Route::inertia('fares', 'fares')->name('fares');
+    Route::get('fares', [FareController::class, 'index'])->name('fares.index');
+    Route::post('fares', [FareController::class, 'store'])->name('fares.store');
+    Route::put('fares/{fare:uuid}', [FareController::class, 'update'])->name('fares.update');
+    Route::patch('fares/{fare:uuid}/status', [FareController::class, 'changeStatus'])->name('fares.status');
     Route::inertia('passengers', 'passengers')->name('passengers');
     Route::inertia('tickets', 'tickets')->name('tickets');
 
