@@ -5,19 +5,27 @@ namespace App\Providers;
 use App\Modules\Boarding\Models\BoardingEvent;
 use App\Modules\Boarding\Models\SeatReleaseEvent;
 use App\Modules\Booking\Models\Reservation;
+use App\Modules\BusNetwork\Models\Bus;
+use App\Modules\BusNetwork\Models\Line;
+use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Cash\Models\CashSession;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Models\Fare;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
+use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\IdentityAccess\Models\TerminalP501;
 use App\Modules\Ticketing\Models\Ticket;
+use App\Policies\AgencyPolicy;
 use App\Policies\BoardingEventPolicy;
+use App\Policies\BusPolicy;
 use App\Policies\CashSessionPolicy;
 use App\Policies\DeparturePolicy;
 use App\Policies\FarePolicy;
 use App\Policies\FiscalInvoicePolicy;
+use App\Policies\LinePolicy;
 use App\Policies\ReservationPolicy;
 use App\Policies\SeatReleaseEventPolicy;
+use App\Policies\StopPolicy;
 use App\Policies\TerminalP501Policy;
 use App\Policies\TicketPolicy;
 use Carbon\CarbonImmutable;
@@ -55,13 +63,17 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function registerPolicies(): void
     {
+        Gate::policy(Agency::class, AgencyPolicy::class);
         Gate::policy(BoardingEvent::class, BoardingEventPolicy::class);
+        Gate::policy(Bus::class, BusPolicy::class);
         Gate::policy(CashSession::class, CashSessionPolicy::class);
         Gate::policy(Departure::class, DeparturePolicy::class);
         Gate::policy(Fare::class, FarePolicy::class);
         Gate::policy(FiscalInvoice::class, FiscalInvoicePolicy::class);
+        Gate::policy(Line::class, LinePolicy::class);
         Gate::policy(Reservation::class, ReservationPolicy::class);
         Gate::policy(SeatReleaseEvent::class, SeatReleaseEventPolicy::class);
+        Gate::policy(Stop::class, StopPolicy::class);
         Gate::policy(TerminalP501::class, TerminalP501Policy::class);
         Gate::policy(Ticket::class, TicketPolicy::class);
     }

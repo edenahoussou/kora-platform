@@ -12,6 +12,7 @@ enum SystemRole: string
     case BusDriver = 'bus_driver';
     case Conductor = 'conductor';
     case AgencyAgent = 'agency_agent';
+    case AgencyManager = 'agency_manager';
     case OperationsDirector = 'operations_director';
     case CommercialDirector = 'commercial_director';
     case GeneralManagement = 'general_management';
@@ -49,7 +50,33 @@ enum SystemRole: string
                 'tickets.issue',
                 'tickets.view',
             ],
+            self::AgencyManager => [
+                'agencies.view',
+                'fleet.view',
+                'network.view',
+                'bookings.view',
+                'cash.view',
+                'cash.approve-variance',
+                'cash.open',
+                'cash.close',
+                'counter-sales.create',
+                'departures.view',
+                'tickets.issue',
+                'tickets.view',
+            ],
             self::OperationsDirector => [
+                'agencies.view',
+                'fleet.view',
+                'fleet.create',
+                'fleet.update',
+                'fleet.deactivate',
+                'agencies.create',
+                'agencies.update',
+                'agencies.deactivate',
+                'network.view',
+                'network.create',
+                'network.update',
+                'network.deactivate',
                 'bookings.view',
                 'boarding.reverse',
                 'cash.view',
@@ -60,6 +87,18 @@ enum SystemRole: string
                 'tickets.view',
             ],
             self::CommercialDirector => [
+                'agencies.view',
+                'fleet.view',
+                'fleet.create',
+                'fleet.update',
+                'fleet.deactivate',
+                'agencies.create',
+                'agencies.update',
+                'agencies.deactivate',
+                'network.view',
+                'network.create',
+                'network.update',
+                'network.deactivate',
                 'bookings.view',
                 'pricing.view',
                 'pricing.manage',
@@ -67,6 +106,18 @@ enum SystemRole: string
                 'tickets.view',
             ],
             self::GeneralManagement => [
+                'agencies.view',
+                'fleet.view',
+                'fleet.create',
+                'fleet.update',
+                'fleet.deactivate',
+                'agencies.create',
+                'agencies.update',
+                'agencies.deactivate',
+                'network.view',
+                'network.create',
+                'network.update',
+                'network.deactivate',
                 'bookings.view',
                 'cash.view',
                 'departures.view',
@@ -87,6 +138,18 @@ enum SystemRole: string
     public static function allPermissions(): array
     {
         return [
+            'agencies.view',
+            'agencies.create',
+            'agencies.update',
+            'agencies.deactivate',
+            'fleet.view',
+            'fleet.create',
+            'fleet.update',
+            'fleet.deactivate',
+            'network.view',
+            'network.create',
+            'network.update',
+            'network.deactivate',
             'bookings.create',
             'bookings.view',
             'bookings.view-own',
@@ -138,6 +201,7 @@ enum SystemRole: string
             self::BusDriver,
             self::Conductor,
             self::AgencyAgent,
+            self::AgencyManager,
         ];
     }
 

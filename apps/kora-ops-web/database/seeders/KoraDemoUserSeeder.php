@@ -119,6 +119,12 @@ class KoraDemoUserSeeder extends Seeder
                 'email' => 'agent.brice@kora.demo',
                 'phone' => '+22902000006',
             ],
+            [
+                'role' => SystemRole::AgencyManager,
+                'name' => 'Adjoua Kpékpassi',
+                'email' => 'manager.adjoua@kora.demo',
+                'phone' => '+22902000007',
+            ],
         ];
 
         foreach ($fieldStaff as $data) {

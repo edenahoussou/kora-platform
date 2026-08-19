@@ -1,0 +1,54 @@
+<?php
+
+namespace App\Modules\IdentityAccess\Http\Requests;
+
+use App\Modules\IdentityAccess\Data\AgencyStatus;
+use App\Modules\IdentityAccess\Models\Agency;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class StoreAgencyRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return $this->user()?->can('create', Agency::class) ?? false;
+    }
+
+    /**
+     * @return array<string, array<int, mixed>>
+     */
+    public function rules(): array
+    {
+        return [
+            'code' => ['required', 'string', 'max:32', 'alpha_dash', Rule::unique('agencies', 'code')],
+            'name' => ['required', 'string', 'max:255'],
+            'city' => ['required', 'string', 'max:120'],
+            'country' => ['required', 'string', 'size:2', 'alpha'],
+            'head_user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'status' => ['required', Rule::enum(AgencyStatus::class)],
+        ];
+    }
+
+    /**
+     * @return array{code: string, name: string, city: string, country: string, head_user_id: int|null, status: string}
+     */
+    public function payload(): array
+    {
+        return $this->normalizedPayload();
+    }
+
+    /**
+     * @return array{code: string, name: string, city: string, country: string, head_user_id: int|null, status: string}
+     */
+    protected function normalizedPayload(): array
+    {
+        return [
+            'code' => strtoupper($this->string('code')->trim()->value()),
+            'name' => $this->string('name')->trim()->value(),
+            'city' => $this->string('city')->trim()->value(),
+            'country' => strtoupper($this->string('country')->trim()->value()),
+            'head_user_id' => $this->integer('head_user_id') ?: null,
+            'status' => $this->string('status')->trim()->value(),
+        ];
+    }
+}

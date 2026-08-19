@@ -9,6 +9,11 @@ use App\Modules\IdentityAccess\Models\UserPreference;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * @group Auth
+ *
+ * User preferences: notification channels, locale and theme.
+ */
 class UserPreferenceController extends Controller
 {
     public function index(Request $request): JsonResponse

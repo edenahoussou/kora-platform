@@ -32,7 +32,13 @@ export function KoraTopbar({ user, onMenuClick }: Props) {
     };
 
     const handleLogout = () => {
-        router.flushAll();
+        router.post(
+            logout().url,
+            {},
+            {
+                onFinish: () => router.flushAll(),
+            },
+        );
     };
 
     const initials = user
@@ -157,14 +163,14 @@ export function KoraTopbar({ user, onMenuClick }: Props) {
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                        <a
-                            href={logout().url}
-                            className="cursor-pointer text-destructive"
+                        <button
+                            type="button"
+                            className="w-full cursor-pointer text-destructive"
                             onClick={handleLogout}
                             data-test="logout-button"
                         >
                             Se déconnecter
-                        </a>
+                        </button>
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>

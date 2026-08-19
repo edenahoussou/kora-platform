@@ -1,12 +1,20 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
+    AlertTriangle,
+    BadgePercent,
     Bell,
     Bus,
+    Car,
     FileText,
+    Landmark,
     LayoutDashboard,
+    Package,
     Receipt,
     Settings,
+    Store,
     Ticket,
+    TrendingUp,
+    Truck,
     Users,
     Wallet,
 } from 'lucide-react';
@@ -61,9 +69,100 @@ const navItems: NavEntry[] = [
         icon: FileText,
     },
     {
+        title: 'Colis',
+        href: '/parcels',
+        icon: Package,
+    },
+    {
+        title: 'KORA RIDE',
+        href: '/ride',
+        icon: Car,
+        children: [
+            { title: 'Pilotage RIDE', href: '/ride/dashboard' },
+            { title: 'Matching & disponibilité', href: '/ride/matching' },
+            { title: 'Courses', href: '/ride/courses' },
+            { title: 'Chauffeurs', href: '/ride/drivers' },
+            { title: 'Dossiers chauffeurs', href: '/ride/onboarding' },
+            { title: 'Formation', href: '/ride/training' },
+            { title: 'KORA Champions', href: '/ride/champions' },
+            { title: 'Véhicules', href: '/ride/vehicles' },
+            { title: 'Leasing KORA', href: '/ride/leasing' },
+            { title: 'Zones & couverture', href: '/ride/zones' },
+            { title: 'Catégories', href: '/ride/categories' },
+            { title: 'Tarification', href: '/ride/pricing' },
+            { title: 'Paiements', href: '/ride/payments' },
+            { title: 'Commissions chauffeurs', href: '/ride/commissions' },
+            { title: 'Incidents & sécurité', href: '/ride/incidents' },
+            { title: 'Évaluations', href: '/ride/ratings' },
+            { title: 'Rapprochements', href: '/ride/reconciliation' },
+            { title: 'Rentabilité', href: '/ride/profitability' },
+        ],
+    },
+    {
+        title: 'Wallet & fidélité',
+        href: '/wallet',
+        icon: BadgePercent,
+        children: [
+            { title: 'Pilotage Wallet', href: '/wallet/dashboard' },
+            { title: 'Comptes Wallet', href: '/wallet/accounts' },
+            { title: 'Mouvements', href: '/wallet/transactions' },
+            { title: 'Règles de fidélité', href: '/wallet/rules' },
+            { title: 'Expirations', href: '/wallet/expiry' },
+            { title: 'Rapprochements Wallet', href: '/wallet/reconciliation' },
+        ],
+    },
+    {
+        title: 'Réseau commercial',
+        href: '/network-commercial',
+        icon: Store,
+        children: [
+            { title: 'KORA POINT', href: '/kora-points' },
+            { title: 'Commissions', href: '/commissions' },
+            { title: 'Reversements', href: '/settlements' },
+            { title: 'Promotions', href: '/promotions' },
+            { title: 'Tarification dynamique', href: '/dynamic-pricing' },
+            { title: 'Comptes entreprise', href: '/companies' },
+        ],
+    },
+    {
+        title: 'Ressources',
+        href: '/resources',
+        icon: Truck,
+        children: [
+            { title: 'Agences', href: '/agencies' },
+            { title: 'Flotte', href: '/fleet' },
+            { title: 'Maintenance', href: '/maintenance' },
+            { title: 'Garages agréés', href: '/garages' },
+            { title: 'RH opérationnelle', href: '/hr' },
+        ],
+    },
+    {
+        title: 'Finance',
+        href: '/finance',
+        icon: Landmark,
+        children: [
+            { title: 'Recettes', href: '/revenue' },
+            { title: 'Dépenses', href: '/expenses' },
+            { title: 'Rapprochements', href: '/reconciliation' },
+            { title: 'CassKai', href: '/casskai' },
+            { title: 'MECeF', href: '/mecef' },
+            { title: 'Paie & déclarations', href: '/payroll' },
+        ],
+    },
+    {
+        title: 'Rentabilité',
+        href: '/profitability',
+        icon: TrendingUp,
+    },
+    {
         title: 'Rapports',
         href: '/reports',
         icon: Receipt,
+    },
+    {
+        title: 'Notifications',
+        href: '/notifications',
+        icon: Bell,
     },
     {
         title: 'Administration',
@@ -73,8 +172,15 @@ const navItems: NavEntry[] = [
             { title: 'Utilisateurs', href: '/users' },
             { title: 'Rôles', href: '/roles' },
             { title: 'Paramètres', href: '/settings' },
+            { title: 'Terminaux P501', href: '/terminals' },
+            { title: 'Intégrations', href: '/integrations' },
             { title: 'Audit', href: '/audit' },
         ],
+    },
+    {
+        title: 'Alertes',
+        href: '/alerts',
+        icon: AlertTriangle,
     },
 ];
 
@@ -206,14 +312,8 @@ export function KoraSidebar({
                 })}
             </nav>
 
-            {/* Bottom: site pill + alerts */}
+            {/* Bottom: site pill */}
             <div className="mt-auto border-t border-white/10 pt-3.5">
-                <button className="mb-2 flex min-h-[2.6875rem] w-full items-center gap-3 rounded-[0.6875rem] px-3 text-[0.8125rem] font-bold text-white/75 transition-colors hover:bg-white/10 hover:text-white">
-                    <span className="grid size-[1.3125rem] shrink-0 place-items-center rounded-[0.4375rem] bg-gold/10 text-gold">
-                        <Bell className="size-3.5" />
-                    </span>
-                    Alertes
-                </button>
                 <div className="mx-1 rounded-[0.75rem] bg-white/[0.07] p-2.75">
                     <small className="block text-[0.625rem] text-white/45">
                         Périmètre actif

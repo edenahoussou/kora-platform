@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use App\Modules\BusNetwork\Models\Bus;
+use App\Modules\BusNetwork\Models\BusComposition;
+use App\Modules\BusNetwork\Models\BusModel;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
@@ -30,6 +32,7 @@ class KoraBusReferenceSeeder extends Seeder
             [
                 'uuid' => (string) Str::uuid(),
                 'name' => 'Cotonou - Abidjan',
+                'type' => 'internationale',
                 'countries_crossed' => ['BJ', 'TG', 'GH', 'CI'],
                 'distance_km' => 1020,
                 'estimated_duration_minutes' => 1260,
@@ -52,10 +55,29 @@ class KoraBusReferenceSeeder extends Seeder
             );
         }
 
+        $agency = Agency::query()->where('code', 'CTN')->firstOrFail();
+        $model = BusModel::query()->firstOrCreate(
+            ['brand' => 'KORA', 'name' => 'Coach 55'],
+            ['uuid' => (string) Str::uuid(), 'default_seat_count' => 55, 'status' => 'active'],
+        );
+        $composition = BusComposition::query()->firstOrCreate(
+            ['code' => '2+2-55'],
+            [
+                'uuid' => (string) Str::uuid(),
+                'name' => 'Standard 2+2 — 55 places',
+                'seat_count' => 55,
+                'layout' => $this->compositionLayout(),
+                'status' => 'active',
+            ],
+        );
+
         $bus = Bus::query()->firstOrCreate(
             ['registration_number' => 'KORA-55-001'],
             [
                 'uuid' => (string) Str::uuid(),
+                'bus_model_id' => $model->id,
+                'composition_id' => $composition->id,
+                'agency_id' => $agency->id,
                 'brand' => 'KORA',
                 'model' => 'Coach 55',
                 'seat_count' => 55,
@@ -77,7 +99,21 @@ class KoraBusReferenceSeeder extends Seeder
     }
 
     /**
-     * @return array<int, string>
+     * @return list<array{type: string, codes: list<string>}>
+     */
+    private function compositionLayout(): array
+    {
+        $layout = [];
+        foreach (range(1, 13) as $row) {
+            $layout[] = ['type' => 'standard', 'codes' => [$row.'A', $row.'B', $row.'C', $row.'D']];
+        }
+        $layout[] = ['type' => 'standard', 'codes' => ['14A', '14B', '14C']];
+
+        return $layout;
+    }
+
+    /**
+     * @return list<string>
      */
     private function seatCodes(): array
     {
@@ -89,7 +125,7 @@ class KoraBusReferenceSeeder extends Seeder
             }
         }
 
-        foreach (['A', 'B', 'C', 'D', 'E'] as $letter) {
+        foreach (['A', 'B', 'C'] as $letter) {
             $codes[] = '14'.$letter;
         }
 

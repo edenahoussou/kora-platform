@@ -16,7 +16,9 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             KoraBusRolePermissionSeeder::class,
+            KoraServiceClassSeeder::class,
             KoraBusReferenceSeeder::class,
+            KoraFareSeeder::class,
             KoraDemoUserSeeder::class,
         ]);
     }

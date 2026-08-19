@@ -4,13 +4,14 @@ use App\Modules\IdentityAccess\Data\SystemRole;
 use App\Modules\IdentityAccess\Data\TerminalP501Status;
 
 describe('SystemRole enum', function (): void {
-    it('has all eight system roles', function (): void {
-        expect(SystemRole::cases())->toHaveCount(8)
+    it('has all nine system roles', function (): void {
+        expect(SystemRole::cases())->toHaveCount(9)
             ->and(array_column(SystemRole::cases(), 'value'))->toBe([
                 'passenger',
                 'bus_driver',
                 'conductor',
                 'agency_agent',
+                'agency_manager',
                 'operations_director',
                 'commercial_director',
                 'general_management',
@@ -22,6 +23,7 @@ describe('SystemRole enum', function (): void {
         expect(SystemRole::Passenger->permissions())->toBe(['bookings.create', 'bookings.view-own', 'tickets.view'])
             ->and(SystemRole::BusDriver->permissions())->toBe(['departures.view'])
             ->and(SystemRole::Conductor->permissions())->toContain('boarding.scan', 'seat-releases.create')
+            ->and(SystemRole::CommercialDirector->permissions())->toContain('agencies.view', 'agencies.create', 'agencies.update', 'agencies.deactivate')
             ->and(SystemRole::SystemAdmin->permissions())->toBe([]);
     });
 
@@ -37,17 +39,19 @@ describe('SystemRole enum', function (): void {
     it('lists all permissions', function (): void {
         $all = SystemRole::allPermissions();
 
-        expect($all)->toContain('bookings.create', 'boarding.scan', 'tickets.cancel', 'fiscalization.view')
-            ->and($all)->toHaveCount(27)
-            ->and(count(array_unique($all)))->toBe(27);
+        expect($all)->toContain('agencies.view', 'agencies.create', 'agencies.update', 'agencies.deactivate')
+            ->and($all)->toContain('bookings.create', 'boarding.scan', 'tickets.cancel', 'fiscalization.view')
+            ->and($all)->toContain('network.view', 'network.create', 'network.update', 'network.deactivate')
+            ->and($all)->toHaveCount(39)
+            ->and(count(array_unique($all)))->toBe(39);
     });
 
     it('separates internal, field and management roles', function (): void {
         expect(SystemRole::internalRoles())
-            ->toHaveCount(7)
+            ->toHaveCount(8)
             ->not->toContain(SystemRole::Passenger)
             ->and(SystemRole::fieldRoles())
-            ->toBe([SystemRole::BusDriver, SystemRole::Conductor, SystemRole::AgencyAgent])
+            ->toBe([SystemRole::BusDriver, SystemRole::Conductor, SystemRole::AgencyAgent, SystemRole::AgencyManager])
             ->and(SystemRole::managementRoles())
             ->toBe([
                 SystemRole::OperationsDirector,
@@ -88,7 +92,7 @@ describe('SystemRole enum', function (): void {
         expect($options)->toHaveKey('passenger')
             ->and($options['passenger'])->toBe('Passager')
             ->and($options['bus_driver'])->toBe('Chauffeur de bus')
-            ->and($options)->toHaveCount(8);
+            ->and($options)->toHaveCount(9);
     });
 
     it('falls back to headline label when translation key is missing', function (): void {

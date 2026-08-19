@@ -9,6 +9,11 @@ use App\Modules\IdentityAccess\Services\UserDeviceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * @group Auth
+ *
+ * Trusted device management for the authenticated user.
+ */
 class AuthDeviceController extends Controller
 {
     public function __construct(private UserDeviceService $userDeviceService) {}

@@ -12,6 +12,9 @@ apps/kora-ops-web/storage/logs/*.log
 apps/kora-ops-web/.phpunit.cache/
 apps/kora-ops-web/database/database.sqlite
 
+# Mintlify docs — node_modules auto-généré
+docs/mintlify/node_modules/
+
 apps/kora-app-passenger/.dart_tool/
 apps/kora-app-passenger/build/
 apps/kora-app-passenger/.flutter-plugins

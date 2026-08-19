@@ -1,0 +1,81 @@
+---
+title: Auth
+description: Endpoints d'authentification — OTP, PIN, profil, préférences et appareils.
+openapi: api/openapi.yaml
+---
+
+# Auth
+
+Endpoints d'authentification KORA BUS. Le flow complet est décrit dans le guide [Authentication](/authentication).
+
+## Endpoints
+
+<Method
+  method="POST"
+  path="/api/v1/auth/otp/request"
+/>
+
+<Method
+  method="POST"
+  path="/api/v1/auth/otp/verify"
+/>
+
+<Method
+  method="POST"
+  path="/api/v1/auth/register/complete"
+/>
+
+<Method
+  method="POST"
+  path="/api/v1/auth/login"
+/>
+
+<Method
+  method="POST"
+  path="/api/v1/auth/pin/reset"
+/>
+
+<Method
+  method="POST"
+  path="/api/v1/auth/unlock"
+/>
+
+<Method
+  method="GET"
+  path="/api/v1/auth/me"
+/>
+
+<Method
+  method="PUT"
+  path="/api/v1/auth/me"
+/>
+
+<Method
+  method="POST"
+  path="/api/v1/auth/pin/change"
+/>
+
+<Method
+  method="GET"
+  path="/api/v1/auth/preferences"
+/>
+
+<Method
+  method="PUT"
+  path="/api/v1/auth/preferences"
+/>
+
+<Method
+  method="GET"
+  path="/api/v1/auth/devices"
+/>
+
+<Method
+  method="DELETE"
+  path="/api/v1/auth/devices/{device:uuid}"
+/>
+
+<Method
+  method="POST"
+  path="/api/v1/auth/logout"
+/>

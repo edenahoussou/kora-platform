@@ -8,7 +8,12 @@ use App\Modules\DynamicPricing\Data\FareStatus;
 use App\Modules\Support\Models\KoraModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property Carbon|null $effective_from
+ * @property Carbon|null $effective_until
+ */
 class Fare extends KoraModel
 {
     use SoftDeletes;
@@ -16,6 +21,7 @@ class Fare extends KoraModel
     protected $fillable = [
         'uuid',
         'line_id',
+        'service_class_id',
         'origin_stop_id',
         'destination_stop_id',
         'base_amount',
@@ -32,6 +38,14 @@ class Fare extends KoraModel
     public function line(): BelongsTo
     {
         return $this->belongsTo(Line::class);
+    }
+
+    /**
+     * @return BelongsTo<ServiceClass, $this>
+     */
+    public function serviceClass(): BelongsTo
+    {
+        return $this->belongsTo(ServiceClass::class);
     }
 
     /**

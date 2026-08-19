@@ -1,0 +1,146 @@
+---
+title: Snippet — Auth Dart
+description: Helper d'authentification réutilisable pour Flutter.
+---
+
+# Snippet : Auth Dart
+
+Helper réutilisable pour gérer le flow OTP + PIN + token Sanctum dans une app Flutter.
+
+<CodeGroup>
+
+```dart
+// lib/core/auth/kora_auth_service.dart
+import 'package:dio/dio.dart';
+
+class KoraAuthService {
+  final Dio _dio;
+  String? _token;
+
+  KoraAuthService(this._dio);
+
+  String? get token => _token;
+  bool get isAuthenticated => _token != null;
+
+  /// Étape 1 : Demander un OTP
+  Future<String> requestOtp({
+    required String email,
+    required String purpose, // registration | login_new_device | pin_reset | account_unlock
+  }) async {
+    final response = await _dio.post('/api/v1/auth/otp/request', data: {
+      'email': email,
+      'purpose': purpose,
+    });
+    return response.data['otp_challenge_uuid'] as String;
+  }
+
+  /// Étape 2 : Vérifier l'OTP
+  Future<String> verifyOtp({
+    required String challengeUuid,
+    required String code,
+    required String purpose,
+  }) async {
+    final response = await _dio.post('/api/v1/auth/otp/verify', data: {
+      'otp_challenge_uuid': challengeUuid,
+      'code': code,
+      'purpose': purpose,
+    });
+    return response.data['verification_token'] as String;
+  }
+
+  /// Étape 3a : Inscription
+  Future<AuthResult> completeRegistration({
+    required String challengeUuid,
+    required String verificationToken,
+    required String pin,
+    required String deviceName,
+    required String platform,
+    required String deviceFingerprint,
+    String? pushToken,
+  }) async {
+    final response = await _dio.post('/api/v1/auth/register/complete', data: {
+      'otp_challenge_uuid': challengeUuid,
+      'verification_token': verificationToken,
+      'pin': pin,
+      'device_name': deviceName,
+      'platform': platform,
+      'device_fingerprint': deviceFingerprint,
+      'push_token': pushToken,
+    });
+    return _parseAuthResult(response.data);
+  }
+
+  /// Étape 3b : Connexion
+  Future<AuthResult> login({
+    required String email,
+    required String pin,
+    required String deviceName,
+    required String platform,
+    required String deviceFingerprint,
+    String? pushToken,
+    String? otpChallengeUuid,
+    String? verificationToken,
+  }) async {
+    final response = await _dio.post('/api/v1/auth/login', data: {
+      'email': email,
+      'pin': pin,
+      'device_name': deviceName,
+      'platform': platform,
+      'device_fingerprint': deviceFingerprint,
+      'push_token': pushToken,
+      if (otpChallengeUuid != null) 'otp_challenge_uuid': otpChallengeUuid,
+      if (verificationToken != null) 'verification_token': verificationToken,
+    });
+    return _parseAuthResult(response.data);
+  }
+
+  /// Réinitialisation PIN
+  Future<void> resetPin({
+    required String challengeUuid,
+    required String verificationToken,
+    required String newPin,
+  }) async {
+    await _dio.post('/api/v1/auth/pin/reset', data: {
+      'otp_challenge_uuid': challengeUuid,
+      'verification_token': verificationToken,
+      'pin': newPin,
+    });
+  }
+
+  /// Déverrouillage de compte
+  Future<void> unlockAccount({
+    required String challengeUuid,
+    required String verificationToken,
+  }) async {
+    await _dio.post('/api/v1/auth/unlock', data: {
+      'otp_challenge_uuid': challengeUuid,
+      'verification_token': verificationToken,
+    });
+  }
+
+  /// Déconnexion
+  Future<void> logout() async {
+    if (_token == null) return;
+    await _dio.post('/api/v1/auth/logout');
+    _token = null;
+  }
+
+  AuthResult _parseAuthResult(Map<String, dynamic> body) {
+    final data = body['data'] as Map<String, dynamic>;
+    _token = data['token'] as String;
+    return AuthResult(
+      token: _token!,
+      user: data['user'] as Map<String, dynamic>,
+    );
+  }
+}
+
+class AuthResult {
+  final String token;
+  final Map<String, dynamic> user;
+
+  AuthResult({required this.token, required this.user});
+}
+```
+
+</CodeGroup>

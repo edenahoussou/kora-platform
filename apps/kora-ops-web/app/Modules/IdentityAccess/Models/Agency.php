@@ -2,8 +2,12 @@
 
 namespace App\Modules\IdentityAccess\Models;
 
+use App\Models\User;
+use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\IdentityAccess\Data\AgencyStatus;
 use App\Modules\Support\Models\KoraModel;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Agency extends KoraModel
@@ -16,11 +20,28 @@ class Agency extends KoraModel
         'name',
         'city',
         'country',
+        'head_user_id',
         'status',
     ];
 
     protected function casts(): array
     {
         return ['status' => AgencyStatus::class];
+    }
+
+    /**
+     * @return HasMany<Bus, $this>
+     */
+    public function buses(): HasMany
+    {
+        return $this->hasMany(Bus::class);
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function head(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'head_user_id');
     }
 }

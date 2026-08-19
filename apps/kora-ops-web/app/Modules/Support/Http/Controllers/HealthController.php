@@ -8,6 +8,11 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @group Health
+ *
+ * Application health and liveness probes for load balancers and monitoring.
+ */
 class HealthController extends Controller
 {
     public function __construct(private CacheRepository $cache) {}
