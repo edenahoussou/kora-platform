@@ -1,10 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import {
-    ArrowRight,
-    BusFront,
-    Download,
-    Plus,
-} from 'lucide-react';
+import { ArrowRight, BusFront, Download, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { DepartureFormDialog } from '@/components/departures/departure-form-dialog';
 import { KoraFilterBar } from '@/components/kora-filter-bar';
@@ -173,13 +168,15 @@ export default function DeparturesPage({
                         Cadence réseau
                     </span>
                     <h2 className="text-[1.5625rem] font-extrabold tracking-[-0.03em]">
-                        {stats.total} départ{stats.total > 1 ? 's' : ''} programmé
+                        {stats.total} départ{stats.total > 1 ? 's' : ''}{' '}
+                        programmé
                         {stats.total > 1 ? 's' : ''}
                     </h2>
                     <p className="mt-1 text-[0.6875rem] text-white/58">
-                        {stats.scheduled} programmé{stats.scheduled > 1 ? 's' : ''} ·{' '}
-                        {stats.boarding} en embarquement ·{' '}
-                        {stats.departed} en route · {stats.arrived} arrivé
+                        {stats.scheduled} programmé
+                        {stats.scheduled > 1 ? 's' : ''} · {stats.boarding} en
+                        embarquement · {stats.departed} en route ·{' '}
+                        {stats.arrived} arrivé
                         {stats.arrived > 1 ? 's' : ''}
                     </p>
                 </div>
@@ -234,9 +231,12 @@ export default function DeparturesPage({
                         const isBoarding = departure.status === 'boarding';
                         const crewLabel =
                             departure.driverName || departure.conductorName
-                                ? [departure.driverName, departure.conductorName]
-                                    .filter(Boolean)
-                                    .join(' · ')
+                                ? [
+                                      departure.driverName,
+                                      departure.conductorName,
+                                  ]
+                                      .filter(Boolean)
+                                      .join(' · ')
                                 : 'À affecter';
 
                         return (
@@ -250,10 +250,11 @@ export default function DeparturesPage({
                                         }),
                                     )
                                 }
-                                className={`group relative grid cursor-pointer grid-cols-[78px_1fr_130px_140px_34px] items-center gap-4 rounded-[1.125rem] border border-border/30 bg-card p-4 shadow-[0_12px_35px_rgba(0,29,78,0.055)] transition-all hover:translate-x-1 hover:shadow-[0_20px_48px_rgba(0,29,78,0.1)] md:grid-cols-[95px_minmax(310px,1.3fr)_minmax(180px,0.7fr)_180px_38px] md:gap-[18px] md:p-[18px_20px] ${isBoarding
-                                    ? 'before:absolute before:left-0 before:top-[18px] before:bottom-[18px] before:w-1 before:rounded-r-[5px] before:bg-gold'
-                                    : ''
-                                    }`}
+                                className={`group relative grid cursor-pointer grid-cols-[78px_1fr_130px_140px_34px] items-center gap-4 rounded-[1.125rem] border border-border/30 bg-card p-4 shadow-[0_12px_35px_rgba(0,29,78,0.055)] transition-all hover:translate-x-1 hover:shadow-[0_20px_48px_rgba(0,29,78,0.1)] md:grid-cols-[95px_minmax(310px,1.3fr)_minmax(180px,0.7fr)_180px_38px] md:gap-[18px] md:p-[18px_20px] ${
+                                    isBoarding
+                                        ? 'before:absolute before:top-[18px] before:bottom-[18px] before:left-0 before:w-1 before:rounded-r-[5px] before:bg-gold'
+                                        : ''
+                                }`}
                             >
                                 {/* OPS-TIME */}
                                 <div className="pr-2">
@@ -261,7 +262,8 @@ export default function DeparturesPage({
                                         {departure.departureTime ?? '—'}
                                     </span>
                                     <small className="mt-1 block text-[0.5625rem] font-bold tracking-[0.04em] text-muted-foreground">
-                                        {departure.agencyCity ?? departure.agencyName}
+                                        {departure.agencyCity ??
+                                            departure.agencyName}
                                     </small>
                                 </div>
 
@@ -270,8 +272,9 @@ export default function DeparturesPage({
                                     <div className="flex items-center gap-2.5">
                                         <KoraStatusBadge
                                             label={
-                                                statusLabels[departure.status] ??
-                                                departure.status
+                                                statusLabels[
+                                                    departure.status
+                                                ] ?? departure.status
                                             }
                                             tone={
                                                 statusTones[departure.status] ??
@@ -381,7 +384,9 @@ export default function DeparturesPage({
                                     router.get(
                                         departures.index.url({
                                             query: {
-                                                page: departureData.current_page - 1,
+                                                page:
+                                                    departureData.current_page -
+                                                    1,
                                             },
                                         }),
                                     )
@@ -390,7 +395,8 @@ export default function DeparturesPage({
                                 Précédent
                             </Button>
                         )}
-                        {departureData.current_page < departureData.last_page && (
+                        {departureData.current_page <
+                            departureData.last_page && (
                             <Button
                                 variant="outline"
                                 size="sm"
@@ -398,7 +404,9 @@ export default function DeparturesPage({
                                     router.get(
                                         departures.index.url({
                                             query: {
-                                                page: departureData.current_page + 1,
+                                                page:
+                                                    departureData.current_page +
+                                                    1,
                                             },
                                         }),
                                     )

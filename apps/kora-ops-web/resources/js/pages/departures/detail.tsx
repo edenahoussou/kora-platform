@@ -151,7 +151,10 @@ export default function DepartureDetailPage({
 
     // Contextual actions based on status (from maquette line 613)
     const renderActions = () => {
-        if (departure.status === 'arrived' || departure.status === 'cancelled') {
+        if (
+            departure.status === 'arrived' ||
+            departure.status === 'cancelled'
+        ) {
             return null;
         }
 
@@ -230,9 +233,7 @@ export default function DepartureDetailPage({
             return [];
         }
 
-        const [hours, minutes] = departure.departureTime
-            .split(':')
-            .map(Number);
+        const [hours, minutes] = departure.departureTime.split(':').map(Number);
         const baseTime = new Date();
         baseTime.setHours(hours, minutes, 0, 0);
 
@@ -293,10 +294,11 @@ export default function DepartureDetailPage({
                     <button
                         key={key}
                         onClick={() => setTab(key)}
-                        className={`border-b-2 px-4 py-3 text-[0.6875rem] font-extrabold tracking-[0.035em] whitespace-nowrap transition-colors ${tab === key
-                            ? 'border-gold text-foreground'
-                            : 'border-transparent text-muted-foreground hover:text-foreground'
-                            }`}
+                        className={`border-b-2 px-4 py-3 text-[0.6875rem] font-extrabold tracking-[0.035em] whitespace-nowrap transition-colors ${
+                            tab === key
+                                ? 'border-gold text-foreground'
+                                : 'border-transparent text-muted-foreground hover:text-foreground'
+                        }`}
                     >
                         {label}
                     </button>
@@ -318,7 +320,9 @@ export default function DepartureDetailPage({
                 </div>
                 <span className="relative z-10 shrink-0">
                     <KoraStatusBadge
-                        label={statusLabels[departure.status] ?? departure.status}
+                        label={
+                            statusLabels[departure.status] ?? departure.status
+                        }
                         tone={statusTones[departure.status] ?? 'gold'}
                         className="border border-white/20 bg-white/5 shadow-[0_8px_24px_rgba(0,29,78,0.18)]"
                     />
@@ -539,11 +543,11 @@ export default function DepartureDetailPage({
                                     <span className="grid size-12 shrink-0 place-items-center rounded-[0.75rem] bg-gold/20 text-[0.875rem] font-black text-[var(--kora)] dark:bg-gold/15 dark:text-gold">
                                         {departure.driverName
                                             ? departure.driverName
-                                                .split(' ')
-                                                .map((n) => n[0])
-                                                .join('')
-                                                .slice(0, 2)
-                                                .toUpperCase()
+                                                  .split(' ')
+                                                  .map((n) => n[0])
+                                                  .join('')
+                                                  .slice(0, 2)
+                                                  .toUpperCase()
                                             : '—'}
                                     </span>
                                     <div className="flex-1">
@@ -551,12 +555,13 @@ export default function DepartureDetailPage({
                                             Conducteur
                                         </small>
                                         <strong className="mt-1 block text-[0.8125rem] font-bold text-foreground">
-                                            {departure.driverName ?? 'À affecter'}
+                                            {departure.driverName ??
+                                                'À affecter'}
                                         </strong>
                                         <p className="mt-0.5 text-[0.5625rem] text-muted-foreground">
                                             {departure.driverName
                                                 ? 'Permis · habilitation requise'
-                                                : "Aucun conducteur assigné à ce départ"}
+                                                : 'Aucun conducteur assigné à ce départ'}
                                         </p>
                                     </div>
                                     <KoraStatusBadge
@@ -578,11 +583,11 @@ export default function DepartureDetailPage({
                                     <span className="grid size-12 shrink-0 place-items-center rounded-[0.75rem] bg-gold/20 text-[0.875rem] font-black text-[var(--kora)] dark:bg-gold/15 dark:text-gold">
                                         {departure.conductorName
                                             ? departure.conductorName
-                                                .split(' ')
-                                                .map((n) => n[0])
-                                                .join('')
-                                                .slice(0, 2)
-                                                .toUpperCase()
+                                                  .split(' ')
+                                                  .map((n) => n[0])
+                                                  .join('')
+                                                  .slice(0, 2)
+                                                  .toUpperCase()
                                             : '—'}
                                     </span>
                                     <div className="flex-1">
@@ -596,7 +601,7 @@ export default function DepartureDetailPage({
                                         <p className="mt-0.5 text-[0.5625rem] text-muted-foreground">
                                             {departure.conductorName
                                                 ? 'Terminal P501 · session prête'
-                                                : "Aucun convoyeur assigné à ce départ"}
+                                                : 'Aucun convoyeur assigné à ce départ'}
                                         </p>
                                     </div>
                                     <KoraStatusBadge
@@ -778,7 +783,9 @@ export default function DepartureDetailPage({
                                         statusLabels[departure.status] ??
                                         departure.status
                                     }
-                                    tone={statusTones[departure.status] ?? 'gold'}
+                                    tone={
+                                        statusTones[departure.status] ?? 'gold'
+                                    }
                                 />
                             </div>
                             <div className="flex items-center justify-between pt-1">
@@ -820,20 +827,15 @@ function InfoCard({ label, value }: { label: string; value: string }) {
     );
 }
 
-function ChecklistItem({
-    label,
-    done,
-}: {
-    label: string;
-    done: boolean;
-}) {
+function ChecklistItem({ label, done }: { label: string; done: boolean }) {
     return (
         <article className="flex items-center gap-3 rounded-[0.875rem] border border-border/50 bg-card p-3.5">
             <span
-                className={`grid size-8 shrink-0 place-items-center rounded-[0.625rem] text-[0.875rem] font-black ${done
-                    ? 'bg-[var(--kora)]/10 text-[var(--kora)] dark:bg-[var(--digital)]/15 dark:text-[var(--digital)]'
-                    : 'bg-gold/20 text-[var(--kora)] dark:bg-gold/15 dark:text-gold'
-                    }`}
+                className={`grid size-8 shrink-0 place-items-center rounded-[0.625rem] text-[0.875rem] font-black ${
+                    done
+                        ? 'bg-[var(--kora)]/10 text-[var(--kora)] dark:bg-[var(--digital)]/15 dark:text-[var(--digital)]'
+                        : 'bg-gold/20 text-[var(--kora)] dark:bg-gold/15 dark:text-gold'
+                }`}
             >
                 {done ? '✓' : '!'}
             </span>
