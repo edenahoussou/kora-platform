@@ -4,12 +4,14 @@ import {
     BusFront,
     CheckCircle2,
     Edit3,
-    Layers,
-    MapPin,
+    Fuel,
+    Gauge,
+    Navigation,
     RotateCcw,
     Shield,
     Wrench,
     Archive,
+    FileText,
 } from 'lucide-react';
 import { useState } from 'react';
 import { BusFormDialog } from '@/components/buses/bus-form-dialog';
@@ -104,10 +106,10 @@ const departureStatusLabels: Record<string, string> = {
     cancelled: 'Annulé',
 };
 
-type Tab = 'technical' | 'seats' | 'departures' | 'history';
+type Tab = 'availability' | 'assignments' | 'gps' | 'fuel' | 'mileage' | 'documents';
 
 const BUSINESS_RULE =
-    'Chaque bus est rattaché à une agence et possède une composition fixe générant automatiquement son inventaire de sièges vendables et équipage.';
+    'La disponibilité dépend des affectations, échéances techniques et immobilisations.';
 
 function formatDate(iso: string | null): string {
     if (!iso) {
@@ -146,7 +148,7 @@ export default function FleetDetailPage({
     timeline,
     permissions,
 }: PageProps) {
-    const [tab, setTab] = useState<Tab>('technical');
+    const [tab, setTab] = useState<Tab>('availability');
     const [editDialog, setEditDialog] = useState(false);
 
     const changeStatus = (newStatus: string) => {
@@ -164,43 +166,18 @@ export default function FleetDetailPage({
     };
 
     const tabs: { key: Tab; label: string }[] = [
-        { key: 'technical', label: 'Fiche technique' },
-        { key: 'seats', label: `Plan de sièges (${bus.seats.length})` },
-        { key: 'departures', label: `Départs (${bus.departures.length})` },
-        { key: 'history', label: 'Historique' },
+        { key: 'availability', label: 'Disponibilité' },
+        { key: 'assignments', label: `Affectations (${bus.departures.length})` },
+        { key: 'gps', label: 'GPS' },
+        { key: 'fuel', label: 'Carburant' },
+        { key: 'mileage', label: 'Kilométrage' },
+        { key: 'documents', label: 'Documents' },
     ];
 
     const tabLabel = tabs.find((t) => t.key === tab)?.label ?? '';
 
     const sellableSeatsCount = bus.seats.filter((s) => s.sellable).length;
     const crewSeatsCount = bus.seats.filter((s) => !s.sellable).length;
-
-    const infoItems: { label: string; value: string }[] = [
-        { label: 'Immatriculation', value: bus.registrationNumber },
-        { label: 'Modèle', value: bus.modelName ?? '—' },
-        { label: 'Composition', value: bus.compositionName ?? '—' },
-        { label: 'Capacité totale', value: `${bus.seatCount} places` },
-        {
-            label: 'Sièges passagers',
-            value: `${sellableSeatsCount} vendables`,
-        },
-        {
-            label: 'Sièges équipage',
-            value: `${crewSeatsCount} réservés`,
-        },
-        { label: 'Agence de rattachement', value: bus.agencyName ?? 'Non rattaché' },
-        {
-            label: 'Localisation agence',
-            value:
-                bus.agencyCity && bus.agencyCountry
-                    ? `${bus.agencyCity}, ${bus.agencyCountry}`
-                    : bus.agencyCity ?? '—',
-        },
-        {
-            label: 'Statut',
-            value: statusLabels[bus.status] ?? bus.status,
-        },
-    ];
 
     return (
         <>
@@ -273,12 +250,12 @@ export default function FleetDetailPage({
             </div>
 
             {/* 2. TABS */}
-            <div className="mb-5 flex gap-1 border-b border-border/60">
+            <div className="mb-5 flex gap-1 overflow-x-auto border-b border-border/60">
                 {tabs.map(({ key, label }) => (
                     <button
                         key={key}
                         onClick={() => setTab(key)}
-                        className={`border-b-2 px-4 py-3 text-[0.6875rem] font-extrabold tracking-[0.035em] transition-colors ${tab === key
+                        className={`whitespace-nowrap border-b-2 px-4 py-3 text-[0.6875rem] font-extrabold tracking-[0.035em] transition-colors ${tab === key
                             ? 'border-gold text-foreground'
                             : 'border-transparent text-muted-foreground hover:text-foreground'
                             }`}
@@ -325,68 +302,8 @@ export default function FleetDetailPage({
                         </div>
                     </div>
 
-                    {/* Tab: Fiche technique */}
-                    {tab === 'technical' && (
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                                {infoItems.map((item) => (
-                                    <div
-                                        key={item.label}
-                                        className="rounded-[0.75rem] bg-muted p-3.5"
-                                    >
-                                        <small className="block text-[0.5625rem] text-muted-foreground">
-                                            {item.label}
-                                        </small>
-                                        <strong className="mt-1.5 block text-[0.75rem] text-foreground">
-                                            {item.value}
-                                        </strong>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Cartes récapitulatives */}
-                            <div className="grid gap-3 sm:grid-cols-2">
-                                <div className="rounded-[0.875rem] border border-border/50 bg-card p-4">
-                                    <div className="mb-2 flex items-center gap-2">
-                                        <span className="grid size-7 place-items-center rounded-full bg-gold text-[var(--kora)]">
-                                            <Layers className="size-3.5" />
-                                        </span>
-                                        <span className="text-[0.5625rem] font-black tracking-[0.13em] text-[var(--digital)] uppercase">
-                                            Gabarit & Composition
-                                        </span>
-                                    </div>
-                                    <strong className="block text-sm text-foreground">
-                                        {bus.compositionName}
-                                    </strong>
-                                    <span className="mt-0.5 block text-[0.6875rem] text-muted-foreground">
-                                        {bus.seatCount} places · Disposition{' '}
-                                        {bus.compositionCode ?? 'Standard'}
-                                    </span>
-                                </div>
-                                <div className="rounded-[0.875rem] border border-border/50 bg-card p-4">
-                                    <div className="mb-2 flex items-center gap-2">
-                                        <span className="grid size-7 place-items-center rounded-full bg-[var(--digital)] text-white">
-                                            <MapPin className="size-3.5" />
-                                        </span>
-                                        <span className="text-[0.5625rem] font-black tracking-[0.13em] text-gold uppercase">
-                                            Agence de rattachement
-                                        </span>
-                                    </div>
-                                    <strong className="block text-sm text-foreground">
-                                        {bus.agencyName ?? 'Non rattaché'}
-                                    </strong>
-                                    <span className="mt-0.5 block text-[0.6875rem] text-muted-foreground">
-                                        {bus.agencyCity && bus.agencyCountry
-                                            ? `${bus.agencyCity}, ${bus.agencyCountry}`
-                                            : 'Réseau KORA'}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Tab: Plan de sièges */}
-                    {tab === 'seats' && (
+                    {/* Tab: Disponibilité — plan de sièges */}
+                    {tab === 'availability' && (
                         <div className="space-y-4">
                             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
                                 <div>
@@ -496,8 +413,8 @@ export default function FleetDetailPage({
                         </div>
                     )}
 
-                    {/* Tab: Départs */}
-                    {tab === 'departures' && (
+                    {/* Tab: Affectations — départs assignés au bus */}
+                    {tab === 'assignments' && (
                         <div>
                             <div className="mb-4 flex items-end justify-between gap-5 border-b border-border/60 pb-4">
                                 <div>
@@ -520,11 +437,10 @@ export default function FleetDetailPage({
                                     <table className="w-full text-sm">
                                         <thead>
                                             <tr className="border-b border-border/60 text-left text-xs text-muted-foreground">
+                                                <th className="pr-4 pb-3 font-medium">Départ</th>
                                                 <th className="pr-4 pb-3 font-medium">Ligne</th>
-                                                <th className="pr-4 pb-3 font-medium">Date départ</th>
-                                                <th className="pr-4 pb-3 font-medium">Heure</th>
-                                                <th className="pr-4 pb-3 font-medium">Arrivée estimée</th>
-                                                <th className="pr-4 pb-3 font-medium">Statut</th>
+                                                <th className="pr-4 pb-3 font-medium">Équipage</th>
+                                                <th className="pr-4 pb-3 font-medium">État</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -533,6 +449,14 @@ export default function FleetDetailPage({
                                                     key={departure.uuid}
                                                     className="border-b border-border/30 hover:bg-muted/30"
                                                 >
+                                                    <td className="py-3 pr-4">
+                                                        <span className="block font-bold text-foreground">
+                                                            {departure.departureTime ?? '—'}
+                                                        </span>
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {formatDateShort(departure.departureDate)}
+                                                        </span>
+                                                    </td>
                                                     <td className="py-3 pr-4 font-medium text-foreground">
                                                         <span className="block font-bold">
                                                             {departure.lineCode}
@@ -542,13 +466,11 @@ export default function FleetDetailPage({
                                                         </span>
                                                     </td>
                                                     <td className="py-3 pr-4 text-muted-foreground">
-                                                        {formatDateShort(departure.departureDate)}
-                                                    </td>
-                                                    <td className="py-3 pr-4 font-bold text-foreground">
-                                                        {departure.departureTime ?? '—'}
-                                                    </td>
-                                                    <td className="py-3 pr-4 text-muted-foreground">
-                                                        {formatDate(departure.estimatedArrivalAt)}
+                                                        <span className="text-xs">
+                                                            {departure.estimatedArrivalAt
+                                                                ? `Arr. ${formatDate(departure.estimatedArrivalAt)}`
+                                                                : 'À affecter'}
+                                                        </span>
                                                     </td>
                                                     <td className="py-3">
                                                         <span className="inline-flex rounded-full bg-muted px-2.5 py-1 text-[0.6875rem] font-bold text-foreground">
@@ -575,40 +497,77 @@ export default function FleetDetailPage({
                         </div>
                     )}
 
-                    {/* Tab: Historique */}
-                    {tab === 'history' && (
-                        <div className="space-y-4">
-                            <div className="mb-4 border-b border-border/60 pb-4">
-                                <span className="mb-1 block text-[0.5625rem] font-black tracking-[0.13em] text-[var(--digital)] uppercase">
-                                    Journal du cycle de vie
-                                </span>
-                                <h3 className="text-[1.1875rem] font-bold text-foreground">
-                                    Historique du véhicule
-                                </h3>
-                            </div>
+                    {/* Tab: GPS — placeholder FleetLite (Sprint 6) */}
+                    {tab === 'gps' && (
+                        <PlaceholderTab
+                            icon={Navigation}
+                            title="Suivi GPS temps réel"
+                            description="Position, dernier signal et vitesse du véhicule."
+                            sprint="Sprint 6 — FleetLite"
+                            rows={[
+                                { label: 'Position', value: '—' },
+                                { label: 'Dernier signal', value: '—' },
+                                { label: 'Vitesse', value: '—' },
+                                { label: 'Historique 24 h', value: '—' },
+                            ]}
+                        />
+                    )}
 
-                            <div className="relative space-y-4 border-l-2 border-border/60 pl-6 ml-2">
-                                {timeline.map((event, index) => (
-                                    <div key={index} className="relative">
-                                        <span className="absolute -left-[31px] top-1 size-3 rounded-full border-2 border-card bg-gold" />
-                                        <p className="text-sm font-bold text-foreground">
-                                            {event.label}
-                                        </p>
-                                        <span className="text-xs text-muted-foreground">
-                                            {formatDate(event.date)}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                    {/* Tab: Carburant — placeholder FleetLite (Sprint 6) */}
+                    {tab === 'fuel' && (
+                        <PlaceholderTab
+                            icon={Fuel}
+                            title="Historique carburant"
+                            description="Pleins, stations et justificatifs de carburant."
+                            sprint="Sprint 6 — FleetLite"
+                            rows={[
+                                { label: 'Dernier plein', value: '—' },
+                                { label: 'Station', value: '—' },
+                                { label: 'Litres', value: '—' },
+                                { label: 'Montant', value: '—' },
+                            ]}
+                        />
+                    )}
+
+                    {/* Tab: Kilométrage — placeholder FleetLite (Sprint 6) */}
+                    {tab === 'mileage' && (
+                        <PlaceholderTab
+                            icon={Gauge}
+                            title="Relevés kilométriques"
+                            description="Kilométrage synchronisé depuis le GPS embarqué ou relevé conducteur."
+                            sprint="Sprint 6 — FleetLite"
+                            rows={[
+                                { label: 'Kilométrage actuel', value: '—' },
+                                { label: 'Source', value: '—' },
+                                { label: 'Dernier relevé', value: '—' },
+                                { label: 'État', value: '—' },
+                            ]}
+                        />
+                    )}
+
+                    {/* Tab: Documents — placeholder FleetLite (Sprint 6) */}
+                    {tab === 'documents' && (
+                        <PlaceholderTab
+                            icon={FileText}
+                            title="Documents du véhicule"
+                            description="Assurance, visite technique, carte grise avec échéances et alertes."
+                            sprint="Sprint 6 — FleetLite"
+                            rows={[
+                                { label: 'Assurance', value: '—' },
+                                { label: 'Visite technique', value: '—' },
+                                { label: 'Carte grise', value: '—' },
+                                { label: 'Alerte échéance', value: '—' },
+                            ]}
+                        />
                     )}
                 </section>
 
-                {/* Aside Timeline / Résumé */}
+                {/* Aside — Vie du véhicule (fiche technique + timeline) */}
                 <aside className="space-y-4">
+                    {/* Fiche technique résumée */}
                     <section className="rounded-[var(--kora-radius)] border border-border/50 bg-card p-5 shadow-[0_16px_45px_rgba(0,29,78,0.07)]">
                         <h3 className="mb-3 text-[0.8125rem] font-bold tracking-tight text-foreground uppercase">
-                            Suivi opérationnel
+                            Fiche technique
                         </h3>
                         <div className="space-y-3 text-xs">
                             <div className="flex items-center justify-between border-b border-border/40 pb-2">
@@ -621,6 +580,12 @@ export default function FleetDetailPage({
                                 <span className="text-muted-foreground">Modèle</span>
                                 <span className="font-medium text-foreground">
                                     {bus.modelName}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between border-b border-border/40 pb-2">
+                                <span className="text-muted-foreground">Composition</span>
+                                <span className="font-medium text-foreground">
+                                    {bus.compositionName}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between border-b border-border/40 pb-2">
@@ -650,6 +615,29 @@ export default function FleetDetailPage({
                             </div>
                         </div>
                     </section>
+
+                    {/* Vie du véhicule — timeline */}
+                    <section className="rounded-[var(--kora-radius)] border border-border/50 bg-card p-5 shadow-[0_16px_45px_rgba(0,29,78,0.07)]">
+                        <h3 className="mb-3 text-[0.8125rem] font-bold tracking-tight text-foreground uppercase">
+                            Vie du véhicule
+                        </h3>
+                        <p className="mb-4 text-[0.625rem] text-muted-foreground">
+                            Derniers événements enregistrés
+                        </p>
+                        <div className="relative space-y-4 border-l-2 border-border/60 pl-6 ml-2">
+                            {timeline.map((event, index) => (
+                                <div key={index} className="relative">
+                                    <span className="absolute -left-[31px] top-1 size-3 rounded-full border-2 border-card bg-gold" />
+                                    <p className="text-sm font-bold text-foreground">
+                                        {event.label}
+                                    </p>
+                                    <span className="text-xs text-muted-foreground">
+                                        {formatDate(event.date)}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
                 </aside>
             </div>
 
@@ -664,6 +652,64 @@ export default function FleetDetailPage({
                 onOpenChange={setEditDialog}
             />
         </>
+    );
+}
+
+function PlaceholderTab({
+    icon: Icon,
+    title,
+    description,
+    sprint,
+    rows,
+}: {
+    icon: React.ComponentType<{ className?: string }>;
+    title: string;
+    description: string;
+    sprint: string;
+    rows: { label: string; value: string }[];
+}) {
+    return (
+        <div className="space-y-4">
+            <div className="mb-4 border-b border-border/60 pb-4">
+                <span className="mb-1 block text-[0.5625rem] font-black tracking-[0.13em] text-[var(--digital)] uppercase">
+                    {sprint}
+                </span>
+                <h3 className="text-[1.1875rem] font-bold text-foreground">
+                    {title}
+                </h3>
+                <p className="mt-1 text-[0.625rem] text-muted-foreground">
+                    {description}
+                </p>
+            </div>
+
+            <div className="rounded-[1rem] border border-dashed border-border/60 bg-muted/20 p-8 text-center">
+                <span className="mx-auto grid size-12 place-items-center rounded-[0.9rem] bg-muted text-muted-foreground">
+                    <Icon className="size-5" />
+                </span>
+                <h4 className="mt-3 text-sm font-bold text-foreground">
+                    Données disponibles au {sprint}
+                </h4>
+                <p className="mt-1 text-xs text-muted-foreground">
+                    Ce module sera alimenté par FleetLite (GPS, carburant, kilométrage) et la gestion documentaire.
+                </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {rows.map((row) => (
+                    <div
+                        key={row.label}
+                        className="rounded-[0.75rem] bg-muted p-3.5"
+                    >
+                        <small className="block text-[0.5625rem] text-muted-foreground">
+                            {row.label}
+                        </small>
+                        <strong className="mt-1.5 block text-[0.75rem] text-foreground">
+                            {row.value}
+                        </strong>
+                    </div>
+                ))}
+            </div>
+        </div>
     );
 }
 
