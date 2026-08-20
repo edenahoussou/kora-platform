@@ -44,6 +44,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // V1 MVP — Flotte (Ressources)
     Route::get('fleet', [BusController::class, 'index'])->name('fleet.index');
+    Route::get('fleet/{bus:uuid}', [BusController::class, 'show'])->name('fleet.show');
     Route::post('fleet', [BusController::class, 'store'])->name('fleet.store');
     Route::put('fleet/{bus:uuid}', [BusController::class, 'update'])->name('fleet.update');
     Route::patch('fleet/{bus:uuid}/status', [BusController::class, 'changeStatus'])->name('fleet.status');
