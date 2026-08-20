@@ -106,7 +106,8 @@ const departureStatusLabels: Record<string, string> = {
     cancelled: 'Annulé',
 };
 
-type Tab = 'availability' | 'assignments' | 'gps' | 'fuel' | 'mileage' | 'documents';
+type Tab =
+    'availability' | 'assignments' | 'gps' | 'fuel' | 'mileage' | 'documents';
 
 const BUSINESS_RULE =
     'La disponibilité dépend des affectations, échéances techniques et immobilisations.';
@@ -167,7 +168,10 @@ export default function FleetDetailPage({
 
     const tabs: { key: Tab; label: string }[] = [
         { key: 'availability', label: 'Disponibilité' },
-        { key: 'assignments', label: `Affectations (${bus.departures.length})` },
+        {
+            key: 'assignments',
+            label: `Affectations (${bus.departures.length})`,
+        },
         { key: 'gps', label: 'GPS' },
         { key: 'fuel', label: 'Carburant' },
         { key: 'mileage', label: 'Kilométrage' },
@@ -193,8 +197,8 @@ export default function FleetDetailPage({
                         Bus {bus.registrationNumber}
                     </h1>
                     <p className="mt-1.5 text-sm text-muted-foreground">
-                        {bus.modelName ?? 'Modèle standard'} · {bus.seatCount} places ·{' '}
-                        {bus.agencyName ?? 'Agence KORA'}
+                        {bus.modelName ?? 'Modèle standard'} · {bus.seatCount}{' '}
+                        places · {bus.agencyName ?? 'Agence KORA'}
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2.5">
@@ -255,10 +259,11 @@ export default function FleetDetailPage({
                     <button
                         key={key}
                         onClick={() => setTab(key)}
-                        className={`whitespace-nowrap border-b-2 px-4 py-3 text-[0.6875rem] font-extrabold tracking-[0.035em] transition-colors ${tab === key
-                            ? 'border-gold text-foreground'
-                            : 'border-transparent text-muted-foreground hover:text-foreground'
-                            }`}
+                        className={`border-b-2 px-4 py-3 text-[0.6875rem] font-extrabold tracking-[0.035em] whitespace-nowrap transition-colors ${
+                            tab === key
+                                ? 'border-gold text-foreground'
+                                : 'border-transparent text-muted-foreground hover:text-foreground'
+                        }`}
                     >
                         {label}
                     </button>
@@ -314,8 +319,9 @@ export default function FleetDetailPage({
                                         {bus.seats.length} sièges configurés
                                     </h3>
                                     <p className="mt-1 text-[0.625rem] text-muted-foreground">
-                                        {sellableSeatsCount} sièges ouverts à la vente,{' '}
-                                        {crewSeatsCount} places équipage/bloquées.
+                                        {sellableSeatsCount} sièges ouverts à la
+                                        vente, {crewSeatsCount} places
+                                        équipage/bloquées.
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -337,21 +343,26 @@ export default function FleetDetailPage({
                                 </div>
                                 <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8">
                                     {bus.seats.map((seat) => {
-                                        const isCrew = seat.type === 'crew' || !seat.sellable;
+                                        const isCrew =
+                                            seat.type === 'crew' ||
+                                            !seat.sellable;
 
                                         return (
                                             <div
                                                 key={seat.uuid}
-                                                className={`flex flex-col items-center justify-center rounded-[0.65rem] border p-2 text-center transition-all ${isCrew
-                                                    ? 'border-gold/40 bg-gold/10 text-[var(--kora)]'
-                                                    : 'border-border/60 bg-card text-foreground hover:border-border'
-                                                    }`}
+                                                className={`flex flex-col items-center justify-center rounded-[0.65rem] border p-2 text-center transition-all ${
+                                                    isCrew
+                                                        ? 'border-gold/40 bg-gold/10 text-[var(--kora)]'
+                                                        : 'border-border/60 bg-card text-foreground hover:border-border'
+                                                }`}
                                             >
                                                 <span className="text-xs font-black">
                                                     {seat.code}
                                                 </span>
                                                 <span className="mt-0.5 text-[0.5625rem] text-muted-foreground">
-                                                    {seatTypeLabels[seat.type] ?? seat.type}
+                                                    {seatTypeLabels[
+                                                        seat.type
+                                                    ] ?? seat.type}
                                                 </span>
                                             </div>
                                         );
@@ -364,10 +375,18 @@ export default function FleetDetailPage({
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-border/60 text-left text-xs text-muted-foreground">
-                                            <th className="pr-4 pb-3 font-medium">Code</th>
-                                            <th className="pr-4 pb-3 font-medium">Type</th>
-                                            <th className="pr-4 pb-3 font-medium">Vendable</th>
-                                            <th className="pr-4 pb-3 font-medium">Statut</th>
+                                            <th className="pr-4 pb-3 font-medium">
+                                                Code
+                                            </th>
+                                            <th className="pr-4 pb-3 font-medium">
+                                                Type
+                                            </th>
+                                            <th className="pr-4 pb-3 font-medium">
+                                                Vendable
+                                            </th>
+                                            <th className="pr-4 pb-3 font-medium">
+                                                Statut
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -380,11 +399,13 @@ export default function FleetDetailPage({
                                                     {seat.code}
                                                 </td>
                                                 <td className="py-2.5 pr-4 text-muted-foreground">
-                                                    {seatTypeLabels[seat.type] ?? seat.type}
+                                                    {seatTypeLabels[
+                                                        seat.type
+                                                    ] ?? seat.type}
                                                 </td>
                                                 <td className="py-2.5 pr-4">
                                                     {seat.sellable ? (
-                                                        <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
+                                                        <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600">
                                                             <CheckCircle2 className="size-3.5" />
                                                             Oui
                                                         </span>
@@ -397,12 +418,16 @@ export default function FleetDetailPage({
                                                 </td>
                                                 <td className="py-2.5">
                                                     <span
-                                                        className={`inline-flex rounded-full px-2 py-0.5 text-[0.625rem] font-bold ${seat.status === 'active'
-                                                            ? 'bg-emerald-500/10 text-emerald-700'
-                                                            : 'bg-gold/15 text-[var(--kora)]'
-                                                            }`}
+                                                        className={`inline-flex rounded-full px-2 py-0.5 text-[0.625rem] font-bold ${
+                                                            seat.status ===
+                                                            'active'
+                                                                ? 'bg-emerald-500/10 text-emerald-700'
+                                                                : 'bg-gold/15 text-[var(--kora)]'
+                                                        }`}
                                                     >
-                                                        {seatStatusLabels[seat.status] ?? seat.status}
+                                                        {seatStatusLabels[
+                                                            seat.status
+                                                        ] ?? seat.status}
                                                     </span>
                                                 </td>
                                             </tr>
@@ -423,11 +448,15 @@ export default function FleetDetailPage({
                                     </span>
                                     <h3 className="text-[1.1875rem] font-bold text-foreground">
                                         {bus.departures.length} départ
-                                        {bus.departures.length > 1 ? 's' : ''} enregistré
+                                        {bus.departures.length > 1
+                                            ? 's'
+                                            : ''}{' '}
+                                        enregistré
                                         {bus.departures.length > 1 ? 's' : ''}
                                     </h3>
                                     <p className="mt-1 text-[0.625rem] text-muted-foreground">
-                                        Historique des départs récents ou programmés pour ce véhicule.
+                                        Historique des départs récents ou
+                                        programmés pour ce véhicule.
                                     </p>
                                 </div>
                             </div>
@@ -437,10 +466,18 @@ export default function FleetDetailPage({
                                     <table className="w-full text-sm">
                                         <thead>
                                             <tr className="border-b border-border/60 text-left text-xs text-muted-foreground">
-                                                <th className="pr-4 pb-3 font-medium">Départ</th>
-                                                <th className="pr-4 pb-3 font-medium">Ligne</th>
-                                                <th className="pr-4 pb-3 font-medium">Équipage</th>
-                                                <th className="pr-4 pb-3 font-medium">État</th>
+                                                <th className="pr-4 pb-3 font-medium">
+                                                    Départ
+                                                </th>
+                                                <th className="pr-4 pb-3 font-medium">
+                                                    Ligne
+                                                </th>
+                                                <th className="pr-4 pb-3 font-medium">
+                                                    Équipage
+                                                </th>
+                                                <th className="pr-4 pb-3 font-medium">
+                                                    État
+                                                </th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -451,10 +488,13 @@ export default function FleetDetailPage({
                                                 >
                                                     <td className="py-3 pr-4">
                                                         <span className="block font-bold text-foreground">
-                                                            {departure.departureTime ?? '—'}
+                                                            {departure.departureTime ??
+                                                                '—'}
                                                         </span>
                                                         <span className="text-xs text-muted-foreground">
-                                                            {formatDateShort(departure.departureDate)}
+                                                            {formatDateShort(
+                                                                departure.departureDate,
+                                                            )}
                                                         </span>
                                                     </td>
                                                     <td className="py-3 pr-4 font-medium text-foreground">
@@ -474,7 +514,9 @@ export default function FleetDetailPage({
                                                     </td>
                                                     <td className="py-3">
                                                         <span className="inline-flex rounded-full bg-muted px-2.5 py-1 text-[0.6875rem] font-bold text-foreground">
-                                                            {departureStatusLabels[departure.status] ??
+                                                            {departureStatusLabels[
+                                                                departure.status
+                                                            ] ??
                                                                 departure.status}
                                                         </span>
                                                     </td>
@@ -490,7 +532,8 @@ export default function FleetDetailPage({
                                         Aucun départ affecté
                                     </h4>
                                     <p className="mt-1 text-xs text-muted-foreground">
-                                        Ce bus n'a pas encore de départ programmé ou historique enregistré.
+                                        Ce bus n'a pas encore de départ
+                                        programmé ou historique enregistré.
                                     </p>
                                 </div>
                             )}
@@ -571,44 +614,60 @@ export default function FleetDetailPage({
                         </h3>
                         <div className="space-y-3 text-xs">
                             <div className="flex items-center justify-between border-b border-border/40 pb-2">
-                                <span className="text-muted-foreground">Immatriculation</span>
+                                <span className="text-muted-foreground">
+                                    Immatriculation
+                                </span>
                                 <span className="font-bold text-foreground">
                                     {bus.registrationNumber}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between border-b border-border/40 pb-2">
-                                <span className="text-muted-foreground">Modèle</span>
+                                <span className="text-muted-foreground">
+                                    Modèle
+                                </span>
                                 <span className="font-medium text-foreground">
                                     {bus.modelName}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between border-b border-border/40 pb-2">
-                                <span className="text-muted-foreground">Composition</span>
+                                <span className="text-muted-foreground">
+                                    Composition
+                                </span>
                                 <span className="font-medium text-foreground">
                                     {bus.compositionName}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between border-b border-border/40 pb-2">
-                                <span className="text-muted-foreground">Agence</span>
+                                <span className="text-muted-foreground">
+                                    Agence
+                                </span>
                                 <span className="font-medium text-foreground">
                                     {bus.agencyName ?? 'Non rattaché'}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between border-b border-border/40 pb-2">
-                                <span className="text-muted-foreground">Places totales</span>
+                                <span className="text-muted-foreground">
+                                    Places totales
+                                </span>
                                 <span className="font-bold text-foreground">
                                     {bus.seatCount}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between border-b border-border/40 pb-2">
-                                <span className="text-muted-foreground">Statut</span>
+                                <span className="text-muted-foreground">
+                                    Statut
+                                </span>
                                 <KoraStatusBadge
-                                    label={statusLabels[bus.status] ?? bus.status}
+                                    label={
+                                        statusLabels[bus.status] ?? bus.status
+                                    }
                                     tone={statusTones[bus.status] ?? 'gold'}
                                 />
                             </div>
                             <div className="flex items-center justify-between pt-1">
-                                <span className="text-muted-foreground">Enregistré le</span>
+                                <span className="text-muted-foreground">
+                                    Enregistré le
+                                </span>
                                 <span className="text-foreground">
                                     {formatDate(bus.createdAt)}
                                 </span>
@@ -624,10 +683,10 @@ export default function FleetDetailPage({
                         <p className="mb-4 text-[0.625rem] text-muted-foreground">
                             Derniers événements enregistrés
                         </p>
-                        <div className="relative space-y-4 border-l-2 border-border/60 pl-6 ml-2">
+                        <div className="relative ml-2 space-y-4 border-l-2 border-border/60 pl-6">
                             {timeline.map((event, index) => (
                                 <div key={index} className="relative">
-                                    <span className="absolute -left-[31px] top-1 size-3 rounded-full border-2 border-card bg-gold" />
+                                    <span className="absolute top-1 -left-[31px] size-3 rounded-full border-2 border-card bg-gold" />
                                     <p className="text-sm font-bold text-foreground">
                                         {event.label}
                                     </p>
@@ -690,7 +749,8 @@ function PlaceholderTab({
                     Données disponibles au {sprint}
                 </h4>
                 <p className="mt-1 text-xs text-muted-foreground">
-                    Ce module sera alimenté par FleetLite (GPS, carburant, kilométrage) et la gestion documentaire.
+                    Ce module sera alimenté par FleetLite (GPS, carburant,
+                    kilométrage) et la gestion documentaire.
                 </p>
             </div>
 
