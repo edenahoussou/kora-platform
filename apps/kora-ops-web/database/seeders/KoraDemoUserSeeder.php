@@ -16,7 +16,7 @@ use Illuminate\Support\Str;
  * - Rôles de direction (KORA OPS Web) : ops, commercial, direction générale
  * - Admin système
  *
- * Tous les mots de passe sont "password" et les PIN sont "123456".
+ * Tous les mots de passe sont "password" et les PIN sont "1234".
  */
 class KoraDemoUserSeeder extends Seeder
 {
@@ -70,7 +70,7 @@ class KoraDemoUserSeeder extends Seeder
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'phone' => $data['phone'],
-                'pin_hash' => Hash::make('123456'),
+                'pin_hash' => Hash::make('1234'),
                 'password' => Hash::make('password'),
             ]);
             $user->assignRole(SystemRole::Passenger->value);
@@ -132,7 +132,7 @@ class KoraDemoUserSeeder extends Seeder
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'phone' => $data['phone'],
-                'pin_hash' => Hash::make('123456'),
+                'pin_hash' => Hash::make('1234'),
                 'password' => Hash::make('password'),
             ]);
             $user->assignRole($data['role']->value);
