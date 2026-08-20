@@ -33,10 +33,13 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use SocialiteProviders\Manager\SocialiteWasCalled;
+use SocialiteProviders\TikTok\TikTokExtendSocialite;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -56,6 +59,16 @@ class AppServiceProvider extends ServiceProvider
         $this->registerPolicies();
         $this->configureRateLimiting();
         $this->configureDefaults();
+        $this->registerSocialiteProviders();
+    }
+
+    /**
+     * Enregistre les providers OAuth tiers (TikTok) via SocialiteProviders.
+     * Google et Facebook sont nativement supportés par Laravel Socialite.
+     */
+    protected function registerSocialiteProviders(): void
+    {
+        Event::listen(SocialiteWasCalled::class, TikTokExtendSocialite::class);
     }
 
     /**

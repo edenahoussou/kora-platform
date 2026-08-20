@@ -25,6 +25,7 @@ class AuthUserResource extends JsonResource
             'phone' => $this->phone,
             'country_code' => $this->country_code,
             'birth_date' => $this->birth_date,
+            'avatar_url' => $this->getFirstMediaUrl('avatar', 'thumb') ?: null,
             'status' => enum_value($this->status),
             'permissions' => $this->getAllPermissions()->pluck('name')->values(),
         ];

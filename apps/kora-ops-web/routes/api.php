@@ -3,6 +3,7 @@
 use App\Modules\BusNetwork\Http\Controllers\BusCatalogController;
 use App\Modules\Departures\Http\Controllers\BusDepartureController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthDeviceController;
+use App\Modules\IdentityAccess\Http\Controllers\AuthOAuthController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthOtpController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthSessionController;
 use App\Modules\IdentityAccess\Http\Controllers\UserPreferenceController;
@@ -28,6 +29,10 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::post('login', [AuthSessionController::class, 'login'])
             ->middleware('throttle:auth-login')
             ->name('login');
+
+        Route::post('oauth/token', [AuthOAuthController::class, 'token'])
+            ->middleware('throttle:auth-login')
+            ->name('oauth.token');
 
         Route::middleware('auth:sanctum')->group(function (): void {
             Route::get('me', [AuthSessionController::class, 'me'])->name('me');
