@@ -3,13 +3,18 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/features/auth/presentation/pages/signup_email_page.dart';
 
 void main() {
   late String? submitted;
 
-  Future<void> pumpPage(WidgetTester tester) async {
+  Future<void> pumpPage(
+    WidgetTester tester, {
+    Locale locale = const Locale('fr'),
+  }) async {
     tester.view.physicalSize = const Size(390 * 3, 844 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -19,6 +24,14 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
+        locale: locale,
+        supportedLocales: const [Locale('fr'), Locale('en')],
+        localizationsDelegates: const [
+          AppLocalization.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
         home: SignupEmailPage(onSubmit: (email) => submitted = email),
       ),
     );
@@ -87,5 +100,38 @@ void main() {
     await tester.enterText(find.byType(TextField), 'a');
     await tester.pumpAndSettle();
     expect(find.text('Adresse e-mail requise'), findsNothing);
+  });
+
+  testWidgets('propose les trois fournisseurs d’identité', (tester) async {
+    await pumpPage(tester);
+
+    expect(find.text('ou'), findsOneWidget);
+    expect(find.text('Continuer avec Google'), findsOneWidget);
+    expect(find.text('Continuer avec Facebook'), findsOneWidget);
+    expect(find.text('Continuer avec TikTok'), findsOneWidget);
+  });
+
+  testWidgets('annonce que l’inscription via un fournisseur n’est pas prête', (
+    tester,
+  ) async {
+    await pumpPage(tester);
+
+    await tester.tap(find.text('Continuer avec Google'));
+    await tester.pump();
+    // Le toast entre en fondu : on laisse l'animation se jouer.
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.textContaining('Google'), findsWidgets);
+    expect(submitted, isNull);
+  });
+
+  testWidgets('s’affiche en anglais quand la langue est l’anglais', (
+    tester,
+  ) async {
+    await pumpPage(tester, locale: const Locale('en'));
+
+    expect(find.text('Your email address'), findsOneWidget);
+    expect(find.text('Continue with Google'), findsOneWidget);
+    expect(find.text('or'), findsOneWidget);
   });
 }

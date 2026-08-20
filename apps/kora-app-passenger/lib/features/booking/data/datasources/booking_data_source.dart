@@ -2,6 +2,7 @@ import '../../domain/entities/city.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/search_criteria.dart';
 import '../../domain/entities/seat.dart';
+import '../../domain/entities/ticket.dart';
 import '../../domain/entities/upcoming_trip.dart';
 import 'booking_mock_data.dart';
 
@@ -29,6 +30,11 @@ abstract class BookingDataSource {
   Future<List<Seat>> getSeats(Departure departure);
 
   Future<UpcomingTrip?> getNextTrip();
+
+  /// Tous les billets du voyageur, statuts confondus. C'est l'écran qui
+  /// les répartit entre ses onglets : le tri par statut est un choix
+  /// d'affichage, pas une requête différente.
+  Future<List<Ticket>> getTickets();
 }
 
 /// Implémentation Sprint 1 : renvoie le jeu de données de
@@ -82,5 +88,11 @@ class BookingMockDataSource implements BookingDataSource {
   Future<UpcomingTrip?> getNextTrip() async {
     await Future<void>.delayed(latency);
     return mockUpcomingTrip(_now());
+  }
+
+  @override
+  Future<List<Ticket>> getTickets() async {
+    await Future<void>.delayed(latency);
+    return mockTickets(_now());
   }
 }

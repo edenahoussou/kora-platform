@@ -7,6 +7,9 @@ part of 'home_bloc.dart';
 /// qui affiche alors sa version vide.
 enum HomeStatus { loading, success, failure }
 
+/// Aller simple ou aller-retour (`.trip-type-switch` de `bus-search`).
+enum TripType { oneway, roundtrip }
+
 /// Couche PRESENTATION : tout ce dont l'écran d'accueil a besoin pour se
 /// dessiner, à un instant donné.
 class HomeState extends Equatable {
@@ -18,6 +21,8 @@ class HomeState extends Equatable {
     this.destination,
     this.date,
     this.passengers = 1,
+    this.tripType = TripType.oneway,
+    this.returnDate,
     this.nextTrip,
     this.today,
     this.errorMessage,
@@ -36,6 +41,13 @@ class HomeState extends Equatable {
   final City? destination;
   final DateTime? date;
   final int passengers;
+
+  final TripType tripType;
+
+  /// Date du retour, seulement en aller-retour. `null` tant qu'elle n'a
+  /// pas été choisie : le bouton de recherche le signale plutôt que de
+  /// partir sur une date devinée.
+  final DateTime? returnDate;
 
   /// `null` = aucun voyage à venir (voir la note sur [HomeStatus]).
   final UpcomingTrip? nextTrip;
@@ -77,6 +89,8 @@ class HomeState extends Equatable {
     City? destination,
     DateTime? date,
     int? passengers,
+    TripType? tripType,
+    DateTime? returnDate,
     UpcomingTrip? nextTrip,
     DateTime? today,
     String? errorMessage,
@@ -89,6 +103,8 @@ class HomeState extends Equatable {
       destination: destination ?? this.destination,
       date: date ?? this.date,
       passengers: passengers ?? this.passengers,
+      tripType: tripType ?? this.tripType,
+      returnDate: returnDate ?? this.returnDate,
       nextTrip: nextTrip ?? this.nextTrip,
       today: today ?? this.today,
       errorMessage: errorMessage ?? this.errorMessage,
@@ -104,6 +120,8 @@ class HomeState extends Equatable {
     destination,
     date,
     passengers,
+    tripType,
+    returnDate,
     nextTrip,
     today,
     errorMessage,

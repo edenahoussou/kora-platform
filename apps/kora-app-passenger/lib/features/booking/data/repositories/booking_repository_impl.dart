@@ -6,6 +6,7 @@ import '../../domain/entities/city.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/search_criteria.dart';
 import '../../domain/entities/seat.dart';
+import '../../domain/entities/ticket.dart';
 import '../../domain/entities/upcoming_trip.dart';
 import '../../domain/repositories/booking_repository.dart';
 import '../datasources/booking_data_source.dart';
@@ -73,6 +74,17 @@ class BookingRepositoryImpl implements BookingRepository {
   Future<Either<Failure, UpcomingTrip?>> getNextTrip() async {
     try {
       return Right(await _dataSource.getNextTrip());
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on NetworkException {
+      return const Left(NetworkFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Ticket>>> getTickets() async {
+    try {
+      return Right(await _dataSource.getTickets());
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
     } on NetworkException {

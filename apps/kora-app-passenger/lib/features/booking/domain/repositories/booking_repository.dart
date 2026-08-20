@@ -5,6 +5,7 @@ import '../entities/city.dart';
 import '../entities/departure.dart';
 import '../entities/search_criteria.dart';
 import '../entities/seat.dart';
+import '../entities/ticket.dart';
 import '../entities/upcoming_trip.dart';
 
 /// Couche DOMAIN : contrat du parcours de réservation Bus.
@@ -41,4 +42,10 @@ abstract class BookingRepository {
   /// (c'est un cas normal, pas une erreur — d'où le `Right(null)` plutôt
   /// qu'un [Failure]).
   Future<Either<Failure, UpcomingTrip?>> getNextTrip();
+
+  /// Billets du voyageur, tous statuts confondus.
+  ///
+  /// Une liste vide est un succès : c'est le cas de quelqu'un qui n'a
+  /// encore rien réservé, et l'écran a un état dédié pour le dire.
+  Future<Either<Failure, List<Ticket>>> getTickets();
 }

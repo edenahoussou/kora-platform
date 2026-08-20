@@ -12,10 +12,16 @@ import '../../features/booking/domain/usecases/get_cities_usecase.dart';
 import '../../features/booking/domain/usecases/get_next_trip_usecase.dart';
 import '../../features/booking/domain/usecases/get_recent_cities_usecase.dart';
 import '../../features/booking/domain/usecases/get_seats_usecase.dart';
+import '../../features/booking/domain/usecases/get_tickets_usecase.dart';
 import '../../features/booking/domain/usecases/search_departures_usecase.dart';
 import '../../features/booking/presentation/bloc/departures_bloc.dart';
 import '../../features/booking/presentation/bloc/seats_bloc.dart';
+import '../../features/booking/presentation/bloc/tickets_bloc.dart';
 import '../../features/home/presentation/bloc/home_bloc.dart';
+import '../../features/language/data/datasources/language_local_data_source.dart';
+import '../../features/language/data/repositories/language_repository_impl.dart';
+import '../../features/language/domain/repositories/language_repository.dart';
+import '../../features/language/presentation/bloc/language_bloc.dart';
 import '../../features/theme/data/datasources/theme_local_data_source.dart';
 import '../../features/theme/data/repositories/theme_repository_impl.dart';
 import '../../features/theme/domain/repositories/theme_repository.dart';
@@ -42,6 +48,7 @@ Future<void> setupInjector() async {
   await _registerExternalDependencies();
   _registerCore();
   _registerThemeFeature();
+  _registerLanguageFeature();
   _registerBookingFeature();
 
   // Quand on ajoutera une nouvelle feature (ex: "auth"), on suit le même
@@ -140,8 +147,26 @@ void _registerBookingFeature() {
     () => SearchDeparturesUseCase(getIt()),
   );
   getIt.registerLazySingleton<GetSeatsUseCase>(() => GetSeatsUseCase(getIt()));
+  getIt.registerLazySingleton<GetTicketsUseCase>(
+    () => GetTicketsUseCase(getIt()),
+  );
 
   getIt.registerFactory<HomeBloc>(() => HomeBloc(getIt(), getIt(), getIt()));
   getIt.registerFactory<DeparturesBloc>(() => DeparturesBloc(getIt(), getIt()));
   getIt.registerFactory<SeatsBloc>(() => SeatsBloc(getIt()));
+  getIt.registerFactory<TicketsBloc>(() => TicketsBloc(getIt()));
+}
+
+/// Feature `language` : même chaîne que le thème — un data source
+/// SharedPreferences, un repository, un bloc.
+void _registerLanguageFeature() {
+  getIt.registerLazySingleton<LanguageLocalDataSource>(
+    () => LanguageLocalDataSourceImpl(getIt()),
+  );
+
+  getIt.registerLazySingleton<LanguageRepository>(
+    () => LanguageRepositoryImpl(getIt()),
+  );
+
+  getIt.registerFactory<LanguageBloc>(() => LanguageBloc(getIt()));
 }

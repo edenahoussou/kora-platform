@@ -8,7 +8,30 @@ import 'package:intl/intl.dart';
 class KoraDateFormats {
   const KoraDateFormats._();
 
+  /// Locale par défaut des formats ci-dessous.
+  ///
+  /// Les écrans déjà traduits passent plutôt par les variantes `…In(locale)`,
+  /// qui suivent la langue choisie : `04 août` en français, `04 August` en
+  /// anglais. Les formats figés restent le temps que les écrans encore
+  /// écrits en dur soient migrés.
   static const String locale = 'fr_FR';
+
+  /// `04 août` / `04 August`, dans la langue passée.
+  static String dayMonthIn(DateTime date, String locale) =>
+      DateFormat('dd MMMM', locale).format(date);
+
+  /// `4 août 2026` / `4 August 2026`.
+  static String dayMonthYearIn(DateTime date, String locale) =>
+      DateFormat('d MMMM yyyy', locale).format(date);
+
+  /// `Mar. 04 août` / `Tue 4 August` — rappel du jour sur un billet.
+  static String weekdayDayMonthIn(DateTime date, String locale) =>
+      capitalize(DateFormat('E d MMMM', locale).format(date));
+
+  /// `07:30` — identique partout, mais on passe la locale pour ne pas
+  /// dépendre d'un format horaire qui varierait ailleurs.
+  static String timeIn(DateTime date, String locale) =>
+      DateFormat('HH:mm', locale).format(date);
 
   /// `4 août 2026` — date choisie dans le formulaire de recherche.
   static final DateFormat dayMonthYear = DateFormat('d MMMM yyyy', locale);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../colors/app_colors.dart';
+import '../../colors/kora_colors.dart';
 import '../../dimens/app_dimens.dart';
 import '../../icons/kora_vehicle_icon.dart';
 import '../kora_tag.dart';
@@ -11,14 +12,16 @@ import '../kora_tag.dart';
 /// véhicule + places à gauche/droite en haut, heures de départ/arrivée
 /// avec ligne de trajet au centre, services + prix garanti en bas.
 ///
-/// **Fond toujours blanc, quel que soit le thème de l'app** — comme
-/// [TicketView]. Ce n'est pas un oubli : le prototype ne définit AUCUNE
-/// règle `.dark-mode` pour `.trip-card` (les 6 seules règles `.dark-mode`
-/// du CSS ne touchent que le fond de l'écran et les titres d'en-tête,
-/// L1714-1719) — une carte de résultat de recherche reste une carte
-/// blanche sur fond navy en mode sombre, elle ne devient pas elle-même
-/// sombre. D'où l'usage de couleurs fixes (`AppColors.*`) plutôt que du
-/// thème contextuel (`koraColors.*`) dans tout ce fichier.
+/// **La carte suit le thème** : blanche en clair, bleu marine en sombre.
+/// Le prototype ne définit aucune règle `.dark-mode` pour `.trip-card`
+/// (ses 6 règles sombres ne touchent que le fond d'écran et les titres
+/// d'en-tête), mais une carte blanche sur un fond navy éblouit dans une
+/// liste entière de résultats — d'où le passage aux couleurs
+/// contextuelles du thème (`koraColors.*`).
+///
+/// [TicketView] et [ConnectionResultCard], eux, restent blancs : un
+/// billet et une correspondance sont des documents, pas des éléments de
+/// liste.
 ///
 /// Exemple d'utilisation :
 /// ```dart
@@ -79,10 +82,12 @@ class DepartureCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+
     final card = Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: koraColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         border: isSelected
             ? Border.all(color: AppColors.gold, width: 1.5)
@@ -175,8 +180,8 @@ class _Head extends StatelessWidget {
                   // habituel) ; ici le badge est doré donc le texte est
                   // navy (`--kora`) — on reteinte l'icône pour matcher
                   // `.trip-mode-icon svg { stroke: currentColor }`.
-                  colorFilter: const ColorFilter.mode(
-                    AppColors.kora,
+                  colorFilter: ColorFilter.mode(
+                    _titleColor(context),
                     BlendMode.srcIn,
                   ),
                 ),
@@ -186,7 +191,7 @@ class _Head extends StatelessWidget {
         else if (seatsAvailable != null)
           Text(
             '$seatsAvailable places',
-            style: const TextStyle(color: AppColors.mutedLight, fontSize: 10),
+            style: TextStyle(color: context.koraColors.textMuted, fontSize: 10),
           ),
       ],
     );
@@ -250,8 +255,8 @@ class _TimePoint extends StatelessWidget {
         Text(
           time,
           textAlign: textAlign,
-          style: const TextStyle(
-            color: AppColors.kora,
+          style: TextStyle(
+            color: _titleColor(context),
             fontSize: 18,
             fontWeight: FontWeight.w900,
           ),
@@ -260,7 +265,7 @@ class _TimePoint extends StatelessWidget {
         Text(
           city,
           textAlign: textAlign,
-          style: const TextStyle(color: AppColors.mutedLight, fontSize: 9),
+          style: TextStyle(color: context.koraColors.textMuted, fontSize: 9),
         ),
       ],
     );
@@ -282,14 +287,14 @@ class _RouteLine extends StatelessWidget {
         Text(
           duration,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.mutedLight, fontSize: 9),
+          style: TextStyle(color: context.koraColors.textMuted, fontSize: 9),
         ),
         const SizedBox(height: 6),
         Row(
           children: [
-            const _RouteDot(color: AppColors.kora),
+            _RouteDot(color: _titleColor(context)),
             Expanded(
-              child: Container(height: 2, color: AppColors.routeLineLight),
+              child: Container(height: 2, color: context.koraColors.line),
             ),
             const _RouteDot(color: AppColors.gold),
           ],
@@ -335,16 +340,19 @@ class _Foot extends StatelessWidget {
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Expanded(
+          Expanded(
             child: Text(
               'Aucune place sur ce segment',
-              style: TextStyle(color: AppColors.mutedLight, fontSize: 10),
+              style: TextStyle(
+                color: context.koraColors.textMuted,
+                fontSize: 10,
+              ),
             ),
           ),
-          const Text(
+          Text(
             'Indisponible',
             style: TextStyle(
-              color: AppColors.kora,
+              color: _titleColor(context),
               fontSize: 11,
               fontWeight: FontWeight.w800,
             ),
@@ -360,20 +368,23 @@ class _Foot extends StatelessWidget {
         Expanded(
           child: Text(
             servicesLabel,
-            style: const TextStyle(color: AppColors.mutedLight, fontSize: 10),
+            style: TextStyle(color: context.koraColors.textMuted, fontSize: 10),
           ),
         ),
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            const Text(
+            Text(
               'Prix final garanti',
-              style: TextStyle(color: AppColors.mutedLight, fontSize: 9),
+              style: TextStyle(
+                color: context.koraColors.textMuted,
+                fontSize: 9,
+              ),
             ),
             Text(
               price,
-              style: const TextStyle(
-                color: AppColors.kora,
+              style: TextStyle(
+                color: _titleColor(context),
                 fontSize: 15,
                 fontWeight: FontWeight.w900,
               ),
@@ -384,3 +395,11 @@ class _Foot extends StatelessWidget {
     );
   }
 }
+
+/// Couleur des textes forts de la carte : le bleu KORA du prototype en
+/// thème clair, le blanc du thème sombre une fois la carte passée en navy
+/// — un bleu marine sur bleu marine ne se lirait pas.
+Color _titleColor(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark
+    ? context.koraColors.textPrimary
+    : AppColors.kora;

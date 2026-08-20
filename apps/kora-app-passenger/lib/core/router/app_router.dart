@@ -7,18 +7,20 @@ import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/otp_page.dart';
 import '../../features/auth/presentation/pages/signup_email_page.dart';
 import '../../features/booking/domain/entities/search_criteria.dart';
+import '../../features/booking/presentation/pages/bus_search_page.dart';
 import '../../features/booking/presentation/pages/departure_detail_page.dart';
 import '../../features/booking/presentation/pages/departures_page.dart';
 import '../../features/booking/presentation/pages/passenger_form_page.dart';
 import '../../features/booking/presentation/pages/seats_page.dart';
 import '../../features/booking/presentation/pages/summary_page.dart';
+import '../../features/booking/presentation/pages/ticket_detail_page.dart';
+import '../../features/booking/presentation/pages/tickets_page.dart';
 import '../../features/colis/presentation/pages/colis_page.dart';
 import '../../features/home/presentation/pages/city_picker_page.dart';
 import '../../features/home/presentation/pages/date_picker_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/home/presentation/pages/passengers_picker_page.dart';
 import '../../features/profil/presentation/pages/profil_page.dart';
-import '../../features/voyages/presentation/pages/voyages_page.dart';
 import '../../features/wallet/presentation/pages/wallet_page.dart';
 import '../../features/welcome/presentation/pages/welcome_page.dart';
 import 'auth_guard.dart';
@@ -80,6 +82,14 @@ class AppRouter {
   static const String seatsPath = '/seats';
   static const String passengerInfoPath = '/passenger-info';
   static const String summaryPath = '/summary';
+
+  /// Formulaire de réservation en grand (`bus-search`), ouvert depuis
+  /// « Réserver un voyage » de l'onglet Voyages.
+  static const String busSearchPath = '/bus-search';
+
+  /// Détail d'un billet. Le billet lui-même passe en `extra` : il vient
+  /// de la liste déjà chargée, inutile de le redemander.
+  static const String ticketDetailPath = '/ticket-detail';
 
   /// Sélection de la ville de départ / d'arrivée.
   ///
@@ -217,6 +227,22 @@ class AppRouter {
         ),
       ),
       GoRoute(
+        path: busSearchPath,
+        builder: (context, state) => const BusSearchPage(),
+      ),
+      GoRoute(
+        path: ticketDetailPath,
+        builder: (context, state) {
+          final args = state.extra as TicketDetailArgs?;
+
+          // Sans `extra` (lien profond, redémarrage à chaud), on renvoie
+          // sur la liste plutôt que d'afficher un billet vide.
+          if (args == null) return const SizedBox.shrink();
+
+          return TicketDetailPage(ticket: args.ticket, today: args.today);
+        },
+      ),
+      GoRoute(
         path: welcomePath,
         builder: (context, state) => WelcomePage(
           // Les deux actions mènent à l'inscription et à la connexion, qui
@@ -325,7 +351,13 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: '/voyages',
-                builder: (context, state) => const VoyagesPage(),
+                builder: (context, state) => TicketsPage(
+                  onBookTrip: () => context.push(busSearchPath),
+                  onOpenTicket: (ticket, today) => context.push(
+                    ticketDetailPath,
+                    extra: TicketDetailArgs(ticket: ticket, today: today),
+                  ),
+                ),
               ),
             ],
           ),
