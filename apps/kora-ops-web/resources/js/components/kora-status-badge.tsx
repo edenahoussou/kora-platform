@@ -9,10 +9,10 @@ type Props = {
 };
 
 const toneStyles: Record<StatusTone, string> = {
-    navy: 'text-white bg-[var(--kora)]',
-    gold: 'text-[var(--kora)] bg-gold/20',
-    blue: 'text-[var(--kora)] bg-[var(--digital)]/9',
-    muted: 'text-muted-foreground bg-muted',
+    navy: 'text-white bg-[var(--kora)] dark:bg-[var(--digital)]/20 dark:text-[var(--digital)]',
+    gold: 'text-[var(--kora)] bg-gold/20 dark:text-gold dark:bg-gold/15',
+    blue: 'text-[var(--kora)] bg-[var(--digital)]/9 dark:text-[var(--digital)] dark:bg-[var(--digital)]/15',
+    muted: 'text-muted-foreground bg-muted dark:bg-muted/40',
 };
 
 const dotStyles: Record<StatusTone, string> = {

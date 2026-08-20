@@ -2,6 +2,7 @@
 
 use App\Modules\BusNetwork\Http\Controllers\BusController;
 use App\Modules\BusNetwork\Http\Controllers\LineController;
+use App\Modules\Departures\Http\Controllers\DepartureController;
 use App\Modules\DynamicPricing\Http\Controllers\FareController;
 use App\Modules\IdentityAccess\Http\Controllers\AgencyController;
 use Illuminate\Support\Facades\Auth;
@@ -21,7 +22,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // =========================================================
     Route::inertia('sale', 'sale')->name('sale');
     Route::inertia('cash', 'cash')->name('cash');
-    Route::inertia('departures', 'departures')->name('departures');
+    Route::inertia('boarding', 'boarding')->name('boarding');
+    Route::inertia('manifest', 'manifest')->name('manifest');
+
+    // V1 MVP — Départs (CRUD)
+    Route::get('departures', [DepartureController::class, 'index'])->name('departures.index');
+    Route::get('departures/{departure:uuid}', [DepartureController::class, 'show'])->name('departures.show');
+    Route::post('departures', [DepartureController::class, 'store'])->name('departures.store');
+    Route::put('departures/{departure:uuid}', [DepartureController::class, 'update'])->name('departures.update');
+    Route::patch('departures/{departure:uuid}/status', [DepartureController::class, 'changeStatus'])->name('departures.status');
     Route::inertia('boarding', 'boarding')->name('boarding');
     Route::inertia('manifest', 'manifest')->name('manifest');
     Route::get('fares', [FareController::class, 'index'])->name('fares.index');
