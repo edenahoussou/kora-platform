@@ -67,9 +67,10 @@ void main() {
       );
     });
 
-    testWidgets('complet — mode sombre (carte toujours blanche)', (
-      tester,
-    ) async {
+    // La carte suit le thème depuis qu'une liste entière de cartes
+    // blanches sur fond navy s'est révélée éblouissante : elle est bleu
+    // marine en sombre, et ses textes forts passent au blanc.
+    testWidgets('complet — mode sombre (carte navy)', (tester) async {
       await pumpKoraWidget(
         tester,
         const DepartureCard(
