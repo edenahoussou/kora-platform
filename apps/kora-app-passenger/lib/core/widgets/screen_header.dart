@@ -14,6 +14,8 @@ class ScreenHeader extends StatelessWidget {
     required this.eyebrow,
     required this.title,
     this.action,
+    this.showBack = true,
+    this.leading,
   });
 
   /// Petite ligne au-dessus du titre (`Votre trajet`, `Août 2026`...).
@@ -24,6 +26,20 @@ class ScreenHeader extends StatelessWidget {
   /// Bouton d'action aligné à droite du titre (`options.action` dans la
   /// maquette), par exemple « Modifier la recherche ».
   final Widget? action;
+
+  /// Affiche le bouton retour (`options.back` de la maquette).
+  ///
+  /// À couper sur les écrans racines d'un onglet de la bottom nav : il n'y
+  /// a rien derrière eux, un retour n'aurait nulle part où aller.
+  final bool showBack;
+
+  /// Ce qui prend la place du bouton retour quand [showBack] est faux.
+  ///
+  /// `back: false` dans la maquette ne retire pas le bouton, il le
+  /// remplace par le logo (`<img class="brand-mini">`) — un écran racine
+  /// n'a rien derrière lui, mais son en-tête ne commence pas dans le vide
+  /// pour autant.
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
@@ -52,11 +68,16 @@ class ScreenHeader extends StatelessWidget {
         padding: const EdgeInsets.only(top: AppSpacing.md, bottom: 15),
         child: Row(
           children: [
-            KoraIconButton(
-              icon: Icons.chevron_left_rounded,
-              onTap: () => Navigator.of(context).pop(),
-            ),
-            const SizedBox(width: AppSpacing.md),
+            if (showBack) ...[
+              KoraIconButton(
+                icon: Icons.chevron_left_rounded,
+                onTap: () => Navigator.of(context).pop(),
+              ),
+              const SizedBox(width: AppSpacing.md),
+            ] else if (leading != null) ...[
+              leading!,
+              const SizedBox(width: AppSpacing.md),
+            ],
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

@@ -17,6 +17,7 @@ import '../../domain/entities/line.dart';
 import '../../domain/entities/price.dart';
 import '../../domain/entities/search_criteria.dart';
 import '../../domain/entities/seat.dart';
+import '../../domain/entities/ticket.dart';
 import '../../domain/entities/trip_segment.dart';
 import '../../domain/entities/upcoming_trip.dart';
 
@@ -354,4 +355,113 @@ UpcomingTrip mockUpcomingTrip(DateTime now) {
       status: SeatStatus.occupied,
     ),
   );
+}
+
+/// Billets du voyageur, tels que les liste l'onglet « Mes voyages ».
+///
+/// Construits relativement à [now], comme [mockUpcomingTrip] : un billet
+/// « à venir » figé au 4 août 2026 deviendrait un billet passé au bout de
+/// quelques jours, et l'écran perdrait son onglet le plus important.
+///
+/// Le jeu couvre les trois statuts, parce que c'est ce que l'écran doit
+/// savoir afficher : un billet confirmé (le même départ que la carte de
+/// l'accueil, pour que les deux écrans racontent la même histoire), trois
+/// voyages terminés et une annulation.
+List<Ticket> mockTickets(DateTime now) {
+  final today = DateTime(now.year, now.month, now.day);
+
+  Departure departure({
+    required String id,
+    required Line line,
+    required DateTime departsAt,
+    int price = 12500,
+    int seatsAvailable = 12,
+  }) {
+    return Departure(
+      id: id,
+      line: line,
+      departsAt: departsAt,
+      comfort: BusComfort.confort,
+      price: Price(price),
+      seatsTotal: 55,
+      seatsAvailable: seatsAvailable,
+      amenities: const ['Wi-Fi', 'Climatisation', 'USB'],
+    );
+  }
+
+  // Le siège du voyageur : vendu, forcément — c'est le sien.
+  Seat seat(String label, int row) => Seat(
+    id: 'seat-${label.toLowerCase()}',
+    label: label,
+    row: row,
+    column: 0,
+    status: SeatStatus.occupied,
+  );
+
+  return [
+    Ticket(
+      reference: 'KE-20260804-78342',
+      departure: departure(
+        id: 'dep-ctn-mlv-0730',
+        line: kMockCotonouMalanville,
+        departsAt: today
+            .add(const Duration(days: 7))
+            .add(const Duration(hours: 7, minutes: 30)),
+      ),
+      seat: seat('4A', 4),
+      status: TicketStatus.confirmed,
+    ),
+    Ticket(
+      reference: 'KE-20260712-51108',
+      departure: departure(
+        id: 'dep-ctn-par-0900',
+        line: kMockLines[1], // Cotonou → Parakou
+        departsAt: today
+            .subtract(const Duration(days: 12))
+            .add(const Duration(hours: 9)),
+        price: 8000,
+      ),
+      seat: seat('7B', 7),
+      status: TicketStatus.completed,
+    ),
+    Ticket(
+      reference: 'KE-20260628-33920',
+      departure: departure(
+        id: 'dep-bhc-pku-1400',
+        line: kMockLines[4], // Bohicon → Parakou
+        departsAt: today
+            .subtract(const Duration(days: 26))
+            .add(const Duration(hours: 14)),
+        price: 4000,
+      ),
+      seat: seat('2C', 2),
+      status: TicketStatus.completed,
+    ),
+    Ticket(
+      reference: 'KE-20260605-19477',
+      departure: departure(
+        id: 'dep-ctn-pnv-1730',
+        line: kMockLines[2], // Cotonou → Porto-Novo
+        departsAt: today
+            .subtract(const Duration(days: 49))
+            .add(const Duration(hours: 17, minutes: 30)),
+        price: 2000,
+      ),
+      seat: seat('5D', 5),
+      status: TicketStatus.completed,
+    ),
+    Ticket(
+      reference: 'KE-20260715-64201',
+      departure: departure(
+        id: 'dep-ctn-nat-2000',
+        line: kMockLines[3], // Cotonou → Natitingou
+        departsAt: today
+            .subtract(const Duration(days: 9))
+            .add(const Duration(hours: 20)),
+        price: 13500,
+      ),
+      seat: seat('9A', 9),
+      status: TicketStatus.cancelled,
+    ),
+  ];
 }

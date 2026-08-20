@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 
+import '../../../../core/widgets/brand_mini.dart';
+
 /// En-tête bleu marine de l'accueil — équivalent `.home-hero` de la
 /// maquette (`css/style.css`, L394-420 puis L1086-1112 pour la version
 /// « premium » qui écrase la première).
@@ -130,8 +132,8 @@ class HomeHero extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const _BrandMini(),
-                        _NotificationButton(onTap: onNotificationsTap),
+                        const BrandMini(),
+                        NotificationButton(onTap: onNotificationsTap),
                       ],
                     ),
                     const SizedBox(height: AppSpacing.xl),
@@ -183,85 +185,6 @@ class HomeHero extends StatelessWidget {
                     ),
                   ),
                 ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// `.brand-mini` : le logo KORA dans sa pastille blanche.
-class _BrandMini extends StatelessWidget {
-  const _BrandMini();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 102,
-      height: 42,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(AppRadius.base),
-      ),
-      // `object-fit: cover` comme dans le CSS, et non `contain` : le PNG
-      // du logo est presque carré avec une large marge blanche autour du
-      // dessin. En `contain`, c'est cette marge qu'on met à l'échelle, et
-      // le logo apparaît minuscule dans sa pastille. En `cover`, la
-      // marge est rognée en haut et en bas et le logo occupe toute la
-      // largeur, exactement comme sur la maquette.
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-        child: Image.asset('assets/images/kora_logo.png', fit: BoxFit.cover),
-      ),
-    );
-  }
-}
-
-/// `.notification-button` : rond blanc + pastille dorée « non lu ».
-///
-/// Volontairement local plutôt que `KoraIconButton` du design system :
-/// celui-ci prend la couleur de surface du thème (bleu très sombre en mode
-/// sombre), qui disparaîtrait sur le fond navy de l'en-tête.
-class _NotificationButton extends StatelessWidget {
-  const _NotificationButton({this.onTap});
-
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 42,
-      height: 42,
-      child: Material(
-        color: AppColors.white,
-        shape: const CircleBorder(),
-        child: InkWell(
-          onTap: onTap,
-          customBorder: const CircleBorder(),
-          child: Stack(
-            children: [
-              const Center(
-                child: Icon(
-                  Icons.notifications_none_rounded,
-                  size: 21,
-                  color: AppColors.kora,
-                ),
-              ),
-              Positioned(
-                right: 9,
-                top: 9,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: AppColors.gold,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.white, width: 1.5),
-                  ),
-                ),
-              ),
             ],
           ),
         ),

@@ -38,6 +38,8 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     on<HomeRouteSwapped>(_onRouteSwapped);
     on<HomeDateSelected>(_onDateSelected);
     on<HomePassengersSelected>(_onPassengersSelected);
+    on<HomeTripTypeChanged>(_onTripTypeChanged);
+    on<HomeReturnDateSelected>(_onReturnDateSelected);
   }
 
   final GetCitiesUseCase _getCities;
@@ -168,5 +170,16 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   DateTime _today() {
     final now = _now();
     return DateTime(now.year, now.month, now.day);
+  }
+
+  void _onTripTypeChanged(HomeTripTypeChanged event, Emitter<HomeState> emit) {
+    emit(state.copyWith(tripType: event.tripType));
+  }
+
+  void _onReturnDateSelected(
+    HomeReturnDateSelected event,
+    Emitter<HomeState> emit,
+  ) {
+    emit(state.copyWith(returnDate: event.date));
   }
 }

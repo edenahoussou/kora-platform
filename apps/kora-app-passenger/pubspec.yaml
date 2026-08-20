@@ -80,6 +80,7 @@ flutter:
   # dès que l'app dépend de ce package.
   assets:
     - assets/images/
+    - assets/languages/
 
   # Pour ajouter la police Aptos plus tard (voir GUIDE.md, section design
   # system) : ça se passe dans packages/flutter-design-system, pas ici.

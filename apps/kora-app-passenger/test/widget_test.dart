@@ -12,6 +12,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:kora_app_passenger/app.dart';
 import 'package:kora_app_passenger/core/di/injector.dart';
 import 'package:kora_app_passenger/core/env/app_env.dart';
+import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/core/utils/date_formats.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -33,6 +34,10 @@ void main() {
     // refait à la main, comme setupInjector() juste en dessous.
     AppEnv.current = AppEnv.dev;
     await initializeDateFormatting(KoraDateFormats.locale);
+    // Comme bootstrap() : sans les textes déjà lus, `Localizations`
+    // n'afficherait rien pendant les premières frames et le test ne
+    // trouverait aucun libellé.
+    await AppLocalization.preloadAll();
     await setupInjector();
   });
 

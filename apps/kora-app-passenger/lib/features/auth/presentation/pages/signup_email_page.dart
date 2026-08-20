@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 
+import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/widgets/screen_header.dart';
 
 /// Première étape de la création de compte — écran `phone` de la maquette
@@ -33,13 +34,14 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
   }
 
   void _submit() {
+    final l10n = context.l10n;
     final email = _email.text.trim();
 
     setState(() {
       if (email.isEmpty) {
-        _error = 'Adresse e-mail requise';
+        _error = l10n.signupEmailRequired;
       } else if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
-        _error = 'Adresse e-mail invalide';
+        _error = l10n.signupEmailInvalid;
       } else {
         _error = null;
       }
@@ -49,9 +51,13 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
     widget.onSubmit?.call(email);
   }
 
+  void _social(BuildContext context, String provider) =>
+      KoraToaster.show(context, context.l10n.signupSocialSoon(provider));
+
   @override
   Widget build(BuildContext context) {
     final koraColors = context.koraColors;
+    final l10n = context.l10n;
 
     return Scaffold(
       body: SafeArea(
@@ -60,26 +66,25 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const ScreenHeader(
-                eyebrow: 'Création de compte',
-                title: 'Votre adresse email',
+              ScreenHeader(
+                eyebrow: l10n.signupEyebrow,
+                title: l10n.signupTitle,
               ),
               Expanded(
                 child: ListView(
                   padding: EdgeInsets.zero,
                   children: [
                     Text(
-                      'Nous vous enverrons un code de vérification sécurisé '
-                      'par email.',
+                      l10n.signupLead,
                       style: AppTextStyles.lead(koraColors.textMuted),
                     ),
                     const SizedBox(height: 18),
                     KoraInput(
-                      label: 'Adresse email',
+                      label: l10n.signupEmailLabel,
                       // Pas de valeur pré-remplie, contrairement à la
                       // maquette : sur un formulaire de création de compte,
                       // une adresse déjà inscrite serait celle de personne.
-                      hint: 'vous@exemple.com',
+                      hint: l10n.signupEmailHint,
                       controller: _email,
                       keyboardType: TextInputType.emailAddress,
                       errorText: _error,
@@ -101,8 +106,7 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: Text(
-                              'Votre email sert d’identifiant KORA et reste '
-                              'protégé.',
+                              l10n.signupEmailProtected,
                               style: AppTextStyles.body(koraColors.textMuted),
                             ),
                           ),
@@ -113,7 +117,31 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
                     // card dans le flux, il n'est pas épinglé en bas
                     // d'écran comme ceux du tunnel de réservation.
                     const SizedBox(height: 24),
-                    KoraButton(label: 'Recevoir mon code', onPressed: _submit),
+                    KoraButton(label: l10n.signupSubmit, onPressed: _submit),
+                    const SizedBox(height: 24),
+                    KoraOrDivider(label: l10n.signupOr),
+                    const SizedBox(height: 18),
+                    // Les trois fournisseurs, dans l'ordre de leur usage
+                    // attendu au Bénin. Aucun n'est branché : la feature
+                    // `auth` n'existe pas, chacun le dit plutôt que de
+                    // simuler une connexion.
+                    KoraSocialButton(
+                      provider: KoraSocialProvider.google,
+                      label: l10n.signupWithGoogle,
+                      onPressed: () => _social(context, 'Google'),
+                    ),
+                    const SizedBox(height: 10),
+                    KoraSocialButton(
+                      provider: KoraSocialProvider.facebook,
+                      label: l10n.signupWithFacebook,
+                      onPressed: () => _social(context, 'Facebook'),
+                    ),
+                    const SizedBox(height: 10),
+                    KoraSocialButton(
+                      provider: KoraSocialProvider.tiktok,
+                      label: l10n.signupWithTiktok,
+                      onPressed: () => _social(context, 'TikTok'),
+                    ),
                     const SizedBox(height: AppSpacing.lg),
                   ],
                 ),

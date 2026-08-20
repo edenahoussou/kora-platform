@@ -4,7 +4,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'app.dart';
 import 'core/di/injector.dart';
 import 'core/env/app_env.dart';
-import 'core/utils/date_formats.dart';
+import 'core/l10n/app_localization.dart';
 
 /// Démarrage commun à tous les environnements. Chaque point d'entrée
 /// (`main_dev.dart`, `main_staging.dart`, `main_prod.dart`) ne fait qu'un
@@ -20,10 +20,17 @@ Future<void> bootstrap(AppEnv env) async {
   // DioClient avec AppEnv.current.apiBaseUrl.
   AppEnv.current = env;
 
-  // Charge les noms de mois/jours français utilisés par `KoraDateFormats`.
+  // Charge les noms de mois et de jours de toutes les langues de l'app.
   // Sans cet appel, le premier `DateFormat(..., 'fr_FR')` lèverait une
-  // exception « locale data has not been initialized ».
-  await initializeDateFormatting(KoraDateFormats.locale);
+  // exception « locale data has not been initialized ». Sans argument,
+  // `initializeDateFormatting` les charge toutes : le surcoût est
+  // négligeable devant le risque d'oublier une langue ajoutée plus tard.
+  await initializeDateFormatting();
+
+  // Lit les fichiers de traduction avant le premier écran : sinon
+  // `Localizations` n'affiche rien le temps de la lecture, et l'app
+  // démarre sur un blanc.
+  await AppLocalization.preloadAll();
 
   // Enregistre toutes les dépendances (data sources, repositories, blocs)
   // dans le service locator get_it. Voir core/di/injector.dart.

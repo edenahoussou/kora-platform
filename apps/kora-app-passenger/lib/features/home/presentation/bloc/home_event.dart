@@ -55,3 +55,23 @@ class HomePassengersSelected extends HomeEvent {
   @override
   List<Object?> get props => [passengers];
 }
+
+/// Bascule entre aller simple et aller-retour.
+class HomeTripTypeChanged extends HomeEvent {
+  const HomeTripTypeChanged(this.tripType);
+
+  final TripType tripType;
+
+  @override
+  List<Object?> get props => [tripType];
+}
+
+/// Date du retour choisie sur l'écran de calendrier.
+class HomeReturnDateSelected extends HomeEvent {
+  const HomeReturnDateSelected(this.date);
+
+  final DateTime date;
+
+  @override
+  List<Object?> get props => [date];
+}
