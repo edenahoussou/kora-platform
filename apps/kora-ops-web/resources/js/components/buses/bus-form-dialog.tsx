@@ -69,6 +69,7 @@ export function BusFormDialog({
                 className="max-w-[42rem] rounded-[1.75rem] border-border/50 bg-card p-0 shadow-[0_30px_80px_rgba(0,29,78,0.35)] [&>button]:hidden"
             >
                 <Form
+                    key={bus?.uuid ?? 'new'}
                     {...form}
                     options={{ preserveScroll: true }}
                     resetOnSuccess
@@ -195,8 +196,8 @@ export function BusFormDialog({
                                     {processing
                                         ? 'Enregistrement…'
                                         : editing
-                                          ? 'Enregistrer les changements'
-                                          : 'Créer le bus'}
+                                            ? 'Enregistrer les changements'
+                                            : 'Créer le bus'}
                                 </Button>
                             </div>
                         </>

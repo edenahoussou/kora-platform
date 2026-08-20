@@ -2,6 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import {
     BusFront,
     Edit3,
+    Eye,
     MoreHorizontal,
     Plus,
     RotateCcw,
@@ -13,6 +14,7 @@ import { BusFormDialog } from '@/components/buses/bus-form-dialog';
 import type { BusRecord } from '@/components/buses/bus-form-dialog';
 import { KoraFilterBar } from '@/components/kora-filter-bar';
 import type { FilterConfig } from '@/components/kora-filter-bar';
+import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { KoraTable } from '@/components/kora-table';
 import type { PaginationMeta, TableColumn } from '@/components/kora-table';
 import { Button } from '@/components/ui/button';
@@ -51,11 +53,11 @@ const statusLabels: Record<string, string> = {
     maintenance: 'En maintenance',
     retired: 'Retiré',
 };
-const statusStyles: Record<string, string> = {
-    active: 'bg-emerald-500/10 text-emerald-700',
-    draft: 'bg-gold/15 text-[var(--kora)]',
-    maintenance: 'bg-orange-500/10 text-orange-700',
-    retired: 'bg-muted text-muted-foreground',
+const statusTones: Record<string, 'navy' | 'gold' | 'blue' | 'muted'> = {
+    active: 'navy',
+    draft: 'gold',
+    maintenance: 'gold',
+    retired: 'muted',
 };
 
 export default function FleetPage({
@@ -160,80 +162,91 @@ export default function FleetPage({
             key: 'status',
             header: 'Statut',
             render: (bus) => (
-                <span
-                    className={`inline-flex rounded-full px-2.5 py-1 text-[0.6875rem] font-bold ${statusStyles[bus.status] ?? statusStyles.draft}`}
-                >
-                    {statusLabels[bus.status] ?? bus.status}
-                </span>
+                <KoraStatusBadge
+                    label={statusLabels[bus.status] ?? bus.status}
+                    tone={statusTones[bus.status] ?? 'gold'}
+                />
             ),
         },
         {
             key: 'actions',
             header: 'Actions',
             align: 'right',
-            render: (bus) =>
-                (permissions.canUpdate || permissions.canDeactivate) && (
-                    <div className="flex justify-end">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    aria-label={`Actions pour ${bus.registrationNumber}`}
+            render: (bus) => (
+                <div
+                    className="flex justify-end"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label={`Actions pour ${bus.registrationNumber}`}
+                            >
+                                <MoreHorizontal className="size-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                                onClick={() =>
+                                    router.get(
+                                        fleet.show.url({ bus: bus.uuid }),
+                                    )
+                                }
+                            >
+                                <Eye className="size-4" />
+                                Voir le détail
+                            </DropdownMenuItem>
+                            {permissions.canUpdate && (
+                                <DropdownMenuItem
+                                    onClick={() => {
+                                        setSelected(bus);
+                                        setOpen(true);
+                                    }}
                                 >
-                                    <MoreHorizontal className="size-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                {permissions.canUpdate && (
+                                    <Edit3 className="size-4" />
+                                    Modifier
+                                </DropdownMenuItem>
+                            )}
+                            {permissions.canDeactivate &&
+                                bus.status === 'active' && (
                                     <DropdownMenuItem
-                                        onClick={() => {
-                                            setSelected(bus);
-                                            setOpen(true);
-                                        }}
+                                        onClick={() =>
+                                            changeStatus(bus, 'maintenance')
+                                        }
                                     >
-                                        <Edit3 className="size-4" />
-                                        Modifier
+                                        <Wrench className="size-4" />
+                                        Mettre en maintenance
                                     </DropdownMenuItem>
                                 )}
-                                {permissions.canDeactivate &&
-                                    bus.status === 'active' && (
-                                        <DropdownMenuItem
-                                            onClick={() =>
-                                                changeStatus(bus, 'maintenance')
-                                            }
-                                        >
-                                            <Wrench className="size-4" />
-                                            Mettre en maintenance
-                                        </DropdownMenuItem>
-                                    )}
-                                {permissions.canDeactivate &&
-                                    bus.status !== 'retired' && (
-                                        <DropdownMenuItem
-                                            onClick={() =>
-                                                changeStatus(bus, 'retired')
-                                            }
-                                        >
-                                            <Archive className="size-4" />
-                                            Retirer
-                                        </DropdownMenuItem>
-                                    )}
-                                {permissions.canDeactivate &&
-                                    bus.status !== 'active' &&
-                                    bus.status !== 'retired' && (
-                                        <DropdownMenuItem
-                                            onClick={() =>
-                                                changeStatus(bus, 'active')
-                                            }
-                                        >
-                                            <RotateCcw className="size-4" />
-                                            Réactiver
-                                        </DropdownMenuItem>
-                                    )}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
-                ),
+                            {permissions.canDeactivate &&
+                                bus.status !== 'retired' && (
+                                    <DropdownMenuItem
+                                        onClick={() =>
+                                            changeStatus(bus, 'retired')
+                                        }
+                                    >
+                                        <Archive className="size-4" />
+                                        Retirer
+                                    </DropdownMenuItem>
+                                )}
+                            {permissions.canDeactivate &&
+                                bus.status !== 'active' &&
+                                bus.status !== 'retired' && (
+                                    <DropdownMenuItem
+                                        onClick={() =>
+                                            changeStatus(bus, 'active')
+                                        }
+                                    >
+                                        <RotateCcw className="size-4" />
+                                        Réactiver
+                                    </DropdownMenuItem>
+                                )}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            ),
         },
     ];
 
@@ -278,6 +291,9 @@ export default function FleetPage({
                 columns={columns}
                 data={buses.data}
                 rowKey={(bus) => bus.uuid}
+                onRowClick={(bus) =>
+                    router.get(fleet.show.url({ bus: bus.uuid }))
+                }
                 emptyTitle="Aucun bus trouvé"
                 emptyMessage="Ajustez vos filtres ou créez le premier bus du référentiel."
                 emptyIcon={BusFront}

@@ -21,7 +21,7 @@ class StoreBusRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'registration_number' => ['required', 'string', 'max:32', 'alpha_dash', Rule::unique('buses', 'registration_number')],
+            'registration_number' => ['required', 'string', 'max:32', 'regex:/^[A-Za-z0-9\s\-_]+$/', Rule::unique('buses', 'registration_number')],
             'bus_model_id' => ['required', 'integer', Rule::exists(BusModel::class, 'id')->whereNull('deleted_at')],
             'composition_id' => ['required', 'integer', Rule::exists(BusComposition::class, 'id')->whereNull('deleted_at')],
             'agency_id' => ['required', 'integer', Rule::exists(Agency::class, 'id')->whereNull('deleted_at')],

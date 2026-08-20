@@ -71,30 +71,38 @@ class KoraBusReferenceSeeder extends Seeder
             ],
         );
 
-        $bus = Bus::query()->firstOrCreate(
-            ['registration_number' => 'KORA-55-001'],
-            [
-                'uuid' => (string) Str::uuid(),
-                'bus_model_id' => $model->id,
-                'composition_id' => $composition->id,
-                'agency_id' => $agency->id,
-                'brand' => 'KORA',
-                'model' => 'Coach 55',
-                'seat_count' => 55,
-                'status' => 'active',
-            ],
-        );
+        $busesData = [
+            ['registration_number' => 'KORA-55-001', 'status' => 'active'],
+            ['registration_number' => 'KORA-55-002', 'status' => 'maintenance'],
+            ['registration_number' => 'KORA-55-003', 'status' => 'draft'],
+        ];
 
-        foreach ($this->seatCodes() as $code) {
-            Seat::query()->firstOrCreate(
-                ['bus_id' => $bus->id, 'code' => $code],
+        foreach ($busesData as $busData) {
+            $bus = Bus::query()->firstOrCreate(
+                ['registration_number' => $busData['registration_number']],
                 [
                     'uuid' => (string) Str::uuid(),
-                    'type' => str_starts_with($code, '1') ? 'crew' : 'standard',
-                    'sellable' => ! str_starts_with($code, '1'),
-                    'status' => str_starts_with($code, '1') ? 'blocked' : 'active',
+                    'bus_model_id' => $model->id,
+                    'composition_id' => $composition->id,
+                    'agency_id' => $agency->id,
+                    'brand' => 'KORA',
+                    'model' => 'Coach 55',
+                    'seat_count' => 55,
+                    'status' => $busData['status'],
                 ],
             );
+
+            foreach ($this->seatCodes() as $code) {
+                Seat::query()->firstOrCreate(
+                    ['bus_id' => $bus->id, 'code' => $code],
+                    [
+                        'uuid' => (string) Str::uuid(),
+                        'type' => str_starts_with($code, '1') ? 'crew' : 'standard',
+                        'sellable' => ! str_starts_with($code, '1'),
+                        'status' => str_starts_with($code, '1') ? 'blocked' : 'active',
+                    ],
+                );
+            }
         }
     }
 

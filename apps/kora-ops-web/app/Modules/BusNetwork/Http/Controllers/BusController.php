@@ -58,6 +58,32 @@ class BusController extends Controller
         ]);
     }
 
+    public function show(Request $request, Bus $bus): Response
+    {
+        Gate::authorize('view', $bus);
+
+        $bus->load([
+            'agency',
+            'busModel',
+            'composition',
+            'seats' => fn ($q) => $q->orderByRaw('LENGTH(code), code'),
+            'departures' => fn ($q) => $q->with('line:id,uuid,code,name')->latest('departure_date')->latest('departure_time')->limit(10),
+        ]);
+
+        return inertia('fleet/detail', [
+            'bus' => $this->serializeBusDetail($bus),
+            'statuses' => BusStatus::options(),
+            'agencies' => Agency::query()->where('status', 'active')->orderBy('name')->get()->map(fn (Agency $agency): array => ['id' => $agency->id, 'name' => $agency->name]),
+            'models' => BusModel::query()->where('status', 'active')->orderBy('brand')->orderBy('name')->get()->map(fn (BusModel $model): array => ['id' => $model->id, 'label' => $model->brand.' '.$model->name]),
+            'compositions' => BusComposition::query()->where('status', 'active')->orderBy('seat_count')->get()->map(fn (BusComposition $composition): array => ['id' => $composition->id, 'label' => $composition->name, 'seatCount' => $composition->seat_count]),
+            'timeline' => $this->buildTimeline($bus),
+            'permissions' => [
+                'canUpdate' => Gate::allows('update', $bus),
+                'canDeactivate' => Gate::allows('deactivate', $bus),
+            ],
+        ]);
+    }
+
     public function store(StoreBusRequest $request, CreateBusAction $createBus): RedirectResponse
     {
         $createBus->execute($request->payload());
@@ -97,5 +123,102 @@ class BusController extends Controller
             'agencyName' => $bus->agency?->name,
             'status' => BusStatus::from((string) $bus->getRawOriginal('status'))->value,
         ];
+    }
+
+    /** @return array<string, mixed> */
+    private function serializeBusDetail(Bus $bus): array
+    {
+        $seats = [];
+        foreach ($bus->seats as $seat) {
+            $seats[] = [
+                'uuid' => $seat->uuid,
+                'code' => $seat->code,
+                'type' => (string) $seat->getRawOriginal('type'),
+                'sellable' => (bool) $seat->sellable,
+                'status' => (string) $seat->getRawOriginal('status'),
+            ];
+        }
+
+        $departures = [];
+        foreach ($bus->departures as $departure) {
+            $departures[] = [
+                'uuid' => $departure->uuid,
+                'lineCode' => $departure->line ? $departure->line->code : '—',
+                'lineName' => $departure->line ? $departure->line->name : '—',
+                'departureDate' => $departure->departure_date,
+                'departureTime' => $departure->departure_time,
+                'estimatedArrivalAt' => $departure->estimated_arrival_at,
+                'status' => (string) $departure->getRawOriginal('status'),
+            ];
+        }
+
+        $brand = $bus->busModel ? $bus->busModel->brand : ($bus->brand ?? '—');
+        $model = $bus->busModel ? $bus->busModel->name : ($bus->model ?? '—');
+        $modelName = $bus->busModel ? ($bus->busModel->brand.' '.$bus->busModel->name) : '—';
+        $compositionName = $bus->composition ? $bus->composition->name : '—';
+        $compositionCode = $bus->composition ? $bus->composition->code : null;
+        $layout = $bus->composition ? $bus->composition->layout : [];
+        $agencyName = $bus->agency ? $bus->agency->name : '—';
+        $agencyCity = $bus->agency ? $bus->agency->city : null;
+        $agencyCountry = $bus->agency ? $bus->agency->country : null;
+
+        return [
+            'uuid' => $bus->uuid,
+            'registrationNumber' => $bus->registration_number,
+            'brand' => $brand,
+            'model' => $model,
+            'modelId' => $bus->bus_model_id,
+            'modelName' => $modelName,
+            'compositionId' => $bus->composition_id,
+            'compositionCode' => $compositionCode,
+            'compositionName' => $compositionName,
+            'layout' => $layout,
+            'seatCount' => $bus->seat_count,
+            'agencyId' => $bus->agency_id,
+            'agencyName' => $agencyName,
+            'agencyCity' => $agencyCity,
+            'agencyCountry' => $agencyCountry,
+            'status' => BusStatus::from((string) $bus->getRawOriginal('status'))->value,
+            'seats' => $seats,
+            'departures' => $departures,
+            'createdAt' => $bus->created_at?->toIso8601String(),
+            'updatedAt' => $bus->updated_at?->toIso8601String(),
+        ];
+    }
+
+    /**
+     * Build a lightweight timeline of key bus events.
+     *
+     * @return array<int, array{label: string, date: string|null}>
+     */
+    private function buildTimeline(Bus $bus): array
+    {
+        $events = [];
+
+        if ($bus->created_at !== null) {
+            $events[] = [
+                'label' => 'Véhicule enregistré',
+                'date' => $bus->created_at->toIso8601String(),
+            ];
+        }
+
+        if ($bus->seats->isNotEmpty()) {
+            $firstSeat = $bus->seats->first();
+            if ($firstSeat->created_at !== null) {
+                $events[] = [
+                    'label' => 'Plan de sièges synchronisé',
+                    'date' => $firstSeat->created_at->toIso8601String(),
+                ];
+            }
+        }
+
+        if ($bus->updated_at !== null && $bus->created_at !== null && $bus->updated_at->notEqualTo($bus->created_at)) {
+            $events[] = [
+                'label' => 'Dernière mise à jour',
+                'date' => $bus->updated_at->toIso8601String(),
+            ];
+        }
+
+        return $events;
     }
 }
