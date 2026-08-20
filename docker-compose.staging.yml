@@ -18,7 +18,16 @@ services:
       REDIS_CLIENT: predis
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      MAIL_MAILER: smtp
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_SCHEME: ""
+      MAIL_USERNAME: ""
+      MAIL_PASSWORD: ""
+      MAIL_FROM_ADDRESS: no-reply@kora.demo
+      MAIL_FROM_NAME: KORA Staging
       LOG_STACK: docker
+    command: [ "sh", "-c", "chown -R www-data:www-data /app/storage /app/bootstrap/cache && exec php-fpm" ]
     volumes:
       - staging-storage:/app/storage
     depends_on:
@@ -26,6 +35,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     networks:
       - kora-staging
     restart: unless-stopped
@@ -87,6 +98,18 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - kora-staging
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:v1.21.8
+    container_name: kora-staging-mailpit
+    environment:
+      MP_WEBROOT: /mailpit/
+    expose:
+      - "1025"
+      - "8025"
     networks:
       - kora-staging
     restart: unless-stopped
