@@ -1,57 +1,75 @@
 openapi: 3.0.3
 info:
-  title: 'Kora Platforme Web API Documentation'
-  description: 'KORA BUS MVP REST API.'
+  title: Kora Platforme Web API Documentation
+  description: KORA BUS MVP REST API.
   version: 1.0.0
 servers:
-  - url: 'http://kora-ops-web.local'
+- url: http://kora-ops-web.local
 tags:
-  - name: Bus
-    description: "\nPublic Bus catalog endpoints for KORA BUS search experiences."
-  - name: Auth
-    description: "\nOTP challenge request and verification for registration, login, PIN reset and account unlock."
-  - name: Health
-    description: "\nApplication health and liveness probes for load balancers and monitoring."
+- name: Bus
+  description: '
+
+    Public Bus catalog endpoints for KORA BUS search experiences.'
+- name: Endpoints
+  description: ''
 paths:
   /api/v1/bus/cities:
     get:
-      summary: 'List served cities.'
+      summary: List served cities.
       operationId: listServedCities
-      description: 'Returns active cities derived from active Bus stops.'
+      description: Returns active cities derived from active Bus stops.
       parameters: []
-      responses: {}
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
       tags:
-        - Bus
+      - Bus
       security: []
   /api/v1/bus/lines:
     get:
-      summary: 'List Bus lines.'
+      summary: List Bus lines.
       operationId: listBusLines
       description: ''
       parameters:
-        -
-          in: query
-          name: from
-          description: 'Optional origin city filter.'
+      - in: query
+        name: from
+        description: Optional origin city filter.
+        example: Cotonou
+        required: false
+        schema:
+          type: string
+          description: Optional origin city filter.
           example: Cotonou
-          required: false
-          schema:
-            type: string
-            description: 'Optional origin city filter.'
-            example: Cotonou
-        -
-          in: query
-          name: to
-          description: 'Optional destination city filter.'
+      - in: query
+        name: to
+        description: Optional destination city filter.
+        example: Abidjan
+        required: false
+        schema:
+          type: string
+          description: Optional destination city filter.
           example: Abidjan
-          required: false
-          schema:
-            type: string
-            description: 'Optional destination city filter.'
-            example: Abidjan
-      responses: {}
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
       tags:
-        - Bus
+      - Bus
       requestBody:
         required: false
         content:
@@ -67,67 +85,81 @@ paths:
                 to:
                   type: string
                   description: validation.max.
-                  example: 'n'
+                  example: n
                   nullable: true
       security: []
-  '/api/v1/bus/lines/{uuid}':
+  /api/v1/bus/lines/{uuid}:
     get:
-      summary: 'Show a Bus line.'
+      summary: Show a Bus line.
       operationId: showABusLine
       description: ''
       parameters: []
-      responses: {}
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
       tags:
-        - Bus
+      - Bus
       security: []
     parameters:
-      -
-        in: path
-        name: uuid
-        description: ''
-        example: 0e2271df-6ff5-4cb8-866c-ab41fd06fd96
-        required: true
-        schema:
-          type: string
+    - in: path
+      name: uuid
+      description: ''
+      example: a3091549-9179-454e-8440-58179f2208df
+      required: true
+      schema:
+        type: string
   /api/v1/bus/departures:
     get:
-      summary: 'List departures.'
+      summary: List departures.
       operationId: listDepartures
       description: ''
       parameters:
-        -
-          in: query
-          name: date
-          description: 'Travel date in YYYY-MM-DD format.'
+      - in: query
+        name: date
+        description: Travel date in YYYY-MM-DD format.
+        example: '2026-08-15'
+        required: true
+        schema:
+          type: string
+          description: Travel date in YYYY-MM-DD format.
           example: '2026-08-15'
-          required: true
-          schema:
-            type: string
-            description: 'Travel date in YYYY-MM-DD format.'
-            example: '2026-08-15'
-        -
-          in: query
-          name: from
-          description: 'Optional origin city filter.'
+      - in: query
+        name: from
+        description: Optional origin city filter.
+        example: Cotonou
+        required: false
+        schema:
+          type: string
+          description: Optional origin city filter.
           example: Cotonou
-          required: false
-          schema:
-            type: string
-            description: 'Optional origin city filter.'
-            example: Cotonou
-        -
-          in: query
-          name: to
-          description: 'Optional destination city filter.'
+      - in: query
+        name: to
+        description: Optional destination city filter.
+        example: Abidjan
+        required: false
+        schema:
+          type: string
+          description: Optional destination city filter.
           example: Abidjan
-          required: false
-          schema:
-            type: string
-            description: 'Optional destination city filter.'
-            example: Abidjan
-      responses: {}
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
       tags:
-        - Bus
+      - Bus
       requestBody:
         required: true
         content:
@@ -137,8 +169,8 @@ paths:
               properties:
                 date:
                   type: string
-                  description: 'Must be a valid date in the format <code>Y-m-d</code>.'
-                  example: '2026-08-20'
+                  description: Must be a valid date in the format <code>Y-m-d</code>.
+                  example: '2026-08-17'
                 from:
                   type: string
                   description: validation.max.
@@ -147,40 +179,47 @@ paths:
                 to:
                   type: string
                   description: validation.max.
-                  example: 'n'
+                  example: n
                   nullable: true
               required:
-                - date
+              - date
       security: []
-  '/api/v1/bus/departures/{uuid}':
+  /api/v1/bus/departures/{uuid}:
     get:
-      summary: 'Show a departure.'
+      summary: Show a departure.
       operationId: showADeparture
       description: ''
       parameters:
-        -
-          in: query
-          name: from
-          description: 'Optional origin city.'
+      - in: query
+        name: from
+        description: Optional origin city.
+        example: Cotonou
+        required: false
+        schema:
+          type: string
+          description: Optional origin city.
           example: Cotonou
-          required: false
-          schema:
-            type: string
-            description: 'Optional origin city.'
-            example: Cotonou
-        -
-          in: query
-          name: to
-          description: 'Optional destination city.'
+      - in: query
+        name: to
+        description: Optional destination city.
+        example: Abidjan
+        required: false
+        schema:
+          type: string
+          description: Optional destination city.
           example: Abidjan
-          required: false
-          schema:
-            type: string
-            description: 'Optional destination city.'
-            example: Abidjan
-      responses: {}
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
       tags:
-        - Bus
+      - Bus
       requestBody:
         required: false
         content:
@@ -196,47 +235,53 @@ paths:
                 to:
                   type: string
                   description: validation.max.
-                  example: 'n'
+                  example: n
                   nullable: true
       security: []
     parameters:
-      -
-        in: path
-        name: uuid
-        description: ''
+    - in: path
+      name: uuid
+      description: ''
+      example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      required: true
+      schema:
+        type: string
+  /api/v1/bus/departures/{departure_uuid}/seats:
+    get:
+      summary: List departure seats.
+      operationId: listDepartureSeats
+      description: ''
+      parameters:
+      - in: query
+        name: origin_stop_uuid
+        description: Public UUID of the boarding stop.
         example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
         required: true
         schema:
           type: string
-  '/api/v1/bus/departures/{departure_uuid}/seats':
-    get:
-      summary: 'List departure seats.'
-      operationId: listDepartureSeats
-      description: ''
-      parameters:
-        -
-          in: query
-          name: origin_stop_uuid
-          description: 'Public UUID of the boarding stop.'
+          description: Public UUID of the boarding stop.
           example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-          required: true
-          schema:
-            type: string
-            description: 'Public UUID of the boarding stop.'
-            example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-        -
-          in: query
-          name: destination_stop_uuid
-          description: 'Public UUID of the drop-off stop.'
+      - in: query
+        name: destination_stop_uuid
+        description: Public UUID of the drop-off stop.
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        required: true
+        schema:
+          type: string
+          description: Public UUID of the drop-off stop.
           example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-          required: true
-          schema:
-            type: string
-            description: 'Public UUID of the drop-off stop.'
-            example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-      responses: {}
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
       tags:
-        - Bus
+      - Bus
       requestBody:
         required: true
         content:
@@ -253,27 +298,78 @@ paths:
                   description: validation.uuid.
                   example: 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
               required:
-                - origin_stop_uuid
-                - destination_stop_uuid
+              - origin_stop_uuid
+              - destination_stop_uuid
       security: []
     parameters:
-      -
-        in: path
-        name: departure_uuid
-        description: ''
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-        required: true
-        schema:
-          type: string
+    - in: path
+      name: departure_uuid
+      description: ''
+      example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      required: true
+      schema:
+        type: string
+  /api/v1/health:
+    get:
+      summary: 'Full application health: database, cache (Redis), and API version.'
+      operationId: fullApplicationHealthDatabaseCacheRedisAndAPIVersion
+      description: 'Returns 200 when every dependency is reachable, 503 otherwise
+        so load
+
+        balancers and monitoring can drain traffic from an unhealthy instance.'
+      parameters: []
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+      tags:
+      - Endpoints
+      security: []
+  /api/v1/health/ping:
+    get:
+      summary: 'Lightweight liveness probe for load balancers: always 200 when the
+
+        process can answer, with no dependency checks.'
+      operationId: lightweightLivenessProbeForLoadBalancersAlways200WhenTheProcessCanAnswerWithNoDependencyChecks
+      description: ''
+      parameters: []
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+      tags:
+      - Endpoints
+      security: []
   /api/v1/auth/otp/request:
     post:
       summary: ''
       operationId: postApiV1AuthOtpRequest
       description: ''
       parameters: []
-      responses: {}
+      responses:
+        '202':
+          description: Request accepted, action pending.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
       tags:
-        - Auth
+      - Endpoints
       requestBody:
         required: true
         content:
@@ -283,20 +379,20 @@ paths:
               properties:
                 email:
                   type: string
-                  description: 'validation.email validation.max.'
+                  description: validation.email validation.max.
                   example: gbailey@example.net
                 purpose:
                   type: string
                   description: ''
-                  example: account_unlock
+                  example: registration
                   enum:
-                    - registration
-                    - login_new_device
-                    - pin_reset
-                    - account_unlock
+                  - registration
+                  - login_new_device
+                  - pin_reset
+                  - account_unlock
               required:
-                - email
-                - purpose
+              - email
+              - purpose
       security: []
   /api/v1/auth/otp/verify:
     post:
@@ -304,9 +400,18 @@ paths:
       operationId: postApiV1AuthOtpVerify
       description: ''
       parameters: []
-      responses: {}
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
       tags:
-        - Auth
+      - Endpoints
       requestBody:
         required: true
         content:
@@ -321,20 +426,20 @@ paths:
                 purpose:
                   type: string
                   description: ''
-                  example: pin_reset
+                  example: account_unlock
                   enum:
-                    - registration
-                    - login_new_device
-                    - pin_reset
-                    - account_unlock
+                  - registration
+                  - login_new_device
+                  - pin_reset
+                  - account_unlock
                 code:
                   type: string
                   description: validation.digits.
                   example: '569775'
               required:
-                - otp_challenge_uuid
-                - purpose
-                - code
+              - otp_challenge_uuid
+              - purpose
+              - code
       security: []
   /api/v1/auth/pin/reset:
     post:
@@ -342,9 +447,18 @@ paths:
       operationId: postApiV1AuthPinReset
       description: ''
       parameters: []
-      responses: {}
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
       tags:
-        - Auth
+      - Endpoints
       requestBody:
         required: true
         content:
@@ -365,9 +479,9 @@ paths:
                   description: validation.digits.
                   example: '9775'
               required:
-                - otp_challenge_uuid
-                - verification_token
-                - pin
+              - otp_challenge_uuid
+              - verification_token
+              - pin
       security: []
   /api/v1/auth/unlock:
     post:
@@ -375,9 +489,18 @@ paths:
       operationId: postApiV1AuthUnlock
       description: ''
       parameters: []
-      responses: {}
+      responses:
+        '202':
+          description: Request accepted, action pending.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
       tags:
-        - Auth
+      - Endpoints
       requestBody:
         required: true
         content:
@@ -394,8 +517,8 @@ paths:
                   description: validation.size.
                   example: gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn
               required:
-                - otp_challenge_uuid
-                - verification_token
+              - otp_challenge_uuid
+              - verification_token
       security: []
   /api/v1/auth/register/complete:
     post:
@@ -403,9 +526,18 @@ paths:
       operationId: postApiV1AuthRegisterComplete
       description: ''
       parameters: []
-      responses: {}
+      responses:
+        '201':
+          description: Resource created.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
       tags:
-        - Auth
+      - Endpoints
       requestBody:
         required: true
         content:
@@ -428,19 +560,19 @@ paths:
                 device_name:
                   type: string
                   description: validation.max.
-                  example: 'n'
+                  example: n
                 platform:
                   type: string
                   description: ''
-                  example: ios
+                  example: web
                   enum:
-                    - android
-                    - ios
-                    - web
-                    - unknown
+                  - android
+                  - ios
+                  - web
+                  - unknown
                 device_fingerprint:
                   type: string
-                  description: 'validation.min validation.max.'
+                  description: validation.min validation.max.
                   example: g
                 push_token:
                   type: string
@@ -448,12 +580,12 @@ paths:
                   example: z
                   nullable: true
               required:
-                - otp_challenge_uuid
-                - verification_token
-                - pin
-                - device_name
-                - platform
-                - device_fingerprint
+              - otp_challenge_uuid
+              - verification_token
+              - pin
+              - device_name
+              - platform
+              - device_fingerprint
       security: []
   /api/v1/auth/login:
     post:
@@ -461,9 +593,18 @@ paths:
       operationId: postApiV1AuthLogin
       description: ''
       parameters: []
-      responses: {}
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
       tags:
-        - Auth
+      - Endpoints
       requestBody:
         required: true
         content:
@@ -473,7 +614,7 @@ paths:
               properties:
                 email:
                   type: string
-                  description: 'validation.email validation.max.'
+                  description: validation.email validation.max.
                   example: gbailey@example.net
                 pin:
                   type: string
@@ -482,19 +623,19 @@ paths:
                 device_name:
                   type: string
                   description: validation.max.
-                  example: 'n'
+                  example: n
                 platform:
                   type: string
                   description: ''
-                  example: web
+                  example: ios
                   enum:
-                    - android
-                    - ios
-                    - web
-                    - unknown
+                  - android
+                  - ios
+                  - web
+                  - unknown
                 device_fingerprint:
                   type: string
-                  description: 'validation.min validation.max.'
+                  description: validation.min validation.max.
                   example: g
                 push_token:
                   type: string
@@ -503,26 +644,281 @@ paths:
                   nullable: true
                 otp_challenge_uuid:
                   type: string
-                  description: 'This field is required when <code>verification_token</code> is present. validation.uuid.'
+                  description: This field is required when <code>verification_token</code>
+                    is present. validation.uuid.
                   example: 977e5426-8d13-3824-86aa-b092f8ae52c5
                   nullable: true
                 verification_token:
                   type: string
-                  description: 'This field is required when <code>otp_challenge_uuid</code> is present. validation.size.'
+                  description: This field is required when <code>otp_challenge_uuid</code>
+                    is present. validation.size.
                   example: yvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtnnoqi
                   nullable: true
               required:
-                - email
-                - pin
-                - device_name
-                - platform
-                - device_fingerprint
+              - email
+              - pin
+              - device_name
+              - platform
+              - device_fingerprint
+      security: []
+  /api/v1/auth/me:
+    get:
+      summary: ''
+      operationId: getApiV1AuthMe
+      description: ''
+      parameters: []
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+      tags:
+      - Endpoints
+      security: []
+    put:
+      summary: ''
+      operationId: putApiV1AuthMe
+      description: ''
+      parameters: []
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+      tags:
+      - Endpoints
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: validation.max.
+                  example: b
+                email:
+                  type: string
+                  description: validation.email validation.max.
+                  example: zbailey@example.net
+                phone:
+                  type: string
+                  description: validation.max.
+                  example: iyvdljnikhwaykcm
+                  nullable: true
+                country_code:
+                  type: string
+                  description: validation.max.
+                  example: yuwp
+                  nullable: true
+                birth_date:
+                  type: string
+                  description: validation.date validation.before.
+                  example: '2022-09-10'
+                  nullable: true
+              required:
+              - name
+              - email
+      security: []
+  /api/v1/auth/pin/change:
+    post:
+      summary: ''
+      operationId: postApiV1AuthPinChange
+      description: ''
+      parameters: []
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+      tags:
+      - Endpoints
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                current_pin:
+                  type: string
+                  description: validation.digits.
+                  example: '9775'
+                new_pin:
+                  type: string
+                  description: validation.digits Must not be one of <code></code>.
+                  example: '9775'
+              required:
+              - current_pin
+              - new_pin
+      security: []
+  /api/v1/auth/preferences:
+    get:
+      summary: ''
+      operationId: getApiV1AuthPreferences
+      description: ''
+      parameters: []
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+      tags:
+      - Endpoints
+      security: []
+    put:
+      summary: ''
+      operationId: putApiV1AuthPreferences
+      description: ''
+      parameters: []
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+      tags:
+      - Endpoints
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                push_notifications:
+                  type: boolean
+                  description: ''
+                  example: true
+                  nullable: true
+                whatsapp_notifications:
+                  type: boolean
+                  description: ''
+                  example: false
+                  nullable: true
+                email_notifications:
+                  type: boolean
+                  description: ''
+                  example: true
+                  nullable: true
+                locale:
+                  type: string
+                  description: ''
+                  example: en
+                  enum:
+                  - fr
+                  - en
+                  nullable: true
+                theme:
+                  type: string
+                  description: ''
+                  example: system
+                  enum:
+                  - light
+                  - dark
+                  - system
+                  nullable: true
+      security: []
+  /api/v1/auth/devices:
+    get:
+      summary: ''
+      operationId: getApiV1AuthDevices
+      description: ''
+      parameters: []
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+      tags:
+      - Endpoints
+      security: []
+  /api/v1/auth/devices/{uuid}:
+    delete:
+      summary: ''
+      operationId: deleteApiV1AuthDevicesUuid
+      description: ''
+      parameters: []
+      responses:
+        '204':
+          description: No content.
+      tags:
+      - Endpoints
+      security: []
+    parameters:
+    - in: path
+      name: uuid
+      description: ''
+      example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      required: true
+      schema:
+        type: string
+  /api/v1/auth/logout:
+    post:
+      summary: ''
+      operationId: postApiV1AuthLogout
+      description: ''
+      parameters: []
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+      tags:
+      - Endpoints
       security: []
   /api/v1/auth/oauth/token:
     post:
-      summary: 'Échange un jeton OAuth provider contre une session KORA.'
+      summary: Échange un jeton OAuth provider contre une session KORA.
       operationId: changeUnJetonOAuthProviderContreUneSessionKORA
-      description: "Le client mobile authentifie l'utilisateur via le SDK natif du\nprovider (Google Sign-In, Facebook SDK, TikTok Login Kit), récupère\nun access token, puis l'envoie à cet endpoint. Le backend valide\nle jeton via Socialite, retrouve ou crée le compte KORA, lie le\ncompte social, télécharge l'avatar via Spatie Media Library et\német un token Sanctum."
+      description: 'Le client mobile authentifie l''utilisateur via le SDK natif du
+
+        provider (Google Sign-In, Facebook SDK, TikTok Login Kit), récupère
+
+        un access token, puis l''envoie à cet endpoint. Le backend valide
+
+        le jeton via Socialite, retrouve ou crée le compte KORA, lie le
+
+        compte social, télécharge l''avatar via Spatie Media Library et
+
+        émet un token Sanctum.'
       parameters: []
       responses:
         200:
@@ -538,20 +934,20 @@ paths:
                     expires_at: '2026-08-27T13:05:00.000Z'
                     user:
                       uuid: 977e5426-8d13-3824-86aa-b092f8ae52c5
-                      name: 'Aïcha Hounkpè'
+                      name: Aïcha Hounkpè
                       email: aicha.hounkpe@gmail.com
                       phone: null
                       country_code: null
                       birth_date: null
-                      avatar_url: 'https://api.korabus.app/media/avatars/123/thumb.jpg'
+                      avatar_url: https://api.korabus.app/media/avatars/123/thumb.jpg
                       status: active
                       permissions:
-                        - bookings.create
-                        - bookings.view-own
-                        - tickets.view
+                      - bookings.create
+                      - bookings.view-own
+                      - tickets.view
                     device:
                       uuid: a3091549-9179-454e-8440-58179f2208df
-                      name: 'iPhone 15 Pro'
+                      name: iPhone 15 Pro
                       platform: ios
                       trusted_at: '2026-08-20T13:05:00.000Z'
                       last_seen_at: '2026-08-20T13:05:00.000Z'
@@ -577,7 +973,7 @@ paths:
                             example: 977e5426-8d13-3824-86aa-b092f8ae52c5
                           name:
                             type: string
-                            example: 'Aïcha Hounkpè'
+                            example: Aïcha Hounkpè
                           email:
                             type: string
                             example: aicha.hounkpe@gmail.com
@@ -595,16 +991,16 @@ paths:
                             nullable: true
                           avatar_url:
                             type: string
-                            example: 'https://api.korabus.app/media/avatars/123/thumb.jpg'
+                            example: https://api.korabus.app/media/avatars/123/thumb.jpg
                           status:
                             type: string
                             example: active
                           permissions:
                             type: array
                             example:
-                              - bookings.create
-                              - bookings.view-own
-                              - tickets.view
+                            - bookings.create
+                            - bookings.view-own
+                            - tickets.view
                             items:
                               type: string
                       device:
@@ -615,7 +1011,7 @@ paths:
                             example: a3091549-9179-454e-8440-58179f2208df
                           name:
                             type: string
-                            example: 'iPhone 15 Pro'
+                            example: iPhone 15 Pro
                           platform:
                             type: string
                             example: ios
@@ -641,20 +1037,20 @@ paths:
                     expires_at: '2026-08-27T13:05:00.000Z'
                     user:
                       uuid: 977e5426-8d13-3824-86aa-b092f8ae52c5
-                      name: 'Aïcha Hounkpè'
+                      name: Aïcha Hounkpè
                       email: aicha.hounkpe@gmail.com
                       phone: null
                       country_code: null
                       birth_date: null
-                      avatar_url: 'https://api.korabus.app/media/avatars/124/thumb.jpg'
+                      avatar_url: https://api.korabus.app/media/avatars/124/thumb.jpg
                       status: active
                       permissions:
-                        - bookings.create
-                        - bookings.view-own
-                        - tickets.view
+                      - bookings.create
+                      - bookings.view-own
+                      - tickets.view
                     device:
                       uuid: a3091549-9179-454e-8440-58179f2208df
-                      name: 'iPhone 15 Pro'
+                      name: iPhone 15 Pro
                       platform: ios
                       trusted_at: '2026-08-20T13:05:00.000Z'
                       last_seen_at: '2026-08-20T13:05:00.000Z'
@@ -680,7 +1076,7 @@ paths:
                             example: 977e5426-8d13-3824-86aa-b092f8ae52c5
                           name:
                             type: string
-                            example: 'Aïcha Hounkpè'
+                            example: Aïcha Hounkpè
                           email:
                             type: string
                             example: aicha.hounkpe@gmail.com
@@ -698,16 +1094,16 @@ paths:
                             nullable: true
                           avatar_url:
                             type: string
-                            example: 'https://api.korabus.app/media/avatars/124/thumb.jpg'
+                            example: https://api.korabus.app/media/avatars/124/thumb.jpg
                           status:
                             type: string
                             example: active
                           permissions:
                             type: array
                             example:
-                              - bookings.create
-                              - bookings.view-own
-                              - tickets.view
+                            - bookings.create
+                            - bookings.view-own
+                            - tickets.view
                             items:
                               type: string
                       device:
@@ -718,7 +1114,7 @@ paths:
                             example: a3091549-9179-454e-8440-58179f2208df
                           name:
                             type: string
-                            example: 'iPhone 15 Pro'
+                            example: iPhone 15 Pro
                           platform:
                             type: string
                             example: ios
@@ -740,7 +1136,7 @@ paths:
                 example:
                   error:
                     code: account_suspended
-                    message: 'Le compte est suspendu. Contactez le support.'
+                    message: Le compte est suspendu. Contactez le support.
                 properties:
                   error:
                     type: object
@@ -750,7 +1146,7 @@ paths:
                         example: account_suspended
                       message:
                         type: string
-                        example: 'Le compte est suspendu. Contactez le support.'
+                        example: Le compte est suspendu. Contactez le support.
         422:
           description: ''
           content:
@@ -760,7 +1156,7 @@ paths:
                 example:
                   error:
                     code: invalid_oauth_token
-                    message: "Le jeton OAuth fourni n'est pas valide ou a expiré."
+                    message: Le jeton OAuth fourni n'est pas valide ou a expiré.
                 properties:
                   error:
                     type: object
@@ -770,9 +1166,9 @@ paths:
                         example: invalid_oauth_token
                       message:
                         type: string
-                        example: "Le jeton OAuth fourni n'est pas valide ou a expiré."
+                        example: Le jeton OAuth fourni n'est pas valide ou a expiré.
       tags:
-        - Auth
+      - Auth
       requestBody:
         required: true
         content:
@@ -785,9 +1181,9 @@ paths:
                   description: ''
                   example: google
                   enum:
-                    - google
-                    - facebook
-                    - tiktok
+                  - google
+                  - facebook
+                  - tiktok
                 provider_token:
                   type: string
                   description: validation.max.
@@ -795,19 +1191,19 @@ paths:
                 device_name:
                   type: string
                   description: validation.max.
-                  example: 'n'
+                  example: n
                 platform:
                   type: string
                   description: ''
                   example: android
                   enum:
-                    - android
-                    - ios
-                    - web
-                    - unknown
+                  - android
+                  - ios
+                  - web
+                  - unknown
                 device_fingerprint:
                   type: string
-                  description: 'validation.min validation.max.'
+                  description: validation.min validation.max.
                   example: g
                 push_token:
                   type: string
@@ -815,206 +1211,9 @@ paths:
                   example: z
                   nullable: true
               required:
-                - provider
-                - provider_token
-                - device_name
-                - platform
-                - device_fingerprint
-      security: []
-  /api/v1/auth/me:
-    get:
-      summary: ''
-      operationId: getApiV1AuthMe
-      description: ''
-      parameters: []
-      responses: {}
-      tags:
-        - Auth
-      security: []
-    put:
-      summary: ''
-      operationId: putApiV1AuthMe
-      description: ''
-      parameters: []
-      responses: {}
-      tags:
-        - Auth
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                  description: validation.max.
-                  example: b
-                email:
-                  type: string
-                  description: 'validation.email validation.max.'
-                  example: zbailey@example.net
-                phone:
-                  type: string
-                  description: validation.max.
-                  example: iyvdljnikhwaykcm
-                  nullable: true
-                country_code:
-                  type: string
-                  description: validation.max.
-                  example: yuwp
-                  nullable: true
-                birth_date:
-                  type: string
-                  description: 'validation.date validation.before.'
-                  example: '2022-09-13'
-                  nullable: true
-              required:
-                - name
-                - email
-      security: []
-  /api/v1/auth/pin/change:
-    post:
-      summary: ''
-      operationId: postApiV1AuthPinChange
-      description: ''
-      parameters: []
-      responses: {}
-      tags:
-        - Auth
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                current_pin:
-                  type: string
-                  description: validation.digits.
-                  example: '9775'
-                new_pin:
-                  type: string
-                  description: 'validation.digits Must not be one of <code></code>.'
-                  example: '9775'
-              required:
-                - current_pin
-                - new_pin
-      security: []
-  /api/v1/auth/preferences:
-    get:
-      summary: ''
-      operationId: getApiV1AuthPreferences
-      description: ''
-      parameters: []
-      responses: {}
-      tags:
-        - Auth
-      security: []
-    put:
-      summary: ''
-      operationId: putApiV1AuthPreferences
-      description: ''
-      parameters: []
-      responses: {}
-      tags:
-        - Auth
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                push_notifications:
-                  type: boolean
-                  description: ''
-                  example: true
-                  nullable: true
-                whatsapp_notifications:
-                  type: boolean
-                  description: ''
-                  example: true
-                  nullable: true
-                email_notifications:
-                  type: boolean
-                  description: ''
-                  example: false
-                  nullable: true
-                locale:
-                  type: string
-                  description: ''
-                  example: fr
-                  enum:
-                    - fr
-                    - en
-                  nullable: true
-                theme:
-                  type: string
-                  description: ''
-                  example: light
-                  enum:
-                    - light
-                    - dark
-                    - system
-                  nullable: true
-      security: []
-  /api/v1/auth/devices:
-    get:
-      summary: ''
-      operationId: getApiV1AuthDevices
-      description: ''
-      parameters: []
-      responses: {}
-      tags:
-        - Auth
-      security: []
-  '/api/v1/auth/devices/{uuid}':
-    delete:
-      summary: ''
-      operationId: deleteApiV1AuthDevicesUuid
-      description: ''
-      parameters: []
-      responses: {}
-      tags:
-        - Auth
-      security: []
-    parameters:
-      -
-        in: path
-        name: uuid
-        description: ''
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-        required: true
-        schema:
-          type: string
-  /api/v1/auth/logout:
-    post:
-      summary: ''
-      operationId: postApiV1AuthLogout
-      description: ''
-      parameters: []
-      responses: {}
-      tags:
-        - Auth
-      security: []
-  /api/v1/health:
-    get:
-      summary: 'Full application health: database, cache (Redis), and API version.'
-      operationId: fullApplicationHealthDatabaseCacheRedisAndAPIVersion
-      description: "Returns 200 when every dependency is reachable, 503 otherwise so load\nbalancers and monitoring can drain traffic from an unhealthy instance."
-      parameters: []
-      responses: {}
-      tags:
-        - Health
-      security: []
-  /api/v1/health/ping:
-    get:
-      summary: "Lightweight liveness probe for load balancers: always 200 when the\nprocess can answer, with no dependency checks."
-      operationId: lightweightLivenessProbeForLoadBalancersAlways200WhenTheProcessCanAnswerWithNoDependencyChecks
-      description: ''
-      parameters: []
-      responses: {}
-      tags:
-        - Health
+              - provider
+              - provider_token
+              - device_name
+              - platform
+              - device_fingerprint
       security: []
