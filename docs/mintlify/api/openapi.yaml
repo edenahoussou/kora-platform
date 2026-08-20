@@ -8,8 +8,10 @@ servers:
 tags:
   - name: Bus
     description: "\nPublic Bus catalog endpoints for KORA BUS search experiences."
-  - name: Endpoints
-    description: ''
+  - name: Auth
+    description: "\nOTP challenge request and verification for registration, login, PIN reset and account unlock."
+  - name: Health
+    description: "\nApplication health and liveness probes for load balancers and monitoring."
 paths:
   /api/v1/bus/cities:
     get:
@@ -17,18 +19,7 @@ paths:
       operationId: listServedCities
       description: 'Returns active cities derived from active Bus stops.'
       parameters: []
-      responses:
-              '200':
-                description: 'Successful response.'
-                content:
-                  application/json:
-                    schema:
-                      type: object
-                      properties:
-                        data:
-                          type: array
-                          items:
-                            type: object
+      responses: {}
       tags:
         - Bus
       security: []
@@ -58,16 +49,7 @@ paths:
             type: string
             description: 'Optional destination city filter.'
             example: Abidjan
-      responses:
-              '200':
-                description: 'Successful response.'
-                content:
-                  application/json:
-                    schema:
-                      type: object
-                      properties:
-                        data:
-                          type: object
+      responses: {}
       tags:
         - Bus
       requestBody:
@@ -94,16 +76,7 @@ paths:
       operationId: showABusLine
       description: ''
       parameters: []
-      responses:
-              '200':
-                description: 'Successful response.'
-                content:
-                  application/json:
-                    schema:
-                      type: object
-                      properties:
-                        data:
-                          type: object
+      responses: {}
       tags:
         - Bus
       security: []
@@ -112,7 +85,7 @@ paths:
         in: path
         name: uuid
         description: ''
-        example: a3091549-9179-454e-8440-58179f2208df
+        example: 0e2271df-6ff5-4cb8-866c-ab41fd06fd96
         required: true
         schema:
           type: string
@@ -152,16 +125,7 @@ paths:
             type: string
             description: 'Optional destination city filter.'
             example: Abidjan
-      responses:
-              '200':
-                description: 'Successful response.'
-                content:
-                  application/json:
-                    schema:
-                      type: object
-                      properties:
-                        data:
-                          type: object
+      responses: {}
       tags:
         - Bus
       requestBody:
@@ -174,7 +138,7 @@ paths:
                 date:
                   type: string
                   description: 'Must be a valid date in the format <code>Y-m-d</code>.'
-                  example: '2026-08-17'
+                  example: '2026-08-20'
                 from:
                   type: string
                   description: validation.max.
@@ -214,16 +178,7 @@ paths:
             type: string
             description: 'Optional destination city.'
             example: Abidjan
-      responses:
-              '200':
-                description: 'Successful response.'
-                content:
-                  application/json:
-                    schema:
-                      type: object
-                      properties:
-                        data:
-                          type: object
+      responses: {}
       tags:
         - Bus
       requestBody:
@@ -279,16 +234,7 @@ paths:
             type: string
             description: 'Public UUID of the drop-off stop.'
             example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-      responses:
-              '200':
-                description: 'Successful response.'
-                content:
-                  application/json:
-                    schema:
-                      type: object
-                      properties:
-                        data:
-                          type: object
+      responses: {}
       tags:
         - Bus
       requestBody:
@@ -319,62 +265,15 @@ paths:
         required: true
         schema:
           type: string
-  /api/v1/health:
-    get:
-      summary: 'Full application health: database, cache (Redis), and API version.'
-      operationId: fullApplicationHealthDatabaseCacheRedisAndAPIVersion
-      description: "Returns 200 when every dependency is reachable, 503 otherwise so load\nbalancers and monitoring can drain traffic from an unhealthy instance."
-      parameters: []
-      responses:
-              '200':
-                description: 'Successful response.'
-                content:
-                  application/json:
-                    schema:
-                      type: object
-                      properties:
-                        data:
-                          type: object
-      tags:
-        - Endpoints
-      security: []
-  /api/v1/health/ping:
-    get:
-      summary: "Lightweight liveness probe for load balancers: always 200 when the\nprocess can answer, with no dependency checks."
-      operationId: lightweightLivenessProbeForLoadBalancersAlways200WhenTheProcessCanAnswerWithNoDependencyChecks
-      description: ''
-      parameters: []
-      responses:
-              '200':
-                description: 'Successful response.'
-                content:
-                  application/json:
-                    schema:
-                      type: object
-                      properties:
-                        data:
-                          type: object
-      tags:
-        - Endpoints
-      security: []
   /api/v1/auth/otp/request:
     post:
       summary: ''
       operationId: postApiV1AuthOtpRequest
       description: ''
       parameters: []
-      responses:
-              '202':
-                description: 'Request accepted, action pending.'
-                content:
-                  application/json:
-                    schema:
-                      type: object
-                      properties:
-                        data:
-                          type: object
+      responses: {}
       tags:
-        - Endpoints
+        - Auth
       requestBody:
         required: true
         content:
@@ -389,7 +288,7 @@ paths:
                 purpose:
                   type: string
                   description: ''
-                  example: registration
+                  example: account_unlock
                   enum:
                     - registration
                     - login_new_device
@@ -405,18 +304,9 @@ paths:
       operationId: postApiV1AuthOtpVerify
       description: ''
       parameters: []
-      responses:
-              '200':
-                description: 'Successful response.'
-                content:
-                  application/json:
-                    schema:
-                      type: object
-                      properties:
-                        data:
-                          type: object
+      responses: {}
       tags:
-        - Endpoints
+        - Auth
       requestBody:
         required: true
         content:
@@ -431,7 +321,7 @@ paths:
                 purpose:
                   type: string
                   description: ''
-                  example: account_unlock
+                  example: pin_reset
                   enum:
                     - registration
                     - login_new_device
@@ -452,18 +342,9 @@ paths:
       operationId: postApiV1AuthPinReset
       description: ''
       parameters: []
-      responses:
-              '200':
-                description: 'Successful response.'
-                content:
-                  application/json:
-                    schema:
-                      type: object
-                      properties:
-                        data:
-                          type: object
+      responses: {}
       tags:
-        - Endpoints
+        - Auth
       requestBody:
         required: true
         content:
@@ -494,18 +375,9 @@ paths:
       operationId: postApiV1AuthUnlock
       description: ''
       parameters: []
-      responses:
-              '202':
-                description: 'Request accepted, action pending.'
-                content:
-                  application/json:
-                    schema:
-                      type: object
-                      properties:
-                        data:
-                          type: object
+      responses: {}
       tags:
-        - Endpoints
+        - Auth
       requestBody:
         required: true
         content:
@@ -531,18 +403,9 @@ paths:
       operationId: postApiV1AuthRegisterComplete
       description: ''
       parameters: []
-      responses:
-              '201':
-                description: 'Resource created.'
-                content:
-                  application/json:
-                    schema:
-                      type: object
-                      properties:
-                        data:
-                          type: object
+      responses: {}
       tags:
-        - Endpoints
+        - Auth
       requestBody:
         required: true
         content:
@@ -569,7 +432,7 @@ paths:
                 platform:
                   type: string
                   description: ''
-                  example: web
+                  example: ios
                   enum:
                     - android
                     - ios
@@ -598,18 +461,9 @@ paths:
       operationId: postApiV1AuthLogin
       description: ''
       parameters: []
-      responses:
-              '200':
-                description: 'Successful response.'
-                content:
-                  application/json:
-                    schema:
-                      type: object
-                      properties:
-                        data:
-                          type: object
+      responses: {}
       tags:
-        - Endpoints
+        - Auth
       requestBody:
         required: true
         content:
@@ -632,7 +486,7 @@ paths:
                 platform:
                   type: string
                   description: ''
-                  example: ios
+                  example: web
                   enum:
                     - android
                     - ios
@@ -664,42 +518,327 @@ paths:
                 - platform
                 - device_fingerprint
       security: []
+  /api/v1/auth/oauth/token:
+    post:
+      summary: 'Échange un jeton OAuth provider contre une session KORA.'
+      operationId: changeUnJetonOAuthProviderContreUneSessionKORA
+      description: "Le client mobile authentifie l'utilisateur via le SDK natif du\nprovider (Google Sign-In, Facebook SDK, TikTok Login Kit), récupère\nun access token, puis l'envoie à cet endpoint. Le backend valide\nle jeton via Socialite, retrouve ou crée le compte KORA, lie le\ncompte social, télécharge l'avatar via Spatie Media Library et\német un token Sanctum."
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    token: 3|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef
+                    token_type: Bearer
+                    expires_at: '2026-08-27T13:05:00.000Z'
+                    user:
+                      uuid: 977e5426-8d13-3824-86aa-b092f8ae52c5
+                      name: 'Aïcha Hounkpè'
+                      email: aicha.hounkpe@gmail.com
+                      phone: null
+                      country_code: null
+                      birth_date: null
+                      avatar_url: 'https://api.korabus.app/media/avatars/123/thumb.jpg'
+                      status: active
+                      permissions:
+                        - bookings.create
+                        - bookings.view-own
+                        - tickets.view
+                    device:
+                      uuid: a3091549-9179-454e-8440-58179f2208df
+                      name: 'iPhone 15 Pro'
+                      platform: ios
+                      trusted_at: '2026-08-20T13:05:00.000Z'
+                      last_seen_at: '2026-08-20T13:05:00.000Z'
+                      status: trusted
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                        example: 3|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef
+                      token_type:
+                        type: string
+                        example: Bearer
+                      expires_at:
+                        type: string
+                        example: '2026-08-27T13:05:00.000Z'
+                      user:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 977e5426-8d13-3824-86aa-b092f8ae52c5
+                          name:
+                            type: string
+                            example: 'Aïcha Hounkpè'
+                          email:
+                            type: string
+                            example: aicha.hounkpe@gmail.com
+                          phone:
+                            type: string
+                            example: null
+                            nullable: true
+                          country_code:
+                            type: string
+                            example: null
+                            nullable: true
+                          birth_date:
+                            type: string
+                            example: null
+                            nullable: true
+                          avatar_url:
+                            type: string
+                            example: 'https://api.korabus.app/media/avatars/123/thumb.jpg'
+                          status:
+                            type: string
+                            example: active
+                          permissions:
+                            type: array
+                            example:
+                              - bookings.create
+                              - bookings.view-own
+                              - tickets.view
+                            items:
+                              type: string
+                      device:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: a3091549-9179-454e-8440-58179f2208df
+                          name:
+                            type: string
+                            example: 'iPhone 15 Pro'
+                          platform:
+                            type: string
+                            example: ios
+                          trusted_at:
+                            type: string
+                            example: '2026-08-20T13:05:00.000Z'
+                          last_seen_at:
+                            type: string
+                            example: '2026-08-20T13:05:00.000Z'
+                          status:
+                            type: string
+                            example: trusted
+        201:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    token: 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef
+                    token_type: Bearer
+                    expires_at: '2026-08-27T13:05:00.000Z'
+                    user:
+                      uuid: 977e5426-8d13-3824-86aa-b092f8ae52c5
+                      name: 'Aïcha Hounkpè'
+                      email: aicha.hounkpe@gmail.com
+                      phone: null
+                      country_code: null
+                      birth_date: null
+                      avatar_url: 'https://api.korabus.app/media/avatars/124/thumb.jpg'
+                      status: active
+                      permissions:
+                        - bookings.create
+                        - bookings.view-own
+                        - tickets.view
+                    device:
+                      uuid: a3091549-9179-454e-8440-58179f2208df
+                      name: 'iPhone 15 Pro'
+                      platform: ios
+                      trusted_at: '2026-08-20T13:05:00.000Z'
+                      last_seen_at: '2026-08-20T13:05:00.000Z'
+                      status: trusted
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                        example: 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef
+                      token_type:
+                        type: string
+                        example: Bearer
+                      expires_at:
+                        type: string
+                        example: '2026-08-27T13:05:00.000Z'
+                      user:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 977e5426-8d13-3824-86aa-b092f8ae52c5
+                          name:
+                            type: string
+                            example: 'Aïcha Hounkpè'
+                          email:
+                            type: string
+                            example: aicha.hounkpe@gmail.com
+                          phone:
+                            type: string
+                            example: null
+                            nullable: true
+                          country_code:
+                            type: string
+                            example: null
+                            nullable: true
+                          birth_date:
+                            type: string
+                            example: null
+                            nullable: true
+                          avatar_url:
+                            type: string
+                            example: 'https://api.korabus.app/media/avatars/124/thumb.jpg'
+                          status:
+                            type: string
+                            example: active
+                          permissions:
+                            type: array
+                            example:
+                              - bookings.create
+                              - bookings.view-own
+                              - tickets.view
+                            items:
+                              type: string
+                      device:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: a3091549-9179-454e-8440-58179f2208df
+                          name:
+                            type: string
+                            example: 'iPhone 15 Pro'
+                          platform:
+                            type: string
+                            example: ios
+                          trusted_at:
+                            type: string
+                            example: '2026-08-20T13:05:00.000Z'
+                          last_seen_at:
+                            type: string
+                            example: '2026-08-20T13:05:00.000Z'
+                          status:
+                            type: string
+                            example: trusted
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: account_suspended
+                    message: 'Le compte est suspendu. Contactez le support.'
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: account_suspended
+                      message:
+                        type: string
+                        example: 'Le compte est suspendu. Contactez le support.'
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: invalid_oauth_token
+                    message: "Le jeton OAuth fourni n'est pas valide ou a expiré."
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: invalid_oauth_token
+                      message:
+                        type: string
+                        example: "Le jeton OAuth fourni n'est pas valide ou a expiré."
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                provider:
+                  type: string
+                  description: ''
+                  example: google
+                  enum:
+                    - google
+                    - facebook
+                    - tiktok
+                provider_token:
+                  type: string
+                  description: validation.max.
+                  example: b
+                device_name:
+                  type: string
+                  description: validation.max.
+                  example: 'n'
+                platform:
+                  type: string
+                  description: ''
+                  example: android
+                  enum:
+                    - android
+                    - ios
+                    - web
+                    - unknown
+                device_fingerprint:
+                  type: string
+                  description: 'validation.min validation.max.'
+                  example: g
+                push_token:
+                  type: string
+                  description: validation.max.
+                  example: z
+                  nullable: true
+              required:
+                - provider
+                - provider_token
+                - device_name
+                - platform
+                - device_fingerprint
+      security: []
   /api/v1/auth/me:
     get:
       summary: ''
       operationId: getApiV1AuthMe
       description: ''
       parameters: []
-      responses:
-              '200':
-                description: 'Successful response.'
-                content:
-                  application/json:
-                    schema:
-                      type: object
-                      properties:
-                        data:
-                          type: object
+      responses: {}
       tags:
-        - Endpoints
+        - Auth
       security: []
     put:
       summary: ''
       operationId: putApiV1AuthMe
       description: ''
       parameters: []
-      responses:
-              '200':
-                description: 'Successful response.'
-                content:
-                  application/json:
-                    schema:
-                      type: object
-                      properties:
-                        data:
-                          type: object
+      responses: {}
       tags:
-        - Endpoints
+        - Auth
       requestBody:
         required: true
         content:
@@ -728,7 +867,7 @@ paths:
                 birth_date:
                   type: string
                   description: 'validation.date validation.before.'
-                  example: '2022-09-10'
+                  example: '2022-09-13'
                   nullable: true
               required:
                 - name
@@ -740,18 +879,9 @@ paths:
       operationId: postApiV1AuthPinChange
       description: ''
       parameters: []
-      responses:
-              '200':
-                description: 'Successful response.'
-                content:
-                  application/json:
-                    schema:
-                      type: object
-                      properties:
-                        data:
-                          type: object
+      responses: {}
       tags:
-        - Endpoints
+        - Auth
       requestBody:
         required: true
         content:
@@ -777,36 +907,18 @@ paths:
       operationId: getApiV1AuthPreferences
       description: ''
       parameters: []
-      responses:
-              '200':
-                description: 'Successful response.'
-                content:
-                  application/json:
-                    schema:
-                      type: object
-                      properties:
-                        data:
-                          type: object
+      responses: {}
       tags:
-        - Endpoints
+        - Auth
       security: []
     put:
       summary: ''
       operationId: putApiV1AuthPreferences
       description: ''
       parameters: []
-      responses:
-              '200':
-                description: 'Successful response.'
-                content:
-                  application/json:
-                    schema:
-                      type: object
-                      properties:
-                        data:
-                          type: object
+      responses: {}
       tags:
-        - Endpoints
+        - Auth
       requestBody:
         required: false
         content:
@@ -822,17 +934,17 @@ paths:
                 whatsapp_notifications:
                   type: boolean
                   description: ''
-                  example: false
+                  example: true
                   nullable: true
                 email_notifications:
                   type: boolean
                   description: ''
-                  example: true
+                  example: false
                   nullable: true
                 locale:
                   type: string
                   description: ''
-                  example: en
+                  example: fr
                   enum:
                     - fr
                     - en
@@ -840,7 +952,7 @@ paths:
                 theme:
                   type: string
                   description: ''
-                  example: system
+                  example: light
                   enum:
                     - light
                     - dark
@@ -853,20 +965,9 @@ paths:
       operationId: getApiV1AuthDevices
       description: ''
       parameters: []
-      responses:
-              '200':
-                description: 'Successful response.'
-                content:
-                  application/json:
-                    schema:
-                      type: object
-                      properties:
-                        data:
-                          type: array
-                          items:
-                            type: object
+      responses: {}
       tags:
-        - Endpoints
+        - Auth
       security: []
   '/api/v1/auth/devices/{uuid}':
     delete:
@@ -874,11 +975,9 @@ paths:
       operationId: deleteApiV1AuthDevicesUuid
       description: ''
       parameters: []
-      responses:
-              '204':
-                description: 'No content.'
+      responses: {}
       tags:
-        - Endpoints
+        - Auth
       security: []
     parameters:
       -
@@ -895,16 +994,27 @@ paths:
       operationId: postApiV1AuthLogout
       description: ''
       parameters: []
-      responses:
-              '200':
-                description: 'Successful response.'
-                content:
-                  application/json:
-                    schema:
-                      type: object
-                      properties:
-                        data:
-                          type: object
+      responses: {}
       tags:
-        - Endpoints
+        - Auth
+      security: []
+  /api/v1/health:
+    get:
+      summary: 'Full application health: database, cache (Redis), and API version.'
+      operationId: fullApplicationHealthDatabaseCacheRedisAndAPIVersion
+      description: "Returns 200 when every dependency is reachable, 503 otherwise so load\nbalancers and monitoring can drain traffic from an unhealthy instance."
+      parameters: []
+      responses: {}
+      tags:
+        - Health
+      security: []
+  /api/v1/health/ping:
+    get:
+      summary: "Lightweight liveness probe for load balancers: always 200 when the\nprocess can answer, with no dependency checks."
+      operationId: lightweightLivenessProbeForLoadBalancersAlways200WhenTheProcessCanAnswerWithNoDependencyChecks
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Health
       security: []

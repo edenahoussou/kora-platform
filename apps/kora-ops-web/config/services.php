@@ -35,4 +35,34 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | OAuth Social Providers (Laravel Socialite)
+    |--------------------------------------------------------------------------
+    |
+    | Identifiants OAuth 2.0 pour l'authentification sociale de l'app
+    | passager KORA (Google, Facebook, TikTok). Le client_id est public
+    | (côté mobile), le client_secret reste côté backend et valide les
+    | tokens reçus via Socialite::driver($provider)->userFromToken().
+    |
+    */
+
+    'google' => [
+        'client_id' => env('GOOGLE_OAUTH_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_OAUTH_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_OAUTH_REDIRECT', '/api/v1/auth/oauth/google/callback'),
+    ],
+
+    'facebook' => [
+        'client_id' => env('FACEBOOK_OAUTH_CLIENT_ID'),
+        'client_secret' => env('FACEBOOK_OAUTH_CLIENT_SECRET'),
+        'redirect' => env('FACEBOOK_OAUTH_REDIRECT', '/api/v1/auth/oauth/facebook/callback'),
+    ],
+
+    'tiktok' => [
+        'client_id' => env('TIKTOK_OAUTH_CLIENT_ID'),
+        'client_secret' => env('TIKTOK_OAUTH_CLIENT_SECRET'),
+        'redirect' => env('TIKTOK_OAUTH_REDIRECT', '/api/v1/auth/oauth/tiktok/callback'),
+    ],
+
 ];

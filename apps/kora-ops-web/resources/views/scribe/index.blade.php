@@ -114,6 +114,9 @@
                                                                                 <li class="tocify-item level-2" data-unique="auth-POSTapi-v1-auth-login">
                                 <a href="#auth-POSTapi-v1-auth-login">POST api/v1/auth/login</a>
                             </li>
+                                                                                <li class="tocify-item level-2" data-unique="auth-POSTapi-v1-auth-oauth-token">
+                                <a href="#auth-POSTapi-v1-auth-oauth-token">Échange un jeton OAuth provider contre une session KORA.</a>
+                            </li>
                                                                                 <li class="tocify-item level-2" data-unique="auth-GETapi-v1-auth-me">
                                 <a href="#auth-GETapi-v1-auth-me">GET api/v1/auth/me</a>
                             </li>
@@ -163,7 +166,7 @@ process can answer, with no dependency checks.</a>
     </ul>
 
     <ul class="toc-footer" id="last-updated">
-        <li>Last updated: August 17, 2026</li>
+        <li>Last updated: August 20, 2026</li>
     </ul>
 </div>
 
@@ -488,14 +491,14 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/bus/lines/a3091549-9179-454e-8440-58179f2208df" \
+    --get "http://kora-ops-web.local/api/v1/bus/lines/0e2271df-6ff5-4cb8-866c-ab41fd06fd96" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bus/lines/a3091549-9179-454e-8440-58179f2208df"
+    "http://kora-ops-web.local/api/v1/bus/lines/0e2271df-6ff5-4cb8-866c-ab41fd06fd96"
 );
 
 const headers = {
@@ -592,10 +595,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="uuid"                data-endpoint="GETapi-v1-bus-lines--uuid-"
-               value="a3091549-9179-454e-8440-58179f2208df"
+               value="0e2271df-6ff5-4cb8-866c-ab41fd06fd96"
                data-component="url">
     <br>
-<p>Example: <code>a3091549-9179-454e-8440-58179f2208df</code></p>
+<p>Example: <code>0e2271df-6ff5-4cb8-866c-ab41fd06fd96</code></p>
             </div>
                     </form>
 
@@ -616,7 +619,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
-    \"date\": \"2026-08-17\",
+    \"date\": \"2026-08-20\",
     \"from\": \"b\",
     \"to\": \"n\"
 }"
@@ -642,7 +645,7 @@ const headers = {
 };
 
 let body = {
-    "date": "2026-08-17",
+    "date": "2026-08-20",
     "from": "b",
     "to": "n"
 };
@@ -773,10 +776,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="date"                data-endpoint="GETapi-v1-bus-departures"
-               value="2026-08-17"
+               value="2026-08-20"
                data-component="body">
     <br>
-<p>Must be a valid date in the format <code>Y-m-d</code>. Example: <code>2026-08-17</code></p>
+<p>Must be a valid date in the format <code>Y-m-d</code>. Example: <code>2026-08-20</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>from</code></b>&nbsp;&nbsp;
@@ -1208,7 +1211,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Accept: application/json" \
     --data "{
     \"email\": \"gbailey@example.net\",
-    \"purpose\": \"pin_reset\"
+    \"purpose\": \"account_unlock\"
 }"
 </code></pre></div>
 
@@ -1225,7 +1228,7 @@ const headers = {
 
 let body = {
     "email": "gbailey@example.net",
-    "purpose": "pin_reset"
+    "purpose": "account_unlock"
 };
 
 fetch(url, {
@@ -1329,10 +1332,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="purpose"                data-endpoint="POSTapi-v1-auth-otp-request"
-               value="pin_reset"
+               value="account_unlock"
                data-component="body">
     <br>
-<p>Example: <code>pin_reset</code></p>
+<p>Example: <code>account_unlock</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>registration</code></li> <li><code>login_new_device</code></li> <li><code>pin_reset</code></li> <li><code>account_unlock</code></li></ul>
         </div>
@@ -1356,7 +1359,7 @@ Must be one of:
     --header "Accept: application/json" \
     --data "{
     \"otp_challenge_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
-    \"purpose\": \"registration\",
+    \"purpose\": \"pin_reset\",
     \"code\": \"569775\"
 }"
 </code></pre></div>
@@ -1374,7 +1377,7 @@ const headers = {
 
 let body = {
     "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-    "purpose": "registration",
+    "purpose": "pin_reset",
     "code": "569775"
 };
 
@@ -1479,10 +1482,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="purpose"                data-endpoint="POSTapi-v1-auth-otp-verify"
-               value="registration"
+               value="pin_reset"
                data-component="body">
     <br>
-<p>Example: <code>registration</code></p>
+<p>Example: <code>pin_reset</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>registration</code></li> <li><code>login_new_device</code></li> <li><code>pin_reset</code></li> <li><code>account_unlock</code></li></ul>
         </div>
@@ -1827,7 +1830,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"verification_token\": \"gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn\",
     \"pin\": \"9775\",
     \"device_name\": \"n\",
-    \"platform\": \"unknown\",
+    \"platform\": \"ios\",
     \"device_fingerprint\": \"g\",
     \"push_token\": \"z\"
 }"
@@ -1849,7 +1852,7 @@ let body = {
     "verification_token": "gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn",
     "pin": "9775",
     "device_name": "n",
-    "platform": "unknown",
+    "platform": "ios",
     "device_fingerprint": "g",
     "push_token": "z"
 };
@@ -1991,10 +1994,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="platform"                data-endpoint="POSTapi-v1-auth-register-complete"
-               value="unknown"
+               value="ios"
                data-component="body">
     <br>
-<p>Example: <code>unknown</code></p>
+<p>Example: <code>ios</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>android</code></li> <li><code>ios</code></li> <li><code>web</code></li> <li><code>unknown</code></li></ul>
         </div>
@@ -2044,7 +2047,7 @@ Must be one of:
     \"email\": \"gbailey@example.net\",
     \"pin\": \"9775\",
     \"device_name\": \"n\",
-    \"platform\": \"unknown\",
+    \"platform\": \"web\",
     \"device_fingerprint\": \"g\",
     \"push_token\": \"z\",
     \"otp_challenge_uuid\": \"977e5426-8d13-3824-86aa-b092f8ae52c5\",
@@ -2067,7 +2070,7 @@ let body = {
     "email": "gbailey@example.net",
     "pin": "9775",
     "device_name": "n",
-    "platform": "unknown",
+    "platform": "web",
     "device_fingerprint": "g",
     "push_token": "z",
     "otp_challenge_uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
@@ -2199,10 +2202,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="platform"                data-endpoint="POSTapi-v1-auth-login"
-               value="unknown"
+               value="web"
                data-component="body">
     <br>
-<p>Example: <code>unknown</code></p>
+<p>Example: <code>web</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>android</code></li> <li><code>ios</code></li> <li><code>web</code></li> <li><code>unknown</code></li></ul>
         </div>
@@ -2253,6 +2256,313 @@ Must be one of:
                data-component="body">
     <br>
 <p>This field is required when <code>otp_challenge_uuid</code> is present. validation.size. Example: <code>yvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtnnoqi</code></p>
+        </div>
+        </form>
+
+                    <h2 id="auth-POSTapi-v1-auth-oauth-token">Échange un jeton OAuth provider contre une session KORA.</h2>
+
+<p>
+</p>
+
+<p>Le client mobile authentifie l'utilisateur via le SDK natif du
+provider (Google Sign-In, Facebook SDK, TikTok Login Kit), récupère
+un access token, puis l'envoie à cet endpoint. Le backend valide
+le jeton via Socialite, retrouve ou crée le compte KORA, lie le
+compte social, télécharge l'avatar via Spatie Media Library et
+émet un token Sanctum.</p>
+
+<span id="example-requests-POSTapi-v1-auth-oauth-token">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request POST \
+    "http://kora-ops-web.local/api/v1/auth/oauth/token" \
+    --header "Content-Type: application/json" \
+    --header "Accept: application/json" \
+    --data "{
+    \"provider\": \"google\",
+    \"provider_token\": \"b\",
+    \"device_name\": \"n\",
+    \"platform\": \"android\",
+    \"device_fingerprint\": \"g\",
+    \"push_token\": \"z\"
+}"
+</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "http://kora-ops-web.local/api/v1/auth/oauth/token"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+};
+
+let body = {
+    "provider": "google",
+    "provider_token": "b",
+    "device_name": "n",
+    "platform": "android",
+    "device_fingerprint": "g",
+    "push_token": "z"
+};
+
+fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-POSTapi-v1-auth-oauth-token">
+            <blockquote>
+            <p>Example response (200):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;token&quot;: &quot;3|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef&quot;,
+        &quot;token_type&quot;: &quot;Bearer&quot;,
+        &quot;expires_at&quot;: &quot;2026-08-27T13:05:00.000Z&quot;,
+        &quot;user&quot;: {
+            &quot;uuid&quot;: &quot;977e5426-8d13-3824-86aa-b092f8ae52c5&quot;,
+            &quot;name&quot;: &quot;A&iuml;cha Hounkp&egrave;&quot;,
+            &quot;email&quot;: &quot;aicha.hounkpe@gmail.com&quot;,
+            &quot;phone&quot;: null,
+            &quot;country_code&quot;: null,
+            &quot;birth_date&quot;: null,
+            &quot;avatar_url&quot;: &quot;https://api.korabus.app/media/avatars/123/thumb.jpg&quot;,
+            &quot;status&quot;: &quot;active&quot;,
+            &quot;permissions&quot;: [
+                &quot;bookings.create&quot;,
+                &quot;bookings.view-own&quot;,
+                &quot;tickets.view&quot;
+            ]
+        },
+        &quot;device&quot;: {
+            &quot;uuid&quot;: &quot;a3091549-9179-454e-8440-58179f2208df&quot;,
+            &quot;name&quot;: &quot;iPhone 15 Pro&quot;,
+            &quot;platform&quot;: &quot;ios&quot;,
+            &quot;trusted_at&quot;: &quot;2026-08-20T13:05:00.000Z&quot;,
+            &quot;last_seen_at&quot;: &quot;2026-08-20T13:05:00.000Z&quot;,
+            &quot;status&quot;: &quot;trusted&quot;
+        }
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (201):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;token&quot;: &quot;1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef&quot;,
+        &quot;token_type&quot;: &quot;Bearer&quot;,
+        &quot;expires_at&quot;: &quot;2026-08-27T13:05:00.000Z&quot;,
+        &quot;user&quot;: {
+            &quot;uuid&quot;: &quot;977e5426-8d13-3824-86aa-b092f8ae52c5&quot;,
+            &quot;name&quot;: &quot;A&iuml;cha Hounkp&egrave;&quot;,
+            &quot;email&quot;: &quot;aicha.hounkpe@gmail.com&quot;,
+            &quot;phone&quot;: null,
+            &quot;country_code&quot;: null,
+            &quot;birth_date&quot;: null,
+            &quot;avatar_url&quot;: &quot;https://api.korabus.app/media/avatars/124/thumb.jpg&quot;,
+            &quot;status&quot;: &quot;active&quot;,
+            &quot;permissions&quot;: [
+                &quot;bookings.create&quot;,
+                &quot;bookings.view-own&quot;,
+                &quot;tickets.view&quot;
+            ]
+        },
+        &quot;device&quot;: {
+            &quot;uuid&quot;: &quot;a3091549-9179-454e-8440-58179f2208df&quot;,
+            &quot;name&quot;: &quot;iPhone 15 Pro&quot;,
+            &quot;platform&quot;: &quot;ios&quot;,
+            &quot;trusted_at&quot;: &quot;2026-08-20T13:05:00.000Z&quot;,
+            &quot;last_seen_at&quot;: &quot;2026-08-20T13:05:00.000Z&quot;,
+            &quot;status&quot;: &quot;trusted&quot;
+        }
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;error&quot;: {
+        &quot;code&quot;: &quot;account_suspended&quot;,
+        &quot;message&quot;: &quot;Le compte est suspendu. Contactez le support.&quot;
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (422):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;error&quot;: {
+        &quot;code&quot;: &quot;invalid_oauth_token&quot;,
+        &quot;message&quot;: &quot;Le jeton OAuth fourni n&#039;est pas valide ou a expir&eacute;.&quot;
+    }
+}</code>
+ </pre>
+    </span>
+<span id="execution-results-POSTapi-v1-auth-oauth-token" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-POSTapi-v1-auth-oauth-token"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-POSTapi-v1-auth-oauth-token"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-POSTapi-v1-auth-oauth-token" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-POSTapi-v1-auth-oauth-token">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-POSTapi-v1-auth-oauth-token" data-method="POST"
+      data-path="api/v1/auth/oauth/token"
+      data-authed="0"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('POSTapi-v1-auth-oauth-token', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+                    <button type="button"
+                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-tryout-POSTapi-v1-auth-oauth-token"
+                    onclick="tryItOut('POSTapi-v1-auth-oauth-token');">Try it out ⚡
+            </button>
+            <button type="button"
+                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-canceltryout-POSTapi-v1-auth-oauth-token"
+                    onclick="cancelTryOut('POSTapi-v1-auth-oauth-token');" hidden>Cancel 🛑
+            </button>&nbsp;&nbsp;
+            <button type="submit"
+                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-executetryout-POSTapi-v1-auth-oauth-token"
+                    data-initial-text="Send Request 💥"
+                    data-loading-text="⏱ Sending..."
+                    hidden>Send Request 💥
+            </button>
+            </h3>
+            <p>
+            <small class="badge badge-black">POST</small>
+            <b><code>api/v1/auth/oauth/token</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="POSTapi-v1-auth-oauth-token"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="POSTapi-v1-auth-oauth-token"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <h4 class="fancy-heading-panel"><b>Body Parameters</b></h4>
+        <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>provider</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="provider"                data-endpoint="POSTapi-v1-auth-oauth-token"
+               value="google"
+               data-component="body">
+    <br>
+<p>Example: <code>google</code></p>
+Must be one of:
+<ul style="list-style-type: square;"><li><code>google</code></li> <li><code>facebook</code></li> <li><code>tiktok</code></li></ul>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>provider_token</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="provider_token"                data-endpoint="POSTapi-v1-auth-oauth-token"
+               value="b"
+               data-component="body">
+    <br>
+<p>validation.max. Example: <code>b</code></p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>device_name</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="device_name"                data-endpoint="POSTapi-v1-auth-oauth-token"
+               value="n"
+               data-component="body">
+    <br>
+<p>validation.max. Example: <code>n</code></p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>platform</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="platform"                data-endpoint="POSTapi-v1-auth-oauth-token"
+               value="android"
+               data-component="body">
+    <br>
+<p>Example: <code>android</code></p>
+Must be one of:
+<ul style="list-style-type: square;"><li><code>android</code></li> <li><code>ios</code></li> <li><code>web</code></li> <li><code>unknown</code></li></ul>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>device_fingerprint</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="device_fingerprint"                data-endpoint="POSTapi-v1-auth-oauth-token"
+               value="g"
+               data-component="body">
+    <br>
+<p>validation.min validation.max. Example: <code>g</code></p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>push_token</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="push_token"                data-endpoint="POSTapi-v1-auth-oauth-token"
+               value="z"
+               data-component="body">
+    <br>
+<p>validation.max. Example: <code>z</code></p>
         </div>
         </form>
 
@@ -2388,7 +2698,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"email\": \"zbailey@example.net\",
     \"phone\": \"iyvdljnikhwaykcm\",
     \"country_code\": \"yuwp\",
-    \"birth_date\": \"2022-09-10\"
+    \"birth_date\": \"2022-09-13\"
 }"
 </code></pre></div>
 
@@ -2408,7 +2718,7 @@ let body = {
     "email": "zbailey@example.net",
     "phone": "iyvdljnikhwaykcm",
     "country_code": "yuwp",
-    "birth_date": "2022-09-10"
+    "birth_date": "2022-09-13"
 };
 
 fetch(url, {
@@ -2548,10 +2858,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="birth_date"                data-endpoint="PUTapi-v1-auth-me"
-               value="2022-09-10"
+               value="2022-09-13"
                data-component="body">
     <br>
-<p>validation.date validation.before. Example: <code>2022-09-10</code></p>
+<p>validation.date validation.before. Example: <code>2022-09-13</code></p>
         </div>
         </form>
 
@@ -2833,7 +3143,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"whatsapp_notifications\": true,
     \"email_notifications\": false,
     \"locale\": \"fr\",
-    \"theme\": \"dark\"
+    \"theme\": \"light\"
 }"
 </code></pre></div>
 
@@ -2853,7 +3163,7 @@ let body = {
     "whatsapp_notifications": true,
     "email_notifications": false,
     "locale": "fr",
-    "theme": "dark"
+    "theme": "light"
 };
 
 fetch(url, {
@@ -3025,10 +3335,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="theme"                data-endpoint="PUTapi-v1-auth-preferences"
-               value="dark"
+               value="light"
                data-component="body">
     <br>
-<p>Example: <code>dark</code></p>
+<p>Example: <code>light</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>light</code></li> <li><code>dark</code></li> <li><code>system</code></li></ul>
         </div>
