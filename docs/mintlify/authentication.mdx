@@ -403,6 +403,17 @@ try {
 }
 ```
 
+**Réponse en cas d'email manquant (422) :**
+
+```json
+{
+  "error": {
+    "code": "email_required",
+    "message": "Le fournisseur OAuth n'a pas retourné d'adresse email. Un email est obligatoire pour créer un compte KORA."
+  }
+}
+```
+
 **Réponse en cas de compte suspendu (403) :**
 
 ```json
@@ -446,7 +457,7 @@ try {
 - **Compte suspendu** : La connexion est refusée avec `403 account_suspended`.
 
 <Warning>
-  **Providers sans email** : TikTok ne retourne pas toujours d'email. Dans ce cas, un email synthétique `tiktok.{provider_user_id}@social.korabus.app` est généré. L'utilisateur peut compléter son email réel dans son profil ultérieurement.
+  **Providers sans email** : Certains providers (TikTok notamment) ne retournent pas toujours d'email. Dans ce cas, l'API refuse la création du compte avec un statut **422** et le code `email_required`. L'utilisateur doit utiliser un autre provider ou s'inscrire par email. Aucun compte n'est créé sans une adresse email réelle.
 </Warning>
 
 ### Codes d'erreur
@@ -454,6 +465,7 @@ try {
 | Statut | Code                  | Description |
 |--------|-----------------------|-------------|
 | 422    | `invalid_oauth_token` | Le jeton OAuth fourni n'est pas valide ou a expiré. |
+| 422    | `email_required`      | Le fournisseur OAuth n'a pas retourné d'adresse email. Un email est obligatoire pour créer un compte KORA. |
 | 403    | `account_suspended`   | Le compte est suspendu. Contactez le support. |
 | 422    | Validation errors     | Champs manquants ou provider non supporté. |
 

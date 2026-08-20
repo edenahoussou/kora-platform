@@ -8,6 +8,7 @@ use App\Modules\IdentityAccess\Actions\UpsertTrustedDeviceAction;
 use App\Modules\IdentityAccess\Data\OAuthProvider;
 use App\Modules\IdentityAccess\Data\UserStatus;
 use App\Modules\IdentityAccess\Exceptions\AuthSuspendedException;
+use App\Modules\IdentityAccess\Exceptions\OAuthEmailRequiredException;
 use App\Modules\IdentityAccess\Models\UserSocialAccount;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Str;
@@ -90,6 +91,9 @@ class AuthSocialService
     /**
      * Recherche un utilisateur via son compte social lié, sinon par
      * email, sinon crée un nouveau User avec le rôle passenger.
+     *
+     * @throws OAuthEmailRequiredException Si le provider ne retourne
+     *                                     pas d'email et qu'aucun compte lié n'existe.
      */
     private function findOrCreateUser(OAuthProvider $provider, SocialiteUser $socialUser, bool &$created): User
     {
@@ -106,18 +110,26 @@ class AuthSocialService
             ? Str::lower($socialUser->getEmail())
             : null;
 
-        if ($email) {
-            $existing = User::query()->where('email', $email)->first();
-            if ($existing) {
-                return $existing;
-            }
+        // Un email est obligatoire pour créer un compte KORA : sans
+        // email, l'utilisateur ne peut pas recevoir ses tickets, ni
+        // réinitialiser son PIN, ni être notifié. Certains providers
+        // (TikTok notamment) ne retournent pas toujours d'email — on
+        // bloque alors la création avec un message explicite plutôt
+        // que de générer un email synthétique inutilisable.
+        if (! $email) {
+            throw new OAuthEmailRequiredException;
         }
 
-        $name = $socialUser->getName() ?: $socialUser->getNickname() ?: $this->defaultName($provider, $socialUser);
+        $existing = User::query()->where('email', $email)->first();
+        if ($existing) {
+            return $existing;
+        }
+
+        $name = $socialUser->getName() ?: $socialUser->getNickname() ?: 'Passager KORA';
 
         $user = User::create([
             'name' => $name,
-            'email' => $email ?? $this->syntheticEmail($provider, $socialUser),
+            'email' => $email,
             'status' => UserStatus::Active,
             'password' => Str::password(32),
         ]);
@@ -172,29 +184,5 @@ class AuthSocialService
             // L'avatar social est optionnel : on ignore silencieusement
             // les échecs de téléchargement (URL expirée, réseau, etc.).
         }
-    }
-
-    private function defaultName(OAuthProvider $provider, SocialiteUser $socialUser): string
-    {
-        $nickname = $socialUser->getNickname();
-
-        return $nickname
-            ? Str::headline($nickname)
-            : 'Passager KORA';
-    }
-
-    /**
-     * Certains providers (TikTok) ne retournent pas toujours d'email.
-     * On génère un identifiant synthétique unique pour ne pas bloquer
-     * la création du compte ; l'email réel pourra être complété plus
-     * tard dans le profil.
-     */
-    private function syntheticEmail(OAuthProvider $provider, SocialiteUser $socialUser): string
-    {
-        return sprintf(
-            '%s.%s@social.korabus.app',
-            $provider->value,
-            $socialUser->getId(),
-        );
     }
 }

@@ -6,7 +6,9 @@ use App\Modules\IdentityAccess\Models\UserSocialAccount;
 use Database\Seeders\KoraBusRolePermissionSeeder;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Socialite\Contracts\Factory as SocialiteFactory;
+use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
+use Mockery;
 
 function mockSocialiteUser(string $provider, string $providerId, ?string $email = null, ?string $name = null, ?string $avatar = null, ?string $nickname = null): void
 {
@@ -23,15 +25,14 @@ function mockSocialiteUser(string $provider, string $providerId, ?string $email 
         ->setRefreshToken('fake-refresh-token')
         ->setExpiresIn(3600);
 
-    $mock = Mockery::mock(SocialiteFactory::class);
-    $mock->shouldReceive('driver')
-        ->with($provider)
-        ->andReturnSelf();
-    $mock->shouldReceive('userFromToken')
+    $driver = Mockery::mock(SocialiteFactory::class);
+    $driver->shouldReceive('userFromToken')
         ->with('fake-provider-token')
         ->andReturn($socialiteUser);
 
-    app()->instance(SocialiteFactory::class, $mock);
+    Socialite::shouldReceive('driver')
+        ->with($provider)
+        ->andReturn($driver);
 }
 
 function oauthPayload(array $overrides = []): array
@@ -180,10 +181,9 @@ it('rejects a suspended user on oauth login', function (): void {
 });
 
 it('rejects an invalid oauth token', function (): void {
-    $mock = Mockery::mock(SocialiteFactory::class);
-    $mock->shouldReceive('driver')->with('google')->andReturnSelf();
-    $mock->shouldReceive('userFromToken')->andThrow(new Exception('Invalid token'));
-    app()->instance(SocialiteFactory::class, $mock);
+    Socialite::shouldReceive('driver')
+        ->with('google')
+        ->andThrow(new Exception('Invalid token'));
 
     $this->postJson('/api/v1/auth/oauth/token', oauthPayload())
         ->assertUnprocessable()
@@ -202,17 +202,15 @@ it('validates required fields and provider enum', function (string $field, mixed
     'device_fingerprint too short' => ['device_fingerprint', 'short'],
 ]);
 
-it('creates a user with a synthetic email when provider returns no email', function (): void {
-    mockSocialiteUser('tiktok', 'tiktok-001', null, null, null, 'dancer123');
+it('rejects account creation when provider returns no email', function (): void {
+    mockSocialiteUser('google', 'google-no-email', null, 'No Email User');
 
-    $this->postJson('/api/v1/auth/oauth/token', oauthPayload([
-        'provider' => 'tiktok',
-    ]))
-        ->assertCreated();
+    $this->postJson('/api/v1/auth/oauth/token', oauthPayload())
+        ->assertUnprocessable()
+        ->assertJsonPath('error.code', 'email_required')
+        ->assertJsonPath('error.message', 'Le fournisseur OAuth n\'a pas retourné d\'adresse email. Un email est obligatoire pour créer un compte KORA.');
 
-    $user = User::query()->where('email', 'tiktok.tiktok-001@social.korabus.app')->firstOrFail();
-
-    expect($user->name)->toBe('dancer123');
+    expect(User::query()->count())->toBe(0);
 });
 
 it('registers a trusted device on oauth login', function (): void {

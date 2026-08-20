@@ -4,6 +4,7 @@ namespace App\Modules\IdentityAccess\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\IdentityAccess\Exceptions\AuthSuspendedException;
+use App\Modules\IdentityAccess\Exceptions\OAuthEmailRequiredException;
 use App\Modules\IdentityAccess\Http\Requests\OAuthTokenRequest;
 use App\Modules\IdentityAccess\Http\Resources\AuthUserResource;
 use App\Modules\IdentityAccess\Http\Resources\UserDeviceResource;
@@ -88,6 +89,7 @@ class AuthOAuthController extends Controller
      *   }
      * }
      * @response 422 {"error": {"code": "invalid_oauth_token", "message": "Le jeton OAuth fourni n'est pas valide ou a expiré."}}
+     * @response 422 {"error": {"code": "email_required", "message": "Le fournisseur OAuth n'a pas retourné d'adresse email. Un email est obligatoire pour créer un compte KORA."}}
      * @response 403 {"error": {"code": "account_suspended", "message": "Le compte est suspendu. Contactez le support."}}
      */
     public function token(OAuthTokenRequest $request): JsonResponse
@@ -101,6 +103,13 @@ class AuthOAuthController extends Controller
                     'message' => 'Le compte est suspendu. Contactez le support.',
                 ],
             ], 403);
+        } catch (OAuthEmailRequiredException $e) {
+            return response()->json([
+                'error' => [
+                    'code' => 'email_required',
+                    'message' => $e->getMessage(),
+                ],
+            ], 422);
         } catch (Throwable $e) {
             return response()->json([
                 'error' => [

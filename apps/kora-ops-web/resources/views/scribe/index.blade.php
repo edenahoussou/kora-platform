@@ -1211,7 +1211,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Accept: application/json" \
     --data "{
     \"email\": \"gbailey@example.net\",
-    \"purpose\": \"account_unlock\"
+    \"purpose\": \"login_new_device\"
 }"
 </code></pre></div>
 
@@ -1228,7 +1228,7 @@ const headers = {
 
 let body = {
     "email": "gbailey@example.net",
-    "purpose": "account_unlock"
+    "purpose": "login_new_device"
 };
 
 fetch(url, {
@@ -1332,10 +1332,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="purpose"                data-endpoint="POSTapi-v1-auth-otp-request"
-               value="account_unlock"
+               value="login_new_device"
                data-component="body">
     <br>
-<p>Example: <code>account_unlock</code></p>
+<p>Example: <code>login_new_device</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>registration</code></li> <li><code>login_new_device</code></li> <li><code>pin_reset</code></li> <li><code>account_unlock</code></li></ul>
         </div>
@@ -1359,7 +1359,7 @@ Must be one of:
     --header "Accept: application/json" \
     --data "{
     \"otp_challenge_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
-    \"purpose\": \"pin_reset\",
+    \"purpose\": \"account_unlock\",
     \"code\": \"569775\"
 }"
 </code></pre></div>
@@ -1377,7 +1377,7 @@ const headers = {
 
 let body = {
     "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-    "purpose": "pin_reset",
+    "purpose": "account_unlock",
     "code": "569775"
 };
 
@@ -1482,10 +1482,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="purpose"                data-endpoint="POSTapi-v1-auth-otp-verify"
-               value="pin_reset"
+               value="account_unlock"
                data-component="body">
     <br>
-<p>Example: <code>pin_reset</code></p>
+<p>Example: <code>account_unlock</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>registration</code></li> <li><code>login_new_device</code></li> <li><code>pin_reset</code></li> <li><code>account_unlock</code></li></ul>
         </div>
@@ -2284,7 +2284,7 @@ compte social, télécharge l'avatar via Spatie Media Library et
     \"provider\": \"google\",
     \"provider_token\": \"b\",
     \"device_name\": \"n\",
-    \"platform\": \"android\",
+    \"platform\": \"ios\",
     \"device_fingerprint\": \"g\",
     \"push_token\": \"z\"
 }"
@@ -2305,7 +2305,7 @@ let body = {
     "provider": "google",
     "provider_token": "b",
     "device_name": "n",
-    "platform": "android",
+    "platform": "ios",
     "device_fingerprint": "g",
     "push_token": "z"
 };
@@ -2412,6 +2412,18 @@ fetch(url, {
     &quot;error&quot;: {
         &quot;code&quot;: &quot;invalid_oauth_token&quot;,
         &quot;message&quot;: &quot;Le jeton OAuth fourni n&#039;est pas valide ou a expir&eacute;.&quot;
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (422):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;error&quot;: {
+        &quot;code&quot;: &quot;email_required&quot;,
+        &quot;message&quot;: &quot;Le fournisseur OAuth n&#039;a pas retourn&eacute; d&#039;adresse email. Un email est obligatoire pour cr&eacute;er un compte KORA.&quot;
     }
 }</code>
  </pre>
@@ -2533,10 +2545,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="platform"                data-endpoint="POSTapi-v1-auth-oauth-token"
-               value="android"
+               value="ios"
                data-component="body">
     <br>
-<p>Example: <code>android</code></p>
+<p>Example: <code>ios</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>android</code></li> <li><code>ios</code></li> <li><code>web</code></li> <li><code>unknown</code></li></ul>
         </div>
@@ -3141,9 +3153,9 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --data "{
     \"push_notifications\": true,
     \"whatsapp_notifications\": true,
-    \"email_notifications\": false,
-    \"locale\": \"fr\",
-    \"theme\": \"light\"
+    \"email_notifications\": true,
+    \"locale\": \"en\",
+    \"theme\": \"dark\"
 }"
 </code></pre></div>
 
@@ -3161,9 +3173,9 @@ const headers = {
 let body = {
     "push_notifications": true,
     "whatsapp_notifications": true,
-    "email_notifications": false,
-    "locale": "fr",
-    "theme": "light"
+    "email_notifications": true,
+    "locale": "en",
+    "theme": "dark"
 };
 
 fetch(url, {
@@ -3312,7 +3324,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>false</code></p>
+<p>Example: <code>true</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>locale</code></b>&nbsp;&nbsp;
@@ -3321,10 +3333,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="locale"                data-endpoint="PUTapi-v1-auth-preferences"
-               value="fr"
+               value="en"
                data-component="body">
     <br>
-<p>Example: <code>fr</code></p>
+<p>Example: <code>en</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>fr</code></li> <li><code>en</code></li></ul>
         </div>
@@ -3335,10 +3347,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="theme"                data-endpoint="PUTapi-v1-auth-preferences"
-               value="light"
+               value="dark"
                data-component="body">
     <br>
-<p>Example: <code>light</code></p>
+<p>Example: <code>dark</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>light</code></li> <li><code>dark</code></li> <li><code>system</code></li></ul>
         </div>
