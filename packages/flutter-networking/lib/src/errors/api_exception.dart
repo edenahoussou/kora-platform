@@ -63,6 +63,15 @@ class ForbiddenApiException extends ApiException {
 }
 
 /// 404 — la ressource demandée n'existe pas.
+/// 423 — la ressource est verrouillée et le redeviendra utilisable après
+/// une action de l'utilisateur (pour KORA : un compte bloqué par des
+/// erreurs de PIN, qui se rouvre par un code OTP).
+class LockedApiException extends ApiException {
+  const LockedApiException([
+    super.message = 'Ce compte est temporairement verrouillé.',
+  ]) : super(statusCode: 423);
+}
+
 class NotFoundApiException extends ApiException {
   const NotFoundApiException([
     super.message = "La ressource demandée n'existe pas.",

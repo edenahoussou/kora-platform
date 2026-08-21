@@ -21,4 +21,17 @@ class StorageKeys {
   static const String accessToken = 'kora_secure_access_token';
   static const String refreshToken = 'kora_secure_refresh_token';
   static const String userId = 'kora_secure_user_id';
+
+  /// Date d'expiration du token (ISO 8601). Il n'existe pas d'endpoint de
+  /// rafraîchissement : l'app doit savoir toute seule quand la session est
+  /// périmée, sans attendre un 401.
+  static const String tokenExpiresAt = 'kora_secure_token_expires_at';
+
+  /// Profil du dernier utilisateur connecté, en JSON. Permet d'ouvrir
+  /// l'app sur son nom sans attendre le réseau.
+  static const String authUser = 'kora_secure_auth_user';
+
+  /// Empreinte de l'appareil envoyée à l'API. Générée une fois puis
+  /// relue : c'est sa stabilité qui évite un OTP à chaque connexion.
+  static const String deviceFingerprint = 'kora_secure_device_fingerprint';
 }
