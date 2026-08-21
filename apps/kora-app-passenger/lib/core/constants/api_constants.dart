@@ -1,7 +1,8 @@
 /// Constantes liées à l'API backend.
 ///
-/// **Aucune vraie API n'existe encore pour ce projet** : les valeurs
-/// ci-dessous sont des placeholders clairement identifiables.
+/// Les chemins d'authentification suivent `docs/mintlify/authentication.mdx`
+/// et la spec OpenAPI du dépôt ; les autres restent des placeholders tant
+/// que leur endpoint n'est pas documenté.
 ///
 /// L'URL de base n'est PAS ici : elle dépend de l'environnement (dev /
 /// staging / prod) et vit dans [AppEnv.apiBaseUrl] (voir
@@ -26,12 +27,48 @@ class ApiConstants {
   // Exemple d'utilisation dans un data source :
   // dio.post(ApiConstants.login, data: {...});
 
-  static const String login = '/auth/login';
-  static const String register = '/auth/register';
-  static const String refreshToken = '/auth/refresh';
-  static const String logout = '/auth/logout';
+  /// Préfixe commun à toute l'API : les URLs de base s'arrêtent au
+  /// domaine (voir [AppEnv.apiBaseUrl]).
+  static const String _v1 = '/api/v1';
 
-  static const String profile = '/users/me';
+  // --- Authentification (documentée) ---
+
+  /// Demande d'un code à 6 chiffres. Corps : `email` + `purpose`.
+  static const String otpRequest = '$_v1/auth/otp/request';
+
+  /// Vérification du code. Rend un `verification_token` à usage unique.
+  static const String otpVerify = '$_v1/auth/otp/verify';
+
+  /// Création du compte : PIN + empreinte d'appareil. Rend le token.
+  static const String registerComplete = '$_v1/auth/register/complete';
+
+  /// Connexion e-mail + PIN. Répond 202 `requires_otp` si l'appareil est
+  /// inconnu, auquel cas il faut repasser par l'OTP puis rappeler ce
+  /// même endpoint avec le `verification_token`.
+  static const String login = '$_v1/auth/login';
+
+  static const String logout = '$_v1/auth/logout';
+  static const String me = '$_v1/auth/me';
+
+  /// PIN oublié (après un OTP `pin_reset`).
+  static const String pinReset = '$_v1/auth/pin/reset';
+
+  /// Changement de PIN par un utilisateur connecté.
+  static const String pinChange = '$_v1/auth/pin/change';
+
+  /// Déverrouillage après trop d'erreurs de PIN (OTP `account_unlock`).
+  static const String unlock = '$_v1/auth/unlock';
+
+  /// Échange d'un jeton fournisseur (Google, Facebook, TikTok) contre un
+  /// token KORA.
+  static const String oauthToken = '$_v1/auth/oauth/token';
+
+  static const String devices = '$_v1/auth/devices';
+  static String device(String uuid) => '$devices/$uuid';
+
+  static const String preferences = '$_v1/auth/preferences';
+
+  // --- Reste de l'API : pas encore documenté ---
 
   static const String busSearch = '/bus/search';
   static const String busBooking = '/bus/bookings';

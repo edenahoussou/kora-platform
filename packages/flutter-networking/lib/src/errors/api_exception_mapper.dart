@@ -71,6 +71,13 @@ abstract final class ApiExceptionMapper {
           message ?? 'Les données envoyées sont invalides.',
           fieldErrors: _extractFieldErrors(error.response?.data),
         );
+      case 423:
+        // « Locked » : le compte est bloqué après trop d'erreurs de PIN et
+        // se rouvre par un OTP. Sans ce cas, il retombait dans le filet
+        // générique et l'app ne pouvait pas proposer le déverrouillage.
+        return LockedApiException(
+          message ?? const LockedApiException().message,
+        );
       default:
         if (statusCode != null && statusCode >= 500) {
           return ServerApiException(
@@ -86,10 +93,21 @@ abstract final class ApiExceptionMapper {
   }
 
   static String? _extractMessage(Object? responseData) {
-    if (responseData is Map) {
-      final message = responseData['message'];
-      if (message is String && message.isNotEmpty) return message;
+    if (responseData is! Map) return null;
+
+    final message = responseData['message'];
+    if (message is String && message.isNotEmpty) return message;
+
+    // Seconde forme, celle des erreurs métier de l'API KORA :
+    // `{ "error": { "code": "account_locked", "message": "…" } }`.
+    // Sans ce cas, ces réponses retombaient sur le message par défaut de
+    // l'exception et le texte du serveur était perdu.
+    final error = responseData['error'];
+    if (error is Map) {
+      final nested = error['message'];
+      if (nested is String && nested.isNotEmpty) return nested;
     }
+
     return null;
   }
 

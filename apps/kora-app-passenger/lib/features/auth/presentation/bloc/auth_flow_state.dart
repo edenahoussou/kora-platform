@@ -1,0 +1,106 @@
+part of 'auth_flow_bloc.dart';
+
+/// L'étape à afficher.
+///
+/// C'est le parcours qui décide de l'écran suivant, pas l'écran lui-même :
+/// après un code vérifié, on va choisir un PIN si on crée un compte, mais
+/// on retourne à la connexion si le code servait à valider un appareil.
+enum AuthFlowStep {
+  /// Saisie de l'adresse e-mail.
+  email,
+
+  /// Saisie du code à six chiffres.
+  code,
+
+  /// Choix du PIN (inscription ou réinitialisation).
+  pin,
+
+  /// Session ouverte : l'appelant navigue vers l'accueil.
+  done,
+}
+
+class AuthFlowState extends Equatable {
+  const AuthFlowState({
+    this.step = AuthFlowStep.email,
+    this.purpose = OtpPurpose.registration,
+    this.isSubmitting = false,
+    this.challenge,
+    this.verification,
+    this.session,
+    this.email = '',
+    this.pendingPin = '',
+    this.errorMessage = '',
+    this.isAccountLocked = false,
+  });
+
+  final AuthFlowStep step;
+  final OtpPurpose purpose;
+
+  /// Une requête est en cours : les écrans désactivent leur bouton.
+  final bool isSubmitting;
+
+  /// Le défi en cours, avec son échéance — c'est lui que décompte l'écran
+  /// OTP.
+  final OtpChallenge? challenge;
+
+  /// Le jeton à usage unique obtenu après vérification du code.
+  final OtpVerification? verification;
+
+  /// Renseignée quand [step] vaut [AuthFlowStep.done].
+  final AuthSession? session;
+
+  final String email;
+
+  /// PIN saisi lors d'une connexion, gardé le temps d'un aller-retour par
+  /// l'OTP : le serveur le redemande quand on rappelle `login` avec le
+  /// `verification_token`, et le faire retaper serait absurde.
+  final String pendingPin;
+
+  final String errorMessage;
+
+  /// Compte bloqué après trop d'erreurs de PIN : l'écran propose alors le
+  /// déverrouillage plutôt qu'un simple message d'échec.
+  final bool isAccountLocked;
+
+  bool get hasError => errorMessage.isNotEmpty;
+
+  AuthFlowState copyWith({
+    AuthFlowStep? step,
+    OtpPurpose? purpose,
+    bool? isSubmitting,
+    OtpChallenge? challenge,
+    OtpVerification? verification,
+    AuthSession? session,
+    String? email,
+    String? pendingPin,
+    String? errorMessage,
+    bool? isAccountLocked,
+  }) {
+    return AuthFlowState(
+      step: step ?? this.step,
+      purpose: purpose ?? this.purpose,
+      isSubmitting: isSubmitting ?? this.isSubmitting,
+      challenge: challenge ?? this.challenge,
+      verification: verification ?? this.verification,
+      session: session ?? this.session,
+      email: email ?? this.email,
+      pendingPin: pendingPin ?? this.pendingPin,
+      errorMessage: errorMessage ?? this.errorMessage,
+      isAccountLocked: isAccountLocked ?? this.isAccountLocked,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+    step,
+    purpose,
+    isSubmitting,
+    challenge,
+    verification,
+    session,
+    email,
+    pendingPin,
+    errorMessage,
+    isAccountLocked,
+  ];
+}

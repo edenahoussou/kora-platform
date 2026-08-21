@@ -1,10 +1,18 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter_networking/flutter_networking.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../features/auth/data/datasources/auth_local_data_source.dart';
+import '../../features/auth/data/datasources/auth_remote_data_source.dart';
+import '../../features/auth/data/datasources/device_info_data_source.dart';
+import '../../features/auth/data/repositories/auth_repository_impl.dart';
+import '../../features/auth/domain/repositories/auth_repository.dart';
+import '../../features/auth/presentation/bloc/auth_bloc.dart';
+import '../../features/auth/presentation/bloc/auth_flow_bloc.dart';
 import '../../features/booking/data/datasources/booking_data_source.dart';
 import '../../features/booking/data/repositories/booking_repository_impl.dart';
 import '../../features/booking/domain/repositories/booking_repository.dart';
@@ -50,6 +58,7 @@ Future<void> setupInjector() async {
   _registerThemeFeature();
   _registerLanguageFeature();
   _registerBookingFeature();
+  _registerAuthFeature();
 
   // Quand on ajoutera une nouvelle feature (ex: "auth"), on suit le même
   // schéma que _registerThemeFeature() ci-dessous :
@@ -68,6 +77,10 @@ Future<void> _registerExternalDependencies() async {
   );
 
   getIt.registerLazySingleton<Connectivity>(() => Connectivity());
+
+  // Lit le modèle et l'identifiant de l'appareil, exigés par l'API à
+  // chaque connexion (voir DeviceInfoDataSource).
+  getIt.registerLazySingleton<DeviceInfoPlugin>(() => DeviceInfoPlugin());
 }
 
 /// Briques partagées par toutes les features (réseau, connectivité...).
@@ -169,4 +182,32 @@ void _registerLanguageFeature() {
   );
 
   getIt.registerFactory<LanguageBloc>(() => LanguageBloc(getIt()));
+}
+
+/// Feature `auth` : le flux OTP + PIN documenté dans
+/// `docs/mintlify/authentication.mdx`.
+///
+/// Deux blocs, deux durées de vie : [AuthBloc] porte la session tant que
+/// l'app tourne (d'où le singleton — le routeur et les écrans lisent le
+/// même), [AuthFlowBloc] ne vit que le temps d'un parcours d'inscription
+/// ou de connexion (d'où la fabrique : chaque parcours repart propre).
+void _registerAuthFeature() {
+  getIt.registerLazySingleton<AuthRemoteDataSource>(
+    () => AuthRemoteDataSourceImpl(getIt()),
+  );
+
+  getIt.registerLazySingleton<AuthLocalDataSource>(
+    () => AuthLocalDataSourceImpl(getIt()),
+  );
+
+  getIt.registerLazySingleton<DeviceInfoDataSource>(
+    () => DeviceInfoDataSourceImpl(getIt(), getIt()),
+  );
+
+  getIt.registerLazySingleton<AuthRepository>(
+    () => AuthRepositoryImpl(getIt(), getIt(), getIt()),
+  );
+
+  getIt.registerLazySingleton<AuthBloc>(() => AuthBloc(getIt()));
+  getIt.registerFactory<AuthFlowBloc>(() => AuthFlowBloc(getIt()));
 }

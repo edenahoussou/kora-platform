@@ -51,25 +51,30 @@ class AppEnv {
   bool get isStaging => environment == Environment.staging;
   bool get isProd => environment == Environment.prod;
 
-  // TOO(backend): remplacer par les vraies URLs dès qu'elles existent.
+  // URLs de `docs/mintlify/quickstart.mdx`. Elles s'arrêtent au domaine :
+  // les chemins d'API portent eux-mêmes leur préfixe `/api/v1` (voir
+  // ApiConstants), comme le fait la documentation.
+  //
+  // Le développement tape sur le staging : il n'existe pas d'API de dev
+  // déployée, et un backend local ne tourne pas sur toutes les machines.
   static const dev = AppEnv._(
     environment: Environment.dev,
     appName: 'KORA (Dev)',
-    apiBaseUrl: 'https://api-dev.kora-express.com/v1',
+    apiBaseUrl: 'https://staging-api.korabus.app',
     enableNetworkLogs: true,
   );
 
   static const staging = AppEnv._(
     environment: Environment.staging,
     appName: 'KORA (Staging)',
-    apiBaseUrl: 'https://api-staging.kora-express.com/v1',
+    apiBaseUrl: 'https://staging-api.korabus.app',
     enableNetworkLogs: true,
   );
 
   static const prod = AppEnv._(
     environment: Environment.prod,
     appName: 'KORA',
-    apiBaseUrl: 'https://api.kora-express.com/v1',
+    apiBaseUrl: 'https://api.korabus.app',
     enableNetworkLogs: false,
   );
 

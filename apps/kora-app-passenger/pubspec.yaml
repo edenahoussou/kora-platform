@@ -44,6 +44,11 @@ dependencies:
   shared_preferences: ^2.3.2      # préférences simples (thème, réglages non sensibles)
   flutter_secure_storage: ^9.2.2  # données sensibles (tokens d'authentification)
 
+  # Identifie l'appareil auprès de l'API : `register/complete` et `login`
+  # exigent un `device_fingerprint` stable, c'est lui qui permet de sauter
+  # l'OTP sur un appareil déjà connu.
+  device_info_plus: ^10.1.2
+
   # --- Gestion d'erreurs fonctionnelle (Either<Failure, T>) ---
   dartz: ^0.10.1
 

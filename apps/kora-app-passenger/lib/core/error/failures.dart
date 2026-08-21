@@ -51,6 +51,18 @@ class AuthFailure extends Failure {
   ]);
 }
 
+/// Le compte est verrouillé après trop d'erreurs de PIN (423).
+///
+/// Distinct d'un [AuthFailure] parce que la suite n'est pas la même : ce
+/// n'est pas un identifiant à corriger, c'est un déverrouillage à
+/// demander par code OTP. L'écran doit pouvoir le proposer sans lire le
+/// message d'erreur pour le deviner.
+class AccountLockedFailure extends Failure {
+  const AccountLockedFailure([
+    super.message = 'Compte temporairement verrouillé après trop d’essais.',
+  ]);
+}
+
 /// Filet de sécurité pour toute erreur non prévue explicitement.
 class UnexpectedFailure extends Failure {
   const UnexpectedFailure([
