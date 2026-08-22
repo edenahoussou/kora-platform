@@ -8,6 +8,7 @@ import '../../domain/entities/auth_session.dart';
 import '../../domain/entities/auth_user.dart';
 import '../../domain/entities/otp_challenge.dart';
 import '../../domain/entities/otp_purpose.dart';
+import '../../domain/entities/user_preferences.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_local_data_source.dart';
 import '../datasources/auth_remote_data_source.dart';
@@ -126,11 +127,51 @@ class AuthRepositoryImpl implements AuthRepository {
   });
 
   @override
+  Future<String?> lastEmail() => _local.readLastEmail();
+
+  @override
+  Future<DeviceRegistration> currentDevice() => _deviceInfo.currentDevice();
+
+  @override
   Future<Either<Failure, AuthUser>> refreshUser() => _attempt(() async {
     final user = await _remote.me();
     await _local.saveUser(user);
     return user;
   });
+
+  @override
+  Future<Either<Failure, AuthUser>> updateProfile({
+    required String name,
+    String? email,
+    String? phone,
+    String? countryCode,
+    DateTime? birthDate,
+  }) => _attempt(() async {
+    // L'API réclame l'e-mail à chaque mise à jour, y compris quand
+    // l'écran appelant ne le modifie pas. On le reprend alors de la
+    // session ouverte plutôt que de le faire remonter jusqu'à la
+    // présentation.
+    final session = await _local.readSession();
+
+    final user = await _remote.updateProfile(
+      name: name,
+      email: email ?? session?.user.email ?? '',
+      phone: phone,
+      countryCode: countryCode,
+      birthDate: birthDate,
+    );
+    await _local.saveUser(user);
+    return user;
+  });
+
+  @override
+  Future<Either<Failure, UserPreferences>> preferences() =>
+      _attempt(_remote.preferences);
+
+  @override
+  Future<Either<Failure, UserPreferences>> savePreferences(
+    UserPreferences preferences,
+  ) => _attempt(() => _remote.updatePreferences(preferences));
 
   @override
   Future<Either<Failure, void>> logout() async {

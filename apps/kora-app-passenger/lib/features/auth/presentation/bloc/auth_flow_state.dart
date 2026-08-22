@@ -9,6 +9,10 @@ enum AuthFlowStep {
   /// Saisie de l'adresse e-mail.
   email,
 
+  /// Appareil inconnu du serveur : on explique la vérification avant de
+  /// demander le code (écran `new-device` de la maquette).
+  newDevice,
+
   /// Saisie du code à six chiffres.
   code,
 
@@ -31,6 +35,7 @@ class AuthFlowState extends Equatable {
     this.pendingPin = '',
     this.errorMessage = '',
     this.isAccountLocked = false,
+    this.deviceName = '',
   });
 
   final AuthFlowStep step;
@@ -62,6 +67,11 @@ class AuthFlowState extends Equatable {
   /// déverrouillage plutôt qu'un simple message d'échec.
   final bool isAccountLocked;
 
+  /// Nom lisible de cet appareil, lu au moment où le serveur le refuse.
+  /// L'écran « Nouvel appareil » le montre : c'est ce qui permet de
+  /// reconnaître sa propre tentative, ou celle de quelqu'un d'autre.
+  final String deviceName;
+
   bool get hasError => errorMessage.isNotEmpty;
 
   AuthFlowState copyWith({
@@ -75,6 +85,7 @@ class AuthFlowState extends Equatable {
     String? pendingPin,
     String? errorMessage,
     bool? isAccountLocked,
+    String? deviceName,
   }) {
     return AuthFlowState(
       step: step ?? this.step,
@@ -87,6 +98,7 @@ class AuthFlowState extends Equatable {
       pendingPin: pendingPin ?? this.pendingPin,
       errorMessage: errorMessage ?? this.errorMessage,
       isAccountLocked: isAccountLocked ?? this.isAccountLocked,
+      deviceName: deviceName ?? this.deviceName,
     );
   }
 
@@ -102,5 +114,6 @@ class AuthFlowState extends Equatable {
     pendingPin,
     errorMessage,
     isAccountLocked,
+    deviceName,
   ];
 }

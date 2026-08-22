@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../colors/app_colors.dart';
+import '../colors/kora_colors.dart';
 import '../dimens/app_dimens.dart';
 import '../motion/app_motion.dart';
 
@@ -20,23 +21,64 @@ import '../motion/app_motion.dart';
 /// ```dart
 /// KoraToaster.show(context, 'Un nouveau code a été envoyé.');
 /// ```
+/// Couleurs du toast, résolues une fois par la région qui le porte.
+@immutable
+class _KoraToastPalette {
+  const _KoraToastPalette({required this.isDark, required this.colors});
+
+  factory _KoraToastPalette.of(BuildContext context) => _KoraToastPalette(
+    isDark: Theme.of(context).brightness == Brightness.dark,
+    colors: context.koraColors,
+  );
+
+  final bool isDark;
+  final KoraColors colors;
+}
+
 class KoraToast extends StatelessWidget {
-  const KoraToast({super.key, required this.message});
+  const KoraToast({super.key, required this.message}) : _palette = null;
+
+  /// Utilisé par [KoraToaster] : la région a déjà résolu les couleurs.
+  const KoraToast._themed({
+    required this.message,
+    required _KoraToastPalette this._palette,
+  });
 
   final String message;
 
+  /// Couleurs déjà résolues par la région. Nul en usage direct, où le
+  /// thème est lu au moment du rendu.
+  final _KoraToastPalette? _palette;
+
   @override
   Widget build(BuildContext context) {
+    // Le toast vit dans un `Overlay`, hors de l'arbre du `Scaffold` :
+    // sans `Material` au-dessus de lui, Flutter dessine son texte avec
+    // le style de secours — jaune et souligné.
+    return Material(type: MaterialType.transparency, child: _body(context));
+  }
+
+  Widget _body(BuildContext context) {
+    // Les couleurs sont résolues par l'appelant : un toast se démonte
+    // pendant que son animation de sortie tourne, et interroger le thème
+    // à ce moment-là lève « Looking up a deactivated widget's ancestor ».
+    final palette = _palette ?? _KoraToastPalette.of(context);
+    final isDark = palette.isDark;
+    final koraColors = palette.colors;
+
     return Container(
       // `.toast { max-width: 310px }` — au-delà, un message tient sur
       // plusieurs lignes plutôt que de barrer tout l'écran.
       constraints: const BoxConstraints(maxWidth: 310),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: AppColors.kora,
+        // `background: var(--kora)` vise une page claire. En thème
+        // sombre c'est la couleur du fond : le toast s'y dissout. On lui
+        // donne alors la surface des cards et un filet qui en dessine
+        // les bords.
+        color: isDark ? koraColors.surface : AppColors.kora,
         borderRadius: BorderRadius.circular(AppRadius.base),
-        // `border-left: 4px solid var(--gold)`
-        border: const Border(left: BorderSide(color: AppColors.gold, width: 4)),
+        border: isDark ? Border.all(color: koraColors.line) : null,
         // `--shadow: 0 24px 60px rgba(0,29,78,.14)`
         boxShadow: [
           BoxShadow(
@@ -46,12 +88,32 @@ class KoraToast extends StatelessWidget {
           ),
         ],
       ),
-      child: Text(
-        message,
-        style: const TextStyle(
-          color: AppColors.white,
-          fontSize: 12,
-          height: 1.35,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // `border-left: 4px solid var(--gold)`. Posé en élément et
+            // non en bordure : une bordure de couleurs différentes selon
+            // les côtés interdit le `borderRadius`.
+            const SizedBox(width: 4, child: ColoredBox(color: AppColors.gold)),
+            Flexible(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 13,
+                ),
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    color: AppColors.white,
+                    fontSize: 12,
+                    height: 1.35,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -146,6 +208,8 @@ class _ToastRegionState extends State<_ToastRegion> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = _KoraToastPalette.of(context);
+
     return Positioned(
       right: AppSpacing.xl,
       bottom: AppSpacing.xl,
@@ -158,6 +222,7 @@ class _ToastRegionState extends State<_ToastRegion> {
             _AnimatedToast(
               key: ValueKey(toast.id),
               message: toast.message,
+              palette: palette,
               duration: toast.duration,
               onDismissed: () => _remove(toast.id),
             ),
@@ -184,11 +249,13 @@ class _AnimatedToast extends StatefulWidget {
   const _AnimatedToast({
     super.key,
     required this.message,
+    required this.palette,
     required this.duration,
     required this.onDismissed,
   });
 
   final String message;
+  final _KoraToastPalette palette;
   final Duration duration;
   final VoidCallback onDismissed;
 
@@ -239,7 +306,10 @@ class _AnimatedToastState extends State<_AnimatedToast>
           offset: Offset(0, 8 * (1 - _curve.value)),
           child: child,
         ),
-        child: KoraToast(message: widget.message),
+        child: KoraToast._themed(
+          message: widget.message,
+          palette: widget.palette,
+        ),
       ),
     );
   }

@@ -1,10 +1,14 @@
 // Tests de l'écran de création du PIN : saisie, effacement, validation
-// incomplète, et transmission du code choisi.
+// incomplète, double saisie et transmission du code choisi.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kora_app_passenger/features/auth/presentation/bloc/auth_flow_bloc.dart';
 import 'package:kora_app_passenger/features/auth/presentation/pages/create_pin_page.dart';
+
+import '../../../../support/stub_auth_repository.dart';
 
 void main() {
   late List<String> submitted;
@@ -19,7 +23,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
-        home: CreatePinPage(onSubmit: submitted.add),
+        home: _withFlow(CreatePinPage(onSubmit: submitted.add)),
       ),
     );
     await tester.pumpAndSettle();
@@ -92,36 +96,70 @@ void main() {
     expect(submitted, isEmpty);
   });
 
-  testWidgets('transmet le code une fois les quatre chiffres saisis', (
+  /// Saisit [pin] puis valide, comme le ferait un utilisateur.
+  Future<void> enter(
+    WidgetTester tester,
+    String pin, {
+    String key = 'Continuer',
+  }) async {
+    for (final digit in pin.split('')) {
+      await tester.tap(find.text(digit));
+      await tester.pump();
+    }
+    await tester.tap(find.text(key));
+    await tester.pump();
+  }
+
+  testWidgets('demande le code une seconde fois avant de le transmettre', (
     tester,
   ) async {
     await pumpCreatePin(tester);
 
-    for (final key in ['1', '2', '3', '4']) {
-      await tester.tap(find.text(key));
-      await tester.pump();
-    }
-    await tester.tap(find.text('Continuer'));
-    await tester.pump();
+    await enter(tester, '1234');
+
+    // Le premier code ne part pas : l'écran bascule sur la confirmation,
+    // pastilles remises à zéro.
+    expect(submitted, isEmpty);
+    expect(find.text('Confirmez votre PIN'), findsOneWidget);
+    expect(filledDots(tester), 0);
+
+    await enter(tester, '1234');
 
     expect(submitted, ['1234']);
     expect(find.text('Choisissez vos 4 chiffres'), findsNothing);
   });
 
+  testWidgets('refuse deux codes différents et repart du choix', (
+    tester,
+  ) async {
+    await pumpCreatePin(tester);
+
+    await enter(tester, '1234');
+    await enter(tester, '1235');
+
+    expect(submitted, isEmpty);
+    expect(find.text('Les deux codes ne correspondent pas'), findsOneWidget);
+    // On revient au premier temps : sinon l'utilisateur confirmerait un
+    // code qu'il n'a peut-être pas voulu.
+    expect(find.text('Créez votre PIN'), findsOneWidget);
+    expect(filledDots(tester), 0);
+
+    await enter(tester, '4321');
+    await enter(tester, '4321');
+
+    expect(submitted, ['4321']);
+  });
+
   testWidgets('la touche ✓ vaut le bouton Continuer', (tester) async {
     await pumpCreatePin(tester);
 
-    for (final key in ['9', '8', '7', '6']) {
-      await tester.tap(find.text(key));
-      await tester.pump();
-    }
-    await tester.tap(find.text('✓'));
-    await tester.pump();
+    await enter(tester, '9876', key: '✓');
+    await enter(tester, '9876', key: '✓');
 
     expect(submitted, ['9876']);
   });
 
-  testWidgets('sert aussi à la confirmation du PIN', (tester) async {
+  testWidgets('accepte des libellés dictés par l’appelant', (tester) async {
     tester.view.physicalSize = const Size(390 * 3, 900 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -129,9 +167,11 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
-        home: const CreatePinPage(
-          title: 'Confirmez votre PIN',
-          subtitle: 'Saisissez à nouveau votre code personnel.',
+        home: _withFlow(
+          const CreatePinPage(
+            title: 'Confirmez votre PIN',
+            subtitle: 'Saisissez à nouveau votre code personnel.',
+          ),
         ),
       ),
     );
@@ -143,4 +183,14 @@ void main() {
       findsOneWidget,
     );
   });
+}
+
+/// Les écrans du parcours lisent un [AuthFlowBloc] dans leur arbre. Ces
+/// tests portent sur la saisie, pas sur le réseau : le dépôt bouchonné
+/// répond succès et n'est pas interrogé ici.
+Widget _withFlow(Widget child) {
+  return BlocProvider<AuthFlowBloc>(
+    create: (_) => AuthFlowBloc(StubAuthRepository()),
+    child: child,
+  );
 }

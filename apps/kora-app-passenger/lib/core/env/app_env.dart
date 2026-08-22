@@ -47,34 +47,61 @@ class AppEnv {
   /// `packages/flutter-networking`). Toujours `false` en prod.
   final bool enableNetworkLogs;
 
+  /// Identifiant client Google **côté serveur** (type « Web »), attendu
+  /// par `google_sign_in` pour délivrer un jeton que le back peut
+  /// valider.
+  ///
+  /// Contrairement à l'URL de l'API, il ne peut pas être une constante
+  /// versionnée : chaque équipe a son projet Google Cloud, et le
+  /// référentiel n'a pas à porter les identifiants d'une console tierce.
+  /// Il arrive donc par `--dart-define`, et son absence désactive
+  /// proprement le bouton plutôt que de faire échouer le SDK :
+  ///
+  /// ```bash
+  /// flutter run --dart-define=GOOGLE_SERVER_CLIENT_ID=1234.apps.googleusercontent.com
+  /// ```
+  static const String googleServerClientId = String.fromEnvironment(
+    'GOOGLE_SERVER_CLIENT_ID',
+  );
+
+  /// Identifiant de l'app Facebook. Il vit aussi dans les ressources
+  /// natives (`android/app/src/main/res/values/strings.xml`, `Info.plist`)
+  /// que lit le SDK ; celui-ci ne sert qu'à savoir si le bouton est
+  /// utilisable.
+  static const String facebookAppId = String.fromEnvironment('FACEBOOK_APP_ID');
+
   bool get isDev => environment == Environment.dev;
   bool get isStaging => environment == Environment.staging;
   bool get isProd => environment == Environment.prod;
 
-  // URLs de `docs/mintlify/quickstart.mdx`. Elles s'arrêtent au domaine :
-  // les chemins d'API portent eux-mêmes leur préfixe `/api/v1` (voir
-  // ApiConstants), comme le fait la documentation.
+  // URLs des déploiements réels (`docs/runbooks/deployment.md`), et non
+  // celles de `quickstart.mdx` : `staging-api.korabus.app` et
+  // `api.korabus.app` n'existent pas en DNS, une requête vers elles
+  // échoue avant même de partir.
+  //
+  // Elles s'arrêtent au domaine : les chemins d'API portent eux-mêmes
+  // leur préfixe `/api/v1` (voir ApiConstants).
   //
   // Le développement tape sur le staging : il n'existe pas d'API de dev
   // déployée, et un backend local ne tourne pas sur toutes les machines.
   static const dev = AppEnv._(
     environment: Environment.dev,
     appName: 'KORA (Dev)',
-    apiBaseUrl: 'https://staging-api.korabus.app',
+    apiBaseUrl: 'https://staging.koraexpress.app',
     enableNetworkLogs: true,
   );
 
   static const staging = AppEnv._(
     environment: Environment.staging,
     appName: 'KORA (Staging)',
-    apiBaseUrl: 'https://staging-api.korabus.app',
+    apiBaseUrl: 'https://staging.koraexpress.app',
     enableNetworkLogs: true,
   );
 
   static const prod = AppEnv._(
     environment: Environment.prod,
     appName: 'KORA',
-    apiBaseUrl: 'https://api.korabus.app',
+    apiBaseUrl: 'https://prod.koraexpress.app',
     enableNetworkLogs: false,
   );
 

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../../core/constants/storage_keys.dart';
+import '../../domain/entities/auth_device.dart';
 import '../../domain/entities/auth_session.dart';
 import '../../domain/entities/auth_user.dart';
 import '../models/auth_dtos.dart';
@@ -26,9 +27,15 @@ abstract class AuthLocalDataSource {
   /// Met à jour le seul profil, après un `auth/me`.
   Future<void> saveUser(AuthUser user);
 
-  /// Efface tout ce qui touche à la session — **pas** l'empreinte de
-  /// l'appareil, qui doit survivre à une déconnexion pour éviter un OTP
-  /// à la reconnexion.
+  /// Adresse du dernier compte connecté, ou `null` si l'app n'a jamais
+  /// servi.
+  Future<String?> readLastEmail();
+
+  /// Efface tout ce qui touche à la session.
+  ///
+  /// **Ni l'empreinte de l'appareil ni la dernière adresse** : la
+  /// première évite un OTP à la reconnexion, la seconde évite de
+  /// redemander qui vous êtes. Aucune des deux ne donne accès au compte.
   Future<void> clear();
 }
 
@@ -49,6 +56,15 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
       _storage.write(
         key: StorageKeys.authUser,
         value: jsonEncode(_userToJson(session.user)),
+      ),
+      _storage.write(key: StorageKeys.lastEmail, value: session.user.email),
+      // Nul si le serveur n'a pas renvoyé d'appareil : on efface alors
+      // celui d'une session précédente plutôt que de le laisser mentir.
+      _storage.write(
+        key: StorageKeys.authDevice,
+        value: session.device == null
+            ? null
+            : jsonEncode(_deviceToJson(session.device!)),
       ),
     ]);
   }
@@ -71,6 +87,8 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
       await _storage.read(key: StorageKeys.tokenExpiresAt) ?? '',
     );
 
+    final rawDevice = await _storage.read(key: StorageKeys.authDevice);
+
     return AuthSession(
       token: token,
       // Sans échéance connue, on considère la session expirée : mieux
@@ -78,6 +96,9 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
       // mort et laisser l'utilisateur devant des erreurs.
       expiresAt: expiresAt ?? DateTime.fromMillisecondsSinceEpoch(0),
       user: AuthDtos.user(jsonDecode(rawUser)),
+      device: rawDevice == null || rawDevice.isEmpty
+          ? null
+          : AuthDtos.device(jsonDecode(rawDevice)),
     );
   }
 
@@ -88,17 +109,30 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   );
 
   @override
+  Future<String?> readLastEmail() => _storage.read(key: StorageKeys.lastEmail);
+
+  @override
   Future<void> clear() async {
     await Future.wait([
       _storage.delete(key: StorageKeys.accessToken),
       _storage.delete(key: StorageKeys.tokenExpiresAt),
       _storage.delete(key: StorageKeys.userId),
       _storage.delete(key: StorageKeys.authUser),
+      _storage.delete(key: StorageKeys.authDevice),
     ]);
   }
 
   /// Reprend les noms de champs de l'API, pour que [AuthDtos.user] sache
   /// relire ce qu'on écrit ici sans second lecteur à maintenir.
+  Map<String, dynamic> _deviceToJson(AuthDevice device) => {
+    'uuid': device.uuid,
+    'name': device.name,
+    'platform': device.platform.value,
+    'status': device.status,
+    'trusted_at': device.trustedAt?.toIso8601String(),
+    'last_seen_at': device.lastSeenAt?.toIso8601String(),
+  };
+
   Map<String, dynamic> _userToJson(AuthUser user) => {
     'uuid': user.uuid,
     'name': user.name,

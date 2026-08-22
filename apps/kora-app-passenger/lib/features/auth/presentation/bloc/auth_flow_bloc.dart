@@ -24,6 +24,8 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
   AuthFlowBloc(this._repository) : super(const AuthFlowState()) {
     on<AuthFlowEmailSubmitted>(_onEmailSubmitted);
     on<AuthFlowLoginSubmitted>(_onLoginSubmitted);
+    on<AuthFlowNewDeviceRequested>(_onNewDeviceRequested);
+    on<AuthFlowNewDeviceConfirmed>(_onNewDeviceConfirmed);
     on<AuthFlowCodeSubmitted>(_onCodeSubmitted);
     on<AuthFlowCodeResent>(_onCodeResent);
     on<AuthFlowPinSubmitted>(_onPinSubmitted);
@@ -93,11 +95,12 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
             step: AuthFlowStep.done,
             session: session,
           ),
-          // Appareil inconnu : le serveur a déjà créé le défi, l'app
-          // enchaîne sur la saisie du code sans repasser par l'e-mail.
+          // Appareil inconnu : le serveur a déjà créé le défi et envoyé
+          // le code. On passe d'abord par l'écran qui explique pourquoi,
+          // plutôt que de faire surgir une saisie de code sans raison.
           LoginNeedsOtp(:final challenge) => state.copyWith(
             isSubmitting: false,
-            step: AuthFlowStep.code,
+            step: AuthFlowStep.newDevice,
             purpose: OtpPurpose.loginNewDevice,
             challenge: OtpChallenge(
               uuid: challenge.uuid,
@@ -109,6 +112,61 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
         };
       }),
     );
+
+    // Le nom de l'appareil se lit après coup : `fold` est synchrone, et
+    // l'écran qui l'affiche n'apparaît qu'ici.
+    if (state.step == AuthFlowStep.newDevice && state.deviceName.isEmpty) {
+      emit(state.copyWith(deviceName: await _deviceName()));
+    }
+  }
+
+  /// Le lien « Connexion sur un nouvel appareil » de l'écran de
+  /// connexion. Rien n'est demandé au serveur ici : l'écran explique, et
+  /// c'est son bouton qui déclenche l'envoi du code.
+  Future<void> _onNewDeviceRequested(
+    AuthFlowNewDeviceRequested event,
+    Emitter<AuthFlowState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        step: AuthFlowStep.newDevice,
+        purpose: OtpPurpose.loginNewDevice,
+        email: event.email,
+        errorMessage: '',
+        deviceName: await _deviceName(),
+      ),
+    );
+  }
+
+  Future<void> _onNewDeviceConfirmed(
+    AuthFlowNewDeviceConfirmed event,
+    Emitter<AuthFlowState> emit,
+  ) async {
+    // Venu d'un 202, le défi existe déjà et le code est parti : en
+    // redemander un invaliderait celui que l'utilisateur vient de
+    // recevoir, le serveur n'en gardant qu'un actif à la fois.
+    if (state.challenge != null) {
+      emit(state.copyWith(step: AuthFlowStep.code, errorMessage: ''));
+      return;
+    }
+
+    add(
+      AuthFlowEmailSubmitted(
+        email: state.email,
+        purpose: OtpPurpose.loginNewDevice,
+      ),
+    );
+  }
+
+  /// Le nom que l'API a reçu pour cet appareil. Un échec de lecture ne
+  /// doit pas retenir le parcours : l'écran s'en passe.
+  Future<String> _deviceName() async {
+    try {
+      final device = await _repository.currentDevice();
+      return device.name;
+    } on Object {
+      return '';
+    }
   }
 
   Future<void> _onCodeSubmitted(
@@ -150,8 +208,17 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
       case OtpPurpose.pinReset:
         emit(state.copyWith(step: AuthFlowStep.pin));
       case OtpPurpose.loginNewDevice:
-        // On rappelle `login` avec le jeton : c'est ce que demande la
-        // documentation, et le PIN a été gardé pour ne pas le retaper.
+        // Sans PIN en mémoire — l'utilisateur est passé par le lien de
+        // l'écran de connexion, sans tentative préalable — on le lui
+        // demande. Le jeton de vérification reste en main et partira
+        // avec cette connexion-là.
+        if (state.pendingPin.isEmpty) {
+          emit(state.copyWith(step: AuthFlowStep.email));
+          return;
+        }
+
+        // Sinon on rappelle `login` avec le jeton : c'est ce que demande
+        // la documentation, et le PIN a été gardé pour ne pas le retaper.
         add(AuthFlowLoginSubmitted(email: state.email, pin: state.pendingPin));
       case OtpPurpose.accountUnlock:
         await _unlock(emit, verified.verification!);

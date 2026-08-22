@@ -2,12 +2,21 @@
 // incomplète, et entrée dans l'app.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kora_app_passenger/core/l10n/app_localization.dart';
+import 'package:kora_app_passenger/features/auth/domain/entities/otp_purpose.dart';
+import 'package:kora_app_passenger/features/auth/presentation/bloc/auth_flow_bloc.dart';
 import 'package:kora_app_passenger/features/auth/presentation/pages/login_page.dart';
+
+import '../../../../support/stub_auth_repository.dart';
 
 void main() {
   late int successes;
+  late StubAuthRepository repository;
+  late AuthFlowBloc flow;
 
   Future<void> pumpLogin(WidgetTester tester) async {
     tester.view.physicalSize = const Size(390 * 3, 900 * 3);
@@ -15,11 +24,30 @@ void main() {
     addTearDown(tester.view.reset);
 
     successes = 0;
+    repository = StubAuthRepository();
+    flow = AuthFlowBloc(repository);
+    addTearDown(flow.close);
 
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
-        home: LoginPage(onSuccess: () => successes++),
+        locale: const Locale('fr'),
+        supportedLocales: const [Locale('fr'), Locale('en')],
+        localizationsDelegates: const [
+          AppLocalization.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: _withFlow(
+          flow,
+          // L'app se souvient du dernier compte : la maquette ne demande
+          // que le PIN.
+          LoginPage(
+            email: 'aicha.hounkpe@example.com',
+            onSuccess: () => successes++,
+          ),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -107,4 +135,39 @@ void main() {
     expect(successes, 1);
     expect(find.text('Saisissez vos 4 chiffres'), findsNothing);
   });
+
+  testWidgets('« PIN oublié ? » demande un code de réinitialisation', (
+    tester,
+  ) async {
+    await pumpLogin(tester);
+
+    await tester.tap(find.text('PIN oublié ?'));
+    await tester.pumpAndSettle();
+
+    // Même parcours que l'inscription, autre motif : le code part, et
+    // l'écran de vérification prend la suite.
+    expect(repository.calls, ['requestOtp:pin_reset']);
+    expect(flow.state.step, AuthFlowStep.code);
+    expect(flow.state.purpose, OtpPurpose.pinReset);
+  });
+
+  testWidgets('le lien du nouvel appareil ouvre l’explication', (tester) async {
+    await pumpLogin(tester);
+
+    await tester.tap(find.text('Connexion sur un nouvel appareil'));
+    await tester.pumpAndSettle();
+
+    // Rien n'est demandé au serveur ici : l'écran explique d'abord.
+    expect(repository.calls, isEmpty);
+    expect(flow.state.step, AuthFlowStep.newDevice);
+    expect(flow.state.purpose, OtpPurpose.loginNewDevice);
+  });
+}
+
+/// Les écrans du parcours lisent un [AuthFlowBloc] dans leur arbre. Le
+/// bloc est fourni par le test, qui interroge son état après coup : les
+/// liens de cet écran n'ouvrent pas de page, ils font avancer le
+/// parcours.
+Widget _withFlow(AuthFlowBloc flow, Widget child) {
+  return BlocProvider<AuthFlowBloc>.value(value: flow, child: child);
 }

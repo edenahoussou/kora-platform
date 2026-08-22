@@ -33,5 +33,6 @@ export 'src/widgets/kora_skeleton.dart';
 export 'src/widgets/kora_social_button.dart';
 export 'src/widgets/kora_tag.dart';
 export 'src/widgets/kora_toast.dart';
+export 'src/widgets/kora_toggle.dart';
 export 'src/widgets/placeholder_page.dart';
 export 'tokens.dart';

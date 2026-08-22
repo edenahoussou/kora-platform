@@ -1,25 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/l10n/app_localization.dart';
+import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/title_color.dart';
+import '../../../auth/domain/entities/auth_user.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../booking/domain/entities/price.dart';
 
 /// Écran `profile` de la maquette — l'onglet « Profil » : l'en-tête navy
 /// avec l'identité, les soldes, les rubriques du compte et l'assistance.
 ///
-/// Données figées : ni `auth` ni `wallet` n'existent encore. Chaque action
-/// ouvre un écran qui n'est pas écrit et le dit par un toast, plutôt que
-/// de mener à une page vide.
+/// L'identité vient de la session ouverte. Les soldes, eux, restent à
+/// zéro : la feature `wallet` n'existe pas, et afficher un montant
+/// inventé sur l'écran du compte serait pire que de n'en afficher aucun.
 class ProfilPage extends StatelessWidget {
   const ProfilPage({super.key});
 
-  static const _initials = 'AH';
-  static const _name = 'Aïcha HOUNKPÈ';
-  static const _memberSince = 2026;
-  static const _balance = Price(18750);
-  static const _points = 2480;
+  /// Rien à afficher tant que `wallet` n'est pas branché.
+  static const _balance = Price(0);
+  static const _points = 0;
 
   void _soon(BuildContext context) =>
       KoraToaster.show(context, context.l10n.profileSoon);
@@ -27,6 +30,9 @@ class ProfilPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final user = context.select<AuthBloc, AuthUser?>(
+      (bloc) => bloc.state.session?.user,
+    );
 
     return Scaffold(
       body: ListView(
@@ -34,10 +40,11 @@ class ProfilPage extends StatelessWidget {
         children: [
           // L'en-tête déborde sur les côtés (`margin: 0 -18px`) : il touche
           // les bords de l'écran, contrairement au reste de la page.
-          const _Header(
-            initials: _initials,
-            name: _name,
-            memberSince: _memberSince,
+          _Header(
+            initials: user?.initials ?? '',
+            name: user?.name ?? '',
+            avatarUrl: user?.avatarUrl,
+            memberSince: DateTime.now().year,
           ),
           // `.profile-balance-strip { margin-top: -16px }` : la bande des
           // soldes chevauche l'en-tête.
@@ -64,26 +71,33 @@ class ProfilPage extends StatelessWidget {
                       icon: Icons.person_outline_rounded,
                       title: l10n.profileInfoTitle,
                       subtitle: l10n.profileInfoSubtitle,
-                      onTap: () => _soon(context),
+                      onTap: () => context.push(AppRouter.profileEditPath),
                     ),
                     KoraMenuItem(
                       icon: Icons.shield_outlined,
                       title: l10n.profileSecurityTitle,
                       subtitle: l10n.profileSecuritySubtitle,
-                      onTap: () => _soon(context),
+                      onTap: () => context.push(AppRouter.securityPath),
                     ),
                     KoraMenuItem(
                       icon: Icons.tune_rounded,
                       title: l10n.profilePreferencesTitle,
                       subtitle: l10n.profilePreferencesSubtitle,
-                      onTap: () => _soon(context),
+                      onTap: () => context.push(AppRouter.preferencesPath),
                     ),
                   ],
                 ),
                 _SectionTitle(title: l10n.profileHelpSection),
-                _AssistanceCard(onTap: () => _soon(context)),
+                _AssistanceCard(
+                  onHelp: () => context.push(AppRouter.helpPath),
+                  onWhatsapp: () => context.push(AppRouter.contactPath),
+                ),
                 const SizedBox(height: 12),
-                _LogoutButton(onTap: () => _soon(context)),
+                // Seule action réellement branchée de cet écran : le
+                // reste attend ses features. La redirection vers la
+                // bienvenue est l'affaire du garde de navigation, qui
+                // écoute `AuthBloc`.
+                const _LogoutButton(),
               ],
             ),
           ),
@@ -99,16 +113,23 @@ class _Header extends StatelessWidget {
   const _Header({
     required this.initials,
     required this.name,
+    required this.avatarUrl,
     required this.memberSince,
   });
 
   final String initials;
   final String name;
+
+  /// Photo du fournisseur social, quand la connexion en a rapporté une.
+  final String? avatarUrl;
+
   final int memberSince;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final koraColors = context.koraColors;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       // L'en-tête est navy dans les deux thèmes : la barre d'état doit
@@ -130,6 +151,18 @@ class _Header extends StatelessWidget {
           ),
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(34)),
         ),
+        // Le dégradé finit sur `--kora`, qui est aussi le fond de page en
+        // thème sombre : l'arrondi du bas s'y dissout. Un filet le
+        // redessine. En `foregroundDecoration` car une bordure posée dans
+        // `decoration` se peint sous les enfants.
+        foregroundDecoration: isDark
+            ? BoxDecoration(
+                border: Border.all(color: koraColors.line),
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(34),
+                ),
+              )
+            : null,
         child: Stack(
           children: [
             // `radial-gradient(circle at 95% 0%, rgba(0,87,184,.55),
@@ -204,17 +237,15 @@ class _Header extends StatelessWidget {
                       children: [
                         const _HeaderLogo(),
                         _HeaderNotificationButton(
-                          onTap: () => KoraToaster.show(
-                            context,
-                            l10n.profileNotifications,
-                          ),
+                          onTap: () =>
+                              context.push(AppRouter.notificationsPath),
                         ),
                       ],
                     ),
                     const SizedBox(height: 29),
                     Row(
                       children: [
-                        _Avatar(initials: initials),
+                        _Avatar(initials: initials, avatarUrl: avatarUrl),
                         const SizedBox(width: 14),
                         Expanded(
                           child: Column(
@@ -359,9 +390,36 @@ class _HeaderNotificationButton extends StatelessWidget {
 /// `.avatar-premium` : les initiales dans un carré clair, avec l'étoile
 /// dorée du statut membre.
 class _Avatar extends StatelessWidget {
-  const _Avatar({required this.initials});
+  const _Avatar({required this.initials, this.avatarUrl});
 
   final String initials;
+  final String? avatarUrl;
+
+  /// La photo quand le fournisseur social en a rapporté une, les
+  /// initiales sinon — et encore les initiales si l'image ne se charge
+  /// pas, plutôt qu'un carré vide.
+  Widget _avatarContent() {
+    final url = avatarUrl;
+
+    if (url == null || url.isEmpty) return _initialsText();
+
+    return Image.network(
+      url,
+      width: 72,
+      height: 72,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stack) => _initialsText(),
+    );
+  }
+
+  Widget _initialsText() => Text(
+    initials,
+    style: const TextStyle(
+      color: AppColors.kora,
+      fontSize: 21,
+      fontWeight: FontWeight.w900,
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -394,14 +452,8 @@ class _Avatar extends StatelessWidget {
                 ),
               ],
             ),
-            child: Text(
-              initials,
-              style: const TextStyle(
-                color: AppColors.kora,
-                fontSize: 21,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
+            clipBehavior: Clip.antiAlias,
+            child: _avatarContent(),
           ),
           Positioned(
             right: 0,
@@ -532,9 +584,10 @@ class _BalanceHalf extends StatelessWidget {
 /// `.assistance-card` : la carte navy d'aide, avec ses deux actions
 /// séparées par un filet.
 class _AssistanceCard extends StatelessWidget {
-  const _AssistanceCard({required this.onTap});
+  const _AssistanceCard({required this.onHelp, required this.onWhatsapp});
 
-  final VoidCallback onTap;
+  final VoidCallback onHelp;
+  final VoidCallback onWhatsapp;
 
   @override
   Widget build(BuildContext context) {
@@ -623,7 +676,7 @@ class _AssistanceCard extends StatelessWidget {
                   child: _AssistanceAction(
                     icon: Icons.help_outline_rounded,
                     label: l10n.profileHelpCenter,
-                    onTap: onTap,
+                    onTap: onHelp,
                   ),
                 ),
                 Container(
@@ -634,7 +687,7 @@ class _AssistanceCard extends StatelessWidget {
                   child: _AssistanceAction(
                     icon: Icons.chat_bubble_outline_rounded,
                     label: l10n.profileHelpWhatsapp,
-                    onTap: onTap,
+                    onTap: onWhatsapp,
                   ),
                 ),
               ],
@@ -694,21 +747,27 @@ class _AssistanceAction extends StatelessWidget {
 /// `.profile-logout` : un lien discret, pas un bouton de danger — se
 /// déconnecter ne détruit rien.
 class _LogoutButton extends StatelessWidget {
-  const _LogoutButton({required this.onTap});
-
-  final VoidCallback onTap;
+  const _LogoutButton();
 
   @override
   Widget build(BuildContext context) {
-    return TextButton(
-      onPressed: onTap,
-      style: TextButton.styleFrom(
-        minimumSize: const Size.fromHeight(42),
-        foregroundColor: context.koraColors.textMuted,
-      ),
-      child: Text(
-        context.l10n.profileLogout,
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+    return BlocBuilder<AuthBloc, AuthState>(
+      buildWhen: (previous, current) =>
+          previous.isLoggingOut != current.isLoggingOut,
+      builder: (context, auth) => TextButton(
+        onPressed: auth.isLoggingOut
+            ? null
+            : () => context.read<AuthBloc>().add(const AuthLogoutRequested()),
+        style: TextButton.styleFrom(
+          minimumSize: const Size.fromHeight(42),
+          foregroundColor: context.koraColors.textMuted,
+        ),
+        child: Text(
+          auth.isLoggingOut
+              ? context.l10n.profileLogoutPending
+              : context.l10n.profileLogout,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+        ),
       ),
     );
   }

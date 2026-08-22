@@ -1,10 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/domain/entities/otp_purpose.dart';
+import '../../features/auth/presentation/bloc/auth_bloc.dart';
+import '../../features/auth/presentation/bloc/auth_flow_bloc.dart';
 import '../../features/auth/presentation/pages/create_pin_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
+import '../../features/auth/presentation/pages/new_device_page.dart';
 import '../../features/auth/presentation/pages/otp_page.dart';
+import '../../features/auth/presentation/pages/permissions_page.dart';
 import '../../features/auth/presentation/pages/signup_email_page.dart';
 import '../../features/booking/domain/entities/search_criteria.dart';
 import '../../features/booking/presentation/pages/bus_search_page.dart';
@@ -20,10 +28,18 @@ import '../../features/home/presentation/pages/city_picker_page.dart';
 import '../../features/home/presentation/pages/date_picker_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/home/presentation/pages/passengers_picker_page.dart';
+import '../../features/notifications/presentation/pages/notifications_page.dart';
+import '../../features/profil/presentation/pages/birth_date_picker_page.dart';
+import '../../features/profil/presentation/pages/change_pin_page.dart';
+import '../../features/profil/presentation/pages/preferences_page.dart';
 import '../../features/profil/presentation/pages/profil_page.dart';
+import '../../features/profil/presentation/pages/profile_edit_page.dart';
+import '../../features/profil/presentation/pages/security_page.dart';
+import '../../features/support/presentation/pages/contact_page.dart';
+import '../../features/support/presentation/pages/help_page.dart';
 import '../../features/wallet/presentation/pages/wallet_page.dart';
 import '../../features/welcome/presentation/pages/welcome_page.dart';
-import 'auth_guard.dart';
+import '../di/injector.dart';
 
 /// Couche CORE : configuration centrale de la navigation avec `go_router`.
 ///
@@ -71,6 +87,16 @@ class AppRouter {
 
   /// Troisième étape : le choix du code PIN qui protégera le compte.
   static const String createPinPath = '/create-pin';
+  static const String newDevicePath = '/new-device';
+  static const String profileEditPath = '/profile/informations';
+  static const String birthDatePath = '/profile/informations/naissance';
+  static const String securityPath = '/profile/securite';
+  static const String changePinPath = '/profile/securite/pin';
+  static const String preferencesPath = '/profile/preferences';
+  static const String notificationsPath = '/notifications';
+  static const String helpPath = '/aide';
+  static const String contactPath = '/aide/contact';
+  static const String permissionsPath = '/permissions';
 
   /// Liste des départs, puis détail d'un départ.
   ///
@@ -157,238 +183,325 @@ class AppRouter {
   /// Guard de navigation global, réévalué par `go_router` à chaque
   /// changement de route.
   ///
-  /// - Connecté et sur `/login` → redirigé vers `/home` (pas de raison de
-  ///   revoir l'écran de connexion).
-  /// - Sinon → `null`, pas de redirection, la navigation demandée a lieu.
-  ///
-  /// **La redirection "non connecté → `/login`" est volontairement
-  /// désactivée pour l'instant** : `LoginPage` n'a pas encore de vrai
-  /// formulaire (voir GUIDE.md §13), donc la forcer enfermerait tout le
-  /// monde sur un écran sans issue, impossible de revenir sur la bottom
-  /// nav. TOO(auth): réactiver `if (!authenticated && !onLoginPage) return
-  /// loginPath;` dès que `LoginPage` permet réellement de se connecter.
-  ///
-  /// Volontairement pas de `refreshListenable` non plus : sans feature
-  /// `auth` écrite, il n'existe pas encore de flux qui notifierait un
-  /// changement de session en dehors d'une navigation. Le jour où
-  /// `AuthBloc` existe, câbler `refreshListenable` dessus pour que
-  /// `redirect` se réévalue aussi juste après un login/logout, sans
-  /// attendre une navigation manuelle.
-  static Future<String?> _redirect(
-    BuildContext context,
-    GoRouterState state,
-  ) async {
-    final onLoginPage = state.matchedLocation == loginPath;
+  /// - Session ouverte et sur un écran d'authentification → `/home` : il
+  ///   n'y a rien à y faire.
+  /// - Pas de session et écran protégé → l'écran de bienvenue.
+  /// - Tant que la session est **inconnue** (le stockage sécurisé n'a pas
+  ///   encore répondu au démarrage) → aucune redirection : renvoyer
+  ///   quelqu'un vers la connexion avant de savoir s'il l'était déjà
+  ///   ferait clignoter l'app à chaque lancement.
+  static String? _redirect(BuildContext context, GoRouterState state) {
+    final auth = context.read<AuthBloc>().state;
+    if (auth.status == AuthStatus.unknown) return null;
 
-    if (onLoginPage && await AuthGuard.isAuthenticated) return '/home';
-    return null;
+    final location = state.matchedLocation;
+    final onPublicScreen = _publicPaths.contains(location);
+
+    // Une session ouverte n'a rien à faire sur les écrans qui servent à
+    // en ouvrir une. La vérification d'un appareil, elle, a du sens dans
+    // les deux états : elle est aussi accessible depuis l'écran
+    // Sécurité, où l'utilisateur est forcément connecté.
+    if (auth.isAuthenticated) {
+      return _entryPaths.contains(location) ? '/home' : null;
+    }
+
+    return onPublicScreen ? null : welcomePath;
   }
 
-  static final GoRouter router = GoRouter(
-    initialLocation: welcomePath,
-    redirect: _redirect,
-    routes: [
-      GoRoute(
-        path: loginPath,
-        builder: (context, state) => LoginPage(
-          // Aucun PIN n'est vérifié tant que la feature `auth` n'existe
-          // pas : la saisie de 4 chiffres ouvre l'app.
-          // TODO(auth): brancher la vérification du PIN.
-          onSuccess: () => context.go('/home'),
-        ),
-      ),
-      GoRoute(
-        path: signupPath,
-        builder: (context, state) => SignupEmailPage(
-          onSubmit: (email) => context.push(otpPath, extra: email),
-        ),
-      ),
-      GoRoute(
-        path: otpPath,
-        builder: (context, state) => OtpPage(
-          email: (state.extra as String?) ?? '',
-          onVerified: () => context.push(createPinPath),
-        ),
-      ),
-      GoRoute(
-        path: createPinPath,
-        builder: (context, state) => CreatePinPage(
-          // La confirmation du PIN, puis les autorisations, complètent le
-          // parcours d'inscription — hors de ce lot. Le code saisi n'est
-          // stocké nulle part tant que la feature `auth` n'existe pas.
-          // TODO(auth): enchaîner sur la confirmation du PIN.
-          onSubmit: (_) => ScaffoldMessenger.of(context)
-            ..hideCurrentSnackBar()
-            ..showSnackBar(
-              const SnackBar(
-                content: Text('La confirmation du PIN arrive au prochain lot.'),
-              ),
-            ),
-        ),
-      ),
-      GoRoute(
-        path: busSearchPath,
-        builder: (context, state) => const BusSearchPage(),
-      ),
-      GoRoute(
-        path: ticketDetailPath,
-        builder: (context, state) {
-          final args = state.extra as TicketDetailArgs?;
+  /// Écrans atteignables sans session.
+  static const Set<String> _publicPaths = {
+    welcomePath,
+    loginPath,
+    signupPath,
+    otpPath,
+    createPinPath,
+    newDevicePath,
+  };
 
-          // Sans `extra` (lien profond, redémarrage à chaud), on renvoie
-          // sur la liste plutôt que d'afficher un billet vide.
-          if (args == null) return const SizedBox.shrink();
+  /// Le sous-ensemble qui n'a de sens que déconnecté : y arriver avec une
+  /// session ouverte renvoie à l'accueil.
+  static const Set<String> _entryPaths = {
+    welcomePath,
+    loginPath,
+    signupPath,
+    otpPath,
+    createPinPath,
+  };
 
-          return TicketDetailPage(ticket: args.ticket, today: args.today);
-        },
-      ),
-      GoRoute(
-        path: welcomePath,
-        builder: (context, state) => WelcomePage(
-          // Les deux actions mènent à l'inscription et à la connexion, qui
-          // n'existent pas encore (voir GUIDE.md §13). En attendant,
-          // « Créer mon compte » entre dans l'app pour que le parcours Bus
-          // reste accessible, et « J'ai déjà un compte » ouvre l'écran de
-          // connexion, même s'il n'est qu'un placeholder.
-          onCreateAccount: () => context.push(signupPath),
-          onLogin: () => context.push(loginPath),
-        ),
-      ),
-      GoRoute(
-        path: originPath,
-        builder: (context, state) =>
-            _cityPicker(state, field: CityField.origin),
-      ),
-      GoRoute(
-        path: destinationPath,
-        builder: (context, state) =>
-            _cityPicker(state, field: CityField.destination),
-      ),
-      GoRoute(
-        path: datePath,
-        builder: (context, state) {
-          final args = state.extra as DatePickerArgs?;
-          final today = args?.today ?? DateTime.now();
+  /// Construit à la première lecture, et non à l'initialisation de la
+  /// classe : le routeur écoute [AuthBloc], qui n'existe qu'une fois le
+  /// service locator prêt.
+  static GoRouter? _instance;
 
-          return DatePickerPage(
-            selected: args?.selected ?? today,
-            today: today,
-          );
-        },
-      ),
-      GoRoute(
-        path: passengersPath,
-        builder: (context, state) =>
-            PassengersPickerPage(selected: (state.extra as int?) ?? 1),
-      ),
-      GoRoute(
-        path: departuresPath,
-        builder: (context, state) => DeparturesPage(
-          originId: state.uri.queryParameters['origin'],
-          destinationId: state.uri.queryParameters['destination'],
-          date: state.uri.queryParameters['date'],
-          passengers: state.uri.queryParameters['passengers'],
-        ),
-      ),
-      GoRoute(
-        path: seatsPath,
-        builder: (context, state) {
-          final args = state.extra as SeatsArgs?;
+  static GoRouter get router => _instance ??= _create();
 
-          return SeatsPage(
-            departure: args?.departure,
-            passengers: args?.passengers ?? 1,
-          );
-        },
-      ),
-      GoRoute(
-        path: passengerInfoPath,
-        builder: (context, state) {
-          final args = state.extra as PassengerFormArgs?;
+  /// Reconstruit le routeur. Réservé aux tests : chacun repart d'un
+  /// historique vierge et d'un [AuthBloc] vivant — sans ça, le second
+  /// test hériterait de la position du premier et écouterait un bloc
+  /// déjà fermé.
+  @visibleForTesting
+  static void resetForTesting() {
+    _instance?.dispose();
+    _instance = null;
+  }
 
-          return PassengerFormPage(
-            departure: args?.departure,
-            seats: args?.seats ?? const [],
-          );
-        },
+  static GoRouter _create() {
+    return GoRouter(
+      initialLocation: welcomePath,
+      redirect: _redirect,
+      // Réévalue `redirect` dès que la session s'ouvre ou se ferme, sans
+      // attendre une navigation : une déconnexion doit ramener sur la
+      // bienvenue tout de suite, où que se trouve l'utilisateur.
+      //
+      // Seul le **statut** compte. Écouter tout `AuthBloc` faisait
+      // re-parser la route au moindre changement de profil : l'écran
+      // « Mes informations » se reconstruisait alors juste après avoir
+      // demandé sa fermeture, et paraissait ne jamais se refermer.
+      refreshListenable: GoRouterRefreshStream(
+        getIt<AuthBloc>().stream.map((state) => state.status).distinct(),
       ),
-      GoRoute(
-        path: summaryPath,
-        builder: (context, state) {
-          final args = state.extra as SummaryArgs?;
-
-          return SummaryPage(
-            departure: args?.departure,
-            passengers: args?.passengers ?? const [],
-          );
-        },
-      ),
-      GoRoute(
-        path: departureDetailPath,
-        builder: (context, state) {
-          final args = state.extra as DepartureDetailArgs?;
-
-          return DepartureDetailPage(
-            departure: args?.departure,
-            passengers: args?.passengers ?? 1,
-          );
-        },
-      ),
-      StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) {
-          return _ScaffoldWithNavBar(navigationShell: navigationShell);
-        },
-        branches: [
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/home',
-                builder: (context, state) => const HomePage(),
-              ),
-            ],
+      routes: [
+        // Les quatre écrans du parcours partagent un seul AuthFlowBloc :
+        // l'e-mail saisi, le défi en cours et le jeton de vérification
+        // doivent survivre au passage d'un écran à l'autre.
+        ShellRoute(
+          builder: (context, state, child) => BlocProvider<AuthFlowBloc>(
+            create: (_) => getIt<AuthFlowBloc>(),
+            child: _AuthFlowNavigator(child: child),
           ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/voyages',
-                builder: (context, state) => TicketsPage(
-                  onBookTrip: () => context.push(busSearchPath),
-                  onOpenTicket: (ticket, today) => context.push(
-                    ticketDetailPath,
-                    extra: TicketDetailArgs(ticket: ticket, today: today),
+          routes: [
+            GoRoute(
+              path: loginPath,
+              builder: (context, state) =>
+                  LoginPage(email: state.extra as String?),
+            ),
+            GoRoute(
+              path: signupPath,
+              builder: (context, state) => const SignupEmailPage(),
+            ),
+            GoRoute(
+              path: newDevicePath,
+              builder: (context, state) => const NewDevicePage(),
+            ),
+            GoRoute(
+              path: otpPath,
+              builder: (context, state) => const OtpPage(),
+            ),
+            GoRoute(
+              path: createPinPath,
+              builder: (context, state) => const CreatePinPage(),
+            ),
+          ],
+        ),
+        GoRoute(
+          path: profileEditPath,
+          builder: (context, state) => const ProfileEditPage(),
+        ),
+        GoRoute(
+          path: birthDatePath,
+          builder: (context, state) =>
+              BirthDatePickerPage(selected: state.extra as DateTime?),
+        ),
+        GoRoute(
+          path: securityPath,
+          builder: (context, state) => SecurityPage(
+            onChangePin: () => context.push(changePinPath),
+            // Le lien mène au parcours de vérification, qui a besoin du
+            // compte : il vit dans le ShellRoute d'authentification.
+            onNewDevice: () => context.push(newDevicePath),
+          ),
+        ),
+        GoRoute(
+          path: changePinPath,
+          builder: (context, state) =>
+              ChangePinPage(onDone: () => context.pop()),
+        ),
+        GoRoute(
+          path: preferencesPath,
+          builder: (context, state) => const PreferencesPage(),
+        ),
+        GoRoute(
+          path: notificationsPath,
+          builder: (context, state) => const NotificationsPage(),
+        ),
+        GoRoute(
+          path: helpPath,
+          builder: (context, state) =>
+              HelpPage(onContact: () => context.push(contactPath)),
+        ),
+        GoRoute(
+          path: contactPath,
+          builder: (context, state) => const ContactPage(),
+        ),
+        GoRoute(
+          path: permissionsPath,
+          builder: (context, state) =>
+              PermissionsPage(onDone: () => context.go('/home')),
+        ),
+        GoRoute(
+          path: busSearchPath,
+          builder: (context, state) => const BusSearchPage(),
+        ),
+        GoRoute(
+          path: ticketDetailPath,
+          builder: (context, state) {
+            final args = state.extra as TicketDetailArgs?;
+
+            // Sans `extra` (lien profond, redémarrage à chaud), on renvoie
+            // sur la liste plutôt que d'afficher un billet vide.
+            if (args == null) return const SizedBox.shrink();
+
+            return TicketDetailPage(ticket: args.ticket, today: args.today);
+          },
+        ),
+        GoRoute(
+          path: welcomePath,
+          builder: (context, state) => WelcomePage(
+            // Les deux actions mènent à l'inscription et à la connexion, qui
+            // n'existent pas encore (voir GUIDE.md §13). En attendant,
+            // « Créer mon compte » entre dans l'app pour que le parcours Bus
+            // reste accessible, et « J'ai déjà un compte » ouvre l'écran de
+            // connexion, même s'il n'est qu'un placeholder.
+            onCreateAccount: () => context.push(signupPath),
+            onLogin: () => context.push(loginPath),
+          ),
+        ),
+        GoRoute(
+          path: originPath,
+          builder: (context, state) =>
+              _cityPicker(state, field: CityField.origin),
+        ),
+        GoRoute(
+          path: destinationPath,
+          builder: (context, state) =>
+              _cityPicker(state, field: CityField.destination),
+        ),
+        GoRoute(
+          path: datePath,
+          builder: (context, state) {
+            final args = state.extra as DatePickerArgs?;
+            final today = args?.today ?? DateTime.now();
+
+            return DatePickerPage(
+              selected: args?.selected ?? today,
+              today: today,
+            );
+          },
+        ),
+        GoRoute(
+          path: passengersPath,
+          builder: (context, state) =>
+              PassengersPickerPage(selected: (state.extra as int?) ?? 1),
+        ),
+        GoRoute(
+          path: departuresPath,
+          builder: (context, state) => DeparturesPage(
+            originId: state.uri.queryParameters['origin'],
+            destinationId: state.uri.queryParameters['destination'],
+            date: state.uri.queryParameters['date'],
+            passengers: state.uri.queryParameters['passengers'],
+          ),
+        ),
+        GoRoute(
+          path: seatsPath,
+          builder: (context, state) {
+            final args = state.extra as SeatsArgs?;
+
+            return SeatsPage(
+              departure: args?.departure,
+              passengers: args?.passengers ?? 1,
+            );
+          },
+        ),
+        GoRoute(
+          path: passengerInfoPath,
+          builder: (context, state) {
+            final args = state.extra as PassengerFormArgs?;
+
+            return PassengerFormPage(
+              departure: args?.departure,
+              seats: args?.seats ?? const [],
+            );
+          },
+        ),
+        GoRoute(
+          path: summaryPath,
+          builder: (context, state) {
+            final args = state.extra as SummaryArgs?;
+
+            return SummaryPage(
+              departure: args?.departure,
+              passengers: args?.passengers ?? const [],
+            );
+          },
+        ),
+        GoRoute(
+          path: departureDetailPath,
+          builder: (context, state) {
+            final args = state.extra as DepartureDetailArgs?;
+
+            return DepartureDetailPage(
+              departure: args?.departure,
+              passengers: args?.passengers ?? 1,
+            );
+          },
+        ),
+        StatefulShellRoute.indexedStack(
+          builder: (context, state, navigationShell) {
+            return _ScaffoldWithNavBar(navigationShell: navigationShell);
+          },
+          branches: [
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/home',
+                  builder: (context, state) => const HomePage(),
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/voyages',
+                  builder: (context, state) => TicketsPage(
+                    onBookTrip: () => context.push(busSearchPath),
+                    onOpenTicket: (ticket, today) => context.push(
+                      ticketDetailPath,
+                      extra: TicketDetailArgs(ticket: ticket, today: today),
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/colis',
-                builder: (context, state) => const ColisPage(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/wallet',
-                builder: (context, state) => const WalletPage(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/profil',
-                builder: (context, state) => const ProfilPage(),
-              ),
-            ],
-          ),
-        ],
-      ),
-    ],
-  );
+              ],
+            ),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/colis',
+                  builder: (context, state) => const ColisPage(),
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/wallet',
+                  builder: (context, state) => const WalletPage(),
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/profil',
+                  builder: (context, state) => const ProfilPage(),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 }
 
 /// Le `Scaffold` commun à tous les onglets : il porte la [KoraBottomNav]
@@ -416,5 +529,72 @@ class _ScaffoldWithNavBar extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Traduit l'étape du parcours d'authentification en navigation.
+///
+/// Les écrans se contentent d'envoyer des événements ; c'est ici, en un
+/// seul endroit, qu'on décide où ils mènent. Sans ça, chaque écran
+/// devrait connaître le suivant — or l'écran de code peut mener au choix
+/// d'un PIN, à l'accueil ou nulle part, selon le motif de l'OTP.
+class _AuthFlowNavigator extends StatelessWidget {
+  const _AuthFlowNavigator({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<AuthFlowBloc, AuthFlowState>(
+      listenWhen: (previous, current) => previous.step != current.step,
+      listener: (context, flow) {
+        switch (flow.step) {
+          case AuthFlowStep.email:
+            // Retour au début : après un PIN réinitialisé, on se
+            // reconnecte avec le nouveau code.
+            context.go(AppRouter.loginPath, extra: flow.email);
+          case AuthFlowStep.newDevice:
+            context.push(AppRouter.newDevicePath);
+          case AuthFlowStep.code:
+            context.push(AppRouter.otpPath);
+          case AuthFlowStep.pin:
+            context.push(AppRouter.createPinPath);
+          case AuthFlowStep.done:
+            final session = flow.session;
+            if (session == null) return;
+
+            // La session ouverte passe au bloc qui la porte pour toute
+            // l'app ; le garde de navigation s'appuie sur lui.
+            context.read<AuthBloc>().add(AuthSessionOpened(session));
+
+            // Une inscription se termine par les autorisations, où le
+            // nouveau venu donne son nom et son téléphone. Une connexion
+            // — même sur un appareil inconnu — va droit à l'accueil : le
+            // profil est déjà rempli.
+            context.go(
+              flow.purpose == OtpPurpose.registration
+                  ? AppRouter.permissionsPath
+                  : '/home',
+            );
+        }
+      },
+      child: child,
+    );
+  }
+}
+
+/// Passerelle entre un flux Bloc et le `refreshListenable` de `go_router`,
+/// qui attend un [Listenable].
+class GoRouterRefreshStream extends ChangeNotifier {
+  GoRouterRefreshStream(Stream<dynamic> stream) {
+    _subscription = stream.asBroadcastStream().listen((_) => notifyListeners());
+  }
+
+  late final StreamSubscription<dynamic> _subscription;
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
   }
 }

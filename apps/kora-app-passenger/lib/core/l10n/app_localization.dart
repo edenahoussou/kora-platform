@@ -352,6 +352,7 @@ class AppLocalization {
   String get profileHelpCenter => translate('profile_help_center');
   String get profileHelpWhatsapp => translate('profile_help_whatsapp');
   String get profileLogout => translate('profile_logout');
+  String get profileLogoutPending => translate('profile_logout_pending');
   String get profileSoon => translate('profile_soon');
 
   // ------------------------------------------------ création de compte
@@ -364,12 +365,158 @@ class AppLocalization {
   String get signupEmailInvalid => translate('signup_email_invalid');
   String get signupEmailProtected => translate('signup_email_protected');
   String get signupSubmit => translate('signup_submit');
+  // --- Centre d'aide et contact (PROFILE-05, PROFILE-06) ---
+  String get helpEyebrow => translate('help_eyebrow');
+  String get helpTitle => translate('help_title');
+  String get helpSearch => translate('help_search');
+  String get helpFaq => translate('help_faq');
+  String get helpNoResult => translate('help_no_result');
+  String get helpContact => translate('help_contact');
+  String get helpQ1 => translate('help_q1');
+  String get helpA1 => translate('help_a1');
+  String get helpQ2 => translate('help_q2');
+  String get helpA2 => translate('help_a2');
+  String get helpQ3 => translate('help_q3');
+  String get helpA3 => translate('help_a3');
+  String get helpQ4 => translate('help_q4');
+  String get helpA4 => translate('help_a4');
+  String get helpQ5 => translate('help_q5');
+  String get helpA5 => translate('help_a5');
+  String get contactEyebrow => translate('contact_eyebrow');
+  String get contactTitle => translate('contact_title');
+  String get contactWhatsappTitle => translate('contact_whatsapp_title');
+  String get contactWhatsappText => translate('contact_whatsapp_text');
+  String get contactWhatsappStart => translate('contact_whatsapp_start');
+  String get contactOthers => translate('contact_others');
+  String get contactPhone => translate('contact_phone');
+  String get contactEmail => translate('contact_email');
+  String get contactNote => translate('contact_note');
+  String contactUnavailable(String target) =>
+      _withArgs('contact_unavailable', {'target': target});
+
+  // --- Centre de notifications (HOME-02) ---
+  String get notificationsEyebrow => translate('notifications_eyebrow');
+  String get notificationsTitle => translate('notifications_title');
+  String get notificationsMarkAll => translate('notifications_mark_all');
+  String get notificationsMarked => translate('notifications_marked');
+  String get notificationsEmpty => translate('notifications_empty');
+  String get notificationsSoon => translate('notifications_soon');
+  String notificationsMinutesAgo(int count) =>
+      _withArgs('notifications_minutes_ago', {'count': count});
+  String get notificationsToday => translate('notifications_today');
+  String get notificationsYesterday => translate('notifications_yesterday');
+
+  // --- Profil : informations, sécurité, préférences ---
+  String get profileEditEyebrow => translate('profile_edit_eyebrow');
+  String get profileEditTitle => translate('profile_edit_title');
+  String get profileEditFirstName => translate('profile_edit_first_name');
+  String get profileEditLastName => translate('profile_edit_last_name');
+  String get profileEditPhone => translate('profile_edit_phone');
+  String get profileEditPhoneLocked => translate('profile_edit_phone_locked');
+  String get profileEditEmail => translate('profile_edit_email');
+  String get profileEditBirthDate => translate('profile_edit_birth_date');
+  String get profileEditBirthDateHint =>
+      translate('profile_edit_birth_date_hint');
+  String get profileEditSave => translate('profile_edit_save');
+  String get profileEditSaved => translate('profile_edit_saved');
+  String get profileEditFirstNameRequired =>
+      translate('profile_edit_first_name_required');
+  String get profileEditEmailInvalid => translate('profile_edit_email_invalid');
+  String get securityEyebrow => translate('security_eyebrow');
+  String get securityTitle => translate('security_title');
+  String get securityChangePin => translate('security_change_pin');
+  String get securityChangePinSub => translate('security_change_pin_sub');
+  String get securityNewDevice => translate('security_new_device');
+  String get securityNewDeviceSub => translate('security_new_device_sub');
+  String get securityDevices => translate('security_devices');
+  String get securityDeviceCurrent => translate('security_device_current');
+  String get securityDeviceActive => translate('security_device_active');
+  String get securityDeviceRevoke => translate('security_device_revoke');
+  String get securityDeviceRevoked => translate('security_device_revoked');
+  String securityDeviceLastSeen(String when) =>
+      _withArgs('security_device_last_seen', {'when': when});
+  String get securityDevicesEmpty => translate('security_devices_empty');
+  String get securityDevicesError => translate('security_devices_error');
+  String get createPinMismatch => translate('create_pin_mismatch');
+  String get changePinIncomplete => translate('change_pin_incomplete');
+  String get changePinEyebrow => translate('change_pin_eyebrow');
+  String get changePinCurrent => translate('change_pin_current');
+  String get changePinCurrentLead => translate('change_pin_current_lead');
+  String get changePinNew => translate('change_pin_new');
+  String get changePinNewLead => translate('change_pin_new_lead');
+  String get changePinConfirm => translate('change_pin_confirm');
+  String get changePinConfirmLead => translate('change_pin_confirm_lead');
+  String get changePinSame => translate('change_pin_same');
+  String get changePinDone => translate('change_pin_done');
+  String get preferencesEyebrow => translate('preferences_eyebrow');
+  String get preferencesTitle => translate('preferences_title');
+  String get preferencesPush => translate('preferences_push');
+  String get preferencesPushSub => translate('preferences_push_sub');
+  String get preferencesWhatsapp => translate('preferences_whatsapp');
+  String get preferencesWhatsappSub => translate('preferences_whatsapp_sub');
+  String get preferencesEmail => translate('preferences_email');
+  String get preferencesEmailSub => translate('preferences_email_sub');
+  String get preferencesDisplay => translate('preferences_display');
+  String get preferencesLanguage => translate('preferences_language');
+  String get preferencesDark => translate('preferences_dark');
+  String get preferencesDarkOn => translate('preferences_dark_on');
+  String get preferencesDarkOff => translate('preferences_dark_off');
+  String get preferencesError => translate('preferences_error');
+
+  // --- Connexion sociale (Google, Facebook, TikTok) ---
+  String oauthNotConfigured(String provider) =>
+      _withArgs('oauth_not_configured', {'provider': provider});
+  String get oauthUnsupported => translate('oauth_unsupported');
+  String oauthFailed(String provider) =>
+      _withArgs('oauth_failed', {'provider': provider});
+
+  // --- Nouvel appareil (AUTH-10) et connexion ---
+  String get newDeviceEyebrow => translate('new_device_eyebrow');
+  String get newDeviceTitle => translate('new_device_title');
+  String get newDeviceVisualCaption => translate('new_device_visual_caption');
+  String get newDeviceQuestion => translate('new_device_question');
+  String get newDeviceLead => translate('new_device_lead');
+  String get newDeviceDevice => translate('new_device_device');
+  String get newDeviceAttempt => translate('new_device_attempt');
+  String get newDeviceAttemptNow => translate('new_device_attempt_now');
+  String get newDeviceReceiveCode => translate('new_device_receive_code');
+  String get newDeviceNotMe => translate('new_device_not_me');
+  String get newDeviceReported => translate('new_device_reported');
+  String get loginNewDeviceLink => translate('login_new_device_link');
+  String get loginEmailFirst => translate('login_email_first');
+
+  // --- Écran des autorisations (AUTH-07) ---
+  String get permissionsEyebrow => translate('permissions_eyebrow');
+  String get permissionsTitle => translate('permissions_title');
+  String get permissionsLead => translate('permissions_lead');
+  String get permissionsIdentityTitle =>
+      translate('permissions_identity_title');
+  String get permissionsIdentityLead => translate('permissions_identity_lead');
+  String get permissionsNameLabel => translate('permissions_name_label');
+  String get permissionsNameHint => translate('permissions_name_hint');
+  String get permissionsNameRequired => translate('permissions_name_required');
+  String get permissionsPhoneLabel => translate('permissions_phone_label');
+  String permissionsPhonePrefix(String country, String prefix) => _withArgs(
+    'permissions_phone_prefix',
+    {'country': country, 'prefix': prefix},
+  );
+  String get permissionsPhoneCountry => translate('permissions_phone_country');
+  String get permissionsPhoneInvalid => translate('permissions_phone_invalid');
+  String get permissionsLocationTitle =>
+      translate('permissions_location_title');
+  String get permissionsLocationText => translate('permissions_location_text');
+  String get permissionsNotificationsTitle =>
+      translate('permissions_notifications_title');
+  String get permissionsNotificationsText =>
+      translate('permissions_notifications_text');
+  String get permissionsDenied => translate('permissions_denied');
+  String get permissionsContinue => translate('permissions_continue');
+  String get permissionsLater => translate('permissions_later');
+
   String get signupOr => translate('signup_or');
   String get signupWithGoogle => translate('signup_with_google');
   String get signupWithFacebook => translate('signup_with_facebook');
   String get signupWithTiktok => translate('signup_with_tiktok');
-  String signupSocialSoon(String provider) =>
-      _withArgs('signup_social_soon', {'provider': provider});
 
   // ---------------------------------------------------------------- langues
   String get languageTitle => translate('language_title');

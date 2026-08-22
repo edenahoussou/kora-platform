@@ -2,12 +2,17 @@
 // six cases, décompte de validité, expiration et renvoi.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kora_app_passenger/features/auth/presentation/bloc/auth_flow_bloc.dart';
 import 'package:kora_app_passenger/features/auth/presentation/pages/otp_page.dart';
+
+import '../../../../support/stub_auth_repository.dart';
 
 void main() {
   late int verified;
+  late AuthFlowBloc flow;
 
   Future<void> pumpOtp(
     WidgetTester tester, {
@@ -19,13 +24,22 @@ void main() {
 
     verified = 0;
 
+    // Le parcours arrive sur cet écran avec une adresse et un défi en
+    // cours : c'est ce que « Renvoyer » réutilise pour redemander un code.
+    flow = AuthFlowBloc(StubAuthRepository())
+      ..add(const AuthFlowEmailSubmitted(email: 'aicha.hounkpe@example.com'));
+    addTearDown(flow.close);
+
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
-        home: OtpPage(
-          email: 'aicha.hounkpe@example.com',
-          validity: validity,
-          onVerified: () => verified++,
+        home: BlocProvider<AuthFlowBloc>.value(
+          value: flow,
+          child: OtpPage(
+            email: 'aicha.hounkpe@example.com',
+            validity: validity,
+            onVerified: () => verified++,
+          ),
         ),
       ),
     );
@@ -112,14 +126,21 @@ void main() {
     await tester.tap(find.text('Renvoyer'));
     await tester.pump();
 
+    // Le décompte ne repart qu'une fois le nouveau code émis par l'API :
+    // le relancer avant la réponse annoncerait un code qui n'existe pas.
+    await tester.pump();
     expect(find.text('Code valable pendant 00:02'), findsOneWidget);
     expect(find.text('Un nouveau code a été envoyé.'), findsOneWidget);
 
     final boxes = tester.widgetList<TextField>(find.byType(TextField));
     expect(boxes.every((box) => box.controller!.text.isEmpty), isTrue);
 
-    // On laisse le minuteur s'éteindre : un `Timer` encore actif à la fin
-    // du test le ferait échouer.
+    // On laisse tout s'éteindre : le décompte, puis le toast (2,6 s
+    // d'affichage et 250 ms de sortie). Un `Timer` encore actif à la fin
+    // du test le ferait échouer, et `pumpAndSettle` n'avance pas l'horloge
+    // pour un simple `Future.delayed`.
     await tester.pump(const Duration(seconds: 3));
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump(const Duration(milliseconds: 400));
   });
 }

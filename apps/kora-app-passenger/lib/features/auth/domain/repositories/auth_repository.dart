@@ -6,6 +6,7 @@ import '../entities/auth_session.dart';
 import '../entities/auth_user.dart';
 import '../entities/otp_challenge.dart';
 import '../entities/otp_purpose.dart';
+import '../entities/user_preferences.dart';
 
 /// Couche DOMAIN : tout ce que l'app sait faire en matière de comptes.
 ///
@@ -51,8 +52,46 @@ abstract class AuthRepository {
   /// connectivité.
   Future<Either<Failure, AuthSession?>> currentSession();
 
+  /// Adresse du dernier compte connecté sur cet appareil, ou `null`.
+  ///
+  /// Sert à l'écran de connexion, qui ne demande que le PIN : la maquette
+  /// suppose qu'on sait déjà de quel compte il s'agit.
+  Future<String?> lastEmail();
+
+  /// L'appareil courant, tel qu'il est déclaré à l'API.
+  ///
+  /// Sert à l'écran « Nouvel appareil » : montrer le nom que le serveur
+  /// vient de refuser est le seul moyen, pour l'utilisateur, de savoir
+  /// s'il regarde sa propre tentative.
+  Future<DeviceRegistration> currentDevice();
+
   /// Rafraîchit le profil depuis `auth/me`.
   Future<Either<Failure, AuthUser>> refreshUser();
+
+  /// Complète le profil (`PUT auth/me`).
+  ///
+  /// L'inscription ne demande qu'une adresse e-mail : le serveur crée le
+  /// compte avec un nom dérivé de celle-ci. C'est ici que le vrai nom et
+  /// le téléphone arrivent, juste après l'écran des autorisations.
+  ///
+  /// L'e-mail, que l'API exige, n'est pas demandé : la couche data le
+  /// reprend de la session en cours.
+  Future<Either<Failure, AuthUser>> updateProfile({
+    required String name,
+    String? email,
+    String? phone,
+    String? countryCode,
+    DateTime? birthDate,
+  });
+
+  /// Réglages du compte (`GET auth/preferences`).
+  Future<Either<Failure, UserPreferences>> preferences();
+
+  /// Enregistre les réglages (`PUT auth/preferences`) et renvoie ce que
+  /// le serveur a retenu.
+  Future<Either<Failure, UserPreferences>> savePreferences(
+    UserPreferences preferences,
+  );
 
   /// Révoque le token courant et purge le stockage local.
   ///
