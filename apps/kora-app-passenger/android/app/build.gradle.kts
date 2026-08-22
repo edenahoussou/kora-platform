@@ -18,7 +18,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.example.kora_app"
+    namespace = "com.example.kora_app_passager"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -28,8 +28,10 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.kora_app"
+        // Identifiant d'installation de l'app passager. Il est gravé
+        // dans le client OAuth Android de Google et dans l'app Facebook :
+        // le changer oblige à recréer les deux.
+        applicationId = "com.example.kora_app_passager"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

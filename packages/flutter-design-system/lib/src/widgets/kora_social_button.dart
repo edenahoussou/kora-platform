@@ -35,11 +35,16 @@ class KoraSocialButton extends StatelessWidget {
     required this.provider,
     required this.label,
     required this.onPressed,
+    this.isLoading = false,
   });
 
   final KoraSocialProvider provider;
   final String label;
   final VoidCallback? onPressed;
+
+  /// La feuille du fournisseur est ouverte : le bouton attend sa réponse
+  /// et ne réagit plus.
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +54,7 @@ class KoraSocialButton extends StatelessWidget {
     return SizedBox(
       height: 50,
       child: OutlinedButton(
-        onPressed: onPressed,
+        onPressed: isLoading ? null : onPressed,
         style: OutlinedButton.styleFrom(
           backgroundColor: koraColors.surface,
           side: BorderSide(color: koraColors.line),
@@ -64,17 +69,30 @@ class KoraSocialButton extends StatelessWidget {
             // Le libellé reste centré sur la largeur du bouton, comme dans
             // la maquette de référence : la pastille ne le décale pas.
             Expanded(
-              child: Text(
-                label,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: isDark ? koraColors.textPrimary : AppColors.kora,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+              child: isLoading
+                  ? Center(
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: isDark
+                              ? koraColors.textPrimary
+                              : AppColors.kora,
+                        ),
+                      ),
+                    )
+                  : Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: isDark ? koraColors.textPrimary : AppColors.kora,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
             ),
             // Réserve la largeur de la pastille à droite pour que le
             // centrage porte sur le bouton entier.

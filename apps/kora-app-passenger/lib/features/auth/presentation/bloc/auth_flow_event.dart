@@ -33,6 +33,23 @@ class AuthFlowLoginSubmitted extends AuthFlowEvent {
 }
 
 /// Écran OTP : les six chiffres saisis.
+/// L'utilisateur demande la vérification d'un nouvel appareil, depuis le
+/// lien de l'écran de connexion. Le serveur peut aussi l'imposer de
+/// lui-même en répondant 202 à `login`.
+class AuthFlowNewDeviceRequested extends AuthFlowEvent {
+  const AuthFlowNewDeviceRequested(this.email);
+
+  final String email;
+
+  @override
+  List<Object?> get props => [email];
+}
+
+/// « Recevoir le code OTP » sur l'écran du nouvel appareil.
+class AuthFlowNewDeviceConfirmed extends AuthFlowEvent {
+  const AuthFlowNewDeviceConfirmed();
+}
+
 class AuthFlowCodeSubmitted extends AuthFlowEvent {
   const AuthFlowCodeSubmitted(this.code);
 

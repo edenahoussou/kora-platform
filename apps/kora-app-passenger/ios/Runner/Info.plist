@@ -66,5 +66,8 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- Écran « Autorisations » : iOS refuse l'accès sans ces textes. -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>KORA utilise votre position pour suivre votre bus et vous montrer les points KORA les plus proches.</string>
 </dict>
 </plist>

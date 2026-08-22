@@ -67,6 +67,7 @@ class KoraMenuItem extends StatelessWidget {
     this.subtitle,
     this.onTap,
     this.isDestructive = false,
+    this.trailing,
   });
 
   final IconData icon;
@@ -77,6 +78,11 @@ class KoraMenuItem extends StatelessWidget {
   /// Passe le pictogramme et le libellé en rouge — pour une action qui
   /// retire quelque chose (annuler un billet, supprimer un compte).
   final bool isDestructive;
+
+  /// Ce qui remplace le chevron à droite. La maquette y pose un
+  /// interrupteur pour les lignes de réglage (`settingRow`), là où les
+  /// lignes d'action gardent leur chevron.
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -140,11 +146,12 @@ class KoraMenuItem extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 20,
-                color: koraColors.textMuted,
-              ),
+              trailing ??
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 20,
+                    color: koraColors.textMuted,
+                  ),
             ],
           ),
         ),

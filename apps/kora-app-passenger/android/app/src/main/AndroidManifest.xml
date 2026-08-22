@@ -1,4 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Écran « Autorisations » : suivi du bus en direct et points KORA
+         proches. La position approchée suffit à la plupart des écrans,
+         mais le suivi du véhicule demande la position précise. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <!-- Billet, rappels et alertes de trajet. Obligatoire depuis
+         Android 13 : sans elle, aucune notification n'est affichée. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
     <application
         android:label="kora_app"
         android:name="${applicationName}"

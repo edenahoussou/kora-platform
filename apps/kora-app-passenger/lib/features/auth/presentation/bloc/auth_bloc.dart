@@ -20,6 +20,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthStarted>(_onStarted);
     on<AuthSessionOpened>(_onSessionOpened);
     on<AuthUserRefreshed>(_onUserRefreshed);
+    on<AuthProfileUpdated>(_onProfileUpdated);
     on<AuthLogoutRequested>(_onLogoutRequested);
   }
 
@@ -73,10 +74,34 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
+  void _onProfileUpdated(AuthProfileUpdated event, Emitter<AuthState> emit) {
+    final session = state.session;
+    if (session == null) return;
+
+    emit(
+      state.copyWith(
+        session: AuthSession(
+          token: session.token,
+          tokenType: session.tokenType,
+          expiresAt: session.expiresAt,
+          user: event.user,
+          device: session.device,
+        ),
+        errorMessage: '',
+      ),
+    );
+  }
+
   Future<void> _onLogoutRequested(
     AuthLogoutRequested event,
     Emitter<AuthState> emit,
   ) async {
+    // Une seconde demande pendant l'appel révoquerait un token déjà
+    // révoqué, et ferait clignoter l'écran de profil pour rien.
+    if (state.isLoggingOut) return;
+
+    emit(state.copyWith(isLoggingOut: true, errorMessage: ''));
+
     final result = await _repository.logout();
 
     // Déconnecté dans les deux cas : le repository purge le stockage même

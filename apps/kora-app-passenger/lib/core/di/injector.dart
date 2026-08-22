@@ -37,6 +37,8 @@ import '../../features/theme/presentation/bloc/theme_bloc.dart';
 import '../constants/api_constants.dart';
 import '../constants/storage_keys.dart';
 import '../env/app_env.dart';
+import '../services/app_permissions.dart';
+import '../services/oauth_sign_in.dart';
 
 /// [GetIt] est notre "service locator" : un registre central qui sait
 /// comment construire chaque objet de l'application (data sources,
@@ -81,6 +83,14 @@ Future<void> _registerExternalDependencies() async {
   // Lit le modèle et l'identifiant de l'appareil, exigés par l'API à
   // chaque connexion (voir DeviceInfoDataSource).
   getIt.registerLazySingleton<DeviceInfoPlugin>(() => DeviceInfoPlugin());
+
+  // Autorisations système (position, notifications), demandées par
+  // l'écran de fin d'inscription.
+  getIt.registerLazySingleton<AppPermissions>(() => const AppPermissionsImpl());
+
+  // SDK Google et Facebook, derrière notre propre interface : les écrans
+  // ne dépendent pas des paquets, et les tests s'en passent.
+  getIt.registerLazySingleton<OAuthSignIn>(() => OAuthSignInImpl());
 }
 
 /// Briques partagées par toutes les features (réseau, connectivité...).

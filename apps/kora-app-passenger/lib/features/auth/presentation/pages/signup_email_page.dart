@@ -1,22 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 
+import '../../../../core/di/injector.dart';
 import '../../../../core/l10n/app_localization.dart';
+import '../../../../core/services/oauth_sign_in.dart';
 import '../../../../core/widgets/screen_header.dart';
+import '../bloc/auth_flow_bloc.dart';
 
 /// Première étape de la création de compte — écran `phone` de la maquette
 /// (qui, malgré son nom, demande bien une **adresse e-mail**) : l'adresse
 /// sert d'identifiant KORA, et reçoit le code de vérification.
 ///
-/// Écran de saisie pure : il valide le format et transmet l'adresse. Aucun
-/// appel réseau, donc pas de Bloc — la vérification du code et la création
-/// effective du compte viendront avec la feature `auth`.
+/// L'écran ne valide que le format : c'est [AuthFlowBloc] qui demande le
+/// code à l'API et décide de la suite. Le message d'erreur affiché sous le
+/// champ vient donc soit d'ici (adresse mal formée), soit du serveur.
 class SignupEmailPage extends StatefulWidget {
-  const SignupEmailPage({super.key, this.onSubmit});
+  const SignupEmailPage({super.key, this.onSubmit, this.oauth});
 
-  /// Reçoit l'adresse validée. Injecté par la route, pour que l'écran
-  /// reste testable sans routeur.
+  /// Notifié après une adresse valide, en plus de l'événement envoyé au
+  /// parcours. Sert aux tests, qui montent l'écran sans routeur.
   final ValueChanged<String>? onSubmit;
+
+  /// Injectable pour les tests, qui n'ont ni Google ni Facebook à
+  /// interroger.
+  final OAuthSignIn? oauth;
 
   @override
   State<SignupEmailPage> createState() => _SignupEmailPageState();
@@ -25,7 +33,17 @@ class SignupEmailPage extends StatefulWidget {
 class _SignupEmailPageState extends State<SignupEmailPage> {
   final _email = TextEditingController();
 
+  late final OAuthSignIn _oauth = widget.oauth ?? getIt<OAuthSignIn>();
+
   String? _error;
+
+  /// Fournisseur dont la feuille est ouverte : les trois boutons se
+  /// neutralisent le temps de l'aller-retour.
+  String? _pending;
+
+  /// Message d'un échec côté fournisseur — avant même que l'API soit
+  /// appelée, donc sans rapport avec `flow.errorMessage`.
+  String? _oauthError;
 
   @override
   void dispose() {
@@ -48,11 +66,49 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
     });
 
     if (_error != null) return;
+
+    // C'est cet événement qui demande le code à l'API et fait avancer le
+    // parcours vers l'écran OTP. Sans lui, le bouton ne fait rien.
+    context.read<AuthFlowBloc>().add(AuthFlowEmailSubmitted(email: email));
     widget.onSubmit?.call(email);
   }
 
-  void _social(BuildContext context, String provider) =>
-      KoraToaster.show(context, context.l10n.signupSocialSoon(provider));
+  /// « Continuer avec … » : le SDK du fournisseur authentifie
+  /// l'utilisateur, et c'est son **jeton d'accès** que l'API échange
+  /// contre une session KORA (`POST auth/oauth/token`, validé côté
+  /// serveur par `Socialite::userFromToken()`).
+  Future<void> _social(String provider, String label) async {
+    final l10n = context.l10n;
+
+    setState(() {
+      _pending = provider;
+      _oauthError = null;
+    });
+
+    try {
+      final token = await _oauth.signIn(provider);
+      if (!mounted) return;
+
+      setState(() => _pending = null);
+      context.read<AuthFlowBloc>().add(
+        AuthFlowProviderSubmitted(provider: provider, providerToken: token),
+      );
+    } on OAuthSignInException catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _pending = null;
+        // Une annulation n'est pas une erreur : l'utilisateur a fermé la
+        // feuille, il n'a pas besoin qu'on le lui rappelle.
+        _oauthError = switch (error.reason) {
+          OAuthFailure.cancelled => null,
+          OAuthFailure.notConfigured => l10n.oauthNotConfigured(label),
+          OAuthFailure.unsupported => l10n.oauthUnsupported,
+          OAuthFailure.failed => l10n.oauthFailed(label),
+        };
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -117,31 +173,76 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
                     // card dans le flux, il n'est pas épinglé en bas
                     // d'écran comme ceux du tunnel de réservation.
                     const SizedBox(height: 24),
-                    KoraButton(label: l10n.signupSubmit, onPressed: _submit),
+                    BlocBuilder<AuthFlowBloc, AuthFlowState>(
+                      builder: (context, flow) => Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          KoraButton(
+                            label: l10n.signupSubmit,
+                            isLoading: flow.isSubmitting,
+                            onPressed: flow.isSubmitting ? null : _submit,
+                          ),
+                          // Adresse déjà inscrite, envoi impossible : le
+                          // message vient du serveur et se lit ici, sous le
+                          // bouton, comme sur les autres écrans du parcours.
+                          if (flow.hasError) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              flow.errorMessage,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: AppColors.danger,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 24),
                     KoraOrDivider(label: l10n.signupOr),
                     const SizedBox(height: 18),
                     // Les trois fournisseurs, dans l'ordre de leur usage
-                    // attendu au Bénin. Aucun n'est branché : la feature
-                    // `auth` n'existe pas, chacun le dit plutôt que de
-                    // simuler une connexion.
+                    // attendu au Bénin.
                     KoraSocialButton(
                       provider: KoraSocialProvider.google,
                       label: l10n.signupWithGoogle,
-                      onPressed: () => _social(context, 'Google'),
+                      isLoading: _pending == OAuthSignInImpl.google,
+                      onPressed: _pending != null
+                          ? null
+                          : () => _social(OAuthSignInImpl.google, 'Google'),
                     ),
                     const SizedBox(height: 10),
                     KoraSocialButton(
                       provider: KoraSocialProvider.facebook,
                       label: l10n.signupWithFacebook,
-                      onPressed: () => _social(context, 'Facebook'),
+                      isLoading: _pending == OAuthSignInImpl.facebook,
+                      onPressed: _pending != null
+                          ? null
+                          : () => _social(OAuthSignInImpl.facebook, 'Facebook'),
                     ),
                     const SizedBox(height: 10),
                     KoraSocialButton(
                       provider: KoraSocialProvider.tiktok,
                       label: l10n.signupWithTiktok,
-                      onPressed: () => _social(context, 'TikTok'),
+                      isLoading: _pending == OAuthSignInImpl.tiktok,
+                      onPressed: _pending != null
+                          ? null
+                          : () => _social(OAuthSignInImpl.tiktok, 'TikTok'),
                     ),
+                    if (_oauthError != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        _oauthError!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: AppColors.danger,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: AppSpacing.lg),
                   ],
                 ),

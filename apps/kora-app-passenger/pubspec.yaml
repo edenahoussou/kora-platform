@@ -49,6 +49,11 @@ dependencies:
   # l'OTP sur un appareil déjà connu.
   device_info_plus: ^10.1.2
 
+  # Écran « Autorisations » : demande à Android/iOS l'accès à la position
+  # et aux notifications. Sans ce paquet, les interrupteurs de l'écran
+  # n'ouvriraient aucune boîte de dialogue système.
+  permission_handler: ^11.3.1
+
   # --- Gestion d'erreurs fonctionnelle (Either<Failure, T>) ---
   dartz: ^0.10.1
 
@@ -61,6 +66,9 @@ dependencies:
     path: ../../packages/flutter-design-system
   flutter_networking:
     path: ../../packages/flutter-networking
+  google_sign_in: ^7.2.0
+  flutter_facebook_auth: ^7.1.5
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:

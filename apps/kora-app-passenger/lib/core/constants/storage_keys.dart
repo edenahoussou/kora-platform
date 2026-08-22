@@ -31,6 +31,16 @@ class StorageKeys {
   /// l'app sur son nom sans attendre le réseau.
   static const String authUser = 'kora_secure_auth_user';
 
+  /// Adresse du dernier compte connecté. Survit à la déconnexion : c'est
+  /// elle que l'écran de connexion affiche (« Bon retour parmi nous »),
+  /// et sans elle il faudrait redemander l'e-mail à chaque fois.
+  static const String lastEmail = 'kora_secure_last_email';
+
+  /// L'appareil rattaché à la session ouverte. Sans lui, l'écran
+  /// Sécurité ne saurait plus, après un redémarrage, lequel des
+  /// appareils listés est celui qu'on tient en main.
+  static const String authDevice = 'kora_secure_auth_device';
+
   /// Empreinte de l'appareil envoyée à l'API. Générée une fois puis
   /// relue : c'est sa stabilité qui évite un OTP à chaque connexion.
   static const String deviceFingerprint = 'kora_secure_device_fingerprint';

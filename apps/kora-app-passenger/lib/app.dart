@@ -7,6 +7,7 @@ import 'core/di/injector.dart';
 import 'core/env/app_env.dart';
 import 'core/l10n/app_localization.dart';
 import 'core/router/app_router.dart';
+import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/language/domain/entities/app_language.dart';
 import 'features/language/presentation/bloc/language_bloc.dart';
 import 'features/theme/presentation/bloc/theme_bloc.dart';
@@ -35,6 +36,12 @@ class KoraApp extends StatelessWidget {
         ),
         BlocProvider<LanguageBloc>(
           create: (_) => getIt<LanguageBloc>()..add(const LanguageStarted()),
+        ),
+        // Porte la session pour toute la durée de l'app. `AuthStarted`
+        // relit le stockage sécurisé : tant qu'il n'a pas répondu, le
+        // garde de navigation ne redirige personne.
+        BlocProvider<AuthBloc>(
+          create: (_) => getIt<AuthBloc>()..add(const AuthStarted()),
         ),
       ],
       child: BlocBuilder<ThemeBloc, ThemeState>(

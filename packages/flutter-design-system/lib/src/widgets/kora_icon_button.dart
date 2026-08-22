@@ -23,6 +23,7 @@ class KoraIconButton extends StatelessWidget {
     this.onTap,
     this.size = 42,
     this.showBadge = false,
+    this.onNavy = false,
   });
 
   final IconData icon;
@@ -34,10 +35,17 @@ class KoraIconButton extends StatelessWidget {
   /// [KoraBadge] (wrapper du `Badge` Material 3).
   final bool showBadge;
 
+  /// Le bouton est posé sur un fond navy, quel que soit le thème :
+  /// `.navy-screen .icon-button` de la maquette — un voile blanc à 10 %,
+  /// pictogramme blanc, sans ombre.
+  final bool onNavy;
+
   @override
   Widget build(BuildContext context) {
     final koraColors = context.koraColors;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Certains écrans (connexion, OTP) sont navy dans les deux thèmes :
+    // c'est le fond qui commande, pas la clarté du thème.
+    final isDark = onNavy || Theme.of(context).brightness == Brightness.dark;
 
     // Le bouton est très souvent posé sur une card, de la même couleur de
     // surface que lui : sans traitement, la pastille disparaît. La
@@ -64,7 +72,11 @@ class KoraIconButton extends StatelessWidget {
             onTap: onTap,
             customBorder: const CircleBorder(),
             child: Center(
-              child: Icon(icon, size: 19, color: koraColors.textPrimary),
+              child: Icon(
+                icon,
+                size: 19,
+                color: onNavy ? AppColors.white : koraColors.textPrimary,
+              ),
             ),
           ),
         ),

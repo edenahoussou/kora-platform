@@ -19,6 +19,29 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
+// Certains plugins (flutter_facebook_auth) déclarent encore Java 11 dans
+// leur propre bloc `android`, alors que Kotlin suit le JDK de la machine
+// — le build échoue sur « Inconsistent JVM-target compatibility ». On
+// aligne les deux sur la version que l'app utilise déjà, en passant par
+// l'extension Android : régler les tâches ne suffit pas, AGP les
+// reconfigure ensuite à partir de ce bloc.
+subprojects {
+    plugins.withId("com.android.library") {
+        extensions.configure<com.android.build.gradle.LibraryExtension> {
+            compileOptions {
+                sourceCompatibility = JavaVersion.VERSION_17
+                targetCompatibility = JavaVersion.VERSION_17
+            }
+        }
+    }
+
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        }
+    }
+}
+
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }

@@ -1,26 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 
+import '../../../../core/l10n/app_localization.dart';
+import '../../domain/entities/otp_purpose.dart';
+import '../bloc/auth_flow_bloc.dart';
 import '../widgets/pin_pad.dart';
 
 /// Connexion par code PIN — écran `login` de la maquette : écran navy,
 /// logo, rappel du compte, quatre pastilles de saisie et un pavé numérique.
 ///
-/// **Aucun PIN n'est vérifié** : la feature `auth` n'existe pas encore
-/// (voir GUIDE.md §13). Tout code à 4 chiffres ouvre l'app, ce qui permet
-/// de parcourir le tunnel Bus mocké. Le jour où l'authentification arrive,
-/// seul [onSuccess] change — la saisie, elle, est déjà en place.
+/// L'e-mail vient du dernier compte connecté sur cet appareil : la
+/// maquette suppose qu'on sait déjà de qui il s'agit et ne demande que le
+/// PIN. **Quand aucun compte n'est mémorisé** — première utilisation,
+/// données effacées — un champ e-mail apparaît au-dessus du pavé : la
+/// maquette ne couvre pas ce cas, et l'API exige les deux.
+///
+/// Un appareil que le serveur ne connaît pas répond 202 plutôt qu'un
+/// token : le parcours enchaîne alors sur l'écran OTP, puis rejoue la
+/// connexion tout seul.
 class LoginPage extends StatefulWidget {
-  const LoginPage({
-    super.key,
-    this.email = 'aicha.hounkpe@example.com',
-    this.onSuccess,
-  });
+  const LoginPage({super.key, this.email, this.onSuccess});
 
-  /// Compte auquel se rattache le PIN. Codé en dur tant qu'aucune session
-  /// n'existe.
-  final String email;
+  /// Compte auquel se rattache le PIN, quand l'app s'en souvient.
+  final String? email;
 
   final VoidCallback? onSuccess;
 
@@ -31,8 +35,21 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   static const int _pinLength = 4;
 
+  final _emailController = TextEditingController();
+
   String _pin = '';
   String? _error;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  /// Compte visé : celui mémorisé, ou celui que l'utilisateur saisit.
+  String get _email => widget.email ?? _emailController.text.trim();
+
+  bool get _knowsAccount => (widget.email ?? '').isNotEmpty;
 
   void _press(String key) {
     setState(() {
@@ -42,15 +59,54 @@ class _LoginPageState extends State<LoginPage> {
         case PinKeypad.backspace:
           if (_pin.isNotEmpty) _pin = _pin.substring(0, _pin.length - 1);
         case PinKeypad.validate:
-          if (_pin.length < _pinLength) {
-            _error = 'Saisissez vos $_pinLength chiffres';
-          } else {
-            widget.onSuccess?.call();
-          }
+          _submit();
         default:
           if (_pin.length < _pinLength) _pin += key;
       }
     });
+  }
+
+  /// « PIN oublié ? » : demande un code, puis l'écran de PIN servira à en
+  /// choisir un nouveau. Sans adresse connue, impossible d'envoyer quoi
+  /// que ce soit — on le dit plutôt que de ne rien faire.
+  void _forgotPin(BuildContext context) {
+    if (_email.isEmpty) {
+      setState(() => _error = 'Saisissez d’abord votre adresse e-mail');
+      return;
+    }
+
+    context.read<AuthFlowBloc>().add(
+      AuthFlowEmailSubmitted(email: _email, purpose: OtpPurpose.pinReset),
+    );
+  }
+
+  /// « Connexion sur un nouvel appareil » : l'écran qui l'explique a
+  /// besoin du compte visé, l'appareil se vérifiant toujours pour
+  /// quelqu'un.
+  void _newDevice(BuildContext context) {
+    if (_email.isEmpty) {
+      setState(() => _error = context.l10n.loginEmailFirst);
+      return;
+    }
+
+    context.read<AuthFlowBloc>().add(AuthFlowNewDeviceRequested(_email));
+  }
+
+  void _submit() {
+    if (_pin.length < _pinLength) {
+      _error = 'Saisissez vos $_pinLength chiffres';
+      return;
+    }
+    if (_email.isEmpty) {
+      _error = 'Adresse e-mail requise';
+      return;
+    }
+
+    _error = null;
+    context.read<AuthFlowBloc>().add(
+      AuthFlowLoginSubmitted(email: _email, pin: _pin),
+    );
+    widget.onSuccess?.call();
   }
 
   @override
@@ -77,12 +133,12 @@ class _LoginPageState extends State<LoginPage> {
                 // système ne suffit pas sur toutes les plateformes.
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.chevron_left_rounded,
-                      color: AppColors.white,
-                    ),
-                    onPressed: () => Navigator.of(context).pop(),
+                  child: KoraIconButton(
+                    icon: Icons.chevron_left_rounded,
+                    // Même pastille que sur les autres écrans : nu, le
+                    // chevron flottait seul en haut de l'écran.
+                    onNavy: true,
+                    onTap: () => Navigator.of(context).pop(),
                   ),
                 ),
                 Expanded(
@@ -93,6 +149,13 @@ class _LoginPageState extends State<LoginPage> {
                       const Center(child: _Logo()),
                       const SizedBox(height: 32),
                       _Header(email: widget.email),
+                      // Aucun compte mémorisé : il faut bien demander de
+                      // qui il s'agit. La maquette ne prévoit pas ce cas,
+                      // mais l'API veut l'e-mail avec le PIN.
+                      if (!_knowsAccount) ...[
+                        const SizedBox(height: 20),
+                        _EmailField(controller: _emailController),
+                      ],
                       const SizedBox(height: 27),
                       PinDots(
                         filled: _pin.length,
@@ -111,24 +174,54 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         const SizedBox(height: 12),
                       ],
-                      PinKeypad(onKey: _press, onNavy: true),
+                      BlocBuilder<AuthFlowBloc, AuthFlowState>(
+                        builder: (context, flow) => Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            PinKeypad(onKey: _press, onNavy: true),
+                            if (flow.hasError) ...[
+                              const SizedBox(height: 12),
+                              Text(
+                                flow.errorMessage,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: AppColors.gold,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                            // Compte bloqué après trop d'essais : le
+                            // déverrouillage passe par un code, pas par
+                            // un nouveau PIN. On l'annonce ici plutôt que
+                            // de laisser l'utilisateur réessayer en vain.
+                            if (flow.isAccountLocked) ...[
+                              const SizedBox(height: 12),
+                              _LinkButton(
+                                label: 'Débloquer mon compte',
+                                onPressed: () =>
+                                    context.read<AuthFlowBloc>().add(
+                                      AuthFlowEmailSubmitted(
+                                        email: _email,
+                                        purpose: OtpPurpose.accountUnlock,
+                                      ),
+                                    ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                       const SizedBox(height: 12),
                       _LinkButton(
                         label: 'PIN oublié ?',
-                        onPressed: () => _notAvailableYet(
-                          context,
-                          'La réinitialisation du PIN arrive avec la '
-                          'feature auth.',
-                        ),
+                        // Même parcours que l'inscription, autre motif :
+                        // code par e-mail, puis choix d'un nouveau PIN.
+                        onPressed: () => _forgotPin(context),
                       ),
                       const SizedBox(height: 8),
                       _LinkButton(
-                        label: 'Connexion sur un nouvel appareil',
-                        onPressed: () => _notAvailableYet(
-                          context,
-                          'La vérification d’un nouvel appareil arrive avec '
-                          'la feature auth.',
-                        ),
+                        label: context.l10n.loginNewDeviceLink,
+                        onPressed: () => _newDevice(context),
                       ),
                       const SizedBox(height: AppSpacing.lg),
                     ],
@@ -167,10 +260,46 @@ class _Logo extends StatelessWidget {
   }
 }
 
+/// Champ e-mail, affiché seulement quand l'app ne sait pas encore à quel
+/// compte se rattache le PIN.
+class _EmailField extends StatelessWidget {
+  const _EmailField({required this.controller});
+
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      keyboardType: TextInputType.emailAddress,
+      autocorrect: false,
+      style: const TextStyle(color: AppColors.white, fontSize: 14),
+      decoration: InputDecoration(
+        hintText: 'vous@exemple.com',
+        hintStyle: TextStyle(color: AppColors.white.withValues(alpha: 0.45)),
+        filled: true,
+        fillColor: AppColors.white.withValues(alpha: 0.08),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.base),
+          borderSide: BorderSide(color: AppColors.white.withValues(alpha: 0.2)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.base),
+          borderSide: BorderSide(color: AppColors.white.withValues(alpha: 0.2)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.base),
+          borderSide: const BorderSide(color: AppColors.gold),
+        ),
+      ),
+    );
+  }
+}
+
 class _Header extends StatelessWidget {
   const _Header({required this.email});
 
-  final String email;
+  final String? email;
 
   @override
   Widget build(BuildContext context) {
@@ -190,14 +319,16 @@ class _Header extends StatelessWidget {
             letterSpacing: -0.575,
           ),
         ),
-        const SizedBox(height: 6),
-        Text(
-          email,
-          style: TextStyle(
-            color: AppColors.white.withValues(alpha: 0.65),
-            fontSize: 13,
+        if (email != null && email!.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            email!,
+            style: TextStyle(
+              color: AppColors.white.withValues(alpha: 0.65),
+              fontSize: 13,
+            ),
           ),
-        ),
+        ],
       ],
     );
   }
@@ -217,10 +348,4 @@ class _LinkButton extends StatelessWidget {
       child: Text(label),
     );
   }
-}
-
-void _notAvailableYet(BuildContext context, String message) {
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(message)));
 }

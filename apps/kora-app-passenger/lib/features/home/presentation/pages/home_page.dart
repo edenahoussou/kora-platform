@@ -58,10 +58,8 @@ class _HomeView extends StatelessWidget {
               // titre sur 3 lignes, et un retour automatique dépendrait
               // de la largeur de l'écran.
               title: 'Votre prochain\nvoyage commence\nici.',
-              onNotificationsTap: () => _notAvailableYet(
-                context,
-                'Le centre de notifications arrive bientôt.',
-              ),
+              onNotificationsTap: () =>
+                  context.push(AppRouter.notificationsPath),
             ),
             // La carte de recherche chevauche l'en-tête de 49px
             // (`.floating-search { margin-top: -49px }`). `Transform` ne

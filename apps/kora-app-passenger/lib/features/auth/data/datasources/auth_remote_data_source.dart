@@ -6,6 +6,7 @@ import '../../domain/entities/auth_session.dart';
 import '../../domain/entities/auth_user.dart';
 import '../../domain/entities/otp_challenge.dart';
 import '../../domain/entities/otp_purpose.dart';
+import '../../domain/entities/user_preferences.dart';
 import '../models/auth_dtos.dart';
 
 /// Erreur métier renvoyée par l'API sous la forme
@@ -68,6 +69,14 @@ abstract class AuthRemoteDataSource {
 
   Future<AuthUser> me();
 
+  Future<AuthUser> updateProfile({
+    required String name,
+    required String email,
+    String? phone,
+    String? countryCode,
+    DateTime? birthDate,
+  });
+
   Future<void> logout();
 
   Future<void> resetPin({
@@ -80,6 +89,10 @@ abstract class AuthRemoteDataSource {
   Future<void> unlockAccount(OtpVerification verification);
 
   Future<List<AuthDevice>> devices();
+
+  Future<UserPreferences> preferences();
+
+  Future<UserPreferences> updatePreferences(UserPreferences preferences);
 
   Future<void> revokeDevice(String uuid);
 }
@@ -127,6 +140,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       'otp_challenge_uuid': verification.challengeUuid,
       'verification_token': verification.verificationToken,
       'pin': pin,
+      // Le serveur valide le PIN avec la règle `confirmed` de Laravel :
+      // sans `pin_confirmation` identique, il répond 422 « La confirmation
+      // du PIN ne correspond pas. ». L'écran fait déjà saisir le code deux
+      // fois, la comparaison a donc lieu avant l'appel.
+      'pin_confirmation': pin,
       ...device.toJson(),
     });
 
@@ -182,6 +200,61 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
+  Future<AuthUser> updateProfile({
+    required String name,
+    required String email,
+    String? phone,
+    String? countryCode,
+    DateTime? birthDate,
+  }) async {
+    final response = await _guard(
+      () => _dio.put<dynamic>(
+        ApiConstants.me,
+        data: {
+          'name': name,
+          // Obligatoire côté serveur, même quand l'écran appelant ne le
+          // modifie pas : il renvoie alors l'adresse du compte.
+          'email': email,
+          'phone': phone,
+          'country_code': countryCode,
+          // `date` côté Laravel : la partie horaire n'a pas de sens pour
+          // une date de naissance et serait refusée telle quelle.
+          'birth_date': birthDate?.toIso8601String().split('T').first,
+        },
+      ),
+    );
+
+    return AuthDtos.user(response.data);
+  }
+
+  @override
+  Future<UserPreferences> preferences() async {
+    final response = await _guard(
+      () => _dio.get<dynamic>(ApiConstants.preferences),
+    );
+
+    return AuthDtos.preferences(response.data);
+  }
+
+  @override
+  Future<UserPreferences> updatePreferences(UserPreferences preferences) async {
+    final response = await _guard(
+      () => _dio.put<dynamic>(
+        ApiConstants.preferences,
+        data: {
+          'push_notifications': preferences.pushNotifications,
+          'whatsapp_notifications': preferences.whatsappNotifications,
+          'email_notifications': preferences.emailNotifications,
+          'locale': preferences.locale,
+          'theme': preferences.theme,
+        },
+      ),
+    );
+
+    return AuthDtos.preferences(response.data);
+  }
+
+  @override
   Future<void> logout() => _guard(() => _dio.post<void>(ApiConstants.logout));
 
   @override
@@ -192,6 +265,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     'otp_challenge_uuid': verification.challengeUuid,
     'verification_token': verification.verificationToken,
     'pin': pin,
+    'pin_confirmation': pin,
   });
 
   @override
@@ -199,7 +273,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String currentPin,
     required String newPin,
   }) =>
-      _post(ApiConstants.pinChange, {'current_pin': currentPin, 'pin': newPin});
+      // Le serveur attend `new_pin` (et sa confirmation), pas `pin`.
+      _post(ApiConstants.pinChange, {
+        'current_pin': currentPin,
+        'new_pin': newPin,
+        'new_pin_confirmation': newPin,
+      });
 
   @override
   Future<void> unlockAccount(OtpVerification verification) =>

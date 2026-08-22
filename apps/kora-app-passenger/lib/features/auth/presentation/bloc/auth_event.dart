@@ -28,6 +28,18 @@ class AuthUserRefreshed extends AuthEvent {
   const AuthUserRefreshed();
 }
 
+/// Profil complété ailleurs (écran des autorisations) : on remplace
+/// l'utilisateur de la session sans repasser par `auth/me`, la réponse du
+/// `PUT` faisant déjà autorité.
+class AuthProfileUpdated extends AuthEvent {
+  const AuthProfileUpdated(this.user);
+
+  final AuthUser user;
+
+  @override
+  List<Object?> get props => [user];
+}
+
 /// Déconnexion demandée par l'utilisateur.
 class AuthLogoutRequested extends AuthEvent {
   const AuthLogoutRequested();

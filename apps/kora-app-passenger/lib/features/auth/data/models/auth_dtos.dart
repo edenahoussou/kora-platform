@@ -4,6 +4,7 @@ import '../../domain/entities/auth_user.dart';
 import '../../domain/entities/device_platform.dart';
 import '../../domain/entities/otp_challenge.dart';
 import '../../domain/entities/otp_purpose.dart';
+import '../../domain/entities/user_preferences.dart';
 
 /// Couche DATA : lecture des réponses JSON de l'API d'authentification.
 ///
@@ -74,10 +75,14 @@ abstract final class AuthDtos {
   static const Duration _tokenFallback = Duration(days: 7);
 
   static AuthUser user(Object? raw) {
-    // `auth/me` répond `{ data: { user: {...} } }` alors que la connexion
-    // met l'utilisateur directement dans `data.user` : on accepte les deux
-    // plutôt que d'avoir deux lecteurs presque identiques.
-    final source = raw is Map && raw['user'] is Map ? raw['user'] : raw;
+    // Trois formes circulent : la réponse complète `{ data: { user } }`,
+    // son intérieur `{ user }`, et l'objet nu. On les accepte toutes —
+    // oublier une couche donnait un utilisateur vide, sans erreur, et
+    // c'est ce vide qui finissait en stockage.
+    final unwrapped = raw is Map && raw['data'] is Map ? raw['data'] : raw;
+    final source = unwrapped is Map && unwrapped['user'] is Map
+        ? unwrapped['user']
+        : unwrapped;
     final data = source is Map
         ? Map<String, dynamic>.from(source)
         : const <String, dynamic>{};
@@ -92,6 +97,26 @@ abstract final class AuthDtos {
       status: data['status'] as String? ?? 'active',
       avatarUrl: data['avatar_url'] as String?,
       permissions: _strings(data['permissions']),
+    );
+  }
+
+  static UserPreferences preferences(Object? body) {
+    final data = unwrap(body);
+
+    // Les valeurs par défaut de l'entité s'appliquent si l'API en omet
+    // une : un compte tout neuf n'a pas encore de ligne de préférences.
+    const fallback = UserPreferences();
+
+    return UserPreferences(
+      pushNotifications:
+          data['push_notifications'] as bool? ?? fallback.pushNotifications,
+      whatsappNotifications:
+          data['whatsapp_notifications'] as bool? ??
+          fallback.whatsappNotifications,
+      emailNotifications:
+          data['email_notifications'] as bool? ?? fallback.emailNotifications,
+      locale: data['locale'] as String? ?? fallback.locale,
+      theme: data['theme'] as String? ?? fallback.theme,
     );
   }
 

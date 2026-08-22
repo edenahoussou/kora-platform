@@ -2,31 +2,35 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 
 import '../../../../core/widgets/screen_header.dart';
+import '../bloc/auth_flow_bloc.dart';
 
 /// Vérification du code envoyé par e-mail — écran `otp` de la maquette :
 /// six cases, un délai de validité, et de quoi redemander un code.
 ///
-/// **Aucun code n'est vérifié** : la feature `auth` n'existe pas encore
-/// (voir GUIDE.md §13). Six chiffres suffisent à poursuivre ; le jour où
-/// l'API répondra, seule la validation changera.
+/// Le code est vérifié par l'API via [AuthFlowBloc]. Le même écran sert
+/// les quatre motifs d'OTP (inscription, appareil inconnu, PIN oublié,
+/// déverrouillage) : c'est le parcours qui sait ce qui suit.
+///
+/// Le décompte part de l'échéance **renvoyée par le serveur**, pas d'une
+/// durée fixe : un code demandé il y a dix minutes n'en a plus quinze.
 class OtpPage extends StatefulWidget {
-  const OtpPage({
-    super.key,
-    required this.email,
-    this.onVerified,
-    this.validity = const Duration(minutes: 5),
-  });
+  const OtpPage({super.key, this.email, this.onVerified, this.validity});
 
   /// Adresse à laquelle le code a été envoyé — affichée masquée.
-  final String email;
+  ///
+  /// Facultative : le parcours la connaît déjà. Utile aux tests, qui
+  /// montent l'écran seul.
+  final String? email;
 
   final VoidCallback? onVerified;
 
-  /// Durée de validité du code, décomptée à l'écran.
-  final Duration validity;
+  /// Force la durée du décompte. Sert aux tests ; en usage réel c'est
+  /// l'échéance du défi qui fait foi.
+  final Duration? validity;
 
   @override
   State<OtpPage> createState() => _OtpPageState();
@@ -39,7 +43,7 @@ class _OtpPageState extends State<OtpPage> {
   final _focusNodes = List.generate(_length, (_) => FocusNode());
 
   Timer? _ticker;
-  late Duration _remaining = widget.validity;
+  Duration _remaining = Duration.zero;
   String? _error;
 
   @override
@@ -47,6 +51,20 @@ class _OtpPageState extends State<OtpPage> {
     super.initState();
     _startCountdown();
   }
+
+  /// Temps restant, mesuré sur l'échéance du serveur.
+  Duration get _validity {
+    final forced = widget.validity;
+    if (forced != null) return forced;
+
+    final challenge = context.read<AuthFlowBloc>().state.challenge;
+    if (challenge == null) return const Duration(minutes: 15);
+
+    return challenge.remainingAt(DateTime.now());
+  }
+
+  String get _email =>
+      widget.email ?? context.read<AuthFlowBloc>().state.challenge?.email ?? '';
 
   @override
   void dispose() {
@@ -64,7 +82,7 @@ class _OtpPageState extends State<OtpPage> {
   /// qu'il reste du temps alors qu'il en manque.
   void _startCountdown() {
     _ticker?.cancel();
-    setState(() => _remaining = widget.validity);
+    setState(() => _remaining = _validity);
 
     _ticker = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_remaining.inSeconds <= 1) {
@@ -103,6 +121,7 @@ class _OtpPageState extends State<OtpPage> {
     }
 
     setState(() => _error = null);
+    context.read<AuthFlowBloc>().add(AuthFlowCodeSubmitted(_code));
     widget.onVerified?.call();
   }
 
@@ -112,121 +131,149 @@ class _OtpPageState extends State<OtpPage> {
     }
     _focusNodes.first.requestFocus();
     setState(() => _error = null);
-    _startCountdown();
 
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(content: Text('Un nouveau code a été envoyé.')),
-      );
+    context.read<AuthFlowBloc>().add(const AuthFlowCodeResent());
+    KoraToaster.show(context, 'Un nouveau code a été envoyé.');
   }
 
   @override
   Widget build(BuildContext context) {
     final koraColors = context.koraColors;
 
-    return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const ScreenHeader(
-                eyebrow: 'Sécurité',
-                title: 'Code de vérification',
-              ),
-              Expanded(
-                child: ListView(
-                  padding: EdgeInsets.zero,
-                  children: [
-                    Text.rich(
-                      TextSpan(
-                        children: [
-                          const TextSpan(text: 'Saisissez le code envoyé à '),
-                          // Mise en gras seulement : la maquette laisse
-                          // l'adresse dans la couleur atténuée du
-                          // paragraphe (`.lead strong` n'a pas de couleur
-                          // propre), et non dans celle du texte courant,
-                          // presque noire en thème clair.
-                          TextSpan(
-                            text: _maskEmail(widget.email),
-                            style: const TextStyle(fontWeight: FontWeight.w800),
-                          ),
-                          const TextSpan(text: '.'),
-                        ],
-                      ),
-                      style: AppTextStyles.lead(koraColors.textMuted),
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      children: [
-                        for (var i = 0; i < _length; i++) ...[
-                          if (i != 0) const SizedBox(width: 7),
-                          Expanded(
-                            child: _CodeBox(
-                              controller: _controllers[i],
-                              focusNode: _focusNodes[i],
-                              autofocus: i == 0,
-                              onChanged: (value) => _onDigitChanged(i, value),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            _isExpired
-                                ? 'Code expiré'
-                                : 'Code valable pendant '
-                                      '${_formatRemaining(_remaining)}',
-                            style: TextStyle(
-                              color: _isExpired
-                                  ? AppColors.danger
-                                  : koraColors.textMuted,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: _resend,
-                          style: TextButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: const Text('Renvoyer'),
-                        ),
-                      ],
-                    ),
-                    if (_error != null) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        _error!,
-                        style: const TextStyle(
-                          color: AppColors.danger,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 25),
-                    KoraButton(label: 'Vérifier le code', onPressed: _verify),
-                    const SizedBox(height: 10),
-                    KoraButton(
-                      label: 'Je n’ai pas reçu le code',
-                      variant: KoraButtonVariant.ghost,
-                      onPressed: _resend,
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                  ],
+    return BlocListener<AuthFlowBloc, AuthFlowState>(
+      // Un nouveau défi (« Renvoyer ») remet le décompte à sa durée
+      // pleine : sans ça l'écran continuerait de décompter l'ancien.
+      listenWhen: (previous, current) =>
+          previous.challenge?.uuid != current.challenge?.uuid,
+      listener: (context, flow) => _startCountdown(),
+      child: Scaffold(
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const ScreenHeader(
+                  eyebrow: 'Sécurité',
+                  title: 'Code de vérification',
                 ),
-              ),
-            ],
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.zero,
+                    children: [
+                      Text.rich(
+                        TextSpan(
+                          children: [
+                            const TextSpan(text: 'Saisissez le code envoyé à '),
+                            // Mise en gras seulement : la maquette laisse
+                            // l'adresse dans la couleur atténuée du
+                            // paragraphe (`.lead strong` n'a pas de couleur
+                            // propre), et non dans celle du texte courant,
+                            // presque noire en thème clair.
+                            TextSpan(
+                              text: _maskEmail(_email),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const TextSpan(text: '.'),
+                          ],
+                        ),
+                        style: AppTextStyles.lead(koraColors.textMuted),
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          for (var i = 0; i < _length; i++) ...[
+                            if (i != 0) const SizedBox(width: 7),
+                            Expanded(
+                              child: _CodeBox(
+                                controller: _controllers[i],
+                                focusNode: _focusNodes[i],
+                                autofocus: i == 0,
+                                onChanged: (value) => _onDigitChanged(i, value),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              _isExpired
+                                  ? 'Code expiré'
+                                  : 'Code valable pendant '
+                                        '${_formatRemaining(_remaining)}',
+                              style: TextStyle(
+                                color: _isExpired
+                                    ? AppColors.danger
+                                    : koraColors.textMuted,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: _resend,
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: const Text('Renvoyer'),
+                          ),
+                        ],
+                      ),
+                      if (_error != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          _error!,
+                          style: const TextStyle(
+                            color: AppColors.danger,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 25),
+                      BlocBuilder<AuthFlowBloc, AuthFlowState>(
+                        builder: (context, flow) => Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            KoraButton(
+                              label: 'Vérifier le code',
+                              isLoading: flow.isSubmitting,
+                              onPressed: flow.isSubmitting ? null : _verify,
+                            ),
+                            if (flow.hasError) ...[
+                              const SizedBox(height: 12),
+                              Text(
+                                flow.errorMessage,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: AppColors.danger,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      KoraButton(
+                        label: 'Je n’ai pas reçu le code',
+                        variant: KoraButtonVariant.ghost,
+                        onPressed: _resend,
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

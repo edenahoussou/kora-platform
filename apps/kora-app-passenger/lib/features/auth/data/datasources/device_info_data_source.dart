@@ -42,8 +42,14 @@ class DeviceInfoDataSourceImpl implements DeviceInfoDataSource {
       case DevicePlatform.android:
         final info = await _deviceInfo.androidInfo;
         // `model` seul donne « SM-S921B » ; avec la marque on obtient
-        // « Samsung SM-S921B », déjà plus parlant.
-        return '${_capitalize(info.brand)} ${info.model}'.trim();
+        // « Samsung SM-S921B », déjà plus parlant. Certains
+        // constructeurs la répètent déjà dans le modèle (Infinix annonce
+        // « Infinix X688B ») : on ne la remet pas deux fois.
+        final brand = _capitalize(info.brand);
+        final model = info.model.trim();
+        if (model.toLowerCase().startsWith(brand.toLowerCase())) return model;
+
+        return '$brand $model'.trim();
       case DevicePlatform.ios:
         final info = await _deviceInfo.iosInfo;
         // `name` est le nom donné par l'utilisateur (« iPhone d'Aïcha ») ;
