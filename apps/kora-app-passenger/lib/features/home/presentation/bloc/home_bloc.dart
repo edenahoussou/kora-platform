@@ -50,14 +50,6 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   /// garder la date du jour testable.
   final DateTime Function() _now;
 
-  /// Trajet pré-rempli au premier chargement, comme dans la maquette.
-  ///
-  /// C'est une commodité de démo propre au Sprint 1 : au Sprint 2 ces deux
-  /// valeurs viendront de la dernière recherche de l'utilisateur (ou de sa
-  /// position), et ces constantes disparaîtront.
-  static const String _defaultOriginId = 'ctn';
-  static const String _defaultDestinationId = 'mlv';
-
   Future<void> _onStarted(HomeStarted event, Emitter<HomeState> emit) async {
     emit(state.copyWith(status: HomeStatus.loading));
 
@@ -95,9 +87,12 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         status: HomeStatus.success,
         cities: cities,
         recentCities: recentResult.getOrElse(() => const []),
-        origin: state.origin ?? _cityOrNull(cities, _defaultOriginId),
-        destination:
-            state.destination ?? _cityOrNull(cities, _defaultDestinationId),
+        // Départ et arrivée restent vides : le trajet Cotonou →
+        // Malanville pré-rempli venait des données de démonstration et
+        // n'avait plus aucune chance de correspondre aux villes que
+        // dessert réellement l'API. Un champ vide invite à choisir ;
+        // un champ pré-rempli avec une liaison inexistante mène à une
+        // recherche sans résultat.
         date: state.date ?? _today(),
         today: _today(),
         nextTrip: tripResult.getOrElse(() => null),
@@ -157,13 +152,6 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     Emitter<HomeState> emit,
   ) {
     emit(state.copyWith(passengers: event.passengers));
-  }
-
-  City? _cityOrNull(List<City> cities, String id) {
-    for (final city in cities) {
-      if (city.id == id) return city;
-    }
-    return null;
   }
 
   /// Aujourd'hui, à minuit : seule la date compte pour une recherche.

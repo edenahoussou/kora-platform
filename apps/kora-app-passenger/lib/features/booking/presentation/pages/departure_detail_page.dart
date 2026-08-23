@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../../core/utils/title_color.dart';
@@ -78,26 +79,28 @@ class _DetailContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ScreenHeader(eyebrow: departure.comfort.label, title: 'Votre départ'),
+        ScreenHeader(
+          eyebrow: departure.vehicleLabel,
+          title: context.l10n.departureDetailEyebrow,
+        ),
         Expanded(
           child: ListView(
             padding: EdgeInsets.zero,
             children: [
               _TripCard(departure: departure),
-              const SectionTitle(title: 'Votre confort à bord'),
+              SectionTitle(title: context.l10n.departureDetailComfort),
               _ServiceGrid(amenities: departure.amenities),
-              const SectionTitle(title: 'Les étapes'),
+              SectionTitle(title: context.l10n.departureDetailStops),
               KoraCard(child: _StopsTimeline(departure: departure)),
               if (segments.length > 1) ...[
-                const SectionTitle(title: 'Prix par tronçon'),
+                SectionTitle(title: context.l10n.departureDetailSegmentPrice),
                 _SegmentPrices(segments: segments),
               ],
               const SizedBox(height: 11),
               KoraCard(
                 variant: KoraCardVariant.mist,
                 child: Text(
-                  'Les heures de passage sont des estimations actualisées '
-                  'pendant le trajet.',
+                  context.l10n.departureDetailEstimates,
                   style: AppTextStyles.body(koraColors.textMuted),
                 ),
               ),
@@ -108,7 +111,7 @@ class _DetailContent extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(bottom: AppSpacing.lg),
           child: KoraButton(
-            label: 'Choisir mon siège',
+            label: context.l10n.departureDetailChooseSeat,
             onPressed: departure.isSoldOut
                 ? null
                 : () => context.push(
@@ -144,8 +147,10 @@ class _TripCard extends StatelessWidget {
         children: [
           KoraTag(
             label: departure.isSoldOut
-                ? 'Complet'
-                : '${departure.seatsAvailable} places restantes',
+                ? context.l10n.departureDetailFull
+                : context.l10n.departureDetailSeatsLeft(
+                    departure.seatsAvailable,
+                  ),
             variant: departure.isSoldOut
                 ? KoraTagVariant.danger
                 : KoraTagVariant.gold,
@@ -517,12 +522,15 @@ class _MissingDeparture extends StatelessWidget {
     return ListView(
       padding: EdgeInsets.zero,
       children: [
-        const ScreenHeader(eyebrow: 'KORA BUS', title: 'Départ introuvable'),
+        ScreenHeader(
+          eyebrow: context.l10n.departuresEyebrow,
+          title: context.l10n.departureDetailMissingHeader,
+        ),
         StateView(
           icon: Icons.help_outline_rounded,
-          title: 'Ce départ n’est plus disponible',
-          message: 'Reprenez la recherche pour voir les départs du jour.',
-          primaryLabel: 'Retour aux départs',
+          title: context.l10n.departureDetailMissingTitle,
+          message: context.l10n.departureDetailMissingText,
+          primaryLabel: context.l10n.departureDetailBack,
           onPrimary: () => Navigator.of(context).pop(),
         ),
       ],

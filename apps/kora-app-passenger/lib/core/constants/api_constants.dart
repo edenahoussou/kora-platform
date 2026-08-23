@@ -68,9 +68,31 @@ class ApiConstants {
 
   static const String preferences = '$_v1/auth/preferences';
 
+  // --- Catalogue Bus (documenté) ---
+  //
+  // Suit `docs/mintlify/guides/bus-search.mdx` et la spec OpenAPI du
+  // dépôt. Ces trois endpoints sont **publics** : ils répondent sans
+  // token, ce qui permet de chercher un départ avant de se connecter.
+
+  /// Villes desservies, dérivées des arrêts actifs. Réponse mise en cache
+  /// côté serveur. Aucun paramètre.
+  static const String busCities = '$_v1/bus/cities';
+
+  /// Lignes du réseau, avec leurs arrêts ordonnés. Filtres facultatifs :
+  /// `from` et `to` (noms de villes).
+  static const String busLines = '$_v1/bus/lines';
+
+  /// Départs programmés. `date` (`aaaa-mm-jj`) est obligatoire ; `from` et
+  /// `to` (noms de villes) sont facultatifs.
+  static const String busDepartures = '$_v1/bus/departures';
+
+  /// Plan des sièges d'un départ. Exige `origin_stop_uuid` et
+  /// `destination_stop_uuid` en paramètres de requête.
+  static String busDepartureSeats(String departureUuid) =>
+      '$busDepartures/$departureUuid/seats';
+
   // --- Reste de l'API : pas encore documenté ---
 
-  static const String busSearch = '/bus/search';
   static const String busBooking = '/bus/bookings';
 
   static const String rideEstimate = '/ride/estimate';

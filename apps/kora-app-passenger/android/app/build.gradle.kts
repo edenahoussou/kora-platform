@@ -11,6 +11,8 @@ plugins {
 // Lit android/key.properties (généré par le CI ou présent localement).
 // Si le fichier n'existe pas, on retombe sur la signature debug pour
 // que `flutter run --release` continue de fonctionner en dev.
+
+
 val keystorePropertiesFile = rootProject.file("key.properties")
 val keystoreProperties = Properties()
 if (keystorePropertiesFile.exists()) {

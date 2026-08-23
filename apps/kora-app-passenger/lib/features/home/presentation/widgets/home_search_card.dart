@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 
+import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../booking/domain/entities/city.dart';
 
@@ -90,7 +91,10 @@ class HomeSearchCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 10),
-              KoraButton(label: 'Rechercher un voyage', onPressed: onSearch),
+              KoraButton(
+                label: context.l10n.homeSearchSubmit,
+                onPressed: onSearch,
+              ),
             ],
           ),
         ),
@@ -140,9 +144,9 @@ class _SearchCardLabel extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Flexible(
+          Flexible(
             child: Text(
-              'Où souhaitez-vous voyager ?',
+              context.l10n.homeSearchQuestion,
               style: TextStyle(
                 color: AppColors.white,
                 fontSize: 12,
@@ -151,7 +155,7 @@ class _SearchCardLabel extends StatelessWidget {
             ),
           ),
           Text(
-            'KORA BUS',
+            context.l10n.homeSearchEyebrow,
             style: TextStyle(
               color: AppColors.white.withValues(alpha: 0.68),
               fontSize: 9,
@@ -206,9 +210,9 @@ class _RouteFields extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 _RouteField(
-                  label: 'Départ',
+                  label: context.l10n.homeSearchOrigin,
                   value: origin?.label,
-                  placeholder: 'Choisir une ville',
+                  placeholder: context.l10n.homeSearchPickCity,
                   dotColor: AppColors.kora,
                   onTap: onOriginTap,
                 ),
@@ -218,9 +222,9 @@ class _RouteFields extends StatelessWidget {
                   color: AppColors.lineLight,
                 ),
                 _RouteField(
-                  label: 'Arrivée',
+                  label: context.l10n.homeSearchDestination,
                   value: destination?.label,
-                  placeholder: 'Choisir une ville',
+                  placeholder: context.l10n.homeSearchPickCity,
                   dotColor: AppColors.gold,
                   onTap: onDestinationTap,
                 ),
@@ -386,18 +390,23 @@ class _SearchMeta extends StatelessWidget {
           children: [
             Expanded(
               child: _MetaTile(
-                label: 'Date',
+                label: context.l10n.homeSearchDate,
                 value: date == null
-                    ? 'Choisir'
-                    : KoraDateFormats.dayMonthYear.format(date!),
+                    ? context.l10n.homeSearchDateEmpty
+                    // La date suit la langue de l'app : « 23 août 2026 »
+                    // ou « 23 August 2026 », et non le français figé.
+                    : KoraDateFormats.dayMonthYearIn(
+                        date!,
+                        Localizations.localeOf(context).languageCode,
+                      ),
                 onTap: onDateTap,
               ),
             ),
             const SizedBox(width: 1),
             Expanded(
               child: _MetaTile(
-                label: 'Passagers',
-                value: passengers == 1 ? '1 adulte' : '$passengers adultes',
+                label: context.l10n.homeSearchPassengers,
+                value: context.l10n.homeSearchPassengersCount(passengers),
                 onTap: onPassengersTap,
               ),
             ),

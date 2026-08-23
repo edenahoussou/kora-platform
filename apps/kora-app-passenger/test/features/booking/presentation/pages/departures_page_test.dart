@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:kora_app_passenger/core/di/injector.dart';
 import 'package:kora_app_passenger/core/error/failures.dart';
+import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/core/usecases/usecase.dart';
 import 'package:kora_app_passenger/core/utils/date_formats.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
@@ -43,6 +44,7 @@ void main() {
   );
 
   setUpAll(() async {
+    await AppLocalization.preloadAll();
     registerFallbackValue(const NoParams());
     registerFallbackValue(_FakeCriteria());
     await initializeDateFormatting(KoraDateFormats.locale);
@@ -75,6 +77,7 @@ void main() {
         locale: const Locale('fr', 'FR'),
         supportedLocales: const [Locale('fr', 'FR')],
         localizationsDelegates: const [
+          AppLocalization.delegate,
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
@@ -179,5 +182,30 @@ void main() {
       find.text('Vérifie ta connexion internet et réessaie.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('« Réessayer » relance la recherche et affiche les résultats', (
+    tester,
+  ) async {
+    // Premier appel en échec, second en succès : le scénario d'une
+    // connexion qui revient.
+    var attempt = 0;
+    when(() => searchDepartures(any())).thenAnswer((_) async {
+      attempt += 1;
+      return attempt == 1 ? const Left(NetworkFailure()) : Right(departures);
+    });
+
+    await pumpPage(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.text('La recherche a échoué'), findsOneWidget);
+    expect(find.byType(DepartureCard), findsNothing);
+
+    await tester.tap(find.text('Réessayer'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('La recherche a échoué'), findsNothing);
+    expect(find.byType(DepartureCard), findsWidgets);
+    expect(attempt, 2);
   });
 }

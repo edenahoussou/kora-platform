@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 
+import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../booking/domain/entities/city.dart';
 
 /// Lequel des deux champs de trajet cet écran renseigne.
 enum CityField {
-  origin('D’où partez-vous ?'),
-  destination('Où allez-vous ?');
+  origin,
+  destination;
 
-  const CityField(this.title);
-
-  /// Titre affiché en en-tête, repris de la maquette.
-  final String title;
+  /// Titre affiché en en-tête, repris de la maquette. Il se lit dans les
+  /// fichiers de langue et ne peut donc pas être porté par l'enum, dont
+  /// les valeurs sont constantes.
+  String titleOf(AppLocalization l10n) => switch (this) {
+    CityField.origin => l10n.cityPickerOriginTitle,
+    CityField.destination => l10n.cityPickerDestinationTitle,
+  };
 }
 
 /// Données passées à [CityPickerPage] par `go_router` (`extra`).
@@ -103,9 +107,12 @@ class _CityPickerPageState extends State<CityPickerPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              ScreenHeader(eyebrow: 'Votre trajet', title: widget.field.title),
+              ScreenHeader(
+                eyebrow: context.l10n.cityPickerEyebrow,
+                title: widget.field.titleOf(context.l10n),
+              ),
               KoraInput(
-                hint: 'Rechercher une ville',
+                hint: context.l10n.cityPickerSearch,
                 prefixIcon: Icons.search_rounded,
                 onChanged: (value) => setState(() => _query = value),
               ),
@@ -117,7 +124,7 @@ class _CityPickerPageState extends State<CityPickerPage> {
                         padding: EdgeInsets.zero,
                         children: [
                           Text(
-                            'Suggestions',
+                            context.l10n.cityPickerSuggestions,
                             style: AppTextStyles.eyebrow(koraColors.textMuted),
                           ),
                           const SizedBox(height: 9),
@@ -129,7 +136,7 @@ class _CityPickerPageState extends State<CityPickerPage> {
                           if (widget.recentCities.isNotEmpty) ...[
                             const SizedBox(height: 22),
                             Text(
-                              'Recherches récentes',
+                              context.l10n.cityPickerRecent,
                               style: AppTextStyles.heading2(
                                 context.koraTitleColor,
                               ),
@@ -265,7 +272,9 @@ class _CityTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    city.station == null ? 'Arrêt KORA' : 'Gare KORA',
+                    city.station == null
+                        ? context.l10n.cityPickerStop
+                        : context.l10n.cityPickerStation,
                     style: TextStyle(color: koraColors.textMuted, fontSize: 9),
                   ),
                 ],
@@ -306,7 +315,7 @@ class _NoCityFound extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Aucune ville ne correspond à « $query »',
+              context.l10n.cityPickerNoResult(query),
               textAlign: TextAlign.center,
               style: AppTextStyles.body(koraColors.textMuted),
             ),

@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 
+import '../../../../core/l10n/app_localization.dart';
+
 /// `.home-ride-banner` : bandeau navy qui pousse KORA RIDE depuis
 /// l'accueil.
 ///
@@ -131,12 +133,12 @@ class _HomeRideBannerState extends State<HomeRideBanner>
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'KORA RIDE',
+                            context.l10n.homeRideEyebrow,
                             style: AppTextStyles.eyebrow(AppColors.gold),
                           ),
                           const SizedBox(height: 4),
-                          const Text(
-                            'Un déplacement en ville ?',
+                          Text(
+                            context.l10n.homeRideTitle,
                             style: TextStyle(
                               color: AppColors.white,
                               fontSize: 13,
@@ -145,7 +147,7 @@ class _HomeRideBannerState extends State<HomeRideBanner>
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Commandez votre chauffeur en quelques instants.',
+                            context.l10n.homeRideText,
                             style: TextStyle(
                               color: AppColors.white.withValues(alpha: 0.57),
                               fontSize: 10,

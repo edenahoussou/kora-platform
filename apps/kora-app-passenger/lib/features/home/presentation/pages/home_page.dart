@@ -4,8 +4,11 @@ import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/di/injector.dart';
+import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/widgets/section_title.dart';
+import '../../../auth/domain/entities/auth_user.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../booking/domain/entities/city.dart';
 import '../bloc/home_bloc.dart';
 import '../widgets/home_hero.dart';
@@ -22,10 +25,9 @@ import 'date_picker_page.dart';
 /// Correspond à l'écran `HOME-01` de la maquette
 /// (`docs/maquettes/kora-app-passenger`, `js/app.js` → `home`).
 ///
-/// Les données affichées viennent d'un jeu de test (voir
-/// `features/booking/data/datasources/booking_mock_data.dart`) : le
-/// branchement sur l'API réelle est prévu au Sprint 2 et ne touchera pas
-/// ce fichier.
+/// Les villes viennent de l'API (`bus/cities`) ; ce qui n'a pas encore
+/// d'endpoint documenté — prochain voyage, rappels — continue de lire le
+/// jeu de démonstration.
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
@@ -41,9 +43,28 @@ class HomePage extends StatelessWidget {
 class _HomeView extends StatelessWidget {
   const _HomeView();
 
-  /// TODO(auth): remplacer par le prénom du compte connecté dès que la
-  /// feature `auth` existe (voir GUIDE.md §13).
-  static const String _firstName = 'Aïcha';
+  /// Le prénom du compte connecté : le premier mot de son nom, comme sur
+  /// l'écran « Mes informations ». Vide tant que la session n'est pas
+  /// relue — l'accueil salue alors sans nommer personne, plutôt que
+  /// d'afficher un prénom qui n'est pas celui de l'utilisateur.
+  static String _firstNameOf(AuthUser? user) {
+    final name = user?.name.trim() ?? '';
+    if (name.isEmpty) return '';
+
+    return name.split(RegExp(r'\s+')).first;
+  }
+
+  String _greeting(BuildContext context) {
+    final firstName = _firstNameOf(
+      context.select<AuthBloc, AuthUser?>((bloc) => bloc.state.session?.user),
+    );
+
+    final l10n = context.l10n;
+
+    return firstName.isEmpty
+        ? l10n.homeGreetingAnonymous
+        : l10n.homeGreeting(firstName);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,11 +74,11 @@ class _HomeView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             HomeHero(
-              greeting: 'Bonjour $_firstName,',
-              // Coupures de ligne explicites : la maquette compose ce
-              // titre sur 3 lignes, et un retour automatique dépendrait
-              // de la largeur de l'écran.
-              title: 'Votre prochain\nvoyage commence\nici.',
+              greeting: _greeting(context),
+              // Coupures de ligne explicites, portées par la
+              // traduction : la maquette compose ce titre sur 3 lignes,
+              // et un retour automatique dépendrait de la largeur.
+              title: context.l10n.homeTitle,
               onNotificationsTap: () =>
                   context.push(AppRouter.notificationsPath),
             ),
@@ -118,34 +139,31 @@ class _HomeContent extends StatelessWidget {
           onPassengersTap: () => _pickPassengers(context),
           onSearch: state.canSearch ? () => _search(context) : null,
         ),
-        const SectionTitle(title: 'Accès rapides'),
+        SectionTitle(title: context.l10n.homeQuickTitle),
         HomeQuickGrid(
           items: [
             QuickAccessItem(
-              label: 'Ride',
+              label: context.l10n.homeQuickRide,
               highlighted: true,
               icon: const KoraVehicleIcon(
                 type: KoraVehicleType.standard,
                 size: 24,
                 colorFilter: ColorFilter.mode(AppColors.kora, BlendMode.srcIn),
               ),
-              onTap: () => _notAvailableYet(
-                context,
-                'KORA Ride arrive après le MVP Bus.',
-              ),
+              onTap: () => _notAvailableYet(context, context.l10n.homeRideSoon),
             ),
             QuickAccessItem(
-              label: 'Colis',
+              label: context.l10n.homeQuickParcels,
               icon: _quickIcon(context, KoraNavIconType.parcel),
               onTap: () => context.go('/colis'),
             ),
             QuickAccessItem(
-              label: 'Wallet',
+              label: context.l10n.homeQuickWallet,
               icon: _quickIcon(context, KoraNavIconType.wallet),
               onTap: () => context.go('/wallet'),
             ),
             QuickAccessItem(
-              label: 'Mes billets',
+              label: context.l10n.homeQuickTickets,
               icon: _quickIcon(context, KoraNavIconType.tickets),
               onTap: () => context.go('/voyages'),
             ),
@@ -153,12 +171,11 @@ class _HomeContent extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.md),
         HomeRideBanner(
-          onTap: () =>
-              _notAvailableYet(context, 'KORA Ride arrive après le MVP Bus.'),
+          onTap: () => _notAvailableYet(context, context.l10n.homeRideSoon),
         ),
         SectionTitle(
-          title: 'Prochain voyage',
-          actionLabel: 'Voir tout',
+          title: context.l10n.homeNextTrip,
+          actionLabel: context.l10n.actionSeeAll,
           onActionTap: () => context.go('/voyages'),
         ),
         if (nextTrip == null)
@@ -176,9 +193,9 @@ class _HomeContent extends StatelessWidget {
             onTap: () => context.go('/voyages'),
           ),
           const SizedBox(height: 10),
-          const TravelReminder(
-            title: 'Rappel utile',
-            message: 'Présentez-vous 30 min avant le départ.',
+          TravelReminder(
+            title: context.l10n.homeReminderTitle,
+            message: context.l10n.homeReminderText,
           ),
         ],
       ],
@@ -277,7 +294,7 @@ class _HomeLoading extends StatelessWidget {
             skeletonLines: 4,
           ),
         ),
-        const SectionTitle(title: 'Accès rapides'),
+        SectionTitle(title: context.l10n.homeQuickTitle),
         const KoraLoadingIndicator(
           variant: KoraLoadingIndicatorVariant.skeleton,
           skeletonLines: 3,
@@ -305,18 +322,18 @@ class _HomeError extends StatelessWidget {
           Icon(Icons.cloud_off_rounded, size: 34, color: koraColors.textMuted),
           const SizedBox(height: AppSpacing.md),
           Text(
-            'Impossible de charger l’accueil',
+            context.l10n.homeErrorTitle,
             textAlign: TextAlign.center,
             style: AppTextStyles.titleMedium(koraColors.textPrimary),
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            message ?? 'Une erreur inattendue est survenue.',
+            message ?? context.l10n.homeErrorText,
             textAlign: TextAlign.center,
             style: AppTextStyles.body(koraColors.textMuted),
           ),
           const SizedBox(height: AppSpacing.lg),
-          KoraButton(label: 'Réessayer', onPressed: onRetry),
+          KoraButton(label: context.l10n.actionRetry, onPressed: onRetry),
         ],
       ),
     );
