@@ -17,6 +17,7 @@ use App\Modules\Departures\Models\Departure;
 use App\Modules\IdentityAccess\Models\Agency;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -230,8 +231,8 @@ class DepartureController extends Controller
         ];
     }
 
-    /** @return \Illuminate\Support\Collection<int, array{id: int, label: string, agencyId: int|null}> */
-    private function busOptions(): \Illuminate\Support\Collection
+    /** @return Collection<int, array{id: int, label: string, agencyId: int|null}> */
+    private function busOptions(): Collection
     {
         return Bus::query()
             ->where('status', 'active')
@@ -244,8 +245,8 @@ class DepartureController extends Controller
             ]);
     }
 
-    /** @return \Illuminate\Support\Collection<int, array{id: int, label: string}> */
-    private function userOptions(string $role): \Illuminate\Support\Collection
+    /** @return Collection<int, array{id: int, label: string}> */
+    private function userOptions(string $role): Collection
     {
         return User::query()
             ->role($role)
