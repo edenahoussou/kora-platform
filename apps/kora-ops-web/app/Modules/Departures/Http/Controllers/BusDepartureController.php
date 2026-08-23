@@ -24,9 +24,16 @@ class BusDepartureController extends Controller
     /**
      * List departures.
      *
+     * Paginated list of scheduled departures (15 per page by default).
+     *
      * @queryParam date string required Travel date in YYYY-MM-DD format. Example: 2026-08-15
+     * @queryParam line string Optional line UUID filter. Example: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
+     * @queryParam origin_city string Optional origin city filter (alias of from). Example: Cotonou
+     * @queryParam destination_city string Optional destination city filter (alias of to). Example: Abidjan
      * @queryParam from string Optional origin city filter. Example: Cotonou
      * @queryParam to string Optional destination city filter. Example: Abidjan
+     * @queryParam per_page int Optional page size (max 50, default 15). Example: 15
+     * @queryParam page int Optional page number. Example: 1
      *
      * @unauthenticated
      */

@@ -38,6 +38,7 @@ it('lists lines filtered by ordered city segment', function (): void {
         ->assertOk()
         ->assertJsonCount(1, 'data')
         ->assertJsonPath('data.0.code', 'API-L1')
+        ->assertJsonPath('data.0.type', 'nationale')
         ->assertJsonMissingPath('data.0.id')
         ->assertJsonMissingPath('data.0.stops.0.id');
 
@@ -68,9 +69,59 @@ it('lists departures by date and segment with fare preview', function (): void {
         ->assertJsonPath('data.0.available_seats_count', 1)
         ->assertJsonPath('data.0.fare_preview.final_amount', 12500)
         ->assertJsonPath('data.0.fare_preview.is_quote', false)
+        ->assertJsonPath('data.0.line.type', 'nationale')
         ->assertJsonMissingPath('data.0.id')
         ->assertJsonMissingPath('data.0.line.id')
         ->assertJsonMissingPath('data.0.bus.id');
+});
+
+it('paginates the departures list', function (): void {
+    $scenario = koraBusApiScenario();
+
+    $response = $this->getJson('/api/v1/bus/departures?date=2026-08-15&from=Cotonou&to=Abidjan&per_page=1')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('meta.current_page', 1)
+        ->assertJsonPath('meta.per_page', 1)
+        ->assertJsonPath('meta.total', 1)
+        ->assertJsonPath('data.0.uuid', $scenario['departure']->uuid);
+
+    $response->assertJsonStructure(['data', 'links' => ['first', 'last', 'prev', 'next'], 'meta']);
+});
+
+it('filters departures by line uuid, hiding results from other lines', function (): void {
+    $scenario = koraBusApiScenario();
+
+    $otherLine = Line::query()->create([
+        'code' => 'API-L2',
+        'name' => 'Other line',
+        'countries_crossed' => ['BJ'],
+        'distance_km' => 50,
+        'estimated_duration_minutes' => 60,
+        'status' => 'active',
+    ]);
+
+    $this->getJson("/api/v1/bus/departures?date=2026-08-15&from=Cotonou&to=Abidjan&line={$scenario['line']->uuid}")
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.uuid', $scenario['departure']->uuid);
+
+    $this->getJson("/api/v1/bus/departures?date=2026-08-15&from=Cotonou&to=Abidjan&line={$otherLine->uuid}")
+        ->assertOk()
+        ->assertJsonCount(0, 'data');
+
+    $this->getJson('/api/v1/bus/departures?date=2026-08-15&line='.Str::uuid())
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['line']);
+});
+
+it('accepts origin_city and destination_city as aliases for from and to', function (): void {
+    $scenario = koraBusApiScenario();
+
+    $this->getJson('/api/v1/bus/departures?date=2026-08-15&origin_city=Cotonou&destination_city=Abidjan')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.uuid', $scenario['departure']->uuid);
 });
 
 it('shows a departure with bus line segment and fare preview', function (): void {
