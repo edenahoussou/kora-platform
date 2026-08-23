@@ -13,6 +13,7 @@ use App\Modules\SeatInventory\Actions\BuildSeatAvailabilityAction;
 use App\Modules\SeatInventory\Data\SeatAvailabilityData;
 use App\Modules\SeatInventory\Data\SeatAvailabilityStatus;
 use Carbon\CarbonImmutable;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
@@ -25,16 +26,21 @@ class DepartureSearchService
     ) {}
 
     /**
-     * @param  array{date: string, from?: string|null, to?: string|null}  $filters
-     * @return Collection<int, DepartureAvailabilityData>
+     * @param  array{date: string, line?: string|null, from?: string|null, to?: string|null, per_page?: int}  $filters
+     * @return LengthAwarePaginator<int, DepartureAvailabilityData>
      */
-    public function search(array $filters): Collection
+    public function search(array $filters): LengthAwarePaginator
     {
         $date = CarbonImmutable::parse($filters['date']);
+        $perPage = $filters['per_page'] ?? 15;
 
-        return Departure::query()
+        $results = Departure::query()
             ->whereDate('departure_date', $date)
             ->where('status', DepartureStatus::Scheduled->value)
+            ->when(
+                $filters['line'] ?? null,
+                fn ($query, string $lineUuid) => $query->whereHas('line', fn ($line) => $line->where('uuid', $lineUuid)),
+            )
             ->with([
                 'line.stops' => fn ($query) => $query->where('status', StopStatus::Active->value)->orderBy('stop_order'),
                 'bus.seats',
@@ -49,6 +55,19 @@ class DepartureSearchService
             ))
             ->filter()
             ->values();
+
+        $page = LengthAwarePaginator::resolveCurrentPage();
+
+        return new LengthAwarePaginator(
+            $results->forPage($page, $perPage)->values(),
+            $results->count(),
+            $perPage,
+            $page,
+            [
+                'path' => LengthAwarePaginator::resolveCurrentPath(),
+                'query' => request()->query(),
+            ],
+        );
     }
 
     /**
