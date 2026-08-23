@@ -25,25 +25,43 @@ class DepartureSearchService
     ) {}
 
     /**
-     * @param  array{date: string, from?: string|null, to?: string|null}  $filters
+     * @param  array{date: string|null, from?: string|null, to?: string|null}  $filters
      * @return Collection<int, DepartureAvailabilityData>
      */
     public function search(array $filters): Collection
     {
-        $date = CarbonImmutable::parse($filters['date']);
+        $date = $filters['date'] !== null
+            ? CarbonImmutable::parse($filters['date'])
+            : null;
+        $today = CarbonImmutable::today();
+        $currentTime = now()->format('H:i:s');
 
         return Departure::query()
-            ->whereDate('departure_date', $date)
             ->where('status', DepartureStatus::Scheduled->value)
             ->with([
                 'line.stops' => fn ($query) => $query->where('status', StopStatus::Active->value)->orderBy('stop_order'),
                 'bus.seats',
             ])
+            ->when(
+                $date !== null,
+                fn ($query) => $query->whereDate('departure_date', $date),
+                fn ($query) => $query
+                    ->where(function ($query) use ($today, $currentTime): void {
+                        $query
+                            ->whereDate('departure_date', '>', $today)
+                            ->orWhere(function ($query) use ($today, $currentTime): void {
+                                $query
+                                    ->whereDate('departure_date', $today)
+                                    ->whereTime('departure_time', '>=', $currentTime);
+                            });
+                    }),
+            )
+            ->orderBy('departure_date')
             ->orderBy('departure_time')
             ->get()
             ->map(fn (Departure $departure): ?DepartureAvailabilityData => $this->buildDepartureData(
                 $departure,
-                $date,
+                $date ?? CarbonImmutable::parse((string) $departure->departure_date),
                 $filters['from'] ?? null,
                 $filters['to'] ?? null,
             ))

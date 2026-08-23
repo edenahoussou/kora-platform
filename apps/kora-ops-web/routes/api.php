@@ -1,12 +1,16 @@
 <?php
 
+use App\Modules\Booking\Http\Controllers\BusSeatHoldController;
+use App\Modules\Booking\Http\Controllers\ReservationPassengerController;
 use App\Modules\BusNetwork\Http\Controllers\BusCatalogController;
 use App\Modules\Departures\Http\Controllers\BusDepartureController;
+use App\Modules\DynamicPricing\Http\Controllers\BusQuoteController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthDeviceController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthOAuthController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthOtpController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthSessionController;
 use App\Modules\IdentityAccess\Http\Controllers\UserPreferenceController;
+use App\Modules\Payments\Http\Controllers\PaymentController;
 use App\Modules\Support\Http\Controllers\HealthController;
 use Illuminate\Support\Facades\Route;
 
@@ -56,5 +60,23 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::get('departures', [BusDepartureController::class, 'index'])->name('departures.index');
             Route::get('departures/{departure:uuid}', [BusDepartureController::class, 'show'])->name('departures.show');
             Route::get('departures/{departure:uuid}/seats', [BusDepartureController::class, 'seats'])->name('departures.seats.index');
+
+            Route::middleware('auth:sanctum')->group(function (): void {
+                Route::post('quotes', [BusQuoteController::class, 'store'])->name('quotes.store');
+                Route::post('holds', [BusSeatHoldController::class, 'store'])->name('holds.store');
+            });
         });
+
+    Route::middleware('auth:sanctum')->group(function (): void {
+        Route::post('bookings/{reservation:uuid}/passengers', [ReservationPassengerController::class, 'store'])
+            ->name('bookings.passengers.store');
+
+        Route::post('payments/initiate', [PaymentController::class, 'initiate'])
+            ->name('payments.initiate');
+        Route::get('payments/{payment:uuid}', [PaymentController::class, 'show'])
+            ->name('payments.show');
+    });
+
+    Route::post('payments/{payment:uuid}/confirm', [PaymentController::class, 'confirm'])
+        ->name('payments.confirm');
 });

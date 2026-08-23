@@ -10,6 +10,11 @@ use App\Modules\Support\Models\KoraModel;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @property array<string, string>|null $countries_crossed
+ * @property LineStatus $status
+ * @property LineType $type
+ */
 class Line extends KoraModel
 {
     use SoftDeletes;

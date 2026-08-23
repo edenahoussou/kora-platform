@@ -2,15 +2,23 @@
 
 namespace App\Modules\Booking\Models;
 
+use App\Models\Concerns\HasPublicUuid;
 use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\Support\Models\KoraModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property ReservationSegmentStatus $status
+ * @property Carbon|null $released_at
+ */
 class ReservationSegment extends KoraModel
 {
+    use HasPublicUuid;
+
     protected $fillable = [
         'uuid',
         'reservation_id',
@@ -32,6 +40,14 @@ class ReservationSegment extends KoraModel
     public function reservation(): BelongsTo
     {
         return $this->belongsTo(Reservation::class);
+    }
+
+    /**
+     * @return BelongsTo<ReservationPassenger, $this>
+     */
+    public function reservationPassenger(): BelongsTo
+    {
+        return $this->belongsTo(ReservationPassenger::class, 'reservation_passenger_id');
     }
 
     /**

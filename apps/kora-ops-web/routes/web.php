@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Booking\Http\Controllers\CounterSaleController;
 use App\Modules\BusNetwork\Http\Controllers\BusController;
 use App\Modules\BusNetwork\Http\Controllers\LineController;
 use App\Modules\Departures\Http\Controllers\DepartureController;
@@ -20,7 +21,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // =========================================================
     // V1 MVP — Bus core (pages stubs, to be implemented)
     // =========================================================
-    Route::inertia('sale', 'sale')->name('sale');
+    Route::get('sale', [CounterSaleController::class, 'index'])->name('sale');
+    Route::post('sale/quote', [CounterSaleController::class, 'quote'])->name('sale.quote');
+    Route::post('sale/hold', [CounterSaleController::class, 'hold'])->name('sale.hold');
     Route::inertia('cash', 'cash')->name('cash');
     Route::inertia('boarding', 'boarding')->name('boarding');
     Route::inertia('manifest', 'manifest')->name('manifest');

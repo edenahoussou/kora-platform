@@ -21,6 +21,11 @@ class ReservationPolicy
         return $this->allows($user, 'bookings.create') || $this->allows($user, 'counter-sales.create');
     }
 
+    public function createCounterSale(User $user): bool
+    {
+        return $this->allows($user, 'counter-sales.create');
+    }
+
     public function cancel(User $user, Reservation $reservation): bool
     {
         return $this->allows($user, 'bookings.cancel');

@@ -13,6 +13,7 @@ use Illuminate\Support\Carbon;
 /**
  * @property Carbon|null $effective_from
  * @property Carbon|null $effective_until
+ * @property FareStatus $status
  */
 class Fare extends KoraModel
 {
