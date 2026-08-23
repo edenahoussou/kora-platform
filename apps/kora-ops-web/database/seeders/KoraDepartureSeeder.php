@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
+use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\IdentityAccess\Models\Agency;
@@ -23,6 +24,30 @@ class KoraDepartureSeeder extends Seeder
         $line = Line::query()->where('code', 'L1')->first();
         if ($line === null) {
             return;
+        }
+
+        $line2 = Line::query()->firstOrCreate(
+            ['code' => 'L2'],
+            [
+                'uuid' => (string) \Str::uuid(),
+                'name' => 'Cotonou - Lomé',
+                'type' => 'internationale',
+                'countries_crossed' => ['BJ', 'TG'],
+                'distance_km' => 170,
+                'estimated_duration_minutes' => 210,
+                'status' => 'active',
+            ],
+        );
+
+        foreach ([
+            ['name' => 'Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0],
+            ['name' => 'Porto-Novo', 'city' => 'Porto-Novo', 'country' => 'BJ', 'stop_order' => 2, 'km_from_origin' => 35],
+            ['name' => 'Lome', 'city' => 'Lome', 'country' => 'TG', 'stop_order' => 3, 'km_from_origin' => 170],
+        ] as $stop) {
+            Stop::query()->firstOrCreate(
+                ['line_id' => $line2->id, 'stop_order' => $stop['stop_order']],
+                $stop + ['uuid' => (string) \Str::uuid(), 'status' => 'active'],
+            );
         }
 
         $bus1 = Bus::query()->where('registration_number', 'KORA-55-001')->first();

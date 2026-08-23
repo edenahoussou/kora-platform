@@ -418,3 +418,68 @@ it('exposes stats for the departures ribbon', function (): void {
             ->where('stats.boarding', 1),
         );
 });
+
+it('filters departures by exact date', function (): void {
+    [$agency, $line, $bus] = departuresReferences();
+
+    $today = Departure::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'line_id' => $line->id, 'bus_id' => $bus->id, 'agency_id' => $agency->id,
+        'departure_date' => Carbon::today()->format('Y-m-d'), 'departure_time' => '07:30',
+        'status' => DepartureStatus::Scheduled->value,
+    ]);
+    Departure::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'line_id' => $line->id, 'bus_id' => $bus->id, 'agency_id' => $agency->id,
+        'departure_date' => Carbon::tomorrow()->format('Y-m-d'), 'departure_time' => '07:30',
+        'status' => DepartureStatus::Scheduled->value,
+    ]);
+
+    $this->actingAs(departuresManager())
+        ->get(route('departures.index', ['date' => Carbon::today()->format('Y-m-d')]))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('departures.total', 1)
+            ->where('departures.data.0.uuid', $today->uuid),
+        );
+});
+
+it('exposes buses, drivers, and conductors for the departure form', function (): void {
+    [$agency, $line, $bus, $model, $composition, $driver, $conductor] = departuresReferences();
+
+    $this->actingAs(departuresManager())
+        ->get(route('departures.index'))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('buses', 1)
+            ->where('buses.0.label', 'BJ-9254-RB')
+            ->has('drivers', 1)
+            ->where('drivers.0.label', 'Jean Driver')
+            ->has('conductors', 1)
+            ->where('conductors.0.label', 'Marc Conductor'),
+        );
+
+    $departure = Departure::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'line_id' => $line->id,
+        'bus_id' => $bus->id,
+        'agency_id' => $agency->id,
+        'departure_date' => Carbon::today()->format('Y-m-d'),
+        'departure_time' => '07:30',
+        'driver_id' => $driver->id,
+        'conductor_id' => $conductor->id,
+        'status' => DepartureStatus::Scheduled->value,
+    ]);
+
+    $this->actingAs(departuresManager())
+        ->get(route('departures.show', $departure))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('buses', 1)
+            ->has('drivers', 1)
+            ->has('conductors', 1)
+            ->where('departure.busId', $bus->id)
+            ->where('departure.driverId', $driver->id)
+            ->where('departure.conductorId', $conductor->id),
+        );
+});
