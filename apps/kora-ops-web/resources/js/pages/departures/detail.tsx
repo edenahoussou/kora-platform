@@ -274,9 +274,7 @@ export default function DepartureDetailPage({
     };
 
     const schedule = stopSchedule();
-    const sellableSeatsCount = departure.seats.filter(
-        (s) => s.sellable,
-    ).length;
+    const sellableSeatsCount = departure.seats.filter((s) => s.sellable).length;
     const crewSeatsCount = departure.seats.filter((s) => !s.sellable).length;
 
     return (
@@ -733,9 +731,8 @@ export default function DepartureDetailPage({
                             Plan de sièges
                         </h3>
                         <p className="mb-3 text-[0.625rem] text-muted-foreground">
-                            {departure.busRegistration} ·{' '}
-                            {sellableSeatsCount} vendables ·{' '}
-                            {crewSeatsCount} équipage
+                            {departure.busRegistration} · {sellableSeatsCount}{' '}
+                            vendables · {crewSeatsCount} équipage
                         </p>
                         {departure.seats.length > 0 ? (
                             <>

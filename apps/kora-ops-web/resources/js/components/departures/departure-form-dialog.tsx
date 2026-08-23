@@ -204,7 +204,9 @@ export function DepartureFormDialog({
                                         id="departure-conductor"
                                         name="conductor_id"
                                         label="Convoyeur"
-                                        value={departure?.conductorId ?? undefined}
+                                        value={
+                                            departure?.conductorId ?? undefined
+                                        }
                                         options={conductors}
                                         placeholder="À affecter"
                                         error={errors.conductor_id}
