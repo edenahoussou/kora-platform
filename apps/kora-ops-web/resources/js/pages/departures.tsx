@@ -11,16 +11,21 @@ import type { BreadcrumbItem } from '@/types';
 
 type DepartureListItem = {
     uuid: string;
+    lineId: number | null;
     lineCode: string;
     lineName: string;
+    busId: number | null;
     busRegistration: string;
     busSeatCount: number;
+    agencyId: number | null;
     agencyName: string;
     agencyCity: string | null;
     departureDate: string | null;
     departureTime: string | null;
     estimatedArrivalAt: string | null;
+    driverId: number | null;
     driverName: string | null;
+    conductorId: number | null;
     conductorName: string | null;
     fillRate: number;
     reservationsCount: number;
@@ -36,6 +41,9 @@ type Stats = {
     cancelled: number;
 };
 
+type BusOption = { id: number; label: string; agencyId: number | null };
+type PersonOption = { id: number; label: string };
+
 type PageProps = {
     departures: {
         data: DepartureListItem[];
@@ -49,6 +57,9 @@ type PageProps = {
     statuses: Record<string, string>;
     lines: { id: number; label: string }[];
     agencies: { id: number; name: string }[];
+    buses: BusOption[];
+    drivers: PersonOption[];
+    conductors: PersonOption[];
     stats: Stats;
     permissions: {
         canCreate: boolean;
@@ -78,6 +89,9 @@ export default function DeparturesPage({
     statuses,
     lines,
     agencies,
+    buses,
+    drivers,
+    conductors,
     stats,
     permissions,
 }: PageProps) {
@@ -86,6 +100,12 @@ export default function DeparturesPage({
 
     const filters: FilterConfig[] = useMemo(
         () => [
+            {
+                name: 'date',
+                label: 'Date',
+                type: 'date',
+                options: [],
+            },
             {
                 name: 'line_id',
                 label: 'Ligne',
@@ -425,6 +445,9 @@ export default function DeparturesPage({
                 statuses={statuses}
                 lines={lines}
                 agencies={agencies}
+                buses={buses}
+                drivers={drivers}
+                conductors={conductors}
                 onOpenChange={setDialogOpen}
             />
         </>

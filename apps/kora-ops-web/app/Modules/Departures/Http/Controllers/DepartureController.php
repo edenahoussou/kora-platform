@@ -3,6 +3,8 @@
 namespace App\Modules\Departures\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\Departures\Actions\ChangeDepartureStatusAction;
 use App\Modules\Departures\Actions\CreateDepartureAction;
@@ -69,6 +71,9 @@ class DepartureController extends Controller
             'statuses' => DepartureStatus::options(),
             'lines' => Line::query()->where('status', 'active')->orderBy('code')->get()->map(fn (Line $line): array => ['id' => $line->id, 'label' => $line->code.' · '.$line->name]),
             'agencies' => Agency::query()->where('status', 'active')->orderBy('name')->get()->map(fn (Agency $agency): array => ['id' => $agency->id, 'name' => $agency->name]),
+            'buses' => $this->busOptions(),
+            'drivers' => $this->userOptions('bus_driver'),
+            'conductors' => $this->userOptions('conductor'),
             'stats' => $stats,
             'permissions' => [
                 'canCreate' => Gate::allows('create', Departure::class),
@@ -98,6 +103,9 @@ class DepartureController extends Controller
             'statuses' => DepartureStatus::options(),
             'lines' => Line::query()->where('status', 'active')->orderBy('code')->get()->map(fn (Line $line): array => ['id' => $line->id, 'label' => $line->code.' · '.$line->name]),
             'agencies' => Agency::query()->where('status', 'active')->orderBy('name')->get()->map(fn (Agency $agency): array => ['id' => $agency->id, 'name' => $agency->name]),
+            'buses' => $this->busOptions(),
+            'drivers' => $this->userOptions('bus_driver'),
+            'conductors' => $this->userOptions('conductor'),
             'timeline' => $this->buildTimeline($departure),
             'permissions' => [
                 'canUpdate' => Gate::allows('update', $departure),
@@ -139,16 +147,21 @@ class DepartureController extends Controller
 
         return [
             'uuid' => $departure->uuid,
+            'lineId' => $departure->line_id,
             'lineCode' => $departure->line->code ?? '—',
             'lineName' => $departure->line->name ?? '—',
+            'busId' => $departure->bus_id,
             'busRegistration' => $departure->bus->registration_number ?? 'À affecter',
             'busSeatCount' => $seatCount,
+            'agencyId' => $departure->agency_id,
             'agencyName' => $departure->agency->name ?? '—',
             'agencyCity' => $departure->agency->city ?? null,
             'departureDate' => $departure->departure_date?->format('Y-m-d'),
             'departureTime' => $departure->departure_time,
             'estimatedArrivalAt' => $departure->estimated_arrival_at?->toIso8601String(),
+            'driverId' => $departure->driver_id,
             'driverName' => $departure->driver?->name,
+            'conductorId' => $departure->conductor_id,
             'conductorName' => $departure->conductor?->name,
             'fillRate' => $fillRate,
             'reservationsCount' => $reservationsCount,
@@ -191,6 +204,7 @@ class DepartureController extends Controller
             'lineName' => $departure->line->name ?? '—',
             'lineEstimatedDuration' => $departure->line->estimated_duration_minutes,
             'stops' => $stops,
+            'busId' => $departure->bus_id,
             'busUuid' => $departure->bus->uuid,
             'busRegistration' => $departure->bus->registration_number ?? 'À affecter',
             'busSeatCount' => $seatCount,
@@ -203,7 +217,9 @@ class DepartureController extends Controller
             'departureDate' => $departure->departure_date?->format('Y-m-d'),
             'departureTime' => $departure->departure_time,
             'estimatedArrivalAt' => $departure->estimated_arrival_at?->toIso8601String(),
+            'driverId' => $departure->driver_id,
             'driverName' => $departure->driver?->name,
+            'conductorId' => $departure->conductor_id,
             'conductorName' => $departure->conductor?->name,
             'creatorName' => $departure->creator?->name,
             'fillRate' => $fillRate,
@@ -212,6 +228,30 @@ class DepartureController extends Controller
             'createdAt' => $departure->created_at?->toIso8601String(),
             'updatedAt' => $departure->updated_at?->toIso8601String(),
         ];
+    }
+
+    /** @return \Illuminate\Support\Collection<int, array{id: int, label: string, agencyId: int|null}> */
+    private function busOptions(): \Illuminate\Support\Collection
+    {
+        return Bus::query()
+            ->where('status', 'active')
+            ->orderBy('registration_number')
+            ->get()
+            ->map(fn (Bus $bus): array => [
+                'id' => $bus->id,
+                'label' => $bus->registration_number,
+                'agencyId' => $bus->agency_id,
+            ]);
+    }
+
+    /** @return \Illuminate\Support\Collection<int, array{id: int, label: string}> */
+    private function userOptions(string $role): \Illuminate\Support\Collection
+    {
+        return User::query()
+            ->role($role)
+            ->orderBy('name')
+            ->get()
+            ->map(fn (User $user): array => ['id' => $user->id, 'label' => $user->name]);
     }
 
     /** @return array{total: int, scheduled: int, boarding: int, departed: int, arrived: int, cancelled: int} */

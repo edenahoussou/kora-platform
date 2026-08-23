@@ -16,19 +16,25 @@ import departures from '@/routes/departures';
 
 export type DepartureRecord = {
     uuid: string;
+    lineId?: number | null;
     lineCode: string;
     lineName: string;
+    busId?: number | null;
     busRegistration: string;
+    agencyId?: number | null;
     agencyName: string;
     departureDate: string | null;
     departureTime: string | null;
+    driverId?: number | null;
     driverName: string | null;
+    conductorId?: number | null;
     conductorName: string | null;
     status: string;
 };
 
 type Option = { id: number | string; label: string };
 type AgencyOption = { id: number; name: string };
+type BusOption = { id: number; label: string; agencyId: number | null };
 
 type Props = {
     open: boolean;
@@ -36,6 +42,9 @@ type Props = {
     statuses: Record<string, string>;
     lines: Option[];
     agencies: AgencyOption[];
+    buses: BusOption[];
+    drivers: Option[];
+    conductors: Option[];
     onOpenChange: (open: boolean) => void;
 };
 
@@ -44,6 +53,9 @@ export function DepartureFormDialog({
     departure,
     lines,
     agencies,
+    buses,
+    drivers,
+    conductors,
     onOpenChange,
 }: Props) {
     const editing = Boolean(departure);
@@ -106,6 +118,7 @@ export function DepartureFormDialog({
                                     id="departure-line"
                                     name="line_id"
                                     label="Ligne *"
+                                    value={departure?.lineId ?? undefined}
                                     options={lines}
                                     placeholder="Sélectionner une ligne"
                                     error={errors.line_id}
@@ -115,6 +128,7 @@ export function DepartureFormDialog({
                                     id="departure-agency"
                                     name="agency_id"
                                     label="Agence de départ *"
+                                    value={departure?.agencyId ?? undefined}
                                     options={agencies.map((item) => ({
                                         id: item.id,
                                         label: item.name,
@@ -166,7 +180,11 @@ export function DepartureFormDialog({
                                     id="departure-bus"
                                     name="bus_id"
                                     label="Bus assigné *"
-                                    options={[]}
+                                    value={departure?.busId ?? undefined}
+                                    options={buses.map((bus) => ({
+                                        id: bus.id,
+                                        label: bus.label,
+                                    }))}
                                     placeholder="Sélectionner un véhicule"
                                     error={errors.bus_id}
                                 />
@@ -176,7 +194,8 @@ export function DepartureFormDialog({
                                         id="departure-driver"
                                         name="driver_id"
                                         label="Chauffeur"
-                                        options={[]}
+                                        value={departure?.driverId ?? undefined}
+                                        options={drivers}
                                         placeholder="À affecter"
                                         error={errors.driver_id}
                                         required={false}
@@ -185,7 +204,8 @@ export function DepartureFormDialog({
                                         id="departure-conductor"
                                         name="conductor_id"
                                         label="Convoyeur"
-                                        options={[]}
+                                        value={departure?.conductorId ?? undefined}
+                                        options={conductors}
                                         placeholder="À affecter"
                                         error={errors.conductor_id}
                                         required={false}
@@ -241,6 +261,7 @@ function FieldSelect({
     id,
     name,
     label,
+    value,
     options,
     placeholder,
     error,
@@ -249,6 +270,7 @@ function FieldSelect({
     id: string;
     name: string;
     label: string;
+    value?: number | string;
     options: Option[];
     placeholder: string;
     error?: string;
@@ -260,7 +282,7 @@ function FieldSelect({
             <select
                 id={id}
                 name={name}
-                defaultValue=""
+                defaultValue={value ?? ''}
                 required={required}
                 className="h-12 w-full rounded-[0.875rem] border-0 bg-muted px-3 text-sm text-foreground shadow-[inset_0_0_0_1px_var(--border)] outline-none"
             >

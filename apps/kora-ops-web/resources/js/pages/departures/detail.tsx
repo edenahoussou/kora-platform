@@ -22,6 +22,14 @@ type Stop = {
     city: string;
 };
 
+type SeatItem = {
+    uuid: string;
+    code: string;
+    type: string;
+    sellable: boolean;
+    status: string;
+};
+
 type DepartureDetail = DepartureRecord & {
     lineId: number;
     lineEstimatedDuration: number | null;
@@ -29,6 +37,7 @@ type DepartureDetail = DepartureRecord & {
     busUuid: string;
     busSeatCount: number;
     busAgencyName: string | null;
+    seats: SeatItem[];
     agencyId: number;
     agencyCity: string | null;
     agencyCountry: string | null;
@@ -45,11 +54,17 @@ type TimelineEvent = {
     date: string | null;
 };
 
+type BusOption = { id: number; label: string; agencyId: number | null };
+type PersonOption = { id: number; label: string };
+
 type PageProps = {
     departure: DepartureDetail;
     statuses: Record<string, string>;
     lines: { id: number; label: string }[];
     agencies: { id: number; name: string }[];
+    buses: BusOption[];
+    drivers: PersonOption[];
+    conductors: PersonOption[];
     timeline: TimelineEvent[];
     permissions: {
         canUpdate: boolean;
@@ -120,6 +135,9 @@ export default function DepartureDetailPage({
     statuses,
     lines,
     agencies,
+    buses,
+    drivers,
+    conductors,
     timeline,
     permissions,
 }: PageProps) {
@@ -256,6 +274,10 @@ export default function DepartureDetailPage({
     };
 
     const schedule = stopSchedule();
+    const sellableSeatsCount = departure.seats.filter(
+        (s) => s.sellable,
+    ).length;
+    const crewSeatsCount = departure.seats.filter((s) => !s.sellable).length;
 
     return (
         <>
@@ -705,6 +727,58 @@ export default function DepartureDetailPage({
                         </div>
                     </section>
 
+                    {/* Plan de sièges du véhicule affecté */}
+                    <section className="rounded-[var(--kora-radius)] border border-border/50 bg-card p-5 shadow-[0_16px_45px_rgba(0,29,78,0.07)]">
+                        <h3 className="mb-1 text-[0.8125rem] font-bold tracking-tight text-foreground uppercase">
+                            Plan de sièges
+                        </h3>
+                        <p className="mb-3 text-[0.625rem] text-muted-foreground">
+                            {departure.busRegistration} ·{' '}
+                            {sellableSeatsCount} vendables ·{' '}
+                            {crewSeatsCount} équipage
+                        </p>
+                        {departure.seats.length > 0 ? (
+                            <>
+                                <div className="grid grid-cols-6 gap-1.5">
+                                    {departure.seats.map((seat) => (
+                                        <span
+                                            key={seat.uuid}
+                                            title={`${seat.code} · ${seat.sellable ? 'Vendable' : 'Équipage'} · ${seat.status}`}
+                                            className={`grid aspect-square place-items-center rounded-[0.4rem] text-[0.5rem] font-bold ${
+                                                !seat.sellable
+                                                    ? 'bg-muted text-muted-foreground'
+                                                    : seat.status === 'active'
+                                                      ? 'bg-gold/20 text-[var(--kora)] dark:text-gold'
+                                                      : 'bg-[var(--kora)]/10 text-[var(--kora)] dark:bg-[var(--digital)]/15 dark:text-[var(--digital)]'
+                                            }`}
+                                        >
+                                            {seat.code}
+                                        </span>
+                                    ))}
+                                </div>
+                                <div className="mt-3 flex flex-wrap gap-3 text-[0.5625rem] text-muted-foreground">
+                                    <span className="flex items-center gap-1.5">
+                                        <span className="size-2.5 rounded-[0.2rem] bg-gold/20" />
+                                        Vendable
+                                    </span>
+                                    <span className="flex items-center gap-1.5">
+                                        <span className="size-2.5 rounded-[0.2rem] bg-[var(--kora)]/10 dark:bg-[var(--digital)]/15" />
+                                        Réservé / bloqué
+                                    </span>
+                                    <span className="flex items-center gap-1.5">
+                                        <span className="size-2.5 rounded-[0.2rem] bg-muted" />
+                                        Équipage
+                                    </span>
+                                </div>
+                            </>
+                        ) : (
+                            <p className="text-xs text-muted-foreground">
+                                Aucun plan de sièges disponible pour ce
+                                véhicule.
+                            </p>
+                        )}
+                    </section>
+
                     {/* Timeline */}
                     <section className="rounded-[var(--kora-radius)] border border-border/50 bg-card p-5 shadow-[0_16px_45px_rgba(0,29,78,0.07)]">
                         <h3 className="mb-1 text-[0.8125rem] font-bold tracking-tight text-foreground uppercase">
@@ -808,6 +882,9 @@ export default function DepartureDetailPage({
                 statuses={statuses}
                 lines={lines}
                 agencies={agencies}
+                buses={buses}
+                drivers={drivers}
+                conductors={conductors}
                 onOpenChange={setEditDialog}
             />
         </>
