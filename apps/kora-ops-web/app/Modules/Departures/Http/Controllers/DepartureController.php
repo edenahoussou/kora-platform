@@ -17,7 +17,6 @@ use App\Modules\Departures\Models\Departure;
 use App\Modules\IdentityAccess\Models\Agency;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -231,28 +230,37 @@ class DepartureController extends Controller
         ];
     }
 
-    /** @return Collection<int, array{id: int, label: string, agencyId: int|null}> */
-    private function busOptions(): Collection
+    /**
+     * @return array<int, array{id: int, label: string, agencyId: int|null}>
+     */
+    private function busOptions(): array
     {
         return Bus::query()
             ->where('status', 'active')
             ->orderBy('registration_number')
             ->get()
             ->map(fn (Bus $bus): array => [
-                'id' => $bus->id,
-                'label' => $bus->registration_number,
-                'agencyId' => $bus->agency_id,
-            ]);
+                'id' => (int) $bus->id,
+                'label' => (string) $bus->registration_number,
+                'agencyId' => $bus->agency_id !== null ? (int) $bus->agency_id : null,
+            ])
+            ->toArray();
     }
 
-    /** @return Collection<int, array{id: int, label: string}> */
-    private function userOptions(string $role): Collection
+    /**
+     * @return array<int, array{id: int, label: string}>
+     */
+    private function userOptions(string $role): array
     {
         return User::query()
             ->role($role)
             ->orderBy('name')
             ->get()
-            ->map(fn (User $user): array => ['id' => $user->id, 'label' => $user->name]);
+            ->map(fn (User $user): array => [
+                'id' => (int) $user->id,
+                'label' => (string) $user->name,
+            ])
+            ->toArray();
     }
 
     /** @return array{total: int, scheduled: int, boarding: int, departed: int, arrived: int, cancelled: int} */
