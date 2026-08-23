@@ -4,6 +4,7 @@ import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/di/injector.dart';
+import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../../core/widgets/screen_header.dart';
@@ -98,15 +99,14 @@ class _SearchingView extends StatelessWidget {
         ScreenHeader(
           // Le trajet n'est connu qu'une fois les villes résolues : avant,
           // on n'affiche pas un surtitre vide.
-          eyebrow: _routeLabel(state.criteria) ?? 'KORA BUS',
-          title: 'Recherche en cours',
+          eyebrow:
+              _routeLabel(state.criteria) ?? context.l10n.departuresEyebrow,
+          title: context.l10n.departuresSearchingTitle,
         ),
-        const StateView(
+        StateView(
           icon: Icons.trending_up_rounded,
-          title: 'Nous trouvons votre meilleur départ',
-          message:
-              'Disponibilités et tarifs sont vérifiés sur chaque segment '
-              'du trajet.',
+          title: context.l10n.departuresSearchingLead,
+          message: context.l10n.departuresSearchingText,
           showLoader: true,
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -136,10 +136,8 @@ class _ResultsView extends StatelessWidget {
       padding: EdgeInsets.zero,
       children: [
         ScreenHeader(
-          eyebrow: _criteriaLabel(state.criteria),
-          title: count == 1
-              ? '1 départ disponible'
-              : '$count départs disponibles',
+          eyebrow: _criteriaLabel(context, state.criteria),
+          title: context.l10n.departuresCount(count),
           action: KoraIconButton(
             icon: Icons.tune_rounded,
             onTap: () => Navigator.of(context).pop(),
@@ -184,7 +182,7 @@ class _DepartureTile extends StatelessWidget {
       destination: departure.line.destination.name,
       duration: KoraDateFormats.approximateDuration(departure.line.duration),
       price: departure.price.formatted,
-      vehicleLabel: departure.comfort.label,
+      vehicleLabel: departure.vehicleLabel,
       servicesLabel: departure.amenities.join(' · '),
       seatsAvailable: departure.seatsAvailable,
       isSoldOut: departure.isSoldOut,
@@ -211,16 +209,15 @@ class _EmptyView extends StatelessWidget {
       padding: EdgeInsets.zero,
       children: [
         ScreenHeader(
-          eyebrow: _routeLabel(state.criteria) ?? 'KORA BUS',
-          title: 'Aucun départ',
+          eyebrow:
+              _routeLabel(state.criteria) ?? context.l10n.departuresEyebrow,
+          title: context.l10n.departuresEmptyEyebrow,
         ),
         StateView(
           icon: Icons.search_rounded,
-          title: 'Aucun voyage ce jour-là',
-          message:
-              'Cette liaison n’est pas desservie à cette date. Essayez '
-              'une autre date, ou un autre trajet.',
-          primaryLabel: 'Modifier la recherche',
+          title: context.l10n.departuresEmptyTitle,
+          message: context.l10n.departuresEmptyText,
+          primaryLabel: context.l10n.departuresEditSearch,
           onPrimary: () => Navigator.of(context).pop(),
         ),
         const SizedBox(height: AppSpacing.xl),
@@ -230,6 +227,12 @@ class _EmptyView extends StatelessWidget {
 }
 
 /// Erreur technique : on propose de relancer la même recherche.
+///
+/// « Réessayer » est l'action **principale** parce que c'est presque
+/// toujours la bonne : la cause la plus fréquente est une connexion
+/// perdue, et la recherche saisie est encore valable. Revenir au
+/// formulaire ne vient qu'en second, pour qui veut vraiment changer de
+/// trajet.
 class _FailureView extends StatelessWidget {
   const _FailureView({required this.state});
 
@@ -241,15 +244,19 @@ class _FailureView extends StatelessWidget {
       padding: EdgeInsets.zero,
       children: [
         ScreenHeader(
-          eyebrow: _routeLabel(state.criteria) ?? 'KORA BUS',
-          title: 'Recherche impossible',
+          eyebrow:
+              _routeLabel(state.criteria) ?? context.l10n.departuresEyebrow,
+          title: context.l10n.departuresErrorEyebrow,
         ),
         StateView(
           icon: Icons.cloud_off_rounded,
-          title: 'La recherche a échoué',
-          message: state.errorMessage ?? 'Une erreur inattendue est survenue.',
-          primaryLabel: 'Modifier la recherche',
-          onPrimary: () => Navigator.of(context).pop(),
+          title: context.l10n.departuresErrorTitle,
+          message: state.errorMessage ?? context.l10n.departuresErrorText,
+          primaryLabel: context.l10n.actionRetry,
+          onPrimary: () =>
+              context.read<DeparturesBloc>().add(const DeparturesRetried()),
+          secondaryLabel: context.l10n.departuresEditSearch,
+          onSecondary: () => Navigator.of(context).pop(),
         ),
         const SizedBox(height: AppSpacing.xl),
       ],
@@ -266,15 +273,16 @@ String? _routeLabel(SearchCriteria? criteria) {
 
 /// `Ven. 14 août · 1 passager` — le rappel des critères en tête des
 /// résultats.
-String _criteriaLabel(SearchCriteria? criteria) {
-  if (criteria == null) return 'KORA BUS';
+String _criteriaLabel(BuildContext context, SearchCriteria? criteria) {
+  final l10n = context.l10n;
+  if (criteria == null) return l10n.departuresEyebrow;
 
   final day = KoraDateFormats.capitalize(
-    KoraDateFormats.weekdayDayMonth.format(criteria.date),
+    KoraDateFormats.weekdayDayMonthIn(
+      criteria.date,
+      Localizations.localeOf(context).languageCode,
+    ),
   );
-  final passengers = criteria.passengers == 1
-      ? '1 passager'
-      : '${criteria.passengers} passagers';
 
-  return '$day · $passengers';
+  return '$day · ${l10n.departuresPassengers(criteria.passengers)}';
 }

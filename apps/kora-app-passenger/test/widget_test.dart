@@ -20,6 +20,7 @@ import 'package:kora_app_passenger/core/env/app_env.dart';
 import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/core/router/app_router.dart';
 import 'package:kora_app_passenger/core/utils/date_formats.dart';
+import 'package:kora_app_passenger/features/booking/data/datasources/booking_data_source.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -66,6 +67,16 @@ void main() {
     // Normalement fait par bootstrap() (voir lib/bootstrap.dart), qu'on ne
     // passe pas ici puisqu'on veut tester KoraApp isolément.
     await setupInjector();
+
+    // La recherche Bus tape sur l'API depuis le branchement du Sprint 2 ;
+    // dans un test, aucune requête HTTP n'aboutit et l'accueil resterait
+    // bloqué sur son écran d'erreur. On rebranche le jeu de
+    // démonstration : ce test-ci vérifie la navigation, pas le réseau —
+    // c'est `booking_remote_data_source_test.dart` qui couvre les appels.
+    await getIt.unregister<BookingDataSource>();
+    getIt.registerLazySingleton<BookingDataSource>(
+      () => BookingMockDataSource(),
+    );
   });
 
   tearDown(() {

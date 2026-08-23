@@ -14,8 +14,11 @@ import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_flow_bloc.dart';
 import '../../features/booking/data/datasources/booking_data_source.dart';
+import '../../features/booking/data/datasources/booking_remote_data_source.dart';
 import '../../features/booking/data/repositories/booking_repository_impl.dart';
+import '../../features/booking/data/repositories/departure_repository_impl.dart';
 import '../../features/booking/domain/repositories/booking_repository.dart';
+import '../../features/booking/domain/repositories/departure_repository.dart';
 import '../../features/booking/domain/usecases/get_cities_usecase.dart';
 import '../../features/booking/domain/usecases/get_next_trip_usecase.dart';
 import '../../features/booking/domain/usecases/get_recent_cities_usecase.dart';
@@ -145,12 +148,26 @@ void _registerThemeFeature() {
 
 /// Feature "booking" (parcours de réservation Bus) — voir features/booking/.
 ///
-/// **C'est ici, et nulle part ailleurs, que l'app décide de travailler sur
-/// des données mockées.** Au Sprint 2, seule la ligne
-/// [BookingMockDataSource] deviendra `BookingRemoteDataSourceImpl(getIt())` :
-/// repository, use cases, Blocs et écrans resteront inchangés.
+/// **C'est ici, et nulle part ailleurs, que l'app décide d'où viennent les
+/// données du parcours Bus.** La recherche (villes + départs) tape
+/// désormais sur l'API ; les écrans qui n'ont pas encore d'endpoint
+/// documenté (plan des sièges, prochain voyage, billets) continuent de
+/// lire le jeu de démonstration, passé en repli au data source réseau.
+/// Repository, use cases, Blocs et écrans, eux, n'ont pas bougé — c'est
+/// tout l'intérêt d'avoir gardé cette décision à un seul endroit.
 void _registerBookingFeature() {
-  getIt.registerLazySingleton<BookingDataSource>(() => BookingMockDataSource());
+  getIt.registerLazySingleton<BookingDataSource>(
+    () =>
+        BookingRemoteDataSourceImpl(getIt(), pending: BookingMockDataSource()),
+  );
+
+  // La recherche a son propre contrat (`DepartureRepository`) : c'est le
+  // seul morceau du parcours branché sur le catalogue Bus public, sans
+  // session ni panier. Les deux dépôts partagent la même source, qui
+  // décide seule d'où viennent les données.
+  getIt.registerLazySingleton<DepartureRepository>(
+    () => DepartureRepositoryImpl(getIt()),
+  );
 
   getIt.registerLazySingleton<BookingRepository>(
     () => BookingRepositoryImpl(getIt()),

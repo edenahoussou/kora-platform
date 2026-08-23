@@ -6,6 +6,7 @@ import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/core/utils/date_formats.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
@@ -20,6 +21,7 @@ void main() {
   late Departure departure;
 
   setUpAll(() async {
+    await AppLocalization.preloadAll();
     await initializeDateFormatting(KoraDateFormats.locale);
   });
 
@@ -44,6 +46,7 @@ void main() {
         locale: const Locale('fr', 'FR'),
         supportedLocales: const [Locale('fr', 'FR')],
         localizationsDelegates: const [
+          AppLocalization.delegate,
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
@@ -141,9 +144,19 @@ void main() {
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
 
+    // Cet écran lit ses textes comme les autres : sans le délégué, il
+    // ne peut pas se construire.
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
+        locale: const Locale('fr'),
+        supportedLocales: const [Locale('fr'), Locale('en')],
+        localizationsDelegates: const [
+          AppLocalization.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
         home: const DepartureDetailPage(departure: null),
       ),
     );

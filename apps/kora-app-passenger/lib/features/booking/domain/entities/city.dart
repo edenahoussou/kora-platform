@@ -18,6 +18,19 @@ class City extends Equatable {
     this.station,
   });
 
+  /// Ville désignée par son seul nom.
+  ///
+  /// L'API filtre les départs sur `from` et `to`, qui sont des noms :
+  /// c'est tout ce qu'une recherche a besoin de connaître d'une ville.
+  /// Le code à trois lettres s'en déduit, faute d'être exposé.
+  factory City.named(String name) => City(
+    id: name,
+    name: name,
+    code: name.length >= 3
+        ? name.substring(0, 3).toUpperCase()
+        : name.toUpperCase(),
+  );
+
   final String id;
 
   /// Nom affiché de la ville (ex: `Cotonou`).

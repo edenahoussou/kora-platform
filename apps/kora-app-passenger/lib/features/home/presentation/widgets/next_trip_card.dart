@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 
+import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../booking/domain/entities/upcoming_trip.dart';
 
@@ -149,7 +150,7 @@ class NextTripEmptyCard extends StatelessWidget {
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
-                  'Aucun voyage à venir',
+                  context.l10n.homeNextTripEmptyTitle,
                   style: AppTextStyles.titleMedium(koraColors.textPrimary),
                 ),
               ),
@@ -171,7 +172,7 @@ class NextTripEmptyCard extends StatelessWidget {
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: const Text('Rechercher un voyage'),
+              child: Text(context.l10n.homeSearchSubmit),
             ),
           ),
         ],

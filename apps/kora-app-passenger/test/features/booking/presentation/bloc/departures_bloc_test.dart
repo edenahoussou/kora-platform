@@ -5,8 +5,10 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_app_passenger/core/error/failures.dart';
+import 'package:kora_app_passenger/core/router/app_router.dart';
 import 'package:kora_app_passenger/core/usecases/usecase.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/city.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
 import 'package:kora_app_passenger/features/booking/domain/usecases/get_cities_usecase.dart';
@@ -187,6 +189,87 @@ void main() {
       verify: (bloc) {
         expect(bloc.state.sort, DepartureSort.price);
         verify(() => searchDepartures(any())).called(1);
+      },
+    );
+  });
+
+  group('DeparturesRetried', () {
+    blocTest<DeparturesBloc, DeparturesState>(
+      'rejoue la dernière recherche après un échec réseau',
+      build: () {
+        // Premier appel en échec, second en succès : exactement ce que
+        // vit quelqu'un dont la connexion revient.
+        var attempt = 0;
+        when(() => searchDepartures(any())).thenAnswer((_) async {
+          attempt += 1;
+          return attempt == 1
+              ? const Left(NetworkFailure())
+              : Right(departures);
+        });
+        return buildBloc();
+      },
+      act: (bloc) async {
+        bloc.add(requested);
+        await Future<void>.delayed(Duration.zero);
+        bloc.add(const DeparturesRetried());
+      },
+      verify: (bloc) {
+        expect(bloc.state.status, DeparturesStatus.success);
+        expect(bloc.state.departures, departures);
+        // La recherche est bien relancée, avec les mêmes critères.
+        verify(() => searchDepartures(any())).called(2);
+      },
+    );
+
+    blocTest<DeparturesBloc, DeparturesState>(
+      'sans recherche précédente, il n’y a rien à rejouer',
+      build: buildBloc,
+      act: (bloc) => bloc.add(const DeparturesRetried()),
+      expect: () => const <DeparturesState>[],
+      verify: (_) => verifyNever(() => searchDepartures(any())),
+    );
+  });
+
+  group('identifiants venus de l’API', () {
+    // Depuis le branchement de l'API, l'identifiant d'une ville est son
+    // **nom** (voir `CityModel.toEntity`) — donc potentiellement avec
+    // espaces et accents. Ce test vérifie que l'aller-retour par l'URL des
+    // résultats les rend intacts au Bloc.
+    const porto = City(id: 'Porto-Novo', name: 'Porto-Novo', code: 'POR');
+    const save = City(id: 'Savè', name: 'Savè', code: 'SAV');
+
+    blocTest<DeparturesBloc, DeparturesState>(
+      'résout des villes dont l’identifiant porte accents et tirets',
+      build: () {
+        when(
+          () => getCities(any()),
+        ).thenAnswer((_) async => const Right([porto, save]));
+        return buildBloc();
+      },
+      act: (bloc) {
+        final url = Uri.parse(
+          AppRouter.departuresUrlFor(
+            SearchCriteria(
+              origin: porto,
+              destination: save,
+              date: DateTime(2026, 8, 14),
+            ),
+          ),
+        );
+
+        bloc.add(
+          DeparturesRequested(
+            originId: url.queryParameters['origin'],
+            destinationId: url.queryParameters['destination'],
+            date: url.queryParameters['date'],
+            passengers: url.queryParameters['passengers'],
+          ),
+        );
+      },
+      verify: (bloc) {
+        expect(bloc.state.status, DeparturesStatus.success);
+        expect(bloc.state.criteria?.origin, porto);
+        expect(bloc.state.criteria?.destination, save);
       },
     );
   });

@@ -58,7 +58,7 @@ void main() {
 
   group('HomeStarted', () {
     blocTest<HomeBloc, HomeState>(
-      'charge les villes, pré-remplit le trajet et la date du jour',
+      'charge les villes et la date du jour, sans pré-remplir le trajet',
       build: buildBloc,
       act: (bloc) => bloc.add(const HomeStarted()),
       expect: () => [
@@ -67,13 +67,23 @@ void main() {
           status: HomeStatus.success,
           cities: kMockCities,
           recentCities: recentCities,
-          origin: cotonou,
-          destination: malanville,
+          // Départ et arrivée restent à choisir : depuis le branchement
+          // de l'API, l'app ne devine plus un trajet de démonstration.
           date: DateTime(2026, 8, 13),
           today: DateTime(2026, 8, 13),
           nextTrip: trip,
         ),
       ],
+    );
+
+    blocTest<HomeBloc, HomeState>(
+      'ne propose pas de recherche tant que le trajet est vide',
+      build: buildBloc,
+      act: (bloc) => bloc.add(const HomeStarted()),
+      verify: (bloc) {
+        expect(bloc.state.canSearch, isFalse);
+        expect(bloc.state.criteria, isNull);
+      },
     );
 
     blocTest<HomeBloc, HomeState>(

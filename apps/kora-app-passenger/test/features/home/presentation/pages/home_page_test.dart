@@ -3,6 +3,7 @@
 
 import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,9 +11,11 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:kora_app_passenger/core/di/injector.dart';
 import 'package:kora_app_passenger/core/error/failures.dart';
+import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/core/router/app_router.dart';
 import 'package:kora_app_passenger/core/usecases/usecase.dart';
 import 'package:kora_app_passenger/core/utils/date_formats.dart';
+import 'package:kora_app_passenger/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/upcoming_trip.dart';
 import 'package:kora_app_passenger/features/booking/domain/usecases/get_cities_usecase.dart';
@@ -22,6 +25,8 @@ import 'package:kora_app_passenger/features/home/presentation/bloc/home_bloc.dar
 import 'package:kora_app_passenger/features/home/presentation/pages/city_picker_page.dart';
 import 'package:kora_app_passenger/features/home/presentation/pages/home_page.dart';
 import 'package:mocktail/mocktail.dart';
+
+import '../../../../support/stub_auth_repository.dart';
 
 class MockGetCitiesUseCase extends Mock implements GetCitiesUseCase {}
 
@@ -43,6 +48,10 @@ void main() {
     // L'app le fait dans bootstrap() ; les tests d'écran ne passent pas
     // par là, mais les cartes affichent des dates formatées en français.
     await initializeDateFormatting(KoraDateFormats.locale);
+    // Comme bootstrap() : sans les textes déjà lus, `Localizations` ne
+    // rendrait rien pendant les premières frames et aucun libellé ne
+    // serait trouvable.
+    await AppLocalization.preloadAll();
   });
 
   setUp(() {
@@ -94,17 +103,27 @@ void main() {
     );
     addTearDown(router.dispose);
 
+    // L'accueil salue le compte connecté : sans session dans l'arbre, il
+    // ne saurait pas qui nommer.
+    final auth = AuthBloc(StubAuthRepository())
+      ..add(AuthSessionOpened(StubAuthRepository.session));
+    addTearDown(auth.close);
+
     await tester.pumpWidget(
-      MaterialApp.router(
-        theme: AppTheme.light,
-        locale: const Locale('fr', 'FR'),
-        supportedLocales: const [Locale('fr', 'FR')],
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        routerConfig: router,
+      BlocProvider<AuthBloc>.value(
+        value: auth,
+        child: MaterialApp.router(
+          theme: AppTheme.light,
+          locale: const Locale('fr', 'FR'),
+          supportedLocales: const [Locale('fr', 'FR')],
+          localizationsDelegates: const [
+            AppLocalization.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          routerConfig: router,
+        ),
       ),
     );
   }
@@ -122,7 +141,8 @@ void main() {
     await pumpHome(tester);
     await tester.pump(const Duration(milliseconds: 50));
 
-    // L'en-tête ne dépend d'aucune donnée : il est visible tout de suite.
+    // L'en-tête ne dépend d'aucune donnée du parcours Bus : il est
+    // visible tout de suite, avec le prénom du compte.
     expect(find.text('Bonjour Aïcha,'), findsOneWidget);
     expect(find.byType(KoraLoadingIndicator), findsWidgets);
     expect(find.text('Rechercher un voyage'), findsNothing);
@@ -130,15 +150,16 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('affiche le formulaire pré-rempli et le prochain voyage', (
+  testWidgets('affiche le formulaire vide et le prochain voyage', (
     tester,
   ) async {
     await pumpHome(tester);
     await tester.pumpAndSettle();
 
     expect(find.text('Où souhaitez-vous voyager ?'), findsOneWidget);
-    expect(find.text('Cotonou · St Michel'), findsOneWidget);
-    expect(find.text('Malanville'), findsWidgets);
+    // Départ et arrivée sont à choisir : plus aucun trajet n'est deviné
+    // depuis le branchement de l'API (voir HomeBloc).
+    expect(find.text('Choisir une ville'), findsNWidgets(2));
     expect(find.text('13 août 2026'), findsOneWidget);
     expect(find.text('1 adulte'), findsOneWidget);
     expect(find.text('Rechercher un voyage'), findsOneWidget);
@@ -192,7 +213,9 @@ void main() {
     await pumpHome(tester);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Cotonou · St Michel'));
+    // Le champ « Départ » est le premier des deux à porter le libellé
+    // d'invite.
+    await tester.tap(find.text('Choisir une ville').first);
     await tester.pumpAndSettle();
 
     // On est bien sur l'écran plein, pas dans une feuille modale.
@@ -203,9 +226,10 @@ void main() {
     await tester.tap(find.text('Parakou · Zongo'));
     await tester.pumpAndSettle();
 
-    // Retour sur l'accueil, champ « Départ » mis à jour.
+    // Retour sur l'accueil, champ « Départ » mis à jour — il ne reste
+    // qu'une invite, celle de l'arrivée.
     expect(find.byType(CityPickerPage), findsNothing);
     expect(find.text('Parakou · Zongo'), findsOneWidget);
-    expect(find.text('Cotonou · St Michel'), findsNothing);
+    expect(find.text('Choisir une ville'), findsOneWidget);
   });
 }

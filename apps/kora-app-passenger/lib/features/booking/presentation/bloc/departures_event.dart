@@ -33,6 +33,12 @@ class DeparturesRequested extends DeparturesEvent {
   List<Object?> get props => [originId, destinationId, date, passengers];
 }
 
+/// Bouton « Réessayer » de l'écran d'erreur : rejoue la dernière
+/// recherche, sans que l'écran ait à en reconstruire les paramètres.
+class DeparturesRetried extends DeparturesEvent {
+  const DeparturesRetried();
+}
+
 /// Changement de tri depuis les puces « Heure » / « Prix ».
 class DeparturesSortChanged extends DeparturesEvent {
   const DeparturesSortChanged(this.sort);

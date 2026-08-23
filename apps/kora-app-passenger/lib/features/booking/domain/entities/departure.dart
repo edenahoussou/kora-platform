@@ -32,6 +32,7 @@ class Departure extends Equatable {
     required this.seatsTotal,
     required this.seatsAvailable,
     this.amenities = const [],
+    this.busLabel,
   });
 
   final String id;
@@ -51,6 +52,19 @@ class Departure extends Equatable {
   /// Services à bord (`Wi-Fi`, `Climatisation`, `USB`...).
   final List<String> amenities;
 
+  /// Le véhicule réellement affecté au départ (`Mercedes O500`), quand
+  /// l'API le connaît.
+  ///
+  /// Distinct de [comfort], qui est une **gamme commerciale** KORA : tant
+  /// que l'API n'expose pas la gamme, les écrans affichent ce libellé-ci
+  /// plutôt qu'une gamme devinée. `null` sur les données mockées, qui
+  /// n'ont que la gamme.
+  final String? busLabel;
+
+  /// Ce qu'on affiche dans le badge du véhicule : le bus réel s'il est
+  /// connu, la gamme sinon.
+  String get vehicleLabel => busLabel ?? comfort.label;
+
   DateTime get arrivesAt => departsAt.add(line.duration);
 
   bool get isSoldOut => seatsAvailable == 0;
@@ -65,5 +79,6 @@ class Departure extends Equatable {
     seatsTotal,
     seatsAvailable,
     amenities,
+    busLabel,
   ];
 }

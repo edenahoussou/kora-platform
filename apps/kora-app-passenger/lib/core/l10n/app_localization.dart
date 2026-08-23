@@ -394,6 +394,103 @@ class AppLocalization {
   String contactUnavailable(String target) =>
       _withArgs('contact_unavailable', {'target': target});
 
+  // --- Parcours Bus : villes, recherche, résultats, détail ---
+  String get cityPickerEyebrow => translate('city_picker_eyebrow');
+  String get cityPickerOriginTitle => translate('city_picker_origin_title');
+  String get cityPickerDestinationTitle =>
+      translate('city_picker_destination_title');
+  String get cityPickerSearch => translate('city_picker_search');
+  String get cityPickerSuggestions => translate('city_picker_suggestions');
+  String get cityPickerRecent => translate('city_picker_recent');
+  String get cityPickerStop => translate('city_picker_stop');
+  String get cityPickerStation => translate('city_picker_station');
+  String cityPickerNoResult(String query) =>
+      _withArgs('city_picker_no_result', {'query': query});
+  String get departuresEyebrow => translate('departures_eyebrow');
+  String get departuresSearchingTitle =>
+      translate('departures_searching_title');
+  String get departuresSearchingLead => translate('departures_searching_lead');
+  String get departuresSearchingText => translate('departures_searching_text');
+  String departuresCount(int count) => _withArgs(
+    count > 1 ? 'departures_count_plural' : 'departures_count',
+    {'count': count},
+  );
+  String get departuresEmptyEyebrow => translate('departures_empty_eyebrow');
+  String get departuresEmptyTitle => translate('departures_empty_title');
+  String get departuresEmptyText => translate('departures_empty_text');
+  String get departuresEditSearch => translate('departures_edit_search');
+  String get departuresErrorEyebrow => translate('departures_error_eyebrow');
+  String get departuresErrorTitle => translate('departures_error_title');
+  String get departuresErrorText => translate('departures_error_text');
+  String departuresPassengers(int count) => _withArgs(
+    count > 1 ? 'departures_passengers_plural' : 'departures_passengers',
+    {'count': count},
+  );
+  String get departureDetailEyebrow => translate('departure_detail_eyebrow');
+  String get departureDetailComfort => translate('departure_detail_comfort');
+  String get departureDetailStops => translate('departure_detail_stops');
+  String get departureDetailSegmentPrice =>
+      translate('departure_detail_segment_price');
+  String get departureDetailEstimates =>
+      translate('departure_detail_estimates');
+  String get departureDetailChooseSeat =>
+      translate('departure_detail_choose_seat');
+  String get departureDetailFull => translate('departure_detail_full');
+  String departureDetailSeatsLeft(int count) => _withArgs(
+    count > 1
+        ? 'departure_detail_seats_left_plural'
+        : 'departure_detail_seats_left',
+    {'count': count},
+  );
+
+  String get departureDetailMissingHeader =>
+      translate('departure_detail_missing_header');
+  String get departureDetailMissingTitle =>
+      translate('departure_detail_missing_title');
+  String get departureDetailMissingText =>
+      translate('departure_detail_missing_text');
+  String get departureDetailBack => translate('departure_detail_back');
+
+  // --- Accueil (HOME-01) ---
+  String homeGreeting(String name) =>
+      _withArgs('home_greeting', {'name': name});
+  String get homeGreetingAnonymous => translate('home_greeting_anonymous');
+  String get homeTitle => translate('home_title');
+  String get homeSearchEyebrow => translate('home_search_eyebrow');
+  String get homeSearchQuestion => translate('home_search_question');
+  String get homeSearchOrigin => translate('home_search_origin');
+  String get homeSearchDestination => translate('home_search_destination');
+  String get homeSearchPickCity => translate('home_search_pick_city');
+  String get homeSearchDate => translate('home_search_date');
+  String get homeSearchDateEmpty => translate('home_search_date_empty');
+  String get homeSearchPassengers => translate('home_search_passengers');
+
+  /// « 1 adulte » / « 3 adultes » — le pluriel se joue sur la clé, les
+  /// deux langues ne le formant pas au même endroit.
+  String homeSearchPassengersCount(int count) => _withArgs(
+    count > 1
+        ? 'home_search_passengers_count_plural'
+        : 'home_search_passengers_count',
+    {'count': count},
+  );
+  String get homeSearchSubmit => translate('home_search_submit');
+  String get homeQuickTitle => translate('home_quick_title');
+  String get homeQuickRide => translate('home_quick_ride');
+  String get homeQuickParcels => translate('home_quick_parcels');
+  String get homeQuickWallet => translate('home_quick_wallet');
+  String get homeQuickTickets => translate('home_quick_tickets');
+  String get homeRideEyebrow => translate('home_ride_eyebrow');
+  String get homeRideTitle => translate('home_ride_title');
+  String get homeRideText => translate('home_ride_text');
+  String get homeRideSoon => translate('home_ride_soon');
+  String get homeNextTrip => translate('home_next_trip');
+  String get homeNextTripEmptyTitle => translate('home_next_trip_empty_title');
+  String get homeNextTripEmptyText => translate('home_next_trip_empty_text');
+  String get homeReminderTitle => translate('home_reminder_title');
+  String get homeReminderText => translate('home_reminder_text');
+  String get homeErrorTitle => translate('home_error_title');
+  String get homeErrorText => translate('home_error_text');
+
   // --- Centre de notifications (HOME-02) ---
   String get notificationsEyebrow => translate('notifications_eyebrow');
   String get notificationsTitle => translate('notifications_title');

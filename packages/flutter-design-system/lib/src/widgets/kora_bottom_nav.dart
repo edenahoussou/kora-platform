@@ -24,17 +24,25 @@ class KoraBottomNav extends StatelessWidget {
     super.key,
     required this.currentIndex,
     required this.onTap,
+    required this.labels,
   });
 
   final int currentIndex;
   final ValueChanged<int> onTap;
 
-  static const _tabs = [
-    (icon: KoraNavIconType.home, label: 'Accueil'),
-    (icon: KoraNavIconType.tickets, label: 'Voyages'),
-    (icon: KoraNavIconType.parcel, label: 'Colis'),
-    (icon: KoraNavIconType.wallet, label: 'Wallet'),
-    (icon: KoraNavIconType.profile, label: 'Profil'),
+  /// Libellés des cinq onglets, dans l'ordre de [_icons].
+  ///
+  /// Ils viennent de l'app et non du design system : celui-ci ne porte
+  /// aucun fichier de langue, et les écrire ici les figerait en français
+  /// pour tout le monde.
+  final List<String> labels;
+
+  static const _icons = [
+    KoraNavIconType.home,
+    KoraNavIconType.tickets,
+    KoraNavIconType.parcel,
+    KoraNavIconType.wallet,
+    KoraNavIconType.profile,
   ];
 
   @override
@@ -64,8 +72,7 @@ class KoraBottomNav extends StatelessWidget {
         boxShadow: koraColors.cardShadow,
       ),
       child: Row(
-        children: List.generate(_tabs.length, (index) {
-          final tab = _tabs[index];
+        children: List.generate(_icons.length, (index) {
           final isActive = index == currentIndex;
           final color = isActive ? AppColors.gold : koraColors.textMuted;
 
@@ -86,10 +93,10 @@ class KoraBottomNav extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
-                  KoraNavIcon(type: tab.icon, color: color, size: 20),
+                  KoraNavIcon(type: _icons[index], color: color, size: 20),
                   const SizedBox(height: 4),
                   Text(
-                    tab.label,
+                    labels[index],
                     style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.w700,

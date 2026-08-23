@@ -26,16 +26,23 @@ class DeparturesBloc extends Bloc<DeparturesEvent, DeparturesState> {
   DeparturesBloc(this._getCities, this._searchDepartures)
     : super(const DeparturesState()) {
     on<DeparturesRequested>(_onRequested);
+    on<DeparturesRetried>(_onRetried);
     on<DeparturesSortChanged>(_onSortChanged);
   }
 
   final GetCitiesUseCase _getCities;
   final SearchDeparturesUseCase _searchDepartures;
 
+  /// La dernière recherche demandée, rejouée telle quelle par
+  /// [DeparturesRetried]. L'écran d'erreur n'a ainsi rien à retenir des
+  /// paramètres d'URL pour proposer « Réessayer ».
+  DeparturesRequested? _lastRequest;
+
   Future<void> _onRequested(
     DeparturesRequested event,
     Emitter<DeparturesState> emit,
   ) async {
+    _lastRequest = event;
     emit(state.copyWith(status: DeparturesStatus.loading));
 
     final citiesResult = await _getCities(const NoParams());
@@ -77,6 +84,21 @@ class DeparturesBloc extends Bloc<DeparturesEvent, DeparturesState> {
         ),
       ),
     );
+  }
+
+  /// Relance la recherche après un échec réseau.
+  ///
+  /// Sans recherche précédente — impossible en pratique, l'écran en lance
+  /// toujours une en s'ouvrant — il n'y a rien à rejouer, et un état
+  /// d'erreur inchangé vaut mieux qu'un chargement sans fin.
+  Future<void> _onRetried(
+    DeparturesRetried event,
+    Emitter<DeparturesState> emit,
+  ) async {
+    final request = _lastRequest;
+    if (request == null) return;
+
+    await _onRequested(request, emit);
   }
 
   void _onSortChanged(

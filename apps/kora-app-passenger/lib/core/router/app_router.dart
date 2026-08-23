@@ -40,6 +40,7 @@ import '../../features/support/presentation/pages/help_page.dart';
 import '../../features/wallet/presentation/pages/wallet_page.dart';
 import '../../features/welcome/presentation/pages/welcome_page.dart';
 import '../di/injector.dart';
+import '../l10n/app_localization.dart';
 
 /// Couche CORE : configuration centrale de la navigation avec `go_router`.
 ///
@@ -513,12 +514,23 @@ class _ScaffoldWithNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return Scaffold(
       extendBody: true,
       body: navigationShell,
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.fromLTRB(11, 0, 11, 11),
         child: KoraBottomNav(
+          // Les libellés viennent des fichiers de langue de l'app : le
+          // design system n'en porte aucun.
+          labels: [
+            l10n.navHome,
+            l10n.navTrips,
+            l10n.navParcels,
+            l10n.navWallet,
+            l10n.navProfile,
+          ],
           currentIndex: navigationShell.currentIndex,
           onTap: (index) => navigationShell.goBranch(
             index,
