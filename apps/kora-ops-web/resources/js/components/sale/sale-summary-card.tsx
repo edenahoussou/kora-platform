@@ -36,9 +36,11 @@ export function SaleSummaryCard({
         );
     }
 
-    const unitAmount = quote?.finalAmount ?? departure.farePreview?.final_amount;
+    const unitAmount =
+        quote?.finalAmount ?? departure.farePreview?.final_amount;
     const amount = quote?.totalAmount ?? (unitAmount ?? 0) * passengerCount;
-    const currency = quote?.currency ?? departure.farePreview?.currency ?? 'XOF';
+    const currency =
+        quote?.currency ?? departure.farePreview?.currency ?? 'XOF';
     const canQuote =
         departure.sellability.isSellable &&
         selectedSeatCodes.length === passengerCount;
@@ -53,7 +55,8 @@ export function SaleSummaryCard({
             <div className="summary-hero">
                 <small>Départ sélectionné</small>
                 <h3>
-                    {departure.originStop.city} → {departure.destinationStop.city}
+                    {departure.originStop.city} →{' '}
+                    {departure.destinationStop.city}
                 </h3>
                 <p>
                     {formatDate(departure.departureDate)} ·{' '}
@@ -82,7 +85,9 @@ export function SaleSummaryCard({
             </div>
             <div className="summary-row">
                 <span>Tarif unitaire</span>
-                <strong>{unitAmount ? formatMoney(unitAmount, currency) : '—'}</strong>
+                <strong>
+                    {unitAmount ? formatMoney(unitAmount, currency) : '—'}
+                </strong>
             </div>
 
             <div className="summary-total">
@@ -97,7 +102,8 @@ export function SaleSummaryCard({
                         Places bloquées
                     </div>
                     <p>
-                        Expiration dans {formatRemainingTime(reservation.expiresAt)}.
+                        Expiration dans{' '}
+                        {formatRemainingTime(reservation.expiresAt)}.
                     </p>
                 </div>
             ) : (
@@ -114,7 +120,8 @@ export function SaleSummaryCard({
                     {quote && (
                         <div className="summary-callout warning">
                             <Clock3 className="size-3.5" />
-                            Devis valable encore {formatRemainingTime(quote.expiresAt)}
+                            Devis valable encore{' '}
+                            {formatRemainingTime(quote.expiresAt)}
                         </div>
                     )}
                     <button

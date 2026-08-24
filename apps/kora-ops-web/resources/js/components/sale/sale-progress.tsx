@@ -30,10 +30,7 @@ export function SaleProgress({ stage }: { stage: SaleStage }) {
                     const current = step.number === activeStep;
 
                     return (
-                        <div
-                            key={step.label}
-                            className="step-wrap"
-                        >
+                        <div key={step.label} className="step-wrap">
                             <div
                                 className={cn(
                                     'step',

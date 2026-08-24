@@ -22,7 +22,13 @@ function buildSeatRows(seats: SaleSeat[]): SeatRow[] {
         const match = /^(\d+)([A-E])$/i.exec(seat.code);
 
         return match
-            ? [{ seat, number: Number(match[1]), letter: match[2].toUpperCase() }]
+            ? [
+                  {
+                      seat,
+                      number: Number(match[1]),
+                      letter: match[2].toUpperCase(),
+                  },
+              ]
             : [];
     });
 
@@ -100,7 +106,9 @@ export function SeatGrid({
                         className={cn('seat-row', row.rear && 'rear')}
                     >
                         {row.seats.map((seat, index) => {
-                            const letter = (row.rear ? rearLetters : standardLetters)[index];
+                            const letter = (
+                                row.rear ? rearLetters : standardLetters
+                            )[index];
 
                             if (!seat) {
                                 return (
@@ -131,7 +139,9 @@ export function SeatGrid({
                                 >
                                     <span>{seat.code}</span>
                                     {status === 'reserved' && (
-                                        <small>{expiryLabel(seat.expiresAt)}</small>
+                                        <small>
+                                            {expiryLabel(seat.expiresAt)}
+                                        </small>
                                     )}
                                 </button>
                             );

@@ -194,7 +194,9 @@ export function DepartureFormDialog({
                                         id="departure-driver"
                                         name="driver_uuid"
                                         label="Chauffeur"
-                                        value={departure?.driverUuid ?? undefined}
+                                        value={
+                                            departure?.driverUuid ?? undefined
+                                        }
                                         options={drivers}
                                         placeholder="À affecter"
                                         error={errors.driver_uuid}
@@ -204,7 +206,10 @@ export function DepartureFormDialog({
                                         id="departure-conductor"
                                         name="conductor_uuid"
                                         label="Convoyeur"
-                                        value={departure?.conductorUuid ?? undefined}
+                                        value={
+                                            departure?.conductorUuid ??
+                                            undefined
+                                        }
                                         options={conductors}
                                         placeholder="À affecter"
                                         error={errors.conductor_uuid}
@@ -245,8 +250,8 @@ export function DepartureFormDialog({
                                     {processing
                                         ? 'Enregistrement…'
                                         : editing
-                                            ? 'Enregistrer les changements'
-                                            : 'Créer le départ'}
+                                          ? 'Enregistrer les changements'
+                                          : 'Créer le départ'}
                                 </Button>
                             </div>
                         </>

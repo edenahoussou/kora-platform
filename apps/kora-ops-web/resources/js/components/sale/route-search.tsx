@@ -21,15 +21,10 @@ export function RouteSearch({
         onChange({ ...value, [key]: nextValue || null });
 
     return (
-        <form
-            onSubmit={onSubmit}
-            className="search-route premium-route"
-        >
+        <form onSubmit={onSubmit} className="search-route premium-route">
             <div className="route-caption">
                 <span className="section-kicker">Itinéraire par segment</span>
-                <strong>
-                    Où voyage le passager ?
-                </strong>
+                <strong>Où voyage le passager ?</strong>
             </div>
             <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_2.2rem_minmax(0,1fr)_minmax(8.5rem,0.8fr)_auto] xl:items-end">
                 <label className="grid gap-1.5 text-[0.625rem] font-extrabold text-white/60">
