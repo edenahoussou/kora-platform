@@ -1,12 +1,17 @@
 import { router, useForm } from '@inertiajs/react';
-import type { FormEvent } from 'react';
+import type { SyntheticEvent } from 'react';
 import { sale } from '@/routes';
-import { hold, quote } from '@/routes/sale';
-import type { SaleDeparture, SaleProps, SaleSearch } from './sale-types';
+import { hold, passengers, quote, release } from '@/routes/sale';
+import type {
+    SaleDeparture,
+    SalePassengerForm,
+    SaleProps,
+    SaleSearch,
+} from './sale-types';
 
 function queryFrom(search: SaleSearch, departure?: SaleDeparture | null) {
     return {
-        date: search.date ?? departure?.departureDate,
+        date: search.date ?? departure?.departureDate ?? null,
         from: search.from ?? undefined,
         to: search.to ?? undefined,
         departure_uuid: departure?.uuid,
@@ -26,7 +31,23 @@ export function useCounterSale(props: SaleProps) {
         price_quote_uuid: props.quote?.uuid ?? '',
         seats: [] as Array<{ seat_uuid: string }>,
     });
-    const search = (event: FormEvent<HTMLFormElement>) => {
+    const passengersForm = useForm<{
+        date: string | null;
+        from: string | undefined;
+        to: string | undefined;
+        departure_uuid: string | undefined;
+        origin_stop_uuid: string | undefined;
+        destination_stop_uuid: string | undefined;
+        passengers: SalePassengerForm[];
+    }>({
+        ...queryFrom(searchForm.data, props.selectedDeparture),
+        passengers: [],
+    });
+    const releaseForm = useForm({
+        ...queryFrom(props.search, props.selectedDeparture),
+        quote_uuid: props.quote?.uuid ?? undefined,
+    });
+    const search = (event: SyntheticEvent<HTMLFormElement>) => {
         event.preventDefault();
         router.get(
             sale.url(),
@@ -79,14 +100,52 @@ export function useCounterSale(props: SaleProps) {
         }));
         holdForm.post(hold.url(), { preserveScroll: true, onSuccess });
     };
+    const savePassengers = (
+        reservationUuid: string,
+        passengerData: SalePassengerForm[],
+        onSuccess?: () => void,
+    ) => {
+        passengersForm.transform(() => ({
+            ...queryFrom(searchForm.data, props.selectedDeparture),
+            passengers: passengerData,
+        }));
+        passengersForm.post(passengers.url(reservationUuid), {
+            preserveScroll: true,
+            onSuccess,
+        });
+    };
+    const releaseHold = (
+        reservationUuid: string,
+        options: {
+            clearQuote?: boolean;
+            onSuccess?: () => void;
+            onError?: () => void;
+        } = {},
+    ) => {
+        releaseForm.transform(() => ({
+            ...queryFrom(searchForm.data, props.selectedDeparture),
+            quote_uuid: options.clearQuote
+                ? undefined
+                : (props.quote?.uuid ?? undefined),
+        }));
+        releaseForm.post(release.url(reservationUuid), {
+            preserveScroll: true,
+            onSuccess: options.onSuccess,
+            onError: options.onError,
+        });
+    };
 
     return {
         searchForm,
         quoteForm,
         holdForm,
+        passengersForm,
+        releaseForm,
         search,
         selectDeparture,
         calculateQuote,
         holdSeats,
+        savePassengers,
+        releaseHold,
     };
 }

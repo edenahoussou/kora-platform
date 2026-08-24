@@ -1,5 +1,5 @@
 import { ArrowUpDown, Search } from 'lucide-react';
-import type { FormEvent } from 'react';
+import type { SyntheticEvent } from 'react';
 import type { SaleCity, SaleSearch } from './sale-types';
 
 type Props = {
@@ -7,7 +7,7 @@ type Props = {
     value: SaleSearch;
     processing: boolean;
     onChange: (value: SaleSearch) => void;
-    onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+    onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void;
 };
 
 export function RouteSearch({
@@ -23,14 +23,11 @@ export function RouteSearch({
     return (
         <form
             onSubmit={onSubmit}
-            className="relative overflow-hidden rounded-[1.45rem] bg-[var(--kora)] p-5 text-white shadow-[0_22px_52px_rgba(0,29,78,0.18)] sm:p-6"
+            className="search-route premium-route"
         >
-            <div className="pointer-events-none absolute top-0 right-7 h-1 w-24 rounded-b-md bg-gold" />
-            <div className="mb-5">
-                <span className="block text-[0.625rem] font-black tracking-[0.16em] text-gold uppercase">
-                    Itinéraire par segment
-                </span>
-                <strong className="mt-1.5 block text-[1.2rem] font-extrabold tracking-[-0.035em]">
+            <div className="route-caption">
+                <span className="section-kicker">Itinéraire par segment</span>
+                <strong>
                     Où voyage le passager ?
                 </strong>
             </div>
@@ -104,6 +101,13 @@ export function RouteSearch({
                     <Search className="size-4" />
                     {processing ? 'Recherche…' : 'Rechercher'}
                 </button>
+            </div>
+            <div className="segment-note">
+                <span>Vente au guichet</span>
+                <strong>Disponibilité en temps réel</strong>
+                <small>
+                    Les places sont vérifiées sur chaque segment du trajet.
+                </small>
             </div>
         </form>
     );

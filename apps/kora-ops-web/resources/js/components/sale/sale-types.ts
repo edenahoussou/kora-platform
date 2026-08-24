@@ -1,4 +1,4 @@
-export type SaleStage = 'search' | 'seats' | 'held';
+export type SaleStage = 'search' | 'seats' | 'passengers';
 
 export type SaleCity = {
     city: string;
@@ -10,6 +10,48 @@ export type SaleSearch = {
     date: string | null;
     from: string | null;
     to: string | null;
+};
+
+export type SaleSellabilityReason =
+    | 'before_cutoff'
+    | 'within_grace'
+    | 'past_cutoff'
+    | 'boarding'
+    | 'departed'
+    | 'arrived'
+    | 'cancelled';
+
+export type SaleDepartureSellability = {
+    isSellable: boolean;
+    reason: SaleSellabilityReason;
+    saleClosesAt: string;
+};
+
+export type SalePassenger = {
+    uuid: string;
+    firstName: string;
+    lastName: string;
+    phone: string | null;
+    email: string | null;
+    documentType: string | null;
+    documentNumber: string | null;
+    nationality: string | null;
+    birthDate: string | null;
+    seatUuid: string | null;
+    seatCode: string | null;
+};
+
+export type SalePassengerForm = {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email: string;
+    documentType: string;
+    documentNumber: string;
+    nationality: string;
+    birthDate: string;
+    seatUuid: string;
+    seatCode: string;
 };
 
 export type SaleStop = {
@@ -31,6 +73,7 @@ export type SaleDeparture = {
         code: string;
         name: string;
         estimatedDurationMinutes: number | null;
+        isInternational: boolean;
     };
     bus: {
         uuid: string;
@@ -42,7 +85,13 @@ export type SaleDeparture = {
     originStop: SaleStop;
     destinationStop: SaleStop;
     availableSeatsCount: number;
-    farePreview: { final_amount?: number; currency?: string } | null;
+    sellability: SaleDepartureSellability;
+    farePreview: {
+        final_amount?: number;
+        currency?: string;
+        service_class_code?: string | null;
+        service_class_name?: string | null;
+    } | null;
 };
 
 export type SaleSeat = {
@@ -50,7 +99,8 @@ export type SaleSeat = {
     code: string;
     type: string;
     sellable: boolean;
-    availabilityStatus: 'available' | 'occupied' | 'blocked';
+    availabilityStatus: 'available' | 'reserved' | 'paid' | 'blocked';
+    expiresAt: string | null;
 };
 
 export type SaleQuote = {
@@ -72,6 +122,7 @@ export type SaleReservation = {
     currency: string;
     channel: string | null;
     departureUuid: string | null;
+    passengers: SalePassenger[];
     segments: Array<{
         uuid: string;
         seatUuid: string | null;

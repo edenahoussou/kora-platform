@@ -1,13 +1,18 @@
 import { Head } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
-import type { FormEvent } from 'react';
+import type { SyntheticEvent } from 'react';
+import { toast } from 'sonner';
 import { DepartureList } from '@/components/sale/departure-list';
-import { HoldConfirmation } from '@/components/sale/hold-confirmation';
+import { PassengerFinalization } from '@/components/sale/passenger-finalization';
 import { RouteSearch } from '@/components/sale/route-search';
 import { SalePageHeading } from '@/components/sale/sale-page-heading';
 import { SaleProgress } from '@/components/sale/sale-progress';
 import { SaleSummaryCard } from '@/components/sale/sale-summary-card';
-import type { SaleProps, SaleSearch } from '@/components/sale/sale-types';
+import type {
+    SalePassengerForm,
+    SaleProps,
+    SaleSearch,
+} from '@/components/sale/sale-types';
 import { SeatPicker } from '@/components/sale/seat-picker';
 import { useCounterSale } from '@/components/sale/use-counter-sale';
 
@@ -32,16 +37,23 @@ export default function SalePage(props: SaleProps) {
             segment.seatUuid ? [segment.seatUuid] : [],
         ) ?? [],
     );
+    const [passengerCount, setPassengerCount] = useState(
+        quote?.passengerCount ?? 1,
+    );
     const [isSeatPickerOpen, setIsSeatPickerOpen] = useState(false);
     const [isLoadingSeats, setIsLoadingSeats] = useState(false);
     const {
         searchForm,
         quoteForm,
         holdForm,
+        passengersForm,
+        releaseForm,
         search: submitSearch,
         selectDeparture,
         calculateQuote,
         holdSeats,
+        savePassengers,
+        releaseHold,
     } = useCounterSale({ ...props, search });
 
     const selectedSeatCodes = useMemo(
@@ -51,16 +63,22 @@ export default function SalePage(props: SaleProps) {
                 .map((seat) => seat.code),
         [seats, selectedSeatUuids],
     );
-    const stage = reservation ? 'held' : selectedDeparture ? 'seats' : 'search';
+    const stage = reservation
+        ? 'passengers'
+        : selectedDeparture
+          ? 'seats'
+          : 'search';
 
-    const onSearch = (event: FormEvent<HTMLFormElement>) => {
+    const onSearch = (event: SyntheticEvent<HTMLFormElement>) => {
         submitSearch(event);
         setSelectedSeatUuids([]);
+        setPassengerCount(1);
         setIsSeatPickerOpen(false);
     };
 
     const onSelectDeparture = (departure: SaleProps['departures'][number]) => {
         setSelectedSeatUuids([]);
+        setPassengerCount(1);
         setIsSeatPickerOpen(true);
         selectDeparture(departure, {
             onStart: () => setIsLoadingSeats(true),
@@ -69,18 +87,19 @@ export default function SalePage(props: SaleProps) {
     };
 
     const onCalculateQuote = () => {
-        if (!selectedDeparture || selectedSeatUuids.length === 0) {
+        if (!selectedDeparture || selectedSeatUuids.length !== passengerCount) {
             return;
         }
 
-        calculateQuote(selectedSeatUuids.length, selectedDeparture);
+        calculateQuote(passengerCount, selectedDeparture);
     };
 
     const onHold = () => {
         if (
             !selectedDeparture ||
             !quote ||
-            selectedSeatUuids.length !== quote.passengerCount
+            selectedSeatUuids.length !== quote.passengerCount ||
+            selectedSeatUuids.length !== passengerCount
         ) {
             return;
         }
@@ -88,6 +107,27 @@ export default function SalePage(props: SaleProps) {
         holdSeats(selectedDeparture, quote.uuid, selectedSeatUuids, () =>
             setIsSeatPickerOpen(false),
         );
+    };
+
+    const reopenSeatSelection = (reservationUuid: string) => {
+        setSelectedSeatUuids([]);
+        setPassengerCount(1);
+        setIsSeatPickerOpen(false);
+
+        releaseHold(reservationUuid, {
+            clearQuote: true,
+            onSuccess: () => {
+                toast.warning(
+                    'Votre blocage a expiré. Sélectionnez à nouveau vos places.',
+                );
+                setIsSeatPickerOpen(true);
+            },
+            onError: () => {
+                toast.error(
+                    'Impossible de recharger les places. Veuillez réessayer.',
+                );
+            },
+        });
     };
 
     return (
@@ -114,9 +154,23 @@ export default function SalePage(props: SaleProps) {
                         onSubmit={onSearch}
                     />
                     {reservation ? (
-                        <HoldConfirmation reservation={reservation} />
+                        <PassengerFinalization
+                            key={reservation.uuid}
+                            departure={selectedDeparture}
+                            reservation={reservation}
+                            processing={passengersForm.processing}
+                            releasing={releaseForm.processing}
+                            errors={passengersForm.errors}
+                            onSubmit={(passengers: SalePassengerForm[]) =>
+                                savePassengers(reservation.uuid, passengers)
+                            }
+                            onBack={() => releaseHold(reservation.uuid)}
+                            onHoldExpired={() =>
+                                reopenSeatSelection(reservation.uuid)
+                            }
+                        />
                     ) : (
-                        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_19rem]">
+                        <div className="sale-layout">
                             <DepartureList
                                 departures={departures}
                                 selectedUuid={selectedDeparture?.uuid ?? null}
@@ -124,6 +178,7 @@ export default function SalePage(props: SaleProps) {
                             />
                             <SaleSummaryCard
                                 departure={selectedDeparture}
+                                passengerCount={passengerCount}
                                 selectedSeatCodes={selectedSeatCodes}
                                 quote={quote}
                                 reservation={reservation}
@@ -142,16 +197,32 @@ export default function SalePage(props: SaleProps) {
                     departure={selectedDeparture}
                     seats={seats}
                     selectedSeatUuids={selectedSeatUuids}
+                    passengerCount={passengerCount}
                     loading={isLoadingSeats}
+                    processing={quoteForm.processing || holdForm.processing}
                     onToggleSeat={(seat) =>
                         setSelectedSeatUuids((current) =>
                             current.includes(seat.uuid)
                                 ? current.filter((uuid) => uuid !== seat.uuid)
-                                : [...current, seat.uuid],
+                                : current.length >= passengerCount
+                                  ? current
+                                  : [...current, seat.uuid],
                         )
                     }
+                    onPassengerCountChange={(count) => {
+                        setPassengerCount(count);
+                        setSelectedSeatUuids((current) =>
+                            current.slice(0, count),
+                        );
+                    }}
                     onClose={() => setIsSeatPickerOpen(false)}
-                    onConfirm={() => setIsSeatPickerOpen(false)}
+                    onConfirm={() => {
+                        if (selectedSeatUuids.length !== passengerCount) {
+                            return;
+                        }
+
+                        setIsSeatPickerOpen(false);
+                    }}
                 />
             )}
         </>
