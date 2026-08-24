@@ -2,7 +2,6 @@
 
 namespace App\Modules\Departures\Http\Requests;
 
-use App\Models\User;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\Departures\Models\Departure;

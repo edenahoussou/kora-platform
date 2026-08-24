@@ -139,7 +139,7 @@ class CounterSaleController extends Controller
      */
     private function searchDepartures(array $filters): Collection
     {
-        return $this->departures->search([
+        return $this->departures->searchSellable([
             'date' => $filters['date'],
             'from' => $filters['from'],
             'to' => $filters['to'],

@@ -39,11 +39,13 @@ class KoraDepartureSeeder extends Seeder
             ],
         );
 
-        foreach ([
-            ['name' => 'Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0],
-            ['name' => 'Porto-Novo', 'city' => 'Porto-Novo', 'country' => 'BJ', 'stop_order' => 2, 'km_from_origin' => 35],
-            ['name' => 'Lome', 'city' => 'Lome', 'country' => 'TG', 'stop_order' => 3, 'km_from_origin' => 170],
-        ] as $stop) {
+        foreach (
+            [
+                ['name' => 'Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0],
+                ['name' => 'Porto-Novo', 'city' => 'Porto-Novo', 'country' => 'BJ', 'stop_order' => 2, 'km_from_origin' => 35],
+                ['name' => 'Lome', 'city' => 'Lome', 'country' => 'TG', 'stop_order' => 3, 'km_from_origin' => 170],
+            ] as $stop
+        ) {
             Stop::query()->firstOrCreate(
                 ['line_id' => $line2->id, 'stop_order' => $stop['stop_order']],
                 $stop + ['uuid' => (string) \Str::uuid(), 'status' => 'active'],
@@ -54,6 +56,9 @@ class KoraDepartureSeeder extends Seeder
         if ($bus1 === null) {
             return;
         }
+
+        $bus2 = Bus::query()->where('registration_number', 'KORA-55-002')->first();
+        $bus3 = Bus::query()->where('registration_number', 'KORA-55-003')->first();
 
         $drivers = User::query()->where('email', 'like', 'driver.%@kora.demo')->limit(2)->get();
         $conductors = User::query()->where('email', 'like', 'conductor.%@kora.demo')->limit(2)->get();

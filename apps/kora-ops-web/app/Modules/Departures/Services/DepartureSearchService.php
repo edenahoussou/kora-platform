@@ -38,7 +38,7 @@ class DepartureSearchService
      * @param  array{date: string, line?: string|null, from?: string|null, to?: string|null, per_page?: int}  $filters
      * @return LengthAwarePaginator<int, DepartureAvailabilityData>
      */
-    public function search(array $filters): LengthAwarePaginator
+    public function search(array $filters, bool $sellableOnly = false): LengthAwarePaginator
     {
         $date = CarbonImmutable::parse($filters['date']);
         $perPage = $filters['per_page'] ?? 15;
@@ -64,6 +64,7 @@ class DepartureSearchService
                 $filters['to'] ?? null,
             ))
             ->filter()
+            ->when($sellableOnly, fn (Collection $items) => $items->filter(fn (DepartureAvailabilityData $item): bool => $item->sellability->isSellable))
             ->values();
 
         return new LengthAwarePaginator(
@@ -82,7 +83,7 @@ class DepartureSearchService
      * @param  array{date: string, line?: string|null, from?: string|null, to?: string|null}  $filters
      * @return Collection<int, DepartureAvailabilityData>
      */
-    public function searchSellable(array $filters): Collection
+    public function searchSellable(array $filters, bool $sellableOnly = false): Collection
     {
         $date = CarbonImmutable::parse($filters['date']);
         $lineIds = $this->resolveCandidateLineIds($filters['line'] ?? null, $filters['from'] ?? null, $filters['to'] ?? null);
@@ -99,6 +100,7 @@ class DepartureSearchService
                 $filters['to'] ?? null,
             ))
             ->filter()
+            ->when($sellableOnly, fn (Collection $items) => $items->filter(fn (DepartureAvailabilityData $item): bool => $item->sellability->isSellable))
             ->values();
     }
 
@@ -160,6 +162,20 @@ class DepartureSearchService
             CarbonImmutable::parse((string) $departure->departure_date),
             $filters['from'] ?? null,
             $filters['to'] ?? null,
+        );
+    }
+
+    /**
+     * @return array{origin: Stop, destination: Stop}
+     */
+    public function resolveSegment(Departure $departure, string $originStopUuid, string $destinationStopUuid): array
+    {
+        $departure->loadMissing('line.stops');
+
+        return $this->resolveLineSegmentStops->handle(
+            $departure->line,
+            originStopUuid: $originStopUuid,
+            destinationStopUuid: $destinationStopUuid,
         );
     }
 
