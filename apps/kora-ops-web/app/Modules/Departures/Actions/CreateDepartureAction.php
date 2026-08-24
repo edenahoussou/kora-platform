@@ -24,12 +24,12 @@ class CreateDepartureAction
             $agency = Agency::query()->where('uuid', $attributes['agency_uuid'])->firstOrFail();
 
             $driverId = null;
-            if (isset($attributes['driver_uuid']) && $attributes['driver_uuid'] !== null) {
+            if (isset($attributes['driver_uuid'])) {
                 $driverId = User::query()->where('uuid', $attributes['driver_uuid'])->firstOrFail(['id'])->id;
             }
 
             $conductorId = null;
-            if (isset($attributes['conductor_uuid']) && $attributes['conductor_uuid'] !== null) {
+            if (isset($attributes['conductor_uuid'])) {
                 $conductorId = User::query()->where('uuid', $attributes['conductor_uuid'])->firstOrFail(['id'])->id;
             }
 
