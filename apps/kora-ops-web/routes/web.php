@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Booking\Http\Controllers\CounterSaleController;
 use App\Modules\BusNetwork\Http\Controllers\BusController;
 use App\Modules\BusNetwork\Http\Controllers\LineController;
 use App\Modules\Departures\Http\Controllers\DepartureController;
@@ -20,7 +21,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // =========================================================
     // V1 MVP — Bus core (pages stubs, to be implemented)
     // =========================================================
-    Route::inertia('sale', 'sale')->name('sale');
+    Route::get('sale', [CounterSaleController::class, 'index'])->name('sale');
+    Route::post('sale/quote', [CounterSaleController::class, 'quote'])->name('sale.quote');
+    Route::post('sale/hold', [CounterSaleController::class, 'hold'])->name('sale.hold');
+    Route::post('sale/{reservation:uuid}/release', [CounterSaleController::class, 'releaseHold'])->name('sale.release');
+    Route::post('sale/{reservation:uuid}/passengers', [CounterSaleController::class, 'storePassengers'])->name('sale.passengers');
     Route::inertia('cash', 'cash')->name('cash');
     Route::inertia('boarding', 'boarding')->name('boarding');
     Route::inertia('manifest', 'manifest')->name('manifest');
@@ -31,6 +36,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('departures', [DepartureController::class, 'store'])->name('departures.store');
     Route::put('departures/{departure:uuid}', [DepartureController::class, 'update'])->name('departures.update');
     Route::patch('departures/{departure:uuid}/status', [DepartureController::class, 'changeStatus'])->name('departures.status');
+    Route::patch('departures/{departure:uuid}/delay', [DepartureController::class, 'recordDelay'])->name('departures.delay');
     Route::inertia('boarding', 'boarding')->name('boarding');
     Route::inertia('manifest', 'manifest')->name('manifest');
     Route::get('fares', [FareController::class, 'index'])->name('fares.index');

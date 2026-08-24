@@ -1,11 +1,232 @@
-import { ComingSoon } from '@/components/coming-soon';
+import { Head } from '@inertiajs/react';
+import { useMemo, useState } from 'react';
+import type { SyntheticEvent } from 'react';
+import { toast } from 'sonner';
+import { DepartureList } from '@/components/sale/departure-list';
+import { PassengerFinalization } from '@/components/sale/passenger-finalization';
+import { RouteSearch } from '@/components/sale/route-search';
+import { SalePageHeading } from '@/components/sale/sale-page-heading';
+import { SaleProgress } from '@/components/sale/sale-progress';
+import { SaleSummaryCard } from '@/components/sale/sale-summary-card';
+import type {
+    SalePassengerForm,
+    SaleProps,
+    SaleSearch,
+} from '@/components/sale/sale-types';
+import { SeatPicker } from '@/components/sale/seat-picker';
+import { useCounterSale } from '@/components/sale/use-counter-sale';
 
-export default function SalePage() {
+export default function SalePage(props: SaleProps) {
+    const {
+        cities,
+        search: initialSearch,
+        departures,
+        selectedDeparture,
+        seats,
+        quote,
+        reservation,
+        permissions,
+    } = props;
+    const [search, setSearch] = useState<SaleSearch>({
+        date: initialSearch.date,
+        from: initialSearch.from,
+        to: initialSearch.to,
+    });
+    const [selectedSeatUuids, setSelectedSeatUuids] = useState<string[]>(
+        reservation?.segments.flatMap((segment) =>
+            segment.seatUuid ? [segment.seatUuid] : [],
+        ) ?? [],
+    );
+    const [passengerCount, setPassengerCount] = useState(
+        quote?.passengerCount ?? 1,
+    );
+    const [isSeatPickerOpen, setIsSeatPickerOpen] = useState(false);
+    const [isLoadingSeats, setIsLoadingSeats] = useState(false);
+    const {
+        searchForm,
+        quoteForm,
+        holdForm,
+        passengersForm,
+        releaseForm,
+        search: submitSearch,
+        selectDeparture,
+        calculateQuote,
+        holdSeats,
+        savePassengers,
+        releaseHold,
+    } = useCounterSale({ ...props, search });
+
+    const selectedSeatCodes = useMemo(
+        () =>
+            seats
+                .filter((seat) => selectedSeatUuids.includes(seat.uuid))
+                .map((seat) => seat.code),
+        [seats, selectedSeatUuids],
+    );
+    const stage = reservation
+        ? 'passengers'
+        : selectedDeparture
+          ? 'seats'
+          : 'search';
+
+    const onSearch = (event: SyntheticEvent<HTMLFormElement>) => {
+        submitSearch(event);
+        setSelectedSeatUuids([]);
+        setPassengerCount(1);
+        setIsSeatPickerOpen(false);
+    };
+
+    const onSelectDeparture = (departure: SaleProps['departures'][number]) => {
+        setSelectedSeatUuids([]);
+        setPassengerCount(1);
+        setIsSeatPickerOpen(true);
+        selectDeparture(departure, {
+            onStart: () => setIsLoadingSeats(true),
+            onFinish: () => setIsLoadingSeats(false),
+        });
+    };
+
+    const onCalculateQuote = () => {
+        if (!selectedDeparture || selectedSeatUuids.length !== passengerCount) {
+            return;
+        }
+
+        calculateQuote(passengerCount, selectedDeparture);
+    };
+
+    const onHold = () => {
+        if (
+            !selectedDeparture ||
+            !quote ||
+            selectedSeatUuids.length !== quote.passengerCount ||
+            selectedSeatUuids.length !== passengerCount
+        ) {
+            return;
+        }
+
+        holdSeats(selectedDeparture, quote.uuid, selectedSeatUuids, () =>
+            setIsSeatPickerOpen(false),
+        );
+    };
+
+    const reopenSeatSelection = (reservationUuid: string) => {
+        setSelectedSeatUuids([]);
+        setPassengerCount(1);
+        setIsSeatPickerOpen(false);
+
+        releaseHold(reservationUuid, {
+            clearQuote: true,
+            onSuccess: () => {
+                toast.warning(
+                    'Votre blocage a expiré. Sélectionnez à nouveau vos places.',
+                );
+                setIsSeatPickerOpen(true);
+            },
+            onError: () => {
+                toast.error(
+                    'Impossible de recharger les places. Veuillez réessayer.',
+                );
+            },
+        });
+    };
+
     return (
-        <ComingSoon
-            title="Vente guichet"
-            description="Recherchez un départ, choisissez les places et finalisez la vente."
-            module="En développement"
-        />
+        <>
+            <Head title="Vente au guichet" />
+            <main className="w-full max-w-full overflow-x-hidden">
+                <SalePageHeading />
+                {!permissions.canCreate && (
+                    <div className="mb-5 rounded-[0.9rem] border border-gold/30 bg-gold/10 px-4 py-3 text-[0.75rem] font-bold text-foreground">
+                        Votre profil peut consulter les départs, mais ne dispose
+                        pas de l’autorisation de créer une vente guichet.
+                    </div>
+                )}
+                <SaleProgress stage={stage} />
+                <div className="grid gap-5">
+                    <RouteSearch
+                        cities={cities}
+                        value={search}
+                        processing={searchForm.processing}
+                        onChange={(nextSearch) => {
+                            setSearch(nextSearch);
+                            searchForm.setData(nextSearch);
+                        }}
+                        onSubmit={onSearch}
+                    />
+                    {reservation ? (
+                        <PassengerFinalization
+                            key={reservation.uuid}
+                            departure={selectedDeparture}
+                            reservation={reservation}
+                            processing={passengersForm.processing}
+                            releasing={releaseForm.processing}
+                            errors={passengersForm.errors}
+                            onSubmit={(passengers: SalePassengerForm[]) =>
+                                savePassengers(reservation.uuid, passengers)
+                            }
+                            onBack={() => releaseHold(reservation.uuid)}
+                            onHoldExpired={() =>
+                                reopenSeatSelection(reservation.uuid)
+                            }
+                        />
+                    ) : (
+                        <div className="sale-layout">
+                            <DepartureList
+                                departures={departures}
+                                selectedUuid={selectedDeparture?.uuid ?? null}
+                                onSelect={onSelectDeparture}
+                            />
+                            <SaleSummaryCard
+                                departure={selectedDeparture}
+                                passengerCount={passengerCount}
+                                selectedSeatCodes={selectedSeatCodes}
+                                quote={quote}
+                                reservation={reservation}
+                                processing={
+                                    quoteForm.processing || holdForm.processing
+                                }
+                                onQuote={onCalculateQuote}
+                                onHold={onHold}
+                            />
+                        </div>
+                    )}
+                </div>
+            </main>
+            {isSeatPickerOpen && selectedDeparture && (
+                <SeatPicker
+                    departure={selectedDeparture}
+                    seats={seats}
+                    selectedSeatUuids={selectedSeatUuids}
+                    passengerCount={passengerCount}
+                    loading={isLoadingSeats}
+                    processing={quoteForm.processing || holdForm.processing}
+                    onToggleSeat={(seat) =>
+                        setSelectedSeatUuids((current) =>
+                            current.includes(seat.uuid)
+                                ? current.filter((uuid) => uuid !== seat.uuid)
+                                : current.length >= passengerCount
+                                  ? current
+                                  : [...current, seat.uuid],
+                        )
+                    }
+                    onPassengerCountChange={(count) => {
+                        setPassengerCount(count);
+                        setSelectedSeatUuids((current) =>
+                            current.slice(0, count),
+                        );
+                    }}
+                    onClose={() => setIsSeatPickerOpen(false)}
+                    onConfirm={() => {
+                        if (selectedSeatUuids.length !== passengerCount) {
+                            return;
+                        }
+
+                        setIsSeatPickerOpen(false);
+                    }}
+                />
+            )}
+        </>
     );
 }
+
+SalePage.layout = { breadcrumbs: [{ title: 'Vente guichet', href: '/sale' }] };

@@ -3,12 +3,16 @@
 namespace App\Modules\Departures\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\Departures\Actions\ChangeDepartureStatusAction;
 use App\Modules\Departures\Actions\CreateDepartureAction;
+use App\Modules\Departures\Actions\RecordDepartureDelayAction;
 use App\Modules\Departures\Actions\UpdateDepartureAction;
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Http\Requests\ChangeDepartureStatusRequest;
+use App\Modules\Departures\Http\Requests\RecordDepartureDelayRequest;
 use App\Modules\Departures\Http\Requests\StoreDepartureRequest;
 use App\Modules\Departures\Http\Requests\UpdateDepartureRequest;
 use App\Modules\Departures\Models\Departure;
@@ -45,14 +49,20 @@ class DepartureController extends Controller
             $query->where('status', $status);
         }
 
-        $agencyId = $request->integer('agency_id');
-        if ($agencyId > 0) {
-            $query->where('agency_id', $agencyId);
+        $agencyUuid = $request->string('agency_uuid')->trim()->value();
+        if ($agencyUuid !== '') {
+            $agency = Agency::query()->where('uuid', $agencyUuid)->first(['id']);
+            if ($agency !== null) {
+                $query->where('agency_id', $agency->id);
+            }
         }
 
-        $lineId = $request->integer('line_id');
-        if ($lineId > 0) {
-            $query->where('line_id', $lineId);
+        $lineUuid = $request->string('line_uuid')->trim()->value();
+        if ($lineUuid !== '') {
+            $line = Line::query()->where('uuid', $lineUuid)->first(['id']);
+            if ($line !== null) {
+                $query->where('line_id', $line->id);
+            }
         }
 
         $date = $request->string('date')->trim()->value();
@@ -67,8 +77,11 @@ class DepartureController extends Controller
         return inertia('departures', [
             'departures' => $paginated->through(fn (Departure $departure): array => $this->serializeDeparture($departure)),
             'statuses' => DepartureStatus::options(),
-            'lines' => Line::query()->where('status', 'active')->orderBy('code')->get()->map(fn (Line $line): array => ['id' => $line->id, 'label' => $line->code.' · '.$line->name]),
-            'agencies' => Agency::query()->where('status', 'active')->orderBy('name')->get()->map(fn (Agency $agency): array => ['id' => $agency->id, 'name' => $agency->name]),
+            'lines' => $this->lineOptions(),
+            'agencies' => $this->agencyOptions(),
+            'buses' => $this->busOptions(),
+            'drivers' => $this->userOptions('bus_driver'),
+            'conductors' => $this->userOptions('conductor'),
             'stats' => $stats,
             'permissions' => [
                 'canCreate' => Gate::allows('create', Departure::class),
@@ -96,8 +109,11 @@ class DepartureController extends Controller
         return inertia('departures/detail', [
             'departure' => $this->serializeDepartureDetail($departure),
             'statuses' => DepartureStatus::options(),
-            'lines' => Line::query()->where('status', 'active')->orderBy('code')->get()->map(fn (Line $line): array => ['id' => $line->id, 'label' => $line->code.' · '.$line->name]),
-            'agencies' => Agency::query()->where('status', 'active')->orderBy('name')->get()->map(fn (Agency $agency): array => ['id' => $agency->id, 'name' => $agency->name]),
+            'lines' => $this->lineOptions(),
+            'agencies' => $this->agencyOptions(),
+            'buses' => $this->busOptions(),
+            'drivers' => $this->userOptions('bus_driver'),
+            'conductors' => $this->userOptions('conductor'),
             'timeline' => $this->buildTimeline($departure),
             'permissions' => [
                 'canUpdate' => Gate::allows('update', $departure),
@@ -130,6 +146,23 @@ class DepartureController extends Controller
         return back();
     }
 
+    public function recordDelay(RecordDepartureDelayRequest $request, Departure $departure, RecordDepartureDelayAction $recordDepartureDelay): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
+        $data = $request->payload();
+
+        $recordDepartureDelay->handle(
+            departure: $departure,
+            actor: $user,
+            delayMinutes: $data['delay_minutes'],
+            reason: $data['delay_reason'],
+        );
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Retard du départ enregistré.')]);
+
+        return back();
+    }
+
     /** @return array<string, mixed> */
     private function serializeDeparture(Departure $departure): array
     {
@@ -139,16 +172,24 @@ class DepartureController extends Controller
 
         return [
             'uuid' => $departure->uuid,
+            'lineUuid' => $departure->line?->uuid,
             'lineCode' => $departure->line->code ?? '—',
             'lineName' => $departure->line->name ?? '—',
+            'busUuid' => $departure->bus?->uuid,
             'busRegistration' => $departure->bus->registration_number ?? 'À affecter',
             'busSeatCount' => $seatCount,
+            'agencyUuid' => $departure->agency?->uuid,
             'agencyName' => $departure->agency->name ?? '—',
             'agencyCity' => $departure->agency->city ?? null,
             'departureDate' => $departure->departure_date?->format('Y-m-d'),
             'departureTime' => $departure->departure_time,
+            'delayMinutes' => (int) $departure->delay_minutes,
+            'delayReason' => $departure->delay_reason,
+            'delayRecordedAt' => $departure->delay_recorded_at?->toIso8601String(),
             'estimatedArrivalAt' => $departure->estimated_arrival_at?->toIso8601String(),
+            'driverUuid' => $departure->driver?->uuid,
             'driverName' => $departure->driver?->name,
+            'conductorUuid' => $departure->conductor?->uuid,
             'conductorName' => $departure->conductor?->name,
             'fillRate' => $fillRate,
             'reservationsCount' => $reservationsCount,
@@ -186,24 +227,29 @@ class DepartureController extends Controller
 
         return [
             'uuid' => $departure->uuid,
-            'lineId' => $departure->line_id,
+            'lineUuid' => $departure->line?->uuid,
             'lineCode' => $departure->line->code ?? '—',
             'lineName' => $departure->line->name ?? '—',
             'lineEstimatedDuration' => $departure->line->estimated_duration_minutes,
             'stops' => $stops,
-            'busUuid' => $departure->bus->uuid,
+            'busUuid' => $departure->bus?->uuid,
             'busRegistration' => $departure->bus->registration_number ?? 'À affecter',
             'busSeatCount' => $seatCount,
             'busAgencyName' => $departure->bus->agency?->name,
             'seats' => $seats,
-            'agencyId' => $departure->agency_id,
+            'agencyUuid' => $departure->agency?->uuid,
             'agencyName' => $departure->agency->name ?? '—',
             'agencyCity' => $departure->agency->city,
             'agencyCountry' => $departure->agency->country,
             'departureDate' => $departure->departure_date?->format('Y-m-d'),
             'departureTime' => $departure->departure_time,
+            'delayMinutes' => (int) $departure->delay_minutes,
+            'delayReason' => $departure->delay_reason,
+            'delayRecordedAt' => $departure->delay_recorded_at?->toIso8601String(),
             'estimatedArrivalAt' => $departure->estimated_arrival_at?->toIso8601String(),
+            'driverUuid' => $departure->driver?->uuid,
             'driverName' => $departure->driver?->name,
+            'conductorUuid' => $departure->conductor?->uuid,
             'conductorName' => $departure->conductor?->name,
             'creatorName' => $departure->creator?->name,
             'fillRate' => $fillRate,
@@ -212,6 +258,64 @@ class DepartureController extends Controller
             'createdAt' => $departure->created_at?->toIso8601String(),
             'updatedAt' => $departure->updated_at?->toIso8601String(),
         ];
+    }
+
+    /** @return array<int, array{uuid: string, label: string}> */
+    private function lineOptions(): array
+    {
+        return Line::query()
+            ->where('status', 'active')
+            ->orderBy('code')
+            ->get()
+            ->map(fn (Line $line): array => [
+                'uuid' => (string) $line->uuid,
+                'label' => $line->code.' · '.$line->name,
+            ])
+            ->all();
+    }
+
+    /** @return array<int, array{uuid: string, name: string}> */
+    private function agencyOptions(): array
+    {
+        return Agency::query()
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Agency $agency): array => [
+                'uuid' => (string) $agency->uuid,
+                'name' => $agency->name,
+            ])
+            ->all();
+    }
+
+    /** @return array<int, array{uuid: string, label: string, agencyUuid: string|null}> */
+    private function busOptions(): array
+    {
+        return Bus::query()
+            ->where('status', 'active')
+            ->with('agency:id,uuid')
+            ->orderBy('registration_number')
+            ->get()
+            ->map(fn (Bus $bus): array => [
+                'uuid' => (string) $bus->uuid,
+                'label' => (string) $bus->registration_number,
+                'agencyUuid' => $bus->agency?->uuid,
+            ])
+            ->all();
+    }
+
+    /** @return array<int, array{uuid: string, label: string}> */
+    private function userOptions(string $role): array
+    {
+        return User::query()
+            ->role($role)
+            ->orderBy('name')
+            ->get()
+            ->map(fn (User $user): array => [
+                'uuid' => (string) $user->uuid,
+                'label' => (string) $user->name,
+            ])
+            ->all();
     }
 
     /** @return array{total: int, scheduled: int, boarding: int, departed: int, arrived: int, cancelled: int} */

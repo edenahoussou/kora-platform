@@ -1,0 +1,145 @@
+export type SaleStage = 'search' | 'seats' | 'passengers';
+
+export type SaleCity = {
+    city: string;
+    country: string;
+    stopsCount: number;
+};
+
+export type SaleSearch = {
+    date: string | null;
+    from: string | null;
+    to: string | null;
+};
+
+export type SaleSellabilityReason =
+    | 'before_cutoff'
+    | 'within_grace'
+    | 'past_cutoff'
+    | 'boarding'
+    | 'departed'
+    | 'arrived'
+    | 'cancelled';
+
+export type SaleDepartureSellability = {
+    isSellable: boolean;
+    reason: SaleSellabilityReason;
+    saleClosesAt: string;
+};
+
+export type SalePassenger = {
+    uuid: string;
+    firstName: string;
+    lastName: string;
+    phone: string | null;
+    email: string | null;
+    documentType: string | null;
+    documentNumber: string | null;
+    nationality: string | null;
+    birthDate: string | null;
+    seatUuid: string | null;
+    seatCode: string | null;
+};
+
+export type SalePassengerForm = {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email: string;
+    documentType: string;
+    documentNumber: string;
+    nationality: string;
+    birthDate: string;
+    seatUuid: string;
+    seatCode: string;
+};
+
+export type SaleStop = {
+    uuid: string;
+    name: string;
+    city: string;
+    country: string;
+    stopOrder: number;
+};
+
+export type SaleDeparture = {
+    uuid: string;
+    departureDate: string;
+    departureTime: string;
+    estimatedArrivalAt: string | null;
+    status: string;
+    line: {
+        uuid: string;
+        code: string;
+        name: string;
+        estimatedDurationMinutes: number | null;
+        isInternational: boolean;
+    };
+    bus: {
+        uuid: string;
+        registrationNumber: string;
+        brand: string | null;
+        model: string | null;
+        seatCount: number;
+    };
+    originStop: SaleStop;
+    destinationStop: SaleStop;
+    availableSeatsCount: number;
+    sellability: SaleDepartureSellability;
+    farePreview: {
+        final_amount?: number;
+        currency?: string;
+        service_class_code?: string | null;
+        service_class_name?: string | null;
+    } | null;
+};
+
+export type SaleSeat = {
+    uuid: string;
+    code: string;
+    type: string;
+    sellable: boolean;
+    availabilityStatus: 'available' | 'reserved' | 'paid' | 'blocked';
+    expiresAt: string | null;
+};
+
+export type SaleQuote = {
+    uuid: string;
+    baseAmount: number;
+    coefficient: number;
+    finalAmount: number;
+    currency: string;
+    passengerCount: number;
+    totalAmount: number;
+    expiresAt: string | null;
+};
+
+export type SaleReservation = {
+    uuid: string;
+    status: string;
+    expiresAt: string | null;
+    totalAmount: number;
+    currency: string;
+    channel: string | null;
+    departureUuid: string | null;
+    passengers: SalePassenger[];
+    segments: Array<{
+        uuid: string;
+        seatUuid: string | null;
+        seatCode: string | null;
+        originStop: string | null;
+        destinationStop: string | null;
+        status: string;
+    }>;
+};
+
+export type SaleProps = {
+    cities: SaleCity[];
+    search: SaleSearch;
+    departures: SaleDeparture[];
+    selectedDeparture: SaleDeparture | null;
+    seats: SaleSeat[];
+    quote: SaleQuote | null;
+    reservation: SaleReservation | null;
+    permissions: { canCreate: boolean };
+};

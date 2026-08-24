@@ -6,7 +6,15 @@ use App\Modules\DynamicPricing\Data\PricingRuleStatus;
 use App\Modules\DynamicPricing\Data\PricingRuleType;
 use App\Modules\Support\Models\KoraModel;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property PricingRuleType $type
+ * @property array<string, mixed>|null $conditions
+ * @property Carbon|null $starts_at
+ * @property Carbon|null $ends_at
+ * @property PricingRuleStatus $status
+ */
 class PricingRule extends KoraModel
 {
     use SoftDeletes;

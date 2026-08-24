@@ -192,7 +192,7 @@ it('filters departures by status, agency, and search term', function (): void {
 
     // Filter by agency
     $this->actingAs(departuresManager())
-        ->get(route('departures.index', ['agency_id' => $agency2->id]))
+        ->get(route('departures.index', ['agency_uuid' => $agency2->uuid]))
         ->assertSuccessful()
         ->assertInertia(fn (Assert $page) => $page
             ->where('departures.total', 1)
@@ -248,13 +248,13 @@ it('creates a departure and computes estimated arrival from line duration', func
     $manager = departuresManager();
 
     $response = $this->actingAs($manager)->post(route('departures.store'), [
-        'line_id' => $line->id,
-        'bus_id' => $bus->id,
-        'agency_id' => $agency->id,
+        'line_uuid' => $line->uuid,
+        'bus_uuid' => $bus->uuid,
+        'agency_uuid' => $agency->uuid,
         'departure_date' => Carbon::today()->addDay()->format('Y-m-d'),
         'departure_time' => '08:00',
-        'driver_id' => null,
-        'conductor_id' => null,
+        'driver_uuid' => null,
+        'conductor_uuid' => null,
     ]);
 
     $response->assertRedirect(route('departures.index'));
@@ -282,12 +282,12 @@ it('rejects creation when bus does not belong to the selected agency', function 
 
     // bus1 belongs to agency1, but we pass agency2
     $this->actingAs(departuresManager())->post(route('departures.store'), [
-        'line_id' => $line->id,
-        'bus_id' => $bus1->id,
-        'agency_id' => $agency2->id,
+        'line_uuid' => $line->uuid,
+        'bus_uuid' => $bus1->uuid,
+        'agency_uuid' => $agency2->uuid,
         'departure_date' => Carbon::today()->addDay()->format('Y-m-d'),
         'departure_time' => '08:00',
-    ])->assertSessionHasErrors(['bus_id']);
+    ])->assertSessionHasErrors(['bus_uuid']);
 });
 
 it('updates a scheduled departure and blocks modification after departure', function (): void {
@@ -384,9 +384,9 @@ it('prevents agency agents from creating departures', function (): void {
 
     $this->actingAs(agencyAgent())
         ->post(route('departures.store'), [
-            'line_id' => $line->id,
-            'bus_id' => $bus->id,
-            'agency_id' => $agency->id,
+            'line_uuid' => $line->uuid,
+            'bus_uuid' => $bus->uuid,
+            'agency_uuid' => $agency->uuid,
             'departure_date' => Carbon::today()->addDay()->format('Y-m-d'),
             'departure_time' => '08:00',
         ])

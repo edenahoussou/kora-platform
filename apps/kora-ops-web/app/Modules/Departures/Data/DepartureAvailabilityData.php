@@ -16,5 +16,6 @@ readonly class DepartureAvailabilityData
         public Stop $destinationStop,
         public int $availableSeatsCount,
         public ?array $farePreview,
+        public DepartureSellabilityData $sellability,
     ) {}
 }

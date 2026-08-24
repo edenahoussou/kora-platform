@@ -10,7 +10,6 @@ use App\Modules\Departures\Models\Departure;
 use App\Modules\IdentityAccess\Models\Agency;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 
 class KoraDepartureSeeder extends Seeder
 {
@@ -27,8 +26,6 @@ class KoraDepartureSeeder extends Seeder
         }
 
         $bus1 = Bus::query()->where('registration_number', 'KORA-55-001')->first();
-        $bus2 = Bus::query()->where('registration_number', 'KORA-55-002')->first();
-        $bus3 = Bus::query()->where('registration_number', 'KORA-55-003')->first();
         if ($bus1 === null) {
             return;
         }
@@ -37,13 +34,43 @@ class KoraDepartureSeeder extends Seeder
         $conductors = User::query()->where('email', 'like', 'conductor.%@kora.demo')->limit(2)->get();
 
         $today = Carbon::today();
-        $tomorrow = Carbon::tomorrow();
+        $tomorrow = $today->copy()->addDay();
+        $dayAfterTomorrow = $today->copy()->addDays(2);
 
+        /**
+         * @var list<array{
+         *     line: Line,
+         *     bus: Bus,
+         *     date: Carbon,
+         *     time: string,
+         *     driver: User|null,
+         *     conductor: User|null,
+         *     status: DepartureStatus
+         * }> $departures
+         */
         $departures = [
             [
                 'line' => $line,
                 'bus' => $bus1,
                 'date' => $today,
+                'time' => '16:00',
+                'driver' => $drivers->get(0),
+                'conductor' => $conductors->get(0),
+                'status' => DepartureStatus::Scheduled,
+            ],
+            [
+                'line' => $line,
+                'bus' => $bus1,
+                'date' => $today,
+                'time' => '19:00',
+                'driver' => $drivers->get(1),
+                'conductor' => $conductors->get(1),
+                'status' => DepartureStatus::Scheduled,
+            ],
+            [
+                'line' => $line,
+                'bus' => $bus1,
+                'date' => $tomorrow,
                 'time' => '07:30',
                 'driver' => $drivers->get(0),
                 'conductor' => $conductors->get(0),
@@ -51,26 +78,17 @@ class KoraDepartureSeeder extends Seeder
             ],
             [
                 'line' => $line,
-                'bus' => $bus2 ?? $bus1,
-                'date' => $today,
-                'time' => '10:30',
+                'bus' => $bus1,
+                'date' => $tomorrow,
+                'time' => '14:00',
                 'driver' => $drivers->get(1),
                 'conductor' => $conductors->get(1),
-                'status' => DepartureStatus::Boarding,
-            ],
-            [
-                'line' => $line,
-                'bus' => $bus1,
-                'date' => $today,
-                'time' => '14:00',
-                'driver' => $drivers->get(0),
-                'conductor' => $conductors->get(0),
                 'status' => DepartureStatus::Scheduled,
             ],
             [
                 'line' => $line,
-                'bus' => $bus3 ?? $bus1,
-                'date' => $tomorrow,
+                'bus' => $bus1,
+                'date' => $dayAfterTomorrow,
                 'time' => '07:30',
                 'driver' => $drivers->get(1),
                 'conductor' => $conductors->get(1),
@@ -84,7 +102,7 @@ class KoraDepartureSeeder extends Seeder
                 ? $departureDateTime->addMinutes((int) $data['line']->estimated_duration_minutes)
                 : null;
 
-            Departure::query()->firstOrCreate(
+            Departure::query()->updateOrCreate(
                 [
                     'line_id' => $data['line']->id,
                     'bus_id' => $data['bus']->id,
@@ -92,7 +110,6 @@ class KoraDepartureSeeder extends Seeder
                     'departure_time' => $data['time'],
                 ],
                 [
-                    'uuid' => (string) Str::uuid(),
                     'agency_id' => $agency->id,
                     'estimated_arrival_at' => $estimatedArrivalAt,
                     'driver_id' => $data['driver']?->id,

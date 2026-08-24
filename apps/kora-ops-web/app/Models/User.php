@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasPublicUuid;
+use App\Modules\Booking\Models\Reservation;
 use App\Modules\IdentityAccess\Data\UserStatus;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\IdentityAccess\Models\UserDevice;
 use App\Modules\IdentityAccess\Models\UserPreference;
 use App\Modules\IdentityAccess\Models\UserSocialAccount;
-use App\Notifications\IdentityAccess\ResetPassword;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Notifications\IdentityAccess\ResetPassword;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -88,6 +89,14 @@ class User extends Authenticatable implements HasMedia, PasskeyUser
     public function socialAccounts(): HasMany
     {
         return $this->hasMany(UserSocialAccount::class);
+    }
+
+    /**
+     * @return HasMany<Reservation, $this>
+     */
+    public function reservations(): HasMany
+    {
+        return $this->hasMany(Reservation::class);
     }
 
     /**

@@ -32,7 +32,7 @@ class BusDepartureController extends Controller
      */
     public function index(ListDeparturesRequest $request): AnonymousResourceCollection
     {
-        return DepartureResource::collection($this->departures->search($request->filters()));
+        return DepartureResource::collection($this->departures->search($request->filters(), sellableOnly: true));
     }
 
     /**

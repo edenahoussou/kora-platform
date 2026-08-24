@@ -9,6 +9,8 @@ import {
     Landmark,
     LayoutDashboard,
     Package,
+    PanelLeftClose,
+    PanelLeftOpen,
     Receipt,
     Settings,
     Store,
@@ -19,6 +21,7 @@ import {
     Wallet,
 } from 'lucide-react';
 import { useState } from 'react';
+import AppLogoIcon from '@/components/app-logo-icon';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
@@ -185,11 +188,15 @@ const navItems: NavEntry[] = [
 ];
 
 export function KoraSidebar({
+    collapsed,
     mobileOpen,
     onMobileClose,
+    onToggleCollapse,
 }: {
+    collapsed: boolean;
     mobileOpen: boolean;
     onMobileClose: () => void;
+    onToggleCollapse: () => void;
 }) {
     const { isCurrentUrl } = useCurrentUrl();
     const { auth } = usePage().props;
@@ -209,27 +216,75 @@ export function KoraSidebar({
             typeof window !== 'undefined' &&
             window.location.pathname.startsWith(href));
 
-    const sidebarContent = (
+    const renderSidebarContent = (
+        isCollapsed: boolean,
+        showCollapseButton = true,
+    ) => (
         <>
             {/* Brand */}
-            <div className="kora-side-brand relative mx-1 mb-7 border-b border-white/10 pt-1.5 pb-3.5">
-                <Link href={dashboard()} className="block">
-                    <img
-                        src="/kora-logo-sidebar.png"
-                        alt="KORA EXPRESS"
-                        className="kora-side-logo block h-[5rem] w-full object-contain object-left drop-shadow-[0_10px_19px_rgba(0,29,78,0.32)]"
-                    />
+            <div
+                className={cn(
+                    'kora-side-brand relative mb-7 border-b border-white/10 pt-1.5 pb-3.5',
+                    isCollapsed
+                        ? 'mx-0 flex justify-center border-b-0 pb-0'
+                        : 'mx-1',
+                )}
+            >
+                <Link
+                    href={dashboard()}
+                    className={cn(isCollapsed && 'flex justify-center')}
+                >
+                    {isCollapsed ? (
+                        <span className="grid size-10 place-items-center rounded-[0.75rem] bg-gold text-[var(--kora)] shadow-[0_10px_22px_rgba(246,176,0,0.22)]">
+                            <AppLogoIcon className="size-5 fill-current" />
+                        </span>
+                    ) : (
+                        <img
+                            src="/kora-logo-sidebar.png"
+                            alt="KORA EXPRESS"
+                            className="kora-side-logo block h-[5rem] w-full object-contain object-left drop-shadow-[0_10px_19px_rgba(0,29,78,0.32)]"
+                        />
+                    )}
                 </Link>
-                <span className="mt-1.5 block text-[0.5625rem] font-black tracking-[0.22em] text-white/60 uppercase">
-                    KORA OPS
-                </span>
-                <i className="absolute bottom-[-1px] left-0 h-0.5 w-12 rounded bg-gold" />
+                {!isCollapsed && (
+                    <>
+                        <span className="mt-1.5 block text-[0.5625rem] font-black tracking-[0.22em] text-white/60 uppercase">
+                            KORA OPS
+                        </span>
+                        <i className="absolute bottom-[-1px] left-0 h-0.5 w-12 rounded bg-gold" />
+                    </>
+                )}
+                {showCollapseButton && (
+                    <button
+                        type="button"
+                        onClick={onToggleCollapse}
+                        className="absolute top-0 right-0 grid size-8 place-items-center rounded-[0.625rem] text-white/55 transition-colors hover:bg-white/10 hover:text-white"
+                        aria-label={
+                            isCollapsed
+                                ? 'Afficher la sidebar'
+                                : 'Masquer la sidebar'
+                        }
+                        title={
+                            isCollapsed
+                                ? 'Afficher la sidebar'
+                                : 'Masquer la sidebar'
+                        }
+                    >
+                        {isCollapsed ? (
+                            <PanelLeftOpen className="size-4" />
+                        ) : (
+                            <PanelLeftClose className="size-4" />
+                        )}
+                    </button>
+                )}
             </div>
 
             {/* Workspace label */}
-            <div className="mx-2 mb-3 text-[0.625rem] font-black tracking-[0.13em] text-white/35 uppercase">
-                Espace de travail
-            </div>
+            {!isCollapsed && (
+                <div className="mx-2 mb-3 text-[0.625rem] font-black tracking-[0.13em] text-white/35 uppercase">
+                    Espace de travail
+                </div>
+            )}
 
             {/* Navigation */}
             <nav
@@ -252,25 +307,32 @@ export function KoraSidebar({
                                     onClick={() => toggleGroup(item.title)}
                                     className={cn(
                                         'flex min-h-[2.6875rem] w-full items-center gap-3 rounded-[0.6875rem] border-0 px-3 text-left text-[0.8125rem] font-bold transition-colors',
+                                        isCollapsed && 'justify-center px-2',
                                         isOpen || hasActiveChild
                                             ? 'bg-white/10 text-white'
                                             : 'text-white/75 hover:bg-white/10 hover:text-white',
                                     )}
+                                    title={isCollapsed ? item.title : undefined}
+                                    aria-label={
+                                        isCollapsed ? item.title : undefined
+                                    }
                                 >
                                     <span className="grid size-[1.3125rem] shrink-0 place-items-center rounded-[0.4375rem] bg-gold/10 text-[0.6875rem] text-gold">
                                         <item.icon className="size-3.5" />
                                     </span>
-                                    {item.title}
-                                    <span
-                                        className={cn(
-                                            'ml-auto text-white/35 transition-transform',
-                                            isOpen && 'rotate-180',
-                                        )}
-                                    >
-                                        ⌄
-                                    </span>
+                                    {!isCollapsed && item.title}
+                                    {!isCollapsed && (
+                                        <span
+                                            className={cn(
+                                                'ml-auto text-white/35 transition-transform',
+                                                isOpen && 'rotate-180',
+                                            )}
+                                        >
+                                            ⌄
+                                        </span>
+                                    )}
                                 </button>
-                                {isOpen && (
+                                {!isCollapsed && isOpen && (
                                     <div className="mx-0 my-[3px] mb-1.5 ml-8 flex flex-col gap-0.5">
                                         {item.children.map((child) => (
                                             <Link
@@ -298,29 +360,58 @@ export function KoraSidebar({
                             href={item.href}
                             className={cn(
                                 'flex min-h-[2.6875rem] items-center gap-3 rounded-[0.6875rem] border-0 px-3 text-[0.8125rem] font-bold transition-colors',
+                                isCollapsed && 'justify-center px-2',
                                 active
                                     ? 'bg-white/10 text-white shadow-[inset_3px_0_var(--gold)]'
                                     : 'text-white/75 hover:bg-white/10 hover:text-white',
                             )}
+                            title={isCollapsed ? item.title : undefined}
+                            aria-label={isCollapsed ? item.title : undefined}
                         >
                             <span className="grid size-[1.3125rem] shrink-0 place-items-center rounded-[0.4375rem] bg-gold/10 text-[0.6875rem] text-gold">
                                 <item.icon className="size-3.5" />
                             </span>
-                            {item.title}
+                            {!isCollapsed && item.title}
                         </Link>
                     );
                 })}
             </nav>
 
             {/* Bottom: site pill */}
-            <div className="mt-auto border-t border-white/10 pt-3.5">
-                <div className="mx-1 rounded-[0.75rem] bg-white/[0.07] p-2.75">
-                    <small className="block text-[0.625rem] text-white/45">
-                        Périmètre actif
-                    </small>
-                    <strong className="mt-1 block text-[0.75rem] text-white">
-                        {auth?.user?.name ?? 'Siège Cotonou'}
-                    </strong>
+            <div
+                className={cn(
+                    'mt-auto border-t border-white/10 pt-3.5',
+                    isCollapsed && 'border-t-0 pt-0',
+                )}
+            >
+                <div
+                    className={cn(
+                        'mx-1 rounded-[0.75rem] bg-white/[0.07] p-2.75',
+                        isCollapsed && 'mx-0 bg-transparent p-0',
+                    )}
+                >
+                    {isCollapsed ? (
+                        <span
+                            className="mx-auto grid size-9 place-items-center rounded-[0.6875rem] bg-white/[0.08] text-[0.6875rem] font-black text-gold"
+                            title={auth?.user?.name ?? 'Siège Cotonou'}
+                        >
+                            {(auth?.user?.name ?? 'SC')
+                                .split(' ')
+                                .map((part) => part[0])
+                                .join('')
+                                .slice(0, 2)
+                                .toUpperCase()}
+                        </span>
+                    ) : (
+                        <>
+                            <small className="block text-[0.625rem] text-white/45">
+                                Périmètre actif
+                            </small>
+                            <strong className="mt-1 block text-[0.75rem] text-white">
+                                {auth?.user?.name ?? 'Siège Cotonou'}
+                            </strong>
+                        </>
+                    )}
                 </div>
             </div>
         </>
@@ -329,8 +420,13 @@ export function KoraSidebar({
     return (
         <>
             {/* Desktop sidebar */}
-            <aside className="kora-sidebar sticky top-0 hidden h-screen flex-col overflow-y-auto border-r border-white/10 bg-[var(--kora)] px-4 py-5.5 text-white shadow-[4px_0_24px_rgba(0,0,0,0.25)] lg:flex">
-                {sidebarContent}
+            <aside
+                className={cn(
+                    'kora-sidebar sticky top-0 hidden h-screen flex-col overflow-y-auto border-r border-white/10 bg-[var(--kora)] px-4 py-5.5 text-white shadow-[4px_0_24px_rgba(0,0,0,0.25)] transition-[padding] duration-300 lg:flex',
+                    collapsed && 'px-3',
+                )}
+            >
+                {renderSidebarContent(collapsed)}
             </aside>
 
             {/* Mobile sidebar overlay with slide animation */}
@@ -351,7 +447,7 @@ export function KoraSidebar({
                     )}
                     onClick={(e) => e.stopPropagation()}
                 >
-                    {sidebarContent}
+                    {renderSidebarContent(false, false)}
                 </aside>
             </div>
         </>

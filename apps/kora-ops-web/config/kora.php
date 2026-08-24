@@ -19,4 +19,17 @@ return [
 
     'api_version' => env('KORA_API_VERSION', 'v1'),
 
+    'departures' => [
+        'sellability' => [
+            'default_cutoff_minutes' => env('KORA_SALE_CUTOFF_MINUTES', 30),
+            'sellable_statuses' => ['scheduled'],
+            'stale_threshold_hours' => env('KORA_STALE_DEPARTURE_HOURS', 24),
+            'max_delay_minutes' => env('KORA_MAX_DEPARTURE_DELAY_MINUTES', 720),
+            'overrides' => [
+                'agencies' => [],
+                'lines' => [],
+            ],
+        ],
+    ],
+
 ];

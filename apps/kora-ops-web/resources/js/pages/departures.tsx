@@ -11,16 +11,21 @@ import type { BreadcrumbItem } from '@/types';
 
 type DepartureListItem = {
     uuid: string;
+    lineUuid: string | null;
     lineCode: string;
     lineName: string;
+    busUuid: string | null;
     busRegistration: string;
     busSeatCount: number;
+    agencyUuid: string | null;
     agencyName: string;
     agencyCity: string | null;
     departureDate: string | null;
     departureTime: string | null;
     estimatedArrivalAt: string | null;
+    driverUuid: string | null;
     driverName: string | null;
+    conductorUuid: string | null;
     conductorName: string | null;
     fillRate: number;
     reservationsCount: number;
@@ -36,6 +41,10 @@ type Stats = {
     cancelled: number;
 };
 
+type Option = { uuid: string; label: string };
+type AgencyOption = { uuid: string; name: string };
+type BusOption = { uuid: string; label: string; agencyUuid: string | null };
+
 type PageProps = {
     departures: {
         data: DepartureListItem[];
@@ -47,8 +56,11 @@ type PageProps = {
         to: number | null;
     };
     statuses: Record<string, string>;
-    lines: { id: number; label: string }[];
-    agencies: { id: number; name: string }[];
+    lines: Option[];
+    agencies: AgencyOption[];
+    buses: BusOption[];
+    drivers: Option[];
+    conductors: Option[];
     stats: Stats;
     permissions: {
         canCreate: boolean;
@@ -78,6 +90,9 @@ export default function DeparturesPage({
     statuses,
     lines,
     agencies,
+    buses,
+    drivers,
+    conductors,
     stats,
     permissions,
 }: PageProps) {
@@ -87,20 +102,26 @@ export default function DeparturesPage({
     const filters: FilterConfig[] = useMemo(
         () => [
             {
-                name: 'line_id',
+                name: 'date',
+                label: 'Date',
+                type: 'date',
+                options: [],
+            },
+            {
+                name: 'line_uuid',
                 label: 'Ligne',
                 placeholder: 'Toutes les lignes',
                 options: lines.map((line) => ({
-                    value: String(line.id),
+                    value: line.uuid,
                     label: line.label,
                 })),
             },
             {
-                name: 'agency_id',
+                name: 'agency_uuid',
                 label: 'Agence',
                 placeholder: 'Toutes les agences',
                 options: agencies.map((agency) => ({
-                    value: String(agency.id),
+                    value: agency.uuid,
                     label: agency.name,
                 })),
             },
@@ -425,6 +446,9 @@ export default function DeparturesPage({
                 statuses={statuses}
                 lines={lines}
                 agencies={agencies}
+                buses={buses}
+                drivers={drivers}
+                conductors={conductors}
                 onOpenChange={setDialogOpen}
             />
         </>
