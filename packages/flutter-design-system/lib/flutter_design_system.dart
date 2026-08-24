@@ -18,6 +18,7 @@ export 'src/widgets/business/departures_skeleton.dart';
 export 'src/widgets/business/home_skeleton.dart';
 export 'src/widgets/business/passenger_tile.dart';
 export 'src/widgets/business/seat_map.dart';
+export 'src/widgets/business/seats_badge.dart';
 export 'src/widgets/business/ticket_view.dart';
 export 'src/widgets/kora_alert.dart';
 export 'src/widgets/kora_badge.dart';

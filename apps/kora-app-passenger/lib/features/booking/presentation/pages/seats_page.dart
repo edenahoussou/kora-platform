@@ -17,6 +17,16 @@ import 'passenger_form_page.dart';
 
 /// Données passées à [SeatsPage] par `go_router` (`extra`) — même principe
 /// que le détail : le départ vient d'être affiché, on le transmet.
+/// Le gris « occupé » de la légende du ticket.
+///
+/// [AppColors.seatBlockedTextLight] est translucide : posé sur le panneau
+/// blanc du bus il donne exactement ce gris, mais la pastille de la
+/// légende, elle, repose sur le fond d'écran — le navy en thème sombre —
+/// où le même code vire au noir. Le siège et sa légende annonceraient
+/// deux couleurs différentes pour un seul état. On fige donc le résultat
+/// du mélange sur blanc.
+const Color _occupiedGrey = Color(0xFF7C8088);
+
 class SeatsArgs {
   const SeatsArgs({required this.departure, this.passengers = 1});
 
@@ -76,9 +86,13 @@ class _SeatsView extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   ScreenHeader(
+                    // Le véhicule réel (`KORA Coach 55`), et non la gamme
+                    // commerciale : l'API n'expose pas de gamme, et
+                    // `comfort` n'est qu'un repli pour les écrans qui
+                    // n'en ont pas d'autre.
                     eyebrow: departure == null
                         ? 'KORA BUS'
-                        : '${departure.comfort.label} · Bus '
+                        : '${departure.vehicleLabel} · '
                               '${departure.seatsTotal} places',
                     title: 'Choisissez votre siège',
                   ),
@@ -118,6 +132,25 @@ class _SeatsContent extends StatelessWidget {
         const _ProtectionNotice(),
         const SizedBox(height: 11),
         SeatMap(
+          // Légende du ticket : libre en bleu, occupé en gris, bloqué en
+          // or, choisi en navy. Elle diffère de celle de la maquette, qui
+          // parle à l'équipage — un siège « payé » ou « embarqué » n'a de
+          // sens qu'au contrôle. Le plan étant partagé avec l'app
+          // équipage, chacun passe la sienne.
+          palette: const {
+            KoraSeatStatus.available: AppColors.digital,
+            KoraSeatStatus.paid: _occupiedGrey,
+            KoraSeatStatus.blocked: AppColors.gold,
+            KoraSeatStatus.selected: AppColors.kora,
+          },
+          // Les deux états d'embarquement ne viennent jamais de cet
+          // endpoint : les annoncer au voyageur n'aurait aucun sens.
+          legendStatuses: const [
+            KoraSeatStatus.available,
+            KoraSeatStatus.selected,
+            KoraSeatStatus.paid,
+            KoraSeatStatus.blocked,
+          ],
           seats: [
             for (final seat in state.seats)
               KoraSeat(

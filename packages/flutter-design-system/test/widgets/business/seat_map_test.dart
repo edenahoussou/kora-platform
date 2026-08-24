@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -117,5 +118,75 @@ void main() {
         expect(tapped?.label, '1C');
       },
     );
+
+    group('palette et légende', () {
+      testWidgets('une palette remplace la couleur des sièges', (tester) async {
+        await pumpKoraWidget(
+          tester,
+          const SeatMap(
+            seats: seats,
+            showLegend: false,
+            palette: {KoraSeatStatus.available: Color(0xFF0057B8)},
+          ),
+        );
+
+        // Le passager suit la légende de son ticket — libre en bleu —
+        // là où la maquette, faite pour l'équipage, laisse le siège blanc.
+        final material = tester.widget<Material>(
+          find
+              .ancestor(of: find.text('1A'), matching: find.byType(Material))
+              .first,
+        );
+        expect(material.color, const Color(0xFF0057B8));
+      });
+
+      testWidgets('un siège recoloré garde sa forme barrée', (tester) async {
+        await pumpKoraWidget(
+          tester,
+          const SeatMap(
+            seats: seats,
+            showLegend: false,
+            palette: {KoraSeatStatus.blocked: Color(0xFFF6B000)},
+          ),
+        );
+
+        // La couleur change, la barre reste : c'est elle qui dit
+        // « indisponible » à qui ne distingue pas les teintes.
+        expect(find.byType(SeatMap), findsOneWidget);
+        final text = tester.widget<Text>(find.text('1D'));
+        expect(text.style?.decoration, TextDecoration.lineThrough);
+      });
+
+      testWidgets('la légende se limite aux états demandés', (tester) async {
+        await pumpKoraWidget(
+          tester,
+          const SeatMap(
+            seats: seats,
+            legendStatuses: [KoraSeatStatus.available, KoraSeatStatus.selected],
+          ),
+        );
+
+        expect(find.text('Libre'), findsOneWidget);
+        expect(find.text('Votre choix'), findsOneWidget);
+        // Les états d'embarquement ne concernent pas le voyageur.
+        expect(find.text('Embarqué'), findsNothing);
+        expect(find.text('Payé'), findsNothing);
+      });
+
+      testWidgets('les six états sont montrés par défaut', (tester) async {
+        await pumpKoraWidget(tester, const SeatMap(seats: seats));
+
+        for (final label in [
+          'Libre',
+          'Votre choix',
+          'Réservé',
+          'Payé',
+          'Embarqué',
+          'Bloqué',
+        ]) {
+          expect(find.text(label), findsOneWidget, reason: 'état $label');
+        }
+      });
+    });
   });
 }

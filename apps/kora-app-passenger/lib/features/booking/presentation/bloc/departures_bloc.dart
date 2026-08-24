@@ -19,15 +19,19 @@ part 'departures_state.dart';
 ///    [SearchCriteria] — d'où le besoin de la liste des villes ;
 /// 2. lancer la recherche et trier les résultats.
 ///
-/// Le tri est appliqué à l'affichage (voir [DeparturesState.sortedDepartures])
-/// et non en relançant la recherche : changer de tri ne doit pas rappeler
-/// l'API.
+/// Le tri **et les filtres** sont appliqués à l'affichage (voir
+/// [DeparturesState.visibleDepartures]) et non en relançant la recherche :
+/// cocher « Matin » ou passer au tri par prix ne doit pas rappeler l'API,
+/// tous les départs du jour sont déjà là.
 class DeparturesBloc extends Bloc<DeparturesEvent, DeparturesState> {
   DeparturesBloc(this._getCities, this._searchDepartures)
     : super(const DeparturesState()) {
     on<DeparturesRequested>(_onRequested);
     on<DeparturesRetried>(_onRetried);
     on<DeparturesSortChanged>(_onSortChanged);
+    on<DeparturesTimeSlotToggled>(_onTimeSlotToggled);
+    on<DeparturesFiltersCleared>(_onFiltersCleared);
+    on<DeparturesRefreshed>(_onRefreshed);
   }
 
   final GetCitiesUseCase _getCities;
@@ -101,17 +105,81 @@ class DeparturesBloc extends Bloc<DeparturesEvent, DeparturesState> {
     await _onRequested(request, emit);
   }
 
+  /// Retaper la puce déjà active inverse le sens ; changer de puce repart
+  /// en croissant. Une puce fraîchement choisie qui hériterait du sens
+  /// précédent afficherait « le plus cher d'abord » alors que
+  /// l'utilisateur vient seulement de demander un tri par prix.
   void _onSortChanged(
     DeparturesSortChanged event,
     Emitter<DeparturesState> emit,
   ) {
-    emit(state.copyWith(sort: event.sort));
+    final isSameField = event.field == state.sortField;
+
+    emit(
+      state.copyWith(
+        sortField: event.field,
+        sortDescending: isSameField && !state.sortDescending,
+      ),
+    );
   }
 
+  void _onTimeSlotToggled(
+    DeparturesTimeSlotToggled event,
+    Emitter<DeparturesState> emit,
+  ) {
+    final slots = {...state.timeSlots};
+    if (!slots.remove(event.slot)) slots.add(event.slot);
+
+    emit(state.copyWith(timeSlots: slots));
+  }
+
+  void _onFiltersCleared(
+    DeparturesFiltersCleared event,
+    Emitter<DeparturesState> emit,
+  ) {
+    emit(state.copyWith(timeSlots: const {}));
+  }
+
+  /// Rejoue la recherche **sans vider l'écran**.
+  ///
+  /// Les critères sont déjà résolus : on rappelle directement la
+  /// recherche, sans repasser par la liste des villes. Un échec ne casse
+  /// pas la liste affichée — des places légèrement périmées valent mieux
+  /// qu'un écran d'erreur à la place de résultats corrects. Le message
+  /// part dans [DeparturesState.refreshError], que l'écran signale au
+  /// passage.
+  Future<void> _onRefreshed(
+    DeparturesRefreshed event,
+    Emitter<DeparturesState> emit,
+  ) async {
+    final criteria = state.criteria;
+    if (criteria == null) return;
+
+    emit(state.copyWith(isRefreshing: true));
+
+    final result = await _searchDepartures(criteria);
+    result.fold(
+      (failure) => emit(
+        state.copyWith(isRefreshing: false, refreshError: failure.message),
+      ),
+      (departures) => emit(
+        state.copyWith(
+          status: DeparturesStatus.success,
+          departures: departures,
+          isRefreshing: false,
+        ),
+      ),
+    );
+  }
+
+  /// L'écran d'erreur, en conservant ce que l'utilisateur a réglé : ses
+  /// filtres et son tri doivent survivre à une coupure réseau.
   DeparturesState _failed(String message) => DeparturesState(
     status: DeparturesStatus.failure,
     criteria: state.criteria,
-    sort: state.sort,
+    sortField: state.sortField,
+    sortDescending: state.sortDescending,
+    timeSlots: state.timeSlots,
     errorMessage: message,
   );
 

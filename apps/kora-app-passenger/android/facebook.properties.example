@@ -1,0 +1,19 @@
+# Identifiants de la connexion Facebook, lus par android/app/build.gradle.kts
+# et injectés dans le manifest en ressources string.
+#
+# Copier ce fichier en `facebook.properties` (non versionné) et y mettre les
+# valeurs de https://developers.facebook.com > ton app :
+#
+#   facebookAppId       : Paramètres > Général > Identifiant de l'app
+#   facebookClientToken : Paramètres > Avancé > Sécurité > Jeton client
+#
+# Sans ce fichier, le build passe et le bouton Facebook reste désactivé.
+# Le même App ID doit aussi être passé au build Flutter, qui s'en sert pour
+# décider si le bouton est actif :
+#
+#   flutter build apk --release --dart-define=FACEBOOK_APP_ID=<le même>
+#
+# Voir docs/runbooks/mobile-release.md.
+
+facebookAppId=
+facebookClientToken=

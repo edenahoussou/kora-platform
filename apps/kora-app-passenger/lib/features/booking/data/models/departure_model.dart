@@ -88,6 +88,10 @@ class DepartureModel {
 
     return Departure(
       id: uuid,
+      // Le plan des sièges se demande pour un tronçon précis : sans ces
+      // deux identifiants, l'appel ne peut pas partir.
+      originStopId: originStop.uuid,
+      destinationStopId: destinationStop.uuid,
       line: line.toEntity(
         origin: originStop,
         destination: destinationStop,

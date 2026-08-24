@@ -1,4 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.kora_app_passager.app">
     <!-- Écran « Autorisations » : suivi du bus en direct et points KORA
          proches. La position approchée suffit à la plupart des écrans,
          mais le suivi du véhicule demande la position précise. -->
@@ -7,6 +7,11 @@
     <!-- Billet, rappels et alertes de trajet. Obligatoire depuis
          Android 13 : sans elle, aucune notification n'est affichée. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Indispensable en release. Le template Flutter ne la déclare que
+         dans les manifests debug/ et profile/, qui ne sont pas fusionnés
+         dans un build release : l'APK s'installe et s'ouvre, mais ne
+         joint jamais l'API. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
 
     <application
         android:label="kora_app"
@@ -39,6 +44,28 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- Connexion Facebook. Seules ces valeurs manquent au SDK : il
+             déclare lui-même FacebookActivity, CustomTabActivity (avec
+             son intent-filter fbconnect://cct.<applicationId>) et le
+             provider qui l'initialise au démarrage. Elles viennent de
+             android/facebook.properties via resValue (build.gradle.kts). -->
+        <meta-data
+            android:name="com.facebook.sdk.ApplicationId"
+            android:value="@string/facebook_app_id" />
+        <meta-data
+            android:name="com.facebook.sdk.ClientToken"
+            android:value="@string/facebook_client_token" />
+        <!-- Facebook ne sert ici qu'à la connexion : on coupe la
+             télémétrie automatique, qui partirait sinon à chaque
+             ouverture de l'app, et la collecte de l'identifiant
+             publicitaire, dont on n'a aucun usage. -->
+        <meta-data
+            android:name="com.facebook.sdk.AutoLogAppEventsEnabled"
+            android:value="false" />
+        <meta-data
+            android:name="com.facebook.sdk.AdvertiserIDCollectionEnabled"
+            android:value="false" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

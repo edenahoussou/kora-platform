@@ -50,9 +50,25 @@ class _WelcomeSceneState extends State<WelcomeScene>
   @override
   Widget build(BuildContext context) {
     final topInset = MediaQuery.paddingOf(context).top;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(54)),
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: const BoxDecoration(
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(54)),
+      ),
+      // Le dégradé finit sur du navy, qui est aussi le fond de page en
+      // thème sombre : l'arrondi du bas s'y dissout. Un filet le
+      // redessine, en `foregroundDecoration` — une bordure posée dans
+      // `decoration` se peindrait sous la scène.
+      foregroundDecoration: isDark
+          ? BoxDecoration(
+              border: Border.all(color: context.koraColors.line),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(54),
+              ),
+            )
+          : null,
       child: SizedBox(
         height: widget.height,
         child: DecoratedBox(
@@ -437,7 +453,14 @@ class _ServicePill extends StatelessWidget {
               color: AppColors.white.withValues(alpha: 0.09),
               borderRadius: BorderRadius.circular(17),
               border: Border.all(
-                color: AppColors.white.withValues(alpha: 0.13),
+                // `rgba(255,255,255,.13)` suffit sur le dégradé clair du
+                // haut ; posé plus bas, sur le navy du thème sombre, ce
+                // filet ne se voit plus. On l'appuie juste ce qu'il faut.
+                color: AppColors.white.withValues(
+                  alpha: Theme.of(context).brightness == Brightness.dark
+                      ? 0.28
+                      : 0.13,
+                ),
               ),
             ),
             child: Row(
