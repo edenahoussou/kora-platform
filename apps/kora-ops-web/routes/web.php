@@ -34,6 +34,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('departures', [DepartureController::class, 'store'])->name('departures.store');
     Route::put('departures/{departure:uuid}', [DepartureController::class, 'update'])->name('departures.update');
     Route::patch('departures/{departure:uuid}/status', [DepartureController::class, 'changeStatus'])->name('departures.status');
+    Route::patch('departures/{departure:uuid}/delay', [DepartureController::class, 'recordDelay'])->name('departures.delay');
     Route::inertia('boarding', 'boarding')->name('boarding');
     Route::inertia('manifest', 'manifest')->name('manifest');
     Route::get('fares', [FareController::class, 'index'])->name('fares.index');

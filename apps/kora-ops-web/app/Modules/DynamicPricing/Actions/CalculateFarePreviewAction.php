@@ -16,6 +16,7 @@ class CalculateFarePreviewAction
     public function handle(Line $line, Stop $originStop, Stop $destinationStop, CarbonInterface $travelDate): ?array
     {
         $fare = Fare::query()
+            ->with('serviceClass')
             ->whereBelongsTo($line)
             ->whereBelongsTo($originStop, 'originStop')
             ->whereBelongsTo($destinationStop, 'destinationStop')
@@ -36,6 +37,8 @@ class CalculateFarePreviewAction
             'base_amount' => $fare->base_amount,
             'final_amount' => $fare->base_amount,
             'currency' => $fare->currency,
+            'service_class_code' => $fare->serviceClass?->code,
+            'service_class_name' => $fare->serviceClass?->name,
             'is_quote' => false,
         ];
     }

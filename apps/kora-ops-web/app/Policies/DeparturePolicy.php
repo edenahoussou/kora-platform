@@ -30,6 +30,11 @@ class DeparturePolicy
         return $this->allows($user, 'departures.manage');
     }
 
+    public function recordDelay(User $user, Departure $departure): bool
+    {
+        return $this->allows($user, 'departures.manage');
+    }
+
     public function delete(User $user, Departure $departure): bool
     {
         return $this->allows($user, 'departures.cancel');

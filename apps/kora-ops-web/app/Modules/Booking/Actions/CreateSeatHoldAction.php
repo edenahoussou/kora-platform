@@ -12,6 +12,7 @@ use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Data\SeatStatus;
 use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
+use App\Modules\Departures\Actions\ResolveDepartureSellabilityAction;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Models\PriceQuote;
 use App\Modules\SeatInventory\Actions\FindOccupiedSeatIdsAction;
@@ -24,7 +25,10 @@ use function Illuminate\Support\enum_value;
 
 class CreateSeatHoldAction
 {
-    public function __construct(private FindOccupiedSeatIdsAction $findOccupiedSeatIds) {}
+    public function __construct(
+        private FindOccupiedSeatIdsAction $findOccupiedSeatIds,
+        private ResolveDepartureSellabilityAction $resolveSellability,
+    ) {}
 
     /**
      * @param  list<string>  $seatUuids
@@ -41,6 +45,13 @@ class CreateSeatHoldAction
         array $seatUuids,
         ReservationChannel $channel = ReservationChannel::Mobile,
     ): Reservation {
+        $sellability = $this->resolveSellability->handle($departure);
+        if (! $sellability->isSellable) {
+            throw ValidationException::withMessages([
+                'departure_uuid' => 'La vente est fermée pour ce départ.',
+            ]);
+        }
+
         if ($priceQuote->departure_id !== $departure->id ||
             $priceQuote->origin_stop_id !== $originStop->id ||
             $priceQuote->destination_stop_id !== $destinationStop->id) {
@@ -111,11 +122,22 @@ class CreateSeatHoldAction
                 $seats,
                 $channel,
             ): Reservation {
+                $lockedDeparture = Departure::query()
+                    ->whereKey($departure->getKey())
+                    ->lockForUpdate()
+                    ->firstOrFail();
+                $lockedSellability = $this->resolveSellability->handle($lockedDeparture);
+                if (! $lockedSellability->isSellable) {
+                    throw ValidationException::withMessages([
+                        'departure_uuid' => 'La vente est fermée pour ce départ.',
+                    ]);
+                }
+
                 $totalAmount = (int) ($priceQuote->final_amount * $seats->count());
 
                 $reservation = Reservation::create([
                     'user_id' => $user?->id,
-                    'departure_id' => $departure->id,
+                    'departure_id' => $lockedDeparture->id,
                     'price_quote_id' => $priceQuote->id,
                     'status' => ReservationStatus::Held,
                     'total_amount' => $totalAmount,
@@ -128,7 +150,7 @@ class CreateSeatHoldAction
                 foreach ($seats as $seat) {
                     ReservationSegment::create([
                         'reservation_id' => $reservation->id,
-                        'departure_id' => $departure->id,
+                        'departure_id' => $lockedDeparture->id,
                         'seat_id' => $seat->id,
                         'origin_stop_id' => $originStop->id,
                         'destination_stop_id' => $destinationStop->id,

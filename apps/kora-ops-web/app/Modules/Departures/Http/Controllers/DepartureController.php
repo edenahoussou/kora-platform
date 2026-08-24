@@ -3,12 +3,15 @@
 namespace App\Modules\Departures\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\Departures\Actions\ChangeDepartureStatusAction;
 use App\Modules\Departures\Actions\CreateDepartureAction;
+use App\Modules\Departures\Actions\RecordDepartureDelayAction;
 use App\Modules\Departures\Actions\UpdateDepartureAction;
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Http\Requests\ChangeDepartureStatusRequest;
+use App\Modules\Departures\Http\Requests\RecordDepartureDelayRequest;
 use App\Modules\Departures\Http\Requests\StoreDepartureRequest;
 use App\Modules\Departures\Http\Requests\UpdateDepartureRequest;
 use App\Modules\Departures\Models\Departure;
@@ -130,6 +133,23 @@ class DepartureController extends Controller
         return back();
     }
 
+    public function recordDelay(RecordDepartureDelayRequest $request, Departure $departure, RecordDepartureDelayAction $recordDepartureDelay): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
+        $data = $request->payload();
+
+        $recordDepartureDelay->handle(
+            departure: $departure,
+            actor: $user,
+            delayMinutes: $data['delay_minutes'],
+            reason: $data['delay_reason'],
+        );
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Retard du départ enregistré.')]);
+
+        return back();
+    }
+
     /** @return array<string, mixed> */
     private function serializeDeparture(Departure $departure): array
     {
@@ -147,6 +167,9 @@ class DepartureController extends Controller
             'agencyCity' => $departure->agency->city ?? null,
             'departureDate' => $departure->departure_date?->format('Y-m-d'),
             'departureTime' => $departure->departure_time,
+            'delayMinutes' => (int) $departure->delay_minutes,
+            'delayReason' => $departure->delay_reason,
+            'delayRecordedAt' => $departure->delay_recorded_at?->toIso8601String(),
             'estimatedArrivalAt' => $departure->estimated_arrival_at?->toIso8601String(),
             'driverName' => $departure->driver?->name,
             'conductorName' => $departure->conductor?->name,
@@ -202,6 +225,9 @@ class DepartureController extends Controller
             'agencyCountry' => $departure->agency->country,
             'departureDate' => $departure->departure_date?->format('Y-m-d'),
             'departureTime' => $departure->departure_time,
+            'delayMinutes' => (int) $departure->delay_minutes,
+            'delayReason' => $departure->delay_reason,
+            'delayRecordedAt' => $departure->delay_recorded_at?->toIso8601String(),
             'estimatedArrivalAt' => $departure->estimated_arrival_at?->toIso8601String(),
             'driverName' => $departure->driver?->name,
             'conductorName' => $departure->conductor?->name,

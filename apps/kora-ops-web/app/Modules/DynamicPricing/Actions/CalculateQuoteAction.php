@@ -3,6 +3,7 @@
 namespace App\Modules\DynamicPricing\Actions;
 
 use App\Modules\BusNetwork\Models\Stop;
+use App\Modules\Departures\Actions\ResolveDepartureSellabilityAction;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Data\FareStatus;
 use App\Modules\DynamicPricing\Data\PricingRuleStatus;
@@ -15,6 +16,8 @@ use Illuminate\Validation\ValidationException;
 
 class CalculateQuoteAction
 {
+    public function __construct(private ResolveDepartureSellabilityAction $resolveSellability) {}
+
     /**
      * @throws ValidationException
      */
@@ -25,6 +28,13 @@ class CalculateQuoteAction
         ?ServiceClass $serviceClass = null,
         int $passengerCount = 1,
     ): PriceQuote {
+        $sellability = $this->resolveSellability->handle($departure);
+        if (! $sellability->isSellable) {
+            throw ValidationException::withMessages([
+                'departure_uuid' => 'La vente est fermée pour ce départ.',
+            ]);
+        }
+
         $departure->loadMissing(['line.stops']);
 
         if ($originStop->line_id !== $departure->line_id || $destinationStop->line_id !== $departure->line_id) {

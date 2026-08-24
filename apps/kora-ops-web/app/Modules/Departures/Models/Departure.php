@@ -10,6 +10,7 @@ use App\Modules\BusNetwork\Models\Line;
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\Support\Models\KoraModel;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -19,6 +20,9 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $departure_date
  * @property Carbon|null $estimated_arrival_at
  * @property DepartureStatus $status
+ * @property int $delay_minutes
+ * @property string|null $delay_reason
+ * @property CarbonImmutable|null $delay_recorded_at
  */
 class Departure extends KoraModel
 {
@@ -31,6 +35,10 @@ class Departure extends KoraModel
         'agency_id',
         'departure_date',
         'departure_time',
+        'delay_minutes',
+        'delay_reason',
+        'delay_recorded_at',
+        'delay_recorded_by',
         'estimated_arrival_at',
         'driver_id',
         'conductor_id',
@@ -87,6 +95,22 @@ class Departure extends KoraModel
     }
 
     /**
+     * @return BelongsTo<User, $this>
+     */
+    public function delayRecorder(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'delay_recorded_by');
+    }
+
+    public function scheduledDepartureAt(): CarbonImmutable
+    {
+        return CarbonImmutable::parse(
+            $this->departure_date?->toDateString().' '.substr((string) $this->departure_time, 0, 8),
+            config('app.timezone'),
+        );
+    }
+
+    /**
      * @return HasMany<Reservation, $this>
      */
     public function reservations(): HasMany
@@ -107,6 +131,8 @@ class Departure extends KoraModel
         return [
             'departure_date' => 'date',
             'estimated_arrival_at' => 'datetime',
+            'delay_recorded_at' => 'datetime',
+            'delay_minutes' => 'integer',
             'status' => DepartureStatus::class,
         ];
     }
