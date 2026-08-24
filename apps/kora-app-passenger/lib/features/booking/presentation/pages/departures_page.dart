@@ -11,8 +11,8 @@ import '../../../../core/widgets/screen_header.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/search_criteria.dart';
 import '../bloc/departures_bloc.dart';
+import '../widgets/departure_filter_bar.dart';
 import '../widgets/departure_skeleton.dart';
-import '../widgets/departure_sort_chips.dart';
 import '../widgets/price_assurance_banner.dart';
 import '../widgets/state_view.dart';
 import 'departure_detail_page.dart';
@@ -68,18 +68,69 @@ class _DeparturesView extends StatelessWidget {
         bottom: false,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18),
-          child: BlocBuilder<DeparturesBloc, DeparturesState>(
-            builder: (context, state) => switch (state.status) {
-              DeparturesStatus.loading => _SearchingView(state: state),
-              DeparturesStatus.failure => _FailureView(state: state),
-              DeparturesStatus.success when state.isEmpty => _EmptyView(
-                state: state,
-              ),
-              DeparturesStatus.success => _ResultsView(state: state),
+          // Une actualisation ratée ne remplace pas la liste : elle se dit
+          // au passage, en laissant les résultats précédents à l'écran.
+          child: BlocListener<DeparturesBloc, DeparturesState>(
+            listenWhen: (previous, current) =>
+                current.refreshError != null &&
+                previous.refreshError != current.refreshError,
+            listener: (context, state) {
+              ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(
+                  SnackBar(content: Text(context.l10n.departuresRefreshFailed)),
+                );
             },
+            child: BlocBuilder<DeparturesBloc, DeparturesState>(
+              builder: (context, state) => switch (state.status) {
+                DeparturesStatus.loading => _SearchingView(state: state),
+                DeparturesStatus.failure => _FailureView(state: state),
+                DeparturesStatus.success => _Refreshable(
+                  child: switch (state) {
+                    _ when state.isEmpty => _EmptyView(state: state),
+                    _ when state.isFilteredEmpty => _FilteredEmptyView(
+                      state: state,
+                    ),
+                    _ => _ResultsView(state: state),
+                  },
+                ),
+              },
+            ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Le tiré-pour-actualiser des écrans de résultats.
+///
+/// Il enveloppe aussi les listes **vides** : les places et les départs
+/// bougent d'une minute à l'autre, et un écran « aucun départ » est
+/// justement celui qu'on a envie de retirer vers le bas. Les listes qu'il
+/// contient passent donc en `AlwaysScrollableScrollPhysics`, faute de quoi
+/// un contenu trop court n'accepterait aucun geste.
+///
+/// La `Future` rendue à [RefreshIndicator] attend la fin réelle de
+/// l'appel : sans elle l'indicateur disparaîtrait aussitôt lâché, laissant
+/// croire à une actualisation instantanée.
+class _Refreshable extends StatelessWidget {
+  const _Refreshable({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final bloc = context.read<DeparturesBloc>();
+
+    return RefreshIndicator(
+      color: AppColors.kora,
+      backgroundColor: context.koraColors.surface,
+      onRefresh: () async {
+        bloc.add(const DeparturesRefreshed());
+        await bloc.stream.firstWhere((state) => !state.isRefreshing);
+      },
+      child: child,
     );
   }
 }
@@ -120,8 +171,8 @@ class _SearchingView extends StatelessWidget {
   }
 }
 
-/// Écran `results` : rappel des critères, garantie de prix, tris, puis les
-/// cartes de départ.
+/// Écran `results` : rappel des critères, garantie de prix, tris et
+/// filtres, puis les cartes de départ.
 class _ResultsView extends StatelessWidget {
   const _ResultsView({required this.state});
 
@@ -129,15 +180,15 @@ class _ResultsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final departures = state.sortedDepartures;
-    final count = state.availableCount;
+    final departures = state.visibleDepartures;
 
     return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: EdgeInsets.zero,
       children: [
         ScreenHeader(
           eyebrow: _criteriaLabel(context, state.criteria),
-          title: context.l10n.departuresCount(count),
+          title: context.l10n.departuresCount(state.availableCount),
           action: KoraIconButton(
             icon: Icons.tune_rounded,
             onTap: () => Navigator.of(context).pop(),
@@ -145,11 +196,7 @@ class _ResultsView extends StatelessWidget {
         ),
         const PriceAssuranceBanner(),
         const SizedBox(height: AppSpacing.md),
-        DepartureSortChips(
-          selected: state.sort,
-          onChanged: (sort) =>
-              context.read<DeparturesBloc>().add(DeparturesSortChanged(sort)),
-        ),
+        _FilterBar(state: state),
         const SizedBox(height: AppSpacing.md),
         for (final departure in departures) ...[
           _DepartureTile(
@@ -160,6 +207,26 @@ class _ResultsView extends StatelessWidget {
         ],
         const SizedBox(height: AppSpacing.xl),
       ],
+    );
+  }
+}
+
+/// La barre de tri et de filtres, câblée sur le Bloc.
+class _FilterBar extends StatelessWidget {
+  const _FilterBar({required this.state});
+
+  final DeparturesState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final bloc = context.read<DeparturesBloc>();
+
+    return DepartureFilterBar(
+      sortField: state.sortField,
+      sortDescending: state.sortDescending,
+      timeSlots: state.timeSlots,
+      onSortTapped: (field) => bloc.add(DeparturesSortChanged(field)),
+      onTimeSlotTapped: (slot) => bloc.add(DeparturesTimeSlotToggled(slot)),
     );
   }
 }
@@ -185,6 +252,9 @@ class _DepartureTile extends StatelessWidget {
       vehicleLabel: departure.vehicleLabel,
       servicesLabel: departure.amenities.join(' · '),
       seatsAvailable: departure.seatsAvailable,
+      // Le total donne au badge sa couleur : 12 places sur 55, c'est
+      // orange ; sur 20, c'est vert.
+      seatsTotal: departure.seatsTotal,
       isSoldOut: departure.isSoldOut,
       onTap: () => context.push(
         AppRouter.departureDetailPath,
@@ -206,6 +276,7 @@ class _EmptyView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: EdgeInsets.zero,
       children: [
         ScreenHeader(
@@ -219,6 +290,44 @@ class _EmptyView extends StatelessWidget {
           message: context.l10n.departuresEmptyText,
           primaryLabel: context.l10n.departuresEditSearch,
           onPrimary: () => Navigator.of(context).pop(),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+      ],
+    );
+  }
+}
+
+/// Des départs existent, mais aucun ne passe les filtres.
+///
+/// La barre de filtres **reste affichée** : la liaison est desservie, la
+/// correction tient à un créneau qu'il suffit de décocher là où il est.
+/// Renvoyer vers le formulaire de recherche, comme le fait [_EmptyView],
+/// serait ici un détour absurde.
+class _FilteredEmptyView extends StatelessWidget {
+  const _FilteredEmptyView({required this.state});
+
+  final DeparturesState state;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
+      children: [
+        ScreenHeader(
+          eyebrow: _criteriaLabel(context, state.criteria),
+          title: context.l10n.departuresFilteredEmptyEyebrow,
+        ),
+        const SizedBox(height: AppSpacing.md),
+        _FilterBar(state: state),
+        StateView(
+          icon: Icons.filter_alt_off_rounded,
+          title: context.l10n.departuresFilteredEmptyTitle,
+          message: context.l10n.departuresFilteredEmptyText,
+          primaryLabel: context.l10n.departuresFiltersReset,
+          onPrimary: () => context.read<DeparturesBloc>().add(
+            const DeparturesFiltersCleared(),
+          ),
         ),
         const SizedBox(height: AppSpacing.xl),
       ],

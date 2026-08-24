@@ -9,7 +9,12 @@ import '../dimens/app_dimens.dart';
 /// (visible via `.sold-out .danger` — ex: badge "Complet" sur une
 /// [DepartureCard] pleine — `docs/maquettes/kora-app-passenger/css/
 /// style.css`, L1676).
-enum KoraTagVariant { neutral, gold, blue, outline, danger }
+///
+/// [success] n'a pas d'équivalent dans le prototype : il complète
+/// [danger] pour les badges qui gradent une valeur plutôt que d'annoncer
+/// un incident (places restantes d'un départ, voir [KoraSeatsBadge]). Un
+/// feu tricolore sans vert n'en est pas un.
+enum KoraTagVariant { neutral, gold, blue, outline, danger, success }
 
 /// Petit badge en forme de pilule, utilisé pour les statuts
 /// (ex: "Livré", "En cours", "VIP"). Équivalent `.tag` / `.status`.
@@ -72,6 +77,10 @@ class KoraTag extends StatelessWidget {
         break;
       case KoraTagVariant.danger:
         background = AppColors.danger;
+        foreground = AppColors.white;
+        break;
+      case KoraTagVariant.success:
+        background = AppColors.success;
         foreground = AppColors.white;
         break;
     }

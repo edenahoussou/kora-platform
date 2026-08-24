@@ -27,7 +27,9 @@ void main() {
       expect(find.text('Malanville'), findsOneWidget);
       expect(find.text('≈ 9 h 45'), findsOneWidget);
       expect(find.text('12 500 FCFA'), findsOneWidget);
-      expect(find.text('12 places'), findsOneWidget);
+      // Les places passent par KoraSeatsBadge, donc par KoraTag : elles
+      // sont mises en majuscules comme les autres badges.
+      expect(find.text('12 PLACES'), findsOneWidget);
       // Le label passe par KoraTag, qui le met en majuscules (`.tag`,
       // `text-transform: uppercase` — voir kora_tag.dart).
       expect(find.text('KORA CONFORT'), findsOneWidget);
@@ -48,7 +50,7 @@ void main() {
         ),
       );
 
-      expect(find.textContaining('places'), findsNothing);
+      expect(find.byType(KoraSeatsBadge), findsNothing);
     });
 
     testWidgets('déclenche onTap au tap', (tester) async {

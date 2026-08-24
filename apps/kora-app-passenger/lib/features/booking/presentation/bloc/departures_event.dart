@@ -39,12 +39,44 @@ class DeparturesRetried extends DeparturesEvent {
   const DeparturesRetried();
 }
 
-/// Changement de tri depuis les puces « Heure » / « Prix ».
+/// Tir sur une puce de tri (« Heure », « Prix », « Durée »).
+///
+/// Un seul événement pour deux gestes, parce que c'est un seul geste pour
+/// l'utilisateur : taper une puce inactive change de critère, retaper la
+/// puce active inverse le sens. C'est le Bloc qui tranche — l'écran n'a
+/// pas à savoir quel tri est déjà en place pour émettre le bon événement.
 class DeparturesSortChanged extends DeparturesEvent {
-  const DeparturesSortChanged(this.sort);
+  const DeparturesSortChanged(this.field);
 
-  final DepartureSort sort;
+  final DepartureSortField field;
 
   @override
-  List<Object?> get props => [sort];
+  List<Object?> get props => [field];
+}
+
+/// Tir sur une puce de créneau (« Matin », « Après-midi », « Soir ») :
+/// ajoute le créneau aux filtres, ou l'en retire s'il y était.
+class DeparturesTimeSlotToggled extends DeparturesEvent {
+  const DeparturesTimeSlotToggled(this.slot);
+
+  final DepartureTimeSlot slot;
+
+  @override
+  List<Object?> get props => [slot];
+}
+
+/// Retour à la liste complète, depuis l'écran « aucun départ ne
+/// correspond ».
+class DeparturesFiltersCleared extends DeparturesEvent {
+  const DeparturesFiltersCleared();
+}
+
+/// Tiré-pour-actualiser sur la liste des résultats.
+///
+/// Distinct de [DeparturesRetried], qui repart d'un écran d'erreur : ici
+/// des résultats sont déjà affichés et doivent le rester pendant l'appel.
+/// Les places disponibles bougent en permanence, c'est le geste qui remet
+/// la liste à jour sans refaire la recherche depuis le formulaire.
+class DeparturesRefreshed extends DeparturesEvent {
+  const DeparturesRefreshed();
 }

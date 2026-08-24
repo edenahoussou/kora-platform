@@ -1,5 +1,7 @@
-// Tests d'écran de la liste des départs : les quatre états visuels
-// (recherche en cours, résultats, aucun départ, erreur) et le tri.
+// Tests d'écran de la liste des départs : les cinq états visuels
+// (recherche en cours, résultats, aucun départ, filtres trop stricts,
+// erreur), le tri, les filtres par créneau, le badge des places et le
+// tiré-pour-actualiser.
 
 import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
@@ -67,7 +69,12 @@ void main() {
   tearDown(() => getIt.reset());
 
   Future<void> pumpPage(WidgetTester tester) async {
-    tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+    // Écran volontairement plus haut qu'un téléphone : la `ListView` ne
+    // construit que ce qu'elle affiche, et sur 844 points la quatrième
+    // carte tombe sous la ligne de flottaison depuis que la barre de tri
+    // et de filtres occupe le haut de l'écran. Les assertions ci-dessous
+    // portent sur l'ordre et le nombre de résultats, pas sur le défilement.
+    tester.view.physicalSize = const Size(390 * 3, 1400 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
 
@@ -140,20 +147,204 @@ void main() {
     expect(find.text('COMPLET'), findsOneWidget);
   });
 
-  testWidgets('trie par prix au clic sur la puce', (tester) async {
-    await pumpPage(tester);
-    await tester.pumpAndSettle();
+  group('badge des places', () {
+    testWidgets('colore chaque départ selon son remplissage', (tester) async {
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
 
-    // Par défaut : tri par heure.
-    expect(visibleTimes(tester), ['07:30', '09:00', '20:00', '22:30']);
+      final variants = tester
+          .widgetList<KoraTag>(
+            find.descendant(
+              of: find.byType(KoraSeatsBadge),
+              matching: find.byType(KoraTag),
+            ),
+          )
+          .map((tag) => tag.variant)
+          .toList();
 
-    await tester.tap(find.text('PRIX'));
-    await tester.pumpAndSettle();
+      // Sur 55 places : 12 libres (22 %) → orange, 5 (9 %) → rouge,
+      // 22 (40 %) → vert. Le quatrième départ est complet : il porte le
+      // badge « Complet », pas un badge de places.
+      expect(variants, [
+        KoraTagVariant.gold,
+        KoraTagVariant.danger,
+        KoraTagVariant.success,
+      ]);
+      expect(find.byType(KoraSeatsBadge), findsNWidgets(3));
+    });
 
-    // Les deux départs à 12 500 FCFA passent devant celui à 14 500, et le
-    // départ complet reste en dernier.
-    expect(visibleTimes(tester).last, '22:30');
-    expect(visibleTimes(tester).take(2), ['07:30', '09:00']);
+    testWidgets('annonce le nombre de places restantes', (tester) async {
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.text('12 PLACES'), findsOneWidget);
+      expect(find.text('5 PLACES'), findsOneWidget);
+      expect(find.text('22 PLACES'), findsOneWidget);
+    });
+  });
+
+  group('tri', () {
+    testWidgets('trie par prix au clic sur la puce', (tester) async {
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
+
+      // Par défaut : tri par heure, croissant.
+      expect(find.text('HEURE ↑'), findsOneWidget);
+      expect(visibleTimes(tester), ['07:30', '09:00', '20:00', '22:30']);
+
+      await tester.tap(find.text('PRIX'));
+      await tester.pumpAndSettle();
+
+      // Les deux départs à 12 500 FCFA passent devant celui à 14 500, et le
+      // départ complet reste en dernier.
+      expect(visibleTimes(tester).last, '22:30');
+      expect(visibleTimes(tester).take(2), ['07:30', '09:00']);
+    });
+
+    testWidgets('retaper la puce active inverse le sens', (tester) async {
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('PRIX'));
+      await tester.pumpAndSettle();
+      expect(find.text('PRIX ↑'), findsOneWidget);
+
+      await tester.tap(find.text('PRIX ↑'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('PRIX ↓'), findsOneWidget);
+      // Le plus cher réservable d'abord (20:00, 14 500 FCFA) ; le complet,
+      // pourtant au même prix, reste en queue.
+      expect(visibleTimes(tester).first, '20:00');
+      expect(visibleTimes(tester).last, '22:30');
+    });
+
+    testWidgets('propose aussi un tri par durée', (tester) async {
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.text('DURÉE'), findsOneWidget);
+
+      await tester.tap(find.text('DURÉE'));
+      await tester.pumpAndSettle();
+
+      // Tous les départs mockés partagent la même ligne : le tri ne peut
+      // rien réordonner, mais la puce doit devenir active.
+      expect(find.text('DURÉE ↑'), findsOneWidget);
+      expect(find.byType(DepartureCard), findsNWidgets(4));
+    });
+  });
+
+  group('filtres par créneau', () {
+    testWidgets('« Matin » ne garde que les départs d’avant midi', (
+      tester,
+    ) async {
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('MATIN'));
+      await tester.pumpAndSettle();
+
+      expect(visibleTimes(tester), ['07:30', '09:00']);
+      // Le titre suit le filtre : annoncer 3 départs au-dessus d'une liste
+      // de 2 serait un mensonge.
+      expect(find.text('2 départs disponibles'), findsOneWidget);
+    });
+
+    testWidgets('retaper la puce enlève le filtre', (tester) async {
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('MATIN'));
+      await tester.pumpAndSettle();
+      expect(find.byType(DepartureCard), findsNWidgets(2));
+
+      await tester.tap(find.text('MATIN'));
+      await tester.pumpAndSettle();
+      expect(find.byType(DepartureCard), findsNWidgets(4));
+    });
+
+    testWidgets('un créneau sans départ affiche un état dédié', (tester) async {
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('APRÈS-MIDI'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Aucun départ sur ce créneau'), findsOneWidget);
+      expect(find.byType(DepartureCard), findsNothing);
+      // Surtout pas le message « liaison non desservie » : la liaison
+      // l'est, ce sont les filtres qui sont trop stricts.
+      expect(find.text('Aucun voyage ce jour-là'), findsNothing);
+      // Les puces restent à l'écran pour pouvoir se décocher sur place.
+      expect(find.text('APRÈS-MIDI'), findsOneWidget);
+    });
+
+    testWidgets('« Voir tous les départs » rend la liste complète', (
+      tester,
+    ) async {
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('APRÈS-MIDI'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Voir tous les départs'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DepartureCard), findsNWidgets(4));
+      expect(find.text('3 départs disponibles'), findsOneWidget);
+    });
+  });
+
+  group('tiré-pour-actualiser', () {
+    testWidgets('relance la recherche et met la liste à jour', (tester) async {
+      // Le second appel rend un départ de moins : de quoi vérifier que
+      // c'est bien le résultat frais qui est affiché.
+      var attempt = 0;
+      when(() => searchDepartures(any())).thenAnswer((_) async {
+        attempt += 1;
+        return Right(attempt == 1 ? departures : departures.take(2).toList());
+      });
+
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
+      expect(find.byType(DepartureCard), findsNWidgets(4));
+
+      await tester.fling(
+        find.byType(DepartureCard).first,
+        const Offset(0, 400),
+        1000,
+      );
+      await tester.pumpAndSettle();
+
+      expect(attempt, 2);
+      expect(find.byType(DepartureCard), findsNWidgets(2));
+    });
+
+    testWidgets('un échec garde la liste et prévient', (tester) async {
+      var attempt = 0;
+      when(() => searchDepartures(any())).thenAnswer((_) async {
+        attempt += 1;
+        return attempt == 1 ? Right(departures) : const Left(NetworkFailure());
+      });
+
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
+
+      await tester.fling(
+        find.byType(DepartureCard).first,
+        const Offset(0, 400),
+        1000,
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      // L'écran d'erreur ne remplace pas des résultats corrects.
+      expect(find.byType(DepartureCard), findsNWidgets(4));
+      expect(find.text('La recherche a échoué'), findsNothing);
+      expect(find.byType(SnackBar), findsOneWidget);
+    });
   });
 
   testWidgets('affiche l’état « aucun départ »', (tester) async {

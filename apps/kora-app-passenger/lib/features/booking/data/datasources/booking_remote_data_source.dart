@@ -10,6 +10,7 @@ import '../../domain/entities/upcoming_trip.dart';
 import '../models/bus_json.dart';
 import '../models/city_model.dart';
 import '../models/departure_model.dart';
+import '../models/seat_model.dart';
 import 'booking_data_source.dart';
 
 /// Couche DATA : le parcours Bus branché sur l'API KORA.
@@ -89,8 +90,31 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
 
   /// Pas encore servi par l'API — voir la note de classe.
   @override
-  Future<List<Seat>> getSeats(Departure departure) =>
-      pending.getSeats(departure);
+  Future<List<Seat>> getSeats(Departure departure) async {
+    final origin = departure.originStopId;
+    final destination = departure.destinationStopId;
+
+    // Les deux arrêts sont obligatoires côté serveur : sans eux la
+    // disponibilité n'a pas de sens, une place étant libre ou non selon
+    // le tronçon. Un départ mocké n'en a pas — on retombe alors sur le
+    // plan de démonstration plutôt que d'envoyer une requête invalide.
+    if (origin == null || destination == null) {
+      return pending.getSeats(departure);
+    }
+
+    final response = await _dio.get<dynamic>(
+      ApiConstants.busDepartureSeats(departure.id),
+      queryParameters: {
+        'origin_stop_uuid': origin,
+        'destination_stop_uuid': destination,
+      },
+    );
+
+    return [
+      for (final json in BusJson.list(response.data))
+        SeatModel.fromJson(json).toEntity(),
+    ];
+  }
 
   /// Pas encore servi par l'API — voir la note de classe.
   @override

@@ -92,7 +92,9 @@ void main() {
     await pumpSeats(tester);
 
     expect(find.text('Choisissez votre siège'), findsOneWidget);
-    expect(find.text('KORA CONFORT · BUS 55 PLACES'), findsOneWidget);
+    // Le véhicule réel quand l'API le donne ; ici un départ mocké, qui
+    // n'a que sa gamme — d'où le repli sur celle-ci.
+    expect(find.text('KORA CONFORT · 55 PLACES'), findsOneWidget);
     expect(find.text('Aucun siège · 0/1'), findsOneWidget);
     expect(find.byType(SeatMap), findsOneWidget);
   });

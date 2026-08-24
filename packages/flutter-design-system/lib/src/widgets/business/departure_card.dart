@@ -5,6 +5,7 @@ import '../../colors/kora_colors.dart';
 import '../../dimens/app_dimens.dart';
 import '../../icons/kora_vehicle_icon.dart';
 import '../kora_tag.dart';
+import 'seats_badge.dart';
 
 /// Carte de départ (résultats de recherche Bus) — équivalent `.trip-card`
 /// du prototype (`docs/maquettes/kora-app-passenger/css/style.css`,
@@ -48,6 +49,7 @@ class DepartureCard extends StatelessWidget {
     this.vehicleLabel = 'KORA Confort',
     this.servicesLabel = 'Wi-Fi · Climatisation · USB',
     this.seatsAvailable,
+    this.seatsTotal,
     this.isSoldOut = false,
     this.isSelected = false,
     this.onTap,
@@ -72,6 +74,11 @@ class DepartureCard extends StatelessWidget {
 
   /// `null` si non applicable (ex: Ride à la demande, pas de quota de places).
   final int? seatsAvailable;
+
+  /// Capacité du véhicule, qui donne son sens à [seatsAvailable] : « 12
+  /// places » n'est rassurant que rapporté à un total. Sans elle le badge
+  /// reste affiché mais neutre — voir [KoraSeatsBadge].
+  final int? seatsTotal;
 
   /// Segment complet — équivalent `.trip-card.sold-out` (opacité réduite,
   /// interaction désactivée, badge "Complet"). CSS de référence :
@@ -109,6 +116,7 @@ class DepartureCard extends StatelessWidget {
           _Head(
             vehicleLabel: vehicleLabel,
             seatsAvailable: seatsAvailable,
+            seatsTotal: seatsTotal,
             isSoldOut: isSoldOut,
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -153,11 +161,13 @@ class _Head extends StatelessWidget {
   const _Head({
     required this.vehicleLabel,
     required this.seatsAvailable,
+    required this.seatsTotal,
     required this.isSoldOut,
   });
 
   final String vehicleLabel;
   final int? seatsAvailable;
+  final int? seatsTotal;
   final bool isSoldOut;
 
   @override
@@ -189,10 +199,10 @@ class _Head extends StatelessWidget {
         if (isSoldOut)
           const KoraTag(label: 'Complet', variant: KoraTagVariant.danger)
         else if (seatsAvailable != null)
-          Text(
-            '$seatsAvailable places',
-            style: TextStyle(color: context.koraColors.textMuted, fontSize: 10),
-          ),
+          // Un simple texte gris se lisait à la même vitesse quel que soit
+          // le remplissage ; le badge coloré fait remonter les départs qui
+          // pressent sans qu'on ait à lire le chiffre.
+          KoraSeatsBadge(available: seatsAvailable!, total: seatsTotal ?? 0),
       ],
     );
   }

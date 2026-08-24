@@ -31,6 +31,8 @@ class Departure extends Equatable {
     required this.price,
     required this.seatsTotal,
     required this.seatsAvailable,
+    this.originStopId,
+    this.destinationStopId,
     this.amenities = const [],
     this.busLabel,
   });
@@ -61,6 +63,16 @@ class Departure extends Equatable {
   /// n'ont que la gamme.
   final String? busLabel;
 
+  /// Arrêts de montée et de descente du tronçon cherché, tels que l'API
+  /// les identifie.
+  ///
+  /// Le plan des sièges en dépend : la disponibilité d'une place se
+  /// calcule **par tronçon** — une place vendue de Lomé à Abidjan reste
+  /// libre de Cotonou à Lomé. `null` sur les données mockées, qui ne
+  /// connaissent pas les arrêts.
+  final String? originStopId;
+  final String? destinationStopId;
+
   /// Ce qu'on affiche dans le badge du véhicule : le bus réel s'il est
   /// connu, la gamme sinon.
   String get vehicleLabel => busLabel ?? comfort.label;
@@ -72,6 +84,8 @@ class Departure extends Equatable {
   @override
   List<Object?> get props => [
     id,
+    originStopId,
+    destinationStopId,
     line,
     departsAt,
     comfort,

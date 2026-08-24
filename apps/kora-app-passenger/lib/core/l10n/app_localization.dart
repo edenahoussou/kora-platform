@@ -422,6 +422,25 @@ class AppLocalization {
   String get departuresErrorEyebrow => translate('departures_error_eyebrow');
   String get departuresErrorTitle => translate('departures_error_title');
   String get departuresErrorText => translate('departures_error_text');
+  String get departuresSortLabel => translate('departures_sort_label');
+  String get departuresSortHour => translate('departures_sort_hour');
+  String get departuresSortPrice => translate('departures_sort_price');
+  String get departuresSortDuration => translate('departures_sort_duration');
+
+  String get departuresFilterLabel => translate('departures_filter_label');
+  String get departuresSlotMorning => translate('departures_slot_morning');
+  String get departuresSlotAfternoon => translate('departures_slot_afternoon');
+  String get departuresSlotEvening => translate('departures_slot_evening');
+
+  String get departuresFilteredEmptyEyebrow =>
+      translate('departures_filtered_empty_eyebrow');
+  String get departuresFilteredEmptyTitle =>
+      translate('departures_filtered_empty_title');
+  String get departuresFilteredEmptyText =>
+      translate('departures_filtered_empty_text');
+  String get departuresFiltersReset => translate('departures_filters_reset');
+  String get departuresRefreshFailed => translate('departures_refresh_failed');
+
   String departuresPassengers(int count) => _withArgs(
     count > 1 ? 'departures_passengers_plural' : 'departures_passengers',
     {'count': count},
