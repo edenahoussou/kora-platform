@@ -12,6 +12,7 @@ use Illuminate\Support\Carbon;
 /**
  * @property PassengerDocumentType|null $document_type
  * @property Carbon|null $birth_date
+ * @property string|null $email
  */
 class ReservationPassenger extends KoraModel
 {
@@ -23,6 +24,7 @@ class ReservationPassenger extends KoraModel
         'first_name',
         'last_name',
         'phone',
+        'email',
         'document_type',
         'document_number',
         'nationality',

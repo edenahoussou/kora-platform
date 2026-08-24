@@ -24,6 +24,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('sale', [CounterSaleController::class, 'index'])->name('sale');
     Route::post('sale/quote', [CounterSaleController::class, 'quote'])->name('sale.quote');
     Route::post('sale/hold', [CounterSaleController::class, 'hold'])->name('sale.hold');
+    Route::post('sale/{reservation:uuid}/release', [CounterSaleController::class, 'releaseHold'])->name('sale.release');
+    Route::post('sale/{reservation:uuid}/passengers', [CounterSaleController::class, 'storePassengers'])->name('sale.passengers');
     Route::inertia('cash', 'cash')->name('cash');
     Route::inertia('boarding', 'boarding')->name('boarding');
     Route::inertia('manifest', 'manifest')->name('manifest');

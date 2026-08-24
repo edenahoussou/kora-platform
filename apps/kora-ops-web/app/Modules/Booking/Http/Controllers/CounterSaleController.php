@@ -4,12 +4,17 @@ namespace App\Modules\Booking\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Booking\Actions\CreateSeatHoldAction;
+use App\Modules\Booking\Actions\ReleaseSeatHoldAction;
+use App\Modules\Booking\Actions\UpdateReservationPassengersAction;
 use App\Modules\Booking\Data\ReservationChannel;
 use App\Modules\Booking\Exceptions\SeatUnavailableException;
 use App\Modules\Booking\Http\Requests\CounterSaleSearchRequest;
 use App\Modules\Booking\Http\Requests\HoldCounterSaleSeatsRequest;
+use App\Modules\Booking\Http\Requests\ReleaseCounterSaleHoldRequest;
+use App\Modules\Booking\Http\Requests\StoreCounterSalePassengersRequest;
 use App\Modules\Booking\Http\Requests\StoreCounterSaleQuoteRequest;
 use App\Modules\Booking\Models\Reservation;
+use App\Modules\Booking\Models\ReservationPassenger;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\BusNetwork\Services\BusCatalogService;
 use App\Modules\Departures\Data\DepartureAvailabilityData;
@@ -17,7 +22,8 @@ use App\Modules\Departures\Models\Departure;
 use App\Modules\Departures\Services\DepartureSearchService;
 use App\Modules\DynamicPricing\Actions\CalculateQuoteAction;
 use App\Modules\DynamicPricing\Models\PriceQuote;
-use App\Modules\SeatInventory\Data\SeatAvailabilityData;
+use App\Modules\SeatInventory\Actions\BuildCounterSaleSeatAvailabilityAction;
+use App\Modules\SeatInventory\Data\CounterSaleSeatAvailabilityData;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
@@ -34,6 +40,7 @@ class CounterSaleController extends Controller
     public function __construct(
         private DepartureSearchService $departures,
         private BusCatalogService $catalog,
+        private BuildCounterSaleSeatAvailabilityAction $counterSaleSeatAvailability,
     ) {}
 
     public function index(CounterSaleSearchRequest $request): Response
@@ -97,6 +104,35 @@ class CounterSaleController extends Controller
         return to_route('sale', $request->saleQuery($reservation->uuid));
     }
 
+    public function storePassengers(
+        StoreCounterSalePassengersRequest $request,
+        Reservation $reservation,
+        UpdateReservationPassengersAction $updatePassengers,
+    ): RedirectResponse {
+        $updatedReservation = $updatePassengers->handle(
+            reservation: $reservation,
+            user: $request->user(),
+            passengersData: $request->passengersData(),
+        );
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __('Informations passagers enregistrées.'),
+        ]);
+
+        return to_route('sale', $request->saleQuery($updatedReservation->uuid));
+    }
+
+    public function releaseHold(
+        ReleaseCounterSaleHoldRequest $request,
+        Reservation $reservation,
+        ReleaseSeatHoldAction $releaseSeatHold,
+    ): RedirectResponse {
+        $releaseSeatHold->handle($reservation, $request->user());
+
+        return to_route('sale', $request->saleQuery());
+    }
+
     /**
      * @param  array{date: string|null, from: string|null, to: string|null}  $filters
      * @return Collection<int, DepartureAvailabilityData>
@@ -107,7 +143,7 @@ class CounterSaleController extends Controller
             'date' => $filters['date'],
             'from' => $filters['from'],
             'to' => $filters['to'],
-        ]);
+        ], sellableOnly: true);
     }
 
     /**
@@ -130,7 +166,7 @@ class CounterSaleController extends Controller
 
     /**
      * @param  array{departure_uuid: string|null, origin_stop_uuid: string|null, destination_stop_uuid: string|null, quote_uuid: string|null, reservation_uuid: string|null}  $context
-     * @return Collection<int, SeatAvailabilityData>
+     * @return Collection<int, CounterSaleSeatAvailabilityData>
      */
     private function selectedSeats(?DepartureAvailabilityData $selectedDeparture, array $context): Collection
     {
@@ -138,10 +174,16 @@ class CounterSaleController extends Controller
             return collect();
         }
 
-        return $this->departures->seats(
+        $segment = $this->departures->resolveSegment(
             $selectedDeparture->departure,
             $context['origin_stop_uuid'],
             $context['destination_stop_uuid'],
+        );
+
+        return $this->counterSaleSeatAvailability->handle(
+            $selectedDeparture->departure,
+            $segment['origin'],
+            $segment['destination'],
         );
     }
 
@@ -178,7 +220,13 @@ class CounterSaleController extends Controller
         return Reservation::query()
             ->where('uuid', $context['reservation_uuid'])
             ->where('user_id', auth()->id())
-            ->with(['departure.line', 'segments.seat', 'segments.originStop', 'segments.destinationStop'])
+            ->with([
+                'departure.line',
+                'segments.seat',
+                'segments.originStop',
+                'segments.destinationStop',
+                'passengers.segments.seat',
+            ])
             ->firstOrFail();
     }
 
@@ -218,6 +266,8 @@ class CounterSaleController extends Controller
                 'code' => $data->departure->line->code,
                 'name' => $data->departure->line->name,
                 'estimatedDurationMinutes' => $data->departure->line->estimated_duration_minutes,
+                'isInternational' => is_array($data->departure->line->countries_crossed)
+                    && count($data->departure->line->countries_crossed) > 1,
             ],
             'bus' => [
                 'uuid' => $data->departure->bus->uuid,
@@ -230,6 +280,11 @@ class CounterSaleController extends Controller
             'destinationStop' => $this->serializeStop($data->destinationStop),
             'availableSeatsCount' => $data->availableSeatsCount,
             'farePreview' => $data->farePreview,
+            'sellability' => [
+                'isSellable' => $data->sellability->isSellable,
+                'reason' => $data->sellability->reason->value,
+                'saleClosesAt' => $data->sellability->saleClosesAt->toISOString(),
+            ],
         ];
     }
 
@@ -246,17 +301,18 @@ class CounterSaleController extends Controller
     }
 
     /**
-     * @param  Collection<int, SeatAvailabilityData>  $seats
+     * @param  Collection<int, CounterSaleSeatAvailabilityData>  $seats
      * @return list<array<string, mixed>>
      */
     private function serializeSeats(Collection $seats): array
     {
-        return array_values($seats->map(fn (SeatAvailabilityData $seat): array => [
+        return array_values($seats->map(fn (CounterSaleSeatAvailabilityData $seat): array => [
             'uuid' => $seat->seat->uuid,
             'code' => $seat->seat->code,
             'type' => (string) $seat->seat->getRawOriginal('type'),
             'sellable' => $seat->seat->sellable,
             'availabilityStatus' => $seat->availabilityStatus->value,
+            'expiresAt' => $seat->expiresAt?->toISOString(),
         ])->all());
     }
 
@@ -307,6 +363,19 @@ class CounterSaleController extends Controller
                 'originStop' => $segment->originStop?->name,
                 'destinationStop' => $segment->destinationStop?->name,
                 'status' => (string) $segment->getRawOriginal('status'),
+            ])->values()->all(),
+            'passengers' => $reservation->passengers->map(fn (ReservationPassenger $passenger): array => [
+                'uuid' => $passenger->uuid,
+                'firstName' => $passenger->first_name,
+                'lastName' => $passenger->last_name,
+                'phone' => $passenger->phone,
+                'email' => $passenger->email,
+                'documentType' => $passenger->document_type?->value,
+                'documentNumber' => $passenger->document_number,
+                'nationality' => $passenger->nationality,
+                'birthDate' => $passenger->birth_date?->toDateString(),
+                'seatUuid' => $passenger->segments->first()?->seat?->uuid,
+                'seatCode' => $passenger->segments->first()?->seat?->code,
             ])->values()->all(),
         ];
     }

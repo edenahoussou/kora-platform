@@ -91,6 +91,7 @@ class UpdateReservationPassengersAction
                     'first_name' => $pData['first_name'],
                     'last_name' => $pData['last_name'],
                     'phone' => $pData['phone'] ?? null,
+                    'email' => $pData['email'] ?? null,
                     'document_type' => $docType,
                     'document_number' => $pData['document_number'] ?? null,
                     'nationality' => ! empty($pData['nationality']) ? strtoupper($pData['nationality']) : null,
