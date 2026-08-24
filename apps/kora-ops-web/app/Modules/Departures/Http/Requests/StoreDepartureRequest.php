@@ -21,42 +21,43 @@ class StoreDepartureRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'line_id' => ['required', 'integer', Rule::exists(Line::class, 'id')->whereNull('deleted_at')],
-            'bus_id' => ['required', 'integer', Rule::exists(Bus::class, 'id')->whereNull('deleted_at')],
-            'agency_id' => ['required', 'integer', Rule::exists(Agency::class, 'id')->whereNull('deleted_at')],
+            'line_uuid' => ['required', 'uuid', Rule::exists(Line::class, 'uuid')->whereNull('deleted_at')],
+            'bus_uuid' => ['required', 'uuid', Rule::exists(Bus::class, 'uuid')->whereNull('deleted_at')],
+            'agency_uuid' => ['required', 'uuid', Rule::exists(Agency::class, 'uuid')->whereNull('deleted_at')],
             'departure_date' => ['required', 'date', 'after_or_equal:today'],
             'departure_time' => ['required', 'date_format:H:i'],
-            'driver_id' => ['nullable', 'integer', 'exists:users,id'],
-            'conductor_id' => ['nullable', 'integer', 'exists:users,id'],
+            'driver_uuid' => ['nullable', 'uuid', 'exists:users,uuid'],
+            'conductor_uuid' => ['nullable', 'uuid', 'exists:users,uuid'],
         ];
     }
 
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
-            $busId = $this->integer('bus_id');
-            $agencyId = $this->integer('agency_id');
+            $busUuid = $this->string('bus_uuid')->value();
+            $agencyUuid = $this->string('agency_uuid')->value();
 
-            if ($busId > 0 && $agencyId > 0) {
-                $bus = Bus::query()->find($busId);
-                if ($bus !== null && $bus->agency_id !== $agencyId) {
-                    $validator->errors()->add('bus_id', 'Le bus doit appartenir à l’agence sélectionnée.');
+            if ($busUuid !== '' && $agencyUuid !== '') {
+                $bus = Bus::query()->where('uuid', $busUuid)->first(['id', 'agency_id']);
+                $agency = Agency::query()->where('uuid', $agencyUuid)->first(['id']);
+                if ($bus !== null && $agency !== null && $bus->agency_id !== $agency->id) {
+                    $validator->errors()->add('bus_uuid', "Le bus doit appartenir à l'agence sélectionnée.");
                 }
             }
         });
     }
 
-    /** @return array{line_id: int, bus_id: int, agency_id: int, departure_date: string, departure_time: string, driver_id: int|null, conductor_id: int|null, created_by: int|null} */
+    /** @return array{line_uuid: string, bus_uuid: string, agency_uuid: string, departure_date: string, departure_time: string, driver_uuid: string|null, conductor_uuid: string|null, created_by: int|null} */
     public function payload(): array
     {
         return [
-            'line_id' => $this->integer('line_id'),
-            'bus_id' => $this->integer('bus_id'),
-            'agency_id' => $this->integer('agency_id'),
+            'line_uuid' => $this->string('line_uuid')->value(),
+            'bus_uuid' => $this->string('bus_uuid')->value(),
+            'agency_uuid' => $this->string('agency_uuid')->value(),
             'departure_date' => $this->string('departure_date')->value(),
             'departure_time' => $this->string('departure_time')->value(),
-            'driver_id' => $this->filled('driver_id') ? $this->integer('driver_id') : null,
-            'conductor_id' => $this->filled('conductor_id') ? $this->integer('conductor_id') : null,
+            'driver_uuid' => $this->filled('driver_uuid') ? $this->string('driver_uuid')->value() : null,
+            'conductor_uuid' => $this->filled('conductor_uuid') ? $this->string('conductor_uuid')->value() : null,
             'created_by' => $this->user()?->id,
         ];
     }

@@ -22,14 +22,20 @@ type Stop = {
     city: string;
 };
 
+type SeatItem = {
+    uuid: string;
+    code: string;
+    type: string;
+    sellable: boolean;
+    status: string;
+};
+
 type DepartureDetail = DepartureRecord & {
-    lineId: number;
     lineEstimatedDuration: number | null;
     stops: Stop[];
-    busUuid: string;
     busSeatCount: number;
     busAgencyName: string | null;
-    agencyId: number;
+    seats: SeatItem[];
     agencyCity: string | null;
     agencyCountry: string | null;
     estimatedArrivalAt: string | null;
@@ -45,11 +51,18 @@ type TimelineEvent = {
     date: string | null;
 };
 
+type Option = { uuid: string; label: string };
+type AgencyOption = { uuid: string; name: string };
+type BusOption = { uuid: string; label: string; agencyUuid: string | null };
+
 type PageProps = {
     departure: DepartureDetail;
     statuses: Record<string, string>;
-    lines: { id: number; label: string }[];
-    agencies: { id: number; name: string }[];
+    lines: Option[];
+    agencies: AgencyOption[];
+    buses: BusOption[];
+    drivers: Option[];
+    conductors: Option[];
     timeline: TimelineEvent[];
     permissions: {
         canUpdate: boolean;
@@ -120,6 +133,9 @@ export default function DepartureDetailPage({
     statuses,
     lines,
     agencies,
+    buses,
+    drivers,
+    conductors,
     timeline,
     permissions,
 }: PageProps) {
@@ -256,6 +272,8 @@ export default function DepartureDetailPage({
     };
 
     const schedule = stopSchedule();
+    const sellableSeatsCount = departure.seats.filter((s) => s.sellable).length;
+    const crewSeatsCount = departure.seats.filter((s) => !s.sellable).length;
 
     return (
         <>
@@ -294,11 +312,10 @@ export default function DepartureDetailPage({
                     <button
                         key={key}
                         onClick={() => setTab(key)}
-                        className={`border-b-2 px-4 py-3 text-[0.6875rem] font-extrabold tracking-[0.035em] whitespace-nowrap transition-colors ${
-                            tab === key
-                                ? 'border-gold text-foreground'
-                                : 'border-transparent text-muted-foreground hover:text-foreground'
-                        }`}
+                        className={`border-b-2 px-4 py-3 text-[0.6875rem] font-extrabold tracking-[0.035em] whitespace-nowrap transition-colors ${tab === key
+                            ? 'border-gold text-foreground'
+                            : 'border-transparent text-muted-foreground hover:text-foreground'
+                            }`}
                     >
                         {label}
                     </button>
@@ -543,11 +560,11 @@ export default function DepartureDetailPage({
                                     <span className="grid size-12 shrink-0 place-items-center rounded-[0.75rem] bg-gold/20 text-[0.875rem] font-black text-[var(--kora)] dark:bg-gold/15 dark:text-gold">
                                         {departure.driverName
                                             ? departure.driverName
-                                                  .split(' ')
-                                                  .map((n) => n[0])
-                                                  .join('')
-                                                  .slice(0, 2)
-                                                  .toUpperCase()
+                                                .split(' ')
+                                                .map((n) => n[0])
+                                                .join('')
+                                                .slice(0, 2)
+                                                .toUpperCase()
                                             : '—'}
                                     </span>
                                     <div className="flex-1">
@@ -583,11 +600,11 @@ export default function DepartureDetailPage({
                                     <span className="grid size-12 shrink-0 place-items-center rounded-[0.75rem] bg-gold/20 text-[0.875rem] font-black text-[var(--kora)] dark:bg-gold/15 dark:text-gold">
                                         {departure.conductorName
                                             ? departure.conductorName
-                                                  .split(' ')
-                                                  .map((n) => n[0])
-                                                  .join('')
-                                                  .slice(0, 2)
-                                                  .toUpperCase()
+                                                .split(' ')
+                                                .map((n) => n[0])
+                                                .join('')
+                                                .slice(0, 2)
+                                                .toUpperCase()
                                             : '—'}
                                     </span>
                                     <div className="flex-1">
@@ -705,6 +722,56 @@ export default function DepartureDetailPage({
                         </div>
                     </section>
 
+                    {/* Plan de sièges du véhicule affecté */}
+                    <section className="rounded-[var(--kora-radius)] border border-border/50 bg-card p-5 shadow-[0_16px_45px_rgba(0,29,78,0.07)]">
+                        <h3 className="mb-1 text-[0.8125rem] font-bold tracking-tight text-foreground uppercase">
+                            Plan de sièges
+                        </h3>
+                        <p className="mb-3 text-[0.625rem] text-muted-foreground">
+                            {departure.busRegistration} · {sellableSeatsCount}{' '}
+                            vendables · {crewSeatsCount} équipage
+                        </p>
+                        {departure.seats.length > 0 ? (
+                            <>
+                                <div className="grid grid-cols-6 gap-1.5">
+                                    {departure.seats.map((seat) => (
+                                        <span
+                                            key={seat.uuid}
+                                            title={`${seat.code} · ${seat.sellable ? 'Vendable' : 'Équipage'} · ${seat.status}`}
+                                            className={`grid aspect-square place-items-center rounded-[0.4rem] text-[0.5rem] font-bold ${!seat.sellable
+                                                ? 'bg-muted text-muted-foreground'
+                                                : seat.status === 'active'
+                                                    ? 'bg-gold/20 text-[var(--kora)] dark:text-gold'
+                                                    : 'bg-[var(--kora)]/10 text-[var(--kora)] dark:bg-[var(--digital)]/15 dark:text-[var(--digital)]'
+                                                }`}
+                                        >
+                                            {seat.code}
+                                        </span>
+                                    ))}
+                                </div>
+                                <div className="mt-3 flex flex-wrap gap-3 text-[0.5625rem] text-muted-foreground">
+                                    <span className="flex items-center gap-1.5">
+                                        <span className="size-2.5 rounded-[0.2rem] bg-gold/20" />
+                                        Vendable
+                                    </span>
+                                    <span className="flex items-center gap-1.5">
+                                        <span className="size-2.5 rounded-[0.2rem] bg-[var(--kora)]/10 dark:bg-[var(--digital)]/15" />
+                                        Réservé / bloqué
+                                    </span>
+                                    <span className="flex items-center gap-1.5">
+                                        <span className="size-2.5 rounded-[0.2rem] bg-muted" />
+                                        Équipage
+                                    </span>
+                                </div>
+                            </>
+                        ) : (
+                            <p className="text-xs text-muted-foreground">
+                                Aucun plan de sièges disponible pour ce
+                                véhicule.
+                            </p>
+                        )}
+                    </section>
+
                     {/* Timeline */}
                     <section className="rounded-[var(--kora-radius)] border border-border/50 bg-card p-5 shadow-[0_16px_45px_rgba(0,29,78,0.07)]">
                         <h3 className="mb-1 text-[0.8125rem] font-bold tracking-tight text-foreground uppercase">
@@ -808,6 +875,9 @@ export default function DepartureDetailPage({
                 statuses={statuses}
                 lines={lines}
                 agencies={agencies}
+                buses={buses}
+                drivers={drivers}
+                conductors={conductors}
                 onOpenChange={setEditDialog}
             />
         </>
@@ -831,11 +901,10 @@ function ChecklistItem({ label, done }: { label: string; done: boolean }) {
     return (
         <article className="flex items-center gap-3 rounded-[0.875rem] border border-border/50 bg-card p-3.5">
             <span
-                className={`grid size-8 shrink-0 place-items-center rounded-[0.625rem] text-[0.875rem] font-black ${
-                    done
-                        ? 'bg-[var(--kora)]/10 text-[var(--kora)] dark:bg-[var(--digital)]/15 dark:text-[var(--digital)]'
-                        : 'bg-gold/20 text-[var(--kora)] dark:bg-gold/15 dark:text-gold'
-                }`}
+                className={`grid size-8 shrink-0 place-items-center rounded-[0.625rem] text-[0.875rem] font-black ${done
+                    ? 'bg-[var(--kora)]/10 text-[var(--kora)] dark:bg-[var(--digital)]/15 dark:text-[var(--digital)]'
+                    : 'bg-gold/20 text-[var(--kora)] dark:bg-gold/15 dark:text-gold'
+                    }`}
             >
                 {done ? '✓' : '!'}
             </span>

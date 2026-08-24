@@ -11,16 +11,21 @@ import type { BreadcrumbItem } from '@/types';
 
 type DepartureListItem = {
     uuid: string;
+    lineUuid: string | null;
     lineCode: string;
     lineName: string;
+    busUuid: string | null;
     busRegistration: string;
     busSeatCount: number;
+    agencyUuid: string | null;
     agencyName: string;
     agencyCity: string | null;
     departureDate: string | null;
     departureTime: string | null;
     estimatedArrivalAt: string | null;
+    driverUuid: string | null;
     driverName: string | null;
+    conductorUuid: string | null;
     conductorName: string | null;
     fillRate: number;
     reservationsCount: number;
@@ -36,6 +41,10 @@ type Stats = {
     cancelled: number;
 };
 
+type Option = { uuid: string; label: string };
+type AgencyOption = { uuid: string; name: string };
+type BusOption = { uuid: string; label: string; agencyUuid: string | null };
+
 type PageProps = {
     departures: {
         data: DepartureListItem[];
@@ -47,8 +56,11 @@ type PageProps = {
         to: number | null;
     };
     statuses: Record<string, string>;
-    lines: { id: number; label: string }[];
-    agencies: { id: number; name: string }[];
+    lines: Option[];
+    agencies: AgencyOption[];
+    buses: BusOption[];
+    drivers: Option[];
+    conductors: Option[];
     stats: Stats;
     permissions: {
         canCreate: boolean;
@@ -78,6 +90,9 @@ export default function DeparturesPage({
     statuses,
     lines,
     agencies,
+    buses,
+    drivers,
+    conductors,
     stats,
     permissions,
 }: PageProps) {
@@ -87,20 +102,26 @@ export default function DeparturesPage({
     const filters: FilterConfig[] = useMemo(
         () => [
             {
-                name: 'line_id',
+                name: 'date',
+                label: 'Date',
+                type: 'date',
+                options: [],
+            },
+            {
+                name: 'line_uuid',
                 label: 'Ligne',
                 placeholder: 'Toutes les lignes',
                 options: lines.map((line) => ({
-                    value: String(line.id),
+                    value: line.uuid,
                     label: line.label,
                 })),
             },
             {
-                name: 'agency_id',
+                name: 'agency_uuid',
                 label: 'Agence',
                 placeholder: 'Toutes les agences',
                 options: agencies.map((agency) => ({
-                    value: String(agency.id),
+                    value: agency.uuid,
                     label: agency.name,
                 })),
             },
@@ -232,11 +253,11 @@ export default function DeparturesPage({
                         const crewLabel =
                             departure.driverName || departure.conductorName
                                 ? [
-                                      departure.driverName,
-                                      departure.conductorName,
-                                  ]
-                                      .filter(Boolean)
-                                      .join(' · ')
+                                    departure.driverName,
+                                    departure.conductorName,
+                                ]
+                                    .filter(Boolean)
+                                    .join(' · ')
                                 : 'À affecter';
 
                         return (
@@ -250,11 +271,10 @@ export default function DeparturesPage({
                                         }),
                                     )
                                 }
-                                className={`group relative grid cursor-pointer grid-cols-[78px_1fr_130px_140px_34px] items-center gap-4 rounded-[1.125rem] border border-border/30 bg-card p-4 shadow-[0_12px_35px_rgba(0,29,78,0.055)] transition-all hover:translate-x-1 hover:shadow-[0_20px_48px_rgba(0,29,78,0.1)] md:grid-cols-[95px_minmax(310px,1.3fr)_minmax(180px,0.7fr)_180px_38px] md:gap-[18px] md:p-[18px_20px] ${
-                                    isBoarding
-                                        ? 'before:absolute before:top-[18px] before:bottom-[18px] before:left-0 before:w-1 before:rounded-r-[5px] before:bg-gold'
-                                        : ''
-                                }`}
+                                className={`group relative grid cursor-pointer grid-cols-[78px_1fr_130px_140px_34px] items-center gap-4 rounded-[1.125rem] border border-border/30 bg-card p-4 shadow-[0_12px_35px_rgba(0,29,78,0.055)] transition-all hover:translate-x-1 hover:shadow-[0_20px_48px_rgba(0,29,78,0.1)] md:grid-cols-[95px_minmax(310px,1.3fr)_minmax(180px,0.7fr)_180px_38px] md:gap-[18px] md:p-[18px_20px] ${isBoarding
+                                    ? 'before:absolute before:top-[18px] before:bottom-[18px] before:left-0 before:w-1 before:rounded-r-[5px] before:bg-gold'
+                                    : ''
+                                    }`}
                             >
                                 {/* OPS-TIME */}
                                 <div className="pr-2">
@@ -273,7 +293,7 @@ export default function DeparturesPage({
                                         <KoraStatusBadge
                                             label={
                                                 statusLabels[
-                                                    departure.status
+                                                departure.status
                                                 ] ?? departure.status
                                             }
                                             tone={
@@ -397,24 +417,24 @@ export default function DeparturesPage({
                         )}
                         {departureData.current_page <
                             departureData.last_page && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                    router.get(
-                                        departures.index.url({
-                                            query: {
-                                                page:
-                                                    departureData.current_page +
-                                                    1,
-                                            },
-                                        }),
-                                    )
-                                }
-                            >
-                                Suivant
-                            </Button>
-                        )}
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                        router.get(
+                                            departures.index.url({
+                                                query: {
+                                                    page:
+                                                        departureData.current_page +
+                                                        1,
+                                                },
+                                            }),
+                                        )
+                                    }
+                                >
+                                    Suivant
+                                </Button>
+                            )}
                     </div>
                 </div>
             )}
@@ -425,6 +445,9 @@ export default function DeparturesPage({
                 statuses={statuses}
                 lines={lines}
                 agencies={agencies}
+                buses={buses}
+                drivers={drivers}
+                conductors={conductors}
                 onOpenChange={setDialogOpen}
             />
         </>

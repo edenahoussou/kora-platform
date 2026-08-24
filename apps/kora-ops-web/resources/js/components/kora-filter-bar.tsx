@@ -11,6 +11,8 @@ export type FilterOption = {
 export type FilterConfig = {
     name: string;
     label: string;
+    /** 'select' (default) renders a dropdown; 'date' renders a native date input. */
+    type?: 'select' | 'date';
     options: FilterOption[];
     placeholder?: string;
 };
@@ -125,29 +127,45 @@ export function KoraFilterBar({
                 placeholder={searchPlaceholder}
                 className="h-10 min-w-0 flex-1 rounded-[0.625rem] border border-border bg-background px-3 text-xs text-foreground transition-[border-color,box-shadow] outline-none placeholder:text-muted-foreground focus:border-gold focus:ring-[3px] focus:ring-[rgba(246,176,0,0.16)]"
             />
-            {filters.map((filter) => (
-                <select
-                    key={filter.name}
-                    value={filterValues[filter.name] ?? ''}
-                    onChange={(event) =>
-                        setFilterValues((prev) => ({
-                            ...prev,
-                            [filter.name]: event.target.value,
-                        }))
-                    }
-                    className="h-10 min-w-[10rem] rounded-[0.625rem] border border-border bg-background px-3 text-xs text-foreground transition-[border-color,box-shadow] outline-none focus:border-gold focus:ring-[3px] focus:ring-[rgba(246,176,0,0.16)]"
-                >
-                    <option value="">
-                        {filter.placeholder ??
-                            `Tous les ${filter.label.toLowerCase()}`}
-                    </option>
-                    {filter.options.map((option) => (
-                        <option key={option.value} value={option.value}>
-                            {option.label}
+            {filters.map((filter) =>
+                filter.type === 'date' ? (
+                    <input
+                        key={filter.name}
+                        type="date"
+                        value={filterValues[filter.name] ?? ''}
+                        onChange={(event) =>
+                            setFilterValues((prev) => ({
+                                ...prev,
+                                [filter.name]: event.target.value,
+                            }))
+                        }
+                        title={filter.label}
+                        className="h-10 min-w-[10rem] rounded-[0.625rem] border border-border bg-background px-3 text-xs text-foreground transition-[border-color,box-shadow] outline-none focus:border-gold focus:ring-[3px] focus:ring-[rgba(246,176,0,0.16)]"
+                    />
+                ) : (
+                    <select
+                        key={filter.name}
+                        value={filterValues[filter.name] ?? ''}
+                        onChange={(event) =>
+                            setFilterValues((prev) => ({
+                                ...prev,
+                                [filter.name]: event.target.value,
+                            }))
+                        }
+                        className="h-10 min-w-[10rem] rounded-[0.625rem] border border-border bg-background px-3 text-xs text-foreground transition-[border-color,box-shadow] outline-none focus:border-gold focus:ring-[3px] focus:ring-[rgba(246,176,0,0.16)]"
+                    >
+                        <option value="">
+                            {filter.placeholder ??
+                                `Tous les ${filter.label.toLowerCase()}`}
                         </option>
-                    ))}
-                </select>
-            ))}
+                        {filter.options.map((option) => (
+                            <option key={option.value} value={option.value}>
+                                {option.label}
+                            </option>
+                        ))}
+                    </select>
+                ),
+            )}
             <Button
                 type="button"
                 onClick={applyFilters}

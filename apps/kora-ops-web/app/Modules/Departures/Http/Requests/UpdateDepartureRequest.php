@@ -23,44 +23,45 @@ class UpdateDepartureRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'line_id' => ['sometimes', 'required', 'integer', Rule::exists(Line::class, 'id')->whereNull('deleted_at')],
-            'bus_id' => ['sometimes', 'required', 'integer', Rule::exists(Bus::class, 'id')->whereNull('deleted_at')],
-            'agency_id' => ['sometimes', 'required', 'integer', Rule::exists(Agency::class, 'id')->whereNull('deleted_at')],
+            'line_uuid' => ['sometimes', 'required', 'uuid', Rule::exists(Line::class, 'uuid')->whereNull('deleted_at')],
+            'bus_uuid' => ['sometimes', 'required', 'uuid', Rule::exists(Bus::class, 'uuid')->whereNull('deleted_at')],
+            'agency_uuid' => ['sometimes', 'required', 'uuid', Rule::exists(Agency::class, 'uuid')->whereNull('deleted_at')],
             'departure_date' => ['sometimes', 'required', 'date'],
             'departure_time' => ['sometimes', 'required', 'date_format:H:i'],
-            'driver_id' => ['nullable', 'integer', 'exists:users,id'],
-            'conductor_id' => ['nullable', 'integer', 'exists:users,id'],
+            'driver_uuid' => ['nullable', 'uuid', 'exists:users,uuid'],
+            'conductor_uuid' => ['nullable', 'uuid', 'exists:users,uuid'],
         ];
     }
 
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
-            $busId = $this->filled('bus_id') ? $this->integer('bus_id') : null;
-            $agencyId = $this->filled('agency_id') ? $this->integer('agency_id') : null;
+            $busUuid = $this->filled('bus_uuid') ? $this->string('bus_uuid')->value() : null;
+            $agencyUuid = $this->filled('agency_uuid') ? $this->string('agency_uuid')->value() : null;
 
-            if ($busId !== null && $agencyId !== null) {
-                $bus = Bus::query()->find($busId);
-                if ($bus !== null && $bus->agency_id !== $agencyId) {
-                    $validator->errors()->add('bus_id', 'Le bus doit appartenir à l’agence sélectionnée.');
+            if ($busUuid !== null && $agencyUuid !== null) {
+                $bus = Bus::query()->where('uuid', $busUuid)->first(['id', 'agency_id']);
+                $agency = Agency::query()->where('uuid', $agencyUuid)->first(['id']);
+                if ($bus !== null && $agency !== null && $bus->agency_id !== $agency->id) {
+                    $validator->errors()->add('bus_uuid', "Le bus doit appartenir à l'agence sélectionnée.");
                 }
             }
         });
     }
 
-    /** @return array{line_id?: int, bus_id?: int, agency_id?: int, departure_date?: string, departure_time?: string, driver_id?: int|null, conductor_id?: int|null} */
+    /** @return array{line_uuid?: string, bus_uuid?: string, agency_uuid?: string, departure_date?: string, departure_time?: string, driver_uuid?: string|null, conductor_uuid?: string|null} */
     public function payload(): array
     {
         $payload = [];
 
-        if ($this->filled('line_id')) {
-            $payload['line_id'] = $this->integer('line_id');
+        if ($this->filled('line_uuid')) {
+            $payload['line_uuid'] = $this->string('line_uuid')->value();
         }
-        if ($this->filled('bus_id')) {
-            $payload['bus_id'] = $this->integer('bus_id');
+        if ($this->filled('bus_uuid')) {
+            $payload['bus_uuid'] = $this->string('bus_uuid')->value();
         }
-        if ($this->filled('agency_id')) {
-            $payload['agency_id'] = $this->integer('agency_id');
+        if ($this->filled('agency_uuid')) {
+            $payload['agency_uuid'] = $this->string('agency_uuid')->value();
         }
         if ($this->filled('departure_date')) {
             $payload['departure_date'] = $this->string('departure_date')->value();
@@ -68,11 +69,11 @@ class UpdateDepartureRequest extends FormRequest
         if ($this->filled('departure_time')) {
             $payload['departure_time'] = $this->string('departure_time')->value();
         }
-        if ($this->has('driver_id')) {
-            $payload['driver_id'] = $this->filled('driver_id') ? $this->integer('driver_id') : null;
+        if ($this->has('driver_uuid')) {
+            $payload['driver_uuid'] = $this->filled('driver_uuid') ? $this->string('driver_uuid')->value() : null;
         }
-        if ($this->has('conductor_id')) {
-            $payload['conductor_id'] = $this->filled('conductor_id') ? $this->integer('conductor_id') : null;
+        if ($this->has('conductor_uuid')) {
+            $payload['conductor_uuid'] = $this->filled('conductor_uuid') ? $this->string('conductor_uuid')->value() : null;
         }
 
         return $payload;
