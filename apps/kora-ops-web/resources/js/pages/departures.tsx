@@ -11,21 +11,21 @@ import type { BreadcrumbItem } from '@/types';
 
 type DepartureListItem = {
     uuid: string;
-    lineId: number | null;
+    lineUuid: string | null;
     lineCode: string;
     lineName: string;
-    busId: number | null;
+    busUuid: string | null;
     busRegistration: string;
     busSeatCount: number;
-    agencyId: number | null;
+    agencyUuid: string | null;
     agencyName: string;
     agencyCity: string | null;
     departureDate: string | null;
     departureTime: string | null;
     estimatedArrivalAt: string | null;
-    driverId: number | null;
+    driverUuid: string | null;
     driverName: string | null;
-    conductorId: number | null;
+    conductorUuid: string | null;
     conductorName: string | null;
     fillRate: number;
     reservationsCount: number;
@@ -41,8 +41,8 @@ type Stats = {
     cancelled: number;
 };
 
-type BusOption = { id: number; label: string; agencyId: number | null };
-type PersonOption = { id: number; label: string };
+type BusOption = { uuid: string; label: string; agencyUuid: string | null };
+type PersonOption = { uuid: string; label: string };
 
 type PageProps = {
     departures: {
@@ -55,8 +55,8 @@ type PageProps = {
         to: number | null;
     };
     statuses: Record<string, string>;
-    lines: { id: number; label: string }[];
-    agencies: { id: number; name: string }[];
+    lines: { uuid: string; label: string }[];
+    agencies: { uuid: string; name: string }[];
     buses: BusOption[];
     drivers: PersonOption[];
     conductors: PersonOption[];
@@ -107,20 +107,20 @@ export default function DeparturesPage({
                 options: [],
             },
             {
-                name: 'line_id',
+                name: 'line',
                 label: 'Ligne',
                 placeholder: 'Toutes les lignes',
                 options: lines.map((line) => ({
-                    value: String(line.id),
+                    value: line.uuid,
                     label: line.label,
                 })),
             },
             {
-                name: 'agency_id',
+                name: 'agency',
                 label: 'Agence',
                 placeholder: 'Toutes les agences',
                 options: agencies.map((agency) => ({
-                    value: String(agency.id),
+                    value: agency.uuid,
                     label: agency.name,
                 })),
             },

@@ -8,9 +8,12 @@ use App\Modules\BusNetwork\Models\Line;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Models\Departure;
+use App\Modules\Departures\Services\DepartureSearchService;
 use App\Modules\IdentityAccess\Models\Agency;
 use Database\Seeders\KoraBusRolePermissionSeeder;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -192,7 +195,7 @@ it('filters departures by status, agency, and search term', function (): void {
 
     // Filter by agency
     $this->actingAs(departuresManager())
-        ->get(route('departures.index', ['agency_id' => $agency2->id]))
+        ->get(route('departures.index', ['agency' => $agency2->uuid]))
         ->assertSuccessful()
         ->assertInertia(fn (Assert $page) => $page
             ->where('departures.total', 1)
@@ -248,13 +251,13 @@ it('creates a departure and computes estimated arrival from line duration', func
     $manager = departuresManager();
 
     $response = $this->actingAs($manager)->post(route('departures.store'), [
-        'line_id' => $line->id,
-        'bus_id' => $bus->id,
-        'agency_id' => $agency->id,
+        'line_uuid' => $line->uuid,
+        'bus_uuid' => $bus->uuid,
+        'agency_uuid' => $agency->uuid,
         'departure_date' => Carbon::today()->addDay()->format('Y-m-d'),
         'departure_time' => '08:00',
-        'driver_id' => null,
-        'conductor_id' => null,
+        'driver_uuid' => null,
+        'conductor_uuid' => null,
     ]);
 
     $response->assertRedirect(route('departures.index'));
@@ -282,12 +285,12 @@ it('rejects creation when bus does not belong to the selected agency', function 
 
     // bus1 belongs to agency1, but we pass agency2
     $this->actingAs(departuresManager())->post(route('departures.store'), [
-        'line_id' => $line->id,
-        'bus_id' => $bus1->id,
-        'agency_id' => $agency2->id,
+        'line_uuid' => $line->uuid,
+        'bus_uuid' => $bus1->uuid,
+        'agency_uuid' => $agency2->uuid,
         'departure_date' => Carbon::today()->addDay()->format('Y-m-d'),
         'departure_time' => '08:00',
-    ])->assertSessionHasErrors(['bus_id']);
+    ])->assertSessionHasErrors(['bus_uuid']);
 });
 
 it('updates a scheduled departure and blocks modification after departure', function (): void {
@@ -384,9 +387,9 @@ it('prevents agency agents from creating departures', function (): void {
 
     $this->actingAs(agencyAgent())
         ->post(route('departures.store'), [
-            'line_id' => $line->id,
-            'bus_id' => $bus->id,
-            'agency_id' => $agency->id,
+            'line_uuid' => $line->uuid,
+            'bus_uuid' => $bus->uuid,
+            'agency_uuid' => $agency->uuid,
             'departure_date' => Carbon::today()->addDay()->format('Y-m-d'),
             'departure_time' => '08:00',
         ])
@@ -453,10 +456,13 @@ it('exposes buses, drivers, and conductors for the departure form', function ():
         ->assertInertia(fn (Assert $page) => $page
             ->has('buses', 1)
             ->where('buses.0.label', 'BJ-9254-RB')
+            ->where('buses.0.uuid', $bus->uuid)
             ->has('drivers', 1)
             ->where('drivers.0.label', 'Jean Driver')
+            ->where('drivers.0.uuid', $driver->uuid)
             ->has('conductors', 1)
-            ->where('conductors.0.label', 'Marc Conductor'),
+            ->where('conductors.0.label', 'Marc Conductor')
+            ->where('conductors.0.uuid', $conductor->uuid),
         );
 
     $departure = Departure::query()->create([
@@ -478,8 +484,121 @@ it('exposes buses, drivers, and conductors for the departure form', function ():
             ->has('buses', 1)
             ->has('drivers', 1)
             ->has('conductors', 1)
-            ->where('departure.busId', $bus->id)
-            ->where('departure.driverId', $driver->id)
-            ->where('departure.conductorId', $conductor->id),
+            ->where('departure.busUuid', $bus->uuid)
+            ->where('departure.driverUuid', $driver->uuid)
+            ->where('departure.conductorUuid', $conductor->uuid),
         );
+});
+
+it('never exposes internal numeric ids on departure ERP pages', function (): void {
+    [$agency, $line, $bus, $model, $composition, $driver, $conductor] = departuresReferences();
+
+    $departure = Departure::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'line_id' => $line->id,
+        'bus_id' => $bus->id,
+        'agency_id' => $agency->id,
+        'departure_date' => Carbon::today()->format('Y-m-d'),
+        'departure_time' => '07:30',
+        'driver_id' => $driver->id,
+        'conductor_id' => $conductor->id,
+        'status' => DepartureStatus::Scheduled->value,
+    ]);
+
+    $manager = departuresManager();
+
+    $this->actingAs($manager)
+        ->get(route('departures.index'))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->missing('departures.data.0.lineId')
+            ->missing('departures.data.0.busId')
+            ->missing('departures.data.0.agencyId')
+            ->missing('departures.data.0.driverId')
+            ->missing('departures.data.0.conductorId')
+            ->missing('lines.0.id')
+            ->missing('agencies.0.id')
+            ->missing('buses.0.id')
+            ->missing('buses.0.agencyId')
+            ->missing('drivers.0.id')
+            ->missing('conductors.0.id')
+            ->where('lines.0.uuid', $line->uuid)
+            ->where('buses.0.uuid', $bus->uuid),
+        );
+
+    $this->actingAs($manager)
+        ->get(route('departures.show', $departure))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->missing('departure.lineId')
+            ->missing('departure.busId')
+            ->missing('departure.agencyId')
+            ->missing('departure.driverId')
+            ->missing('departure.conductorId')
+            ->where('departure.lineUuid', $line->uuid)
+            ->where('departure.busUuid', $bus->uuid)
+            ->where('departure.agencyUuid', $agency->uuid),
+        );
+});
+
+it('exposes a non-paginated collection via searchSellable for internal consumers like counter sale', function (): void {
+    $line = Line::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'code' => 'SELL-L1',
+        'name' => 'Cotonou - Abidjan Sellable',
+        'countries_crossed' => ['BJ', 'CI'],
+        'distance_km' => 1020,
+        'estimated_duration_minutes' => 1260,
+        'status' => 'active',
+    ]);
+
+    foreach ([
+        ['name' => 'Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0],
+        ['name' => 'Abidjan', 'city' => 'Abidjan', 'country' => 'CI', 'stop_order' => 2, 'km_from_origin' => 1020],
+    ] as $stop) {
+        Stop::query()->create($stop + ['uuid' => (string) Str::uuid(), 'line_id' => $line->id, 'status' => 'active']);
+    }
+
+    $model = BusModel::query()->create([
+        'uuid' => (string) Str::uuid(), 'brand' => 'KORA', 'name' => 'Coach 55', 'default_seat_count' => 55, 'status' => 'active',
+    ]);
+    $composition = BusComposition::query()->create([
+        'uuid' => (string) Str::uuid(), 'code' => '2+2-55-SELL', 'name' => 'Standard', 'seat_count' => 55,
+        'layout' => [['type' => 'standard', 'codes' => ['1A', '1B']]], 'status' => 'active',
+    ]);
+    $agency = Agency::query()->create(['code' => 'SEL', 'name' => 'Agence Vente', 'city' => 'Cotonou', 'country' => 'BJ', 'status' => 'active']);
+    $bus = Bus::query()->create([
+        'uuid' => (string) Str::uuid(), 'registration_number' => 'SELL-001', 'bus_model_id' => $model->id,
+        'composition_id' => $composition->id, 'agency_id' => $agency->id, 'brand' => 'KORA', 'model' => 'Coach 55',
+        'seat_count' => 55, 'status' => 'active',
+    ]);
+
+    Departure::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'line_id' => $line->id, 'bus_id' => $bus->id, 'agency_id' => $agency->id,
+        'departure_date' => Carbon::today()->format('Y-m-d'), 'departure_time' => '07:30',
+        'status' => DepartureStatus::Scheduled->value,
+    ]);
+
+    $service = app(DepartureSearchService::class);
+
+    $results = $service->searchSellable([
+        'date' => Carbon::today()->format('Y-m-d'),
+        'from' => 'Cotonou',
+        'to' => 'Abidjan',
+    ]);
+
+    expect($results)->toBeInstanceOf(Collection::class)
+        ->and($results)->not->toBeInstanceOf(LengthAwarePaginator::class)
+        ->and($results->count())->toBe(1);
+
+    // search() keeps returning a paginator for the public API — the two methods must not collide.
+    $paginated = $service->search([
+        'date' => Carbon::today()->format('Y-m-d'),
+        'from' => 'Cotonou',
+        'to' => 'Abidjan',
+    ]);
+
+    expect($paginated)->toBeInstanceOf(LengthAwarePaginator::class)
+        ->and($paginated->total())->toBe(1);
 });

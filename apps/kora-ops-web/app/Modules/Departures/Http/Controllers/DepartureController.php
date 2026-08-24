@@ -28,7 +28,7 @@ class DepartureController extends Controller
         Gate::authorize('viewAny', Departure::class);
 
         $query = Departure::query()
-            ->with(['line:id,uuid,code,name', 'bus:id,uuid,registration_number,seat_count', 'agency:id,uuid,name,city', 'driver:id,name', 'conductor:id,name'])
+            ->with(['line:id,uuid,code,name', 'bus:id,uuid,registration_number,seat_count', 'agency:id,uuid,name,city', 'driver:id,uuid,name', 'conductor:id,uuid,name'])
             ->orderBy('departure_date', 'desc')
             ->orderBy('departure_time');
 
@@ -47,14 +47,14 @@ class DepartureController extends Controller
             $query->where('status', $status);
         }
 
-        $agencyId = $request->integer('agency_id');
-        if ($agencyId > 0) {
-            $query->where('agency_id', $agencyId);
+        $agencyUuid = $request->string('agency')->trim()->value();
+        if ($agencyUuid !== '') {
+            $query->whereHas('agency', fn ($agency) => $agency->where('uuid', $agencyUuid));
         }
 
-        $lineId = $request->integer('line_id');
-        if ($lineId > 0) {
-            $query->where('line_id', $lineId);
+        $lineUuid = $request->string('line')->trim()->value();
+        if ($lineUuid !== '') {
+            $query->whereHas('line', fn ($line) => $line->where('uuid', $lineUuid));
         }
 
         $date = $request->string('date')->trim()->value();
@@ -69,8 +69,8 @@ class DepartureController extends Controller
         return inertia('departures', [
             'departures' => $paginated->through(fn (Departure $departure): array => $this->serializeDeparture($departure)),
             'statuses' => DepartureStatus::options(),
-            'lines' => Line::query()->where('status', 'active')->orderBy('code')->get()->map(fn (Line $line): array => ['id' => $line->id, 'label' => $line->code.' · '.$line->name]),
-            'agencies' => Agency::query()->where('status', 'active')->orderBy('name')->get()->map(fn (Agency $agency): array => ['id' => $agency->id, 'name' => $agency->name]),
+            'lines' => Line::query()->where('status', 'active')->orderBy('code')->get()->map(fn (Line $line): array => ['uuid' => $line->uuid, 'label' => $line->code.' · '.$line->name]),
+            'agencies' => Agency::query()->where('status', 'active')->orderBy('name')->get()->map(fn (Agency $agency): array => ['uuid' => $agency->uuid, 'name' => $agency->name]),
             'buses' => $this->busOptions(),
             'drivers' => $this->userOptions('bus_driver'),
             'conductors' => $this->userOptions('conductor'),
@@ -93,16 +93,16 @@ class DepartureController extends Controller
             'bus.agency:id,uuid,name,city',
             'bus.seats' => fn ($q) => $q->orderByRaw('LENGTH(code), code'),
             'agency:id,uuid,name,city,country',
-            'driver:id,name',
-            'conductor:id,name',
+            'driver:id,uuid,name',
+            'conductor:id,uuid,name',
             'creator:id,name',
         ]);
 
         return inertia('departures/detail', [
             'departure' => $this->serializeDepartureDetail($departure),
             'statuses' => DepartureStatus::options(),
-            'lines' => Line::query()->where('status', 'active')->orderBy('code')->get()->map(fn (Line $line): array => ['id' => $line->id, 'label' => $line->code.' · '.$line->name]),
-            'agencies' => Agency::query()->where('status', 'active')->orderBy('name')->get()->map(fn (Agency $agency): array => ['id' => $agency->id, 'name' => $agency->name]),
+            'lines' => Line::query()->where('status', 'active')->orderBy('code')->get()->map(fn (Line $line): array => ['uuid' => $line->uuid, 'label' => $line->code.' · '.$line->name]),
+            'agencies' => Agency::query()->where('status', 'active')->orderBy('name')->get()->map(fn (Agency $agency): array => ['uuid' => $agency->uuid, 'name' => $agency->name]),
             'buses' => $this->busOptions(),
             'drivers' => $this->userOptions('bus_driver'),
             'conductors' => $this->userOptions('conductor'),
@@ -147,21 +147,21 @@ class DepartureController extends Controller
 
         return [
             'uuid' => $departure->uuid,
-            'lineId' => $departure->line_id,
+            'lineUuid' => $departure->line->uuid ?? null,
             'lineCode' => $departure->line->code ?? '—',
             'lineName' => $departure->line->name ?? '—',
-            'busId' => $departure->bus_id,
+            'busUuid' => $departure->bus->uuid ?? null,
             'busRegistration' => $departure->bus->registration_number ?? 'À affecter',
             'busSeatCount' => $seatCount,
-            'agencyId' => $departure->agency_id,
+            'agencyUuid' => $departure->agency->uuid ?? null,
             'agencyName' => $departure->agency->name ?? '—',
             'agencyCity' => $departure->agency->city ?? null,
             'departureDate' => $departure->departure_date?->format('Y-m-d'),
             'departureTime' => $departure->departure_time,
             'estimatedArrivalAt' => $departure->estimated_arrival_at?->toIso8601String(),
-            'driverId' => $departure->driver_id,
+            'driverUuid' => $departure->driver?->uuid,
             'driverName' => $departure->driver?->name,
-            'conductorId' => $departure->conductor_id,
+            'conductorUuid' => $departure->conductor?->uuid,
             'conductorName' => $departure->conductor?->name,
             'fillRate' => $fillRate,
             'reservationsCount' => $reservationsCount,
@@ -199,27 +199,26 @@ class DepartureController extends Controller
 
         return [
             'uuid' => $departure->uuid,
-            'lineId' => $departure->line_id,
+            'lineUuid' => $departure->line->uuid ?? null,
             'lineCode' => $departure->line->code ?? '—',
             'lineName' => $departure->line->name ?? '—',
             'lineEstimatedDuration' => $departure->line->estimated_duration_minutes,
             'stops' => $stops,
-            'busId' => $departure->bus_id,
             'busUuid' => $departure->bus->uuid,
             'busRegistration' => $departure->bus->registration_number ?? 'À affecter',
             'busSeatCount' => $seatCount,
             'busAgencyName' => $departure->bus->agency?->name,
             'seats' => $seats,
-            'agencyId' => $departure->agency_id,
+            'agencyUuid' => $departure->agency->uuid ?? null,
             'agencyName' => $departure->agency->name ?? '—',
             'agencyCity' => $departure->agency->city,
             'agencyCountry' => $departure->agency->country,
             'departureDate' => $departure->departure_date?->format('Y-m-d'),
             'departureTime' => $departure->departure_time,
             'estimatedArrivalAt' => $departure->estimated_arrival_at?->toIso8601String(),
-            'driverId' => $departure->driver_id,
+            'driverUuid' => $departure->driver?->uuid,
             'driverName' => $departure->driver?->name,
-            'conductorId' => $departure->conductor_id,
+            'conductorUuid' => $departure->conductor?->uuid,
             'conductorName' => $departure->conductor?->name,
             'creatorName' => $departure->creator?->name,
             'fillRate' => $fillRate,
@@ -231,24 +230,25 @@ class DepartureController extends Controller
     }
 
     /**
-     * @return array<int, array{id: int, label: string, agencyId: int|null}>
+     * @return array<int, array{uuid: string, label: string, agencyUuid: string|null}>
      */
     private function busOptions(): array
     {
         return Bus::query()
             ->where('status', 'active')
             ->orderBy('registration_number')
+            ->with('agency:id,uuid')
             ->get()
             ->map(fn (Bus $bus): array => [
-                'id' => (int) $bus->id,
+                'uuid' => $bus->uuid,
                 'label' => (string) $bus->registration_number,
-                'agencyId' => $bus->agency_id !== null ? (int) $bus->agency_id : null,
+                'agencyUuid' => $bus->agency?->uuid,
             ])
             ->toArray();
     }
 
     /**
-     * @return array<int, array{id: int, label: string}>
+     * @return array<int, array{uuid: string, label: string}>
      */
     private function userOptions(string $role): array
     {
@@ -257,7 +257,7 @@ class DepartureController extends Controller
             ->orderBy('name')
             ->get()
             ->map(fn (User $user): array => [
-                'id' => (int) $user->id,
+                'uuid' => $user->uuid,
                 'label' => (string) $user->name,
             ])
             ->toArray();

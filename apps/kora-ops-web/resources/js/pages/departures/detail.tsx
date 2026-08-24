@@ -31,14 +31,14 @@ type SeatItem = {
 };
 
 type DepartureDetail = DepartureRecord & {
-    lineId: number;
+    lineUuid: string;
     lineEstimatedDuration: number | null;
     stops: Stop[];
     busUuid: string;
     busSeatCount: number;
     busAgencyName: string | null;
     seats: SeatItem[];
-    agencyId: number;
+    agencyUuid: string;
     agencyCity: string | null;
     agencyCountry: string | null;
     estimatedArrivalAt: string | null;
@@ -54,14 +54,14 @@ type TimelineEvent = {
     date: string | null;
 };
 
-type BusOption = { id: number; label: string; agencyId: number | null };
-type PersonOption = { id: number; label: string };
+type BusOption = { uuid: string; label: string; agencyUuid: string | null };
+type PersonOption = { uuid: string; label: string };
 
 type PageProps = {
     departure: DepartureDetail;
     statuses: Record<string, string>;
-    lines: { id: number; label: string }[];
-    agencies: { id: number; name: string }[];
+    lines: { uuid: string; label: string }[];
+    agencies: { uuid: string; name: string }[];
     buses: BusOption[];
     drivers: PersonOption[];
     conductors: PersonOption[];

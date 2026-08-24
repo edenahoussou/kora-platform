@@ -4,6 +4,7 @@ namespace App\Modules\Departures\Services;
 
 use App\Modules\BusNetwork\Actions\ResolveLineSegmentStopsAction;
 use App\Modules\BusNetwork\Data\StopStatus;
+use App\Modules\BusNetwork\Models\Line;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Data\DepartureAvailabilityData;
 use App\Modules\Departures\Data\DepartureStatus;
@@ -26,6 +27,11 @@ class DepartureSearchService
     ) {}
 
     /**
+     * List departures for the public search API, paginated at the database level.
+     *
+     * Used by the passenger app. Only the current page of departures is loaded
+     * and has its (expensive) seat availability / fare preview computed.
+     *
      * @param  array{date: string, line?: string|null, from?: string|null, to?: string|null, per_page?: int}  $filters
      * @return LengthAwarePaginator<int, DepartureAvailabilityData>
      */
@@ -33,20 +39,52 @@ class DepartureSearchService
     {
         $date = CarbonImmutable::parse($filters['date']);
         $perPage = $filters['per_page'] ?? 15;
+        $lineIds = $this->resolveCandidateLineIds($filters['line'] ?? null, $filters['from'] ?? null, $filters['to'] ?? null);
 
-        $results = Departure::query()
-            ->whereDate('departure_date', $date)
-            ->where('status', DepartureStatus::Scheduled->value)
-            ->when(
-                $filters['line'] ?? null,
-                fn ($query, string $lineUuid) => $query->whereHas('line', fn ($line) => $line->where('uuid', $lineUuid)),
-            )
-            ->with([
-                'line.stops' => fn ($query) => $query->where('status', StopStatus::Active->value)->orderBy('stop_order'),
-                'bus.seats',
-            ])
-            ->orderBy('departure_time')
-            ->get()
+        if ($lineIds === []) {
+            return new LengthAwarePaginator(
+                [],
+                0,
+                $perPage,
+                LengthAwarePaginator::resolveCurrentPage(),
+                ['path' => LengthAwarePaginator::resolveCurrentPath(), 'query' => request()->query()],
+            );
+        }
+
+        $paginator = $this->baseQuery($date, $lineIds)->paginate($perPage);
+
+        $paginator->setCollection(
+            $paginator->getCollection()
+                ->map(fn (Departure $departure): ?DepartureAvailabilityData => $this->buildDepartureData(
+                    $departure,
+                    $date,
+                    $filters['from'] ?? null,
+                    $filters['to'] ?? null,
+                ))
+                ->filter()
+                ->values(),
+        );
+
+        return $paginator;
+    }
+
+    /**
+     * List sellable departures without pagination, for internal consumers that
+     * need the full result set (e.g. counter-sale search). Not exposed publicly.
+     *
+     * @param  array{date: string, line?: string|null, from?: string|null, to?: string|null}  $filters
+     * @return Collection<int, DepartureAvailabilityData>
+     */
+    public function searchSellable(array $filters): Collection
+    {
+        $date = CarbonImmutable::parse($filters['date']);
+        $lineIds = $this->resolveCandidateLineIds($filters['line'] ?? null, $filters['from'] ?? null, $filters['to'] ?? null);
+
+        if ($lineIds === []) {
+            return collect();
+        }
+
+        return $this->baseQuery($date, $lineIds)->get()
             ->map(fn (Departure $departure): ?DepartureAvailabilityData => $this->buildDepartureData(
                 $departure,
                 $date,
@@ -55,19 +93,49 @@ class DepartureSearchService
             ))
             ->filter()
             ->values();
+    }
 
-        $page = LengthAwarePaginator::resolveCurrentPage();
+    /**
+     * @param  array<int, int>  $lineIds
+     * @return \Illuminate\Database\Eloquent\Builder<Departure>
+     */
+    private function baseQuery(CarbonImmutable $date, array $lineIds): \Illuminate\Database\Eloquent\Builder
+    {
+        return Departure::query()
+            ->whereDate('departure_date', $date)
+            ->where('status', DepartureStatus::Scheduled->value)
+            ->whereIn('line_id', $lineIds)
+            ->with([
+                'line.stops' => fn ($query) => $query->where('status', StopStatus::Active->value)->orderBy('stop_order'),
+                'bus.seats',
+            ])
+            ->orderBy('departure_time');
+    }
 
-        return new LengthAwarePaginator(
-            $results->forPage($page, $perPage)->values(),
-            $results->count(),
-            $perPage,
-            $page,
-            [
-                'path' => LengthAwarePaginator::resolveCurrentPath(),
-                'query' => request()->query(),
-            ],
-        );
+    /**
+     * Resolves which lines can satisfy the requested segment, without loading
+     * any departure. Lines are a small, cheap dataset compared to departures.
+     *
+     * @return array<int, int>
+     */
+    private function resolveCandidateLineIds(?string $lineUuid, ?string $from, ?string $to): array
+    {
+        return Line::query()
+            ->where('status', 'active')
+            ->when($lineUuid, fn ($query, string $uuid) => $query->where('uuid', $uuid))
+            ->with(['stops' => fn ($query) => $query->where('status', StopStatus::Active->value)->orderBy('stop_order')])
+            ->get()
+            ->filter(function (Line $line) use ($from, $to): bool {
+                try {
+                    $this->resolveLineSegmentStops->handle($line, $from, $to);
+
+                    return true;
+                } catch (ValidationException) {
+                    return false;
+                }
+            })
+            ->pluck('id')
+            ->all();
     }
 
     /**

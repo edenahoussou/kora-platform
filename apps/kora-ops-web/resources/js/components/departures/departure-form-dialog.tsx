@@ -16,25 +16,25 @@ import departures from '@/routes/departures';
 
 export type DepartureRecord = {
     uuid: string;
-    lineId?: number | null;
+    lineUuid?: string | null;
     lineCode: string;
     lineName: string;
-    busId?: number | null;
+    busUuid?: string | null;
     busRegistration: string;
-    agencyId?: number | null;
+    agencyUuid?: string | null;
     agencyName: string;
     departureDate: string | null;
     departureTime: string | null;
-    driverId?: number | null;
+    driverUuid?: string | null;
     driverName: string | null;
-    conductorId?: number | null;
+    conductorUuid?: string | null;
     conductorName: string | null;
     status: string;
 };
 
-type Option = { id: number | string; label: string };
-type AgencyOption = { id: number; name: string };
-type BusOption = { id: number; label: string; agencyId: number | null };
+type Option = { uuid: string; label: string };
+type AgencyOption = { uuid: string; name: string };
+type BusOption = { uuid: string; label: string; agencyUuid: string | null };
 
 type Props = {
     open: boolean;
@@ -116,25 +116,25 @@ export function DepartureFormDialog({
                             <div className="grid gap-5 p-7">
                                 <FieldSelect
                                     id="departure-line"
-                                    name="line_id"
+                                    name="line_uuid"
                                     label="Ligne *"
-                                    value={departure?.lineId ?? undefined}
+                                    value={departure?.lineUuid ?? undefined}
                                     options={lines}
                                     placeholder="Sélectionner une ligne"
-                                    error={errors.line_id}
+                                    error={errors.line_uuid}
                                 />
 
                                 <FieldSelect
                                     id="departure-agency"
-                                    name="agency_id"
+                                    name="agency_uuid"
                                     label="Agence de départ *"
-                                    value={departure?.agencyId ?? undefined}
+                                    value={departure?.agencyUuid ?? undefined}
                                     options={agencies.map((item) => ({
-                                        id: item.id,
+                                        uuid: item.uuid,
                                         label: item.name,
                                     }))}
                                     placeholder="Sélectionner une agence"
-                                    error={errors.agency_id}
+                                    error={errors.agency_uuid}
                                 />
 
                                 <div className="grid gap-5 sm:grid-cols-2">
@@ -178,38 +178,41 @@ export function DepartureFormDialog({
 
                                 <FieldSelect
                                     id="departure-bus"
-                                    name="bus_id"
+                                    name="bus_uuid"
                                     label="Bus assigné *"
-                                    value={departure?.busId ?? undefined}
+                                    value={departure?.busUuid ?? undefined}
                                     options={buses.map((bus) => ({
-                                        id: bus.id,
+                                        uuid: bus.uuid,
                                         label: bus.label,
                                     }))}
                                     placeholder="Sélectionner un véhicule"
-                                    error={errors.bus_id}
+                                    error={errors.bus_uuid}
                                 />
 
                                 <div className="grid gap-5 sm:grid-cols-2">
                                     <FieldSelect
                                         id="departure-driver"
-                                        name="driver_id"
+                                        name="driver_uuid"
                                         label="Chauffeur"
-                                        value={departure?.driverId ?? undefined}
+                                        value={
+                                            departure?.driverUuid ?? undefined
+                                        }
                                         options={drivers}
                                         placeholder="À affecter"
-                                        error={errors.driver_id}
+                                        error={errors.driver_uuid}
                                         required={false}
                                     />
                                     <FieldSelect
                                         id="departure-conductor"
-                                        name="conductor_id"
+                                        name="conductor_uuid"
                                         label="Convoyeur"
                                         value={
-                                            departure?.conductorId ?? undefined
+                                            departure?.conductorUuid ??
+                                            undefined
                                         }
                                         options={conductors}
                                         placeholder="À affecter"
-                                        error={errors.conductor_id}
+                                        error={errors.conductor_uuid}
                                         required={false}
                                     />
                                 </div>
@@ -272,7 +275,7 @@ function FieldSelect({
     id: string;
     name: string;
     label: string;
-    value?: number | string;
+    value?: string;
     options: Option[];
     placeholder: string;
     error?: string;
@@ -290,7 +293,7 @@ function FieldSelect({
             >
                 <option value="">{placeholder}</option>
                 {options.map((option) => (
-                    <option key={option.id} value={option.id}>
+                    <option key={option.uuid} value={option.uuid}>
                         {option.label}
                     </option>
                 ))}
