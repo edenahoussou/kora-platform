@@ -35,12 +35,12 @@ class DepartureSearchService
      * Used by the passenger app. Only the current page of departures is loaded
      * and has its (expensive) seat availability / fare preview computed.
      *
-     * @param  array{date: string, line?: string|null, from?: string|null, to?: string|null, per_page?: int}  $filters
+     * @param  array{date?: string|null, line?: string|null, from?: string|null, to?: string|null, per_page?: int}  $filters
      * @return LengthAwarePaginator<int, DepartureAvailabilityData>
      */
     public function search(array $filters, bool $sellableOnly = false): LengthAwarePaginator
     {
-        $date = CarbonImmutable::parse($filters['date']);
+        $date = $this->parseDateFilter($filters['date'] ?? null);
         $perPage = $filters['per_page'] ?? 15;
         $lineIds = $this->resolveCandidateLineIds($filters['line'] ?? null, $filters['from'] ?? null, $filters['to'] ?? null);
 
@@ -59,7 +59,6 @@ class DepartureSearchService
         $items = $paginator->getCollection()
             ->map(fn (Departure $departure): ?DepartureAvailabilityData => $this->buildDepartureData(
                 $departure,
-                $date,
                 $filters['from'] ?? null,
                 $filters['to'] ?? null,
             ))
@@ -80,12 +79,12 @@ class DepartureSearchService
      * List sellable departures without pagination, for internal consumers that
      * need the full result set (e.g. counter-sale search). Not exposed publicly.
      *
-     * @param  array{date: string, line?: string|null, from?: string|null, to?: string|null}  $filters
+     * @param  array{date?: string|null, line?: string|null, from?: string|null, to?: string|null}  $filters
      * @return Collection<int, DepartureAvailabilityData>
      */
     public function searchSellable(array $filters, bool $sellableOnly = false): Collection
     {
-        $date = CarbonImmutable::parse($filters['date']);
+        $date = $this->parseDateFilter($filters['date'] ?? null);
         $lineIds = $this->resolveCandidateLineIds($filters['line'] ?? null, $filters['from'] ?? null, $filters['to'] ?? null);
 
         if ($lineIds === []) {
@@ -95,7 +94,6 @@ class DepartureSearchService
         return $this->baseQuery($date, $lineIds)->get()
             ->map(fn (Departure $departure): ?DepartureAvailabilityData => $this->buildDepartureData(
                 $departure,
-                $date,
                 $filters['from'] ?? null,
                 $filters['to'] ?? null,
             ))
@@ -108,17 +106,27 @@ class DepartureSearchService
      * @param  array<int, int>  $lineIds
      * @return Builder<Departure>
      */
-    private function baseQuery(CarbonImmutable $date, array $lineIds): Builder
+    private function baseQuery(?CarbonImmutable $date, array $lineIds): Builder
     {
         return Departure::query()
-            ->whereDate('departure_date', $date)
+            ->when(
+                $date !== null,
+                fn ($query) => $query->whereDate('departure_date', $date),
+                fn ($query) => $query->where('departure_date', '>=', CarbonImmutable::now()->toDateString()),
+            )
             ->where('status', DepartureStatus::Scheduled->value)
             ->whereIn('line_id', $lineIds)
             ->with([
                 'line.stops' => fn ($query) => $query->where('status', StopStatus::Active->value)->orderBy('stop_order'),
                 'bus.seats',
             ])
+            ->orderBy('departure_date')
             ->orderBy('departure_time');
+    }
+
+    private function parseDateFilter(?string $date): ?CarbonImmutable
+    {
+        return filled($date) ? CarbonImmutable::parse($date) : null;
     }
 
     /**
@@ -159,7 +167,6 @@ class DepartureSearchService
 
         return $this->buildDepartureData(
             $departure,
-            CarbonImmutable::parse((string) $departure->departure_date),
             $filters['from'] ?? null,
             $filters['to'] ?? null,
         );
@@ -200,7 +207,6 @@ class DepartureSearchService
 
     private function buildDepartureData(
         Departure $departure,
-        CarbonImmutable $date,
         ?string $from,
         ?string $to,
     ): ?DepartureAvailabilityData {
@@ -215,13 +221,14 @@ class DepartureSearchService
         /** @var Stop $destination */
         $destination = $segment['destination'];
         $availability = $this->buildSeatAvailability->handle($departure, $origin, $destination);
+        $departureDate = CarbonImmutable::parse((string) $departure->departure_date);
 
         return new DepartureAvailabilityData(
             departure: $departure,
             originStop: $origin,
             destinationStop: $destination,
             availableSeatsCount: $availability->where('availabilityStatus', SeatAvailabilityStatus::Available)->count(),
-            farePreview: $this->calculateFarePreview->handle($departure->line, $origin, $destination, $date),
+            farePreview: $this->calculateFarePreview->handle($departure->line, $origin, $destination, $departureDate),
             sellability: $this->resolveDepartureSellability->handle($departure),
         );
     }
