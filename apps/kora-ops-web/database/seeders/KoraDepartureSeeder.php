@@ -74,6 +74,7 @@ class KoraDepartureSeeder extends Seeder
          * }> $departures
          */
         $departures = [
+            // Créneaux historiques sur L1 (Cotonou–Abidjan) — inchangés, jamais réassignés.
             [
                 'line' => $line,
                 'bus' => $bus1,
@@ -117,6 +118,27 @@ class KoraDepartureSeeder extends Seeder
                 'time' => '07:30',
                 'driver' => $drivers->get(1),
                 'conductor' => $conductors->get(1),
+                'status' => DepartureStatus::Scheduled,
+            ],
+            // Nouveaux créneaux sur L2 (Cotonou–Lomé) — horaires distincts des créneaux
+            // L1 ci-dessus, pour ne jamais entrer en collision avec `firstOrCreate` sur un
+            // réensemencement partiel et ne jamais "déplacer" un départ existant d'une ligne à l'autre.
+            [
+                'line' => $line2,
+                'bus' => $bus2 ?? $bus1,
+                'date' => $today,
+                'time' => '09:00',
+                'driver' => $drivers->get(1),
+                'conductor' => $conductors->get(1),
+                'status' => DepartureStatus::Scheduled,
+            ],
+            [
+                'line' => $line2,
+                'bus' => $bus3 ?? $bus1,
+                'date' => $today,
+                'time' => '16:00',
+                'driver' => $drivers->get(0),
+                'conductor' => $conductors->get(0),
                 'status' => DepartureStatus::Scheduled,
             ],
         ];
