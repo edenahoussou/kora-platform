@@ -10,7 +10,16 @@ use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Models\Fare;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+
+beforeEach(function (): void {
+    Carbon::setTestNow('2026-08-14 07:00:00');
+});
+
+afterEach(function (): void {
+    Carbon::setTestNow();
+});
 
 it('lists active cities derived from stops', function (): void {
     koraBusApiScenario();

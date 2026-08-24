@@ -16,7 +16,16 @@ use App\Modules\DynamicPricing\Models\PriceQuote;
 use App\Modules\DynamicPricing\Models\PricingRule;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 use Laravel\Sanctum\Sanctum;
+
+beforeEach(function (): void {
+    Carbon::setTestNow('2026-08-19 07:00:00');
+});
+
+afterEach(function (): void {
+    Carbon::setTestNow();
+});
 
 it('requires authentication to create quotes and holds', function (): void {
     $this->postJson('/api/v1/bus/quotes', [])->assertUnauthorized();
