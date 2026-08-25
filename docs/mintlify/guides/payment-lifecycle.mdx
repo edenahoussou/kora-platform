@@ -1,0 +1,128 @@
+---
+title: Cycle de vie d'un paiement
+description: Initiation, polling, confirmation provider et gestion des échecs.
+---
+
+
+# Cycle de vie d'un paiement
+
+Le paiement KORA BUS suit un cycle asynchrone : **initiation** → **polling** → **confirmation** (webhook provider). Ce guide décrit le flow complet et les cas d'erreur.
+
+## Vue d'ensemble
+
+```
+initiate → pending → (webhook provider) → confirmed / failed
+                         ↓
+              reservation: held → paid (si confirmed)
+              reservation: expired (si webhook tardif) → payment: failed
+```
+
+<Steps>
+  <Step title="1. Initier le paiement">
+    La réservation doit être au statut `held`. Fournissez une `idempotency_key` unique.
+
+```bash
+curl -X POST https://staging.koraexpress.app/api/v1/payments/initiate \
+  -H 'Authorization: Bearer $TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "reservation_uuid": "9b1deb4d-...",
+    "method": "mobile_money",
+    "provider": "mtn_momo",
+    "idempotency_key": "pay-2026-08-20-001",
+    "phone": "+2290197421860"
+  }'
+```
+
+La réponse `201` contient le `uuid` du paiement, le statut `pending`, et `polling_interval_seconds` (10s).
+
+Voir : [Initier — Référence](/reference/payments/initiate).
+  </Step>
+
+  <Step title="2. Poller le statut">
+    Pollez `GET /payments/{uuid}` toutes les `polling_interval_seconds` jusqu'à un statut terminal.
+
+```dart
+Timer.periodic(Duration(seconds: 10), (timer) async {
+  final res = await authDio.get('/api/v1/payments/$paymentUuid');
+  final status = res.data['data']['status'];
+
+  if (status == 'confirmed') {
+    timer.cancel();
+    // Naviguer vers le billet
+  } else if (status == 'failed') {
+    timer.cancel();
+    // Afficher l'erreur
+  }
+});
+```
+
+Voir : [Consulter — Référence](/reference/payments/show).
+  </Step>
+
+  <Step title="3. Confirmation provider (webhook)">
+    Le provider appelle `POST /payments/{uuid}/confirm` avec `status: success` ou `failed`. Le backend met à jour le paiement et la réservation.
+
+    - `success` → paiement `confirmed`, réservation `paid`
+    - `failed` → paiement `failed`
+
+    L'app mobile n'appelle **pas** cet endpoint — c'est le provider qui le fait.
+
+Voir : [Confirmer — Référence](/reference/payments/confirm).
+  </Step>
+</Steps>
+
+## Méthodes de paiement
+
+| Méthode | `method` | Providers courants | Champ requis |
+|---------|----------|-------------------|--------------|
+| Mobile Money | `mobile_money` | `mtn_momo`, `orange_money`, `moov_money` | `phone` |
+| Wallet | `wallet` | (interne) | `wallet_amount` |
+| Carte | `card` | (stripe, etc.) | — |
+| Espèces | `cash` | (guichet) | — |
+
+## Idempotence
+
+La `idempotency_key` garantit qu'un replay de la même demande ne crée pas un double paiement :
+
+- **Premier appel** → `201` (paiement créé)
+- **Replay même clé** → `200` (paiement existant retourné)
+
+<Info>
+  Utilisez une clé déterministe côté mobile (ex: `pay-{reservation_uuid}-{timestamp}`) pour survivre aux retries réseau sans double paiement.
+</Info>
+
+## Cas d'erreur
+
+| Situation | Code | Action |
+|-----------|------|--------|
+| Réservation non `held` | `422` | Vérifier le statut via `GET /bookings/{uuid}` |
+| Hold expiré avant initiation | `422` | Recréer un devis + hold |
+| Webhook succès après expiration | — | Paiement `failed`, réservation reste `expired` |
+| Provider timeout | — | Continuer à poller ; le webhook finira par arriver |
+
+<Warning>
+  Le paiement est accepté **uniquement** tant que le hold est valide. Si le webhook de succès arrive après l'expiration, le backend marque le paiement `failed` et ne réactive **jamais** la réservation. Le passager doit recommencer une nouvelle recherche.
+</Warning>
+
+## Split payment (wallet + mobile money)
+
+Vous pouvez combiner plusieurs méthodes via `wallet_amount` et `points_amount` :
+
+```json
+{
+  "reservation_uuid": "9b1deb4d-...",
+  "method": "mobile_money",
+  "provider": "mtn_momo",
+  "idempotency_key": "pay-split-001",
+  "phone": "+2290197421860",
+  "wallet_amount": 5000,
+  "points_amount": 0
+}
+```
+
+Le provider couvre le reste (`total_amount - wallet_amount - points_amount`).
+
+<Card title="Webhooks" href="/guides/webhooks" icon="arrow-right" iconType="solid">
+  Comprenez les **événements de paiement** et l'intégration webhook.
+</Card>

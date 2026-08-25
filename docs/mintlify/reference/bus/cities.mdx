@@ -1,0 +1,64 @@
+---
+title: Lister les villes
+description: Retourne les villes desservies avec leur pays et nombre d'arrêts.
+api: GET /api/v1/bus/cities
+authMethod: none
+---
+
+# Lister les villes
+
+Retourne les villes desservies par KORA BUS, avec leur pays et le nombre d'arrêts associés. Aucun paramètre requis.
+
+<RequestExample>
+
+```bash cURL
+curl -X GET https://staging.koraexpress.app/api/v1/bus/cities \
+  -H 'Accept: application/json'
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/bus/cities');
+const { data } = await res.json();
+```
+
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/bus/cities');
+const data: City[] = (await res.json()).data;
+```
+
+```dart Dart
+final res = await dio.get('/api/v1/bus/cities');
+final cities = res.data['data'] as List;
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "data": [
+    { "city": "Cotonou", "country": "Bénin", "stops_count": 5 },
+    { "city": "Abidjan", "country": "Côte d'Ivoire", "stops_count": 3 },
+    { "city": "Malanville", "country": "Bénin", "stops_count": 1 }
+  ]
+}
+```
+
+</ResponseExample>
+
+## Réponse
+
+<ResponseField name="data" type="City[]" required>
+  Tableau des villes.
+
+  <ResponseField name="city" type="string" required>Nom de la ville.</ResponseField>
+  <ResponseField name="country" type="string" required>Nom du pays.</ResponseField>
+  <ResponseField name="stops_count" type="integer" required>Nombre d'arrêts dans cette ville.</ResponseField>
+</ResponseField>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `200` | Liste des villes. |

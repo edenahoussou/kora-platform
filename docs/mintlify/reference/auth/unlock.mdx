@@ -1,0 +1,86 @@
+---
+title: Déverrouiller un compte
+description: "Déverrouille un compte verrouillé après vérification OTP (purpose: account_unlock)."
+api: POST /api/v1/auth/unlock
+authMethod: none
+---
+
+# Déverrouiller un compte
+
+Déverrouille un compte verrouillé après plusieurs PIN incorrects. Requiert une vérification OTP avec `purpose: "account_unlock"`.
+
+## Paramètres
+
+<ParamField body="otp_challenge_uuid" type="UUID" required>
+  UUID du challenge OTP vérifié (purpose: `account_unlock`).
+</ParamField>
+
+<ParamField body="verification_token" type="string" required>
+  Token retourné par `otp/verify` (64 caractères).
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X POST https://staging.koraexpress.app/api/v1/auth/unlock \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
+    "verification_token": "gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn"
+  }'
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/auth/unlock', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ otp_challenge_uuid, verification_token }),
+});
+```
+
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/auth/unlock', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ otp_challenge_uuid, verification_token } satisfies UnlockRequest),
+});
+```
+
+```dart Dart
+await dio.post('/api/v1/auth/unlock', data: {
+  'otp_challenge_uuid': challengeUuid,
+  'verification_token': verificationToken,
+});
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "data": {
+    "user": {
+      "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
+      "name": "Passager KORA",
+      "email": "passager@korabus.app",
+      "phone": null,
+      "country_code": null,
+      "birth_date": null,
+      "avatar_url": null,
+      "status": "active",
+      "permissions": ["bookings.create", "bookings.view-own", "tickets.view"]
+    }
+  }
+}
+```
+
+</ResponseExample>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `200` | Compte déverrouillé. |
+| `422` | `verification_token` invalide/expiré. |
+| `429` | Rate limit `auth-otp` dépassé (3/min). |

@@ -1,0 +1,47 @@
+---
+title: Déconnexion
+description: Révoque le token courant. Les autres appareils restent connectés.
+api: POST /api/v1/auth/logout
+---
+
+# Déconnexion
+
+Révoque le token Sanctum courant. Les autres appareils restent connectés avec leurs propres tokens.
+
+<RequestExample>
+
+```bash cURL
+curl -X POST https://staging.koraexpress.app/api/v1/auth/logout \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef'
+```
+
+```javascript JavaScript
+await fetch('https://staging.koraexpress.app/api/v1/auth/logout', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+```
+
+```typescript TypeScript
+await fetch('https://staging.koraexpress.app/api/v1/auth/logout', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+```
+
+```dart Dart
+await authDio.post('/api/v1/auth/logout');
+```
+
+</RequestExample>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `204` | Token révoqué — pas de body. |
+| `401` | Token absent ou invalide. |
+
+<Info>
+  Après déconnexion, le token est immédiatement révoqué côté serveur. Le client doit purger le token stocké localement.
+</Info>

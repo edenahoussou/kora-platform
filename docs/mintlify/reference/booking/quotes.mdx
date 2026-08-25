@@ -1,0 +1,157 @@
+---
+title: Créer un devis
+description: Fige le tarif d'un segment pour un nombre de passagers — valable KORA_QUOTE_TTL_MINUTES.
+api: POST /api/v1/bus/quotes
+---
+
+# Créer un devis
+
+Fige le tarif d'un segment demandé. La durée de validité est contrôlée par `KORA_QUOTE_TTL_MINUTES` (10 minutes par défaut). Le mobile doit conserver l'UUID du devis et le transmettre lors de la création du hold.
+
+## Paramètres
+
+<ParamField body="departure_uuid" type="UUID" required>
+  UUID du départ sélectionné (doit exister dans la table `departures`).
+</ParamField>
+
+<ParamField body="origin_stop_uuid" type="UUID" required>
+  UUID de l'arrêt d'origine du segment (doit exister dans la table `stops`).
+</ParamField>
+
+<ParamField body="destination_stop_uuid" type="UUID" required>
+  UUID de l'arrêt de destination (doit exister dans la table `stops`).
+</ParamField>
+
+<ParamField body="service_class_uuid" type="UUID">
+  UUID de la classe de service (doit exister dans `service_classes`). `null` = défaut.
+</ParamField>
+
+<ParamField body="passenger_count" type="integer">
+  Nombre de passagers (min 1, max 10). Défaut si absent.
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X POST https://staging.koraexpress.app/api/v1/bus/quotes \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "departure_uuid": "a3091549-9179-454e-8440-58179f2208df",
+    "origin_stop_uuid": "6b72fe4a-5b40-307c-bc24-f79acf9a1bb9",
+    "destination_stop_uuid": "8d94f06c-7d62-529e-de46-9bce1cbc3dd1",
+    "service_class_uuid": null,
+    "passenger_count": 2
+  }'
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/bus/quotes', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ departure_uuid, origin_stop_uuid, destination_stop_uuid, service_class_uuid: null, passenger_count: 2 }),
+});
+const { data } = await res.json();
+```
+
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/bus/quotes', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ departure_uuid, origin_stop_uuid, destination_stop_uuid, service_class_uuid: null, passenger_count: 2 } satisfies StoreQuoteRequest),
+});
+const data: PriceQuote = (await res.json()).data;
+```
+
+```dart Dart
+final res = await authDio.post('/api/v1/bus/quotes', data: {
+  'departure_uuid': 'a3091549-9179-454e-8440-58179f2208df',
+  'origin_stop_uuid': '6b72fe4a-5b40-307c-bc24-f79acf9a1bb9',
+  'destination_stop_uuid': '8d94f06c-7d62-529e-de46-9bce1cbc3dd1',
+  'service_class_uuid': null,
+  'passenger_count': 2,
+});
+final quoteUuid = res.data['data']['uuid'];
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 201
+{
+  "data": {
+    "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+    "departure_uuid": "a3091549-9179-454e-8440-58179f2208df",
+    "origin_stop_uuid": "6b72fe4a-5b40-307c-bc24-f79acf9a1bb9",
+    "destination_stop_uuid": "8d94f06c-7d62-529e-de46-9bce1cbc3dd1",
+    "service_class_uuid": null,
+    "base_amount": 12500,
+    "coefficient": 1.0,
+    "final_amount": 12500,
+    "currency": "XOF",
+    "passenger_count": 2,
+    "total_amount": 25000,
+    "expires_at": "2026-08-20T08:10:00.000Z",
+    "snapshot": {
+      "fare_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6f",
+      "line_code": "CTO-ABJ-001",
+      "origin_stop": "Cotonou · St Michel",
+      "destination_stop": "Abidjan · Treichville",
+      "service_class": "Standard",
+      "passenger_count": 2,
+      "total_amount": 25000
+    }
+  }
+}
+```
+
+```json 422 — Segment invalide
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "destination_stop_uuid": ["L'arrêt de destination doit être situé après l'arrêt d'origine."]
+  }
+}
+```
+
+```json 422 — Vente fermée
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "departure_uuid": ["La vente est fermée pour ce départ."]
+  }
+}
+```
+
+</ResponseExample>
+
+## Réponse
+
+<ResponseField name="data" type="PriceQuote" required>
+  <ResponseField name="uuid" type="UUID" required>UUID du devis.</ResponseField>
+  <ResponseField name="departure_uuid" type="UUID">UUID du départ ou `null`.</ResponseField>
+  <ResponseField name="origin_stop_uuid" type="UUID">UUID de l'arrêt d'origine ou `null`.</ResponseField>
+  <ResponseField name="destination_stop_uuid" type="UUID">UUID de l'arrêt de destination ou `null`.</ResponseField>
+  <ResponseField name="service_class_uuid" type="UUID">UUID de la classe de service ou `null`.</ResponseField>
+  <ResponseField name="base_amount" type="integer" required>Montant de base.</ResponseField>
+  <ResponseField name="coefficient" type="number" required>Coefficient appliqué.</ResponseField>
+  <ResponseField name="final_amount" type="integer" required>Montant unitaire final.</ResponseField>
+  <ResponseField name="currency" type="string" required>Devise (ex: `XOF`).</ResponseField>
+  <ResponseField name="passenger_count" type="integer" required>Nombre de passagers.</ResponseField>
+  <ResponseField name="total_amount" type="integer" required>Montant total (final_amount × passenger_count).</ResponseField>
+  <ResponseField name="expires_at" type="string">Expiration (ISO 8601) ou `null`.</ResponseField>
+  <ResponseField name="snapshot" type="object" required>Snapshot figé des paramètres tarifaires.</ResponseField>
+</ResponseField>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `201` | Devis créé — `expires_at` indique la durée de validité. |
+| `401` | Token Sanctum absent ou invalide. |
+| `422` | Départ introuvable, segment invalide, vente fermée, ou `passenger_count` < 1. |
+
+<Warning>
+  Le `fare_preview` du départ est un **aperçu**. Le prix figé et contractuel s'obtient uniquement via cet endpoint.
+</Warning>

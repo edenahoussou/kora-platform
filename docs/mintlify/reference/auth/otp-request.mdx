@@ -1,0 +1,106 @@
+---
+title: Demander un OTP
+description: Demande l'envoi d'un code OTP par email pour inscription, connexion nouveau device, reset PIN ou unlock.
+api: POST /api/v1/auth/otp/request
+authMethod: none
+---
+
+# Demander un OTP
+
+Déclenche l'envoi d'un code OTP à 6 chiffres par email. Le `purpose` détermine le contexte et le rate limit applicable.
+
+## Paramètres
+
+<ParamField body="email" type="string" required>
+  Email du passager (format RFC, max 255).
+</ParamField>
+
+<ParamField body="purpose" type="string" required>
+  Contexte de la demande. Valeurs acceptées : `registration`, `login_new_device`, `pin_reset`, `account_unlock`.
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X POST https://staging.koraexpress.app/api/v1/auth/otp/request \
+  -H 'Content-Type: application/json' \
+  -d '{ "email": "passager@korabus.app", "purpose": "registration" }'
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/auth/otp/request', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ email: 'passager@korabus.app', purpose: 'registration' }),
+});
+const { data } = await res.json();
+```
+
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/auth/otp/request', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ email, purpose } satisfies RequestOtp),
+});
+const data: OtpChallenge = (await res.json()).data;
+```
+
+```dart Dart
+final res = await dio.post('/api/v1/auth/otp/request', data: {
+  'email': 'passager@korabus.app',
+  'purpose': 'registration',
+});
+final challengeUuid = res.data['data']['otp_challenge_uuid'];
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 202
+{
+  "data": {
+    "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
+    "purpose": "registration",
+    "email": "passager@korabus.app",
+    "expires_at": "2026-08-17T13:10:00.000Z"
+  }
+}
+```
+
+```json 422
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "email": ["The email field is required."],
+    "purpose": ["The selected purpose is invalid."]
+  }
+}
+```
+
+</ResponseExample>
+
+## Réponse
+
+<ResponseField name="data" type="object" required>
+  <ResponseField name="otp_challenge_uuid" type="UUID" required>
+    UUID du challenge OTP. À transmettre à `otp/verify`.
+  </ResponseField>
+  <ResponseField name="purpose" type="string" required>
+    Contexte de la demande (`registration`, `login_new_device`, `pin_reset`, `account_unlock`).
+  </ResponseField>
+  <ResponseField name="email" type="string" required>
+    Email destinataire du code.
+  </ResponseField>
+  <ResponseField name="expires_at" type="string" required>
+    Date d'expiration du challenge (ISO 8601).
+  </ResponseField>
+</ResponseField>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `202` | OTP envoyé par email. |
+| `422` | `email` invalide ou `purpose` non supporté. |
+| `429` | Rate limit `auth-otp` dépassé (3/min par IP + email). |

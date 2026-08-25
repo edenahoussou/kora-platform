@@ -1,0 +1,90 @@
+---
+title: Récupérer une réservation
+description: Récupère l'état serveur complet d'une réservation pour reprise après perte de session.
+api: GET /api/v1/bookings/{reservation_uuid}
+---
+
+# Récupérer une réservation
+
+Récupère l'état serveur complet d'une réservation via `ReservationResource`. À utiliser après une perte de session mobile pour reprendre le parcours sans reconstruire l'état local.
+
+## Paramètres
+
+<ParamField path="reservation_uuid" type="UUID" required>
+  UUID de la réservation (route model binding sur colonne `uuid`).
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X GET https://staging.koraexpress.app/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70 \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Accept: application/json'
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70', {
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+const { data } = await res.json();
+```
+
+```typescript TypeScript
+const res = await fetch(`https://staging.koraexpress.app/api/v1/bookings/${reservationUuid}`, {
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+const data: Reservation = (await res.json()).data;
+```
+
+```dart Dart
+final res = await authDio.get('/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70');
+final reservation = res.data['data'];
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "data": {
+    "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+    "status": "held",
+    "expires_at": "2026-08-20T08:15:00.000Z",
+    "total_amount": 25000,
+    "currency": "XOF",
+    "channel": "mobile",
+    "departure_uuid": "a3091549-9179-454e-8440-58179f2208df",
+    "price_quote_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+    "passenger_count": 2,
+    "segments": [
+      {
+        "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb71",
+        "seat_uuid": "seat-002-uuid",
+        "seat_code": "4A",
+        "origin_stop_uuid": "6b72fe4a-5b40-307c-bc24-f79acf9a1bb9",
+        "origin_stop": "Cotonou · St Michel",
+        "destination_stop_uuid": "8d94f06c-7d62-529e-de46-9bce1cbc3dd1",
+        "destination_stop": "Abidjan · Treichville",
+        "status": "held"
+      }
+    ],
+    "passengers": []
+  }
+}
+```
+
+</ResponseExample>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `200` | Réservation retournée. |
+| `401` | Token absent ou invalide. |
+| `403` | Réservation appartenant à un autre utilisateur (policy `view`). |
+| `404` | Réservation introuvable. |
+
+<Info>
+  Le mobile ne doit **jamais** reconstruire la réservation depuis son état local. La réponse contient le statut, `expires_at`, les segments, les voyageurs et le montant serveur.
+</Info>

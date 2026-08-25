@@ -1,0 +1,98 @@
+---
+title: Réinitialiser le PIN
+description: "Réinitialise le PIN après vérification OTP (purpose: pin_reset)."
+api: POST /api/v1/auth/pin/reset
+authMethod: none
+---
+
+# Réinitialiser le PIN
+
+Réinitialise le PIN après vérification OTP avec `purpose: "pin_reset"`. Le nouveau PIN doit être confirmé.
+
+## Paramètres
+
+<ParamField body="otp_challenge_uuid" type="UUID" required>
+  UUID du challenge OTP vérifié (purpose: `pin_reset`).
+</ParamField>
+
+<ParamField body="verification_token" type="string" required>
+  Token retourné par `otp/verify` (64 caractères).
+</ParamField>
+
+<ParamField body="pin" type="string" required>
+  Nouveau PIN à 4 chiffres.
+</ParamField>
+
+<ParamField body="pin_confirmation" type="string" required>
+  Doit être identique à `pin` (règle `confirmed`).
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X POST https://staging.koraexpress.app/api/v1/auth/pin/reset \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
+    "verification_token": "gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn",
+    "pin": "1234",
+    "pin_confirmation": "1234"
+  }'
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/auth/pin/reset', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ otp_challenge_uuid, verification_token, pin: '1234', pin_confirmation: '1234' }),
+});
+```
+
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/auth/pin/reset', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ otp_challenge_uuid, verification_token, pin, pin_confirmation: pin } satisfies ResetPinRequest),
+});
+```
+
+```dart Dart
+await dio.post('/api/v1/auth/pin/reset', data: {
+  'otp_challenge_uuid': challengeUuid,
+  'verification_token': verificationToken,
+  'pin': '1234',
+  'pin_confirmation': '1234',
+});
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "data": {
+    "user": {
+      "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
+      "name": "Passager KORA",
+      "email": "passager@korabus.app",
+      "phone": null,
+      "country_code": null,
+      "birth_date": null,
+      "avatar_url": null,
+      "status": "active",
+      "permissions": ["bookings.create", "bookings.view-own", "tickets.view"]
+    }
+  }
+}
+```
+
+</ResponseExample>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `200` | PIN réinitialisé. |
+| `422` | `verification_token` invalide/expiré, ou PIN invalide. |
+| `429` | Rate limit `auth-otp` dépassé (3/min). |

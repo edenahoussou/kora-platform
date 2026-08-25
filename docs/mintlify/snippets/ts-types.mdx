@@ -1,0 +1,323 @@
+---
+title: Types TypeScript partagés
+description: Interfaces TypeScript pour les requêtes et réponses de l'API KORA BUS V1.
+---
+
+# Types TypeScript partagés
+
+Ces interfaces couvrent les principaux types de l'API KORA BUS V1. Importez-les dans vos pages de référence ou copiez-les dans votre projet.
+
+## Types de base
+
+```typescript
+// Erreur API standard
+export interface KoraApiError {
+  error: {
+    code: string;
+    message: string;
+    [key: string]: unknown;
+  };
+}
+
+// Réponse de succès (enveloppe data)
+export interface KoraResponse<T> {
+  data: T;
+}
+```
+
+## Authentification
+
+```typescript
+export interface OtpRequest {
+  email: string;
+  purpose: 'registration' | 'login_new_device' | 'pin_reset' | 'account_unlock';
+}
+
+export interface OtpVerify {
+  otp_challenge_uuid: string;
+  purpose: string;
+  code: string;
+}
+
+export interface OtpChallenge {
+  otp_challenge_uuid: string;
+  purpose: string;
+  email: string;
+  expires_at: string;
+}
+
+export interface RegisterCompleteRequest {
+  otp_challenge_uuid: string;
+  verification_token: string;
+  pin: string;
+  device_name: string;
+  platform: 'ios' | 'android';
+  device_fingerprint: string;
+  push_token?: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  pin: string;
+  device_name: string;
+  platform: 'ios' | 'android';
+  device_fingerprint: string;
+  otp_challenge_uuid?: string;
+  verification_token?: string;
+}
+
+export interface OAuthTokenRequest {
+  provider: 'google' | 'facebook' | 'tiktok';
+  provider_token: string;
+  device_name: string;
+  platform: 'ios' | 'android';
+  device_fingerprint: string;
+}
+
+export interface UpdateProfileRequest {
+  name?: string;
+  phone?: string;
+  country_code?: string;
+  birth_date?: string;
+}
+
+export interface KoraUser {
+  uuid: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  country_code: string | null;
+  birth_date: string | null;
+  avatar_url?: string;
+  status: 'active' | 'suspended';
+  permissions: string[];
+}
+
+export interface KoraDevice {
+  uuid: string;
+  name: string;
+  platform: 'ios' | 'android';
+  trusted_at: string | null;
+  last_seen_at: string | null;
+  status: 'trusted' | 'revoked';
+}
+
+export interface KoraPreferences {
+  push_notifications: boolean;
+  whatsapp_notifications: boolean;
+  email_notifications: boolean;
+  locale: 'fr' | 'en';
+  theme: 'light' | 'dark' | 'system';
+}
+
+export interface AuthSession {
+  token: string;
+  token_type: 'Bearer';
+  expires_at: string;
+  user: KoraUser;
+  device: KoraDevice;
+}
+```
+
+## Catalogue Bus
+
+```typescript
+export interface KoraCity {
+  city: string;
+  country: string;
+  stops_count: number;
+}
+
+export interface KoraStop {
+  uuid: string;
+  name: string;
+  city: string;
+  country: string;
+  stop_order: number;
+  km_from_origin: number;
+}
+
+export interface KoraLine {
+  uuid: string;
+  code: string;
+  name: string;
+  countries_crossed: string[];
+  distance_km: number;
+  estimated_duration_minutes: number;
+  status: 'active' | 'inactive';
+  stops: KoraStop[];
+}
+
+export interface KoraBus {
+  uuid: string;
+  registration_number: string;
+  brand: string;
+  model: string;
+  seat_count: number;
+}
+
+export interface KoraFarePreview {
+  amount: number;
+  currency: string;
+  label: string;
+}
+
+export type DepartureStatus = 'scheduled' | 'cancelled' | 'completed';
+
+export interface KoraDeparture {
+  uuid: string;
+  departure_date: string;
+  departure_time: string;
+  estimated_arrival_at: string | null;
+  status: DepartureStatus;
+  line: KoraLine;
+  bus: KoraBus;
+  origin_stop: KoraStop;
+  destination_stop: KoraStop;
+  available_seats_count: number;
+  fare_preview: KoraFarePreview;
+}
+
+export type SeatAvailabilityStatus = 'available' | 'occupied' | 'blocked';
+
+export interface KoraSeat {
+  uuid: string;
+  code: string;
+  type: 'standard' | 'aisle';
+  sellable: boolean;
+  availability_status: SeatAvailabilityStatus;
+}
+```
+
+## Réservation
+
+```typescript
+export interface KoraQuoteRequest {
+  departure_uuid: string;
+  origin_stop_uuid: string;
+  destination_stop_uuid: string;
+  service_class_uuid: string | null;
+  passenger_count: number;
+}
+
+export interface KoraQuote {
+  uuid: string;
+  departure_uuid: string;
+  origin_stop_uuid: string;
+  destination_stop_uuid: string;
+  service_class_uuid: string | null;
+  base_amount: number;
+  coefficient: number;
+  final_amount: number;
+  currency: string;
+  passenger_count: number;
+  total_amount: number;
+  expires_at: string;
+  snapshot: {
+    fare_uuid: string;
+    line_code: string;
+    origin_stop: string;
+    destination_stop: string;
+    service_class: string;
+    passenger_count: number;
+    total_amount: number;
+  };
+}
+
+export interface KoraHoldRequest {
+  departure_uuid: string;
+  origin_stop_uuid: string;
+  destination_stop_uuid: string;
+  price_quote_uuid: string;
+  seats: { seat_uuid: string }[];
+}
+
+export interface KoraSegment {
+  uuid: string;
+  seat_uuid: string;
+  seat_code: string;
+  origin_stop: string;
+  destination_stop: string;
+  status: 'held' | 'confirmed' | 'cancelled' | 'expired';
+}
+
+export type ReservationStatus = 'held' | 'confirmed' | 'paid' | 'ticketed' | 'boarded' | 'expired' | 'cancelled';
+
+export interface KoraPassenger {
+  uuid: string;
+  first_name: string;
+  last_name: string;
+  phone: string;
+  document_type?: string;
+  document_number?: string;
+  nationality?: string;
+  birth_date?: string;
+  seat_code: string;
+}
+
+export interface StorePassengersRequest {
+  passengers: {
+    first_name: string;
+    last_name: string;
+    phone: string;
+    seat_uuid: string;
+    document_type?: string;
+    document_number?: string;
+    nationality?: string;
+    birth_date?: string;
+  }[];
+}
+
+export interface KoraReservation {
+  uuid: string;
+  status: ReservationStatus;
+  expires_at: string | null;
+  total_amount: number;
+  currency: string;
+  channel: 'mobile' | 'web' | 'agency';
+  departure_uuid: string;
+  price_quote_uuid: string;
+  passenger_count: number;
+  segments: KoraSegment[];
+  passengers: KoraPassenger[];
+}
+```
+
+## Paiements
+
+```typescript
+export interface KoraPaymentInitiateRequest {
+  reservation_uuid: string;
+  method: 'mobile_money' | 'wallet' | 'card' | 'cash';
+  provider: string;
+  idempotency_key: string;
+  phone?: string;
+  wallet_amount?: number;
+  points_amount?: number;
+}
+
+export type PaymentStatus = 'pending' | 'confirmed' | 'failed';
+
+export interface KoraPayment {
+  uuid: string;
+  status: PaymentStatus;
+  amount: number;
+  currency: string;
+  provider: string;
+  provider_reference: string | null;
+  confirmed_at: string | null;
+  expires_at: string | null;
+  polling_interval_seconds: number;
+  reservation?: {
+    uuid: string;
+    status: ReservationStatus;
+    departure_uuid: string;
+  };
+}
+
+export interface PaymentConfirmRequest {
+  status: 'success' | 'confirmed' | 'failed';
+  provider_reference?: string;
+  provider_payload?: Record<string, unknown>;
+}
+```

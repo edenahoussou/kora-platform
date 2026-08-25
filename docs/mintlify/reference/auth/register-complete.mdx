@@ -1,0 +1,172 @@
+---
+title: Compléter l'inscription
+description: Finalise la création d'un compte après vérification OTP — PIN + appareil + token Sanctum.
+api: POST /api/v1/auth/register/complete
+authMethod: none
+---
+
+# Compléter l'inscription
+
+Finalise la création d'un compte après vérification OTP. L'utilisateur choisit un PIN à 4 chiffres et enregistre son appareil. L'API crée le compte et émet un token Sanctum.
+
+## Paramètres
+
+<ParamField body="otp_challenge_uuid" type="UUID" required>
+  UUID du challenge OTP vérifié.
+</ParamField>
+
+<ParamField body="verification_token" type="string" required>
+  Token retourné par `otp/verify` (64 caractères exactement).
+</ParamField>
+
+<ParamField body="pin" type="string" required>
+  PIN à 4 chiffres choisi par l'utilisateur.
+</ParamField>
+
+<ParamField body="pin_confirmation" type="string" required>
+  Doit être identique à `pin` (règle `confirmed`).
+</ParamField>
+
+<ParamField body="device_name" type="string" required>
+  Nom lisible de l'appareil (max 120).
+</ParamField>
+
+<ParamField body="platform" type="string" required>
+  `android`, `ios`, `web`, ou `unknown`.
+</ParamField>
+
+<ParamField body="device_fingerprint" type="string" required>
+  Empreinte unique et stable de l'appareil (min 16, max 255).
+</ParamField>
+
+<ParamField body="push_token" type="string">
+  Token push (FCM/APNs) pour notifications (max 512).
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X POST https://staging.koraexpress.app/api/v1/auth/register/complete \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
+    "verification_token": "gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn",
+    "pin": "9775",
+    "pin_confirmation": "9775",
+    "device_name": "iPhone 15 Pro",
+    "platform": "ios",
+    "device_fingerprint": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
+  }'
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/auth/register/complete', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    otp_challenge_uuid, verification_token,
+    pin: '9775', pin_confirmation: '9775',
+    device_name: 'iPhone 15 Pro', platform: 'ios',
+    device_fingerprint: 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2',
+  }),
+});
+const { data } = await res.json();
+```
+
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/auth/register/complete', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    otp_challenge_uuid, verification_token,
+    pin, pin_confirmation: pin,
+    device_name, platform, device_fingerprint,
+  } satisfies CompleteRegistration),
+});
+const data: AuthSession = (await res.json()).data;
+```
+
+```dart Dart
+final res = await dio.post('/api/v1/auth/register/complete', data: {
+  'otp_challenge_uuid': challengeUuid,
+  'verification_token': verificationToken,
+  'pin': '9775',
+  'pin_confirmation': '9775',
+  'device_name': 'iPhone 15 Pro',
+  'platform': 'ios',
+  'device_fingerprint': 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2',
+});
+final token = res.data['data']['token'];
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 201
+{
+  "data": {
+    "token": "1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef",
+    "token_type": "Bearer",
+    "expires_at": "2026-08-24T13:05:00.000Z",
+    "user": {
+      "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
+      "name": "Passager KORA",
+      "email": "passager@korabus.app",
+      "phone": null,
+      "country_code": null,
+      "birth_date": null,
+      "avatar_url": null,
+      "status": "active",
+      "permissions": ["bookings.create", "bookings.view-own", "tickets.view"]
+    },
+    "device": {
+      "uuid": "a3091549-9179-454e-8440-58179f2208df",
+      "name": "iPhone 15 Pro",
+      "platform": "ios",
+      "trusted_at": "2026-08-17T13:05:00.000Z",
+      "last_seen_at": "2026-08-17T13:05:00.000Z",
+      "status": "active"
+    }
+  }
+}
+```
+
+```json 422
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "verification_token": ["The verification token must be a string."]
+  }
+}
+```
+
+</ResponseExample>
+
+## Réponse
+
+<ResponseField name="data" type="object" required>
+  <ResponseField name="token" type="string" required>
+    Token Sanctum (Bearer).
+  </ResponseField>
+  <ResponseField name="token_type" type="string" required>
+    Toujours `Bearer`.
+  </ResponseField>
+  <ResponseField name="expires_at" type="string">
+    Date d'expiration du token (ISO 8601) ou `null`.
+  </ResponseField>
+  <ResponseField name="user" type="object" required>
+    Profil utilisateur (cf. `AuthUserResource`).
+  </ResponseField>
+  <ResponseField name="device" type="object" required>
+    Appareil enregistré (cf. `UserDeviceResource`).
+  </ResponseField>
+</ResponseField>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `201` | Compte créé, token émis. |
+| `422` | `verification_token` invalide/expiré, PIN invalide, ou email déjà utilisé. |
+| `429` | Rate limit `auth-login` dépassé (5/min). |

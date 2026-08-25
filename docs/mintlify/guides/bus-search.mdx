@@ -14,7 +14,7 @@ Le parcours de recherche est le point d'entrée du client passager. Il s'enchaî
 <CodeGroup>
 
 ```bash Curl
-curl -X GET https://api.korabus.app/api/v1/bus/cities \
+curl -X GET https://staging.koraexpress.app/api/v1/bus/cities \
   -H 'Accept: application/json'
 ```
 
@@ -62,7 +62,7 @@ for (final city in cities) {
 <CodeGroup>
 
 ```bash Curl
-curl -X GET 'https://api.korabus.app/api/v1/bus/lines?from=Cotonou&to=Abidjan' \
+curl -X GET 'https://staging.koraexpress.app/api/v1/bus/lines?from=Cotonou&to=Abidjan' \
   -H 'Accept: application/json'
 ```
 
@@ -132,7 +132,7 @@ final lines = response.data['data'] as List;
 <CodeGroup>
 
 ```bash Curl
-curl -X GET 'https://api.korabus.app/api/v1/bus/departures?date=2026-08-20&from=Cotonou&to=Abidjan' \
+curl -X GET 'https://staging.koraexpress.app/api/v1/bus/departures?date=2026-08-20&from=Cotonou&to=Abidjan' \
   -H 'Accept: application/json'
 ```
 
@@ -210,30 +210,13 @@ for (final d in departures) {
 </Info>
   </Step>
 
-  <Step title="Créer le devis serveur">
-    Après avoir choisi le départ et le segment, créez un devis authentifié. Le devis contient le tarif par passager, le montant total et une date `expires_at`. Le mobile doit conserver son UUID et le transmettre lors de la création du hold.
-
-```bash
-curl -X POST 'https://api.korabus.app/api/v1/bus/quotes' \
-  -H 'Authorization: Bearer <token>' \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "departure_uuid": "a3091549-9179-454e-8440-58179f2208df",
-    "origin_stop_uuid": "6b72fe4a-5b40-307c-bc24-f79acf9a1bb9",
-    "destination_stop_uuid": "8d94f06c-7d62-529e-de46-9bce1cbc3dd1",
-    "service_class_uuid": null,
-    "passenger_count": 2
-  }'
-```
-  </Step>
-
   <Step title="Consulter le plan des sièges">
     Retourne la disponibilité de chaque siège pour le segment O/D demandé. Les `origin_stop_uuid` et `destination_stop_uuid` sont obligatoires.
 
 <CodeGroup>
 
 ```bash Curl
-curl -X GET 'https://api.korabus.app/api/v1/bus/departures/a3091549-9179-454e-8440-58179f2208df/seats?origin_stop_uuid=6b72fe4a-5b40-307c-bc24-f79acf9a1bb9&destination_stop_uuid=8d94f06c-7d62-529e-de46-9bce1cbc3dd1' \
+curl -X GET 'https://staging.koraexpress.app/api/v1/bus/departures/a3091549-9179-454e-8440-58179f2208df/seats?origin_stop_uuid=6b72fe4a-5b40-307c-bc24-f79acf9a1bb9&destination_stop_uuid=8d94f06c-7d62-529e-de46-9bce1cbc3dd1' \
   -H 'Accept: application/json'
 ```
 
@@ -295,6 +278,6 @@ Voir le guide [Sélection de sièges](/guides/seat-selection) pour les statuts e
 
 </Steps>
 
-<Card title="Guide suivant" href="/guides/seat-selection" icon="arrow-right" iconType="solid">
-  Comprendre les **statuts de sièges** et la logique de segment O/D.
+<Card title="Guide suivant" href="/guides/quotes-and-holds" icon="arrow-right" iconType="solid">
+  Après la sélection, créez un **devis** et bloquez les sièges.
 </Card>

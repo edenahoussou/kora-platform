@@ -1,0 +1,66 @@
+---
+title: Gestion des appareils
+description: Appareils de confiance, révocation et sécurité multi-appareils.
+---
+
+
+# Gestion des appareils
+
+KORA BUS gère un modèle d'**appareils de confiance** : chaque connexion depuis un nouvel appareil déclenche une vérification OTP supplémentaire, puis l'appareil est enregistré comme可信. L'utilisateur peut lister et révoquer ses appareils à tout moment.
+
+## Comment fonctionne la confiance d'appareil
+
+<Steps>
+  <Step title="Première connexion">
+    L'utilisateur se connecte avec email + PIN. L'API enregistre l'appareil (nom, plateforme, fingerprint) comme **trusted** et émet un token Sanctum lié à cet appareil.
+  </Step>
+  <Step title="Nouvel appareil détecté">
+    Si la connexion provient d'un fingerprint inconnu, l'API retourne `202` avec `requires_otp: true`. L'utilisateur doit vérifier son identité par OTP avant que l'appareil ne soit approuvé.
+  </Step>
+  <Step title="Appareil connu">
+    Les connexions suivantes depuis un appareil trusted se font sans OTP — uniquement email + PIN.
+  </Step>
+  <Step title="Révocation">
+    L'utilisateur peut révoquer un appareil à tout moment. L'appareil révoqué devra refaire un OTP à la prochaine connexion.
+  </Step>
+</Steps>
+
+## Lister les appareils
+
+```dart
+final res = await authDio.get('/api/v1/auth/devices');
+final devices = res.data['data'] as List;
+
+for (final d in devices) {
+  print('${d['name']} (${d['platform']}) — ${d['status']}');
+}
+// iPhone 15 Pro (ios) — trusted
+// Samsung Galaxy S24 (android) — trusted
+```
+
+Voir la référence : [Appareils — Lister](/reference/auth/devices).
+
+## Révoquer un appareil
+
+```dart
+// Révoquer un appareil spécifique
+await authDio.delete('/api/v1/auth/devices/${deviceUuid}');
+```
+
+<Warning>
+  Révoquer l'**appareil courant** déconnecte immédiatement l'utilisateur. Le token courant est invalidé côté serveur.
+</Warning>
+
+## Sécurité multi-appareils
+
+- Chaque appareil a son **propre token** Sanctum. Révoquer un appareil n'affecte pas les autres.
+- Le `device_fingerprint` doit être **unique et stable** par appareil — utilisez un identifiant matériel ou un UUID persistant côté app.
+- Le `push_token` (FCM/APNs) est optionnel mais recommandé pour les notifications deboarding et de statut de paiement.
+
+<Note>
+  Voir aussi : [Bonnes pratiques de sécurité](/security/best-practices) pour le stockage sécurisé du token et du fingerprint.
+</Note>
+
+<Card title="Préférences" href="/guides/preferences" icon="arrow-right" iconType="solid">
+  Configurez les **notifications et préférences** utilisateur.
+</Card>

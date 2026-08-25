@@ -1,0 +1,111 @@
+---
+title: Rate limiting & throttling
+description: Limites par endpoint, headers de rate limit et stratégie de retry.
+---
+
+
+# Rate limiting & throttling
+
+L'API KORA BUS applique des limites par endpoint pour protéger le service contre les abus et garantir la disponibilité.
+
+## Limites par throttle
+
+| Throttle | Endpoints | Limite | Fenêtre |
+|----------|-----------|--------|---------|
+| `auth-otp` | `POST /auth/otp/request`, `POST /auth/otp/verify`, `POST /auth/pin/reset`, `POST /auth/unlock` | 5 | par minute |
+| `auth-login` | `POST /auth/login`, `POST /auth/register/complete`, `POST /auth/oauth/token` | 10 | par minute |
+| `bus-search` | `GET /bus/cities`, `GET /bus/lines`, `GET /bus/lines/{uuid}`, `GET /bus/departures`, `GET /bus/departures/{uuid}`, `GET /bus/departures/{uuid}/seats` | 60 | par minute |
+
+## Headers de rate limit
+
+Chaque réponse inclut les headers suivants :
+
+```
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 58
+```
+
+Sur un `429 Too Many Requests`, un header supplémentaire indique le délai d'attente :
+
+```
+Retry-After: 30
+```
+
+## Réponse 429
+
+```json
+{
+  "error": {
+    "code": "rate_limited",
+    "message": "Trop de requêtes. Réessayez dans 30 secondes."
+  }
+}
+```
+
+## Stratégie de retry
+
+### Backoff exponentiel
+
+```dart
+import 'package:dio/dio.dart';
+import 'package:dio_smart_retry/dio_smart_retry.dart';
+
+dio.interceptors.add(RetryInterceptor(
+  dio: dio,
+  retries: 3,
+  retryDelays: const [
+    Duration(seconds: 1),
+    Duration(seconds: 2),
+    Duration(seconds: 5),
+  ],
+  retryEvaluator: (error, attempt) {
+    return error.response?.statusCode == 429 ||
+        error.type == DioExceptionType.connectionTimeout;
+  },
+));
+```
+
+### Respect du `Retry-After`
+
+```dart
+dio.interceptors.add(InterceptorsWrapper(
+  onError: (e, handler) async {
+    if (e.response?.statusCode == 429) {
+      final retryAfter = int.tryParse(e.response?.headers.value('retry-after') ?? '30') ?? 30;
+      await Future.delayed(Duration(seconds: retryAfter));
+      // Retenter la requête
+      return handler.resolve(await dio.fetch(e.requestOptions));
+    }
+    return handler.next(e);
+  },
+));
+```
+
+<Warning>
+  Ne réessayez **jamais** en boucle serrée sans backoff. Un retry agressif aggrave le rate limiting et peut mener à un blocage temporaire.
+</Warning>
+
+## Recommandations par endpoint
+
+### Auth OTP
+
+- Désactivez le bouton "Renvoyer le code" pendant **60 secondes** après chaque demande.
+- Limitez à **3 renvois** avant de proposer le contact support.
+
+### Auth login
+
+- Après **3 échecs** (`invalid_credentials`), affichez un avertissement : "Compte verrouillé après 5 tentatives".
+- Le `423 account_locked` déclenche le flow de déverrouillage OTP.
+
+### Bus search
+
+- Cachez les résultats côté client (villes, lignes) — ces endpoints sont publics et mis en cache serveur.
+- Évitez de poller les départs en continu — utilisez un pull manuel ou un refresh au changement de date.
+
+<Note>
+  Le cache serveur sur `/bus/cities` et `/bus/lines` réduit le coût des répétitions. Profitez-en pour précharger les villes au démarrage de l'app.
+</Note>
+
+<Card title="Gestion des erreurs" href="/guides/error-handling" icon="arrow-right" iconType="solid">
+  Consultez la **structure d'erreur** et tous les codes métier.
+</Card>

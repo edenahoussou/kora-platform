@@ -960,7 +960,7 @@ endpoints:
         name: 'passengers[].document_type'
         description: ''
         required: false
-        example: birth_certificate
+        example: national_id
         type: string
         enumValues:
           - national_id
@@ -1020,7 +1020,7 @@ endpoints:
           last_name: 'n'
           phone: g
           email: rowan.gulgowski@example.com
-          document_type: birth_certificate
+          document_type: national_id
           document_number: d
           nationality: lj
           birth_date: '2026-08-25'

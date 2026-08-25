@@ -1,0 +1,55 @@
+---
+title: Révoquer un appareil
+description: Révoque un appareil — l'appareil devra refaire un OTP à la prochaine connexion.
+api: DELETE /api/v1/auth/devices/{device}
+---
+
+# Révoquer un appareil
+
+Révoque un appareil. L'appareil révoqué devra refaire un OTP à la prochaine connexion. Révoquer l'appareil courant déconnecte immédiatement l'utilisateur.
+
+## Paramètres
+
+<ParamField path="device" type="UUID" required>
+  UUID de l'appareil à révoquer.
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X DELETE https://staging.koraexpress.app/api/v1/auth/devices/b4102650-a280-4655-9551-69280321aaef \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef'
+```
+
+```javascript JavaScript
+await fetch('https://staging.koraexpress.app/api/v1/auth/devices/b4102650-a280-4655-9551-69280321aaef', {
+  method: 'DELETE',
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+```
+
+```typescript TypeScript
+await fetch(`https://staging.koraexpress.app/api/v1/auth/devices/${deviceUuid}`, {
+  method: 'DELETE',
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+```
+
+```dart Dart
+await authDio.delete('/api/v1/auth/devices/b4102650-a280-4655-9551-69280321aaef');
+```
+
+</RequestExample>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `204` | Appareil révoqué — pas de body. |
+| `401` | Token absent ou invalide. |
+| `403` | L'appareil n'appartient pas à l'utilisateur. |
+| `404` | Appareil introuvable. |
+
+<Warning>
+  Révoquer l'appareil **courant** déconnecte immédiatement l'utilisateur. Le token est invalidé.
+</Warning>

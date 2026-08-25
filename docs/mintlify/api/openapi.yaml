@@ -4,7 +4,10 @@ info:
   description: 'KORA BUS MVP REST API.'
   version: 1.0.0
 servers:
-  - url: 'http://kora-ops-web.local'
+  - url: 'https://staging.koraexpress.app'
+    description: Staging
+  - url: 'https://prod.koraexpress.app'
+    description: Production
 components:
   securitySchemes:
     sanctum:

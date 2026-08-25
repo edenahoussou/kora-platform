@@ -1,0 +1,105 @@
+---
+title: Disponibilité des sièges
+description: Retourne la disponibilité de chaque siège pour un segment O/D donné.
+api: GET /api/v1/bus/departures/{departure_uuid}/seats
+authMethod: none
+---
+
+# Disponibilité des sièges
+
+Retourne la disponibilité de chaque siège pour le **segment O/D** demandé. KORA BUS vend des segments : la disponibilité dépend du segment, pas du départ complet.
+
+## Paramètres
+
+<ParamField path="departure_uuid" type="UUID" required>
+  UUID du départ.
+</ParamField>
+
+<ParamField query="origin_stop_uuid" type="UUID" required>
+  UUID de l'arrêt d'origine du segment.
+</ParamField>
+
+<ParamField query="destination_stop_uuid" type="UUID" required>
+  UUID de l'arrêt de destination.
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X GET 'https://staging.koraexpress.app/api/v1/bus/departures/a3091549-9179-454e-8440-58179f2208df/seats?origin_stop_uuid=6b72fe4a-5b40-307c-bc24-f79acf9a1bb9&destination_stop_uuid=8d94f06c-7d62-529e-de46-9bce1cbc3dd1' \
+  -H 'Accept: application/json'
+```
+
+```javascript JavaScript
+const url = new URL('https://staging.koraexpress.app/api/v1/bus/departures/a3091549-9179-454e-8440-58179f2208df/seats');
+url.searchParams.set('origin_stop_uuid', originStopUuid);
+url.searchParams.set('destination_stop_uuid', destinationStopUuid);
+const res = await fetch(url);
+const { data } = await res.json();
+const available = data.filter(s => s.availability_status === 'available');
+```
+
+```typescript TypeScript
+const res = await fetch(`https://staging.koraexpress.app/api/v1/bus/departures/${departureUuid}/seats?origin_stop_uuid=${originStopUuid}&destination_stop_uuid=${destinationStopUuid}`);
+const data: SeatAvailability[] = (await res.json()).data;
+```
+
+```dart Dart
+final res = await dio.get(
+  '/api/v1/bus/departures/a3091549-9179-454e-8440-58179f2208df/seats',
+  queryParameters: {
+    'origin_stop_uuid': '6b72fe4a-5b40-307c-bc24-f79acf9a1bb9',
+    'destination_stop_uuid': '8d94f06c-7d62-529e-de46-9bce1cbc3dd1',
+  },
+);
+final seats = res.data['data'] as List;
+final available = seats.where((s) => s['availability_status'] == 'available').toList();
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "data": [
+    { "uuid": "seat-001-uuid", "code": "1A", "type": "standard", "sellable": true, "availability_status": "available" },
+    { "uuid": "seat-002-uuid", "code": "1B", "type": "standard", "sellable": true, "availability_status": "occupied" },
+    { "uuid": "seat-003-uuid", "code": "1C", "type": "crew", "sellable": false, "availability_status": "blocked" },
+    { "uuid": "seat-004-uuid", "code": "2A", "type": "premium", "sellable": true, "availability_status": "available" }
+  ]
+}
+```
+
+</ResponseExample>
+
+## Réponse
+
+<ResponseField name="data" type="SeatAvailability[]" required>
+  <ResponseField name="uuid" type="UUID" required>UUID du siège.</ResponseField>
+  <ResponseField name="code" type="string" required>Code du siège (ex: `4A`).</ResponseField>
+  <ResponseField name="type" type="string" required>`standard`, `crew`, ou `premium`.</ResponseField>
+  <ResponseField name="sellable" type="boolean" required>Si le siège est vendable.</ResponseField>
+  <ResponseField name="availability_status" type="string" required>`available`, `occupied`, ou `blocked`.</ResponseField>
+</ResponseField>
+
+## Statuts de siège
+
+| Statut | Description | Action client |
+|--------|-------------|---------------|
+| `available` | Libre sur le segment demandé | Sélectionnable |
+| `occupied` | Réservé sur le segment demandé | Non sélectionnable |
+| `blocked` | Bloqué (maintenance, équipage, chevauchement) | Non sélectionnable |
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `200` | Liste des sièges avec disponibilité. |
+| `404` | Départ introuvable. |
+| `422` | `origin_stop_uuid` ou `destination_stop_uuid` manquant. |
+| `429` | Rate limit `bus-search` dépassé. |
+
+<Info>
+  Un siège peut être `available` pour Cotonou → Bohicon mais `occupied` pour Cotonou → Abidjan, car un autre passager l'a réservé pour Bohicon → Abidjan.
+</Info>

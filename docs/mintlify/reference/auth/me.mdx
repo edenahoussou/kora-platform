@@ -1,0 +1,81 @@
+---
+title: Consulter le profil
+description: Retourne le profil de l'utilisateur authentifié.
+api: GET /api/v1/auth/me
+---
+
+# Consulter le profil
+
+Retourne le profil complet de l'utilisateur authentifié via `AuthUserResource`.
+
+<RequestExample>
+
+```bash cURL
+curl -X GET https://staging.koraexpress.app/api/v1/auth/me \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Accept: application/json'
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/auth/me', {
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+const { data } = await res.json();
+```
+
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/auth/me', {
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+const data: AuthUser = (await res.json()).data.user;
+```
+
+```dart Dart
+final res = await authDio.get('/api/v1/auth/me');
+print(res.data['data']['user']['name']);
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "data": {
+    "user": {
+      "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
+      "name": "Passager KORA",
+      "email": "passager@korabus.app",
+      "phone": null,
+      "country_code": null,
+      "birth_date": null,
+      "avatar_url": null,
+      "status": "active",
+      "permissions": ["bookings.create", "bookings.view-own", "tickets.view"]
+    }
+  }
+}
+```
+
+</ResponseExample>
+
+## Réponse
+
+<ResponseField name="data.user" type="object" required>
+  <ResponseField name="uuid" type="UUID" required>Identifiant unique.</ResponseField>
+  <ResponseField name="name" type="string" required>Nom complet.</ResponseField>
+  <ResponseField name="email" type="string" required>Email vérifié.</ResponseField>
+  <ResponseField name="phone" type="string">Téléphone avec indicatif ou `null`.</ResponseField>
+  <ResponseField name="country_code" type="string">Code pays (max 4) ou `null`.</ResponseField>
+  <ResponseField name="birth_date" type="string">Date `YYYY-MM-DD` ou `null`.</ResponseField>
+  <ResponseField name="avatar_url" type="string">URL de l'avatar ou `null`.</ResponseField>
+  <ResponseField name="status" type="string" required>`active`, `suspended`, ou `locked`.</ResponseField>
+  <ResponseField name="permissions" type="string[]" required>Liste des permissions.</ResponseField>
+</ResponseField>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `200` | Profil retourné. |
+| `401` | Token absent ou invalide. |

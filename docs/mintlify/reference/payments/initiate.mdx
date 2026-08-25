@@ -1,0 +1,151 @@
+---
+title: Initier un paiement
+description: Démarre un paiement pour une réservation held, avec idempotence.
+api: POST /api/v1/payments/initiate
+---
+
+# Initier un paiement
+
+Initie un paiement pour une réservation au statut `held`. L'API crée un paiement `pending` et déclenche le flow provider (Mobile Money, carte, etc.). L'idempotence est garantie par `idempotency_key` : un replay avec la même clé retourne le paiement existant en `200` au lieu de `201`.
+
+## Paramètres
+
+<ParamField body="reservation_uuid" type="UUID" required>
+  UUID de la réservation à payer (doit exister dans `reservations`).
+</ParamField>
+
+<ParamField body="method" type="string" required>
+  `mobile_money`, `wallet`, `card`, ou `cash`.
+</ParamField>
+
+<ParamField body="provider" type="string" required>
+  Provider (ex: `mtn_momo`, `orange_money`, `moov_money`). Max 64.
+</ParamField>
+
+<ParamField body="idempotency_key" type="string" required>
+  Clé d'idempotence unique par tentative. Max 255.
+</ParamField>
+
+<ParamField body="phone" type="string">
+  Téléphone Mobile Money (max 32). Requis si `method=mobile_money`.
+</ParamField>
+
+<ParamField body="wallet_amount" type="integer">
+  Montant payé via wallet (split payment, min 0).
+</ParamField>
+
+<ParamField body="points_amount" type="integer">
+  Montant payé via points (split payment, min 0).
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X POST https://staging.koraexpress.app/api/v1/payments/initiate \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "reservation_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+    "method": "mobile_money",
+    "provider": "mtn_momo",
+    "idempotency_key": "pay-2026-08-20-001",
+    "phone": "+2290197421860"
+  }'
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/payments/initiate', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ reservation_uuid, method: 'mobile_money', provider: 'mtn_momo', idempotency_key: 'pay-001', phone: '+2290197421860' }),
+});
+const { data } = await res.json();
+```
+
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/payments/initiate', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ reservation_uuid, method, provider, idempotency_key, phone } satisfies InitiatePaymentRequest),
+});
+const data: Payment = (await res.json()).data;
+```
+
+```dart Dart
+final res = await authDio.post('/api/v1/payments/initiate', data: {
+  'reservation_uuid': '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70',
+  'method': 'mobile_money',
+  'provider': 'mtn_momo',
+  'idempotency_key': 'pay-2026-08-20-001',
+  'phone': '+2290197421860',
+});
+final paymentUuid = res.data['data']['uuid'];
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 201
+{
+  "data": {
+    "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80",
+    "status": "pending",
+    "amount": 12500,
+    "currency": "XOF",
+    "provider": "mtn_momo",
+    "provider_reference": null,
+    "confirmed_at": null,
+    "expires_at": "2026-08-20T08:15:00.000Z",
+    "polling_interval_seconds": 10
+  }
+}
+```
+
+```json 422 — Réservation non payable
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "reservation_uuid": ["Cette réservation n'est plus payable."]
+  }
+}
+```
+
+```json 422 — Réservation expirée
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "reservation_uuid": ["La réservation a expiré."]
+  }
+}
+```
+
+</ResponseExample>
+
+## Réponse
+
+<ResponseField name="data" type="Payment" required>
+  <ResponseField name="uuid" type="UUID" required>UUID du paiement.</ResponseField>
+  <ResponseField name="status" type="string" required>`pending`, `confirmed`, `failed`, `cancelled`, ou `refunded`.</ResponseField>
+  <ResponseField name="amount" type="integer" required>Montant.</ResponseField>
+  <ResponseField name="currency" type="string" required>Devise.</ResponseField>
+  <ResponseField name="provider" type="string" required>Provider.</ResponseField>
+  <ResponseField name="provider_reference" type="string">Référence provider ou `null`.</ResponseField>
+  <ResponseField name="confirmed_at" type="string">Date de confirmation (ISO 8601) ou `null`.</ResponseField>
+  <ResponseField name="expires_at" type="string">Expiration du hold de la réservation (ISO 8601) ou `null`.</ResponseField>
+  <ResponseField name="polling_interval_seconds" type="integer" required>Toujours `10`.</ResponseField>
+</ResponseField>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `201` | Paiement initié. |
+| `200` | Replay idempotent — paiement déjà existant. |
+| `401` | Token absent ou invalide. |
+| `403` | Utilisateur non autorisé à payer cette réservation. |
+| `422` | Réservation non `held`, méthode invalide, réservation expirée, ou validation échouée. |
+
+<Warning>
+  Le paiement est accepté **uniquement** tant que le hold est valide. Si un webhook de succès arrive après l'expiration, le backend marque le paiement `failed` et ne réactive pas la réservation.
+</Warning>

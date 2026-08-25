@@ -1,0 +1,186 @@
+---
+title: Bloquer des sièges (hold)
+description: Démarre un blocage de sièges après confirmation de la sélection — valable KORA_HOLD_TTL_MINUTES.
+api: POST /api/v1/bus/holds
+---
+
+# Bloquer des sièges (hold)
+
+Démarre un blocage de sièges (hold) après que le passager a confirmé sa sélection. Le hold ne démarre **pas** pendant la consultation du plan — uniquement à la confirmation explicite. La durée est contrôlée par `KORA_HOLD_TTL_MINUTES` (15 minutes par défaut).
+
+## Paramètres
+
+<ParamField body="departure_uuid" type="UUID" required>
+  UUID du départ (doit exister dans `departures`).
+</ParamField>
+
+<ParamField body="origin_stop_uuid" type="UUID" required>
+  UUID de l'arrêt d'origine (doit exister dans `stops`).
+</ParamField>
+
+<ParamField body="destination_stop_uuid" type="UUID" required>
+  UUID de l'arrêt de destination (doit exister dans `stops`).
+</ParamField>
+
+<ParamField body="price_quote_uuid" type="UUID" required>
+  UUID du devis créé précédemment (doit exister dans `price_quotes`).
+</ParamField>
+
+<ParamField body="seats" type="object[]" required>
+  Tableau de sièges (min 1).
+
+  <ParamField body="seats[].seat_uuid" type="UUID" required>
+    UUID du siège (doit exister dans `seats`, **distinct** — pas de doublons).
+  </ParamField>
+  <ParamField body="seats[].passenger_index" type="integer">
+    Index optionnel du passager associé.
+  </ParamField>
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X POST https://staging.koraexpress.app/api/v1/bus/holds \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "departure_uuid": "a3091549-9179-454e-8440-58179f2208df",
+    "origin_stop_uuid": "6b72fe4a-5b40-307c-bc24-f79acf9a1bb9",
+    "destination_stop_uuid": "8d94f06c-7d62-529e-de46-9bce1cbc3dd1",
+    "price_quote_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+    "seats": [
+      { "seat_uuid": "seat-002-uuid" },
+      { "seat_uuid": "seat-004-uuid" }
+    ]
+  }'
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/bus/holds', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ departure_uuid, origin_stop_uuid, destination_stop_uuid, price_quote_uuid, seats: [{ seat_uuid: 'seat-002-uuid' }, { seat_uuid: 'seat-004-uuid' }] }),
+});
+const { data } = await res.json();
+```
+
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/bus/holds', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ departure_uuid, origin_stop_uuid, destination_stop_uuid, price_quote_uuid, seats } satisfies StoreSeatHoldRequest),
+});
+const data: Reservation = (await res.json()).data;
+```
+
+```dart Dart
+final res = await authDio.post('/api/v1/bus/holds', data: {
+  'departure_uuid': 'a3091549-9179-454e-8440-58179f2208df',
+  'origin_stop_uuid': '6b72fe4a-5b40-307c-bc24-f79acf9a1bb9',
+  'destination_stop_uuid': '8d94f06c-7d62-529e-de46-9bce1cbc3dd1',
+  'price_quote_uuid': '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d',
+  'seats': [
+    { 'seat_uuid': 'seat-002-uuid' },
+    { 'seat_uuid': 'seat-004-uuid' }
+  ],
+});
+final reservationUuid = res.data['data']['uuid'];
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 201
+{
+  "data": {
+    "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+    "status": "held",
+    "expires_at": "2026-08-20T08:15:00.000Z",
+    "total_amount": 25000,
+    "currency": "XOF",
+    "channel": "mobile",
+    "departure_uuid": "a3091549-9179-454e-8440-58179f2208df",
+    "price_quote_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+    "passenger_count": 2,
+    "segments": [
+      {
+        "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb71",
+        "seat_uuid": "seat-002-uuid",
+        "seat_code": "4A",
+        "origin_stop_uuid": "6b72fe4a-5b40-307c-bc24-f79acf9a1bb9",
+        "origin_stop": "Cotonou · St Michel",
+        "destination_stop_uuid": "8d94f06c-7d62-529e-de46-9bce1cbc3dd1",
+        "destination_stop": "Abidjan · Treichville",
+        "status": "held"
+      }
+    ],
+    "passengers": []
+  }
+}
+```
+
+```json 409 — Siège indisponible
+{
+  "message": "Le siège 4A n'est plus disponible sur ce segment.",
+  "conflicting_seat_uuid": "seat-002-uuid",
+  "seat_code": "4A"
+}
+```
+
+```json 409 — Siège réservé par un autre utilisateur
+{
+  "message": "Un des sièges sélectionnés vient d'être réservé par un autre utilisateur.",
+  "conflicting_seat_uuid": null,
+  "seat_code": null
+}
+```
+
+```json 422 — Contrat incohérent
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "seats": ["Le nombre de sièges doit correspondre au nombre de passagers du devis."]
+  }
+}
+```
+
+```json 422 — Devis expiré
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "price_quote_uuid": ["Le devis tarifaire a expiré."]
+  }
+}
+```
+
+</ResponseExample>
+
+## Réponse
+
+<ResponseField name="data" type="Reservation" required>
+  <ResponseField name="uuid" type="UUID" required>UUID de la réservation.</ResponseField>
+  <ResponseField name="status" type="string" required>`held`, `confirmed`, `paid`, `ticketed`, `boarded`, `cancelled`, ou `expired`.</ResponseField>
+  <ResponseField name="expires_at" type="string">Expiration du hold (ISO 8601) ou `null`.</ResponseField>
+  <ResponseField name="total_amount" type="integer" required>Montant total.</ResponseField>
+  <ResponseField name="currency" type="string" required>Devise.</ResponseField>
+  <ResponseField name="channel" type="string">`mobile`, `counter`, ou `web` — ou `null`.</ResponseField>
+  <ResponseField name="departure_uuid" type="UUID">UUID du départ ou `null`.</ResponseField>
+  <ResponseField name="price_quote_uuid" type="UUID">UUID du devis ou `null`.</ResponseField>
+  <ResponseField name="passenger_count" type="integer">Nombre de passagers (si segments chargés).</ResponseField>
+  <ResponseField name="segments" type="Segment[]">Segments réservés.</ResponseField>
+  <ResponseField name="passengers" type="Passenger[]">Voyageurs enregistrés.</ResponseField>
+</ResponseField>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `201` | Hold créé — `expires_at` indique la durée. |
+| `401` | Token absent ou invalide. |
+| `409` | Siège plus disponible (conflit de disponibilité, segment chevauchant). |
+| `422` | Contrat quote/sièges incohérent, devis expiré, doublons de sièges, vente fermée. |
+
+<Warning>
+  Le nombre de sièges doit être **égal** à `passenger_count` du devis. Les doublons, un devis expiré ou un décalage de segment renvoient `422`. Un autre hold gagnant renvoie `409`.
+</Warning>

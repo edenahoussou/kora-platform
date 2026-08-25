@@ -1,74 +1,67 @@
 ---
 title: Introduction
-description: KORA BUS MVP REST API pour les applications mobiles Flutter.
+description: KORA BUS — plateforme de transport interurbain. API REST V1 pour applications mobiles Flutter.
 ---
+
 
 # Introduction
 
-KORA BUS est la plateforme de transport interurbain du MVP validé par le client. Cette documentation s'adresse aux **développeurs mobile** intégrant l'API REST V1 dans les applications Flutter :
+**KORA BUS** est la plateforme de transport interurbain du MVP validé par le client. Cette documentation s'adresse aux **développeurs** intégrant l'API REST V1 dans :
 
-- **KORA App Passager** — parcours client Bus (recherche, réservation, paiement, billet, suivi).
-- **KORA OPS Mobile / P501** — application terrain interne (planning, manifeste, scan, embarquement).
+- **KORA App Passager** — application mobile client (Flutter) : recherche, réservation, paiement, billet, suivi.
+- **KORA OPS Mobile / P501** — application terrain interne (Android) : planning, manifeste, scan, embarquement.
+- **Intégrations tierces** — tout système consommant l'API publique KORA BUS.
 
 ## Périmètre MVP
 
 L'API V1 expose actuellement :
 
-| Domaine | Endpoints | Auth |
-|---------|-----------|------|
-| **Auth** | OTP, connexion PIN, profil, préférences, appareils | Public + Sanctum |
-| **Bus** | Villes, lignes, départs, sièges | Public |
-| **Health** | Healthcheck, liveness probe | Public |
+<CardGroup cols={3}>
+  <Card title="Auth" icon="lock" href="/reference/auth/otp">
+    OTP, PIN, OAuth sociale, profil, préférences, appareils
+  </Card>
+  <Card title="Catalogue Bus" icon="bus-front" href="/reference/bus/cities">
+    Villes, lignes, départs, sièges
+  </Card>
+  <Card title="Devis & Holds" icon="tag" href="/reference/booking/quotes">
+    Devis figés, blocage de sièges
+  </Card>
+  <Card title="Réservations" icon="ticket" href="/reference/booking/reservations">
+    Cycle de vie, voyageurs, libération
+  </Card>
+  <Card title="Paiements" icon="credit-card" href="/reference/payments/initiate">
+    Initiation, polling, webhook
+  </Card>
+  <Card title="Santé" icon="heart-pulse" href="/reference/health">
+    Healthcheck, liveness
+  </Card>
+</CardGroup>
 
-Les endpoints `pricing`, `bookings`, `payments`, `tickets`, `ops/*` et `fiscalization` seront ajoutés progressivement et documentés ici dès qu'ils sont implémentés.
+<Note>
+  Les modules **Ride**, **Wallet**, **Colis**, **KORA POINT** et la comptabilité **SYSCOHADA** complète sont hors MVP Bus. Ils seront ajoutés dans une phase ultérieure.
+</Note>
 
-## Conventions
+## Parcours d'intégration recommandé
 
-### Identifiants publics
+1. **[Concepts clés](/concepts)** — comprenez le vocabulaire (départ, segment O/D, devis, hold, réservation).
+2. **[Quickstart](/quickstart)** — faites votre premier appel API en 5 minutes.
+3. **[Authentification](/guides/authentication)** — obtenez un token Sanctum via OTP + PIN ou OAuth.
+4. **[Guides](/guides/bus-search)** — suivez les parcours métier (recherche, sièges, réservation, paiement).
+5. **[API Reference](/reference/introduction)** — consultez le détail de chaque endpoint.
 
-Tous les identifiants exposés dans l'API sont des **UUID v3** ou des **codes métier** (ex: `Cotonou`, `Abidjan`). Les IDs numériques internes ne sont jamais exposés.
+## Ressources
 
-```json
-{
-    "uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-    "name": "Cotonou"
-}
-```
-
-### Format des réponses
-
-- **Succès** : données dans `data` (objet ou tableau).
-- **Erreur** : structure `error` avec `code`, `message` et contexte optionnel.
-
-```json
-{
-    "error": {
-        "code": "account_locked",
-        "message": "Le compte est temporairement bloqué après plusieurs tentatives incorrectes.",
-        "locked_until": "2026-08-17T13:00:00.000Z"
-    }
-}
-```
-
-### Versionnement
-
-L'API est préfixée par `/api/v1/`. Les changements cassants introduiront `/api/v2/` avec une période de coexistence.
-
-### Rate limiting
-
-- Endpoints auth : `throttle:auth-otp`, `throttle:auth-login`
-- Endpoints bus : `throttle:bus-search`
-
-Les réponses incluent les headers `X-RateLimit-Limit` et `X-RateLimit-Remaining`.
-
-## Base URL
-
-| Environnement | Base URL |
-|---------------|----------|
-| Local | `http://kora-ops-web.local` ou `http://localhost:8080` |
-| Staging | `https://staging-api.korabus.app` |
-| Production | `https://api.korabus.app` |
-
-<Card title="Prochaine étape" href="/quickstart" icon="arrow-right" iconType="solid">
-  Consultez le **Quickstart** pour faire votre premier appel API en moins de 5 minutes.
-</Card>
+<CardGroup cols={2}>
+  <Card title="Documentation" icon="book-open" href="/concepts">
+    Concepts, guides pratiques et bonnes pratiques.
+  </Card>
+  <Card title="API Reference" icon="code" href="/reference/introduction">
+    Référence complète de tous les endpoints, paramètres et réponses.
+  </Card>
+  <Card title="Sécurité" icon="shield-check" href="/security/best-practices">
+    Tokens, OTP, appareils de confiance, rate limiting.
+  </Card>
+  <Card title="Support" icon="life-buoy" href="mailto:tech@korabus.app">
+    Contactez l'équipe technique pour toute question d'intégration.
+  </Card>
+</CardGroup>

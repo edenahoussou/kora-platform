@@ -38,7 +38,7 @@ Siège 1A — Départ Cotonou → Abidjan
 <CodeGroup>
 
 ```bash Curl
-curl -X GET 'https://api.korabus.app/api/v1/bus/departures/a3091549-9179-454e-8440-58179f2208df/seats?origin_stop_uuid=6b72fe4a-5b40-307c-bc24-f79acf9a1bb9&destination_stop_uuid=8d94f06c-7d62-529e-de46-9bce1cbc3dd1' \
+curl -X GET 'https://staging.koraexpress.app/api/v1/bus/departures/a3091549-9179-454e-8440-58179f2208df/seats?origin_stop_uuid=6b72fe4a-5b40-307c-bc24-f79acf9a1bb9&destination_stop_uuid=8d94f06c-7d62-529e-de46-9bce1cbc3dd1' \
   -H 'Accept: application/json'
 ```
 
@@ -166,60 +166,12 @@ Les statuts de réservation qui rendent un siège `occupied` :
 
 ## Devis et hold après sélection
 
-Le hold ne démarre pas à l'ouverture de l'écran ni pendant la simple consultation du plan. Après sélection des sièges, le client appelle explicitement `POST /api/v1/bus/holds` lorsqu'il quitte l'écran de sélection pour confirmer son récapitulatif. Le backend protège alors les sièges pendant la durée configurée et renvoie `expires_at`.
+Le hold ne démarre pas à l'ouverture de l'écran ni pendant la simple consultation du plan. Après sélection des sièges, le client appelle explicitement `POST /api/v1/bus/holds` lorsqu'il quitte l'écran de sélection pour confirmer son récapitulatif.
 
-```json
-{
-  "departure_uuid": "a3091549-9179-454e-8440-58179f2208df",
-  "origin_stop_uuid": "6b72fe4a-5b40-307c-bc24-f79acf9a1bb9",
-  "destination_stop_uuid": "8d94f06c-7d62-529e-de46-9bce1cbc3dd1",
-  "price_quote_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
-  "seats": [
-    { "seat_uuid": "seat-002-uuid" }
-  ]
-}
-```
+<Info>
+  Le flow complet (devis → hold → expiration) est détaillé dans le guide **[Devis & blocage de sièges](/guides/quotes-and-holds)**.
+</Info>
 
-La réponse `201` contient l'UUID de réservation, `price_quote_uuid`, le statut `held`, le montant, la devise, le départ, `expires_at`, les segments et les codes des sièges. Le nombre de sièges doit être égal à `passenger_count` du devis. Les doublons, un devis expiré ou un décalage de segment renvoient `422`; un autre hold gagnant renvoie `409`.
-
-Les lectures de disponibilité ignorent déjà un hold arrivé à expiration, même si la commande planifiée n'a pas encore normalisé ses statuts. La commande `bus:expire-holds` s'exécute ensuite chaque minute pour passer la réservation et ses segments à `expired` et renseigner `released_at`.
-
-## Poursuivre le cycle de réservation
-
-Une fois le hold créé, le mobile ne doit pas reconstruire la réservation depuis son état local. Il peut récupérer l'état serveur à tout moment avec `GET /api/v1/bookings/{reservation_uuid}`. La réponse contient le départ, le segment, le siège, les voyageurs déjà enregistrés, le montant, la devise, le statut et `expires_at`.
-
-```bash
-curl -X GET 'https://api.korabus.app/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70' \
-  -H 'Authorization: Bearer <token>' \
-  -H 'Accept: application/json'
-```
-
-Les voyageurs sont ensuite associés aux sièges réservés avec `POST /api/v1/bookings/{reservation_uuid}/passengers` :
-
-```json
-{
-  "passengers": [
-    {
-      "first_name": "Aïcha",
-      "last_name": "HOUNKPÈ",
-      "phone": "+2290197421860",
-      "seat_uuid": "seat-002-uuid"
-    }
-  ]
-}
-```
-
-Le nombre de voyageurs doit correspondre au nombre de segments. Chaque `seat_uuid` doit appartenir à la réservation et ne peut être associé qu'à un seul voyageur. Pour une ligne internationale, `document_type`, `document_number` et `nationality` sont obligatoires. Une réservation expirée refuse l'enregistrement des voyageurs avec `422`.
-
-Si le passager abandonne volontairement le parcours, il libère le hold avec `DELETE /api/v1/holds/{reservation_uuid}`. Le backend passe la réservation à `cancelled`, les segments à `cancelled` et renseigne `released_at`. Cet endpoint répond `204` et ne peut pas libérer une réservation appartenant à un autre utilisateur.
-
-```bash
-curl -X DELETE 'https://api.korabus.app/api/v1/holds/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70' \
-  -H 'Authorization: Bearer <token>'
-```
-
-Le paiement est accepté uniquement tant que le hold est valide. Si un webhook de succès arrive après l'expiration, le backend conserve la réservation à `expired`, libère les segments et marque le paiement `failed` avec `provider_payload.rejection_reason = reservation_expired`. Il ne transforme jamais une réservation expirée en réservation `paid`.
-
-<Card title="Guide suivant" href="/guides/error-handling" icon="arrow-right" iconType="solid">
-  Gérez proprement les **erreurs et codes de retour** de l'API.
+<Card title="Guide suivant" href="/guides/quotes-and-holds" icon="arrow-right" iconType="solid">
+  Créez un **devis** et bloquez les sièges sélectionnés.
 </Card>

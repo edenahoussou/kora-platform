@@ -3,13 +3,13 @@
   "theme": "mint",
   "name": "KORA BUS API",
   "colors": {
-    "primary": "#0057B8",
-    "light": "#F6B000",
-    "dark": "#001D4E"
+    "primary": "#1A56DB",
+    "light": "#FCD34D",
+    "dark": "#0F172A"
   },
   "appearance": {
-    "default": "dark",
-    "strict": true
+    "default": "system",
+    "strict": false
   },
   "favicon": "/icon.png",
   "navigation": {
@@ -19,55 +19,157 @@
         "icon": "book-open",
         "tabs": [
           {
-            "tab": "Getting Started",
+            "tab": "Démarrage",
+            "icon": "rocket",
             "groups": [
               {
-                "group": "Getting Started",
+                "group": "Démarrage",
+                "icon": "rocket",
                 "pages": [
                   "introduction",
+                  "concepts",
                   "quickstart",
-                  "authentication"
+                  "guides/authentication"
                 ]
               }
             ]
           },
           {
             "tab": "Guides",
+            "icon": "map",
             "groups": [
               {
-                "group": "Guides",
+                "group": "Parcours passager",
+                "icon": "route",
                 "pages": [
                   "guides/bus-search",
                   "guides/seat-selection",
+                  "guides/quotes-and-holds",
+                  "guides/booking-lifecycle",
+                  "guides/payment-lifecycle"
+                ]
+              },
+              {
+                "group": "Compte & sécurité",
+                "icon": "shield",
+                "pages": [
+                  "guides/devices",
+                  "guides/preferences",
                   "guides/error-handling"
+                ]
+              },
+              {
+                "group": "Webhooks",
+                "icon": "webhook",
+                "pages": [
+                  "guides/webhooks"
                 ]
               }
             ]
           },
           {
             "tab": "API Reference",
+            "icon": "code",
             "groups": [
               {
-                "group": "API Reference",
+                "group": "Overview",
+                "icon": "list",
                 "pages": [
-                  {
-                    "group": "Auth",
-                    "pages": [
-                      "reference/auth"
-                    ]
-                  },
-                  {
-                    "group": "Bus",
-                    "pages": [
-                      "reference/bus"
-                    ]
-                  },
-                  {
-                    "group": "Health",
-                    "pages": [
-                      "reference/health"
-                    ]
-                  }
+                  "reference/introduction"
+                ]
+              },
+              {
+                "group": "Authentification",
+                "icon": "key",
+                "pages": [
+                  "reference/auth/otp-request",
+                  "reference/auth/otp-verify",
+                  "reference/auth/register-complete",
+                  "reference/auth/login",
+                  "reference/auth/oauth-token",
+                  "reference/auth/pin-reset",
+                  "reference/auth/pin-change",
+                  "reference/auth/unlock",
+                  "reference/auth/me",
+                  "reference/auth/me-update",
+                  "reference/auth/devices-list",
+                  "reference/auth/devices-revoke",
+                  "reference/auth/preferences-get",
+                  "reference/auth/preferences-update",
+                  "reference/auth/logout"
+                ]
+              },
+              {
+                "group": "Catalogue Bus",
+                "icon": "bus",
+                "pages": [
+                  "reference/bus/cities",
+                  "reference/bus/lines",
+                  "reference/bus/line",
+                  "reference/bus/departures",
+                  "reference/bus/departure",
+                  "reference/bus/seats"
+                ]
+              },
+              {
+                "group": "Réservation",
+                "icon": "ticket",
+                "pages": [
+                  "reference/booking/quotes",
+                  "reference/booking/holds",
+                  "reference/booking/reservation",
+                  "reference/booking/release-hold",
+                  "reference/booking/passengers"
+                ]
+              },
+              {
+                "group": "Paiements",
+                "icon": "credit-card",
+                "pages": [
+                  "reference/payments/initiate",
+                  "reference/payments/show",
+                  "reference/payments/confirm"
+                ]
+              },
+              {
+                "group": "Santé",
+                "icon": "heart-pulse",
+                "pages": [
+                  "reference/health",
+                  "reference/health-ping"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "Sécurité",
+            "icon": "shield",
+            "groups": [
+              {
+                "group": "Sécurité",
+                "icon": "shield-check",
+                "pages": [
+                  "security/best-practices",
+                  "security/rate-limiting"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "anchor": "Changelog",
+        "icon": "newspaper",
+        "tabs": [
+          {
+            "tab": "Changelog",
+            "icon": "newspaper",
+            "groups": [
+              {
+                "group": "Changelog",
+                "icon": "newspaper",
+                "pages": [
+                  "changelog"
                 ]
               }
             ]
@@ -86,25 +188,43 @@
     "dark": "/logo.dark.png"
   },
   "api": {
-    "openapi": "api/openapi.yaml"
-  },
-  "background": {
-    "decoration": "gradient",
-    "color": {
-      "dark": "#001D4E"
+    "openapi": "api/openapi.yaml",
+    "mdx": {
+      "server": [
+        "https://staging.koraexpress.app",
+        "https://prod.koraexpress.app"
+      ],
+      "auth": {
+        "method": "bearer"
+      }
+    },
+    "playground": {
+      "display": "interactive"
+    },
+    "url": "full",
+    "examples": {
+      "languages": [
+        "curl",
+        "javascript",
+        "typescript",
+        "dart"
+      ],
+      "defaults": "required",
+      "prefill": true,
+      "autogenerate": true
     }
   },
   "navbar": {
     "links": [
       {
         "label": "Support",
-        "href": "mailto:tech@korabus.app"
+        "href": "mailto:aedenrosario@gmail.com"
       }
     ],
     "primary": {
       "type": "button",
       "label": "Dashboard",
-      "href": "https://kora-ops-web.local"
+      "href": "https://staging.koraexpress.app"
     }
   },
   "footer": {
