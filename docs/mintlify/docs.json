@@ -158,6 +158,25 @@
         ]
       },
       {
+        "anchor": "Changelog",
+        "icon": "newspaper",
+        "tabs": [
+          {
+            "tab": "Changelog",
+            "icon": "newspaper",
+            "groups": [
+              {
+                "group": "Changelog",
+                "icon": "newspaper",
+                "pages": [
+                  "changelog"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
         "anchor": "WhatsApp",
         "href": "https://chat.whatsapp.com/JXi4lop1BQNCcfsQxuah2a",
         "icon": "whatsapp"

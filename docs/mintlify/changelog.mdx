@@ -1,0 +1,51 @@
+---
+title: Changelog
+description: "Mises à jour de la documentation API KORA BUS"
+rss: true
+---
+
+# Changelog
+
+<Update label="2026-08-25" description="Restructuration complète" tags={["API Reference", "Playground", "Navigation"]}>
+
+## Restructuration de la documentation API (KORA-38)
+
+Refonte complète de la documentation API pour suivre le modèle FedaPay : layout API Reference avec playground interactif, exemples multi-langages, et schémas extraits de la codebase.
+
+### API Reference
+
+- **31 pages d'endpoints** créées avec schémas exacts extraits des FormRequests, Resources et contrôleurs
+- **15 endpoints Auth** : OTP request/verify, register-complete, login, OAuth token, PIN reset/change, unlock, me, me-update, devices list/revoke, preferences get/update, logout
+- **6 endpoints Bus** : cities, lines, line, departures, departure, seats
+- **5 endpoints Booking** : quotes, holds, reservation, release-hold, passengers
+- **3 endpoints Payments** : initiate, show, confirm (webhook)
+- **2 endpoints Health** : health, ping
+
+### Playground interactif
+
+- Playground interactif avec affichage de l'URL complète (`api.url: "full"`)
+- Switcher de servers : **Staging** (`staging.koraexpress.app`) et **Production** (`prod.koraexpress.app`)
+- Exemples de code en 4 langages : cURL, JavaScript, TypeScript, Dart
+- Authentification bearer pré-configurée
+
+### Navigation
+
+- Icônes Lucide sur tous les tabs et groups de la sidebar
+- Groups déroulés par défaut dans l'API Reference
+- 4 tabs : Démarrage, Guides, API Reference, Sécurité
+- Anchor WhatsApp dans la topbar
+
+### Thème
+
+- Couleur primaire : `#1A56DB` (bleu vif)
+- Couleur light : `#FCD34D` (jaune doré)
+- Couleur dark : `#0F172A` (slate foncé)
+- Mode light/dark avec détection système
+
+### Infrastructure
+
+- Script `normalize-mintlify-openapi.php` mis à jour pour générer les servers staging + prod
+- OpenAPI spec régénéré et validé en CI
+- Support contact : `aedenrosario@gmail.com`
+
+</Update>
