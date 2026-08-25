@@ -206,8 +206,25 @@ for (final d in departures) {
 ```
 
 <Info>
-  Le `fare_preview` est un **aperçu** du tarif actif. Il ne crée pas de devis figé. Le devis serveur figé est porté par `/api/v1/pricing` (à venir). Ne pas afficher de prix définitif côté client avant figeage serveur.
+  Le `fare_preview` est un **aperçu** du tarif actif. Il ne crée pas de devis figé. Pour obtenir le montant contractuel, appelez `POST /api/v1/bus/quotes` avec les UUID du départ et du segment, après authentification. Ne pas afficher de prix définitif côté client avant cette réponse.
 </Info>
+  </Step>
+
+  <Step title="Créer le devis serveur">
+    Après avoir choisi le départ et le segment, créez un devis authentifié. Le devis contient le tarif par passager, le montant total et une date `expires_at`. Le mobile doit conserver son UUID et le transmettre lors de la création du hold.
+
+```bash
+curl -X POST 'https://api.korabus.app/api/v1/bus/quotes' \
+  -H 'Authorization: Bearer <token>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "departure_uuid": "a3091549-9179-454e-8440-58179f2208df",
+    "origin_stop_uuid": "6b72fe4a-5b40-307c-bc24-f79acf9a1bb9",
+    "destination_stop_uuid": "8d94f06c-7d62-529e-de46-9bce1cbc3dd1",
+    "service_class_uuid": null,
+    "passenger_count": 2
+  }'
+```
   </Step>
 
   <Step title="Consulter le plan des sièges">
@@ -275,6 +292,7 @@ print('${available.length} sièges disponibles');
 
 Voir le guide [Sélection de sièges](/guides/seat-selection) pour les statuts et la logique de segment.
   </Step>
+
 </Steps>
 
 <Card title="Guide suivant" href="/guides/seat-selection" icon="arrow-right" iconType="solid">
