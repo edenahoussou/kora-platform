@@ -1540,12 +1540,12 @@ paths:
                 push_notifications:
                   type: boolean
                   description: ''
-                  example: true
+                  example: false
                   nullable: true
                 whatsapp_notifications:
                   type: boolean
                   description: ''
-                  example: true
+                  example: false
                   nullable: true
                 email_notifications:
                   type: boolean

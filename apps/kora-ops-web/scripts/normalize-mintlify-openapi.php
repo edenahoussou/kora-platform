@@ -41,6 +41,11 @@ $openApi = preg_replace_callback(
     },
     $openApi,
 );
+$openApi = preg_replace(
+    '/^(\s+example: )(?:true|false)$/m',
+    '$1false',
+    $openApi,
+);
 
 if (! str_contains($openApi, "  securitySchemes:\n    sanctum:")) {
     $openApi = preg_replace(
