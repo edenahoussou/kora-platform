@@ -91,7 +91,8 @@
         "docs:generate": [
             "@php artisan scribe:generate --force",
             "@php -r \"@mkdir(__DIR__.'/../../docs/mintlify/api', 0775, true);\"",
-            "cp storage/app/private/scribe/openapi.yaml ../../docs/mintlify/api/openapi.yaml"
+            "cp storage/app/private/scribe/openapi.yaml ../../docs/mintlify/api/openapi.yaml",
+            "@php scripts/normalize-mintlify-openapi.php"
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",

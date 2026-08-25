@@ -5,6 +5,12 @@ use Knuckles\Scribe\Config\Defaults;
 use Knuckles\Scribe\Extracting\Strategies\Responses\ResponseCalls;
 use Knuckles\Scribe\Extracting\Strategies\StaticData;
 
+$artisanCommand = $_SERVER['argv'][1] ?? null;
+
+if ($artisanCommand === 'scribe:generate') {
+    mt_srand(1234);
+}
+
 $scribeDefaults = class_exists(Defaults::class);
 $scribeAuthIn = class_exists(AuthIn::class)
     ? AuthIn::BEARER->value
@@ -36,7 +42,7 @@ if (
 
 return [
     // The HTML <title> for the generated documentation.
-    'title' => config('app.name').' API Documentation',
+    'title' => 'Kora Platforme Web API Documentation',
 
     // A short description of your API. Will be included in the docs webpage, Postman collection and OpenAPI spec.
     'description' => 'KORA BUS MVP REST API.',
@@ -50,7 +56,7 @@ return [
 
     // The base URL displayed in the docs.
     // If you're using `laravel` type, you can set this to a dynamic string, like '{{ config("app.tenant_url") }}' to get a dynamic base URL.
-    'base_url' => config('app.url'),
+    'base_url' => 'http://kora-ops-web.local',
 
     // Routes to include in the docs
     'routes' => [

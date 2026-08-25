@@ -98,7 +98,7 @@ paths:
         in: path
         name: uuid
         description: ''
-        example: 0e2271df-6ff5-4cb8-866c-ab41fd06fd96
+        example: 00000000-0000-4000-8000-000000000000
         required: true
         schema:
           type: string
@@ -221,7 +221,7 @@ paths:
         in: path
         name: uuid
         description: ''
-        example: d4ce3c3d-1d3e-4384-a5d5-32a7990dc69e
+        example: 00000000-0000-4000-8000-000000000000
         required: true
         schema:
           type: string
@@ -235,22 +235,22 @@ paths:
           in: query
           name: origin_stop_uuid
           description: 'Public UUID of the boarding stop.'
-          example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+          example: 00000000-0000-4000-8000-000000000000
           required: true
           schema:
             type: string
             description: 'Public UUID of the boarding stop.'
-            example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+            example: 00000000-0000-4000-8000-000000000000
         -
           in: query
           name: destination_stop_uuid
           description: 'Public UUID of the drop-off stop.'
-          example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+          example: 00000000-0000-4000-8000-000000000000
           required: true
           schema:
             type: string
             description: 'Public UUID of the drop-off stop.'
-            example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+            example: 00000000-0000-4000-8000-000000000000
       responses:
         default:
           description: Response documented by the endpoint annotations.
@@ -266,11 +266,11 @@ paths:
                 origin_stop_uuid:
                   type: string
                   description: validation.uuid.
-                  example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+                  example: 00000000-0000-4000-8000-000000000000
                 destination_stop_uuid:
                   type: string
                   description: validation.uuid.
-                  example: 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
+                  example: 00000000-0000-4000-8000-000000000000
               required:
                 - origin_stop_uuid
                 - destination_stop_uuid
@@ -280,7 +280,7 @@ paths:
         in: path
         name: departure_uuid
         description: ''
-        example: d4ce3c3d-1d3e-4384-a5d5-32a7990dc69e
+        example: 00000000-0000-4000-8000-000000000000
         required: true
         schema:
           type: string
@@ -325,16 +325,16 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d
+                        example: 00000000-0000-4000-8000-000000000000
                       departure_uuid:
                         type: string
-                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                        example: 00000000-0000-4000-8000-000000000000
                       origin_stop_uuid:
                         type: string
-                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6f
+                        example: 00000000-0000-4000-8000-000000000000
                       destination_stop_uuid:
                         type: string
-                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
+                        example: 00000000-0000-4000-8000-000000000000
                       service_class_uuid:
                         type: string
                         example: null
@@ -365,7 +365,7 @@ paths:
                         properties:
                           fare_uuid:
                             type: string
-                            example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6f
+                            example: 00000000-0000-4000-8000-000000000000
                           line_code:
                             type: string
                             example: L2
@@ -432,19 +432,19 @@ paths:
                 departure_uuid:
                   type: string
                   description: 'validation.uuid Must match an existing stored value.'
-                  example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+                  example: 00000000-0000-4000-8000-000000000000
                 origin_stop_uuid:
                   type: string
                   description: 'validation.uuid Must match an existing stored value.'
-                  example: 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
+                  example: 00000000-0000-4000-8000-000000000000
                 destination_stop_uuid:
                   type: string
                   description: 'validation.uuid Must match an existing stored value.'
-                  example: 977e5426-8d13-3824-86aa-b092f8ae52c5
+                  example: 00000000-0000-4000-8000-000000000000
                 service_class_uuid:
                   type: string
                   description: 'validation.uuid Must match an existing stored value.'
-                  example: d6fa562b-acd5-35ff-babb-d11194d3737b
+                  example: 00000000-0000-4000-8000-000000000000
                   nullable: true
                 passenger_count:
                   type: integer
@@ -494,7 +494,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
+                        example: 00000000-0000-4000-8000-000000000000
                       status:
                         type: string
                         example: held
@@ -512,10 +512,10 @@ paths:
                         example: mobile
                       departure_uuid:
                         type: string
-                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                        example: 00000000-0000-4000-8000-000000000000
                       price_quote_uuid:
                         type: string
-                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6f
+                        example: 00000000-0000-4000-8000-000000000000
                       segments:
                         type: array
                         example:
@@ -530,10 +530,10 @@ paths:
                           properties:
                             uuid:
                               type: string
-                              example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb71
+                              example: 00000000-0000-4000-8000-000000000000
                             seat_uuid:
                               type: string
-                              example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb72
+                              example: 00000000-0000-4000-8000-000000000000
                             seat_code:
                               type: string
                               example: 4A
@@ -574,7 +574,7 @@ paths:
                     example: "Le siège 4A n'est plus disponible sur ce segment."
                   conflicting_seat_uuid:
                     type: string
-                    example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb72
+                    example: 00000000-0000-4000-8000-000000000000
                   seat_code:
                     type: string
                     example: 4A
@@ -614,19 +614,19 @@ paths:
                 departure_uuid:
                   type: string
                   description: 'validation.uuid Must match an existing stored value.'
-                  example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+                  example: 00000000-0000-4000-8000-000000000000
                 origin_stop_uuid:
                   type: string
                   description: 'validation.uuid Must match an existing stored value.'
-                  example: 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
+                  example: 00000000-0000-4000-8000-000000000000
                 destination_stop_uuid:
                   type: string
                   description: 'validation.uuid Must match an existing stored value.'
-                  example: 977e5426-8d13-3824-86aa-b092f8ae52c5
+                  example: 00000000-0000-4000-8000-000000000000
                 price_quote_uuid:
                   type: string
                   description: 'validation.uuid Must match an existing stored value.'
-                  example: d6fa562b-acd5-35ff-babb-d11194d3737b
+                  example: 00000000-0000-4000-8000-000000000000
                 seats:
                   type: array
                   description: validation.min.
@@ -638,7 +638,7 @@ paths:
                       seat_uuid:
                         type: string
                         description: 'validation.uuid Must match an existing stored value.'
-                        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+                        example: 00000000-0000-4000-8000-000000000000
                       passenger_index:
                         type: integer
                         description: ''
@@ -693,7 +693,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
+                        example: 00000000-0000-4000-8000-000000000000
                       status:
                         type: string
                         example: held
@@ -711,7 +711,7 @@ paths:
                         example: mobile
                       departure_uuid:
                         type: string
-                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                        example: 00000000-0000-4000-8000-000000000000
                       passengers:
                         type: array
                         example:
@@ -729,7 +729,7 @@ paths:
                           properties:
                             uuid:
                               type: string
-                              example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb73
+                              example: 00000000-0000-4000-8000-000000000000
                             first_name:
                               type: string
                               example: Aïcha
@@ -792,7 +792,7 @@ paths:
                       document_type:
                         type: string
                         description: ''
-                        example: consular_card
+                        example: national_id
                         enum:
                           - national_id
                           - passport
@@ -817,7 +817,7 @@ paths:
                       seat_uuid:
                         type: string
                         description: validation.uuid.
-                        example: c3b6b42e-3a0f-3935-b28d-cb767f8a2a0a
+                        example: 00000000-0000-4000-8000-000000000000
                         nullable: true
                     required:
                       - first_name
@@ -830,7 +830,7 @@ paths:
         in: path
         name: reservation_uuid
         description: ''
-        example: c7224bcc-e553-4a6f-9e03-3e612f3c10b6
+        example: 00000000-0000-4000-8000-000000000000
         required: true
         schema:
           type: string
@@ -859,7 +859,7 @@ paths:
                 purpose:
                   type: string
                   description: ''
-                  example: pin_reset
+                  example: registration
                   enum:
                     - registration
                     - login_new_device
@@ -890,7 +890,7 @@ paths:
                 otp_challenge_uuid:
                   type: string
                   description: validation.uuid.
-                  example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+                  example: 00000000-0000-4000-8000-000000000000
                 purpose:
                   type: string
                   description: ''
@@ -930,7 +930,7 @@ paths:
                 otp_challenge_uuid:
                   type: string
                   description: validation.uuid.
-                  example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+                  example: 00000000-0000-4000-8000-000000000000
                 verification_token:
                   type: string
                   description: validation.size.
@@ -965,7 +965,7 @@ paths:
                 otp_challenge_uuid:
                   type: string
                   description: validation.uuid.
-                  example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+                  example: 00000000-0000-4000-8000-000000000000
                 verification_token:
                   type: string
                   description: validation.size.
@@ -995,7 +995,7 @@ paths:
                 otp_challenge_uuid:
                   type: string
                   description: validation.uuid.
-                  example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+                  example: 00000000-0000-4000-8000-000000000000
                 verification_token:
                   type: string
                   description: validation.size.
@@ -1011,7 +1011,7 @@ paths:
                 platform:
                   type: string
                   description: ''
-                  example: ios
+                  example: android
                   enum:
                     - android
                     - ios
@@ -1067,7 +1067,7 @@ paths:
                 platform:
                   type: string
                   description: ''
-                  example: web
+                  example: android
                   enum:
                     - android
                     - ios
@@ -1085,7 +1085,7 @@ paths:
                 otp_challenge_uuid:
                   type: string
                   description: 'This field is required when <code>verification_token</code> is present. validation.uuid.'
-                  example: 977e5426-8d13-3824-86aa-b092f8ae52c5
+                  example: 00000000-0000-4000-8000-000000000000
                   nullable: true
                 verification_token:
                   type: string
@@ -1155,7 +1155,7 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: 977e5426-8d13-3824-86aa-b092f8ae52c5
+                            example: 00000000-0000-4000-8000-000000000000
                           name:
                             type: string
                             example: 'Aïcha Hounkpè'
@@ -1193,7 +1193,7 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: a3091549-9179-454e-8440-58179f2208df
+                            example: 00000000-0000-4000-8000-000000000000
                           name:
                             type: string
                             example: 'iPhone 15 Pro'
@@ -1258,7 +1258,7 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: 977e5426-8d13-3824-86aa-b092f8ae52c5
+                            example: 00000000-0000-4000-8000-000000000000
                           name:
                             type: string
                             example: 'Aïcha Hounkpè'
@@ -1296,7 +1296,7 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: a3091549-9179-454e-8440-58179f2208df
+                            example: 00000000-0000-4000-8000-000000000000
                           name:
                             type: string
                             example: 'iPhone 15 Pro'
@@ -1384,7 +1384,7 @@ paths:
                 provider:
                   type: string
                   description: ''
-                  example: facebook
+                  example: google
                   enum:
                     - google
                     - facebook
@@ -1400,7 +1400,7 @@ paths:
                 platform:
                   type: string
                   description: ''
-                  example: unknown
+                  example: android
                   enum:
                     - android
                     - ios
@@ -1540,22 +1540,22 @@ paths:
                 push_notifications:
                   type: boolean
                   description: ''
-                  example: false
+                  example: true
                   nullable: true
                 whatsapp_notifications:
                   type: boolean
                   description: ''
-                  example: false
+                  example: true
                   nullable: true
                 email_notifications:
                   type: boolean
                   description: ''
-                  example: true
+                  example: false
                   nullable: true
                 locale:
                   type: string
                   description: ''
-                  example: en
+                  example: fr
                   enum:
                     - fr
                     - en
@@ -1599,7 +1599,7 @@ paths:
         in: path
         name: uuid
         description: ''
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        example: 00000000-0000-4000-8000-000000000000
         required: true
         schema:
           type: string
@@ -1668,7 +1668,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80
+                        example: 00000000-0000-4000-8000-000000000000
                       status:
                         type: string
                         example: pending
@@ -1702,11 +1702,11 @@ paths:
                 reservation_uuid:
                   type: string
                   description: 'validation.uuid Must match an existing stored value.'
-                  example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+                  example: 00000000-0000-4000-8000-000000000000
                 method:
                   type: string
                   description: ''
-                  example: cash
+                  example: mobile_money
                   enum:
                     - mobile_money
                     - wallet
@@ -1773,7 +1773,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80
+                        example: 00000000-0000-4000-8000-000000000000
                       status:
                         type: string
                         example: confirmed
@@ -1797,13 +1797,13 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
+                            example: 00000000-0000-4000-8000-000000000000
                           status:
                             type: string
                             example: paid
                           departure_uuid:
                             type: string
-                            example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                            example: 00000000-0000-4000-8000-000000000000
       tags:
         - Payments
       security: []
@@ -1812,7 +1812,7 @@ paths:
         in: path
         name: uuid
         description: ''
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        example: 00000000-0000-4000-8000-000000000000
         required: true
         schema:
           type: string
@@ -1837,7 +1837,7 @@ paths:
                 status:
                   type: string
                   description: ''
-                  example: failed
+                  example: success
                   enum:
                     - success
                     - confirmed
@@ -1861,7 +1861,7 @@ paths:
         in: path
         name: payment_uuid
         description: ''
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        example: 00000000-0000-4000-8000-000000000000
         required: true
         schema:
           type: string
