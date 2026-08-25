@@ -1,0 +1,248 @@
+---
+title: Authentification
+description: Flow d'authentification OTP + PIN avec token Sanctum, et OAuth sociale.
+---
+
+import { Card, CardGroup, Steps, Note, Warning, Info } from '@mintlify/components';
+
+# Authentification
+
+KORA BUS utilise un flow d'authentification basé sur **OTP email + PIN** avec émission d'un **token Sanctum** (Bearer). Ce flow est conçu pour les applications mobiles qui doivent gérer des appareils de confiance.
+
+Une alternative **OAuth sociale** (Google, Facebook, TikTok) est disponible pour l'application passager.
+
+## Flow OTP + PIN
+
+<Steps>
+  <Step title="1. Demander un OTP">
+    L'utilisateur saisit son email. L'API envoie un code OTP à 6 chiffres par email et retourne un `otp_challenge_uuid`.
+
+```bash
+curl -X POST https://api.korabus.app/api/v1/auth/otp/request \
+  -H 'Content-Type: application/json' \
+  -d '{ "email": "passager@korabus.app", "purpose": "registration" }'
+```
+
+```dart
+final res = await dio.post('/api/v1/auth/otp/request', data: {
+  'email': 'passager@korabus.app',
+  'purpose': 'registration',
+});
+final challengeUuid = res.data['data']['otp_challenge_uuid'];
+```
+
+**Réponse (202) :**
+
+```json
+{
+  "data": {
+    "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
+    "purpose": "registration",
+    "email": "passager@korabus.app",
+    "expires_at": "2026-08-17T13:10:00.000Z"
+  }
+}
+```
+
+Voir la référence : [OTP — Demander](/reference/auth/otp).
+  </Step>
+
+  <Step title="2. Vérifier l'OTP">
+    L'utilisateur saisit le code reçu. L'API retourne un `verification_token` à usage unique.
+
+```bash
+curl -X POST https://api.korabus.app/api/v1/auth/otp/verify \
+  -H 'Content-Type: application/json' \
+  -d '{ "otp_challenge_uuid": "6ff8f7f6-...", "purpose": "registration", "code": "569775" }'
+```
+
+```dart
+final res = await dio.post('/api/v1/auth/otp/verify', data: {
+  'otp_challenge_uuid': challengeUuid,
+  'purpose': 'registration',
+  'code': '569775',
+});
+final verificationToken = res.data['data']['verification_token'];
+```
+
+Voir la référence : [OTP — Vérifier](/reference/auth/otp).
+  </Step>
+
+  <Step title="3. Compléter l'inscription (nouvel utilisateur)">
+    L'utilisateur choisit un PIN à 4 chiffres et enregistre son appareil. L'API crée le compte et émet un token Sanctum.
+
+```bash
+curl -X POST https://api.korabus.app/api/v1/auth/register/complete \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "otp_challenge_uuid": "6ff8f7f6-...",
+    "verification_token": "gzmiyvdljnik...",
+    "pin": "9775",
+    "device_name": "iPhone 15 Pro",
+    "platform": "ios",
+    "device_fingerprint": "a1b2c3d4e5f6"
+  }'
+```
+
+```dart
+final res = await dio.post('/api/v1/auth/register/complete', data: {
+  'otp_challenge_uuid': challengeUuid,
+  'verification_token': verificationToken,
+  'pin': '9775',
+  'device_name': 'iPhone 15 Pro',
+  'platform': 'ios',
+  'device_fingerprint': 'a1b2c3d4e5f6',
+});
+final token = res.data['data']['token'];
+```
+
+**Réponse (201) :**
+
+```json
+{
+  "data": {
+    "token": "1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef",
+    "token_type": "Bearer",
+    "expires_at": "2026-08-24T13:05:00.000Z",
+    "user": { "uuid": "977e5426-...", "email": "passager@korabus.app", "status": "active" },
+    "device": { "uuid": "a3091549-...", "name": "iPhone 15 Pro", "status": "trusted" }
+  }
+}
+```
+
+Voir la référence : [Sessions & PIN](/reference/auth/sessions).
+  </Step>
+
+  <Step title="4. Connexion (utilisateur existant)">
+    Si l'utilisateur a déjà un compte, il se connecte avec email + PIN. Si c'est un **nouvel appareil**, l'API exige un OTP supplémentaire.
+
+```bash
+curl -X POST https://api.korabus.app/api/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{ "email": "passager@korabus.app", "pin": "9775", "device_name": "Samsung S24", "platform": "android", "device_fingerprint": "f6e5d4c3b2a1" }'
+```
+
+```dart
+final res = await dio.post('/api/v1/auth/login', data: {
+  'email': 'passager@korabus.app',
+  'pin': '9775',
+  'device_name': 'Samsung Galaxy S24',
+  'platform': 'android',
+  'device_fingerprint': 'f6e5d4c3b2a1',
+});
+final token = res.data['data']['token'];
+```
+
+<Warning>
+  **Nouvel appareil** : Si la connexion provient d'un appareil inconnu, l'API retourne `202` avec `requires_otp: true` au lieu d'un token. Le client doit enchaîner : `otp/request` → `otp/verify` → `login` avec `otp_challenge_uuid` + `verification_token`.
+</Warning>
+
+Voir la référence : [Sessions & PIN](/reference/auth/sessions).
+  </Step>
+
+  <Step title="5. Utiliser le token">
+    Tous les endpoints protégés requièrent le header `Authorization: Bearer <token>`.
+
+```bash
+curl -X GET https://api.korabus.app/api/v1/auth/me \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Accept: application/json'
+```
+
+```dart
+final authDio = KoraApiClient.create(authToken: token);
+final me = await authDio.get('/api/v1/auth/me');
+print(me.data['data']['user']['name']);
+```
+
+Voir la référence : [Profil](/reference/auth/profile).
+  </Step>
+</Steps>
+
+## OAuth sociale (Google, Facebook, TikTok)
+
+Les passagers peuvent créer un compte ou se connecter via **Google**, **Facebook** ou **TikTok** sans saisir d'email ni d'OTP. L'app mobile utilise le SDK natif du provider, récupère un access token, et l'échange contre une session KORA.
+
+```bash
+curl -X POST https://api.korabus.app/api/v1/auth/oauth/token \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "provider": "google",
+    "provider_token": "ya29.a0AfH6SMB...",
+    "device_name": "Samsung Galaxy S24",
+    "platform": "android",
+    "device_fingerprint": "f6e5d4c3b2a1"
+  }'
+```
+
+```dart
+final res = await dio.post('/api/v1/auth/oauth/token', data: {
+  'provider': 'google',
+  'provider_token': providerToken,
+  'device_name': 'Samsung Galaxy S24',
+  'platform': 'android',
+  'device_fingerprint': deviceFingerprint,
+});
+final token = res.data['data']['token'];
+```
+
+| Provider | Valeur `provider` | SDK Flutter |
+|----------|-------------------|------------|
+| Google | `google` | `google_sign_in` |
+| Facebook | `facebook` | `flutter_facebook_auth` |
+| TikTok | `tiktok` | `tiktok_login` |
+
+<Info>
+  L'avatar du provider est automatiquement téléchargé et exposé via `avatar_url`. Si aucun email n'est retourné (TikTok notamment), la création est refusée avec `422 email_required`.
+</Info>
+
+Voir la référence : [OAuth sociale](/reference/auth/oauth).
+
+## PIN oublié ou compte verrouillé
+
+<Steps>
+  <Step title="PIN oublié">
+    Demandez un OTP avec `purpose: "pin_reset"`, vérifiez-le, puis appelez `POST /auth/pin/reset` avec le nouveau PIN.
+
+Voir : [Sessions & PIN](/reference/auth/sessions).
+  </Step>
+  <Step title="Compte verrouillé (423)">
+    Après plusieurs PIN incorrects, le compte est verrouillé. Demandez un OTP avec `purpose: "account_unlock"`, vérifiez-le, puis appelez `POST /auth/unlock`.
+  </Step>
+  <Step title="Changer de PIN (authentifié)">
+    Appelez `POST /auth/pin/change` avec `current_pin` et `new_pin`.
+  </Step>
+</Steps>
+
+## Gestion des appareils
+
+Chaque connexion enregistre un appareil de confiance. L'utilisateur peut lister et révoquer ses appareils.
+
+<Card title="Gestion des appareils" href="/guides/devices" icon="smartphone" iconType="solid">
+  Lister, révoquer et gérer les appareils de confiance.
+</Card>
+
+## Préférences
+
+L'utilisateur peut configurer ses notifications (push, WhatsApp, email), sa langue et son thème.
+
+<Card title="Préférences utilisateur" href="/guides/preferences" icon="settings" iconType="solid">
+  Consulter et modifier les préférences.
+</Card>
+
+## Déconnexion
+
+```bash
+curl -X POST https://api.korabus.app/api/v1/auth/logout \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef'
+```
+
+```dart
+await authDio.post('/api/v1/auth/logout');
+```
+
+**Réponse (204) :** Pas de body. Le token courant est révoqué. Les autres appareils restent connectés.
+
+<Card title="Guide suivant" href="/guides/bus-search" icon="arrow-right" iconType="solid">
+  Maintenant que vous êtes authentifié, explorez la **recherche de bus**.
+</Card>

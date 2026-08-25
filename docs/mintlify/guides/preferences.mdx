@@ -1,0 +1,55 @@
+---
+title: Préférences utilisateur
+description: Notifications, langue et thème — consulter et modifier.
+---
+
+import { Card, Note } from '@mintlify/components';
+
+# Préférences utilisateur
+
+Chaque utilisateur peut configurer ses canaux de notification, sa langue et son thème d'affichage. Les préférences sont stockées côté serveur et synchronisées entre appareils.
+
+## Canaux de notification
+
+| Canal | Champ | Description |
+|-------|-------|-------------|
+| Push | `push_notifications` | Notifications natives (FCM/APNs) — boarding, statut paiement |
+| WhatsApp | `whatsapp_notifications` | Messages WhatsApp — rappel de départ, changements |
+| Email | `email_notifications` | Emails — confirmations, reçus |
+
+## Consulter
+
+```dart
+final res = await authDio.get('/api/v1/auth/preferences');
+final prefs = res.data['data'];
+print(prefs['push_notifications']); // true
+```
+
+## Modifier
+
+```dart
+await authDio.put('/api/v1/auth/preferences', data: {
+  'push_notifications': true,
+  'whatsapp_notifications': false,
+  'email_notifications': true,
+  'locale': 'fr',
+  'theme': 'dark',
+});
+```
+
+<Note>
+  Les modifications sont **partielles** : vous pouvez envoyer uniquement les champs à modifier. Les champs omis conservent leur valeur actuelle.
+</Note>
+
+## Langue et thème
+
+| Préférence | Valeurs | Description |
+|------------|---------|-------------|
+| `locale` | `fr`, `en` | Langue des messages et emails |
+| `theme` | `light`, `dark`, `system` | Thème d'affichage préféré |
+
+Voir la référence : [Préférences](/reference/auth/preferences).
+
+<Card title="Gestion des erreurs" href="/guides/error-handling" icon="arrow-right" iconType="solid">
+  Apprenez à **parser et gérer** les erreurs de l'API.
+</Card>

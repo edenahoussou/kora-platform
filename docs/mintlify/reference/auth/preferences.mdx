@@ -1,0 +1,116 @@
+---
+title: Préférences
+description: Consulter et modifier les préférences utilisateur (notifications, langue, thème).
+---
+
+import { Card } from '@mintlify/components';
+
+# Préférences
+
+Les préférences utilisateur contrôlent les notifications, la langue et le thème d'affichage.
+
+## Consulter les préférences
+
+`GET /api/v1/auth/preferences`
+
+```bash
+curl -X GET https://api.korabus.app/api/v1/auth/preferences \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Accept: application/json'
+```
+
+```javascript
+const res = await fetch('https://api.korabus.app/api/v1/auth/preferences', {
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+const { data } = await res.json();
+```
+
+```typescript
+const res = await fetch('https://api.korabus.app/api/v1/auth/preferences', {
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+const data: KoraPreferences = (await res.json()).data;
+```
+
+```dart
+final res = await authDio.get('/api/v1/auth/preferences');
+```
+
+**Réponse (200) :**
+
+```json
+{
+  "data": {
+    "push_notifications": true,
+    "whatsapp_notifications": true,
+    "email_notifications": true,
+    "locale": "fr",
+    "theme": "light"
+  }
+}
+```
+
+| Code | Description |
+|------|-------------|
+| `200` | Préférences retournées. |
+| `401` | Token absent ou invalide. |
+
+---
+
+## Modifier les préférences
+
+`PUT /api/v1/auth/preferences`
+
+```bash
+curl -X PUT https://api.korabus.app/api/v1/auth/preferences \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Content-Type: application/json' \
+  -d '{ "push_notifications": true, "whatsapp_notifications": false, "email_notifications": true, "locale": "fr", "theme": "dark" }'
+```
+
+```javascript
+const res = await fetch('https://api.korabus.app/api/v1/auth/preferences', {
+  method: 'PUT',
+  headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ push_notifications: true, whatsapp_notifications: false, locale: 'fr', theme: 'dark' }),
+});
+```
+
+```typescript
+const res = await fetch('https://api.korabus.app/api/v1/auth/preferences', {
+  method: 'PUT',
+  headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ push_notifications: true, theme: 'dark' } satisfies Partial<KoraPreferences>),
+});
+```
+
+```dart
+await authDio.put('/api/v1/auth/preferences', data: {
+  'push_notifications': true,
+  'whatsapp_notifications': false,
+  'email_notifications': true,
+  'locale': 'fr',
+  'theme': 'dark',
+});
+```
+
+### Paramètres
+
+| Champ | Type | Requis | Description |
+|-------|------|--------|-------------|
+| `push_notifications` | boolean | ❌ | Notifications push activées. |
+| `whatsapp_notifications` | boolean | ❌ | Notifications WhatsApp activées. |
+| `email_notifications` | boolean | ❌ | Notifications email activées. |
+| `locale` | string | ❌ | Langue : `fr`, `en`. |
+| `theme` | string | ❌ | Thème : `light`, `dark`, `system`. |
+
+| Code | Description |
+|------|-------------|
+| `200` | Préférences mises à jour. |
+| `401` | Token absent ou invalide. |
+| `422` | Valeur invalide (locale ou thème non supporté). |
+
+<Card title="Catalogue Bus" href="/reference/bus/cities" icon="arrow-right" iconType="solid">
+  Explorez les **villes, lignes et départs** desservis.
+</Card>

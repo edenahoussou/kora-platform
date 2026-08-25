@@ -27,7 +27,7 @@
                   "introduction",
                   "concepts",
                   "quickstart",
-                  "authentication"
+                  "guides/authentication"
                 ]
               }
             ]
@@ -36,11 +36,27 @@
             "tab": "Guides",
             "groups": [
               {
-                "group": "Guides",
+                "group": "Parcours passager",
                 "pages": [
                   "guides/bus-search",
                   "guides/seat-selection",
+                  "guides/quotes-and-holds",
+                  "guides/booking-lifecycle",
+                  "guides/payment-lifecycle"
+                ]
+              },
+              {
+                "group": "Compte & sécurité",
+                "pages": [
+                  "guides/devices",
+                  "guides/preferences",
                   "guides/error-handling"
+                ]
+              },
+              {
+                "group": "Webhooks",
+                "pages": [
+                  "guides/webhooks"
                 ]
               }
             ]
@@ -53,23 +69,60 @@
                 "pages": [
                   "reference/introduction",
                   {
-                    "group": "Auth",
+                    "group": "Authentification",
                     "pages": [
-                      "reference/auth"
+                      "reference/auth/otp",
+                      "reference/auth/sessions",
+                      "reference/auth/oauth",
+                      "reference/auth/profile",
+                      "reference/auth/devices",
+                      "reference/auth/preferences"
                     ]
                   },
                   {
-                    "group": "Bus",
+                    "group": "Catalogue Bus",
                     "pages": [
-                      "reference/bus"
+                      "reference/bus/cities",
+                      "reference/bus/lines",
+                      "reference/bus/departures",
+                      "reference/bus/seats"
                     ]
                   },
                   {
-                    "group": "Health",
+                    "group": "Réservation",
+                    "pages": [
+                      "reference/booking/quotes",
+                      "reference/booking/holds",
+                      "reference/booking/reservations",
+                      "reference/booking/passengers"
+                    ]
+                  },
+                  {
+                    "group": "Paiements",
+                    "pages": [
+                      "reference/payments/initiate",
+                      "reference/payments/show",
+                      "reference/payments/confirm"
+                    ]
+                  },
+                  {
+                    "group": "Santé",
                     "pages": [
                       "reference/health"
                     ]
                   }
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "Sécurité",
+            "groups": [
+              {
+                "group": "Sécurité",
+                "pages": [
+                  "security/best-practices",
+                  "security/rate-limiting"
                 ]
               }
             ]

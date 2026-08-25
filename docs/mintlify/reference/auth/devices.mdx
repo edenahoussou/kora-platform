@@ -1,0 +1,120 @@
+---
+title: Appareils
+description: Lister et révoquer les appareils de confiance liés à un compte.
+---
+
+import { Card, Note, Warning } from '@mintlify/components';
+
+# Appareils
+
+Chaque connexion enregistre un appareil de confiance identifié par son `device_fingerprint`. L'utilisateur peut lister et révoquer ses appareils.
+
+## Lister les appareils
+
+`GET /api/v1/auth/devices`
+
+```bash
+curl -X GET https://api.korabus.app/api/v1/auth/devices \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Accept: application/json'
+```
+
+```javascript
+const res = await fetch('https://api.korabus.app/api/v1/auth/devices', {
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+const { data } = await res.json();
+```
+
+```typescript
+const res = await fetch('https://api.korabus.app/api/v1/auth/devices', {
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+const data: KoraDevice[] = (await res.json()).data;
+```
+
+```dart
+final res = await authDio.get('/api/v1/auth/devices');
+final devices = res.data['data'] as List;
+```
+
+**Réponse (200) :**
+
+```json
+{
+  "data": [
+    {
+      "uuid": "a3091549-9179-454e-8440-58179f2208df",
+      "name": "iPhone 15 Pro",
+      "platform": "ios",
+      "trusted_at": "2026-08-17T13:05:00.000Z",
+      "last_seen_at": "2026-08-17T13:05:00.000Z",
+      "status": "trusted"
+    },
+    {
+      "uuid": "b4102650-a280-4655-9551-69280321aaef",
+      "name": "Samsung Galaxy S24",
+      "platform": "android",
+      "trusted_at": "2026-08-17T13:10:00.000Z",
+      "last_seen_at": "2026-08-17T13:10:00.000Z",
+      "status": "trusted"
+    }
+  ]
+}
+```
+
+| Code | Description |
+|------|-------------|
+| `200` | Liste des appareils. |
+| `401` | Token absent ou invalide. |
+
+---
+
+## Révoquer un appareil
+
+`DELETE /api/v1/auth/devices/{device:uuid}`
+
+Révoque un appareil de confiance. L'appareil devra refaire un OTP à la prochaine connexion.
+
+```bash
+curl -X DELETE https://api.korabus.app/api/v1/auth/devices/b4102650-a280-4655-9551-69280321aaef \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef'
+```
+
+```javascript
+await fetch('https://api.korabus.app/api/v1/auth/devices/b4102650-a280-4655-9551-69280321aaef', {
+  method: 'DELETE',
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+```
+
+```typescript
+await fetch(`https://api.korabus.app/api/v1/auth/devices/${deviceUuid}`, {
+  method: 'DELETE',
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+```
+
+```dart
+await authDio.delete('/api/v1/auth/devices/b4102650-a280-4655-9551-69280321aaef');
+```
+
+### Paramètres
+
+| Champ | Type | Requis | Description |
+|-------|------|--------|-------------|
+| `device:uuid` | UUID (path) | ✅ | UUID de l'appareil à révoquer. |
+
+| Code | Description |
+|------|-------------|
+| `204` | Appareil révoqué — pas de body. |
+| `401` | Token absent ou invalide. |
+| `404` | Appareil introuvable. |
+
+<Warning>
+  Révoquer l'appareil **courant** déconnecte immédiatement l'utilisateur. Le token est invalidé.
+</Warning>
+
+<Card title="Préférences" href="/reference/auth/preferences" icon="arrow-right" iconType="solid">
+  Configurez les **notifications et préférences** utilisateur.
+</Card>
