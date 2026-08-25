@@ -9,6 +9,20 @@ import type {
     SaleSearch,
 } from './sale-types';
 
+function passengerToSnakeCase(passenger: SalePassengerForm) {
+    return {
+        first_name: passenger.firstName,
+        last_name: passenger.lastName,
+        phone: passenger.phone,
+        email: passenger.email,
+        document_type: passenger.documentType,
+        document_number: passenger.documentNumber,
+        nationality: passenger.nationality,
+        birth_date: passenger.birthDate,
+        seat_uuid: passenger.seatUuid,
+    };
+}
+
 function queryFrom(search: SaleSearch, departure?: SaleDeparture | null) {
     return {
         date: search.date ?? departure?.departureDate ?? null,
@@ -107,7 +121,7 @@ export function useCounterSale(props: SaleProps) {
     ) => {
         passengersForm.transform(() => ({
             ...queryFrom(searchForm.data, props.selectedDeparture),
-            passengers: passengerData,
+            passengers: passengerData.map(passengerToSnakeCase),
         }));
         passengersForm.post(passengers.url(reservationUuid), {
             preserveScroll: true,

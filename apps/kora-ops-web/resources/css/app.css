@@ -97,11 +97,9 @@
 @layer components {
     .kora-dashboard-hero {
         background:
-            radial-gradient(
-                circle at 75% 0%,
+            radial-gradient(circle at 75% 0%,
                 rgba(0, 87, 184, 0.72),
-                transparent 38%
-            ),
+                transparent 38%),
             var(--kora);
     }
 
@@ -143,11 +141,9 @@
     }
 
     .kora-toast:hover {
-        border-color: color-mix(
-            in srgb,
-            var(--toast-accent) 38%,
-            var(--border)
-        );
+        border-color: color-mix(in srgb,
+                var(--toast-accent) 38%,
+                var(--border));
         box-shadow: 0 20px 48px color-mix(in srgb, var(--kora) 18%, transparent);
         transform: translateY(-2px);
     }
@@ -181,8 +177,7 @@
         width: 32px;
         height: 32px;
         place-items: center;
-        border: 1px solid
-            color-mix(in srgb, var(--toast-accent) 26%, transparent);
+        border: 1px solid color-mix(in srgb, var(--toast-accent) 26%, transparent);
         border-radius: 10px;
         color: var(--toast-accent);
         background: color-mix(in srgb, var(--toast-accent) 12%, transparent);
@@ -252,8 +247,7 @@
     .kora-toast [data-button] {
         min-height: 26px;
         padding: 0 9px;
-        border: 1px solid
-            color-mix(in srgb, var(--toast-accent) 35%, var(--border));
+        border: 1px solid color-mix(in srgb, var(--toast-accent) 35%, var(--border));
         border-radius: 8px;
         color: var(--toast-accent);
         background: color-mix(in srgb, var(--toast-accent) 8%, transparent);
@@ -282,6 +276,7 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
+
         .kora-toast,
         .kora-toast-close,
         .kora-toast-loader svg {
@@ -341,7 +336,7 @@
         font-size: 10px;
     }
 
-    .finalization-status > span {
+    .finalization-status>span {
         display: grid;
         width: 19px;
         height: 19px;
@@ -364,14 +359,12 @@
         margin-top: 21px;
         overflow: hidden;
         border-radius: 999px;
-        background: color-mix(
-            in srgb,
-            var(--muted-foreground) 16%,
-            transparent
-        );
+        background: color-mix(in srgb,
+                var(--muted-foreground) 16%,
+                transparent);
     }
 
-    .finalization-progress > span {
+    .finalization-progress>span {
         display: block;
         height: 100%;
         border-radius: inherit;
@@ -425,7 +418,7 @@
         font-weight: 800;
     }
 
-    .passenger-card-head span > span {
+    .passenger-card-head span>span {
         display: grid;
         align-items: start;
         gap: 2px;
@@ -598,14 +591,201 @@
     }
 
     .field .control[aria-invalid='true'] {
-        box-shadow: 0 0 0 2px
-            color-mix(in srgb, var(--destructive) 60%, transparent);
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--destructive) 60%, transparent);
     }
 
     .field-error-text {
         color: var(--destructive);
         font-size: 9px;
         font-weight: 700;
+    }
+
+    .required-asterisk {
+        color: var(--destructive);
+        font-weight: 900;
+    }
+
+    /* Nationality searchable select */
+    .nationality-select {
+        position: relative;
+        width: 100%;
+    }
+
+    .nationality-trigger {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        width: 100%;
+        cursor: pointer;
+        text-align: left;
+    }
+
+    .nationality-trigger-value {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .nationality-trigger-value>span:last-child {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .nationality-trigger-placeholder {
+        color: var(--muted-foreground);
+        font-weight: 600;
+    }
+
+    .nationality-chevron {
+        flex: 0 0 auto;
+        color: var(--muted-foreground);
+        transition: transform 0.15s ease;
+    }
+
+    .nationality-chevron.is-open {
+        transform: rotate(180deg);
+    }
+
+    .nationality-flag {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border-radius: 3px;
+        flex: 0 0 auto;
+    }
+
+    .nationality-flag-sm {
+        width: 22px;
+        height: 16px;
+    }
+
+    .nationality-flag-sm svg {
+        width: 22px;
+        height: 16px;
+    }
+
+    .nationality-dropdown {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        z-index: 50;
+        display: flex;
+        flex-direction: column;
+        max-height: 280px;
+        border-radius: 10px;
+        background: var(--card);
+        box-shadow:
+            0 12px 32px rgba(0, 29, 78, 0.14),
+            inset 0 0 0 1px var(--border);
+        overflow: hidden;
+        animation: nationality-dropdown-in 0.12s ease;
+    }
+
+    @keyframes nationality-dropdown-in {
+        from {
+            opacity: 0;
+            transform: translateY(-4px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .nationality-search {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        color: var(--muted-foreground);
+    }
+
+    .nationality-search-input {
+        flex: 1;
+        min-width: 0;
+        border: 0;
+        background: transparent;
+        color: var(--foreground);
+        font: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        outline: none;
+    }
+
+    .nationality-search-input::placeholder {
+        color: var(--muted-foreground);
+        font-weight: 500;
+    }
+
+    .nationality-options {
+        flex: 1;
+        overflow-y: auto;
+        padding: 4px;
+    }
+
+    .nationality-option {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        width: 100%;
+        padding: 8px 10px;
+        border: 0;
+        border-radius: 7px;
+        background: transparent;
+        color: var(--foreground);
+        font: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        text-align: left;
+        cursor: pointer;
+        transition: background 0.1s ease;
+    }
+
+    .nationality-option:hover,
+    .nationality-option:focus-visible {
+        background: color-mix(in srgb, var(--gold) 10%, transparent);
+        outline: none;
+    }
+
+    .nationality-option.is-selected {
+        background: color-mix(in srgb, var(--gold) 14%, transparent);
+        color: var(--foreground);
+    }
+
+    .nationality-option-label {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .nationality-option-code {
+        flex: 0 0 auto;
+        color: var(--muted-foreground);
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+    }
+
+    .nationality-option-check {
+        flex: 0 0 auto;
+        color: var(--digital);
+    }
+
+    .nationality-empty {
+        padding: 18px 12px;
+        color: var(--muted-foreground);
+        font-size: 11px;
+        font-weight: 600;
+        text-align: center;
     }
 
     .finalization-check {
@@ -674,7 +854,7 @@
         line-height: 1.45;
     }
 
-    .back-confirmation > div {
+    .back-confirmation>div {
         display: flex;
         flex-wrap: wrap;
         gap: 7px;
@@ -712,7 +892,7 @@
         padding: 18px 0;
     }
 
-    .summary-route > span:last-child {
+    .summary-route>span:last-child {
         text-align: right;
     }
 
@@ -735,13 +915,13 @@
         font-size: 8px;
     }
 
-    .summary-route > i {
+    .summary-route>i {
         position: relative;
         height: 2px;
         background: linear-gradient(90deg, var(--digital), var(--gold));
     }
 
-    .summary-route > i em {
+    .summary-route>i em {
         position: absolute;
         top: 50%;
         left: 50%;
@@ -822,12 +1002,12 @@
             width: 100%;
         }
 
-        .checkout-actions-nav > .btn,
+        .checkout-actions-nav>.btn,
         .back-confirmation .btn {
             width: 100%;
         }
 
-        .back-confirmation > div {
+        .back-confirmation>div {
             flex-direction: column-reverse;
         }
 
@@ -841,8 +1021,9 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
+
         .passenger-card,
-        .finalization-progress > span {
+        .finalization-progress>span {
             transition: none;
         }
     }
@@ -859,19 +1040,16 @@
 }
 
 @layer kora-auth {
+
     /* Brand panel: navy with radial glows + orbiting decorative rings */
     .kora-auth-brand {
         background:
-            radial-gradient(
-                circle at 86% 10%,
+            radial-gradient(circle at 86% 10%,
                 rgba(0, 87, 184, 0.72),
-                transparent 30%
-            ),
-            radial-gradient(
-                circle at 10% 90%,
+                transparent 30%),
+            radial-gradient(circle at 10% 90%,
                 rgba(0, 87, 184, 0.38),
-                transparent 28%
-            ),
+                transparent 28%),
             var(--kora);
     }
 
@@ -1001,6 +1179,7 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
+
         .kora-auth-brand::before,
         .kora-auth-brand::after,
         .kora-auth-track::after,
@@ -1545,7 +1724,7 @@
         font-size: 10px;
     }
 
-    .summary-callout > div {
+    .summary-callout>div {
         display: flex;
         align-items: center;
         gap: 7px;
@@ -1639,14 +1818,12 @@
         margin-top: 11px;
         overflow: hidden;
         border-radius: 999px;
-        background: color-mix(
-            in srgb,
-            var(--muted-foreground) 18%,
-            transparent
-        );
+        background: color-mix(in srgb,
+                var(--muted-foreground) 18%,
+                transparent);
     }
 
-    .hold-countdown-track > span {
+    .hold-countdown-track>span {
         display: block;
         height: 100%;
         border-radius: inherit;
@@ -1676,7 +1853,7 @@
         animation-duration: 1.1s;
     }
 
-    .hold-countdown.is-urgent .hold-countdown-track > span {
+    .hold-countdown.is-urgent .hold-countdown-track>span {
         background: var(--destructive);
     }
 
@@ -1874,7 +2051,7 @@
         background: var(--kora);
     }
 
-    .seat-trip > span:last-child {
+    .seat-trip>span:last-child {
         text-align: right;
     }
 
@@ -2113,12 +2290,12 @@
         background: var(--mist);
     }
 
-    .seat-counter > span {
+    .seat-counter>span {
         color: var(--kora);
         font-weight: 800;
     }
 
-    .seat-counter > div {
+    .seat-counter>div {
         display: flex;
         align-items: center;
         gap: 12px;
@@ -2302,10 +2479,8 @@
 
     .seat-trip-route {
         display: grid;
-        grid-template-columns: minmax(100px, 1fr) minmax(110px, 0.85fr) minmax(
-                100px,
-                1fr
-            );
+        grid-template-columns: minmax(100px, 1fr) minmax(110px, 0.85fr) minmax(100px,
+                1fr);
         align-items: center;
         gap: 14px;
         padding: 16px 18px 13px;
@@ -2408,8 +2583,7 @@
         overflow: auto;
         padding: 16px 8px 4px;
         overscroll-behavior: contain;
-        scrollbar-color: color-mix(in srgb, var(--kora) 28%, transparent)
-            transparent;
+        scrollbar-color: color-mix(in srgb, var(--kora) 28%, transparent) transparent;
     }
 
     .seat-map-scroll .bus-cabin {
@@ -2448,7 +2622,7 @@
         letter-spacing: -0.04em;
     }
 
-    .seat-selection-heading > strong {
+    .seat-selection-heading>strong {
         color: var(--digital);
         font-family: 'Geist Mono', monospace;
         font-size: 24px;
@@ -2502,17 +2676,17 @@
         background: var(--mist);
     }
 
-    .seat-selection-counter > div:first-child span,
-    .seat-selection-counter > div:first-child small {
+    .seat-selection-counter>div:first-child span,
+    .seat-selection-counter>div:first-child small {
         display: block;
     }
 
-    .seat-selection-counter > div:first-child span {
+    .seat-selection-counter>div:first-child span {
         font-size: 10px;
         font-weight: 900;
     }
 
-    .seat-selection-counter > div:first-child small {
+    .seat-selection-counter>div:first-child small {
         margin-top: 3px;
         color: var(--muted-foreground);
         font-size: 8px;
@@ -3086,6 +3260,7 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
+
         .modal-backdrop,
         .modal,
         .seat-dialog-content,
@@ -3095,7 +3270,7 @@
         .seat,
         .selected-seat-list span,
         .hold-countdown-icon::after,
-        .hold-countdown-track > span {
+        .hold-countdown-track>span {
             animation: none;
             transition: none;
         }

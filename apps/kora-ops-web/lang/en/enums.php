@@ -150,4 +150,12 @@ return [
         'accident' => 'Accident',
         'other' => 'Other',
     ],
+
+    'passenger_document_type' => [
+        'national_id' => 'National ID',
+        'biometric_card' => 'Biometric card',
+        'passport' => 'Passport',
+        'consular_card' => 'Consular card',
+        'cip' => 'CIP',
+    ],
 ];

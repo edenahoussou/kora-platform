@@ -22,7 +22,7 @@ class StorePassengersRequest extends FormRequest
             'passengers.*.last_name' => ['required', 'string', 'max:120'],
             'passengers.*.phone' => ['nullable', 'string', 'max:32'],
             'passengers.*.email' => ['nullable', 'email', 'max:255'],
-            'passengers.*.document_type' => ['nullable', 'string', 'in:national_id,passport,consular_card,birth_certificate'],
+            'passengers.*.document_type' => ['nullable', 'string', 'in:national_id,biometric_card,passport,consular_card,cip'],
             'passengers.*.document_number' => ['nullable', 'string', 'max:64'],
             'passengers.*.nationality' => ['nullable', 'string', 'size:2'],
             'passengers.*.birth_date' => ['nullable', 'date_format:Y-m-d'],

@@ -9,6 +9,7 @@ import {
     CheckCircle2,
     Clock3,
     FileText,
+    Globe,
     Mail,
     Phone,
     Route as RouteIcon,
@@ -23,6 +24,7 @@ import PhoneInput, {
 } from 'react-phone-number-input';
 import phoneLabels from 'react-phone-number-input/locale/fr.json';
 import { cn } from '@/lib/utils';
+import { NationalitySelect } from './nationality-select';
 import type {
     SaleDeparture,
     SalePassengerForm,
@@ -227,8 +229,8 @@ export function PassengerFinalization({
                                 {completedPassengers && savedAllPassengers
                                     ? 'Informations enregistrées'
                                     : completedPassengers
-                                      ? 'Prêt à enregistrer'
-                                      : `${completeCount}/${passengers.length} complété${completeCount > 1 ? 's' : ''}`}
+                                        ? 'Prêt à enregistrer'
+                                        : `${completeCount}/${passengers.length} complété${completeCount > 1 ? 's' : ''}`}
                             </strong>
                         </div>
                     </div>
@@ -248,7 +250,7 @@ export function PassengerFinalization({
                     const phoneError =
                         fieldError(index, 'phone') ??
                         (passenger.phone.trim() !== '' &&
-                        !isValidPhoneNumber(passenger.phone)
+                            !isValidPhoneNumber(passenger.phone)
                             ? 'Saisissez un numéro international valide.'
                             : undefined);
 
@@ -279,11 +281,11 @@ export function PassengerFinalization({
                                         passenger,
                                         isInternational,
                                     ) && (
-                                        <CheckCircle2
-                                            className="size-3.5"
-                                            aria-label="Informations complètes"
-                                        />
-                                    )}
+                                            <CheckCircle2
+                                                className="size-3.5"
+                                                aria-label="Informations complètes"
+                                            />
+                                        )}
                                     <em>Siège {passenger.seatCode}</em>
                                 </span>
                             </div>
@@ -300,7 +302,12 @@ export function PassengerFinalization({
                                     </small>
                                 </div>
                                 <label className="field">
-                                    <span>Prénom *</span>
+                                    <span>
+                                        Prénom{' '}
+                                        <span className="required-asterisk">
+                                            *
+                                        </span>
+                                    </span>
                                     <input
                                         id={`passenger-${index}-first-name`}
                                         className="control"
@@ -324,7 +331,12 @@ export function PassengerFinalization({
                                     )}
                                 </label>
                                 <label className="field">
-                                    <span>Nom *</span>
+                                    <span>
+                                        Nom{' '}
+                                        <span className="required-asterisk">
+                                            *
+                                        </span>
+                                    </span>
                                     <input
                                         id={`passenger-${index}-last-name`}
                                         className="control"
@@ -350,7 +362,10 @@ export function PassengerFinalization({
                                 <label className="field">
                                     <span className="field-label">
                                         <Phone className="size-3.5" />
-                                        Téléphone international *
+                                        Téléphone international{' '}
+                                        <span className="required-asterisk">
+                                            *
+                                        </span>
                                     </span>
                                     <PhoneInput
                                         id={`passenger-${index}-phone`}
@@ -420,7 +435,12 @@ export function PassengerFinalization({
                                             </small>
                                         </div>
                                         <label className="field">
-                                            <span>Type de document *</span>
+                                            <span>
+                                                Type de document{' '}
+                                                <span className="required-asterisk">
+                                                    *
+                                                </span>
+                                            </span>
                                             <select
                                                 id={`passenger-${index}-document-type`}
                                                 className="control"
@@ -436,19 +456,27 @@ export function PassengerFinalization({
                                                 <option value="national_id">
                                                     Carte nationale
                                                 </option>
+                                                <option value="biometric_card">
+                                                    Carte biométrique
+                                                </option>
                                                 <option value="passport">
                                                     Passeport
                                                 </option>
                                                 <option value="consular_card">
                                                     Carte consulaire
                                                 </option>
-                                                <option value="birth_certificate">
-                                                    Acte de naissance
+                                                <option value="cip">
+                                                    CIP
                                                 </option>
                                             </select>
                                         </label>
                                         <label className="field">
-                                            <span>Numéro du document *</span>
+                                            <span>
+                                                Numéro du document{' '}
+                                                <span className="required-asterisk">
+                                                    *
+                                                </span>
+                                            </span>
                                             <input
                                                 id={`passenger-${index}-document-number`}
                                                 className="control"
@@ -462,26 +490,33 @@ export function PassengerFinalization({
                                                 }
                                             />
                                         </label>
-                                        <label className="field">
-                                            <span>Nationalité *</span>
-                                            <input
+                                        <div className="field">
+                                            <span className="field-label">
+                                                <Globe className="size-3.5" />
+                                                Nationalité{' '}
+                                                <span className="required-asterisk">
+                                                    *
+                                                </span>
+                                            </span>
+                                            <NationalitySelect
                                                 id={`passenger-${index}-nationality`}
-                                                className="control"
-                                                maxLength={2}
                                                 value={passenger.nationality}
-                                                onChange={(event) =>
+                                                onChange={(value) =>
                                                     updatePassenger(
                                                         index,
                                                         'nationality',
-                                                        event.target.value.toUpperCase(),
+                                                        value,
                                                     )
                                                 }
                                             />
-                                        </label>
+                                        </div>
                                         <label className="field">
                                             <span className="field-label">
                                                 <CalendarDays className="size-3.5" />
-                                                Date de naissance *
+                                                Date de naissance{' '}
+                                                <span className="required-asterisk">
+                                                    *
+                                                </span>
                                             </span>
                                             <input
                                                 id={`passenger-${index}-birth-date`}
@@ -580,8 +615,8 @@ export function PassengerFinalization({
                                 {holdCountdown.isExpired
                                     ? 'Le blocage a expiré. Revenez aux places pour le renouveler.'
                                     : completedPassengers
-                                      ? 'Toutes les informations requises sont prêtes.'
-                                      : 'Complétez les champs requis pour continuer.'}
+                                        ? 'Toutes les informations requises sont prêtes.'
+                                        : 'Complétez les champs requis pour continuer.'}
                                 <small>
                                     Le paiement sera disponible dans le prochain
                                     lot.
@@ -604,8 +639,8 @@ export function PassengerFinalization({
                         {processing
                             ? 'Enregistrement…'
                             : savedAllPassengers
-                              ? 'Mettre à jour les voyageurs'
-                              : 'Enregistrer les voyageurs'}
+                                ? 'Mettre à jour les voyageurs'
+                                : 'Enregistrer les voyageurs'}
                         <ArrowRight className="size-4" />
                     </button>
                 </div>
@@ -676,11 +711,11 @@ export function PassengerFinalization({
                     <strong>
                         {departure
                             ? [
-                                  [departure.bus.brand, departure.bus.model]
-                                      .filter(Boolean)
-                                      .join(' ') || 'Véhicule',
-                                  departure.bus.registrationNumber,
-                              ].join(' · ')
+                                [departure.bus.brand, departure.bus.model]
+                                    .filter(Boolean)
+                                    .join(' ') || 'Véhicule',
+                                departure.bus.registrationNumber,
+                            ].join(' · ')
                             : '—'}
                     </strong>
                 </div>
@@ -733,8 +768,8 @@ export function PassengerFinalization({
                                 {holdCountdown.isExpired
                                     ? 'Hold expiré'
                                     : holdCountdown.isUrgent
-                                      ? 'À finaliser rapidement'
-                                      : 'Places sécurisées'}
+                                        ? 'À finaliser rapidement'
+                                        : 'Places sécurisées'}
                             </strong>
                         </span>
                         <time dateTime={reservation.expiresAt ?? undefined}>
@@ -750,8 +785,8 @@ export function PassengerFinalization({
                         {holdCountdown.isExpired
                             ? 'Le blocage doit être renouvelé avant de poursuivre.'
                             : holdCountdown.isUrgent
-                              ? 'Finalisez les informations ou modifiez les places avant la libération automatique.'
-                              : 'Le temps restant est actualisé automatiquement.'}
+                                ? 'Finalisez les informations ou modifiez les places avant la libération automatique.'
+                                : 'Le temps restant est actualisé automatiquement.'}
                     </p>
                 </div>
                 <div className="summary-callout success">
