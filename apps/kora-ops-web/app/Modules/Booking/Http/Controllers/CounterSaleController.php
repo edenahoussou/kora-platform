@@ -258,7 +258,7 @@ class CounterSaleController extends Controller
         return [
             'uuid' => $data->departure->uuid,
             'departureDate' => $data->departure->departure_date?->toDateString(),
-            'departureTime' => $data->departure->departure_time,
+            'departureTime' => $data->departure->formattedDepartureTime(),
             'estimatedArrivalAt' => $data->departure->estimated_arrival_at?->toISOString(),
             'status' => (string) $data->departure->getRawOriginal('status'),
             'line' => [

@@ -22,7 +22,7 @@ class StoreSeatHoldRequest extends FormRequest
             'destination_stop_uuid' => ['required', 'uuid', 'exists:stops,uuid'],
             'price_quote_uuid' => ['required', 'uuid', 'exists:price_quotes,uuid'],
             'seats' => ['required', 'array', 'min:1'],
-            'seats.*.seat_uuid' => ['required', 'uuid', 'exists:seats,uuid'],
+            'seats.*.seat_uuid' => ['required', 'uuid', 'distinct', 'exists:seats,uuid'],
             'seats.*.passenger_index' => ['nullable', 'integer'],
         ];
     }
@@ -40,7 +40,7 @@ class StoreSeatHoldRequest extends FormRequest
     {
         /** @var array<int, array{seat_uuid: string}> $rawSeats */
         $rawSeats = $this->input('seats', []);
-        $seatUuids = array_values(array_unique(array_map(fn (array $item): string => $item['seat_uuid'], $rawSeats)));
+        $seatUuids = array_values(array_map(fn (array $item): string => $item['seat_uuid'], $rawSeats));
 
         return [
             'departure_uuid' => $this->string('departure_uuid')->value(),

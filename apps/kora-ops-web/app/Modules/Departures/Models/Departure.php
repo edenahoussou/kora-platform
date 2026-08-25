@@ -15,9 +15,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 /**
  * @property Carbon|null $departure_date
+ * @property string|null $departure_time
  * @property Carbon|null $estimated_arrival_at
  * @property DepartureStatus $status
  * @property int $delay_minutes
@@ -108,6 +110,20 @@ class Departure extends KoraModel
             $this->departure_date?->toDateString().' '.substr((string) $this->departure_time, 0, 8),
             config('app.timezone'),
         );
+    }
+
+    public function getDepartureTimeAttribute(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        return Str::of((string) $value)->substr(0, 5)->toString();
+    }
+
+    public function formattedDepartureTime(): ?string
+    {
+        return $this->departure_time;
     }
 
     /**

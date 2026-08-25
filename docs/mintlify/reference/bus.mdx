@@ -1,12 +1,12 @@
 ---
 title: Bus
-description: Endpoints publics du catalogue Bus — villes, lignes, départs et sièges.
+description: Endpoints du catalogue Bus et contrats de devis et de hold.
 openapi: api/openapi.yaml
 ---
 
 # Bus
 
-Endpoints publics de lecture pour la recherche KORA BUS. Ces routes sont limitées par `throttle:bus-search` et exposent uniquement des UUID ou codes métier.
+Les endpoints de lecture du catalogue sont publics, limités par `throttle:bus-search` et exposent uniquement des UUID ou codes métier. Les endpoints de devis et de hold nécessitent un token Sanctum.
 
 Le parcours complet est décrit dans le guide [Recherche Bus](/guides/bus-search).
 
@@ -41,3 +41,21 @@ Le parcours complet est décrit dans le guide [Recherche Bus](/guides/bus-search
   method="GET"
   path="/api/v1/bus/departures/{departure_uuid}/seats"
 />
+
+## Devis et hold
+
+<Method
+  method="POST"
+  path="/api/v1/bus/quotes"
+/>
+
+Le devis fige le tarif du segment demandé. Sa durée de validité est contrôlée côté backend par `KORA_QUOTE_TTL_MINUTES` (10 minutes par défaut). La réponse `201` contient les UUID du départ, des arrêts et de la classe de service, le montant par passager, le montant total et `expires_at`.
+
+<Method
+  method="POST"
+  path="/api/v1/bus/holds"
+/>
+
+Le hold démarre uniquement après l'appel explicite effectué lorsque le passager confirme ses sièges. Le backend contrôle le devis, le segment, le véhicule, le nombre de sièges et la disponibilité. Sa durée est contrôlée par `KORA_HOLD_TTL_MINUTES` (15 minutes par défaut).
+
+Les réponses possibles sont `201` (hold créé), `401` (token absent ou invalide), `409` (conflit de disponibilité, notamment sur un segment chevauchant) et `422` (contrat quote/sièges incohérent, devis expiré ou validation métier). Un même siège peut rester vendable sur deux segments non chevauchants.

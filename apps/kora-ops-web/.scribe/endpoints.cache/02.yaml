@@ -230,7 +230,7 @@ endpoints:
         name: date
         description: 'Must be a valid date in the format <code>Y-m-d</code>.'
         required: true
-        example: '2026-08-20'
+        example: '2026-08-25'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -259,7 +259,7 @@ endpoints:
         nullable: true
         deprecated: false
     cleanBodyParameters:
-      date: '2026-08-20'
+      date: '2026-08-25'
       from: b
       to: 'n'
     fileParameters: []
@@ -295,14 +295,14 @@ endpoints:
         name: uuid
         description: ''
         required: true
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        example: d4ce3c3d-1d3e-4384-a5d5-32a7990dc69e
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      uuid: d4ce3c3d-1d3e-4384-a5d5-32a7990dc69e
     queryParameters:
       from:
         custom: []
@@ -388,14 +388,14 @@ endpoints:
         name: departure_uuid
         description: ''
         required: true
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        example: d4ce3c3d-1d3e-4384-a5d5-32a7990dc69e
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      departure_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      departure_uuid: d4ce3c3d-1d3e-4384-a5d5-32a7990dc69e
     queryParameters:
       origin_stop_uuid:
         custom: []
@@ -450,6 +450,529 @@ endpoints:
       destination_stop_uuid: 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
     fileParameters: []
     responses: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/bus/quotes
+    metadata:
+      custom: []
+      groupName: Bus
+      groupDescription: |-
+
+        Fixed price quote endpoint for passenger booking.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Create a fixed price quote.'
+      description: 'The quote expiration uses the backend-configured `KORA_QUOTE_TTL_MINUTES` duration.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      departure_uuid:
+        custom: []
+        name: departure_uuid
+        description: 'validation.uuid Must match an existing stored value.'
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      origin_stop_uuid:
+        custom: []
+        name: origin_stop_uuid
+        description: 'validation.uuid Must match an existing stored value.'
+        required: true
+        example: 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      destination_stop_uuid:
+        custom: []
+        name: destination_stop_uuid
+        description: 'validation.uuid Must match an existing stored value.'
+        required: true
+        example: 977e5426-8d13-3824-86aa-b092f8ae52c5
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      service_class_uuid:
+        custom: []
+        name: service_class_uuid
+        description: 'validation.uuid Must match an existing stored value.'
+        required: false
+        example: d6fa562b-acd5-35ff-babb-d11194d3737b
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      passenger_count:
+        custom: []
+        name: passenger_count
+        description: 'validation.min validation.max.'
+        required: false
+        example: 6
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+    cleanBodyParameters:
+      departure_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      origin_stop_uuid: 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
+      destination_stop_uuid: 977e5426-8d13-3824-86aa-b092f8ae52c5
+      service_class_uuid: d6fa562b-acd5-35ff-babb-d11194d3737b
+      passenger_count: 6
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 201
+        content: |-
+          {
+            "data": {
+              "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+              "departure_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e",
+              "origin_stop_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6f",
+              "destination_stop_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+              "service_class_uuid": null,
+              "base_amount": 12500,
+              "coefficient": 1.0,
+              "final_amount": 12500,
+              "currency": "XOF",
+              "passenger_count": 1,
+              "total_amount": 12500,
+              "expires_at": "2026-08-20T08:10:00Z",
+              "snapshot": {
+                "fare_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6f",
+                "line_code": "L2",
+                "origin_stop": "Cotonou · St Michel",
+                "destination_stop": "Malanville",
+                "service_class": "Standard",
+                "passenger_count": 1,
+                "total_amount": 12500
+              }
+            }
+          }
+        headers: []
+        description: 'Quote created'
+      -
+        custom: []
+        status: 401
+        content: |-
+          {
+            "message": "Unauthenticated."
+          }
+        headers: []
+        description: Unauthenticated
+      -
+        custom: []
+        status: 422
+        content: |-
+          {
+            "message": "The given data was invalid.",
+            "errors": {
+              "destination_stop_uuid": ["L'arrêt de destination doit être situé après l'arrêt d'origine."]
+            }
+          }
+        headers: []
+        description: 'Invalid quote request'
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/bus/holds
+    metadata:
+      custom: []
+      groupName: Bus
+      groupDescription: |-
+
+        Seat hold endpoint for passenger booking.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Hold seats for the configured server-side duration.'
+      description: 'The hold starts only when this endpoint is called, after the passenger confirms the selected seats.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      departure_uuid:
+        custom: []
+        name: departure_uuid
+        description: 'validation.uuid Must match an existing stored value.'
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      origin_stop_uuid:
+        custom: []
+        name: origin_stop_uuid
+        description: 'validation.uuid Must match an existing stored value.'
+        required: true
+        example: 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      destination_stop_uuid:
+        custom: []
+        name: destination_stop_uuid
+        description: 'validation.uuid Must match an existing stored value.'
+        required: true
+        example: 977e5426-8d13-3824-86aa-b092f8ae52c5
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      price_quote_uuid:
+        custom: []
+        name: price_quote_uuid
+        description: 'validation.uuid Must match an existing stored value.'
+        required: true
+        example: d6fa562b-acd5-35ff-babb-d11194d3737b
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      seats:
+        custom: []
+        name: seats
+        description: validation.min.
+        required: true
+        example:
+          - []
+        type: 'object[]'
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'seats[].seat_uuid':
+        custom: []
+        name: 'seats[].seat_uuid'
+        description: 'validation.uuid Must match an existing stored value.'
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'seats[].passenger_index':
+        custom: []
+        name: 'seats[].passenger_index'
+        description: ''
+        required: false
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+    cleanBodyParameters:
+      departure_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      origin_stop_uuid: 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
+      destination_stop_uuid: 977e5426-8d13-3824-86aa-b092f8ae52c5
+      price_quote_uuid: d6fa562b-acd5-35ff-babb-d11194d3737b
+      seats:
+        - seat_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+          passenger_index: 16
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 201
+        content: |-
+          {
+            "data": {
+              "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+              "status": "held",
+              "expires_at": "2026-08-20T08:15:00Z",
+              "total_amount": 12500,
+              "currency": "XOF",
+              "channel": "mobile",
+              "departure_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e",
+              "price_quote_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6f",
+              "segments": [
+                {
+                  "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb71",
+                  "seat_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb72",
+                  "seat_code": "4A",
+                  "origin_stop": "Cotonou · St Michel",
+                  "destination_stop": "Malanville",
+                  "status": "held"
+                }
+              ]
+            }
+          }
+        headers: []
+        description: 'Seats held'
+      -
+        custom: []
+        status: 401
+        content: |-
+          {
+            "message": "Unauthenticated."
+          }
+        headers: []
+        description: Unauthenticated
+      -
+        custom: []
+        status: 409
+        content: |-
+          {
+            "message": "Le siège 4A n'est plus disponible sur ce segment.",
+            "conflicting_seat_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb72",
+            "seat_code": "4A"
+          }
+        headers: []
+        description: 'Seat unavailable'
+      -
+        custom: []
+        status: 422
+        content: |-
+          {
+            "message": "The given data was invalid.",
+            "errors": {
+              "seats": ["Le nombre de sièges doit correspondre au nombre de passagers du devis."]
+            }
+          }
+        headers: []
+        description: 'Invalid hold request'
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/bookings/{reservation_uuid}/passengers'
+    metadata:
+      custom: []
+      groupName: Bus
+      groupDescription: |-
+
+        Passenger information capture for bus reservations.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Store passenger details for a reservation.'
+      description: ''
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      reservation_uuid:
+        custom: []
+        name: reservation_uuid
+        description: ''
+        required: true
+        example: c7224bcc-e553-4a6f-9e03-3e612f3c10b6
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      reservation_uuid: c7224bcc-e553-4a6f-9e03-3e612f3c10b6
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      passengers:
+        custom: []
+        name: passengers
+        description: validation.min.
+        required: true
+        example:
+          - []
+        type: 'object[]'
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers[].first_name':
+        custom: []
+        name: 'passengers[].first_name'
+        description: validation.max.
+        required: true
+        example: b
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers[].last_name':
+        custom: []
+        name: 'passengers[].last_name'
+        description: validation.max.
+        required: true
+        example: 'n'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers[].phone':
+        custom: []
+        name: 'passengers[].phone'
+        description: validation.max.
+        required: false
+        example: g
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      'passengers[].email':
+        custom: []
+        name: 'passengers[].email'
+        description: 'validation.email validation.max.'
+        required: false
+        example: rowan.gulgowski@example.com
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      'passengers[].document_type':
+        custom: []
+        name: 'passengers[].document_type'
+        description: ''
+        required: false
+        example: consular_card
+        type: string
+        enumValues:
+          - national_id
+          - passport
+          - consular_card
+          - birth_certificate
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      'passengers[].document_number':
+        custom: []
+        name: 'passengers[].document_number'
+        description: validation.max.
+        required: false
+        example: d
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      'passengers[].nationality':
+        custom: []
+        name: 'passengers[].nationality'
+        description: validation.size.
+        required: false
+        example: lj
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      'passengers[].birth_date':
+        custom: []
+        name: 'passengers[].birth_date'
+        description: 'Must be a valid date in the format <code>Y-m-d</code>.'
+        required: false
+        example: '2026-08-25'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      'passengers[].seat_uuid':
+        custom: []
+        name: 'passengers[].seat_uuid'
+        description: validation.uuid.
+        required: false
+        example: c3b6b42e-3a0f-3935-b28d-cb767f8a2a0a
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+    cleanBodyParameters:
+      passengers:
+        - first_name: b
+          last_name: 'n'
+          phone: g
+          email: rowan.gulgowski@example.com
+          document_type: consular_card
+          document_number: d
+          nationality: lj
+          birth_date: '2026-08-25'
+          seat_uuid: c3b6b42e-3a0f-3935-b28d-cb767f8a2a0a
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": {
+              "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+              "status": "held",
+              "expires_at": "2026-08-20T08:15:00Z",
+              "total_amount": 12500,
+              "currency": "XOF",
+              "channel": "mobile",
+              "departure_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e",
+              "passengers": [
+                {
+                  "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb73",
+                  "first_name": "Aïcha",
+                  "last_name": "HOUNKPÈ",
+                  "phone": "+2290197421860",
+                  "document_type": "passport",
+                  "document_number": "BJ0427851",
+                  "nationality": "BJ",
+                  "birth_date": "1994-04-18",
+                  "seat_code": "4A"
+                }
+              ]
+            }
+          }
+        headers: []
+        description: 'Passengers stored'
     responseFields: []
     auth: []
     controller: null

@@ -44,7 +44,7 @@ endpoints:
         name: purpose
         description: ''
         required: true
-        example: login_new_device
+        example: pin_reset
         type: string
         enumValues:
           - registration
@@ -56,7 +56,7 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       email: gbailey@example.net
-      purpose: login_new_device
+      purpose: pin_reset
     fileParameters: []
     responses: []
     responseFields: []
@@ -105,7 +105,7 @@ endpoints:
         name: purpose
         description: ''
         required: true
-        example: account_unlock
+        example: registration
         type: string
         enumValues:
           - registration
@@ -128,7 +128,7 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       otp_challenge_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-      purpose: account_unlock
+      purpose: registration
       code: '569775'
     fileParameters: []
     responses: []
@@ -556,7 +556,7 @@ endpoints:
         name: provider
         description: ''
         required: true
-        example: google
+        example: facebook
         type: string
         enumValues:
           - google
@@ -592,7 +592,7 @@ endpoints:
         name: platform
         description: ''
         required: true
-        example: ios
+        example: unknown
         type: string
         enumValues:
           - android
@@ -625,10 +625,10 @@ endpoints:
         nullable: true
         deprecated: false
     cleanBodyParameters:
-      provider: google
+      provider: facebook
       provider_token: b
       device_name: 'n'
-      platform: ios
+      platform: unknown
       device_fingerprint: g
       push_token: z
     fileParameters: []
@@ -827,7 +827,7 @@ endpoints:
         name: birth_date
         description: 'validation.date validation.before.'
         required: false
-        example: '2022-09-13'
+        example: '2022-09-18'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -838,7 +838,7 @@ endpoints:
       email: zbailey@example.net
       phone: iyvdljnikhwaykcm
       country_code: yuwp
-      birth_date: '2022-09-13'
+      birth_date: '2022-09-18'
     fileParameters: []
     responses: []
     responseFields: []
@@ -966,7 +966,7 @@ endpoints:
         name: push_notifications
         description: ''
         required: false
-        example: true
+        example: false
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -977,7 +977,7 @@ endpoints:
         name: whatsapp_notifications
         description: ''
         required: false
-        example: true
+        example: false
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -1012,7 +1012,7 @@ endpoints:
         name: theme
         description: ''
         required: false
-        example: dark
+        example: light
         type: string
         enumValues:
           - light
@@ -1022,11 +1022,11 @@ endpoints:
         nullable: true
         deprecated: false
     cleanBodyParameters:
-      push_notifications: true
-      whatsapp_notifications: true
+      push_notifications: false
+      whatsapp_notifications: false
       email_notifications: true
       locale: en
-      theme: dark
+      theme: light
     fileParameters: []
     responses: []
     responseFields: []

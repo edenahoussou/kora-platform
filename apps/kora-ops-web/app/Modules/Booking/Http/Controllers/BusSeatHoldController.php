@@ -19,7 +19,11 @@ use Illuminate\Http\JsonResponse;
 class BusSeatHoldController extends Controller
 {
     /**
-     * Hold seats for 15 minutes.
+     * Hold seats for the configured server-side duration.
+     *
+     * The hold starts only when this endpoint is called, after the passenger confirms the selected seats.
+     *
+     * @authenticated
      *
      * @response 201 scenario="Seats held" {
      *   "data": {
@@ -30,6 +34,7 @@ class BusSeatHoldController extends Controller
      *     "currency": "XOF",
      *     "channel": "mobile",
      *     "departure_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e",
+     *     "price_quote_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6f",
      *     "segments": [
      *       {
      *         "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb71",
@@ -46,6 +51,15 @@ class BusSeatHoldController extends Controller
      *   "message": "Le siège 4A n'est plus disponible sur ce segment.",
      *   "conflicting_seat_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb72",
      *   "seat_code": "4A"
+     * }
+     * @response 401 scenario="Unauthenticated" {
+     *   "message": "Unauthenticated."
+     * }
+     * @response 422 scenario="Invalid hold request" {
+     *   "message": "The given data was invalid.",
+     *   "errors": {
+     *     "seats": ["Le nombre de sièges doit correspondre au nombre de passagers du devis."]
+     *   }
      * }
      */
     public function store(StoreSeatHoldRequest $request, CreateSeatHoldAction $createSeatHold): JsonResponse

@@ -25,7 +25,7 @@ class DepartureResource extends JsonResource
         return [
             'uuid' => $departure->uuid,
             'departure_date' => CarbonImmutable::parse((string) $departure->departure_date)->toDateString(),
-            'departure_time' => $departure->departure_time,
+            'departure_time' => $departure->formattedDepartureTime(),
             'estimated_arrival_at' => $departure->estimated_arrival_at
                 ? CarbonImmutable::parse((string) $departure->estimated_arrival_at)->toISOString()
                 : null,
