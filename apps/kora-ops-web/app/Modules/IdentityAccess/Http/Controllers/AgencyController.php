@@ -13,6 +13,7 @@ use App\Modules\IdentityAccess\Http\Requests\ChangeAgencyStatusRequest;
 use App\Modules\IdentityAccess\Http\Requests\StoreAgencyRequest;
 use App\Modules\IdentityAccess\Http\Requests\UpdateAgencyRequest;
 use App\Modules\IdentityAccess\Models\Agency;
+use App\Modules\Payments\Models\AgencyPaymentAccount;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -26,7 +27,7 @@ class AgencyController extends Controller
         Gate::authorize('viewAny', Agency::class);
 
         $query = Agency::query()
-            ->with('head')
+            ->with(['head', 'paymentAccounts'])
             ->orderBy('name');
 
         $search = $request->string('q')->trim()->value();
@@ -102,9 +103,7 @@ class AgencyController extends Controller
         return to_route('agencies.index');
     }
 
-    /**
-     * @return array{uuid: string, code: string, name: string, city: string, country: string, headUserId: int|null, headName: string|null, status: string, createdAt: string|null, updatedAt: string|null}
-     */
+    /** @return array<string, mixed> */
     private function serializeAgency(Agency $agency): array
     {
         return [
@@ -118,6 +117,13 @@ class AgencyController extends Controller
             'status' => AgencyStatus::from((string) $agency->getRawOriginal('status'))->value,
             'createdAt' => $agency->created_at?->toISOString(),
             'updatedAt' => $agency->updated_at?->toISOString(),
+            'paymentAccounts' => $agency->paymentAccounts->map(fn (AgencyPaymentAccount $account): array => [
+                'uuid' => $account->uuid,
+                'network' => $account->network->value,
+                'label' => $account->label,
+                'accountIdentifier' => $account->account_identifier,
+                'status' => $account->getRawOriginal('status'),
+            ])->values()->all(),
         ];
     }
 }

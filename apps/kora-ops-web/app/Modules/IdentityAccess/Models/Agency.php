@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\IdentityAccess\Data\AgencyStatus;
+use App\Modules\Payments\Models\AgencyPaymentAccount;
 use App\Modules\Support\Models\KoraModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -52,5 +53,13 @@ class Agency extends KoraModel
     public function head(): BelongsTo
     {
         return $this->belongsTo(User::class, 'head_user_id');
+    }
+
+    /**
+     * @return HasMany<AgencyPaymentAccount, $this>
+     */
+    public function paymentAccounts(): HasMany
+    {
+        return $this->hasMany(AgencyPaymentAccount::class);
     }
 }

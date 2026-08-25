@@ -12,13 +12,13 @@ import { useAppearance } from '@/hooks/use-appearance';
 import { useFlashToast } from '@/hooks/use-flash-toast';
 
 function KoraToaster({ ...props }: ToasterProps) {
-    const { appearance } = useAppearance();
+    const { resolvedAppearance } = useAppearance();
 
     useFlashToast();
 
     return (
         <Sonner
-            theme={appearance}
+            theme={resolvedAppearance}
             position="bottom-right"
             closeButton
             duration={5000}

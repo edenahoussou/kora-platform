@@ -12,18 +12,24 @@ use App\Modules\Booking\Http\Requests\CounterSaleSearchRequest;
 use App\Modules\Booking\Http\Requests\HoldCounterSaleSeatsRequest;
 use App\Modules\Booking\Http\Requests\ReleaseCounterSaleHoldRequest;
 use App\Modules\Booking\Http\Requests\StoreCounterSalePassengersRequest;
+use App\Modules\Booking\Http\Requests\StoreCounterSalePaymentRequest;
 use App\Modules\Booking\Http\Requests\StoreCounterSaleQuoteRequest;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationPassenger;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\BusNetwork\Services\BusCatalogService;
+use App\Modules\Cash\Data\CashSessionStatus;
+use App\Modules\Cash\Models\CashSession;
 use App\Modules\Departures\Data\DepartureAvailabilityData;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\Departures\Services\DepartureSearchService;
 use App\Modules\DynamicPricing\Actions\CalculateQuoteAction;
 use App\Modules\DynamicPricing\Models\PriceQuote;
+use App\Modules\Payments\Actions\RecordCounterSalePaymentAction;
+use App\Modules\Payments\Models\AgencyPaymentAccount;
 use App\Modules\SeatInventory\Actions\BuildCounterSaleSeatAvailabilityAction;
 use App\Modules\SeatInventory\Data\CounterSaleSeatAvailabilityData;
+use App\Modules\Ticketing\Models\Ticket;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
@@ -63,6 +69,8 @@ class CounterSaleController extends Controller
             'seats' => $this->serializeSeats($this->selectedSeats($selectedDeparture, $context)),
             'quote' => $this->serializeQuote($this->selectedQuote($context, $selectedDeparture)),
             'reservation' => $this->serializeReservation($this->selectedReservation($context)),
+            'cashSession' => $this->serializeCashSession(),
+            'mobileMoneyAccounts' => $this->serializeMobileMoneyAccounts(),
             'permissions' => [
                 'canCreate' => Gate::allows('createCounterSale', Reservation::class),
             ],
@@ -121,6 +129,41 @@ class CounterSaleController extends Controller
         ]);
 
         return to_route('sale', $request->saleQuery($updatedReservation->uuid));
+    }
+
+    public function storePayment(
+        StoreCounterSalePaymentRequest $request,
+        Reservation $reservation,
+        RecordCounterSalePaymentAction $recordPayment,
+    ): RedirectResponse {
+        $result = $recordPayment->execute(
+            reservation: $reservation,
+            agent: $request->user(),
+            attributes: $request->payload(),
+        );
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __('Paiement confirmé. Les billets ont été émis.'),
+        ]);
+
+        $confirmedReservation = $result['reservation']->load([
+            'departure.line',
+            'departure.bus',
+            'segments.originStop',
+            'segments.destinationStop',
+        ]);
+        $segment = $confirmedReservation->segments->first();
+
+        return to_route('sale', array_filter([
+            'date' => $confirmedReservation->departure?->departure_date?->toDateString(),
+            'from' => $segment?->originStop?->city,
+            'to' => $segment?->destinationStop?->city,
+            'departure_uuid' => $confirmedReservation->departure?->uuid,
+            'origin_stop_uuid' => $segment?->originStop?->uuid,
+            'destination_stop_uuid' => $segment?->destinationStop?->uuid,
+            'reservation_uuid' => $confirmedReservation->uuid,
+        ], static fn (mixed $value): bool => $value !== null && $value !== ''));
     }
 
     public function releaseHold(
@@ -226,6 +269,7 @@ class CounterSaleController extends Controller
                 'segments.originStop',
                 'segments.destinationStop',
                 'passengers.segments.seat',
+                'payments',
             ])
             ->firstOrFail();
     }
@@ -348,6 +392,15 @@ class CounterSaleController extends Controller
 
         $expiresAt = $reservation->getRawOriginal('expires_at');
 
+        $payment = $reservation->payments
+            ->sortByDesc('id')
+            ->first();
+        $tickets = Ticket::query()
+            ->where('reservation_id', $reservation->getKey())
+            ->with('reservationPassenger.segments.seat')
+            ->orderBy('id')
+            ->get();
+
         return [
             'uuid' => $reservation->uuid,
             'status' => (string) $reservation->getRawOriginal('status'),
@@ -356,6 +409,32 @@ class CounterSaleController extends Controller
             'currency' => $reservation->currency,
             'channel' => $reservation->getRawOriginal('channel'),
             'departureUuid' => $reservation->departure?->uuid,
+            'payment' => $payment ? [
+                'uuid' => $payment->uuid,
+                'method' => $payment->method?->value,
+                'network' => $payment->getRawOriginal('mobile_money_network'),
+                'providerReference' => $payment->provider_reference,
+                'payerPhone' => $payment->payer_phone,
+                'payerName' => $payment->payer_name,
+                'amount' => (int) $payment->amount,
+                'cashReceivedAmount' => $payment->cash_received_amount,
+                'changeAmount' => $payment->change_amount,
+                'agencyAccount' => $payment->agencyPaymentAccount ? [
+                    'uuid' => $payment->agencyPaymentAccount->uuid,
+                    'label' => $payment->agencyPaymentAccount->label,
+                    'accountIdentifier' => $this->maskAccountIdentifier($payment->agencyPaymentAccount->account_identifier),
+                ] : null,
+                'verifiedAt' => $payment->verified_at?->toISOString(),
+                'verifiedByName' => $payment->verifier?->name,
+                'agencyName' => auth()->user()?->agency?->name,
+            ] : null,
+            'tickets' => $tickets->map(fn (Ticket $ticket): array => [
+                'uuid' => $ticket->uuid,
+                'shortCode' => $ticket->short_code,
+                'qrCode' => $ticket->qr_code,
+                'seatCode' => $ticket->reservationPassenger?->segments->first()?->seat?->code,
+                'passengerUuid' => $ticket->reservationPassenger?->uuid,
+            ])->values()->all(),
             'segments' => $reservation->segments->map(fn ($segment): array => [
                 'uuid' => $segment->uuid,
                 'seatUuid' => $segment->seat?->uuid,
@@ -378,5 +457,60 @@ class CounterSaleController extends Controller
                 'seatCode' => $passenger->segments->first()?->seat?->code,
             ])->values()->all(),
         ];
+    }
+
+    /** @return array{isOpen: bool, canOpen: bool, uuid: string|null, businessDate: string|null, totalCash: int, totalMobileMoney: int} */
+    private function serializeCashSession(): array
+    {
+        $user = auth()->user();
+        $session = $user?->agency_id === null ? null : CashSession::query()
+            ->where('agent_id', $user->getAuthIdentifier())
+            ->where('agency_id', $user->agency_id)
+            ->whereDate('business_date', now()->toDateString())
+            ->where('status', CashSessionStatus::Open->value)
+            ->first();
+
+        return [
+            'isOpen' => $session !== null,
+            'canOpen' => Gate::allows('create', CashSession::class),
+            'uuid' => $session?->uuid,
+            'businessDate' => $session === null ? null : $session->business_date->toDateString(),
+            'totalCash' => $session === null ? 0 : (int) $session->total_cash,
+            'totalMobileMoney' => $session === null ? 0 : (int) $session->total_mobile_money,
+        ];
+    }
+
+    /** @return list<array{uuid: string, network: string, label: string, accountIdentifier: string}> */
+    private function serializeMobileMoneyAccounts(): array
+    {
+        $user = auth()->user();
+        if ($user?->agency_id === null) {
+            return [];
+        }
+
+        $accounts = AgencyPaymentAccount::query()
+            ->where('agency_id', $user->agency_id)
+            ->where('status', 'active')
+            ->orderBy('network')
+            ->orderBy('label')
+            ->get()
+            ->map(fn (AgencyPaymentAccount $account): array => [
+                'uuid' => $account->uuid,
+                'network' => $account->network->value,
+                'label' => $account->label,
+                'accountIdentifier' => $this->maskAccountIdentifier($account->account_identifier),
+            ])->values()->all();
+
+        return array_values($accounts);
+    }
+
+    private function maskAccountIdentifier(string $identifier): string
+    {
+        $length = mb_strlen($identifier);
+        if ($length <= 4) {
+            return $identifier;
+        }
+
+        return str_repeat('•', max(0, $length - 4)).mb_substr($identifier, -4);
     }
 }

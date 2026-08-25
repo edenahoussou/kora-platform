@@ -1,21 +1,14 @@
 import {
     AlertCircle,
-    Armchair,
     ArrowLeft,
     ArrowRight,
-    BadgeCheck,
-    BusFront,
     CalendarDays,
     CheckCircle2,
-    Clock3,
     FileText,
     Globe,
     Mail,
     Phone,
-    Route as RouteIcon,
-    ShieldCheck,
     UserRound,
-    Users,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import PhoneInput, {
@@ -25,12 +18,12 @@ import PhoneInput, {
 import phoneLabels from 'react-phone-number-input/locale/fr.json';
 import { cn } from '@/lib/utils';
 import { NationalitySelect } from './nationality-select';
+import { SaleJourneySummary } from './sale-journey-summary';
 import type {
     SaleDeparture,
     SalePassengerForm,
     SaleReservation,
 } from './sale-types';
-import { formatDate, formatMoney, formatTime } from './sale-utils';
 import { useHoldCountdown } from './use-hold-countdown';
 
 type Props = {
@@ -615,12 +608,8 @@ export function PassengerFinalization({
                                 {holdCountdown.isExpired
                                     ? 'Le blocage a expiré. Revenez aux places pour le renouveler.'
                                     : completedPassengers
-                                        ? 'Toutes les informations requises sont prêtes.'
+                                        ? 'Toutes les informations requises sont prêtes. Vous pourrez ensuite encaisser la vente.'
                                         : 'Complétez les champs requis pour continuer.'}
-                                <small>
-                                    Le paiement sera disponible dans le prochain
-                                    lot.
-                                </small>
                             </span>
                         </span>
                     )}
@@ -646,161 +635,11 @@ export function PassengerFinalization({
                 </div>
             </section>
 
-            <aside className="journey-summary summary">
-                <div className="summary-hero">
-                    <small>Dossier de vente</small>
-                    <h3>Finalisation</h3>
-                    <p>Réservation temporaire</p>
-                </div>
-                <div className="summary-route">
-                    <span>
-                        <b>{departure?.originStop.city ?? '—'}</b>
-                        <small>{departure?.originStop.name ?? 'Origine'}</small>
-                    </span>
-                    <i aria-hidden="true">
-                        <em>K</em>
-                    </i>
-                    <span>
-                        <b>{departure?.destinationStop.city ?? '—'}</b>
-                        <small>
-                            {departure?.destinationStop.name ?? 'Destination'}
-                        </small>
-                    </span>
-                </div>
-                <div className="summary-row">
-                    <span className="summary-label">
-                        <CalendarDays className="size-3.5" />
-                        Date
-                    </span>
-                    <strong>
-                        {departure ? formatDate(departure.departureDate) : '—'}
-                    </strong>
-                </div>
-                <div className="summary-row">
-                    <span className="summary-label">
-                        <Clock3 className="size-3.5" />
-                        Départ
-                    </span>
-                    <strong>
-                        {departure ? formatTime(departure.departureTime) : '—'}
-                    </strong>
-                </div>
-                <div className="summary-row">
-                    <span className="summary-label">
-                        <Armchair className="size-3.5" />
-                        Sièges
-                    </span>
-                    <strong>
-                        {reservation.segments
-                            .map((segment) => segment.seatCode)
-                            .join(', ')}
-                    </strong>
-                </div>
-                <div className="summary-row">
-                    <span className="summary-label">
-                        <RouteIcon className="size-3.5" />
-                        Ligne
-                    </span>
-                    <strong>{departure?.line.code ?? '—'}</strong>
-                </div>
-                <div className="summary-row">
-                    <span className="summary-label">
-                        <BusFront className="size-3.5" />
-                        Véhicule
-                    </span>
-                    <strong>
-                        {departure
-                            ? [
-                                [departure.bus.brand, departure.bus.model]
-                                    .filter(Boolean)
-                                    .join(' ') || 'Véhicule',
-                                departure.bus.registrationNumber,
-                            ].join(' · ')
-                            : '—'}
-                    </strong>
-                </div>
-                <div className="summary-row">
-                    <span className="summary-label">
-                        <Users className="size-3.5" />
-                        Capacité
-                    </span>
-                    <strong>
-                        {departure ? `${departure.bus.seatCount} places` : '—'}
-                    </strong>
-                </div>
-                <div className="summary-row">
-                    <span className="summary-label">
-                        <BadgeCheck className="size-3.5" />
-                        Service
-                    </span>
-                    <strong>
-                        {departure?.farePreview?.service_class_name ??
-                            departure?.farePreview?.service_class_code ??
-                            'Standard'}
-                    </strong>
-                </div>
-                <div className="summary-total">
-                    <span>Total à encaisser</span>
-                    <strong>
-                        {formatMoney(
-                            reservation.totalAmount,
-                            reservation.currency,
-                        )}
-                    </strong>
-                </div>
-                <div
-                    className={cn(
-                        'summary-callout',
-                        'hold-countdown',
-                        holdCountdown.isUrgent && 'is-urgent',
-                        holdCountdown.isExpired && 'is-expired',
-                    )}
-                    role="status"
-                    aria-live="polite"
-                >
-                    <div className="hold-countdown-top">
-                        <span className="hold-countdown-icon">
-                            <Clock3 className="size-4" />
-                        </span>
-                        <span className="hold-countdown-copy">
-                            <small>Blocage temporaire</small>
-                            <strong>
-                                {holdCountdown.isExpired
-                                    ? 'Hold expiré'
-                                    : holdCountdown.isUrgent
-                                        ? 'À finaliser rapidement'
-                                        : 'Places sécurisées'}
-                            </strong>
-                        </span>
-                        <time dateTime={reservation.expiresAt ?? undefined}>
-                            {holdCountdown.label}
-                        </time>
-                    </div>
-                    <div className="hold-countdown-track" aria-hidden="true">
-                        <span
-                            style={{ width: `${holdCountdown.percentage}%` }}
-                        />
-                    </div>
-                    <p>
-                        {holdCountdown.isExpired
-                            ? 'Le blocage doit être renouvelé avant de poursuivre.'
-                            : holdCountdown.isUrgent
-                                ? 'Finalisez les informations ou modifiez les places avant la libération automatique.'
-                                : 'Le temps restant est actualisé automatiquement.'}
-                    </p>
-                </div>
-                <div className="summary-callout success">
-                    <div>
-                        <ShieldCheck className="size-4" />
-                        Places sécurisées
-                    </div>
-                    <p>Les sièges restent bloqués pendant la saisie.</p>
-                </div>
-                <div className="payment-disabled-note">
-                    <CheckCircle2 className="size-4" />
-                    Paiement désactivé · MSF sera raccordé au prochain lot.
-                </div>
-            </aside>
+            <SaleJourneySummary
+                departure={departure}
+                reservation={reservation}
+                variant="passengers"
+            />
         </form>
     );
 }

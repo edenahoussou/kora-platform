@@ -4,7 +4,15 @@ namespace App\Modules\Cash\Models;
 
 use App\Modules\Cash\Data\CashSessionStatus;
 use App\Modules\Support\Models\KoraModel;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property string $uuid
+ * @property Carbon $business_date
+ * @property int $opening_float
+ * @property int $total_cash
+ * @property int $total_mobile_money
+ */
 class CashSession extends KoraModel
 {
     protected $fillable = [

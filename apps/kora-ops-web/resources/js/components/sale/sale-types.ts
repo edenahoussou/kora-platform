@@ -1,4 +1,55 @@
-export type SaleStage = 'search' | 'seats' | 'passengers';
+export type SaleStage = 'search' | 'seats' | 'passengers' | 'payment';
+
+export type SalePaymentMethod = 'cash' | 'mobile_money';
+
+export type SaleMobileMoneyNetwork =
+    | 'mtn_momo'
+    | 'moov_flooz'
+    | 'celtiis_cash';
+
+export type SaleMobileMoneyAccount = {
+    uuid: string;
+    network: SaleMobileMoneyNetwork;
+    label: string;
+    accountIdentifier: string;
+};
+
+export type SaleCashSession = {
+    isOpen: boolean;
+    canOpen: boolean;
+    uuid: string | null;
+    businessDate: string | null;
+    totalCash: number;
+    totalMobileMoney: number;
+};
+
+export type SalePayment = {
+    uuid: string;
+    method: SalePaymentMethod | null;
+    network: SaleMobileMoneyNetwork | null;
+    providerReference: string | null;
+    payerPhone: string | null;
+    payerName: string | null;
+    amount: number;
+    cashReceivedAmount: number | null;
+    changeAmount: number | null;
+    agencyAccount: {
+        uuid: string;
+        label: string;
+        accountIdentifier: string;
+    } | null;
+    verifiedAt: string | null;
+    verifiedByName: string | null;
+    agencyName: string | null;
+};
+
+export type SaleTicket = {
+    uuid: string;
+    shortCode: string;
+    qrCode: string;
+    seatCode: string | null;
+    passengerUuid: string | null;
+};
 
 export type SaleCity = {
     city: string;
@@ -122,6 +173,8 @@ export type SaleReservation = {
     currency: string;
     channel: string | null;
     departureUuid: string | null;
+    payment: SalePayment | null;
+    tickets: SaleTicket[];
     passengers: SalePassenger[];
     segments: Array<{
         uuid: string;
@@ -141,5 +194,7 @@ export type SaleProps = {
     seats: SaleSeat[];
     quote: SaleQuote | null;
     reservation: SaleReservation | null;
+    cashSession: SaleCashSession;
+    mobileMoneyAccounts: SaleMobileMoneyAccount[];
     permissions: { canCreate: boolean };
 };
