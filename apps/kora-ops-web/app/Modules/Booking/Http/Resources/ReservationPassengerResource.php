@@ -27,6 +27,7 @@ class ReservationPassengerResource extends JsonResource
             'document_number' => $this->document_number,
             'nationality' => $this->nationality,
             'birth_date' => $this->birth_date?->toDateString(),
+            'seat_uuid' => $segment?->seat?->uuid,
             'seat_code' => $segment?->seat?->code,
         ];
     }

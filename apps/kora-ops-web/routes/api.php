@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Booking\Http\Controllers\BusSeatHoldController;
+use App\Modules\Booking\Http\Controllers\ReservationController;
 use App\Modules\Booking\Http\Controllers\ReservationPassengerController;
 use App\Modules\BusNetwork\Http\Controllers\BusCatalogController;
 use App\Modules\Departures\Http\Controllers\BusDepartureController;
@@ -68,8 +69,14 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         });
 
     Route::middleware('auth:sanctum')->group(function (): void {
+        Route::get('bookings/{reservation:uuid}', [ReservationController::class, 'show'])
+            ->name('bookings.show');
+
         Route::post('bookings/{reservation:uuid}/passengers', [ReservationPassengerController::class, 'store'])
             ->name('bookings.passengers.store');
+
+        Route::delete('holds/{reservation:uuid}', [ReservationController::class, 'destroy'])
+            ->name('holds.destroy');
 
         Route::post('payments/initiate', [PaymentController::class, 'initiate'])
             ->name('payments.initiate');

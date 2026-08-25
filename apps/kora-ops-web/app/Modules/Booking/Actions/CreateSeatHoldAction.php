@@ -179,7 +179,7 @@ class CreateSeatHoldAction
                 }
 
                 return $reservation->load([
-                    'departure',
+                    'departure.line',
                     'priceQuote',
                     'segments.seat',
                     'segments.originStop',
