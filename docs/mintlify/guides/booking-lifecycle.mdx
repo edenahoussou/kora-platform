@@ -1,0 +1,106 @@
+---
+title: Cycle de vie d'une réservation
+description: États d'une réservation, enregistrement des voyageurs, libération et reprise.
+---
+
+import { Card, Steps, Note, Warning, Info } from '@mintlify/components';
+
+# Cycle de vie d'une réservation
+
+Une réservation KORA BUS passe par plusieurs statuts, du blocage de sièges jusqu'à l'embarquement. Ce guide décrit chaque transition et les actions à effectuer côté mobile.
+
+## États d'une réservation
+
+```
+held → confirmed → paid → ticketed → boarded
+  ↓        ↓
+expired  cancelled
+```
+
+| Statut | Description | Action mobile |
+|--------|-------------|---------------|
+| `held` | Sièges bloqués, en attente | Enregistrer les voyageurs, initier le paiement |
+| `confirmed` | Voyageurs enregistrés, prête à payer | Initier le paiement |
+| `paid` | Paiement confirmé par le provider | Afficher le billet |
+| `ticketed` | Billet émis (fiscalisation MECeF) | Afficher le QR code |
+| `boarded` | Passager embarqué (scan convoyeur) | Marquer comme terminé |
+| `expired` | Hold expiré sans paiement | Proposer une nouvelle recherche |
+| `cancelled` | Hold libéré volontairement | Retour à la recherche |
+
+## Enregistrer les voyageurs
+
+Après le hold, associez chaque voyageur à un siège :
+
+```bash
+curl -X POST https://api.korabus.app/api/v1/bookings/9b1deb4d-.../passengers \
+  -H 'Authorization: Bearer $TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "passengers": [
+      {
+        "first_name": "Aïcha",
+        "last_name": "HOUNKPÈ",
+        "phone": "+2290197421860",
+        "seat_uuid": "seat-002-uuid",
+        "document_type": "passport",
+        "document_number": "BJ0427851",
+        "nationality": "BJ"
+      }
+    ]
+  }'
+```
+
+<Warning>
+  Le nombre de voyageurs doit **correspondre** au nombre de segments. Chaque `seat_uuid` doit appartenir à la réservation et ne peut être associé qu'à un seul voyageur. Pour une **ligne internationale**, `document_type`, `document_number` et `nationality` sont obligatoires.
+</Warning>
+
+Voir : [Passagers — Référence](/reference/booking/passengers).
+
+## Reprise après perte de session
+
+Le mobile ne doit **jamais** reconstruire la réservation depuis son état local. Après un crash, une mise en arrière-plan prolongée ou une réouverture d'app :
+
+```bash
+curl -X GET https://api.korabus.app/api/v1/bookings/9b1deb4d-... \
+  -H 'Authorization: Bearer $TOKEN'
+```
+
+La réponse contient le statut, `expires_at`, les segments, les voyageurs et le montant serveur. Selon le statut :
+
+| Statut serveur | Action mobile |
+|----------------|---------------|
+| `held` + voyageurs manquants | Afficher l'écran de saisie voyageurs |
+| `held` + voyageurs présents | Afficher l'écran de paiement |
+| `paid` / `ticketed` | Afficher le billet |
+| `expired` / `cancelled` | Proposer une nouvelle recherche |
+
+Voir : [Réservations — Référence](/reference/booking/reservations).
+
+## Expiration automatique
+
+La commande `bus:expire-holds` s'exécute chaque minute pour passer les réservations arrivées à expiration à `expired` et renseigner `released_at`.
+
+<Info>
+  Les lectures de disponibilité (`/seats`) ignorent déjà un hold expiré, même si la commande planifiée n'a pas encore normalisé les statuts. L'expiration est donc **effective immédiatement** côté lecture.
+</Info>
+
+## Libération volontaire
+
+Si le passager abandonne avant le paiement :
+
+```bash
+curl -X DELETE https://api.korabus.app/api/v1/holds/9b1deb4d-... \
+  -H 'Authorization: Bearer $TOKEN'
+```
+
+Réponse `204`. La réservation passe à `cancelled`, les segments sont libérés. Cet endpoint ne peut pas libérer une réservation appartenant à un autre utilisateur.
+
+## Paiement après expiration
+
+<Warning>
+  Si un webhook de succès arrive **après l'expiration** du hold, le backend conserve la réservation à `expired`, libère les segments et marque le paiement `failed` avec `provider_payload.rejection_reason = reservation_expired`. Une réservation expirée n'est **jamais** réactivée.
+</Warning>
+
+<Card title="Cycle de vie d'un paiement" href="/guides/payment-lifecycle" icon="arrow-right" iconType="solid">
+  Les voyageurs enregistrés, **initiez et suivez le paiement**.
+</Card>

@@ -1,0 +1,119 @@
+---
+title: Devis & blocage de sièges
+description: Flow complet — créer un devis figé, bloquer des sièges, gérer l'expiration.
+---
+
+import { Card, Steps, Note, Warning, Info } from '@mintlify/components';
+
+# Devis & blocage de sièges
+
+Après avoir choisi un départ et un segment, le passager doit **figer le prix** (devis) puis **bloquer les sièges** (hold) avant de saisir les voyageurs et payer. Ce guide décrit le flow complet et les pièges à éviter.
+
+## Vue d'ensemble du flow
+
+<Steps>
+  <Step title="1. Créer le devis">
+    Le devis fige le tarif pour le segment et le nombre de passagers. Il est valable `KORA_QUOTE_TTL_MINUTES` (10 min par défaut).
+
+```bash
+curl -X POST https://api.korabus.app/api/v1/bus/quotes \
+  -H 'Authorization: Bearer $TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "departure_uuid": "a3091549-...",
+    "origin_stop_uuid": "6b72fe4a-...",
+    "destination_stop_uuid": "8d94f06c-...",
+    "service_class_uuid": null,
+    "passenger_count": 2
+  }'
+```
+
+Conservez le `uuid` du devis — il est requis pour le hold.
+
+Voir : [Devis — Référence](/reference/booking/quotes).
+  </Step>
+
+  <Step title="2. Consulter le plan des sièges">
+    Récupérez la disponibilité pour le segment O/D. Les `origin_stop_uuid` et `destination_stop_uuid` doivent correspondre au devis.
+
+```bash
+curl -X GET 'https://api.korabus.app/api/v1/bus/departures/a3091549-.../seats?origin_stop_uuid=6b72fe4a-...&destination_stop_uuid=8d94f06c-...'
+```
+
+Voir : [Sièges — Référence](/reference/bus/seats).
+  </Step>
+
+  <Step title="3. Bloquer les sièges (hold)">
+    Le hold démarre **uniquement** à cet appel — pas pendant la consultation du plan. Le nombre de sièges doit égal `passenger_count` du devis.
+
+```bash
+curl -X POST https://api.korabus.app/api/v1/bus/holds \
+  -H 'Authorization: Bearer $TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "departure_uuid": "a3091549-...",
+    "origin_stop_uuid": "6b72fe4a-...",
+    "destination_stop_uuid": "8d94f06c-...",
+    "price_quote_uuid": "9b1deb4d-...",
+    "seats": [
+      { "seat_uuid": "seat-002-uuid" },
+      { "seat_uuid": "seat-004-uuid" }
+    ]
+  }'
+```
+
+La réponse `201` contient l'UUID de réservation, le statut `held`, `expires_at`, les segments et les codes sièges.
+
+Voir : [Holds — Référence](/reference/booking/holds).
+  </Step>
+</Steps>
+
+## TTLs et expiration
+
+| Ressource | Variable | Durée par défaut | Effet à l'expiration |
+|-----------|----------|------------------|----------------------|
+| Devis | `KORA_QUOTE_TTL_MINUTES` | 10 minutes | Devis invalide — le hold refusé avec `422` |
+| Hold | `KORA_HOLD_TTL_MINUTES` | 15 minutes | Réservation → `expired`, segments libérés |
+
+<Warning>
+  Le hold ne démarre **pas** à l'ouverture de l'écran de sélection ni pendant la consultation. Il démarre uniquement à l'appel explicite de `POST /api/v1/bus/holds`. Ne retardez pas cet appel après la sélection.
+</Warning>
+
+## Gestion des conflits
+
+| Situation | Code | Action client |
+|-----------|------|---------------|
+| Siège pris par un autre hold entre la consultation et le hold | `409` | Recharger le plan et re-sélectionner |
+| Devis expiré avant le hold | `422` | Recréer un devis, puis retenter le hold |
+| Nombre de sièges ≠ `passenger_count` | `422` | Ajuster le tableau `seats` |
+| Siège en doublon dans la requête | `422` | Dédupliquer les `seat_uuid` |
+
+<Info>
+  Un même siège peut être vendu sur deux segments **non chevauchants**. Le `409` n'apparaît que si le segment demandé chevauche un segment déjà réservé.
+</Info>
+
+## Libération volontaire
+
+Si le passager abandonne le parcours :
+
+```bash
+curl -X DELETE https://api.korabus.app/api/v1/holds/9b1deb4d-... \
+  -H 'Authorization: Bearer $TOKEN'
+```
+
+Réponse `204`. La réservation passe à `cancelled`, les segments sont libérés immédiatement.
+
+## Reprise après perte de session
+
+Le mobile ne doit **jamais** reconstruire la réservation depuis son état local. Après un crash ou une réouverture d'app :
+
+```bash
+curl -X GET https://api.korabus.app/api/v1/bookings/9b1deb4d-... \
+  -H 'Authorization: Bearer $TOKEN'
+```
+
+La réponse contient le statut, `expires_at`, les segments, les voyageurs et le montant serveur.
+
+<Card title="Cycle de vie d'une réservation" href="/guides/booking-lifecycle" icon="arrow-right" iconType="solid">
+  Maintenant que les sièges sont bloqués, **enregistrez les voyageurs** et suivez le cycle de vie.
+</Card>
