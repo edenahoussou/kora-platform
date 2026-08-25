@@ -44,7 +44,7 @@ endpoints:
         name: method
         description: ''
         required: true
-        example: mobile_money
+        example: cash
         type: string
         enumValues:
           - mobile_money
@@ -111,7 +111,7 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       reservation_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-      method: mobile_money
+      method: cash
       provider: g
       idempotency_key: z
       phone: m

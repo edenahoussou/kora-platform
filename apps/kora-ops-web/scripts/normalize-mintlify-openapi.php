@@ -18,7 +18,7 @@ $openApi = preg_replace(
 );
 $openApi = preg_replace(
     '/^  - url: .*$/m',
-    "  - url: 'http://kora-ops-web.local'",
+    "  - url: 'https://staging.koraexpress.app'\n    description: Staging\n  - url: 'https://prod.koraexpress.app'\n    description: Production",
     $openApi,
     1,
 );
