@@ -95,8 +95,14 @@
                                                                                 <li class="tocify-item level-2" data-unique="bus-POSTapi-v1-bus-holds">
                                 <a href="#bus-POSTapi-v1-bus-holds">Hold seats for the configured server-side duration.</a>
                             </li>
+                                                                                <li class="tocify-item level-2" data-unique="bus-GETapi-v1-bookings--reservation_uuid-">
+                                <a href="#bus-GETapi-v1-bookings--reservation_uuid-">Retrieve a reservation and its current booking state.</a>
+                            </li>
                                                                                 <li class="tocify-item level-2" data-unique="bus-POSTapi-v1-bookings--reservation_uuid--passengers">
                                 <a href="#bus-POSTapi-v1-bookings--reservation_uuid--passengers">Store passenger details for a reservation.</a>
+                            </li>
+                                                                                <li class="tocify-item level-2" data-unique="bus-DELETEapi-v1-holds--reservation_uuid-">
+                                <a href="#bus-DELETEapi-v1-holds--reservation_uuid-">Release a held reservation and make its seats available again.</a>
                             </li>
                                                                         </ul>
                             </ul>
@@ -516,14 +522,14 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/bus/lines/0e2271df-6ff5-4cb8-866c-ab41fd06fd96" \
+    --get "http://kora-ops-web.local/api/v1/bus/lines/f2145d96-8192-45dd-8e8e-e023c988fedf" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bus/lines/0e2271df-6ff5-4cb8-866c-ab41fd06fd96"
+    "http://kora-ops-web.local/api/v1/bus/lines/f2145d96-8192-45dd-8e8e-e023c988fedf"
 );
 
 const headers = {
@@ -620,10 +626,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="uuid"                data-endpoint="GETapi-v1-bus-lines--uuid-"
-               value="0e2271df-6ff5-4cb8-866c-ab41fd06fd96"
+               value="f2145d96-8192-45dd-8e8e-e023c988fedf"
                data-component="url">
     <br>
-<p>Example: <code>0e2271df-6ff5-4cb8-866c-ab41fd06fd96</code></p>
+<p>Example: <code>f2145d96-8192-45dd-8e8e-e023c988fedf</code></p>
             </div>
                     </form>
 
@@ -845,7 +851,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/bus/departures/d4ce3c3d-1d3e-4384-a5d5-32a7990dc69e?from=Cotonou&amp;to=Abidjan" \
+    --get "http://kora-ops-web.local/api/v1/bus/departures/fdf2fdd3-3c88-46d7-8905-bd034500aa82?from=Cotonou&amp;to=Abidjan" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -857,7 +863,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bus/departures/d4ce3c3d-1d3e-4384-a5d5-32a7990dc69e"
+    "http://kora-ops-web.local/api/v1/bus/departures/fdf2fdd3-3c88-46d7-8905-bd034500aa82"
 );
 
 const params = {
@@ -966,10 +972,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="uuid"                data-endpoint="GETapi-v1-bus-departures--uuid-"
-               value="d4ce3c3d-1d3e-4384-a5d5-32a7990dc69e"
+               value="fdf2fdd3-3c88-46d7-8905-bd034500aa82"
                data-component="url">
     <br>
-<p>Example: <code>d4ce3c3d-1d3e-4384-a5d5-32a7990dc69e</code></p>
+<p>Example: <code>fdf2fdd3-3c88-46d7-8905-bd034500aa82</code></p>
             </div>
                         <h4 class="fancy-heading-panel"><b>Query Parameters</b></h4>
                                     <div style="padding-left: 28px; clear: unset;">
@@ -1036,7 +1042,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/bus/departures/d4ce3c3d-1d3e-4384-a5d5-32a7990dc69e/seats?origin_stop_uuid=6ff8f7f6-1eb3-3525-be4a-3932c805afed&amp;destination_stop_uuid=6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
+    --get "http://kora-ops-web.local/api/v1/bus/departures/fdf2fdd3-3c88-46d7-8905-bd034500aa82/seats?origin_stop_uuid=6ff8f7f6-1eb3-3525-be4a-3932c805afed&amp;destination_stop_uuid=6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -1048,7 +1054,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bus/departures/d4ce3c3d-1d3e-4384-a5d5-32a7990dc69e/seats"
+    "http://kora-ops-web.local/api/v1/bus/departures/fdf2fdd3-3c88-46d7-8905-bd034500aa82/seats"
 );
 
 const params = {
@@ -1157,10 +1163,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="departure_uuid"                data-endpoint="GETapi-v1-bus-departures--departure_uuid--seats"
-               value="d4ce3c3d-1d3e-4384-a5d5-32a7990dc69e"
+               value="fdf2fdd3-3c88-46d7-8905-bd034500aa82"
                data-component="url">
     <br>
-<p>Example: <code>d4ce3c3d-1d3e-4384-a5d5-32a7990dc69e</code></p>
+<p>Example: <code>fdf2fdd3-3c88-46d7-8905-bd034500aa82</code></p>
             </div>
                         <h4 class="fancy-heading-panel"><b>Query Parameters</b></h4>
                                     <div style="padding-left: 28px; clear: unset;">
@@ -1742,9 +1748,175 @@ You can check the Dev Tools console for debugging information.</code></pre>
         </div>
         </form>
 
+                    <h2 id="bus-GETapi-v1-bookings--reservation_uuid-">Retrieve a reservation and its current booking state.</h2>
+
+<p>
+<small class="badge badge-darkred">requires authentication</small>
+</p>
+
+<p>This endpoint is safe to call after a mobile session is restored. It returns the
+server-side reservation state instead of requiring the client to rebuild it locally.</p>
+
+<span id="example-requests-GETapi-v1-bookings--reservation_uuid-">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request GET \
+    --get "http://kora-ops-web.local/api/v1/bookings/856f2c2f-333f-466b-80c2-becd09477526" \
+    --header "Content-Type: application/json" \
+    --header "Accept: application/json"</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "http://kora-ops-web.local/api/v1/bookings/856f2c2f-333f-466b-80c2-becd09477526"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+};
+
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-GETapi-v1-bookings--reservation_uuid-">
+            <blockquote>
+            <p>Example response (200, Reservation details):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70&quot;,
+        &quot;status&quot;: &quot;held&quot;,
+        &quot;expires_at&quot;: &quot;2026-08-20T08:15:00Z&quot;,
+        &quot;total_amount&quot;: 25000,
+        &quot;currency&quot;: &quot;XOF&quot;,
+        &quot;channel&quot;: &quot;mobile&quot;,
+        &quot;departure_uuid&quot;: &quot;9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e&quot;,
+        &quot;price_quote_uuid&quot;: &quot;9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6f&quot;,
+        &quot;passenger_count&quot;: 2,
+        &quot;segments&quot;: [],
+        &quot;passengers&quot;: []
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403, Forbidden):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;This action is unauthorized.&quot;
+}</code>
+ </pre>
+    </span>
+<span id="execution-results-GETapi-v1-bookings--reservation_uuid-" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-GETapi-v1-bookings--reservation_uuid-"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-GETapi-v1-bookings--reservation_uuid-"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-GETapi-v1-bookings--reservation_uuid-" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-GETapi-v1-bookings--reservation_uuid-">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-GETapi-v1-bookings--reservation_uuid-" data-method="GET"
+      data-path="api/v1/bookings/{reservation_uuid}"
+      data-authed="1"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('GETapi-v1-bookings--reservation_uuid-', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+                    <button type="button"
+                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-tryout-GETapi-v1-bookings--reservation_uuid-"
+                    onclick="tryItOut('GETapi-v1-bookings--reservation_uuid-');">Try it out ⚡
+            </button>
+            <button type="button"
+                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-canceltryout-GETapi-v1-bookings--reservation_uuid-"
+                    onclick="cancelTryOut('GETapi-v1-bookings--reservation_uuid-');" hidden>Cancel 🛑
+            </button>&nbsp;&nbsp;
+            <button type="submit"
+                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-executetryout-GETapi-v1-bookings--reservation_uuid-"
+                    data-initial-text="Send Request 💥"
+                    data-loading-text="⏱ Sending..."
+                    hidden>Send Request 💥
+            </button>
+            </h3>
+            <p>
+            <small class="badge badge-green">GET</small>
+            <b><code>api/v1/bookings/{reservation_uuid}</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="GETapi-v1-bookings--reservation_uuid-"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="GETapi-v1-bookings--reservation_uuid-"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                        <h4 class="fancy-heading-panel"><b>URL Parameters</b></h4>
+                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>reservation_uuid</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="reservation_uuid"                data-endpoint="GETapi-v1-bookings--reservation_uuid-"
+               value="856f2c2f-333f-466b-80c2-becd09477526"
+               data-component="url">
+    <br>
+<p>Example: <code>856f2c2f-333f-466b-80c2-becd09477526</code></p>
+            </div>
+                    </form>
+
                     <h2 id="bus-POSTapi-v1-bookings--reservation_uuid--passengers">Store passenger details for a reservation.</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
 
@@ -1755,7 +1927,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/bookings/c7224bcc-e553-4a6f-9e03-3e612f3c10b6/passengers" \
+    "http://kora-ops-web.local/api/v1/bookings/856f2c2f-333f-466b-80c2-becd09477526/passengers" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -1765,7 +1937,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             \"last_name\": \"n\",
             \"phone\": \"g\",
             \"email\": \"rowan.gulgowski@example.com\",
-            \"document_type\": \"consular_card\",
+            \"document_type\": \"birth_certificate\",
             \"document_number\": \"d\",
             \"nationality\": \"lj\",
             \"birth_date\": \"2026-08-25\",
@@ -1778,7 +1950,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bookings/c7224bcc-e553-4a6f-9e03-3e612f3c10b6/passengers"
+    "http://kora-ops-web.local/api/v1/bookings/856f2c2f-333f-466b-80c2-becd09477526/passengers"
 );
 
 const headers = {
@@ -1793,7 +1965,7 @@ let body = {
             "last_name": "n",
             "phone": "g",
             "email": "rowan.gulgowski@example.com",
-            "document_type": "consular_card",
+            "document_type": "birth_certificate",
             "document_number": "d",
             "nationality": "lj",
             "birth_date": "2026-08-25",
@@ -1859,7 +2031,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-POSTapi-v1-bookings--reservation_uuid--passengers" data-method="POST"
       data-path="api/v1/bookings/{reservation_uuid}/passengers"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -1921,10 +2093,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="reservation_uuid"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
-               value="c7224bcc-e553-4a6f-9e03-3e612f3c10b6"
+               value="856f2c2f-333f-466b-80c2-becd09477526"
                data-component="url">
     <br>
-<p>Example: <code>c7224bcc-e553-4a6f-9e03-3e612f3c10b6</code></p>
+<p>Example: <code>856f2c2f-333f-466b-80c2-becd09477526</code></p>
             </div>
                             <h4 class="fancy-heading-panel"><b>Body Parameters</b></h4>
         <div style=" padding-left: 28px;  clear: unset;">
@@ -1992,10 +2164,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="passengers.0.document_type"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
-               value="consular_card"
+               value="birth_certificate"
                data-component="body">
     <br>
-<p>Example: <code>consular_card</code></p>
+<p>Example: <code>birth_certificate</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>national_id</code></li> <li><code>passport</code></li> <li><code>consular_card</code></li> <li><code>birth_certificate</code></li></ul>
                     </div>
@@ -2051,6 +2223,156 @@ Must be one of:
         </div>
         </form>
 
+                    <h2 id="bus-DELETEapi-v1-holds--reservation_uuid-">Release a held reservation and make its seats available again.</h2>
+
+<p>
+<small class="badge badge-darkred">requires authentication</small>
+</p>
+
+<p>The operation is explicit and idempotent for a reservation that is no longer held.
+It never releases a paid or ticketed reservation.</p>
+
+<span id="example-requests-DELETEapi-v1-holds--reservation_uuid-">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request DELETE \
+    "http://kora-ops-web.local/api/v1/holds/856f2c2f-333f-466b-80c2-becd09477526" \
+    --header "Content-Type: application/json" \
+    --header "Accept: application/json"</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "http://kora-ops-web.local/api/v1/holds/856f2c2f-333f-466b-80c2-becd09477526"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+};
+
+
+fetch(url, {
+    method: "DELETE",
+    headers,
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-DELETEapi-v1-holds--reservation_uuid-">
+            <blockquote>
+            <p>Example response (204, Hold released):</p>
+        </blockquote>
+                <pre>
+<code>Empty response</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403, Forbidden):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;This action is unauthorized.&quot;
+}</code>
+ </pre>
+    </span>
+<span id="execution-results-DELETEapi-v1-holds--reservation_uuid-" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-DELETEapi-v1-holds--reservation_uuid-"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-DELETEapi-v1-holds--reservation_uuid-"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-DELETEapi-v1-holds--reservation_uuid-" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-DELETEapi-v1-holds--reservation_uuid-">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-DELETEapi-v1-holds--reservation_uuid-" data-method="DELETE"
+      data-path="api/v1/holds/{reservation_uuid}"
+      data-authed="1"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('DELETEapi-v1-holds--reservation_uuid-', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+                    <button type="button"
+                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-tryout-DELETEapi-v1-holds--reservation_uuid-"
+                    onclick="tryItOut('DELETEapi-v1-holds--reservation_uuid-');">Try it out ⚡
+            </button>
+            <button type="button"
+                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-canceltryout-DELETEapi-v1-holds--reservation_uuid-"
+                    onclick="cancelTryOut('DELETEapi-v1-holds--reservation_uuid-');" hidden>Cancel 🛑
+            </button>&nbsp;&nbsp;
+            <button type="submit"
+                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-executetryout-DELETEapi-v1-holds--reservation_uuid-"
+                    data-initial-text="Send Request 💥"
+                    data-loading-text="⏱ Sending..."
+                    hidden>Send Request 💥
+            </button>
+            </h3>
+            <p>
+            <small class="badge badge-red">DELETE</small>
+            <b><code>api/v1/holds/{reservation_uuid}</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="DELETEapi-v1-holds--reservation_uuid-"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="DELETEapi-v1-holds--reservation_uuid-"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                        <h4 class="fancy-heading-panel"><b>URL Parameters</b></h4>
+                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>reservation_uuid</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="reservation_uuid"                data-endpoint="DELETEapi-v1-holds--reservation_uuid-"
+               value="856f2c2f-333f-466b-80c2-becd09477526"
+               data-component="url">
+    <br>
+<p>Example: <code>856f2c2f-333f-466b-80c2-becd09477526</code></p>
+            </div>
+                    </form>
+
                 <h1 id="auth">Auth</h1>
 
     <p>OTP challenge request and verification for registration, login, PIN reset and account unlock.</p>
@@ -2073,7 +2395,7 @@ Must be one of:
     --header "Accept: application/json" \
     --data "{
     \"email\": \"gbailey@example.net\",
-    \"purpose\": \"pin_reset\"
+    \"purpose\": \"login_new_device\"
 }"
 </code></pre></div>
 
@@ -2090,7 +2412,7 @@ const headers = {
 
 let body = {
     "email": "gbailey@example.net",
-    "purpose": "pin_reset"
+    "purpose": "login_new_device"
 };
 
 fetch(url, {
@@ -2194,10 +2516,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="purpose"                data-endpoint="POSTapi-v1-auth-otp-request"
-               value="pin_reset"
+               value="login_new_device"
                data-component="body">
     <br>
-<p>Example: <code>pin_reset</code></p>
+<p>Example: <code>login_new_device</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>registration</code></li> <li><code>login_new_device</code></li> <li><code>pin_reset</code></li> <li><code>account_unlock</code></li></ul>
         </div>
@@ -2221,7 +2543,7 @@ Must be one of:
     --header "Accept: application/json" \
     --data "{
     \"otp_challenge_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
-    \"purpose\": \"registration\",
+    \"purpose\": \"account_unlock\",
     \"code\": \"569775\"
 }"
 </code></pre></div>
@@ -2239,7 +2561,7 @@ const headers = {
 
 let body = {
     "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-    "purpose": "registration",
+    "purpose": "account_unlock",
     "code": "569775"
 };
 
@@ -2344,10 +2666,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="purpose"                data-endpoint="POSTapi-v1-auth-otp-verify"
-               value="registration"
+               value="account_unlock"
                data-component="body">
     <br>
-<p>Example: <code>registration</code></p>
+<p>Example: <code>account_unlock</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>registration</code></li> <li><code>login_new_device</code></li> <li><code>pin_reset</code></li> <li><code>account_unlock</code></li></ul>
         </div>
@@ -2909,7 +3231,7 @@ Must be one of:
     \"email\": \"gbailey@example.net\",
     \"pin\": \"9775\",
     \"device_name\": \"n\",
-    \"platform\": \"web\",
+    \"platform\": \"ios\",
     \"device_fingerprint\": \"g\",
     \"push_token\": \"z\",
     \"otp_challenge_uuid\": \"977e5426-8d13-3824-86aa-b092f8ae52c5\",
@@ -2932,7 +3254,7 @@ let body = {
     "email": "gbailey@example.net",
     "pin": "9775",
     "device_name": "n",
-    "platform": "web",
+    "platform": "ios",
     "device_fingerprint": "g",
     "push_token": "z",
     "otp_challenge_uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
@@ -3064,10 +3386,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="platform"                data-endpoint="POSTapi-v1-auth-login"
-               value="web"
+               value="ios"
                data-component="body">
     <br>
-<p>Example: <code>web</code></p>
+<p>Example: <code>ios</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>android</code></li> <li><code>ios</code></li> <li><code>web</code></li> <li><code>unknown</code></li></ul>
         </div>
@@ -3146,7 +3468,7 @@ compte social, télécharge l'avatar via Spatie Media Library et
     \"provider\": \"facebook\",
     \"provider_token\": \"b\",
     \"device_name\": \"n\",
-    \"platform\": \"unknown\",
+    \"platform\": \"ios\",
     \"device_fingerprint\": \"g\",
     \"push_token\": \"z\"
 }"
@@ -3167,7 +3489,7 @@ let body = {
     "provider": "facebook",
     "provider_token": "b",
     "device_name": "n",
-    "platform": "unknown",
+    "platform": "ios",
     "device_fingerprint": "g",
     "push_token": "z"
 };
@@ -3407,10 +3729,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="platform"                data-endpoint="POSTapi-v1-auth-oauth-token"
-               value="unknown"
+               value="ios"
                data-component="body">
     <br>
-<p>Example: <code>unknown</code></p>
+<p>Example: <code>ios</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>android</code></li> <li><code>ios</code></li> <li><code>web</code></li> <li><code>unknown</code></li></ul>
         </div>
@@ -3572,7 +3894,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"email\": \"zbailey@example.net\",
     \"phone\": \"iyvdljnikhwaykcm\",
     \"country_code\": \"yuwp\",
-    \"birth_date\": \"2022-09-18\"
+    \"birth_date\": \"2022-09-19\"
 }"
 </code></pre></div>
 
@@ -3592,7 +3914,7 @@ let body = {
     "email": "zbailey@example.net",
     "phone": "iyvdljnikhwaykcm",
     "country_code": "yuwp",
-    "birth_date": "2022-09-18"
+    "birth_date": "2022-09-19"
 };
 
 fetch(url, {
@@ -3732,10 +4054,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="birth_date"                data-endpoint="PUTapi-v1-auth-me"
-               value="2022-09-18"
+               value="2022-09-19"
                data-component="body">
     <br>
-<p>validation.date validation.before. Example: <code>2022-09-18</code></p>
+<p>validation.date validation.before. Example: <code>2022-09-19</code></p>
         </div>
         </form>
 
@@ -4014,10 +4336,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Accept: application/json" \
     --data "{
     \"push_notifications\": false,
-    \"whatsapp_notifications\": false,
-    \"email_notifications\": true,
+    \"whatsapp_notifications\": true,
+    \"email_notifications\": false,
     \"locale\": \"en\",
-    \"theme\": \"light\"
+    \"theme\": \"dark\"
 }"
 </code></pre></div>
 
@@ -4034,10 +4356,10 @@ const headers = {
 
 let body = {
     "push_notifications": false,
-    "whatsapp_notifications": false,
-    "email_notifications": true,
+    "whatsapp_notifications": true,
+    "email_notifications": false,
     "locale": "en",
-    "theme": "light"
+    "theme": "dark"
 };
 
 fetch(url, {
@@ -4164,7 +4486,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>false</code></p>
+<p>Example: <code>true</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>email_notifications</code></b>&nbsp;&nbsp;
@@ -4186,7 +4508,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>true</code></p>
+<p>Example: <code>false</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>locale</code></b>&nbsp;&nbsp;
@@ -4209,10 +4531,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="theme"                data-endpoint="PUTapi-v1-auth-preferences"
-               value="light"
+               value="dark"
                data-component="body">
     <br>
-<p>Example: <code>light</code></p>
+<p>Example: <code>dark</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>light</code></li> <li><code>dark</code></li> <li><code>system</code></li></ul>
         </div>
@@ -4814,7 +5136,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Accept: application/json" \
     --data "{
     \"reservation_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
-    \"method\": \"cash\",
+    \"method\": \"mobile_money\",
     \"provider\": \"g\",
     \"idempotency_key\": \"z\",
     \"phone\": \"m\",
@@ -4836,7 +5158,7 @@ const headers = {
 
 let body = {
     "reservation_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-    "method": "cash",
+    "method": "mobile_money",
     "provider": "g",
     "idempotency_key": "z",
     "phone": "m",
@@ -4963,10 +5285,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="method"                data-endpoint="POSTapi-v1-payments-initiate"
-               value="cash"
+               value="mobile_money"
                data-component="body">
     <br>
-<p>Example: <code>cash</code></p>
+<p>Example: <code>mobile_money</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>mobile_money</code></li> <li><code>wallet</code></li> <li><code>card</code></li> <li><code>cash</code></li></ul>
         </div>
@@ -5195,7 +5517,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
-    \"status\": \"failed\",
+    \"status\": \"success\",
     \"provider_reference\": \"b\"
 }"
 </code></pre></div>
@@ -5212,7 +5534,7 @@ const headers = {
 };
 
 let body = {
-    "status": "failed",
+    "status": "success",
     "provider_reference": "b"
 };
 
@@ -5318,10 +5640,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="POSTapi-v1-payments--payment_uuid--confirm"
-               value="failed"
+               value="success"
                data-component="body">
     <br>
-<p>Example: <code>failed</code></p>
+<p>Example: <code>success</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>success</code></li> <li><code>confirmed</code></li> <li><code>failed</code></li></ul>
         </div>

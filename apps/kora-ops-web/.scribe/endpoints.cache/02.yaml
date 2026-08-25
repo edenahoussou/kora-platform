@@ -145,14 +145,14 @@ endpoints:
         name: uuid
         description: ''
         required: true
-        example: 0e2271df-6ff5-4cb8-866c-ab41fd06fd96
+        example: f2145d96-8192-45dd-8e8e-e023c988fedf
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      uuid: 0e2271df-6ff5-4cb8-866c-ab41fd06fd96
+      uuid: f2145d96-8192-45dd-8e8e-e023c988fedf
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -295,14 +295,14 @@ endpoints:
         name: uuid
         description: ''
         required: true
-        example: d4ce3c3d-1d3e-4384-a5d5-32a7990dc69e
+        example: fdf2fdd3-3c88-46d7-8905-bd034500aa82
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      uuid: d4ce3c3d-1d3e-4384-a5d5-32a7990dc69e
+      uuid: fdf2fdd3-3c88-46d7-8905-bd034500aa82
     queryParameters:
       from:
         custom: []
@@ -388,14 +388,14 @@ endpoints:
         name: departure_uuid
         description: ''
         required: true
-        example: d4ce3c3d-1d3e-4384-a5d5-32a7990dc69e
+        example: fdf2fdd3-3c88-46d7-8905-bd034500aa82
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      departure_uuid: d4ce3c3d-1d3e-4384-a5d5-32a7990dc69e
+      departure_uuid: fdf2fdd3-3c88-46d7-8905-bd034500aa82
     queryParameters:
       origin_stop_uuid:
         custom: []
@@ -781,6 +781,92 @@ endpoints:
   -
     custom: []
     httpMethods:
+      - GET
+    uri: 'api/v1/bookings/{reservation_uuid}'
+    metadata:
+      custom: []
+      groupName: Bus
+      groupDescription: |-
+
+        Reservation lifecycle endpoints for the passenger booking flow.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Retrieve a reservation and its current booking state.'
+      description: |-
+        This endpoint is safe to call after a mobile session is restored. It returns the
+        server-side reservation state instead of requiring the client to rebuild it locally.
+      authenticated: true
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      reservation_uuid:
+        custom: []
+        name: reservation_uuid
+        description: ''
+        required: true
+        example: 856f2c2f-333f-466b-80c2-becd09477526
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      reservation_uuid: 856f2c2f-333f-466b-80c2-becd09477526
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": {
+              "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+              "status": "held",
+              "expires_at": "2026-08-20T08:15:00Z",
+              "total_amount": 25000,
+              "currency": "XOF",
+              "channel": "mobile",
+              "departure_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e",
+              "price_quote_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6f",
+              "passenger_count": 2,
+              "segments": [],
+              "passengers": []
+            }
+          }
+        headers: []
+        description: 'Reservation details'
+      -
+        custom: []
+        status: 401
+        content: |-
+          {
+            "message": "Unauthenticated."
+          }
+        headers: []
+        description: Unauthenticated
+      -
+        custom: []
+        status: 403
+        content: |-
+          {
+            "message": "This action is unauthorized."
+          }
+        headers: []
+        description: Forbidden
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
       - POST
     uri: 'api/v1/bookings/{reservation_uuid}/passengers'
     metadata:
@@ -793,7 +879,7 @@ endpoints:
       subgroupDescription: ''
       title: 'Store passenger details for a reservation.'
       description: ''
-      authenticated: false
+      authenticated: true
       deprecated: false
     headers:
       Content-Type: application/json
@@ -804,14 +890,14 @@ endpoints:
         name: reservation_uuid
         description: ''
         required: true
-        example: c7224bcc-e553-4a6f-9e03-3e612f3c10b6
+        example: 856f2c2f-333f-466b-80c2-becd09477526
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      reservation_uuid: c7224bcc-e553-4a6f-9e03-3e612f3c10b6
+      reservation_uuid: 856f2c2f-333f-466b-80c2-becd09477526
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters:
@@ -876,7 +962,7 @@ endpoints:
         name: 'passengers[].document_type'
         description: ''
         required: false
-        example: consular_card
+        example: birth_certificate
         type: string
         enumValues:
           - national_id
@@ -936,7 +1022,7 @@ endpoints:
           last_name: 'n'
           phone: g
           email: rowan.gulgowski@example.com
-          document_type: consular_card
+          document_type: birth_certificate
           document_number: d
           nationality: lj
           birth_date: '2026-08-25'
@@ -973,6 +1059,77 @@ endpoints:
           }
         headers: []
         description: 'Passengers stored'
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - DELETE
+    uri: 'api/v1/holds/{reservation_uuid}'
+    metadata:
+      custom: []
+      groupName: Bus
+      groupDescription: |-
+
+        Reservation lifecycle endpoints for the passenger booking flow.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Release a held reservation and make its seats available again.'
+      description: |-
+        The operation is explicit and idempotent for a reservation that is no longer held.
+        It never releases a paid or ticketed reservation.
+      authenticated: true
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      reservation_uuid:
+        custom: []
+        name: reservation_uuid
+        description: ''
+        required: true
+        example: 856f2c2f-333f-466b-80c2-becd09477526
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      reservation_uuid: 856f2c2f-333f-466b-80c2-becd09477526
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 204
+        content: ''
+        headers: []
+        description: 'Hold released'
+      -
+        custom: []
+        status: 401
+        content: |-
+          {
+            "message": "Unauthenticated."
+          }
+        headers: []
+        description: Unauthenticated
+      -
+        custom: []
+        status: 403
+        content: |-
+          {
+            "message": "This action is unauthorized."
+          }
+        headers: []
+        description: Forbidden
     responseFields: []
     auth: []
     controller: null
