@@ -6,24 +6,76 @@ La documentation d'intégration API destinée aux développeurs mobile est gér�
 
 ```
 docs/mintlify/
-├── docs.json              # Config Mintlify 4.x (navigation, thème, auth)
+├── docs.json              # Config Mintlify (navigation, thème, auth)
 ├── api/
 │   └── openapi.yaml       # Spec OpenAPI 3.0.3 généré par Scribe (commité)
-├── introduction.mdx       # Page d'accueil
+├── introduction.mdx       # Page d'accueil (allégée)
+├── concepts.mdx           # Concepts clés (vocabulaire métier)
 ├── quickstart.mdx         # Démarrage rapide
-├── authentication.mdx     # Guide auth OTP + PIN + Sanctum
 ├── guides/                # Guides pratiques
-│   ├── bus-search.mdx
-│   ├── seat-selection.mdx
-│   └── error-handling.mdx
-├── reference/             # API Reference auto-générée depuis OpenAPI
-│   ├── auth.mdx
-│   ├── bus.mdx
+│   ├── authentication.mdx     # Flow OTP + PIN + OAuth (concis)
+│   ├── bus-search.mdx          # Recherche : villes → lignes → départs → sièges
+│   ├── seat-selection.mdx      # Statuts de sièges + logique de segment
+│   ├── quotes-and-holds.mdx    # Devis figé + blocage de sièges
+│   ├── booking-lifecycle.mdx   # États d'une réservation
+│   ├── payment-lifecycle.mdx   # Initiation → polling → confirmation
+│   ├── webhooks.mdx            # Événements de paiement
+│   ├── devices.mdx             # Appareils de confiance
+│   ├── preferences.mdx         # Notifications, langue, thème
+│   └── error-handling.mdx      # Structure d'erreur + codes métier
+├── reference/             # API Reference (une page par sous-ressource)
+│   ├── introduction.mdx       # Intro API (conventions, environnements, auth)
+│   ├── auth/
+│   │   ├── otp.mdx             # OTP request + verify
+│   │   ├── sessions.mdx        # register/complete, login, pin/reset, unlock, pin/change, logout
+│   │   ├── oauth.mdx           # OAuth sociale (Google, Facebook, TikTok)
+│   │   ├── profile.mdx         # GET/PUT /me
+│   │   ├── devices.mdx         # GET/DELETE devices
+│   │   └── preferences.mdx     # GET/PUT preferences
+│   ├── bus/
+│   │   ├── cities.mdx
+│   │   ├── lines.mdx
+│   │   ├── departures.mdx
+│   │   └── seats.mdx
+│   ├── booking/
+│   │   ├── quotes.mdx
+│   │   ├── holds.mdx
+│   │   ├── reservations.mdx
+│   │   └── passengers.mdx
+│   ├── payments/
+│   │   ├── initiate.mdx
+│   │   ├── show.mdx
+│   │   └── confirm.mdx
 │   └── health.mdx
-└── snippets/              # Snippets Dart réutilisables
+├── security/              # Section Sécurité
+│   ├── best-practices.mdx     # Tokens, OTP, appareils, données de paiement
+│   └── rate-limiting.mdx      # Throttles, headers, stratégie de retry
+└── snippets/              # Snippets réutilisables
     ├── dart-auth.mdx
-    └── dart-http-client.mdx
+    ├── dart-http-client.mdx
+    └── ts-types.mdx           # Interfaces TypeScript partagées
 ```
+
+## Navigation (docs.json)
+
+La navigation est organisée en 4 onglets :
+
+1. **Démarrage** — introduction, concepts, quickstart, authentification
+2. **Guides** — parcours passager, compte & sécurité, webhooks
+3. **API Reference** — une page par sous-ressource (auth, bus, booking, payments, health)
+4. **Sécurité** — bonnes pratiques, rate limiting
+
+## Standard des pages de référence
+
+Chaque page de référence API suit le modèle FedaPay :
+
+- **Titre** + méthode + URL en haut
+- **Description du body de requête** au centre (tous les paramètres documentés)
+- **Tous les codes de réponse** documentés avec schéma + exemple JSON
+- **4 exemples de requête** : cURL, JavaScript, TypeScript, Dart
+- **Bouton Try it out** (playground) généré depuis le bloc OpenAPI
+
+Voir `RESTRUCTURATION_PLAN.md` §6 pour le standard complet.
 
 ## Pré-requis
 
@@ -84,12 +136,13 @@ L'accès à la documentation est restreint. Les développeurs mobile doivent êt
 
 1. Implémenter le controller avec les annotations Scribe (`@group`, `@bodyParam`, `@queryParam`, `@response`)
 2. Régénérer le spec : `composer docs:generate`
-3. Si l'endpoint appartient à un nouveau groupe, créer `reference/<group>.mdx` et l'ajouter dans `docs.json`
-4. Commiter le spec mis à jour + les changements
-5. La CI valide que `mintlify validate` passe
+3. Créer une page `reference/<domaine>/<endpoint>.mdx` avec 4 exemples (cURL, JS, TS, Dart) et tous les codes de réponse
+4. Ajouter la page dans la navigation de `docs.json` (groupe correspondant)
+5. Commiter le spec mis à jour + les changements
+6. La CI valide que `mintlify validate` passe
 
 ## Ajouter un guide
 
 1. Créer `guides/<nom>.mdx`
-2. L'ajouter dans la navigation de `docs.json` (groupe "Guides")
+2. L'ajouter dans la navigation de `docs.json` (groupe « Parcours passager », « Compte & sécurité » ou « Webhooks »)
 3. Valider avec `npm run build`

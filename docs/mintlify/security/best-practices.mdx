@@ -1,0 +1,122 @@
+---
+title: Bonnes pratiques de sécurité
+description: Stockage des tokens, appareils de confiance, OTP et protection des données.
+---
+
+
+# Bonnes pratiques de sécurité
+
+L'API KORA BUS manipule des tokens d'authentification, des OTP, des fingerprints d'appareils et des données de paiement. Suivez ces recommandations pour sécuriser votre intégration.
+
+## Tokens Sanctum
+
+### Stockage sécurisé
+
+<Warning>
+  Ne stockez **jamais** le token en clair dans `SharedPreferences` (Android) ou `UserDefaults` (iOS). Utilisez le trousseau sécurisé de la plateforme.
+</Warning>
+
+| Plateforme | Stockage recommandé | Package Flutter |
+|------------|---------------------|-----------------|
+| iOS | Keychain | `flutter_secure_storage` |
+| Android | EncryptedSharedPreferences | `flutter_secure_storage` |
+
+```dart
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+final storage = FlutterSecureStorage();
+
+// Stocker le token après authentification
+await storage.write(key: 'kora_token', value: token);
+
+// Lire le token au démarrage
+final token = await storage.read(key: 'kora_token');
+
+// Purger à la déconnexion
+await storage.delete(key: 'kora_token');
+```
+
+### Rotation et expiration
+
+- Le token a une `expires_at` — vérifiez-la au démarrage de l'app.
+- Si le token est expiré, redirigez vers le flow de connexion (PIN + éventuellement OTP).
+- Un `401` sur un endpoint authentifié signifie que le token est invalide ou révoqué — purgez-le et re-authentifiez.
+
+### Ne pas logger
+
+```dart
+// ❌ Jamais
+print('Token: $token');
+log.d('Authorization: Bearer $token');
+
+// ✅ Toujours
+log.d('API call to /auth/me');
+```
+
+## OTP
+
+### Bonnes pratiques
+
+- L'OTP est **à usage unique** — ne le cachez pas, ne le pré-remplissez pas.
+- Affichez un champ de saisie à 6 chiffres avec saisie rapide (OTP auto-fill sur iOS 14+).
+- Limitez les retries côté UI (3 tentatives max avant de proposer un renvoi).
+- Le `verification_token` est aussi à usage unique — ne le stockez pas au-delà du flow en cours.
+
+<Note>
+  Le rate limit `auth-otp` est de 5 demandes par minute. Côté UI, désactivez le bouton "Renvoyer le code" pendant 60 secondes après chaque demande.
+</Note>
+
+## Appareils de confiance
+
+### Fingerprint
+
+Le `device_fingerprint` doit être :
+
+- **Unique** par appareil physique (pas par installation)
+- **Stable** dans le temps (survivre aux mises à jour de l'app)
+- **Non traçable** entre utilisateurs (ne pas utiliser l'IMEI)
+
+```dart
+import 'package:device_info_plus/device_info_plus.dart';
+
+final deviceInfo = DeviceInfoPlugin();
+if (Platform.isIOS) {
+  final info = await deviceInfo.iosInfo;
+  // Utiliser identifierForVendor + un UUID persistant
+} else {
+  final info = await deviceInfo.androidInfo;
+  // Utiliser androidId + un UUID persistant
+}
+```
+
+<Info>
+  Voir le guide [Gestion des appareils](/guides/devices) pour le flow complet de confiance et révocation.
+</Info>
+
+## Données de paiement
+
+### Ne pas exposer
+
+- Ne loggez **jamais** le `provider_payload` côté client.
+- Ne stockez **jamais** le numéro de téléphone Mobile Money en clair au-delà de la session.
+- Ne pré-remplissez pas les champs de paiement avec des données d'une session précédente sans consentement.
+
+### Idempotence
+
+Utilisez toujours une `idempotency_key` déterministe pour survivre aux retries réseau sans double paiement :
+
+```dart
+final key = 'pay-${reservationUuid}-${DateTime.now().millisecondsSinceEpoch}';
+```
+
+## Headers et transport
+
+- Utilisez **HTTPS** en production (`https://api.korabus.app`). Jamais de HTTP en clair.
+- Incluez `Accept: application/json` sur tous les appels.
+- Ne désactivez pas la validation SSL/TLS côté client.
+
+## Rate limiting
+
+<Card title="Rate limiting & throttling" href="/security/rate-limiting" icon="gauge" iconType="solid">
+  Consultez les **limites par endpoint** et la stratégie de retry.
+</Card>
