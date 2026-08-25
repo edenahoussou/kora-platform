@@ -22,7 +22,7 @@ initiate → pending → (webhook provider) → confirmed / failed
     La réservation doit être au statut `held`. Fournissez une `idempotency_key` unique.
 
 ```bash
-curl -X POST https://api.korabus.app/api/v1/payments/initiate \
+curl -X POST https://staging.koraexpress.app/api/v1/payments/initiate \
   -H 'Authorization: Bearer $TOKEN' \
   -H 'Content-Type: application/json' \
   -d '{

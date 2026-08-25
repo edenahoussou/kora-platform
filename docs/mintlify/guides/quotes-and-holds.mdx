@@ -15,7 +15,7 @@ Après avoir choisi un départ et un segment, le passager doit **figer le prix**
     Le devis fige le tarif pour le segment et le nombre de passagers. Il est valable `KORA_QUOTE_TTL_MINUTES` (10 min par défaut).
 
 ```bash
-curl -X POST https://api.korabus.app/api/v1/bus/quotes \
+curl -X POST https://staging.koraexpress.app/api/v1/bus/quotes \
   -H 'Authorization: Bearer $TOKEN' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -36,7 +36,7 @@ Voir : [Devis — Référence](/reference/booking/quotes).
     Récupérez la disponibilité pour le segment O/D. Les `origin_stop_uuid` et `destination_stop_uuid` doivent correspondre au devis.
 
 ```bash
-curl -X GET 'https://api.korabus.app/api/v1/bus/departures/a3091549-.../seats?origin_stop_uuid=6b72fe4a-...&destination_stop_uuid=8d94f06c-...'
+curl -X GET 'https://staging.koraexpress.app/api/v1/bus/departures/a3091549-.../seats?origin_stop_uuid=6b72fe4a-...&destination_stop_uuid=8d94f06c-...'
 ```
 
 Voir : [Sièges — Référence](/reference/bus/seats).
@@ -46,7 +46,7 @@ Voir : [Sièges — Référence](/reference/bus/seats).
     Le hold démarre **uniquement** à cet appel — pas pendant la consultation du plan. Le nombre de sièges doit égal `passenger_count` du devis.
 
 ```bash
-curl -X POST https://api.korabus.app/api/v1/bus/holds \
+curl -X POST https://staging.koraexpress.app/api/v1/bus/holds \
   -H 'Authorization: Bearer $TOKEN' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -96,7 +96,7 @@ Voir : [Holds — Référence](/reference/booking/holds).
 Si le passager abandonne le parcours :
 
 ```bash
-curl -X DELETE https://api.korabus.app/api/v1/holds/9b1deb4d-... \
+curl -X DELETE https://staging.koraexpress.app/api/v1/holds/9b1deb4d-... \
   -H 'Authorization: Bearer $TOKEN'
 ```
 
@@ -107,7 +107,7 @@ Réponse `204`. La réservation passe à `cancelled`, les segments sont libéré
 Le mobile ne doit **jamais** reconstruire la réservation depuis son état local. Après un crash ou une réouverture d'app :
 
 ```bash
-curl -X GET https://api.korabus.app/api/v1/bookings/9b1deb4d-... \
+curl -X GET https://staging.koraexpress.app/api/v1/bookings/9b1deb4d-... \
   -H 'Authorization: Bearer $TOKEN'
 ```
 

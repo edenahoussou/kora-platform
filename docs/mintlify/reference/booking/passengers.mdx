@@ -1,17 +1,55 @@
 ---
-title: Passagers
-description: Enregistrer les voyageurs et associer chaque voyageur à un siège.
+title: Enregistrer les passagers
+description: Enregistre les voyageurs et associe chaque voyageur à un siège réservé.
+api: POST /api/v1/bookings/{reservation_uuid}/passengers
 ---
 
-
-# Passagers
-
-`POST /api/v1/bookings/{reservation_uuid}/passengers`
+# Enregistrer les passagers
 
 Enregistre les voyageurs et associe chaque voyageur à un siège réservé. Le nombre de voyageurs doit correspondre au nombre de segments.
 
-```bash
-curl -X POST https://api.korabus.app/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70/passengers \
+## Paramètres
+
+<ParamField path="reservation_uuid" type="UUID" required>
+  UUID de la réservation (route model binding sur colonne `uuid`).
+</ParamField>
+
+<ParamField body="passengers" type="object[]" required>
+  Tableau des voyageurs (min 1).
+
+  <ParamField body="passengers[].first_name" type="string" required>
+    Prénom (max 120).
+  </ParamField>
+  <ParamField body="passengers[].last_name" type="string" required>
+    Nom (max 120).
+  </ParamField>
+  <ParamField body="passengers[].phone" type="string">
+    Téléphone (max 32).
+  </ParamField>
+  <ParamField body="passengers[].email" type="string">
+    Email (max 255).
+  </ParamField>
+  <ParamField body="passengers[].document_type" type="string">
+    `national_id`, `passport`, `consular_card`, ou `birth_certificate`. Requis pour les lignes internationales.
+  </ParamField>
+  <ParamField body="passengers[].document_number" type="string">
+    Numéro de document (max 64). Requis pour les lignes internationales.
+  </ParamField>
+  <ParamField body="passengers[].nationality" type="string">
+    Nationalité (code ISO 2, exactement 2 caractères). Requis pour les lignes internationales.
+  </ParamField>
+  <ParamField body="passengers[].birth_date" type="string">
+    Date de naissance `YYYY-MM-DD`.
+  </ParamField>
+  <ParamField body="passengers[].seat_uuid" type="UUID">
+    UUID du siège attribué.
+  </ParamField>
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X POST https://staging.koraexpress.app/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70/passengers \
   -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -30,8 +68,8 @@ curl -X POST https://api.korabus.app/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0
   }'
 ```
 
-```javascript
-const res = await fetch('https://api.korabus.app/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70/passengers', {
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70/passengers', {
   method: 'POST',
   headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
   body: JSON.stringify({ passengers: [{ first_name: 'Aïcha', last_name: 'HOUNKPÈ', phone: '+2290197421860', seat_uuid: 'seat-002-uuid' }] }),
@@ -39,16 +77,16 @@ const res = await fetch('https://api.korabus.app/api/v1/bookings/9b1deb4d-3b7d-4
 const { data } = await res.json();
 ```
 
-```typescript
-const res = await fetch(`https://api.korabus.app/api/v1/bookings/${reservationUuid}/passengers`, {
+```typescript TypeScript
+const res = await fetch(`https://staging.koraexpress.app/api/v1/bookings/${reservationUuid}/passengers`, {
   method: 'POST',
   headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
   body: JSON.stringify({ passengers } satisfies StorePassengersRequest),
 });
-const data: KoraReservation = (await res.json()).data;
+const data: Reservation = (await res.json()).data;
 ```
 
-```dart
+```dart Dart
 final res = await authDio.post('/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70/passengers', data: {
   'passengers': [
     {
@@ -65,18 +103,34 @@ final res = await authDio.post('/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3
 });
 ```
 
-**Réponse (200) :**
+</RequestExample>
 
-```json
+<ResponseExample>
+
+```json 200
 {
   "data": {
     "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
     "status": "held",
-    "expires_at": "2026-08-20T08:15:00Z",
+    "expires_at": "2026-08-20T08:15:00.000Z",
     "total_amount": 12500,
     "currency": "XOF",
     "channel": "mobile",
-    "departure_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e",
+    "departure_uuid": "a3091549-9179-454e-8440-58179f2208df",
+    "price_quote_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+    "passenger_count": 1,
+    "segments": [
+      {
+        "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb71",
+        "seat_uuid": "seat-002-uuid",
+        "seat_code": "4A",
+        "origin_stop_uuid": "6b72fe4a-5b40-307c-bc24-f79acf9a1bb9",
+        "origin_stop": "Cotonou · St Michel",
+        "destination_stop_uuid": "8d94f06c-7d62-529e-de46-9bce1cbc3dd1",
+        "destination_stop": "Abidjan · Treichville",
+        "status": "held"
+      }
+    ],
     "passengers": [
       {
         "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb73",
@@ -87,6 +141,7 @@ final res = await authDio.post('/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3
         "document_number": "BJ0427851",
         "nationality": "BJ",
         "birth_date": "1994-04-18",
+        "seat_uuid": "seat-002-uuid",
         "seat_code": "4A"
       }
     ]
@@ -94,38 +149,39 @@ final res = await authDio.post('/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3
 }
 ```
 
-### Paramètres
+```json 422 — Réservation expirée
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "reservation": ["La réservation a expiré."]
+  }
+}
+```
 
-| Champ | Type | Requis | Description |
-|-------|------|--------|-------------|
-| `reservation_uuid` | UUID (path) | ✅ | UUID de la réservation. |
-| `passengers` | array | ✅ | Tableau des voyageurs. |
-| `passengers[].first_name` | string | ✅ | Prénom. |
-| `passengers[].last_name` | string | ✅ | Nom. |
-| `passengers[].phone` | string | ✅ | Téléphone avec indicatif. |
-| `passengers[].seat_uuid` | UUID | ✅ | UUID du siège attribué. |
-| `passengers[].document_type` | string | ❌* | Type de document (`passport`, `id_card`, ...). |
-| `passengers[].document_number` | string | ❌* | Numéro de document. |
-| `passengers[].nationality` | string | ❌* | Nationalité (code ISO 2). |
-| `passengers[].birth_date` | string | ❌ | Date de naissance `YYYY-MM-DD`. |
+```json 422 — Nombre de passagers incorrect
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "passengers": ["Le nombre de passagers (1) ne correspond pas au nombre de sièges réservés (2)."]
+  }
+}
+```
 
-> *Requis pour les **lignes internationales** (ex: Cotonou → Abidjan).
+```json 403 — Non autorisé
+{ "message": "Vous n'êtes pas autorisé à modifier cette réservation." }
+```
+
+</ResponseExample>
+
+## Codes de réponse
 
 | Code | Description |
 |------|-------------|
 | `200` | Voyageurs enregistrés — réservation mise à jour. |
 | `401` | Token absent ou invalide. |
 | `403` | Réservation appartenant à un autre utilisateur. |
-| `422` | Réservation expirée, siège hors réservation, siège associé deux fois, ou nombre de voyageurs incorrect. |
+| `422` | Réservation expirée, siège hors réservation, siège associé deux fois, nombre de voyageurs incorrect, ou documents manquants pour ligne internationale. |
 
 <Warning>
-  Chaque `seat_uuid` doit appartenir à la réservation et ne peut être associé qu'à **un seul** voyageur. Une réservation expirée refuse l'enregistrement avec `422`.
+  Chaque `seat_uuid` doit appartenir à la réservation et ne peut être associé qu'à **un seul** voyageur. Pour une **ligne internationale**, `document_type`, `document_number` et `nationality` sont obligatoires.
 </Warning>
-
-<Info>
-  Pour une **ligne internationale**, `document_type`, `document_number` et `nationality` sont obligatoires pour chaque voyageur.
-</Info>
-
-<Card title="Paiements" href="/reference/payments/initiate" icon="arrow-right" iconType="solid">
-  Les voyageurs enregistrés, **initiez le paiement**.
-</Card>

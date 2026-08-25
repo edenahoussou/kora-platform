@@ -1,17 +1,40 @@
 ---
-title: Confirmer (webhook)
-description: Webhook provider pour confirmer ou échouer un paiement.
+title: Confirmer un paiement (webhook)
+description: Webhook provider pour confirmer ou échouer un paiement — endpoint public.
+api: POST /api/v1/payments/{payment_uuid}/confirm
+authMethod: none
 ---
 
+# Confirmer un paiement (webhook)
 
-# Confirmer (webhook)
+Endpoint appelé par le **provider de paiement** (Mobile Money, carte) pour confirmer ou échouer un paiement. Cet endpoint est **public** — la sécurité repose sur l'isolation réseau et/ou une signature provider (roadmap).
 
-`POST /api/v1/payments/{payment_uuid}/confirm`
+<Warning>
+  L'app mobile **n'appelle jamais** cet endpoint. Elle polle le statut via `GET /payments/{uuid}`.
+</Warning>
 
-Endpoint appelé par le **provider de paiement** (Mobile Money, carte) pour confirmer ou échouer un paiement. Cet endpoint est **public** (`@unauthenticated`) — la sécurité repose sur l'isolation réseau et/ou une signature provider (roadmap).
+## Paramètres
 
-```bash
-curl -X POST https://api.korabus.app/api/v1/payments/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80/confirm \
+<ParamField path="payment_uuid" type="UUID" required>
+  UUID du paiement (route model binding sur colonne `uuid`).
+</ParamField>
+
+<ParamField body="status" type="string" required>
+  `success`, `confirmed`, ou `failed`.
+</ParamField>
+
+<ParamField body="provider_reference" type="string">
+  Référence provider (ex: `MM-98270341`). Max 255.
+</ParamField>
+
+<ParamField body="provider_payload" type="object">
+  Payload brut du provider pour audit (tableau associatif).
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X POST https://staging.koraexpress.app/api/v1/payments/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80/confirm \
   -H 'Content-Type: application/json' \
   -d '{
     "status": "success",
@@ -20,24 +43,24 @@ curl -X POST https://api.korabus.app/api/v1/payments/9b1deb4d-3b7d-4bad-9bdd-2b0
   }'
 ```
 
-```javascript
+```javascript JavaScript
 // Côté serveur backend (webhook handler) — pas côté app mobile
-const res = await fetch(`https://api.korabus.app/api/v1/payments/${paymentUuid}/confirm`, {
+const res = await fetch(`https://staging.koraexpress.app/api/v1/payments/${paymentUuid}/confirm`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ status: 'success', provider_reference: 'MM-98270341', provider_payload: { transaction_id: 'TXN-12345' } }),
 });
 ```
 
-```typescript
-const res = await fetch(`https://api.korabus.app/api/v1/payments/${paymentUuid}/confirm`, {
+```typescript TypeScript
+const res = await fetch(`https://staging.koraexpress.app/api/v1/payments/${paymentUuid}/confirm`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ status: 'success', provider_reference, provider_payload } satisfies PaymentConfirmRequest),
+  body: JSON.stringify({ status: 'success', provider_reference, provider_payload } satisfies ConfirmPaymentRequest),
 });
 ```
 
-```dart
+```dart Dart
 // Côté serveur backend uniquement — pas appelé depuis l'app mobile
 final res = await dio.post('/api/v1/payments/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80/confirm', data: {
   'status': 'success',
@@ -46,9 +69,11 @@ final res = await dio.post('/api/v1/payments/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb8
 });
 ```
 
-**Réponse (200) :**
+</RequestExample>
 
-```json
+<ResponseExample>
+
+```json 200
 {
   "status": "confirmed",
   "payment_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80",
@@ -57,16 +82,31 @@ final res = await dio.post('/api/v1/payments/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb8
 }
 ```
 
-### Paramètres
+</ResponseExample>
 
-| Champ | Type | Requis | Description |
-|-------|------|--------|-------------|
-| `payment_uuid` | UUID (path) | ✅ | UUID du paiement. |
-| `status` | string | ✅ | `success`, `confirmed`, ou `failed`. |
-| `provider_reference` | string | ❌ | Référence provider (ex: `MM-98270341`). |
-| `provider_payload` | object | ❌ | Payload brut du provider pour audit. |
+## Réponse
 
-### Codes de réponse
+<ResponseField name="status" type="string" required>
+  Statut final du paiement : `pending`, `confirmed`, `failed`, `cancelled`, ou `refunded`.
+</ResponseField>
+<ResponseField name="payment_uuid" type="UUID" required>
+  UUID du paiement confirmé.
+</ResponseField>
+<ResponseField name="reservation_uuid" type="UUID">
+  UUID de la réservation associée ou `null`.
+</ResponseField>
+<ResponseField name="reservation_status" type="string">
+  Statut final de la réservation (`held`, `confirmed`, `paid`, `ticketed`, `boarded`, `cancelled`, `expired`) ou `null`.
+</ResponseField>
+
+## Effets sur la réservation
+
+| `status` webhook | Réservation | Paiement | Billet |
+|------------------|-------------|----------|--------|
+| `success` / `confirmed` | `held` → `paid` | `pending` → `confirmed` | Émis (MECeF) |
+| `failed` | reste `held` (jusqu'à expiration) | `pending` → `failed` | Non émis |
+
+## Codes de réponse
 
 | Code | Description |
 |------|-------------|
@@ -75,17 +115,9 @@ final res = await dio.post('/api/v1/payments/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb8
 | `404` | Paiement introuvable. |
 
 <Warning>
-  Si le webhook arrive **après l'expiration** du hold, le backend conserve la réservation à `expired`, libère les segments et marque le paiement `failed` avec `provider_payload.rejection_reason = reservation_expired`. Une réservation expirée n'est **jamais** réactivée.
+  Si le webhook arrive **après l'expiration** du hold, le backend conserve la réservation à `expired`, libère les segments et marque le paiement `failed`. Une réservation expirée n'est **jamais** réactivée.
 </Warning>
 
 <Note>
-  **Sécurité** : Cet endpoint est public. Une signature HMAC provider est prévue en roadmap pour authentifier les webhooks. En attendant, l'isolation réseau (VPN, IP allowlist) protège l'endpoint en production.
+  **Sécurité** : Une signature HMAC provider est prévue en roadmap. En attendant, l'isolation réseau (VPN, IP allowlist) protège l'endpoint en production.
 </Note>
-
-<Info>
-  Le `provider_payload` est stocké tel quel pour audit et débogage. Il ne doit pas contenir de données sensibles (PIN, CVV).
-</Info>
-
-<Card title="Cycle de vie d'un paiement" href="/guides/payment-lifecycle" icon="arrow-right" iconType="solid">
-  Consultez le **guide complet** du parcours paiement.
-</Card>

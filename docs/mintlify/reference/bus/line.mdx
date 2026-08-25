@@ -1,0 +1,90 @@
+---
+title: Consulter une ligne
+description: Retourne le détail d'une ligne avec ses arrêts ordonnés.
+api: GET /api/v1/bus/lines/{uuid}
+authMethod: none
+---
+
+# Consulter une ligne
+
+Retourne le détail d'une ligne avec ses arrêts ordonnés (relation `stops` chargée).
+
+## Paramètres
+
+<ParamField path="uuid" type="UUID" required>
+  UUID de la ligne.
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X GET https://staging.koraexpress.app/api/v1/bus/lines/6ff8f7f6-1eb3-3525-be4a-3932c805afed \
+  -H 'Accept: application/json'
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/bus/lines/6ff8f7f6-1eb3-3525-be4a-3932c805afed');
+const { data } = await res.json();
+```
+
+```typescript TypeScript
+const res = await fetch(`https://staging.koraexpress.app/api/v1/bus/lines/${lineUuid}`);
+const data: Line = (await res.json()).data;
+```
+
+```dart Dart
+final res = await dio.get('/api/v1/bus/lines/6ff8f7f6-1eb3-3525-be4a-3932c805afed');
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "data": {
+    "uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
+    "code": "CTO-ABJ-001",
+    "name": "Cotonou - Abidjan",
+    "type": "internationale",
+    "countries_crossed": ["Bénin", "Togo", "Ghana", "Côte d'Ivoire"],
+    "distance_km": 523,
+    "estimated_duration_minutes": 480,
+    "status": "active",
+    "stops": [
+      { "uuid": "6b72fe4a-5b40-307c-bc24-f79acf9a1bb9", "name": "Cotonou · St Michel", "city": "Cotonou", "country": "Bénin", "stop_order": 1, "km_from_origin": 0.0 },
+      { "uuid": "7c83ef5b-6c51-418d-9f30-a1b2c3d4e5f6", "name": "Bohicon · Gare", "city": "Bohicon", "country": "Bénin", "stop_order": 2, "km_from_origin": 120.0 },
+      { "uuid": "8d94f06c-7d62-529e-de46-9bce1cbc3dd1", "name": "Abidjan · Treichville", "city": "Abidjan", "country": "Côte d'Ivoire", "stop_order": 8, "km_from_origin": 523.0 }
+    ]
+  }
+}
+```
+
+</ResponseExample>
+
+## Réponse
+
+<ResponseField name="data" type="Line" required>
+  <ResponseField name="uuid" type="UUID" required>Identifiant de la ligne.</ResponseField>
+  <ResponseField name="code" type="string" required>Code de la ligne.</ResponseField>
+  <ResponseField name="name" type="string" required>Nom de la ligne.</ResponseField>
+  <ResponseField name="type" type="string" required>`nationale`, `internationale`, ou `regionale`.</ResponseField>
+  <ResponseField name="countries_crossed" type="string[]">Pays traversés.</ResponseField>
+  <ResponseField name="distance_km" type="integer">Distance en km ou `null`.</ResponseField>
+  <ResponseField name="estimated_duration_minutes" type="integer">Durée estimée en minutes ou `null`.</ResponseField>
+  <ResponseField name="status" type="string" required>`active`, `draft`, ou `archived`.</ResponseField>
+  <ResponseField name="stops" type="Stop[]" required>Arrêts ordonnés.</ResponseField>
+  <ResponseField name="stops[].uuid" type="UUID" required>UUID de l'arrêt.</ResponseField>
+  <ResponseField name="stops[].name" type="string" required>Nom de l'arrêt.</ResponseField>
+  <ResponseField name="stops[].city" type="string" required>Ville.</ResponseField>
+  <ResponseField name="stops[].country" type="string" required>Pays.</ResponseField>
+  <ResponseField name="stops[].stop_order" type="integer" required>Ordre dans la ligne.</ResponseField>
+  <ResponseField name="stops[].km_from_origin" type="number" required>Distance depuis l'origine en km.</ResponseField>
+</ResponseField>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `200` | Détail de la ligne. |
+| `404` | Ligne introuvable. |

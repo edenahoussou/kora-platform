@@ -1,0 +1,74 @@
+---
+title: Consulter les préférences
+description: Retourne les préférences utilisateur (notifications, langue, thème).
+api: GET /api/v1/auth/preferences
+---
+
+# Consulter les préférences
+
+Retourne les préférences de l'utilisateur authentifié via `UserPreferenceResource`. Si aucune préférence n'existe, les valeurs par défaut sont retournées.
+
+<RequestExample>
+
+```bash cURL
+curl -X GET https://staging.koraexpress.app/api/v1/auth/preferences \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Accept: application/json'
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/auth/preferences', {
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+const { data } = await res.json();
+```
+
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/auth/preferences', {
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+const data: UserPreferences = (await res.json()).data;
+```
+
+```dart Dart
+final res = await authDio.get('/api/v1/auth/preferences');
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "data": {
+    "push_notifications": true,
+    "whatsapp_notifications": true,
+    "email_notifications": true,
+    "locale": "fr",
+    "theme": "light"
+  }
+}
+```
+
+</ResponseExample>
+
+## Réponse
+
+<ResponseField name="data" type="object" required>
+  <ResponseField name="push_notifications" type="boolean" required>Notifications push activées.</ResponseField>
+  <ResponseField name="whatsapp_notifications" type="boolean" required>Notifications WhatsApp activées.</ResponseField>
+  <ResponseField name="email_notifications" type="boolean" required>Notifications email activées.</ResponseField>
+  <ResponseField name="locale" type="string" required>Langue : `fr` ou `en`.</ResponseField>
+  <ResponseField name="theme" type="string" required>Thème : `light`, `dark`, ou `system`.</ResponseField>
+</ResponseField>
+
+## Valeurs par défaut
+
+Si l'utilisateur n'a jamais modifié ses préférences : `push_notifications: true`, `whatsapp_notifications: true`, `email_notifications: true`, `locale: "fr"`, `theme: "light"`.
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `200` | Préférences retournées. |
+| `401` | Token absent ou invalide. |

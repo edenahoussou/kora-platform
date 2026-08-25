@@ -1,0 +1,83 @@
+---
+title: Lister les appareils
+description: Retourne les appareils de confiance liés au compte de l'utilisateur.
+api: GET /api/v1/auth/devices
+---
+
+# Lister les appareils
+
+Retourne la liste des appareils enregistrés sur le compte de l'utilisateur authentifié, via `UserDeviceResource`.
+
+<RequestExample>
+
+```bash cURL
+curl -X GET https://staging.koraexpress.app/api/v1/auth/devices \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Accept: application/json'
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/auth/devices', {
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+const { data } = await res.json();
+```
+
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/auth/devices', {
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+const data: UserDevice[] = (await res.json()).data;
+```
+
+```dart Dart
+final res = await authDio.get('/api/v1/auth/devices');
+final devices = res.data['data'] as List;
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "data": [
+    {
+      "uuid": "a3091549-9179-454e-8440-58179f2208df",
+      "name": "iPhone 15 Pro",
+      "platform": "ios",
+      "trusted_at": "2026-08-17T13:05:00.000Z",
+      "last_seen_at": "2026-08-17T13:05:00.000Z",
+      "status": "active"
+    },
+    {
+      "uuid": "b4102650-a280-4655-9551-69280321aaef",
+      "name": "Samsung Galaxy S24",
+      "platform": "android",
+      "trusted_at": "2026-08-17T13:10:00.000Z",
+      "last_seen_at": "2026-08-17T13:10:00.000Z",
+      "status": "active"
+    }
+  ]
+}
+```
+
+</ResponseExample>
+
+## Réponse
+
+<ResponseField name="data" type="UserDevice[]" required>
+  <ResponseField name="uuid" type="UUID" required>Identifiant unique de l'appareil.</ResponseField>
+  <ResponseField name="name" type="string" required>Nom de l'appareil.</ResponseField>
+  <ResponseField name="platform" type="string" required>`android`, `ios`, `web`, ou `unknown`.</ResponseField>
+  <ResponseField name="trusted_at" type="string">Date de confiance (ISO 8601) ou `null`.</ResponseField>
+  <ResponseField name="last_seen_at" type="string">Dernière activité (ISO 8601) ou `null`.</ResponseField>
+  <ResponseField name="status" type="string" required>`active` ou `revoked`.</ResponseField>
+</ResponseField>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `200` | Liste des appareils. |
+| `401` | Token absent ou invalide. |

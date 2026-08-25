@@ -31,7 +31,7 @@ expired  cancelled
 Après le hold, associez chaque voyageur à un siège :
 
 ```bash
-curl -X POST https://api.korabus.app/api/v1/bookings/9b1deb4d-.../passengers \
+curl -X POST https://staging.koraexpress.app/api/v1/bookings/9b1deb4d-.../passengers \
   -H 'Authorization: Bearer $TOKEN' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -60,7 +60,7 @@ Voir : [Passagers — Référence](/reference/booking/passengers).
 Le mobile ne doit **jamais** reconstruire la réservation depuis son état local. Après un crash, une mise en arrière-plan prolongée ou une réouverture d'app :
 
 ```bash
-curl -X GET https://api.korabus.app/api/v1/bookings/9b1deb4d-... \
+curl -X GET https://staging.koraexpress.app/api/v1/bookings/9b1deb4d-... \
   -H 'Authorization: Bearer $TOKEN'
 ```
 
@@ -88,7 +88,7 @@ La commande `bus:expire-holds` s'exécute chaque minute pour passer les réserva
 Si le passager abandonne avant le paiement :
 
 ```bash
-curl -X DELETE https://api.korabus.app/api/v1/holds/9b1deb4d-... \
+curl -X DELETE https://staging.koraexpress.app/api/v1/holds/9b1deb4d-... \
   -H 'Authorization: Bearer $TOKEN'
 ```
 

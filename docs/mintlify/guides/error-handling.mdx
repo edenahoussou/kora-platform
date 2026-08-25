@@ -63,7 +63,7 @@ L'API KORA BUS utilise une structure d'erreur uniforme. Tous les clients mobiles
   <Step title="Identifiants invalides">
 
 ```bash
-curl -X POST https://api.korabus.app/api/v1/auth/login \
+curl -X POST https://staging.koraexpress.app/api/v1/auth/login \
   -H 'Content-Type: application/json' \
   -d '{ "email": "wrong@korabus.app", "pin": "0000", "device_name": "Test", "platform": "ios", "device_fingerprint": "abc" }'
 ```

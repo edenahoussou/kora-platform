@@ -1,0 +1,105 @@
+---
+title: Vérifier un OTP
+description: Valide le code OTP saisi et retourne un verification_token à usage unique.
+api: POST /api/v1/auth/otp/verify
+authMethod: none
+---
+
+# Vérifier un OTP
+
+Valide le code OTP à 6 chiffres saisi par l'utilisateur. Retourne un `verification_token` (64 caractères) à usage unique, à transmettre à l'action suivante (inscription, reset PIN, unlock).
+
+## Paramètres
+
+<ParamField body="otp_challenge_uuid" type="UUID" required>
+  UUID retourné par `otp/request`.
+</ParamField>
+
+<ParamField body="purpose" type="string" required>
+  Doit correspondre au `purpose` de la demande. Valeurs : `registration`, `login_new_device`, `pin_reset`, `account_unlock`.
+</ParamField>
+
+<ParamField body="code" type="string" required>
+  Code OTP à 6 chiffres exactement.
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X POST https://staging.koraexpress.app/api/v1/auth/otp/verify \
+  -H 'Content-Type: application/json' \
+  -d '{ "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed", "purpose": "registration", "code": "569775" }'
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/auth/otp/verify', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ otp_challenge_uuid: challengeUuid, purpose: 'registration', code: '569775' }),
+});
+const { data } = await res.json();
+```
+
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/auth/otp/verify', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ otp_challenge_uuid, purpose, code } satisfies VerifyOtp),
+});
+const data: OtpVerification = (await res.json()).data;
+```
+
+```dart Dart
+final res = await dio.post('/api/v1/auth/otp/verify', data: {
+  'otp_challenge_uuid': challengeUuid,
+  'purpose': 'registration',
+  'code': '569775',
+});
+final verificationToken = res.data['data']['verification_token'];
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "data": {
+    "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
+    "purpose": "registration",
+    "verification_token": "gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn"
+  }
+}
+```
+
+```json 422 — OTP expiré
+{ "error": { "code": "otp_expired", "message": "Le code OTP a expiré. Demandez un nouveau code." } }
+```
+
+```json 422 — OTP invalide
+{ "error": { "code": "otp_invalid", "message": "Le code OTP est incorrect." } }
+```
+
+</ResponseExample>
+
+## Réponse
+
+<ResponseField name="data" type="object" required>
+  <ResponseField name="otp_challenge_uuid" type="UUID" required>
+    UUID du challenge vérifié.
+  </ResponseField>
+  <ResponseField name="purpose" type="string" required>
+    Contexte de la demande.
+  </ResponseField>
+  <ResponseField name="verification_token" type="string" required>
+    Token à usage unique (64 caractères) pour l'action suivante.
+  </ResponseField>
+</ResponseField>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `200` | OTP vérifié — `verification_token` retourné. |
+| `422` | `otp_expired`, `otp_invalid`, ou validation échouée. |
+| `429` | Rate limit `auth-otp` dépassé (3/min). |

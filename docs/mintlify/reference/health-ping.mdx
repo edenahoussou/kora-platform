@@ -1,0 +1,39 @@
+---
+title: Ping
+description: Probe de liveness minimal — retourne 204 si le processus répond.
+api: GET /api/v1/health/ping
+authMethod: none
+---
+
+# Ping
+
+Probe de liveness minimal. Retourne `204 No Content` sans vérifier les services. Utilisé pour vérifier que le processus répond rapidement.
+
+<RequestExample>
+
+```bash cURL
+curl -X GET https://staging.koraexpress.app/api/v1/health/ping -w "%{http_code}"
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/health/ping');
+console.log(res.status); // 204
+```
+
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/health/ping');
+// res.status === 204, pas de body
+```
+
+```dart Dart
+final res = await dio.get('/api/v1/health/ping');
+print(res.statusCode); // 204
+```
+
+</RequestExample>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `204` | Processus vivant — pas de body. |

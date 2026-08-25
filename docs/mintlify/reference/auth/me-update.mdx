@@ -1,0 +1,98 @@
+---
+title: Modifier le profil
+description: Met à jour le profil de l'utilisateur authentifié.
+api: PUT /api/v1/auth/me
+---
+
+# Modifier le profil
+
+Met à jour le profil de l'utilisateur authentifié. `name` et `email` sont requis ; les autres champs sont optionnels.
+
+## Paramètres
+
+<ParamField body="name" type="string" required>
+  Nom complet (max 120).
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  Email (format RFC, max 255, unique hors utilisateur courant).
+</ParamField>
+
+<ParamField body="phone" type="string">
+  Téléphone (max 20).
+</ParamField>
+
+<ParamField body="country_code" type="string">
+  Code pays (max 4).
+</ParamField>
+
+<ParamField body="birth_date" type="string">
+  Date de naissance `YYYY-MM-DD` (avant aujourd'hui).
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X PUT https://staging.koraexpress.app/api/v1/auth/me \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Content-Type: application/json' \
+  -d '{ "name": "Aïcha Hounkpè", "email": "passager@korabus.app", "phone": "+2290197421860", "country_code": "BJ", "birth_date": "1994-04-18" }'
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/auth/me', {
+  method: 'PUT',
+  headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ name: 'Aïcha Hounkpè', email: 'passager@korabus.app', phone: '+2290197421860', country_code: 'BJ', birth_date: '1994-04-18' }),
+});
+```
+
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/auth/me', {
+  method: 'PUT',
+  headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ name, email, phone, country_code, birth_date } satisfies UpdateProfileRequest),
+});
+```
+
+```dart Dart
+await authDio.put('/api/v1/auth/me', data: {
+  'name': 'Aïcha Hounkpè',
+  'email': 'passager@korabus.app',
+  'phone': '+2290197421860',
+  'country_code': 'BJ',
+  'birth_date': '1994-04-18',
+});
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "data": {
+    "user": {
+      "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
+      "name": "Aïcha Hounkpè",
+      "email": "passager@korabus.app",
+      "phone": "+2290197421860",
+      "country_code": "BJ",
+      "birth_date": "1994-04-18",
+      "avatar_url": null,
+      "status": "active",
+      "permissions": ["bookings.create", "bookings.view-own", "tickets.view"]
+    }
+  }
+}
+```
+
+</ResponseExample>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `200` | Profil mis à jour. |
+| `401` | Token absent ou invalide. |
+| `422` | Validation échouée (email déjà utilisé, format invalide, etc.). |

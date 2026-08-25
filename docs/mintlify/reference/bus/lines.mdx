@@ -1,33 +1,42 @@
 ---
-title: Lignes
-description: Lister les lignes de bus et consulter le détail d'une ligne.
+title: Lister les lignes
+description: Retourne les lignes actives, filtrables par segment origine/destination.
+api: GET /api/v1/bus/lines
+authMethod: none
 ---
 
+# Lister les lignes
 
-# Lignes
+Retourne les lignes actives, filtrables par segment origine/destination. Chaque ligne contient ses arrêts ordonnés si la relation est chargée.
 
-## Lister les lignes
+## Paramètres
 
-`GET /api/v1/bus/lines`
+<ParamField query="from" type="string">
+  Ville d'origine (filtre, max 120).
+</ParamField>
 
-Retourne les lignes actives, filtrables par segment origine/destination. Chaque ligne contient ses arrêts ordonnés.
+<ParamField query="to" type="string">
+  Ville de destination (filtre, max 120).
+</ParamField>
 
-```bash
-curl -X GET 'https://api.korabus.app/api/v1/bus/lines?from=Cotonou&to=Abidjan' \
+<RequestExample>
+
+```bash cURL
+curl -X GET 'https://staging.koraexpress.app/api/v1/bus/lines?from=Cotonou&to=Abidjan' \
   -H 'Accept: application/json'
 ```
 
-```javascript
-const res = await fetch('https://api.korabus.app/api/v1/bus/lines?from=Cotonou&to=Abidjan');
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/bus/lines?from=Cotonou&to=Abidjan');
 const { data } = await res.json();
 ```
 
-```typescript
-const res = await fetch('https://api.korabus.app/api/v1/bus/lines?from=Cotonou&to=Abidjan');
-const data: KoraLine[] = (await res.json()).data;
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/bus/lines?from=Cotonou&to=Abidjan');
+const data: Line[] = (await res.json()).data;
 ```
 
-```dart
+```dart Dart
 final res = await dio.get('/api/v1/bus/lines', queryParameters: {
   'from': 'Cotonou',
   'to': 'Abidjan',
@@ -35,66 +44,51 @@ final res = await dio.get('/api/v1/bus/lines', queryParameters: {
 final lines = res.data['data'] as List;
 ```
 
-**Réponse (200) :**
+</RequestExample>
 
-```json
+<ResponseExample>
+
+```json 200
 {
   "data": [
     {
       "uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-      "code": "COT-ABJ",
-      "name": "Cotonou — Abidjan",
-      "countries_crossed": ["BJ", "CI"],
-      "distance_km": 1050.5,
+      "code": "CTO-ABJ-001",
+      "name": "Cotonou - Abidjan",
+      "type": "internationale",
+      "countries_crossed": ["Bénin", "Togo", "Ghana", "Côte d'Ivoire"],
+      "distance_km": 523,
       "estimated_duration_minutes": 480,
       "status": "active",
-      "stops": [
-        { "uuid": "6b72fe4a-...", "name": "Gare de Cotonou", "city": "Cotonou", "country": "BJ", "stop_order": 1, "km_from_origin": 0.0 },
-        { "uuid": "7c83ef5b-...", "name": "Gare de Bohicon", "city": "Bohicon", "country": "BJ", "stop_order": 2, "km_from_origin": 120.0 },
-        { "uuid": "8d94f06c-...", "name": "Gare d'Abidjan", "city": "Abidjan", "country": "CI", "stop_order": 3, "km_from_origin": 1050.5 }
-      ]
+      "stops": null
     }
   ]
 }
 ```
 
-### Paramètres
+</ResponseExample>
 
-| Champ | Type | Requis | Description |
-|-------|------|--------|-------------|
-| `from` | string (query) | ❌ | Ville d'origine (filtre). |
-| `to` | string (query) | ❌ | Ville de destination (filtre). |
+## Réponse
+
+<ResponseField name="data" type="Line[]" required>
+  <ResponseField name="uuid" type="UUID" required>Identifiant de la ligne.</ResponseField>
+  <ResponseField name="code" type="string" required>Code de la ligne.</ResponseField>
+  <ResponseField name="name" type="string" required>Nom de la ligne.</ResponseField>
+  <ResponseField name="type" type="string" required>`nationale`, `internationale`, ou `regionale`.</ResponseField>
+  <ResponseField name="countries_crossed" type="string[]">Pays traversés.</ResponseField>
+  <ResponseField name="distance_km" type="integer">Distance en km ou `null`.</ResponseField>
+  <ResponseField name="estimated_duration_minutes" type="integer">Durée estimée en minutes ou `null`.</ResponseField>
+  <ResponseField name="status" type="string" required>`active`, `draft`, ou `archived`.</ResponseField>
+  <ResponseField name="stops" type="Stop[]">Arrêts ordonnés (seulement si relation chargée) ou `null`.</ResponseField>
+</ResponseField>
+
+## Codes de réponse
 
 | Code | Description |
 |------|-------------|
 | `200` | Liste des lignes. |
-| `429` | Rate limit `bus-search` dépassé. |
+| `422` | Validation échouée. |
 
 <Warning>
   Conservez les `uuid` des arrêts d'origine et de destination — ils sont requis pour l'endpoint sièges et la création de devis.
 </Warning>
-
----
-
-## Consulter une ligne
-
-`GET /api/v1/bus/lines/{uuid}`
-
-```bash
-curl -X GET https://api.korabus.app/api/v1/bus/lines/6ff8f7f6-1eb3-3525-be4a-3932c805afed \
-  -H 'Accept: application/json'
-```
-
-```dart
-final res = await dio.get('/api/v1/bus/lines/6ff8f7f6-1eb3-3525-be4a-3932c805afed');
-```
-
-| Code | Description |
-|------|-------------|
-| `200` | Détail de la ligne. |
-| `404` | Ligne introuvable. |
-| `429` | Rate limit dépassé. |
-
-<Card title="Départs" href="/reference/bus/departures" icon="arrow-right" iconType="solid">
-  Recherchez les **départs** disponibles sur une ligne.
-</Card>

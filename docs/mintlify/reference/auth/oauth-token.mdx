@@ -1,0 +1,149 @@
+---
+title: OAuth sociale
+description: Échange un jeton provider (Google, Facebook, TikTok) contre une session KORA avec token Sanctum.
+api: POST /api/v1/auth/oauth/token
+authMethod: none
+---
+
+# OAuth sociale
+
+Les passagers peuvent créer un compte ou se connecter via **Google**, **Facebook** ou **TikTok** sans OTP. L'app mobile authentifie via le SDK natif, récupère un access token, et l'échange contre une session KORA.
+
+## Paramètres
+
+<ParamField body="provider" type="string" required>
+  Provider OAuth : `google`, `facebook`, ou `tiktok`.
+</ParamField>
+
+<ParamField body="provider_token" type="string" required>
+  Access token du provider (obtenu via le SDK natif, max 4096).
+</ParamField>
+
+<ParamField body="device_name" type="string" required>
+  Nom de l'appareil (max 120).
+</ParamField>
+
+<ParamField body="platform" type="string" required>
+  `android`, `ios`, `web`, ou `unknown`.
+</ParamField>
+
+<ParamField body="device_fingerprint" type="string" required>
+  Empreinte unique de l'appareil (min 16, max 255).
+</ParamField>
+
+<ParamField body="push_token" type="string">
+  Token push (FCM/APNs) (max 512).
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X POST https://staging.koraexpress.app/api/v1/auth/oauth/token \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "provider": "google",
+    "provider_token": "ya29.a0AfH6SMB...",
+    "device_name": "Samsung Galaxy S24",
+    "platform": "android",
+    "device_fingerprint": "f6e5d4c3b2a1f6e5d4c3b2a1f6e5"
+  }'
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/auth/oauth/token', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ provider: 'google', provider_token, device_name, platform, device_fingerprint }),
+});
+const { data } = await res.json();
+```
+
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/auth/oauth/token', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ provider, provider_token, device_name, platform, device_fingerprint } satisfies OAuthTokenRequest),
+});
+const data: AuthSession = (await res.json()).data;
+```
+
+```dart Dart
+// 1. Authentifier via le SDK natif Google
+final GoogleSignInAccount? account = await GoogleSignIn().signIn();
+final GoogleSignInAuthentication auth = await account!.authentication;
+
+// 2. Échanger contre une session KORA
+final res = await dio.post('/api/v1/auth/oauth/token', data: {
+  'provider': 'google',
+  'provider_token': auth.accessToken,
+  'device_name': 'Samsung Galaxy S24',
+  'platform': 'android',
+  'device_fingerprint': 'f6e5d4c3b2a1f6e5d4c3b2a1f6e5',
+});
+final token = res.data['data']['token'];
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 201 — Nouvel utilisateur
+{
+  "data": {
+    "token": "1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef",
+    "token_type": "Bearer",
+    "expires_at": "2026-08-27T13:05:00.000Z",
+    "user": {
+      "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
+      "name": "Aïcha Hounkpè",
+      "email": "aicha.hounkpe@gmail.com",
+      "phone": null,
+      "country_code": null,
+      "birth_date": null,
+      "avatar_url": "https://staging.koraexpress.app/media/avatars/123/thumb.jpg",
+      "status": "active",
+      "permissions": ["bookings.create", "bookings.view-own", "tickets.view"]
+    },
+    "device": {
+      "uuid": "a3091549-9179-454e-8440-58179f2208df",
+      "name": "Samsung Galaxy S24",
+      "platform": "android",
+      "trusted_at": "2026-08-17T13:05:00.000Z",
+      "last_seen_at": "2026-08-17T13:05:00.000Z",
+      "status": "active"
+    }
+  }
+}
+```
+
+```json 422 — Jeton invalide
+{ "error": { "code": "invalid_oauth_token", "message": "Le jeton OAuth fourni n'est pas valide ou a expiré." } }
+```
+
+```json 422 — Email manquant
+{ "error": { "code": "email_required", "message": "Le fournisseur OAuth n'a pas retourné d'adresse email." } }
+```
+
+```json 403 — Compte suspendu
+{ "error": { "code": "account_suspended", "message": "Le compte est suspendu. Contactez le support." } }
+```
+
+</ResponseExample>
+
+## Providers supportés
+
+| Provider | Valeur `provider` | SDK Flutter |
+|----------|-------------------|------------|
+| Google | `google` | `google_sign_in` |
+| Facebook | `facebook` | `flutter_facebook_auth` |
+| TikTok | `tiktok` | `tiktok_login` |
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `201` | Nouvel utilisateur créé — token émis. |
+| `200` | Utilisateur existant connecté — token émis. |
+| `403` | `account_suspended`. |
+| `422` | `invalid_oauth_token`, `email_required`, ou validation échouée. |
+| `429` | Rate limit `auth-login` dépassé (5/min). |

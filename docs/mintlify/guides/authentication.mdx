@@ -17,7 +17,7 @@ Une alternative **OAuth sociale** (Google, Facebook, TikTok) est disponible pour
     L'utilisateur saisit son email. L'API envoie un code OTP à 6 chiffres par email et retourne un `otp_challenge_uuid`.
 
 ```bash
-curl -X POST https://api.korabus.app/api/v1/auth/otp/request \
+curl -X POST https://staging.koraexpress.app/api/v1/auth/otp/request \
   -H 'Content-Type: application/json' \
   -d '{ "email": "passager@korabus.app", "purpose": "registration" }'
 ```
@@ -50,7 +50,7 @@ Voir la référence : [OTP — Demander](/reference/auth/otp).
     L'utilisateur saisit le code reçu. L'API retourne un `verification_token` à usage unique.
 
 ```bash
-curl -X POST https://api.korabus.app/api/v1/auth/otp/verify \
+curl -X POST https://staging.koraexpress.app/api/v1/auth/otp/verify \
   -H 'Content-Type: application/json' \
   -d '{ "otp_challenge_uuid": "6ff8f7f6-...", "purpose": "registration", "code": "569775" }'
 ```
@@ -71,7 +71,7 @@ Voir la référence : [OTP — Vérifier](/reference/auth/otp).
     L'utilisateur choisit un PIN à 4 chiffres et enregistre son appareil. L'API crée le compte et émet un token Sanctum.
 
 ```bash
-curl -X POST https://api.korabus.app/api/v1/auth/register/complete \
+curl -X POST https://staging.koraexpress.app/api/v1/auth/register/complete \
   -H 'Content-Type: application/json' \
   -d '{
     "otp_challenge_uuid": "6ff8f7f6-...",
@@ -116,7 +116,7 @@ Voir la référence : [Sessions & PIN](/reference/auth/sessions).
     Si l'utilisateur a déjà un compte, il se connecte avec email + PIN. Si c'est un **nouvel appareil**, l'API exige un OTP supplémentaire.
 
 ```bash
-curl -X POST https://api.korabus.app/api/v1/auth/login \
+curl -X POST https://staging.koraexpress.app/api/v1/auth/login \
   -H 'Content-Type: application/json' \
   -d '{ "email": "passager@korabus.app", "pin": "9775", "device_name": "Samsung S24", "platform": "android", "device_fingerprint": "f6e5d4c3b2a1" }'
 ```
@@ -143,7 +143,7 @@ Voir la référence : [Sessions & PIN](/reference/auth/sessions).
     Tous les endpoints protégés requièrent le header `Authorization: Bearer <token>`.
 
 ```bash
-curl -X GET https://api.korabus.app/api/v1/auth/me \
+curl -X GET https://staging.koraexpress.app/api/v1/auth/me \
   -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
   -H 'Accept: application/json'
 ```
@@ -163,7 +163,7 @@ Voir la référence : [Profil](/reference/auth/profile).
 Les passagers peuvent créer un compte ou se connecter via **Google**, **Facebook** ou **TikTok** sans saisir d'email ni d'OTP. L'app mobile utilise le SDK natif du provider, récupère un access token, et l'échange contre une session KORA.
 
 ```bash
-curl -X POST https://api.korabus.app/api/v1/auth/oauth/token \
+curl -X POST https://staging.koraexpress.app/api/v1/auth/oauth/token \
   -H 'Content-Type: application/json' \
   -d '{
     "provider": "google",
@@ -232,7 +232,7 @@ L'utilisateur peut configurer ses notifications (push, WhatsApp, email), sa lang
 ## Déconnexion
 
 ```bash
-curl -X POST https://api.korabus.app/api/v1/auth/logout \
+curl -X POST https://staging.koraexpress.app/api/v1/auth/logout \
   -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef'
 ```
 

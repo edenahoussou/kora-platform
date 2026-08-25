@@ -1,33 +1,46 @@
 ---
-title: Départs
-description: Rechercher des départs par date et segment, et consulter le détail d'un départ.
+title: Rechercher des départs
+description: Retourne les départs programmés pour une date et un segment.
+api: GET /api/v1/bus/departures
+authMethod: none
 ---
 
+# Rechercher des départs
 
-# Départs
+Retourne les départs programmés pour une date et un segment. Le paramètre `date` est **obligatoire** (format `YYYY-MM-DD`).
 
-## Rechercher des départs
+## Paramètres
 
-`GET /api/v1/bus/departures`
+<ParamField query="date" type="string" required>
+  Date de voyage `YYYY-MM-DD`.
+</ParamField>
 
-Retourne les départs programmés pour une date et un segment. Le paramètre `date` est **obligatoire**.
+<ParamField query="from" type="string">
+  Ville d'origine (filtre, max 120).
+</ParamField>
 
-```bash
-curl -X GET 'https://api.korabus.app/api/v1/bus/departures?date=2026-08-20&from=Cotonou&to=Abidjan' \
+<ParamField query="to" type="string">
+  Ville de destination (filtre, max 120).
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X GET 'https://staging.koraexpress.app/api/v1/bus/departures?date=2026-08-20&from=Cotonou&to=Abidjan' \
   -H 'Accept: application/json'
 ```
 
-```javascript
-const res = await fetch('https://api.korabus.app/api/v1/bus/departures?date=2026-08-20&from=Cotonou&to=Abidjan');
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/bus/departures?date=2026-08-20&from=Cotonou&to=Abidjan');
 const { data } = await res.json();
 ```
 
-```typescript
-const res = await fetch('https://api.korabus.app/api/v1/bus/departures?date=2026-08-20&from=Cotonou&to=Abidjan');
-const data: KoraDeparture[] = (await res.json()).data;
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/bus/departures?date=2026-08-20&from=Cotonou&to=Abidjan');
+const data: Departure[] = (await res.json()).data;
 ```
 
-```dart
+```dart Dart
 final res = await dio.get('/api/v1/bus/departures', queryParameters: {
   'date': '2026-08-20',
   'from': 'Cotonou',
@@ -36,9 +49,11 @@ final res = await dio.get('/api/v1/bus/departures', queryParameters: {
 final departures = res.data['data'] as List;
 ```
 
-**Réponse (200) :**
+</RequestExample>
 
-```json
+<ResponseExample>
+
+```json 200
 {
   "data": [
     {
@@ -49,32 +64,64 @@ final departures = res.data['data'] as List;
       "status": "scheduled",
       "line": {
         "uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-        "code": "COT-ABJ",
-        "name": "Cotonou — Abidjan"
+        "code": "CTO-ABJ-001",
+        "name": "Cotonou - Abidjan",
+        "type": "internationale",
+        "countries_crossed": ["Bénin", "Togo", "Ghana", "Côte d'Ivoire"],
+        "distance_km": 523,
+        "estimated_duration_minutes": 480,
+        "status": "active",
+        "stops": null
       },
       "bus": {
         "uuid": "b4102650-a280-4655-9551-69280321aaef",
         "registration_number": "BJ-2024-AB-1234",
         "brand": "Mercedes",
-        "model": "O500",
-        "seat_count": 49
+        "model": "Travego",
+        "seat_count": 52
       },
-      "origin_stop": { "uuid": "6b72fe4a-...", "name": "Gare de Cotonou", "city": "Cotonou" },
-      "destination_stop": { "uuid": "8d94f06c-...", "name": "Gare d'Abidjan", "city": "Abidjan" },
-      "available_seats_count": 32,
-      "fare_preview": { "amount": 15000, "currency": "XOF", "label": "15 000 FCFA" }
+      "origin_stop": {
+        "uuid": "6b72fe4a-5b40-307c-bc24-f79acf9a1bb9",
+        "name": "Cotonou · St Michel",
+        "city": "Cotonou",
+        "country": "Bénin",
+        "stop_order": 1,
+        "km_from_origin": 0.0
+      },
+      "destination_stop": {
+        "uuid": "8d94f06c-7d62-529e-de46-9bce1cbc3dd1",
+        "name": "Abidjan · Treichville",
+        "city": "Abidjan",
+        "country": "Côte d'Ivoire",
+        "stop_order": 8,
+        "km_from_origin": 523.0
+      },
+      "available_seats_count": 42,
+      "fare_preview": {}
     }
   ]
 }
 ```
 
-### Paramètres
+</ResponseExample>
 
-| Champ | Type | Requis | Description |
-|-------|------|--------|-------------|
-| `date` | string (query) | ✅ | Date de voyage `YYYY-MM-DD`. |
-| `from` | string (query) | ❌ | Ville d'origine. |
-| `to` | string (query) | ❌ | Ville de destination. |
+## Réponse
+
+<ResponseField name="data" type="Departure[]" required>
+  <ResponseField name="uuid" type="UUID" required>UUID du départ.</ResponseField>
+  <ResponseField name="departure_date" type="string" required>Date `YYYY-MM-DD`.</ResponseField>
+  <ResponseField name="departure_time" type="string" required>Heure `HH:MM`.</ResponseField>
+  <ResponseField name="estimated_arrival_at" type="string">Arrivée estimée (ISO 8601) ou `null`.</ResponseField>
+  <ResponseField name="status" type="string" required>`scheduled`, `boarding`, `departed`, `arrived`, ou `cancelled`.</ResponseField>
+  <ResponseField name="line" type="Line" required>Ligne du départ.</ResponseField>
+  <ResponseField name="bus" type="object" required>Bus assigné.</ResponseField>
+  <ResponseField name="origin_stop" type="Stop" required>Arrêt d'origine.</ResponseField>
+  <ResponseField name="destination_stop" type="Stop" required>Arrêt de destination.</ResponseField>
+  <ResponseField name="available_seats_count" type="integer" required>Sièges disponibles.</ResponseField>
+  <ResponseField name="fare_preview" type="object" required>Aperçu tarifaire indicatif.</ResponseField>
+</ResponseField>
+
+## Codes de réponse
 
 | Code | Description |
 |------|-------------|
@@ -83,30 +130,5 @@ final departures = res.data['data'] as List;
 | `429` | Rate limit `bus-search` dépassé. |
 
 <Info>
-  Le `fare_preview` est un **aperçu** indicatif. Le prix figé et contractuel s'obtient via `POST /api/v1/bus/quotes`. N'affichez pas de prix définitif côté client avant la réponse du devis.
+  Le `fare_preview` est un **aperçu** indicatif. Le prix figé et contractuel s'obtient via `POST /api/v1/bus/quotes`.
 </Info>
-
----
-
-## Consulter un départ
-
-`GET /api/v1/bus/departures/{uuid}`
-
-```bash
-curl -X GET https://api.korabus.app/api/v1/bus/departures/a3091549-9179-454e-8440-58179f2208df \
-  -H 'Accept: application/json'
-```
-
-```dart
-final res = await dio.get('/api/v1/bus/departures/a3091549-9179-454e-8440-58179f2208df');
-```
-
-| Code | Description |
-|------|-------------|
-| `200` | Détail du départ. |
-| `404` | Départ introuvable. |
-| `429` | Rate limit dépassé. |
-
-<Card title="Sièges" href="/reference/bus/seats" icon="arrow-right" iconType="solid">
-  Consultez la **disponibilité des sièges** par segment.
-</Card>

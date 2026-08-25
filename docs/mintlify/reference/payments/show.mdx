@@ -1,43 +1,51 @@
 ---
 title: Consulter un paiement
-description: Poller le statut d'un paiement en cours.
+description: Poller le statut d'un paiement en cours jusqu'à statut terminal.
+api: GET /api/v1/payments/{payment_uuid}
 ---
-
 
 # Consulter un paiement
 
-`GET /api/v1/payments/{payment_uuid}`
+Retourne le statut courant d'un paiement via `PaymentResource`. La relation `reservation` est **toujours chargée** dans cet endpoint (`loadMissing(['reservation.departure'])`). À poller après initiation jusqu'à obtention d'un statut terminal (`confirmed` ou `failed`).
 
-Retourne le statut courant d'un paiement. À poller après initiation jusqu'à obtention d'un statut terminal (`confirmed` ou `failed`).
+## Paramètres
 
-```bash
-curl -X GET https://api.korabus.app/api/v1/payments/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80 \
+<ParamField path="payment_uuid" type="UUID" required>
+  UUID du paiement (route model binding sur colonne `uuid`).
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X GET https://staging.koraexpress.app/api/v1/payments/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80 \
   -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
   -H 'Accept: application/json'
 ```
 
-```javascript
-const res = await fetch('https://api.korabus.app/api/v1/payments/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80', {
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/payments/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80', {
   headers: { 'Authorization': `Bearer ${token}` },
 });
 const { data } = await res.json();
 ```
 
-```typescript
-const res = await fetch(`https://api.korabus.app/api/v1/payments/${paymentUuid}`, {
+```typescript TypeScript
+const res = await fetch(`https://staging.koraexpress.app/api/v1/payments/${paymentUuid}`, {
   headers: { 'Authorization': `Bearer ${token}` },
 });
-const data: KoraPayment = (await res.json()).data;
+const data: Payment = (await res.json()).data;
 ```
 
-```dart
+```dart Dart
 final res = await authDio.get('/api/v1/payments/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80');
 final status = res.data['data']['status'];
 ```
 
-**Réponse (200) :**
+</RequestExample>
 
-```json
+<ResponseExample>
+
+```json 200
 {
   "data": {
     "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80",
@@ -46,31 +54,49 @@ final status = res.data['data']['status'];
     "currency": "XOF",
     "provider": "mtn_momo",
     "provider_reference": "MM-98270341",
-    "confirmed_at": "2026-08-20T08:05:00Z",
-    "expires_at": "2026-08-20T08:15:00Z",
+    "confirmed_at": "2026-08-20T08:05:00.000Z",
+    "expires_at": "2026-08-20T08:15:00.000Z",
     "polling_interval_seconds": 10,
     "reservation": {
       "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
       "status": "paid",
-      "departure_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e"
+      "departure_uuid": "a3091549-9179-454e-8440-58179f2208df"
     }
   }
 }
 ```
 
-### Paramètres
+</ResponseExample>
 
-| Champ | Type | Requis | Description |
-|-------|------|--------|-------------|
-| `payment_uuid` | UUID (path) | ✅ | UUID du paiement. |
+## Réponse
 
-### Statuts de paiement
+<ResponseField name="data" type="Payment" required>
+  <ResponseField name="uuid" type="UUID" required>UUID du paiement.</ResponseField>
+  <ResponseField name="status" type="string" required>`pending`, `confirmed`, `failed`, `cancelled`, ou `refunded`.</ResponseField>
+  <ResponseField name="amount" type="integer" required>Montant.</ResponseField>
+  <ResponseField name="currency" type="string" required>Devise.</ResponseField>
+  <ResponseField name="provider" type="string" required>Provider.</ResponseField>
+  <ResponseField name="provider_reference" type="string">Référence provider ou `null`.</ResponseField>
+  <ResponseField name="confirmed_at" type="string">Date de confirmation (ISO 8601) ou `null`.</ResponseField>
+  <ResponseField name="expires_at" type="string">Expiration du hold (ISO 8601) ou `null`.</ResponseField>
+  <ResponseField name="polling_interval_seconds" type="integer" required>Toujours `10`.</ResponseField>
+  <ResponseField name="reservation" type="object" required>Toujours présent dans cet endpoint (relation chargée via `loadMissing`).</ResponseField>
+  <ResponseField name="reservation.uuid" type="UUID" required>UUID de la réservation.</ResponseField>
+  <ResponseField name="reservation.status" type="string" required>`held`, `confirmed`, `paid`, `ticketed`, `boarded`, `cancelled`, ou `expired`.</ResponseField>
+  <ResponseField name="reservation.departure_uuid" type="UUID">UUID du départ ou `null`.</ResponseField>
+</ResponseField>
+
+## Statuts de paiement
 
 | Statut | Description |
 |--------|-------------|
 | `pending` | Paiement initié, en attente de confirmation provider |
 | `confirmed` | Paiement confirmé par le provider (webhook) |
 | `failed` | Paiement échoué ou réservation expirée avant confirmation |
+| `cancelled` | Paiement annulé |
+| `refunded` | Paiement remboursé |
+
+## Codes de réponse
 
 | Code | Description |
 |------|-------------|
@@ -82,7 +108,3 @@ final status = res.data['data']['status'];
 <Info>
   Pollez toutes les `polling_interval_seconds` (10s) jusqu'à statut terminal. Évitez un polling trop agressif pour respecter le rate limit.
 </Info>
-
-<Card title="Confirmer (webhook)" href="/reference/payments/confirm" icon="arrow-right" iconType="solid">
-  Le **webhook provider** confirme ou échoue le paiement.
-</Card>
