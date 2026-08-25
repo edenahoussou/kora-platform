@@ -1,0 +1,220 @@
+---
+title: Concepts clés
+description: Vocabulaire métier KORA BUS — départs, segments, devis, blocages, réservations, paiements et billets.
+---
+
+import { Card, CardGroup, Steps } from '@mintlify/components';
+
+# Concepts clés
+
+Avant d'intégrer l'API KORA BUS, familiarisez-vous avec le vocabulaire métier. Ces concepts structurent toutes les requêtes et réponses de l'API.
+
+## Le produit KORA BUS
+
+**KORA BUS** est la plateforme de transport interurbain du MVP validé. Elle couvre la vente de billets de bus de bout en bout : recherche, réservation, paiement, billet, fiscalisation, exploitation et embarquement.
+
+<CardGroup cols={2}>
+  <Card title="KORA App Passager" icon="smartphone" href="/quickstart">
+    Application mobile client (Flutter). Dans le MVP, elle porte le parcours passager Bus : rechercher un départ, réserver, payer, consulter un billet et suivre le bus.
+  </Card>
+  <Card title="KORA OPS Mobile / P501" icon="bus-front">
+    Application terrain interne (Android/P501) pour chauffeurs, convoyeurs et agences : planning, manifeste, scan, impression, descente anticipée et mode hors ligne.
+  </Card>
+  <Card title="KORA OPS Web" icon="layout-dashboard">
+    ERP web interne pour les référentiels Bus, départs, ventes guichet, tarifs, caisses, fiscalisation, supervision et audit.
+  </Card>
+  <Card title="API REST V1" icon="code" href="/reference/introduction">
+    L'API documentée ici. Elle expose les endpoints consommés par les applications mobiles et les intégrations tierces.
+  </Card>
+</CardGroup>
+
+<Note>
+  **Périmètre MVP** : L'API V1 expose actuellement les domaines **Auth**, **Catalogue Bus**, **Devis & Holds**, **Réservations**, **Paiements** et **Health**. Les modules Ride, Wallet, Colis, KORA POINT et la comptabilité SYSCOHADA complète sont hors MVP.
+</Note>
+
+## Concepts métier
+
+### Départ
+
+Un **départ** est une rotation planifiée d'un bus sur une ligne, à une date et une heure données. C'est l'unité de base que recherche un passager.
+
+```json
+{
+  "uuid": "a3091549-9179-454e-8440-58179f2208df",
+  "departure_date": "2026-08-20",
+  "departure_time": "06:00",
+  "estimated_arrival_at": "2026-08-20T14:00:00.000Z",
+  "status": "scheduled",
+  "line": {
+    "code": "COT-ABJ",
+    "name": "Cotonou — Abidjan"
+  },
+  "available_seats_count": 32
+}
+```
+
+<Warning>
+  Évitez les termes « voyage » ou « trajet ». Le vocabulaire officiel est **départ**.
+</Warning>
+
+### Ligne
+
+Une **ligne** est un itinéraire fixe entre plusieurs arrêts, identifiée par un code (ex: `COT-ABJ`). Une ligne contient une liste ordonnée d'arrêts.
+
+```json
+{
+  "uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
+  "code": "COT-ABJ",
+  "name": "Cotonou — Abidjan",
+  "stops": [
+    { "name": "Gare de Cotonou", "city": "Cotonou", "stop_order": 1 },
+    { "name": "Gare de Bohicon", "city": "Bohicon", "stop_order": 2 },
+    { "name": "Gare d'Abidjan", "city": "Abidjan", "stop_order": 3 }
+  ]
+}
+```
+
+### Arrêt
+
+Un **arrêt** est un point d'arrêt sur une ligne (gare, station). Chaque arrêt a un `stop_order` (position sur la ligne) et un `km_from_origin` (distance depuis l'origine).
+
+### Segment O/D
+
+Un **segment O/D** (Origine/Destination) est la portion de trajet comprise entre un arrêt d'origine et un arrêt de destination sur un départ. KORA BUS vend des **segments**, pas des départs complets.
+
+```
+Ligne Cotonou — Abidjan (3 arrêts)
+  Cotonou ──── Bohicon ──── Abidjan
+  stop_order 1    2             3
+
+Segment possible : Cotonou → Bohicon
+Segment possible : Bohicon → Abidjan
+Segment possible : Cotonou → Abidjan (départ complet)
+```
+
+<Info>
+  Un même siège peut être vendu plusieurs fois sur un départ, tant que les segments ne se chevauchent pas. Voir le guide [Sélection de sièges](/guides/seat-selection).
+</Info>
+
+### Siège
+
+Un **siège** est identifié par un code (ex: `4A`) et un type (`standard`, `aisle`). Sa disponibilité dépend du segment O/D demandé.
+
+| Statut | Description |
+|--------|-------------|
+| `available` | Libre sur le segment demandé |
+| `occupied` | Réservé sur le segment demandé |
+| `blocked` | Bloqué (maintenance, équipage, segment chevauchant) |
+
+### Devis tarifaire
+
+Un **devis** est un prix final calculé côté serveur pour une demande de réservation, **figé** pendant une durée limitée (`KORA_QUOTE_TTL_MINUTES`, 10 minutes par défaut). Le mobile doit créer un devis avant de bloquer des sièges.
+
+```json
+{
+  "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+  "final_amount": 12500,
+  "currency": "XOF",
+  "passenger_count": 1,
+  "total_amount": 12500,
+  "expires_at": "2026-08-20T08:10:00Z"
+}
+```
+
+<Warning>
+  Le `fare_preview` retourné avec un départ est un **aperçu** indicatif. Le prix figé et contractuel s'obtient uniquement via `POST /api/v1/bus/quotes`. N'affichez jamais un prix définitif côté client avant la réponse du devis.
+</Warning>
+
+### Blocage de siège (Hold)
+
+Un **hold** est une réservation temporaire qui empêche une vente concurrente pendant le paiement, avec **expiration serveur** (`KORA_HOLD_TTL_MINUTES`, 15 minutes par défaut). Le hold démarre uniquement quand le passager confirme ses sièges — pas pendant la simple consultation du plan.
+
+### Réservation
+
+Une **réservation** est l'entité qui regroupe un départ, un segment, des sièges, des voyageurs et un montant. Elle passe par plusieurs statuts :
+
+<Steps>
+  <Step title="held">
+    Sièges bloqués, en attente de paiement. Expire automatiquement si non payée à temps.
+  </Step>
+  <Step title="confirmed">
+    Réservation confirmée (passagers enregistrés, prête à payer).
+  </Step>
+  <Step title="paid">
+    Paiement confirmé par le provider.
+  </Step>
+  <Step title="ticketed">
+    Billet émis (fiscalisation MECeF traitée).
+  </Step>
+  <Step title="boarded">
+    Passager embarqué (scanné par le convoyeur).
+  </Step>
+  <Step title="expired">
+    Hold expiré sans paiement — les sièges sont libérés.
+  </Step>
+  <Step title="cancelled">
+    Hold libéré volontairement par l'utilisateur (`DELETE /holds/{uuid}`).
+  </Step>
+</Steps>
+
+### Paiement
+
+Un **paiement** est initié pour une réservation `held`. Il suit un cycle asynchrone : initiation → polling → confirmation (webhook provider).
+
+| Statut | Description |
+|--------|-------------|
+| `pending` | Paiement initié, en attente de confirmation provider |
+| `confirmed` | Paiement confirmé par le provider (webhook) |
+| `failed` | Paiement échoué ou réservation expirée avant confirmation |
+
+<Note>
+  Si un webhook de succès arrive **après l'expiration** du hold, le backend conserve la réservation à `expired`, libère les segments et marque le paiement `failed`. Une réservation expirée n'est jamais réactivée.
+</Note>
+
+### Appareil
+
+Un **appareil** est un terminal mobile enregistré auprès d'un compte utilisateur. Chaque appareil a un `device_fingerprint` unique. Un nouvel appareil sur un compte existant déclenche une vérification OTP supplémentaire.
+
+### Token Sanctum
+
+Le **token Sanctum** est le jeton d'authentification émis après un flow OTP + PIN (ou OAuth). Il doit être inclus dans le header `Authorization: Bearer <token>` pour tous les endpoints protégés. Il a une date d'expiration (`expires_at`).
+
+### OTP
+
+Un **OTP** (One-Time Password) est un code à 6 chiffres envoyé par email pour vérifier l'identité d'un utilisateur. Il est utilisé dans plusieurs contextes :
+
+| `purpose` | Usage |
+|-----------|-------|
+| `registration` | Inscription d'un nouvel utilisateur |
+| `login_new_device` | Connexion depuis un nouvel appareil |
+| `pin_reset` | Réinitialisation du PIN oublié |
+| `account_unlock` | Déverrouillage après tentatives incorrectes |
+
+## Identifiants et conventions
+
+### Identifiants publics
+
+Tous les identifiants exposés dans l'API sont des **UUID** ou des **codes métier** (ex: `Cotonou`, `COT-ABJ`). Les IDs numériques internes ne sont **jamais** exposés.
+
+### Format des réponses
+
+- **Succès** : données dans `data` (objet ou tableau).
+- **Erreur** : structure `error` avec `code`, `message` et contexte optionnel.
+
+```json
+{
+  "error": {
+    "code": "account_locked",
+    "message": "Le compte est temporairement bloqué après plusieurs tentatives incorrectes.",
+    "locked_until": "2026-08-17T13:00:00.000Z"
+  }
+}
+```
+
+### Versionnement
+
+L'API est préfixée par `/api/v1/`. Les changements cassants introduiront `/api/v2/` avec une période de coexistence.
+
+<Card title="Prochaine étape" href="/quickstart" icon="arrow-right" iconType="solid">
+  Consultez le **Quickstart** pour faire votre premier appel API en moins de 5 minutes.
+</Card>

@@ -1,0 +1,190 @@
+---
+title: Introduction à l'API
+description: Structure REST, conventions, environnements et authentification de l'API KORA BUS V1.
+---
+
+import { Card, CardGroup, Steps, Note, Warning } from '@mintlify/components';
+
+# Introduction à l'API
+
+Bienvenue dans la **référence de l'API KORA BUS**, votre guide complet pour intégrer la plateforme de transport interurbain à vos applications mobiles et systèmes tiers. Cette référence documente chaque endpoint avec ses paramètres, ses codes de réponse et des exemples en cURL, JavaScript, TypeScript et Dart.
+
+## Que pouvez-vous réaliser avec l'API ?
+
+L'API V1 expose un ensemble de fonctionnalités conçues pour le parcours passager Bus :
+
+<CardGroup cols={2}>
+  <Card title="Authentification" icon="lock" href="/reference/auth/otp">
+    OTP email, PIN, OAuth sociale (Google, Facebook, TikTok), gestion d'appareils et préférences.
+  </Card>
+  <Card title="Catalogue Bus" icon="bus-front" href="/reference/bus/cities">
+    Villes desservies, lignes, départs et disponibilité des sièges par segment.
+  </Card>
+  <Card title="Devis & blocages" icon="tag" href="/reference/booking/quotes">
+    Devis tarifaires figés et blocage temporaire de sièges (holds) avec expiration serveur.
+  </Card>
+  <Card title="Réservations" icon="ticket" href="/reference/booking/reservations">
+    Cycle de vie complet : réservation, enregistrement des voyageurs, libération.
+  </Card>
+  <Card title="Paiements" icon="credit-card" href="/reference/payments/initiate">
+    Initiation, polling de statut et confirmation par webhook provider.
+  </Card>
+  <Card title="Santé" icon="heart-pulse" href="/reference/health">
+    Healthcheck et liveness probe pour load balancers et monitoring.
+  </Card>
+</CardGroup>
+
+## Structure de l'API
+
+L'API KORA BUS est **RESTful**, conçue pour être simple, cohérente et performante. Les endpoints sont prévisibles et organisés par domaine métier.
+
+### Base URL
+
+| Environnement | Base URL | Usage |
+|---------------|----------|-------|
+| Local | `http://kora-ops-web.local` ou `http://localhost:8080` | Développement local |
+| Staging | `https://staging-api.korabus.app` | Tests d'intégration |
+| Production | `https://api.korabus.app` | Production |
+
+### Versionnement
+
+L'API est préfixée par `/api/v1/`. Les changements cassants introduiront `/api/v2/` avec une période de coexistence. Aucun breaking change n'est introduit dans une version mineure.
+
+### Identifiants publics
+
+Tous les identifiants exposés dans l'API sont des **UUID** ou des **codes métier** (ex: `Cotonou`, `COT-ABJ`). Les IDs numériques internes ne sont **jamais** exposés.
+
+```json
+{
+  "uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
+  "code": "COT-ABJ",
+  "name": "Cotonou — Abidjan"
+}
+```
+
+### Format des réponses
+
+#### Succès
+
+Les réponses de succès placent les données dans une clé `data` (objet ou tableau) :
+
+```json
+{
+  "data": {
+    "uuid": "a3091549-9179-454e-8440-58179f2208df",
+    "departure_date": "2026-08-20"
+  }
+}
+```
+
+Pour les listes, `data` est un tableau :
+
+```json
+{
+  "data": [
+    { "city": "Cotonou", "country": "BJ" },
+    { "city": "Abidjan", "country": "CI" }
+  ]
+}
+```
+
+#### Erreurs
+
+Les réponses d'erreur utilisent une structure `error` uniforme avec un `code` métier stable (machine-readable) et un `message` humain (FR par défaut) :
+
+```json
+{
+  "error": {
+    "code": "account_locked",
+    "message": "Le compte est temporairement bloqué après plusieurs tentatives incorrectes.",
+    "locked_until": "2026-08-17T13:00:00.000Z"
+  }
+}
+```
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `error.code` | string | Code métier stable (machine-readable) |
+| `error.message` | string | Message humain (FR par défaut) |
+| `error.*` | mixed | Champs contextuels optionnels (ex: `locked_until`, `fields`) |
+
+Voir le guide [Gestion des erreurs](/guides/error-handling) pour la liste complète des codes.
+
+### Codes HTTP
+
+| Code | Sens | Action client |
+|------|------|---------------|
+| `200` | Succès (GET, PUT) | Parser `data` |
+| `201` | Création (POST) | Parser `data` |
+| `202` | Accepté (action asynchrone ou OTP requis) | Parser `data` |
+| `204` | Succès sans contenu (DELETE) | Pas de body |
+| `400` | Requête malformée | Corriger la requête |
+| `401` | Non authentifié | Token manquant ou invalide → re-authentifier |
+| `403` | Interdit | Permission insuffisante ou compte suspendu |
+| `404` | Ressource introuvable | UUID invalide ou ressource supprimée |
+| `409` | Conflit | Siège déjà réservé, hold concurrent |
+| `422` | Validation échouée | Parser `error.fields` pour les champs en erreur |
+| `423` | Compte verrouillé | Afficher écran de déverrouillage OTP |
+| `429` | Rate limit dépassé | Backoff exponentiel, respecter `Retry-After` |
+| `500` | Erreur serveur | Retry limité, logger et remonter |
+| `503` | Service indisponible | Healthcheck dégradé, réessayer plus tard |
+
+## Authentification
+
+L'API utilise deux modes d'authentification :
+
+### Endpoints publics
+
+Les endpoints de lecture du catalogue Bus (`/bus/cities`, `/bus/lines`, `/bus/departures`, `/bus/departures/{uuid}/seats`) et les endpoints de santé (`/health`) sont **publics** — aucun token requis.
+
+### Endpoints protégés (Bearer token)
+
+Tous les autres endpoints requièrent un **token Sanctum** émis via le flow OTP + PIN ou OAuth sociale. Incluez le token dans le header `Authorization` :
+
+```
+Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef
+```
+
+<Warning>
+  Vos tokens donnent accès aux données de votre compte : conservez-les de manière sécurisée. Ne les committez jamais dans un repo public ni ne les hardcoded dans une app.
+</Warning>
+
+Pour obtenir un token, consultez le guide [Authentification](/guides/authentication).
+
+## Rate limiting
+
+L'API applique des limites par endpoint pour protéger le service :
+
+| Throttle | Endpoints | Limite |
+|----------|-----------|--------|
+| `auth-otp` | `/auth/otp/*`, `/auth/pin/reset`, `/auth/unlock` | 5 / minute |
+| `auth-login` | `/auth/login`, `/auth/register/complete`, `/auth/oauth/token` | 10 / minute |
+| `bus-search` | `/bus/*` (lecture) | 60 / minute |
+
+Les réponses incluent les headers :
+
+```
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 58
+Retry-After: 30  # (uniquement sur 429)
+```
+
+Voir [Rate limiting & throttling](/security/rate-limiting) pour la stratégie de retry.
+
+## Démarrer avec l'API
+
+<Steps>
+  <Step title="Choisir l'environnement">
+    Utilisez **staging** (`https://staging-api.korabus.app`) pour les tests d'intégration et **production** (`https://api.korabus.app`) pour le live.
+  </Step>
+  <Step title="Obtenir un token">
+    Suivez le flow OTP + PIN décrit dans [Authentification](/guides/authentication) ou utilisez [OAuth sociale](/reference/auth/oauth) si votre app supporte Google/Facebook/TikTok.
+  </Step>
+  <Step title="Explorer les endpoints">
+    Commencez par [Catalogue Bus](/reference/bus/cities) pour lister les villes, puis [Devis](/reference/booking/quotes) et [Réservations](/reference/booking/reservations) pour construire votre parcours de réservation.
+  </Step>
+</Steps>
+
+<Card title="Concepts clés" href="/concepts" icon="book-open" iconType="solid">
+  Pas encore familier avec le vocabulaire KORA (départ, segment O/D, hold, devis) ? Consultez **Concepts clés** avant de plonger dans la référence.
+</Card>
