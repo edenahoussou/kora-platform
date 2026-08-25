@@ -654,6 +654,104 @@ paths:
                 - seats
       security:
         - sanctum: []
+  '/api/v1/bookings/{reservation_uuid}':
+    get:
+      summary: 'Retrieve a reservation and its current booking state.'
+      operationId: retrieveAReservationAndItsCurrentBookingState
+      description: "This endpoint is safe to call after a mobile session is restored. It returns the\nserver-side reservation state instead of requiring the client to rebuild it locally."
+      parameters: []
+      responses:
+        200:
+          description: 'Reservation details'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
+                    status: held
+                    expires_at: '2026-08-20T08:15:00Z'
+                    total_amount: 25000
+                    currency: XOF
+                    channel: mobile
+                    departure_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                    price_quote_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6f
+                    passenger_count: 2
+                    segments: []
+                    passengers: []
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      status:
+                        type: string
+                        example: held
+                      expires_at:
+                        type: string
+                        example: '2026-08-20T08:15:00Z'
+                      total_amount:
+                        type: integer
+                        example: 25000
+                      currency:
+                        type: string
+                        example: XOF
+                      channel:
+                        type: string
+                        example: mobile
+                      departure_uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      price_quote_uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      passenger_count:
+                        type: integer
+                        example: 2
+                      segments:
+                        type: array
+                        example: []
+                      passengers:
+                        type: array
+                        example: []
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'This action is unauthorized.'
+                properties:
+                  message:
+                    type: string
+                    example: 'This action is unauthorized.'
+      tags:
+        - Bus
+    parameters:
+      -
+        in: path
+        name: reservation_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
   '/api/v1/bookings/{reservation_uuid}/passengers':
     post:
       summary: 'Store passenger details for a reservation.'
@@ -824,7 +922,55 @@ paths:
                       - last_name
               required:
                 - passengers
-      security: []
+    parameters:
+      -
+        in: path
+        name: reservation_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/holds/{reservation_uuid}':
+    delete:
+      summary: 'Release a held reservation and make its seats available again.'
+      operationId: releaseAHeldReservationAndMakeItsSeatsAvailableAgain
+      description: "The operation is explicit and idempotent for a reservation that is no longer held.\nIt never releases a paid or ticketed reservation."
+      parameters: []
+      responses:
+        204:
+          description: 'Hold released'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ''
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'This action is unauthorized.'
+                properties:
+                  message:
+                    type: string
+                    example: 'This action is unauthorized.'
+      tags:
+        - Bus
     parameters:
       -
         in: path
@@ -1472,7 +1618,7 @@ paths:
                 birth_date:
                   type: string
                   description: 'validation.date validation.before.'
-                  example: '2022-09-18'
+                  example: '2022-09-19'
                   nullable: true
               required:
                 - name

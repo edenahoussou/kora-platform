@@ -59,3 +59,28 @@ Le devis fige le tarif du segment demandé. Sa durée de validité est contrôl�
 Le hold démarre uniquement après l'appel explicite effectué lorsque le passager confirme ses sièges. Le backend contrôle le devis, le segment, le véhicule, le nombre de sièges et la disponibilité. Sa durée est contrôlée par `KORA_HOLD_TTL_MINUTES` (15 minutes par défaut).
 
 Les réponses possibles sont `201` (hold créé), `401` (token absent ou invalide), `409` (conflit de disponibilité, notamment sur un segment chevauchant) et `422` (contrat quote/sièges incohérent, devis expiré ou validation métier). Un même siège peut rester vendable sur deux segments non chevauchants.
+
+## Cycle de vie de la réservation
+
+<Method
+  method="GET"
+  path="/api/v1/bookings/{reservation_uuid}"
+/>
+
+Récupère l'état serveur complet d'une réservation pour permettre au mobile de reprendre le parcours après une perte de session. La réponse expose le départ, le segment, les sièges, les voyageurs, le montant, la devise, le statut et `expires_at`.
+
+<Method
+  method="POST"
+  path="/api/v1/bookings/{reservation_uuid}/passengers"
+/>
+
+Enregistre les voyageurs et associe chaque voyageur à un siège réservé. Le nombre de voyageurs doit correspondre au nombre de segments. Une réservation expirée, un siège extérieur à la réservation ou un siège associé deux fois renvoie `422`.
+
+<Method
+  method="DELETE"
+  path="/api/v1/holds/{reservation_uuid}"
+/>
+
+Libère volontairement le hold de l'utilisateur authentifié. Le statut passe à `cancelled`, les segments sont libérés et `released_at` est renseigné. La réponse est `204`.
+
+Un webhook de paiement tardif ne peut pas réactiver une réservation expirée : le paiement est marqué `failed` et les segments restent disponibles.

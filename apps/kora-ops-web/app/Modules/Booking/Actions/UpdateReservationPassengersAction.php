@@ -9,6 +9,7 @@ use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationPassenger;
 use App\Modules\Booking\Models\ReservationSegment;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -32,87 +33,107 @@ class UpdateReservationPassengersAction
      */
     public function handle(Reservation $reservation, ?User $user, array $passengersData): Reservation
     {
-        if ($user && $reservation->user_id && $reservation->user_id !== $user->id) {
-            throw new AuthorizationException('Vous n\'êtes pas autorisé à modifier cette réservation.');
-        }
+        return DB::transaction(function () use ($reservation, $user, $passengersData): Reservation {
+            $lockedReservation = Reservation::query()
+                ->whereKey($reservation->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        if ($reservation->status !== ReservationStatus::Held && $reservation->status !== ReservationStatus::Confirmed) {
-            throw ValidationException::withMessages([
-                'reservation' => 'La réservation n\'est plus dans un état modifiable.',
-            ]);
-        }
+            if ($user && $lockedReservation->user_id && $lockedReservation->user_id !== $user->id) {
+                throw new AuthorizationException('Vous n\'êtes pas autorisé à modifier cette réservation.');
+            }
 
-        if ($reservation->expires_at && $reservation->expires_at->isPast()) {
-            throw ValidationException::withMessages([
-                'reservation' => 'La réservation a expiré.',
-            ]);
-        }
+            if ($lockedReservation->status !== ReservationStatus::Held && $lockedReservation->status !== ReservationStatus::Confirmed) {
+                throw ValidationException::withMessages([
+                    'reservation' => 'La réservation n\'est plus dans un état modifiable.',
+                ]);
+            }
 
-        $reservation->loadMissing(['departure.line', 'segments.seat']);
+            if ($lockedReservation->expires_at && $lockedReservation->expires_at->isPast()) {
+                throw ValidationException::withMessages([
+                    'reservation' => 'La réservation a expiré.',
+                ]);
+            }
 
-        $segments = $reservation->segments;
-        if (count($passengersData) !== $segments->count()) {
-            throw ValidationException::withMessages([
-                'passengers' => 'Le nombre de passagers ('.count($passengersData).') ne correspond pas au nombre de sièges réservés ('.$segments->count().').',
-            ]);
-        }
+            $lockedReservation->load(['departure.line', 'segments.seat']);
 
-        $isInternational = false;
-        $countriesCrossed = $reservation->departure->line?->countries_crossed;
-        if (is_array($countriesCrossed) && count($countriesCrossed) > 1) {
-            $isInternational = true;
-        }
+            /** @var Collection<int, ReservationSegment> $segments */
+            $segments = $lockedReservation->segments;
+            if (count($passengersData) !== $segments->count()) {
+                throw ValidationException::withMessages([
+                    'passengers' => 'Le nombre de passagers ('.count($passengersData).') ne correspond pas au nombre de sièges réservés ('.$segments->count().').',
+                ]);
+            }
 
-        if ($isInternational) {
-            foreach ($passengersData as $index => $p) {
-                if (empty($p['document_type']) || empty($p['document_number']) || empty($p['nationality'])) {
-                    throw ValidationException::withMessages([
-                        "passengers.{$index}.document_number" => 'Le type de document, numéro et nationalité sont obligatoires pour les trajets internationaux.',
-                    ]);
+            $countriesCrossed = $lockedReservation->departure->line?->countries_crossed;
+            $isInternational = is_array($countriesCrossed) && count($countriesCrossed) > 1;
+
+            if ($isInternational) {
+                foreach ($passengersData as $index => $passengerData) {
+                    if (empty($passengerData['document_type']) || empty($passengerData['document_number']) || empty($passengerData['nationality'])) {
+                        throw ValidationException::withMessages([
+                            "passengers.{$index}.document_number" => 'Le type de document, numéro et nationalité sont obligatoires pour les trajets internationaux.',
+                        ]);
+                    }
                 }
             }
-        }
 
-        return DB::transaction(function () use ($reservation, $segments, $passengersData): Reservation {
-            // Unlink existing segments
-            $reservation->segments()->update(['reservation_passenger_id' => null]);
-            $reservation->passengers()->delete();
+            $segmentsBySeatUuid = $segments->keyBy(
+                fn (ReservationSegment $segment): string => (string) $segment->seat?->uuid,
+            );
+            $assignedSegmentIds = [];
+            $passengerSegments = [];
 
-            $segmentsBySeatUuid = $segments->keyBy(fn (ReservationSegment $s) => $s->seat->uuid ?? '');
-            $unassignedSegments = $segments->values();
+            foreach ($passengersData as $index => $passengerData) {
+                $seatUuid = $passengerData['seat_uuid'] ?? null;
+                $matchedSegment = $seatUuid !== null && $seatUuid !== ''
+                    ? $segmentsBySeatUuid->get($seatUuid)
+                    : $segments->first(
+                        fn (ReservationSegment $segment): bool => ! in_array($segment->id, $assignedSegmentIds, true),
+                    );
 
-            foreach ($passengersData as $index => $pData) {
-                $docType = ! empty($pData['document_type'])
-                    ? PassengerDocumentType::tryFrom($pData['document_type'])
+                if (! $matchedSegment instanceof ReservationSegment) {
+                    throw ValidationException::withMessages([
+                        "passengers.{$index}.seat_uuid" => 'Le siège indiqué ne fait pas partie de cette réservation.',
+                    ]);
+                }
+
+                if (in_array($matchedSegment->id, $assignedSegmentIds, true)) {
+                    throw ValidationException::withMessages([
+                        "passengers.{$index}.seat_uuid" => 'Chaque siège de la réservation ne peut être associé qu\'à un seul passager.',
+                    ]);
+                }
+
+                $assignedSegmentIds[] = $matchedSegment->id;
+                $passengerSegments[$index] = $matchedSegment;
+            }
+
+            $lockedReservation->segments()->update(['reservation_passenger_id' => null]);
+            $lockedReservation->passengers()->delete();
+
+            foreach ($passengersData as $index => $passengerData) {
+                $documentType = ! empty($passengerData['document_type'])
+                    ? PassengerDocumentType::tryFrom($passengerData['document_type'])
                     : null;
 
                 $passenger = ReservationPassenger::create([
-                    'reservation_id' => $reservation->id,
-                    'first_name' => $pData['first_name'],
-                    'last_name' => $pData['last_name'],
-                    'phone' => $pData['phone'] ?? null,
-                    'email' => $pData['email'] ?? null,
-                    'document_type' => $docType,
-                    'document_number' => $pData['document_number'] ?? null,
-                    'nationality' => ! empty($pData['nationality']) ? strtoupper($pData['nationality']) : null,
-                    'birth_date' => $pData['birth_date'] ?? null,
+                    'reservation_id' => $lockedReservation->id,
+                    'first_name' => $passengerData['first_name'],
+                    'last_name' => $passengerData['last_name'],
+                    'phone' => $passengerData['phone'] ?? null,
+                    'email' => $passengerData['email'] ?? null,
+                    'document_type' => $documentType,
+                    'document_number' => $passengerData['document_number'] ?? null,
+                    'nationality' => ! empty($passengerData['nationality']) ? strtoupper($passengerData['nationality']) : null,
+                    'birth_date' => $passengerData['birth_date'] ?? null,
                 ]);
 
-                // Match with seat_uuid if specified, otherwise by index
-                $matchedSegment = null;
-                if (! empty($pData['seat_uuid']) && $segmentsBySeatUuid->has($pData['seat_uuid'])) {
-                    $matchedSegment = $segmentsBySeatUuid->get($pData['seat_uuid']);
-                } elseif (isset($unassignedSegments[$index])) {
-                    $matchedSegment = $unassignedSegments[$index];
-                }
-
-                if ($matchedSegment) {
-                    $matchedSegment->update(['reservation_passenger_id' => $passenger->id]);
-                }
+                $passengerSegments[$index]->update(['reservation_passenger_id' => $passenger->id]);
             }
 
-            return $reservation->load([
-                'departure',
+            return $lockedReservation->load([
+                'departure.line',
+                'priceQuote',
                 'segments.seat',
                 'segments.originStop',
                 'segments.destinationStop',

@@ -11,11 +11,20 @@ use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
 use Carbon\CarbonImmutable;
+use Database\Seeders\KoraBusRolePermissionSeeder;
 use Illuminate\Support\Arr;
 use Laravel\Sanctum\Sanctum;
 
+beforeEach(function (): void {
+    $this->seed(KoraBusRolePermissionSeeder::class);
+});
+
 it('requires authentication to store passengers', function (): void {
     $this->postJson('/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70/passengers', [])
+        ->assertUnauthorized();
+    $this->getJson('/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70')
+        ->assertUnauthorized();
+    $this->deleteJson('/api/v1/holds/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70')
         ->assertUnauthorized();
 });
 
@@ -123,6 +132,59 @@ it('rejects passenger submission if counts do not match segments count', functio
         ->assertJsonValidationErrors(['passengers']);
 });
 
+it('rejects assigning one reserved seat to multiple passengers', function (): void {
+    $scenario = passengerTestScenario(isInternational: false);
+    Sanctum::actingAs($scenario['user']);
+
+    $this->postJson("/api/v1/bookings/{$scenario['reservation']->uuid}/passengers", [
+        'passengers' => [
+            ['first_name' => 'Aïcha', 'last_name' => 'HOUNKPÈ', 'seat_uuid' => $scenario['seat2A']->uuid],
+            ['first_name' => 'Koffi', 'last_name' => 'MENSAH', 'seat_uuid' => $scenario['seat2A']->uuid],
+        ],
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors(['passengers.1.seat_uuid']);
+
+    expect($scenario['reservation']->passengers()->count())->toBe(0);
+});
+
+it('retrieves the current reservation state by public uuid', function (): void {
+    $scenario = passengerTestScenario(isInternational: false);
+    Sanctum::actingAs($scenario['user']);
+
+    $this->getJson("/api/v1/bookings/{$scenario['reservation']->uuid}")
+        ->assertOk()
+        ->assertJsonPath('data.uuid', $scenario['reservation']->uuid)
+        ->assertJsonPath('data.status', 'held')
+        ->assertJsonPath('data.departure.uuid', $scenario['departure']->uuid)
+        ->assertJsonPath('data.passenger_count', 2)
+        ->assertJsonPath('data.segments.0.seat_uuid', $scenario['seat2A']->uuid);
+});
+
+it('releases the authenticated passenger hold through the API', function (): void {
+    $scenario = passengerTestScenario(isInternational: false);
+    Sanctum::actingAs($scenario['user']);
+
+    $this->deleteJson("/api/v1/holds/{$scenario['reservation']->uuid}")
+        ->assertNoContent();
+
+    expect($scenario['reservation']->fresh()->status)->toBe(ReservationStatus::Cancelled)
+        ->and($scenario['segment1']->fresh()->status)->toBe(ReservationSegmentStatus::Cancelled)
+        ->and($scenario['segment1']->fresh()->released_at)->not->toBeNull();
+});
+
+it('normalizes an expired hold instead of cancelling it when release arrives late', function (): void {
+    $scenario = passengerTestScenario(isInternational: false);
+    $scenario['reservation']->update(['expires_at' => now()->subMinute()]);
+    Sanctum::actingAs($scenario['user']);
+
+    $this->deleteJson("/api/v1/holds/{$scenario['reservation']->uuid}")
+        ->assertNoContent();
+
+    expect($scenario['reservation']->fresh()->status)->toBe(ReservationStatus::Expired)
+        ->and($scenario['segment1']->fresh()->status)->toBe(ReservationSegmentStatus::Expired)
+        ->and($scenario['segment1']->fresh()->released_at)->not->toBeNull();
+});
+
 it('forbids updating another user reservation passengers', function (): void {
     $scenario = passengerTestScenario(isInternational: false);
     $otherUser = User::factory()->create();
@@ -134,6 +196,17 @@ it('forbids updating another user reservation passengers', function (): void {
             ['first_name' => 'Koffi', 'last_name' => 'MENSAH'],
         ],
     ])->assertForbidden();
+});
+
+it('forbids reading or releasing another user reservation', function (): void {
+    $scenario = passengerTestScenario(isInternational: false);
+    $otherUser = User::factory()->create();
+    Sanctum::actingAs($otherUser);
+
+    $this->getJson("/api/v1/bookings/{$scenario['reservation']->uuid}")
+        ->assertForbidden();
+    $this->deleteJson("/api/v1/holds/{$scenario['reservation']->uuid}")
+        ->assertForbidden();
 });
 
 it('rejects passenger submission on expired reservation', function (): void {
@@ -174,6 +247,7 @@ it('hides numeric IDs in passenger response', function (): void {
 function passengerTestScenario(bool $isInternational = false): array
 {
     $user = User::factory()->create();
+    $user->assignRole('passenger');
 
     $line = Line::query()->firstOrCreate(
         ['code' => $isInternational ? 'PS-L-INT' : 'PS-L-DOM'],
