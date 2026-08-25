@@ -9,6 +9,7 @@ use App\Modules\Payments\Actions\InitiatePaymentAction;
 use App\Modules\Payments\Http\Requests\InitiatePaymentRequest;
 use App\Modules\Payments\Http\Resources\PaymentResource;
 use App\Modules\Payments\Models\Payment;
+use App\Modules\Payments\PaymentManager;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -103,7 +104,38 @@ class PaymentController extends Controller
         Request $request,
         Payment $payment,
         ConfirmPaymentAction $confirmPayment,
+        PaymentManager $manager,
     ): JsonResponse {
+        $provider = $payment->provider;
+
+        // Verify webhook signature via the provider adapter.
+        if ($manager->supports($provider)) {
+            $adapter = $manager->resolve($provider);
+            $verifiedPayload = $adapter->verifyWebhook($request);
+
+            if ($verifiedPayload === null) {
+                return response()->json(['error' => 'Invalid webhook signature.'], 403);
+            }
+
+            // Normalize the provider payload into KORA status.
+            $providerResponse = $adapter->confirm($payment);
+
+            $updatedPayment = $confirmPayment->handle(
+                payment: $payment,
+                status: $providerResponse->isConfirmed() ? 'confirmed' : ($providerResponse->isFailed() ? 'failed' : 'pending'),
+                providerReference: $providerResponse->providerReference,
+                providerPayload: $providerResponse->payload,
+            );
+
+            return response()->json([
+                'status' => $updatedPayment->status->value,
+                'payment_uuid' => $updatedPayment->uuid,
+                'reservation_uuid' => $updatedPayment->reservation?->uuid,
+                'reservation_status' => $updatedPayment->reservation?->status->value,
+            ]);
+        }
+
+        // Fallback for manual/test confirmations (no real provider).
         $validated = $request->validate([
             'status' => ['required', 'string', 'in:success,confirmed,failed'],
             'provider_reference' => ['nullable', 'string', 'max:255'],
@@ -115,6 +147,80 @@ class PaymentController extends Controller
             status: $validated['status'],
             providerReference: $validated['provider_reference'] ?? null,
             providerPayload: $validated['provider_payload'] ?? [],
+        );
+
+        return response()->json([
+            'status' => $updatedPayment->status->value,
+            'payment_uuid' => $updatedPayment->uuid,
+            'reservation_uuid' => $updatedPayment->reservation?->uuid,
+            'reservation_status' => $updatedPayment->reservation?->status->value,
+        ]);
+    }
+
+    /**
+     * FedaPay webhook endpoint.
+     *
+     * @unauthenticated
+     */
+    public function webhookFedaPay(
+        Request $request,
+        PaymentManager $manager,
+        ConfirmPaymentAction $confirmPayment,
+    ): JsonResponse {
+        return $this->processProviderWebhook($request, $manager, $confirmPayment, 'fedapay');
+    }
+
+    /**
+     * MTN MoMo webhook endpoint.
+     *
+     * @unauthenticated
+     */
+    public function webhookMtnMomo(
+        Request $request,
+        PaymentManager $manager,
+        ConfirmPaymentAction $confirmPayment,
+    ): JsonResponse {
+        return $this->processProviderWebhook($request, $manager, $confirmPayment, 'mtn_momo');
+    }
+
+    /**
+     * Process a provider webhook by verifying the signature and confirming the payment.
+     */
+    private function processProviderWebhook(
+        Request $request,
+        PaymentManager $manager,
+        ConfirmPaymentAction $confirmPayment,
+        string $providerKey,
+    ): JsonResponse {
+        $adapter = $manager->resolve($providerKey);
+        $verifiedPayload = $adapter->verifyWebhook($request);
+
+        if ($verifiedPayload === null) {
+            return response()->json(['error' => 'Invalid webhook signature.'], 403);
+        }
+
+        // Extract the payment reference from the webhook payload.
+        $paymentUuid = $verifiedPayload['custom_metadata']['kora_payment_uuid']
+            ?? $verifiedPayload['externalId']
+            ?? null;
+
+        if ($paymentUuid === null) {
+            return response()->json(['error' => 'Payment reference not found in webhook.'], 400);
+        }
+
+        $payment = Payment::query()->where('uuid', $paymentUuid)->first();
+
+        if ($payment === null) {
+            return response()->json(['error' => 'Payment not found.'], 404);
+        }
+
+        $providerResponse = $adapter->confirm($payment);
+
+        $updatedPayment = $confirmPayment->handle(
+            payment: $payment,
+            status: $providerResponse->isConfirmed() ? 'confirmed' : ($providerResponse->isFailed() ? 'failed' : 'pending'),
+            providerReference: $providerResponse->providerReference,
+            providerPayload: $providerResponse->payload,
         );
 
         return response()->json([

@@ -14,6 +14,8 @@ use App\Modules\DynamicPricing\Models\Fare;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\IdentityAccess\Models\TerminalP501;
+use App\Modules\Payments\Providers\FedaPayAdapter;
+use App\Modules\Payments\Providers\MtnMomoAdapter;
 use App\Modules\Ticketing\Models\Ticket;
 use App\Policies\AgencyPolicy;
 use App\Policies\BoardingEventPolicy;
@@ -48,7 +50,38 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->registerPaymentProviders();
+    }
+
+    /**
+     * Bind payment provider adapters with their configuration.
+     */
+    protected function registerPaymentProviders(): void
+    {
+        $this->app->bind(FedaPayAdapter::class, function (): FedaPayAdapter {
+            $config = config('payments.providers.fedapay', []);
+
+            return new FedaPayAdapter(
+                apiKey: (string) ($config['api_key'] ?? ''),
+                environment: (string) ($config['environment'] ?? 'sandbox'),
+                callbackUrl: $config['callback_url'] ?? null,
+                webhookSecret: $config['webhook_secret'] ?? null,
+            );
+        });
+
+        $this->app->bind(MtnMomoAdapter::class, function (): MtnMomoAdapter {
+            $config = config('payments.providers.mtn_momo', []);
+
+            return new MtnMomoAdapter(
+                subscriptionKey: (string) ($config['subscription_key'] ?? ''),
+                userId: (string) ($config['user_id'] ?? ''),
+                apiKey: (string) ($config['api_key'] ?? ''),
+                environment: (string) ($config['environment'] ?? 'sandbox'),
+                targetEnvironment: (string) ($config['target_environment'] ?? 'mtncameroon'),
+                currency: (string) ($config['currency'] ?? 'XAF'),
+                webhookSecret: $config['webhook_secret'] ?? null,
+            );
+        });
     }
 
     /**

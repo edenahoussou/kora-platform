@@ -86,4 +86,10 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
 
     Route::post('payments/{payment:uuid}/confirm', [PaymentController::class, 'confirm'])
         ->name('payments.confirm');
+
+    // Provider-specific webhook endpoints.
+    Route::post('payments/webhook/fedapay', [PaymentController::class, 'webhookFedaPay'])
+        ->name('payments.webhook.fedapay');
+    Route::post('payments/webhook/mtn-momo', [PaymentController::class, 'webhookMtnMomo'])
+        ->name('payments.webhook.mtn-momo');
 });

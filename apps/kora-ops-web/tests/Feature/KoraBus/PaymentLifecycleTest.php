@@ -12,10 +12,32 @@ use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
+use App\Modules\Payments\PaymentManager;
+use App\Modules\Payments\Providers\Fake\FakePaymentProvider;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
+
+beforeEach(function (): void {
+    // Bind a fake payment manager that returns the fake provider for all keys.
+    $this->app->bind(PaymentManager::class, function (): PaymentManager {
+        $manager = new PaymentManager;
+
+        // Override resolve to always return the fake provider.
+        $reflection = new ReflectionClass($manager);
+        $property = $reflection->getProperty('resolved');
+        $property->setValue($manager, [
+            'fedapay' => new FakePaymentProvider,
+            'mtn_momo' => new FakePaymentProvider,
+            'fake' => new FakePaymentProvider,
+        ]);
+
+        return $manager;
+    });
+
+    FakePaymentProvider::reset();
+});
 
 it('requires authentication to initiate and poll payments', function (): void {
     $this->postJson('/api/v1/payments/initiate', [])->assertUnauthorized();
@@ -43,7 +65,7 @@ it('initiates payment for held reservation', function (): void {
         ->assertJsonPath('data.provider', 'mtn_momo')
         ->assertJsonPath('data.polling_interval_seconds', 10);
 
-    expect($response->json('data.provider_reference'))->toStartWith('MM-');
+    expect($response->json('data.provider_reference'))->not->toBeNull();
 
     $this->assertDatabaseHas('payments', [
         'reservation_id' => $scenario['reservation']->id,
@@ -163,6 +185,8 @@ it('confirms payment via webhook and updates reservation and segments to paid', 
         'status' => PaymentStatus::Pending,
     ]);
 
+    FakePaymentProvider::$nextStatus = PaymentStatus::Confirmed;
+
     $response = $this->postJson("/api/v1/payments/{$payment->uuid}/confirm", [
         'status' => 'success',
         'provider_reference' => 'MM-WEBHOOK1',
@@ -193,6 +217,8 @@ it('fails payment via webhook and releases segments/expires reservation', functi
         'currency' => 'XOF',
         'status' => PaymentStatus::Pending,
     ]);
+
+    FakePaymentProvider::$nextStatus = PaymentStatus::Failed;
 
     $response = $this->postJson("/api/v1/payments/{$payment->uuid}/confirm", [
         'status' => 'failed',
@@ -225,6 +251,8 @@ it('rejects a successful webhook received after the reservation hold expired', f
         'currency' => 'XOF',
         'status' => PaymentStatus::Pending,
     ]);
+
+    FakePaymentProvider::$nextStatus = PaymentStatus::Confirmed;
 
     $response = $this->postJson("/api/v1/payments/{$payment->uuid}/confirm", [
         'status' => 'success',
@@ -265,6 +293,156 @@ it('hides numeric IDs in payment responses', function (): void {
             expect($key)->not->toEndWith('.id')
                 ->and($key)->not->toBe('id');
         }
+    }
+});
+
+it('routes payment to the correct provider via PaymentManager', function (): void {
+    $scenario = paymentTestScenario();
+    Sanctum::actingAs($scenario['user']);
+
+    $response = $this->postJson('/api/v1/payments/initiate', [
+        'reservation_uuid' => $scenario['reservation']->uuid,
+        'method' => 'mobile_money',
+        'provider' => 'fedapay',
+        'phone' => '+2290197421860',
+        'idempotency_key' => (string) Str::uuid(),
+    ]);
+
+    $response->assertCreated()
+        ->assertJsonPath('data.provider', 'fedapay')
+        ->assertJsonPath('data.status', 'pending');
+
+    expect($response->json('data.provider_reference'))->not->toBeNull();
+});
+
+it('rejects webhook with invalid signature for supported provider', function (): void {
+    $scenario = paymentTestScenario();
+
+    $payment = Payment::create([
+        'reservation_id' => $scenario['reservation']->id,
+        'provider' => 'fedapay',
+        'provider_reference' => 'FEDA-123',
+        'idempotency_key' => (string) Str::uuid(),
+        'amount' => 15000,
+        'currency' => 'XOF',
+        'status' => PaymentStatus::Pending,
+    ]);
+
+    // Override the fake to return null (invalid signature).
+    FakePaymentProvider::$webhookValid = false;
+
+    $response = $this->postJson("/api/v1/payments/{$payment->uuid}/confirm", [
+        'status' => 'success',
+    ]);
+
+    $response->assertForbidden()
+        ->assertJsonPath('error', 'Invalid webhook signature.');
+});
+
+it('handles FedaPay webhook via dedicated endpoint', function (): void {
+    $scenario = paymentTestScenario();
+
+    $payment = Payment::create([
+        'reservation_id' => $scenario['reservation']->id,
+        'provider' => 'fedapay',
+        'provider_reference' => 'FEDA-WH1',
+        'idempotency_key' => (string) Str::uuid(),
+        'amount' => 15000,
+        'currency' => 'XOF',
+        'status' => PaymentStatus::Pending,
+    ]);
+
+    FakePaymentProvider::$nextStatus = PaymentStatus::Confirmed;
+    FakePaymentProvider::$webhookPayload = [
+        'custom_metadata' => ['kora_payment_uuid' => $payment->uuid],
+        'status' => 'approved',
+    ];
+
+    $response = $this->postJson('/api/v1/payments/webhook/fedapay', [
+        'custom_metadata' => ['kora_payment_uuid' => $payment->uuid],
+        'status' => 'approved',
+    ]);
+
+    $response->assertOk()
+        ->assertJsonPath('status', 'confirmed')
+        ->assertJsonPath('payment_uuid', $payment->uuid);
+});
+
+it('handles MTN MoMo webhook via dedicated endpoint', function (): void {
+    $scenario = paymentTestScenario();
+
+    $payment = Payment::create([
+        'reservation_id' => $scenario['reservation']->id,
+        'provider' => 'mtn_momo',
+        'provider_reference' => 'MM-WH1',
+        'idempotency_key' => (string) Str::uuid(),
+        'amount' => 15000,
+        'currency' => 'XOF',
+        'status' => PaymentStatus::Pending,
+    ]);
+
+    FakePaymentProvider::$nextStatus = PaymentStatus::Confirmed;
+    FakePaymentProvider::$webhookPayload = [
+        'externalId' => $payment->uuid,
+        'status' => 'SUCCESSFUL',
+    ];
+
+    $response = $this->postJson('/api/v1/payments/webhook/mtn-momo', [
+        'externalId' => $payment->uuid,
+        'status' => 'SUCCESSFUL',
+    ]);
+
+    $response->assertOk()
+        ->assertJsonPath('status', 'confirmed')
+        ->assertJsonPath('payment_uuid', $payment->uuid);
+});
+
+it('rejects webhook when payment reference not found in payload', function (): void {
+    FakePaymentProvider::$webhookPayload = ['status' => 'approved'];
+
+    $response = $this->postJson('/api/v1/payments/webhook/fedapay', [
+        'status' => 'approved',
+    ]);
+
+    $response->assertStatus(400)
+        ->assertJsonPath('error', 'Payment reference not found in webhook.');
+});
+
+it('rejects webhook for non-existent payment', function (): void {
+    FakePaymentProvider::$webhookPayload = [
+        'custom_metadata' => ['kora_payment_uuid' => Str::uuid()],
+        'status' => 'approved',
+    ];
+
+    $response = $this->postJson('/api/v1/payments/webhook/fedapay', [
+        'custom_metadata' => ['kora_payment_uuid' => Str::uuid()],
+        'status' => 'approved',
+    ]);
+
+    $response->assertStatus(404)
+        ->assertJsonPath('error', 'Payment not found.');
+});
+
+it('does not expose provider credentials in payment response', function (): void {
+    $scenario = paymentTestScenario();
+    Sanctum::actingAs($scenario['user']);
+
+    $response = $this->postJson('/api/v1/payments/initiate', [
+        'reservation_uuid' => $scenario['reservation']->uuid,
+        'method' => 'mobile_money',
+        'provider' => 'mtn_momo',
+        'phone' => '+2290197421860',
+        'idempotency_key' => (string) Str::uuid(),
+    ]);
+
+    $response->assertCreated();
+
+    $flattened = Arr::dot($response->json());
+    foreach (array_keys($flattened) as $key) {
+        expect($key)->not->toContain('api_key')
+            ->and($key)->not->toContain('secret')
+            ->and($key)->not->toContain('subscription_key')
+            ->and($key)->not->toContain('password');
     }
 });
 

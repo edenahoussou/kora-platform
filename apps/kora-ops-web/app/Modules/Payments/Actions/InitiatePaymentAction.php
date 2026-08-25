@@ -7,13 +7,17 @@ use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
+use App\Modules\Payments\PaymentManager;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class InitiatePaymentAction
 {
+    public function __construct(
+        private readonly PaymentManager $manager,
+    ) {}
+
     /**
      * @return array{payment: Payment, is_replay: bool}
      *
@@ -78,21 +82,10 @@ class InitiatePaymentAction
                 ];
             }
 
-            $providerPrefix = match ($provider) {
-                'mtn_momo' => 'MM',
-                'moov_money' => 'MOOV',
-                'celtiis_cash' => 'CELTIIS',
-                'wave' => 'WAVE',
-                'kora_wallet' => 'WALLET',
-                default => 'PAY',
-            };
-
-            $providerReference = $providerPrefix.'-'.strtoupper(Str::random(8));
-
             $payment = Payment::create([
                 'reservation_id' => $lockedReservation->id,
                 'provider' => $provider,
-                'provider_reference' => $providerReference,
+                'provider_reference' => null,
                 'idempotency_key' => $idempotencyKey,
                 'amount' => $lockedReservation->total_amount,
                 'currency' => $lockedReservation->currency,
@@ -105,8 +98,29 @@ class InitiatePaymentAction
                 ], fn ($value) => $value !== null),
             ]);
 
+            // Call the real provider to initiate the transaction.
+            if ($this->manager->supports($provider)) {
+                $providerAdapter = $this->manager->resolve($provider);
+                $response = $providerAdapter->initiate($payment, [
+                    'method' => $method,
+                    'phone' => $phone,
+                ]);
+
+                $payment->update([
+                    'provider_reference' => $response->providerReference,
+                    'provider_payload' => array_merge(
+                        $payment->provider_payload ?? [],
+                        ['provider_response' => $response->payload],
+                    ),
+                ]);
+
+                if ($response->isFailed()) {
+                    $payment->update(['status' => PaymentStatus::Failed]);
+                }
+            }
+
             return [
-                'payment' => $payment->loadMissing(['reservation.departure']),
+                'payment' => $payment->fresh(['reservation.departure']),
                 'is_replay' => false,
             ];
         });
