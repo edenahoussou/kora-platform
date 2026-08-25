@@ -21,10 +21,17 @@ class BusQuoteController extends Controller
     /**
      * Create a fixed price quote.
      *
+     * The quote expiration uses the backend-configured `KORA_QUOTE_TTL_MINUTES` duration.
+     *
+     * @authenticated
+     *
      * @response 201 scenario="Quote created" {
      *   "data": {
      *     "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
      *     "departure_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e",
+     *     "origin_stop_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6f",
+     *     "destination_stop_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+     *     "service_class_uuid": null,
      *     "base_amount": 12500,
      *     "coefficient": 1.0,
      *     "final_amount": 12500,
@@ -41,6 +48,15 @@ class BusQuoteController extends Controller
      *       "passenger_count": 1,
      *       "total_amount": 12500
      *     }
+     *   }
+     * }
+     * @response 401 scenario="Unauthenticated" {
+     *   "message": "Unauthenticated."
+     * }
+     * @response 422 scenario="Invalid quote request" {
+     *   "message": "The given data was invalid.",
+     *   "errors": {
+     *     "destination_stop_uuid": ["L'arrêt de destination doit être situé après l'arrêt d'origine."]
      *   }
      * }
      */
@@ -64,7 +80,12 @@ class BusQuoteController extends Controller
             passengerCount: $data['passenger_count'],
         );
 
-        $quote->loadMissing('departure');
+        $quote->loadMissing([
+            'departure',
+            'originStop',
+            'destinationStop',
+            'fare.serviceClass',
+        ]);
 
         return (new PriceQuoteResource($quote))
             ->response()

@@ -18,6 +18,15 @@ class FindOccupiedSeatIdsAction
         return ReservationSegment::query()
             ->whereBelongsTo($departure)
             ->whereIn('status', ReservationSegmentStatus::occupyingValues())
+            ->where(function ($query): void {
+                $query
+                    ->where('status', '!=', ReservationSegmentStatus::Held->value)
+                    ->orWhereHas('reservation', function ($reservationQuery): void {
+                        $reservationQuery
+                            ->whereNull('expires_at')
+                            ->orWhere('expires_at', '>', now());
+                    });
+            })
             ->where('origin_stop_order', '<', $destinationStop->stop_order)
             ->where('destination_stop_order', '>', $originStop->stop_order)
             ->pluck('seat_id')
