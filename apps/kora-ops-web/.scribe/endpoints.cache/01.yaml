@@ -46,7 +46,7 @@ endpoints:
         name: purpose
         description: ''
         required: true
-        example: login_new_device
+        example: pin_reset
         type: string
         enumValues:
           - registration
@@ -58,7 +58,7 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       email: gbailey@example.net
-      purpose: login_new_device
+      purpose: pin_reset
     fileParameters: []
     responses: []
     responseFields: []
@@ -107,7 +107,7 @@ endpoints:
         name: purpose
         description: ''
         required: true
-        example: account_unlock
+        example: login_new_device
         type: string
         enumValues:
           - registration
@@ -130,7 +130,7 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       otp_challenge_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-      purpose: account_unlock
+      purpose: login_new_device
       code: '569775'
     fileParameters: []
     responses: []
@@ -339,7 +339,7 @@ endpoints:
         name: platform
         description: ''
         required: true
-        example: ios
+        example: web
         type: string
         enumValues:
           - android
@@ -376,7 +376,7 @@ endpoints:
       verification_token: gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn
       pin: '9775'
       device_name: 'n'
-      platform: ios
+      platform: web
       device_fingerprint: g
       push_token: z
     fileParameters: []
@@ -449,7 +449,7 @@ endpoints:
         name: platform
         description: ''
         required: true
-        example: web
+        example: android
         type: string
         enumValues:
           - android
@@ -507,7 +507,7 @@ endpoints:
       email: gbailey@example.net
       pin: '9775'
       device_name: 'n'
-      platform: web
+      platform: android
       device_fingerprint: g
       push_token: z
       otp_challenge_uuid: 977e5426-8d13-3824-86aa-b092f8ae52c5
@@ -594,7 +594,7 @@ endpoints:
         name: platform
         description: ''
         required: true
-        example: ios
+        example: android
         type: string
         enumValues:
           - android
@@ -630,7 +630,7 @@ endpoints:
       provider: google
       provider_token: b
       device_name: 'n'
-      platform: ios
+      platform: android
       device_fingerprint: g
       push_token: z
     fileParameters: []
@@ -829,7 +829,7 @@ endpoints:
         name: birth_date
         description: 'validation.date validation.before.'
         required: false
-        example: '2022-09-13'
+        example: '2022-09-18'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -840,7 +840,7 @@ endpoints:
       email: zbailey@example.net
       phone: iyvdljnikhwaykcm
       country_code: yuwp
-      birth_date: '2022-09-13'
+      birth_date: '2022-09-18'
     fileParameters: []
     responses: []
     responseFields: []
@@ -990,7 +990,7 @@ endpoints:
         name: email_notifications
         description: ''
         required: false
-        example: true
+        example: false
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -1014,7 +1014,7 @@ endpoints:
         name: theme
         description: ''
         required: false
-        example: dark
+        example: system
         type: string
         enumValues:
           - light
@@ -1026,9 +1026,9 @@ endpoints:
     cleanBodyParameters:
       push_notifications: true
       whatsapp_notifications: true
-      email_notifications: true
+      email_notifications: false
       locale: en
-      theme: dark
+      theme: system
     fileParameters: []
     responses: []
     responseFields: []

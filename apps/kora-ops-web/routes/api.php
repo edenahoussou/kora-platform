@@ -64,6 +64,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::middleware('auth:sanctum')->group(function (): void {
                 Route::post('quotes', [BusQuoteController::class, 'store'])->name('quotes.store');
                 Route::post('holds', [BusSeatHoldController::class, 'store'])->name('holds.store');
+                Route::delete('holds/{reservation:uuid}', [BusSeatHoldController::class, 'destroy'])->name('holds.destroy');
             });
         });
 

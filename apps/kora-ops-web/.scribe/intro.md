@@ -3,7 +3,7 @@
 KORA BUS MVP REST API.
 
 <aside>
-    <strong>Base URL</strong>: <code>http://kora-ops-web.local</code>
+    <strong>Base URL</strong>: <code>http://localhost:8000</code>
 </aside>
 
     KORA BUS MVP exposes public read endpoints for Bus search and protected operational endpoints as the product grows.

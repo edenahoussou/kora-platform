@@ -287,6 +287,141 @@ it('hides internal numeric IDs in quote and hold responses', function (): void {
     }
 });
 
+it('requires authentication to release a seat hold', function (): void {
+    $scenario = bookingTestScenario();
+
+    $reservation = Reservation::create([
+        'user_id' => $scenario['user']->id,
+        'departure_id' => $scenario['departure']->id,
+        'status' => ReservationStatus::Held,
+        'total_amount' => 10000,
+        'currency' => 'XOF',
+        'expires_at' => now()->addMinutes(10),
+    ]);
+
+    $this->deleteJson("/api/v1/bus/holds/{$reservation->uuid}")->assertUnauthorized();
+
+    $this->assertDatabaseHas('reservations', [
+        'uuid' => $reservation->uuid,
+        'status' => ReservationStatus::Held->value,
+    ]);
+});
+
+it('releases a seat hold and frees the seat for a new hold', function (): void {
+    $scenario = bookingTestScenario();
+    Sanctum::actingAs($scenario['user']);
+
+    $quote = PriceQuote::create([
+        'departure_id' => $scenario['departure']->id,
+        'origin_stop_id' => $scenario['origin']->id,
+        'destination_stop_id' => $scenario['destination']->id,
+        'fare_id' => $scenario['fare']->id,
+        'base_amount' => 10000,
+        'coefficient' => 1.0,
+        'final_amount' => 10000,
+        'currency' => 'XOF',
+        'snapshot' => ['line_code' => 'BK-L1'],
+        'expires_at' => now()->addMinutes(10),
+    ]);
+
+    $reservation = $this->postJson('/api/v1/bus/holds', [
+        'departure_uuid' => $scenario['departure']->uuid,
+        'origin_stop_uuid' => $scenario['origin']->uuid,
+        'destination_stop_uuid' => $scenario['destination']->uuid,
+        'price_quote_uuid' => $quote->uuid,
+        'seats' => [
+            ['seat_uuid' => $scenario['seat2B']->uuid],
+        ],
+    ])->assertCreated();
+
+    $reservationUuid = $reservation->json('data.uuid');
+
+    $this->deleteJson("/api/v1/bus/holds/{$reservationUuid}")
+        ->assertNoContent();
+
+    $this->assertDatabaseHas('reservations', [
+        'uuid' => $reservationUuid,
+        'status' => ReservationStatus::Cancelled->value,
+    ]);
+
+    $freshSegment = ReservationSegment::query()
+        ->whereHas('reservation', fn ($query) => $query->where('uuid', $reservationUuid))
+        ->first();
+    expect($freshSegment->status)->toBe(ReservationSegmentStatus::Cancelled);
+    expect($freshSegment->released_at)->not->toBeNull();
+
+    // The seat is now free again: a new hold on the same segment succeeds.
+    $newQuote = PriceQuote::create([
+        'departure_id' => $scenario['departure']->id,
+        'origin_stop_id' => $scenario['origin']->id,
+        'destination_stop_id' => $scenario['destination']->id,
+        'fare_id' => $scenario['fare']->id,
+        'base_amount' => 10000,
+        'coefficient' => 1.0,
+        'final_amount' => 10000,
+        'currency' => 'XOF',
+        'snapshot' => ['line_code' => 'BK-L1'],
+        'expires_at' => now()->addMinutes(10),
+    ]);
+
+    $this->postJson('/api/v1/bus/holds', [
+        'departure_uuid' => $scenario['departure']->uuid,
+        'origin_stop_uuid' => $scenario['origin']->uuid,
+        'destination_stop_uuid' => $scenario['destination']->uuid,
+        'price_quote_uuid' => $newQuote->uuid,
+        'seats' => [
+            ['seat_uuid' => $scenario['seat2B']->uuid],
+        ],
+    ])->assertCreated();
+});
+
+it('prevents releasing another users seat hold', function (): void {
+    $scenario = bookingTestScenario();
+    $otherUser = User::factory()->create();
+
+    Sanctum::actingAs($scenario['user']);
+
+    $quote = PriceQuote::create([
+        'departure_id' => $scenario['departure']->id,
+        'origin_stop_id' => $scenario['origin']->id,
+        'destination_stop_id' => $scenario['destination']->id,
+        'fare_id' => $scenario['fare']->id,
+        'base_amount' => 10000,
+        'coefficient' => 1.0,
+        'final_amount' => 10000,
+        'currency' => 'XOF',
+        'snapshot' => ['line_code' => 'BK-L1'],
+        'expires_at' => now()->addMinutes(10),
+    ]);
+
+    $reservationUuid = $this->postJson('/api/v1/bus/holds', [
+        'departure_uuid' => $scenario['departure']->uuid,
+        'origin_stop_uuid' => $scenario['origin']->uuid,
+        'destination_stop_uuid' => $scenario['destination']->uuid,
+        'price_quote_uuid' => $quote->uuid,
+        'seats' => [
+            ['seat_uuid' => $scenario['seat2B']->uuid],
+        ],
+    ])->assertCreated()->json('data.uuid');
+
+    Sanctum::actingAs($otherUser);
+
+    $this->deleteJson("/api/v1/bus/holds/{$reservationUuid}")->assertForbidden();
+
+    $this->assertDatabaseHas('reservations', [
+        'uuid' => $reservationUuid,
+        'status' => ReservationStatus::Held->value,
+    ]);
+});
+
+it('returns 404 when releasing an unknown hold uuid', function (): void {
+    $scenario = bookingTestScenario();
+    Sanctum::actingAs($scenario['user']);
+
+    $this->deleteJson('/api/v1/bus/holds/'.\Illuminate\Support\Str::uuid())
+        ->assertNotFound();
+});
+
 /**
  * @return array<string, mixed>
  */

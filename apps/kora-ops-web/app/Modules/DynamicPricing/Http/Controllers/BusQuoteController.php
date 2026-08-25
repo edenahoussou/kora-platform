@@ -21,6 +21,10 @@ class BusQuoteController extends Controller
     /**
      * Create a fixed price quote.
      *
+     * Requires a Sanctum bearer token.
+     *
+     * @authenticated
+     *
      * @response 201 scenario="Quote created" {
      *   "data": {
      *     "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
