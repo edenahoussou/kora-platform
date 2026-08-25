@@ -146,7 +146,7 @@ class BusController extends Controller
                 'lineCode' => $departure->line ? $departure->line->code : '—',
                 'lineName' => $departure->line ? $departure->line->name : '—',
                 'departureDate' => $departure->departure_date,
-                'departureTime' => $departure->departure_time,
+                'departureTime' => $departure->formattedDepartureTime(),
                 'estimatedArrivalAt' => $departure->estimated_arrival_at,
                 'status' => (string) $departure->getRawOriginal('status'),
             ];
