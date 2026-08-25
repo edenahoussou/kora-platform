@@ -30,6 +30,8 @@ This repository has no established Git history yet. Use concise conventional-sty
 
 Before pushing a branch or merging a pull request, run the relevant local gate and confirm the equivalent GitHub Actions checks are green. For KORA OPS Web changes, run at minimum `composer test`, `npm run build`, and when the production image or deploy pipeline may be affected, `docker build -f infra/docker/kora-ops-web/Dockerfile.prod -t kora-ops-web:local-check .` from the repository root. Do not merge based only on a PR check if the post-merge `main` deployment workflow is failing.
 
+**Merge strategy**: Always use merge commits (`gh pr merge --merge`), never squash. The repository is configured for merge commits by default — squashing destroys individual commit history and should not be used.
+
 ## CI/CD
 
 The pipeline runs on GitHub Actions. Workflows live in `.github/workflows/`:
