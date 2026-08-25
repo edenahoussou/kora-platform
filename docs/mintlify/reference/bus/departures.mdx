@@ -1,0 +1,113 @@
+---
+title: Départs
+description: Rechercher des départs par date et segment, et consulter le détail d'un départ.
+---
+
+import { Card, Info } from '@mintlify/components';
+
+# Départs
+
+## Rechercher des départs
+
+`GET /api/v1/bus/departures`
+
+Retourne les départs programmés pour une date et un segment. Le paramètre `date` est **obligatoire**.
+
+```bash
+curl -X GET 'https://api.korabus.app/api/v1/bus/departures?date=2026-08-20&from=Cotonou&to=Abidjan' \
+  -H 'Accept: application/json'
+```
+
+```javascript
+const res = await fetch('https://api.korabus.app/api/v1/bus/departures?date=2026-08-20&from=Cotonou&to=Abidjan');
+const { data } = await res.json();
+```
+
+```typescript
+const res = await fetch('https://api.korabus.app/api/v1/bus/departures?date=2026-08-20&from=Cotonou&to=Abidjan');
+const data: KoraDeparture[] = (await res.json()).data;
+```
+
+```dart
+final res = await dio.get('/api/v1/bus/departures', queryParameters: {
+  'date': '2026-08-20',
+  'from': 'Cotonou',
+  'to': 'Abidjan',
+});
+final departures = res.data['data'] as List;
+```
+
+**Réponse (200) :**
+
+```json
+{
+  "data": [
+    {
+      "uuid": "a3091549-9179-454e-8440-58179f2208df",
+      "departure_date": "2026-08-20",
+      "departure_time": "06:00",
+      "estimated_arrival_at": "2026-08-20T14:00:00.000Z",
+      "status": "scheduled",
+      "line": {
+        "uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
+        "code": "COT-ABJ",
+        "name": "Cotonou — Abidjan"
+      },
+      "bus": {
+        "uuid": "b4102650-a280-4655-9551-69280321aaef",
+        "registration_number": "BJ-2024-AB-1234",
+        "brand": "Mercedes",
+        "model": "O500",
+        "seat_count": 49
+      },
+      "origin_stop": { "uuid": "6b72fe4a-...", "name": "Gare de Cotonou", "city": "Cotonou" },
+      "destination_stop": { "uuid": "8d94f06c-...", "name": "Gare d'Abidjan", "city": "Abidjan" },
+      "available_seats_count": 32,
+      "fare_preview": { "amount": 15000, "currency": "XOF", "label": "15 000 FCFA" }
+    }
+  ]
+}
+```
+
+### Paramètres
+
+| Champ | Type | Requis | Description |
+|-------|------|--------|-------------|
+| `date` | string (query) | ✅ | Date de voyage `YYYY-MM-DD`. |
+| `from` | string (query) | ❌ | Ville d'origine. |
+| `to` | string (query) | ❌ | Ville de destination. |
+
+| Code | Description |
+|------|-------------|
+| `200` | Liste des départs. |
+| `422` | `date` manquant ou format invalide. |
+| `429` | Rate limit `bus-search` dépassé. |
+
+<Info>
+  Le `fare_preview` est un **aperçu** indicatif. Le prix figé et contractuel s'obtient via `POST /api/v1/bus/quotes`. N'affichez pas de prix définitif côté client avant la réponse du devis.
+</Info>
+
+---
+
+## Consulter un départ
+
+`GET /api/v1/bus/departures/{uuid}`
+
+```bash
+curl -X GET https://api.korabus.app/api/v1/bus/departures/a3091549-9179-454e-8440-58179f2208df \
+  -H 'Accept: application/json'
+```
+
+```dart
+final res = await dio.get('/api/v1/bus/departures/a3091549-9179-454e-8440-58179f2208df');
+```
+
+| Code | Description |
+|------|-------------|
+| `200` | Détail du départ. |
+| `404` | Départ introuvable. |
+| `429` | Rate limit dépassé. |
+
+<Card title="Sièges" href="/reference/bus/seats" icon="arrow-right" iconType="solid">
+  Consultez la **disponibilité des sièges** par segment.
+</Card>

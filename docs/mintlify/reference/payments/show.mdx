@@ -1,0 +1,89 @@
+---
+title: Consulter un paiement
+description: Poller le statut d'un paiement en cours.
+---
+
+import { Card, Info } from '@mintlify/components';
+
+# Consulter un paiement
+
+`GET /api/v1/payments/{payment_uuid}`
+
+Retourne le statut courant d'un paiement. À poller après initiation jusqu'à obtention d'un statut terminal (`confirmed` ou `failed`).
+
+```bash
+curl -X GET https://api.korabus.app/api/v1/payments/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80 \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Accept: application/json'
+```
+
+```javascript
+const res = await fetch('https://api.korabus.app/api/v1/payments/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80', {
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+const { data } = await res.json();
+```
+
+```typescript
+const res = await fetch(`https://api.korabus.app/api/v1/payments/${paymentUuid}`, {
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+const data: KoraPayment = (await res.json()).data;
+```
+
+```dart
+final res = await authDio.get('/api/v1/payments/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80');
+final status = res.data['data']['status'];
+```
+
+**Réponse (200) :**
+
+```json
+{
+  "data": {
+    "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80",
+    "status": "confirmed",
+    "amount": 12500,
+    "currency": "XOF",
+    "provider": "mtn_momo",
+    "provider_reference": "MM-98270341",
+    "confirmed_at": "2026-08-20T08:05:00Z",
+    "expires_at": "2026-08-20T08:15:00Z",
+    "polling_interval_seconds": 10,
+    "reservation": {
+      "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+      "status": "paid",
+      "departure_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e"
+    }
+  }
+}
+```
+
+### Paramètres
+
+| Champ | Type | Requis | Description |
+|-------|------|--------|-------------|
+| `payment_uuid` | UUID (path) | ✅ | UUID du paiement. |
+
+### Statuts de paiement
+
+| Statut | Description |
+|--------|-------------|
+| `pending` | Paiement initié, en attente de confirmation provider |
+| `confirmed` | Paiement confirmé par le provider (webhook) |
+| `failed` | Paiement échoué ou réservation expirée avant confirmation |
+
+| Code | Description |
+|------|-------------|
+| `200` | Paiement retourné. |
+| `401` | Token absent ou invalide. |
+| `403` | Paiement appartenant à un autre utilisateur. |
+| `404` | Paiement introuvable. |
+
+<Info>
+  Pollez toutes les `polling_interval_seconds` (10s) jusqu'à statut terminal. Évitez un polling trop agressif pour respecter le rate limit.
+</Info>
+
+<Card title="Confirmer (webhook)" href="/reference/payments/confirm" icon="arrow-right" iconType="solid">
+  Le **webhook provider** confirme ou échoue le paiement.
+</Card>

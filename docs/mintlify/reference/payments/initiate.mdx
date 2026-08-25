@@ -1,0 +1,117 @@
+---
+title: Initier un paiement
+description: Démarrer un paiement pour une réservation held, avec idempotence.
+---
+
+import { Card, Info, Warning } from '@mintlify/components';
+
+# Initier un paiement
+
+`POST /api/v1/payments/initiate`
+
+Initie un paiement pour une réservation au statut `held`. L'API crée un paiement `pending` et déclenche le flow provider (Mobile Money, carte, etc.). L'idempotence est garantie par `idempotency_key` : un replay avec la même clé retourne le paiement existant en `200` au lieu de `201`.
+
+```bash
+curl -X POST https://api.korabus.app/api/v1/payments/initiate \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "reservation_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+    "method": "mobile_money",
+    "provider": "mtn_momo",
+    "idempotency_key": "pay-2026-08-20-001",
+    "phone": "+2290197421860"
+  }'
+```
+
+```javascript
+const res = await fetch('https://api.korabus.app/api/v1/payments/initiate', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ reservation_uuid, method: 'mobile_money', provider: 'mtn_momo', idempotency_key: 'pay-001', phone: '+2290197421860' }),
+});
+const { data } = await res.json();
+```
+
+```typescript
+const res = await fetch('https://api.korabus.app/api/v1/payments/initiate', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ reservation_uuid, method, provider, idempotency_key, phone } satisfies KoraPaymentInitiateRequest),
+});
+const data: KoraPayment = (await res.json()).data;
+```
+
+```dart
+final res = await authDio.post('/api/v1/payments/initiate', data: {
+  'reservation_uuid': '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70',
+  'method': 'mobile_money',
+  'provider': 'mtn_momo',
+  'idempotency_key': 'pay-2026-08-20-001',
+  'phone': '+2290197421860',
+});
+final paymentUuid = res.data['data']['uuid'];
+```
+
+**Réponse (201) :**
+
+```json
+{
+  "data": {
+    "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80",
+    "status": "pending",
+    "amount": 12500,
+    "currency": "XOF",
+    "provider": "mtn_momo",
+    "provider_reference": "MM-98270341",
+    "expires_at": "2026-08-20T08:15:00Z",
+    "polling_interval_seconds": 10
+  }
+}
+```
+
+**Réponse (200 — replay idempotent) :** Même structure, statut `200` au lieu de `201`.
+
+**Réponse (422) :**
+
+```json
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "reservation_uuid": ["La réservation n'existe pas ou n'est plus held."]
+  }
+}
+```
+
+### Paramètres
+
+| Champ | Type | Requis | Description |
+|-------|------|--------|-------------|
+| `reservation_uuid` | UUID | ✅ | UUID de la réservation à payer. |
+| `method` | string | ✅ | `mobile_money`, `wallet`, `card`, `cash`. |
+| `provider` | string | ✅ | Provider (ex: `mtn_momo`, `orange_money`, `moov_money`). |
+| `idempotency_key` | string | ✅ | Clé d'idempotence unique par tentative. |
+| `phone` | string | ❌ | Téléphone Mobile Money (requis si `method=mobile_money`). |
+| `wallet_amount` | integer | ❌ | Montant payé via wallet (split payment). |
+| `points_amount` | integer | ❌ | Montant payé via points (split payment). |
+
+### Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `201` | Paiement initié. |
+| `200` | Replay idempotent — paiement déjà existant. |
+| `401` | Token absent ou invalide. |
+| `422` | Réservation non `held`, méthode invalide, ou validation échouée. |
+
+<Info>
+  Le `polling_interval_seconds` (10s par défaut) indique la fréquence recommandée pour poller le statut via `GET /payments/{uuid}`.
+</Info>
+
+<Warning>
+  Le paiement est accepté **uniquement** tant que le hold est valide. Si un webhook de succès arrive après l'expiration, le backend marque le paiement `failed` et ne réactive pas la réservation.
+</Warning>
+
+<Card title="Consulter un paiement" href="/reference/payments/show" icon="arrow-right" iconType="solid">
+  **Pollez le statut** du paiement initié.
+</Card>

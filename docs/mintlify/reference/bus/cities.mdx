@@ -1,0 +1,63 @@
+---
+title: Villes
+description: Lister les villes desservies par le réseau KORA BUS.
+---
+
+import { Card } from '@mintlify/components';
+
+# Villes
+
+`GET /api/v1/bus/cities`
+
+Retourne les villes actives dérivées des arrêts de bus en service. Cet endpoint est **public** et mis en cache côté serveur.
+
+```bash
+curl -X GET https://api.korabus.app/api/v1/bus/cities \
+  -H 'Accept: application/json'
+```
+
+```javascript
+const res = await fetch('https://api.korabus.app/api/v1/bus/cities');
+const { data } = await res.json();
+data.forEach(c => console.log(`${c.city} (${c.country})`));
+```
+
+```typescript
+const res = await fetch('https://api.korabus.app/api/v1/bus/cities');
+const data: KoraCity[] = (await res.json()).data;
+```
+
+```dart
+final res = await dio.get('/api/v1/bus/cities');
+final cities = res.data['data'] as List;
+for (final c in cities) {
+  print('${c['city']} (${c['country']}) — ${c['stops_count']} arrêts');
+}
+```
+
+**Réponse (200) :**
+
+```json
+{
+  "data": [
+    { "city": "Cotonou", "country": "BJ", "stops_count": 3 },
+    { "city": "Abidjan", "country": "CI", "stops_count": 2 },
+    { "city": "Bohicon", "country": "BJ", "stops_count": 1 }
+  ]
+}
+```
+
+### Paramètres
+
+Aucun — endpoint public sans paramètres.
+
+### Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `200` | Liste des villes. |
+| `429` | Rate limit `bus-search` dépassé (60/min). |
+
+<Card title="Lignes" href="/reference/bus/lines" icon="arrow-right" iconType="solid">
+  Filtrez les **lignes** par segment origine/destination.
+</Card>

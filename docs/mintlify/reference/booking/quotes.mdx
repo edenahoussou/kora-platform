@@ -1,0 +1,131 @@
+---
+title: Devis
+description: Créer un devis tarifaire figé pour un segment.
+---
+
+import { Card, Warning, Info } from '@mintlify/components';
+
+# Devis
+
+`POST /api/v1/bus/quotes`
+
+Fige le tarif d'un segment demandé. La durée de validité est contrôlée par `KORA_QUOTE_TTL_MINUTES` (10 minutes par défaut). Le mobile doit conserver l'UUID du devis et le transmettre lors de la création du hold.
+
+```bash
+curl -X POST https://api.korabus.app/api/v1/bus/quotes \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "departure_uuid": "a3091549-9179-454e-8440-58179f2208df",
+    "origin_stop_uuid": "6b72fe4a-5b40-307c-bc24-f79acf9a1bb9",
+    "destination_stop_uuid": "8d94f06c-7d62-529e-de46-9bce1cbc3dd1",
+    "service_class_uuid": null,
+    "passenger_count": 2
+  }'
+```
+
+```javascript
+const res = await fetch('https://api.korabus.app/api/v1/bus/quotes', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ departure_uuid, origin_stop_uuid, destination_stop_uuid, service_class_uuid: null, passenger_count: 2 }),
+});
+const { data } = await res.json();
+```
+
+```typescript
+const res = await fetch('https://api.korabus.app/api/v1/bus/quotes', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ departure_uuid, origin_stop_uuid, destination_stop_uuid, service_class_uuid: null, passenger_count: 2 } satisfies KoraQuoteRequest),
+});
+const data: KoraQuote = (await res.json()).data;
+```
+
+```dart
+final res = await authDio.post('/api/v1/bus/quotes', data: {
+  'departure_uuid': 'a3091549-9179-454e-8440-58179f2208df',
+  'origin_stop_uuid': '6b72fe4a-5b40-307c-bc24-f79acf9a1bb9',
+  'destination_stop_uuid': '8d94f06c-7d62-529e-de46-9bce1cbc3dd1',
+  'service_class_uuid': null,
+  'passenger_count': 2,
+});
+final quoteUuid = res.data['data']['uuid'];
+```
+
+**Réponse (201) :**
+
+```json
+{
+  "data": {
+    "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+    "departure_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e",
+    "origin_stop_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6f",
+    "destination_stop_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+    "service_class_uuid": null,
+    "base_amount": 12500,
+    "coefficient": 1.0,
+    "final_amount": 12500,
+    "currency": "XOF",
+    "passenger_count": 1,
+    "total_amount": 12500,
+    "expires_at": "2026-08-20T08:10:00Z",
+    "snapshot": {
+      "fare_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6f",
+      "line_code": "L2",
+      "origin_stop": "Cotonou · St Michel",
+      "destination_stop": "Malanville",
+      "service_class": "Standard",
+      "passenger_count": 1,
+      "total_amount": 12500
+    }
+  }
+}
+```
+
+**Réponse (401) :**
+
+```json
+{ "message": "Unauthenticated." }
+```
+
+**Réponse (422) :**
+
+```json
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "destination_stop_uuid": ["L'arrêt de destination doit être situé après l'arrêt d'origine."]
+  }
+}
+```
+
+### Paramètres
+
+| Champ | Type | Requis | Description |
+|-------|------|--------|-------------|
+| `departure_uuid` | UUID | ✅ | UUID du départ sélectionné. |
+| `origin_stop_uuid` | UUID | ✅ | UUID de l'arrêt d'origine du segment. |
+| `destination_stop_uuid` | UUID | ✅ | UUID de l'arrêt de destination. |
+| `service_class_uuid` | UUID \| null | ❌ | Classe de service (null = défaut). |
+| `passenger_count` | integer | ✅ | Nombre de passagers (≥ 1). |
+
+### Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `201` | Devis créé — `expires_at` indique la durée de validité. |
+| `401` | Token Sanctum absent ou invalide. |
+| `422` | Départ introuvable, segment invalide, ou `passenger_count` < 1. |
+
+<Warning>
+  Le `fare_preview` du départ est un **aperçu**. Le prix figé et contractuel s'obtient uniquement via cet endpoint. N'affichez jamais un prix définitif côté client avant la réponse du devis.
+</Warning>
+
+<Info>
+  Le `snapshot` fige les paramètres tarifaires au moment de la création. Il garantit que le prix ne change pas même si le tarif évolue pendant la durée de validité.
+</Info>
+
+<Card title="Blocage de sièges (hold)" href="/reference/booking/holds" icon="arrow-right" iconType="solid">
+  Le devis en main, créez un **hold** pour réserver les sièges.
+</Card>

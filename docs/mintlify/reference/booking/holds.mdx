@@ -1,0 +1,139 @@
+---
+title: Blocage de sièges (holds)
+description: Bloquer temporairement des sièges pour un segment, avec expiration serveur.
+---
+
+import { Card, Warning, Info } from '@mintlify/components';
+
+# Blocage de sièges (holds)
+
+`POST /api/v1/bus/holds`
+
+Démarre un blocage de sièges (hold) après que le passager a confirmé sa sélection. Le hold ne démarre **pas** pendant la consultation du plan — uniquement à la confirmation explicte. La durée est contrôlée par `KORA_HOLD_TTL_MINUTES` (15 minutes par défaut).
+
+```bash
+curl -X POST https://api.korabus.app/api/v1/bus/holds \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "departure_uuid": "a3091549-9179-454e-8440-58179f2208df",
+    "origin_stop_uuid": "6b72fe4a-5b40-307c-bc24-f79acf9a1bb9",
+    "destination_stop_uuid": "8d94f06c-7d62-529e-de46-9bce1cbc3dd1",
+    "price_quote_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+    "seats": [
+      { "seat_uuid": "seat-002-uuid" },
+      { "seat_uuid": "seat-004-uuid" }
+    ]
+  }'
+```
+
+```javascript
+const res = await fetch('https://api.korabus.app/api/v1/bus/holds', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ departure_uuid, origin_stop_uuid, destination_stop_uuid, price_quote_uuid, seats: [{ seat_uuid: 'seat-002-uuid' }, { seat_uuid: 'seat-004-uuid' }] }),
+});
+const { data } = await res.json();
+```
+
+```typescript
+const res = await fetch('https://api.korabus.app/api/v1/bus/holds', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ departure_uuid, origin_stop_uuid, destination_stop_uuid, price_quote_uuid, seats } satisfies KoraHoldRequest),
+});
+const data: KoraReservation = (await res.json()).data;
+```
+
+```dart
+final res = await authDio.post('/api/v1/bus/holds', data: {
+  'departure_uuid': 'a3091549-9179-454e-8440-58179f2208df',
+  'origin_stop_uuid': '6b72fe4a-5b40-307c-bc24-f79acf9a1bb9',
+  'destination_stop_uuid': '8d94f06c-7d62-529e-de46-9bce1cbc3dd1',
+  'price_quote_uuid': '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d',
+  'seats': [
+    { 'seat_uuid': 'seat-002-uuid' },
+    { 'seat_uuid': 'seat-004-uuid' }
+  ],
+});
+final reservationUuid = res.data['data']['uuid'];
+```
+
+**Réponse (201) :**
+
+```json
+{
+  "data": {
+    "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+    "status": "held",
+    "expires_at": "2026-08-20T08:15:00Z",
+    "total_amount": 12500,
+    "currency": "XOF",
+    "channel": "mobile",
+    "departure_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e",
+    "price_quote_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6f",
+    "segments": [
+      {
+        "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb71",
+        "seat_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb72",
+        "seat_code": "4A",
+        "origin_stop": "Cotonou · St Michel",
+        "destination_stop": "Malanville",
+        "status": "held"
+      }
+    ]
+  }
+}
+```
+
+**Réponse (409) — Siège indisponible :**
+
+```json
+{
+  "message": "Le siège 4A n'est plus disponible sur ce segment.",
+  "conflicting_seat_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb72",
+  "seat_code": "4A"
+}
+```
+
+**Réponse (422) — Contrat incohérent :**
+
+```json
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "seats": ["Le nombre de sièges doit correspondre au nombre de passagers du devis."]
+  }
+}
+```
+
+### Paramètres
+
+| Champ | Type | Requis | Description |
+|-------|------|--------|-------------|
+| `departure_uuid` | UUID | ✅ | UUID du départ. |
+| `origin_stop_uuid` | UUID | ✅ | UUID de l'arrêt d'origine. |
+| `destination_stop_uuid` | UUID | ✅ | UUID de l'arrêt de destination. |
+| `price_quote_uuid` | UUID | ✅ | UUID du devis créé précédemment. |
+| `seats` | array | ✅ | Tableau de `{ seat_uuid }`. Le nombre doit égal `passenger_count` du devis. |
+
+### Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `201` | Hold créé — `expires_at` indique la durée. |
+| `401` | Token absent ou invalide. |
+| `409` | Siège plus disponible (conflit de disponibilité, segment chevauchant). |
+| `422` | Contrat quote/sièges incohérent, devis expiré, doublons de sièges. |
+
+<Warning>
+  Le nombre de sièges doit être **égal** à `passenger_count` du devis. Les doublons, un devis expiré ou un décalage de segment renvoient `422`. Un autre hold gagnant renvoie `409`.
+</Warning>
+
+<Info>
+  Un même siège peut rester vendable sur deux segments **non chevauchants**. Les lectures de disponibilité ignorent déjà un hold arrivé à expiration, même si la commande planifiée n'a pas encore normalisé ses statuts.
+</Info>
+
+<Card title="Réservations" href="/reference/booking/reservations" icon="arrow-right" iconType="solid">
+  Récupérez l'état serveur de la **réservation** après le hold.
+</Card>
