@@ -6,15 +6,21 @@ import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/core/utils/date_formats.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/passenger.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/seat.dart';
+import 'package:kora_app_passenger/features/booking/presentation/bloc/seat_hold_bloc.dart';
 import 'package:kora_app_passenger/features/booking/presentation/pages/summary_page.dart';
 
+import '../../../../support/seat_hold_harness.dart';
+
 void main() {
+  late SeatHoldBloc holdBloc;
+
   final cotonou = kMockCities.firstWhere((city) => city.id == 'ctn');
   final malanville = kMockCities.firstWhere((city) => city.id == 'mlv');
 
@@ -22,10 +28,14 @@ void main() {
   late List<Seat> freeSeats;
 
   setUpAll(() async {
+    await AppLocalization.preloadAll();
     await initializeDateFormatting(KoraDateFormats.locale);
   });
 
   setUp(() {
+    holdBloc = SeatHoldBloc(StubReservationRepository());
+    addTearDown(holdBloc.close);
+
     departure = mockDeparturesFor(
       SearchCriteria(
         origin: cotonou,
@@ -59,13 +69,17 @@ void main() {
         locale: const Locale('fr', 'FR'),
         supportedLocales: const [Locale('fr', 'FR')],
         localizationsDelegates: const [
+          AppLocalization.delegate,
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        home: SummaryPage(
-          departure: departure,
-          passengers: passengersOf(passengers),
+        home: withSeatHold(
+          SummaryPage(
+            departure: departure,
+            passengers: passengersOf(passengers),
+          ),
+          bloc: holdBloc,
         ),
       ),
     );
@@ -130,7 +144,15 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
-        home: SummaryPage(departure: departure),
+        locale: const Locale('fr'),
+        supportedLocales: const [Locale('fr'), Locale('en')],
+        localizationsDelegates: const [
+          AppLocalization.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: withSeatHold(SummaryPage(departure: departure), bloc: holdBloc),
       ),
     );
     await tester.pumpAndSettle();

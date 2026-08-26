@@ -9,6 +9,7 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../domain/entities/departure.dart';
+import '../../domain/entities/price.dart';
 import '../../domain/entities/search_criteria.dart';
 import '../bloc/departures_bloc.dart';
 import '../widgets/departure_filter_bar.dart';
@@ -188,15 +189,18 @@ class _ResultsView extends StatelessWidget {
       children: [
         ScreenHeader(
           eyebrow: _criteriaLabel(context, state.criteria),
-          title: context.l10n.departuresCount(state.availableCount),
-          action: KoraIconButton(
-            icon: Icons.tune_rounded,
-            onTap: () => Navigator.of(context).pop(),
-          ),
+          // Le compte reste le titre, et compte **tous** les départs de la
+          // liaison : le récapitulatif juste en dessous dit aussitôt
+          // combien les filtres en retiennent, donc le titre n'a pas à
+          // suivre les filtres pour rester honnête.
+          title: context.l10n.departuresCount(state.totalAvailableCount),
+          action: _FiltersButton(state: state),
         ),
         const PriceAssuranceBanner(),
-        const SizedBox(height: AppSpacing.md),
-        _FilterBar(state: state),
+        if (state.hasFilters) ...[
+          const SizedBox(height: AppSpacing.md),
+          _FiltersRecap(state: state),
+        ],
         const SizedBox(height: AppSpacing.md),
         for (final departure in departures) ...[
           _DepartureTile(
@@ -227,6 +231,210 @@ class _FilterBar extends StatelessWidget {
       timeSlots: state.timeSlots,
       onSortTapped: (field) => bloc.add(DeparturesSortChanged(field)),
       onTimeSlotTapped: (slot) => bloc.add(DeparturesTimeSlotToggled(slot)),
+    );
+  }
+}
+
+/// L'icône qui ouvre les tris et filtres, avec sa pastille.
+///
+/// La pastille n'est pas décorative. Les puces rangées dans une feuille,
+/// plus rien à l'écran ne dit qu'un créneau est actif : une liste amputée
+/// de moitié passerait pour la liste complète, et le voyageur conclurait
+/// qu'il n'y a pas d'autre départ.
+class _FiltersButton extends StatelessWidget {
+  const _FiltersButton({required this.state});
+
+  final DeparturesState state;
+
+  @override
+  Widget build(BuildContext context) {
+    return KoraIconButton(
+      icon: Icons.tune_rounded,
+      showBadge: state.hasFilters,
+      onTap: () => _openFilters(context),
+    );
+  }
+}
+
+/// Ce que les filtres retiennent, juste au-dessus des cartes.
+///
+/// « 2 départs ce matin, de 12 000 à 18 000 FCFA ». Les puces rangées
+/// dans une feuille, une liste amputée ressemble à la liste complète :
+/// la pastille de l'icône signale qu'un filtre tourne, cette phrase dit
+/// **lequel**, et ce qu'il laisse. Sans elle, il faudrait rouvrir la
+/// feuille pour se rappeler ce qu'on avait demandé.
+///
+/// Affichée seulement quand un filtre est actif : sans filtre elle
+/// répéterait le titre.
+class _FiltersRecap extends StatelessWidget {
+  const _FiltersRecap({required this.state});
+
+  final DeparturesState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final koraColors = context.koraColors;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Text(
+            l10n.departuresRecap(
+              state.availableCount,
+              _slotsLabel(context, state.timeSlots),
+              _pricesLabel(context, state.visiblePriceRange),
+            ),
+            style: AppTextStyles.body(koraColors.textPrimary),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        // Les filtres repliés, le retour à la liste complète doit rester
+        // à portée : sans ce raccourci, défaire ce que la pastille
+        // signale demanderait de rouvrir la feuille pour y décocher.
+        GestureDetector(
+          onTap: () => context.read<DeparturesBloc>().add(
+            const DeparturesFiltersCleared(),
+          ),
+          behavior: HitTestBehavior.opaque,
+          child: Text(
+            l10n.departuresFiltersClear,
+            style: AppTextStyles.caption(AppColors.digital),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// `ce matin`, ou `ce matin et cet après-midi` — jamais une liste vide,
+/// le récapitulatif ne s'affichant que sous filtre.
+String _slotsLabel(BuildContext context, Set<DepartureTimeSlot> slots) {
+  final l10n = context.l10n;
+
+  // L'ordre suit la journée, pas celui des appuis : « cet après-midi et
+  // ce matin » se lit comme une erreur.
+  final ordered = DepartureTimeSlot.values.where(slots.contains);
+
+  return ordered
+      .map(
+        (slot) => switch (slot) {
+          DepartureTimeSlot.morning => l10n.departuresRecapMorning,
+          DepartureTimeSlot.afternoon => l10n.departuresRecapAfternoon,
+          DepartureTimeSlot.evening => l10n.departuresRecapEvening,
+        },
+      )
+      .join(l10n.departuresRecapSlotsJoin);
+}
+
+/// `de 12 000 à 18 000 FCFA`, ou `à 12 000 FCFA` quand tous les départs
+/// retenus sont au même prix — annoncer une fourchette entre deux fois le
+/// même montant ferait hésiter sur ce qui varie.
+String _pricesLabel(BuildContext context, (Price, Price)? range) {
+  final l10n = context.l10n;
+  if (range == null) return '';
+
+  final (cheapest, dearest) = range;
+
+  return cheapest.amount == dearest.amount
+      ? l10n.departuresRecapPricesFlat(cheapest.formatted)
+      : l10n.departuresRecapPricesRange(cheapest.formatted, dearest.formatted);
+}
+
+/// Ouvre les tris et filtres en feuille.
+///
+/// `BlocProvider.value` et non une simple lecture : la feuille est une
+/// **route**, poussée sur le Navigator, donc au-dessus du fournisseur
+/// installé par [DeparturesPage]. Son contexte n'en hérite pas, et les
+/// puces ne trouveraient aucun Bloc à interroger.
+Future<void> _openFilters(BuildContext context) {
+  final bloc = context.read<DeparturesBloc>();
+
+  return showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: context.koraColors.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+    ),
+    builder: (_) => BlocProvider<DeparturesBloc>.value(
+      value: bloc,
+      child: const _FiltersSheet(),
+    ),
+  );
+}
+
+/// La feuille des tris et filtres.
+///
+/// Aucun bouton « appliquer » : chaque puce agit sur-le-champ, comme
+/// avant que ces réglages ne descendent en feuille. Un bouton de
+/// validation laisserait croire qu'on peut annuler, alors que rien n'est
+/// mis de côté — et obligerait à tenir un état provisoire que le Bloc ne
+/// connaît pas. « Voir les résultats » ne fait donc que refermer.
+class _FiltersSheet extends StatelessWidget {
+  const _FiltersSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final koraColors = context.koraColors;
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          18,
+          AppSpacing.md,
+          18,
+          AppSpacing.md,
+        ),
+        child: BlocBuilder<DeparturesBloc, DeparturesState>(
+          builder: (context, state) => Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 38,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: koraColors.line,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      l10n.departuresFiltersTitle,
+                      style: AppTextStyles.heading2(koraColors.textPrimary),
+                    ),
+                  ),
+                  if (state.hasFilters)
+                    GestureDetector(
+                      onTap: () => context.read<DeparturesBloc>().add(
+                        const DeparturesFiltersCleared(),
+                      ),
+                      behavior: HitTestBehavior.opaque,
+                      child: Text(
+                        l10n.departuresFiltersClear,
+                        style: AppTextStyles.caption(AppColors.digital),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              _FilterBar(state: state),
+              const SizedBox(height: AppSpacing.xl),
+              KoraButton(
+                label: l10n.departuresFiltersDone,
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -299,10 +507,10 @@ class _EmptyView extends StatelessWidget {
 
 /// Des départs existent, mais aucun ne passe les filtres.
 ///
-/// La barre de filtres **reste affichée** : la liaison est desservie, la
-/// correction tient à un créneau qu'il suffit de décocher là où il est.
-/// Renvoyer vers le formulaire de recherche, comme le fait [_EmptyView],
-/// serait ici un détour absurde.
+/// L'icône des filtres **reste dans l'en-tête**, et l'action principale
+/// vide les créneaux d'un geste : la liaison est desservie, la correction
+/// tient à un filtre. Renvoyer vers le formulaire de recherche, comme le
+/// fait [_EmptyView], serait ici un détour absurde.
 class _FilteredEmptyView extends StatelessWidget {
   const _FilteredEmptyView({required this.state});
 
@@ -317,9 +525,8 @@ class _FilteredEmptyView extends StatelessWidget {
         ScreenHeader(
           eyebrow: _criteriaLabel(context, state.criteria),
           title: context.l10n.departuresFilteredEmptyEyebrow,
+          action: _FiltersButton(state: state),
         ),
-        const SizedBox(height: AppSpacing.md),
-        _FilterBar(state: state),
         StateView(
           icon: Icons.filter_alt_off_rounded,
           title: context.l10n.departuresFilteredEmptyTitle,

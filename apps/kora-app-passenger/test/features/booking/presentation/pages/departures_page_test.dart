@@ -99,6 +99,19 @@ void main() {
     );
   }
 
+  /// Ouvre la feuille des tris et filtres, repliés derrière l'icône de
+  /// l'en-tête. Les puces n'existent plus ailleurs : tout test qui en
+  /// tape une passe forcément par là.
+  Future<void> openFilters(WidgetTester tester) async {
+    await tester.tap(find.byIcon(Icons.tune_rounded));
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> closeFilters(WidgetTester tester) async {
+    await tester.tap(find.text('Voir les résultats'));
+    await tester.pumpAndSettle();
+  }
+
   /// Les heures de départ affichées, dans l'ordre des cartes.
   List<String> visibleTimes(WidgetTester tester) => tester
       .widgetList<DepartureCard>(find.byType(DepartureCard))
@@ -138,10 +151,16 @@ void main() {
     await pumpPage(tester);
     await tester.pumpAndSettle();
 
-    // 4 départs mockés, dont un complet : le titre ne compte que les
+    // 4 départs mockés, dont un complet : le compte ne retient que les
     // départs réservables.
     expect(find.text('3 départs disponibles'), findsOneWidget);
     expect(find.text('VEN. 14 AOÛT · 1 PASSAGER'), findsOneWidget);
+    // Sans filtre, aucun récapitulatif : il ne ferait que répéter le
+    // titre.
+    expect(find.textContaining('ce matin'), findsNothing);
+    // Les puces ne sont plus dans la page, seulement leur icône.
+    expect(find.text('PRIX'), findsNothing);
+    expect(find.byIcon(Icons.tune_rounded), findsOneWidget);
     expect(find.byType(DepartureCard), findsNWidgets(4));
     expect(find.text('Prix affichés définitifs'), findsOneWidget);
     expect(find.text('COMPLET'), findsOneWidget);
@@ -152,24 +171,15 @@ void main() {
       await pumpPage(tester);
       await tester.pumpAndSettle();
 
-      final variants = tester
-          .widgetList<KoraTag>(
-            find.descendant(
-              of: find.byType(KoraSeatsBadge),
-              matching: find.byType(KoraTag),
-            ),
-          )
-          .map((tag) => tag.variant)
-          .toList();
+      Color? colorOf(String label) =>
+          tester.widget<Text>(find.text(label)).style?.color;
 
-      // Sur 55 places : 12 libres (22 %) → orange, 5 (9 %) → rouge,
-      // 22 (40 %) → vert. Le quatrième départ est complet : il porte le
-      // badge « Complet », pas un badge de places.
-      expect(variants, [
-        KoraTagVariant.gold,
-        KoraTagVariant.danger,
-        KoraTagVariant.success,
-      ]);
+      // Sur 55 places : 12 libres (22 %) → or, 5 (9 %) → rouge, 22 (40 %)
+      // → rien à signaler. Le quatrième départ est complet : il porte le
+      // badge « Complet », pas un compte de places.
+      expect(colorOf('12 places'), AppColors.gold);
+      expect(colorOf('5 places'), AppColors.danger);
+      expect(colorOf('22 places'), isNot(AppColors.gold));
       expect(find.byType(KoraSeatsBadge), findsNWidgets(3));
     });
 
@@ -177,9 +187,9 @@ void main() {
       await pumpPage(tester);
       await tester.pumpAndSettle();
 
-      expect(find.text('12 PLACES'), findsOneWidget);
-      expect(find.text('5 PLACES'), findsOneWidget);
-      expect(find.text('22 PLACES'), findsOneWidget);
+      expect(find.text('12 places'), findsOneWidget);
+      expect(find.text('5 places'), findsOneWidget);
+      expect(find.text('22 places'), findsOneWidget);
     });
   });
 
@@ -187,6 +197,7 @@ void main() {
     testWidgets('trie par prix au clic sur la puce', (tester) async {
       await pumpPage(tester);
       await tester.pumpAndSettle();
+      await openFilters(tester);
 
       // Par défaut : tri par heure, croissant.
       expect(find.text('HEURE ↑'), findsOneWidget);
@@ -204,6 +215,7 @@ void main() {
     testWidgets('retaper la puce active inverse le sens', (tester) async {
       await pumpPage(tester);
       await tester.pumpAndSettle();
+      await openFilters(tester);
 
       await tester.tap(find.text('PRIX'));
       await tester.pumpAndSettle();
@@ -222,6 +234,7 @@ void main() {
     testWidgets('propose aussi un tri par durée', (tester) async {
       await pumpPage(tester);
       await tester.pumpAndSettle();
+      await openFilters(tester);
 
       expect(find.text('DURÉE'), findsOneWidget);
 
@@ -242,19 +255,25 @@ void main() {
       await pumpPage(tester);
       await tester.pumpAndSettle();
 
+      await openFilters(tester);
       await tester.tap(find.text('MATIN'));
       await tester.pumpAndSettle();
+      await closeFilters(tester);
 
       expect(visibleTimes(tester), ['07:30', '09:00']);
-      // Le titre suit le filtre : annoncer 3 départs au-dessus d'une liste
-      // de 2 serait un mensonge.
-      expect(find.text('2 départs disponibles'), findsOneWidget);
+      // Le titre garde le compte de la liaison entière ; c'est le
+      // récapitulatif qui dit ce que le filtre retient, et à quel prix.
+      // Sans lui, « 3 départs disponibles » au-dessus de deux cartes
+      // serait un mensonge.
+      expect(find.text('3 départs disponibles'), findsOneWidget);
+      expect(find.textContaining('2 départs ce matin, à '), findsOneWidget);
     });
 
     testWidgets('retaper la puce enlève le filtre', (tester) async {
       await pumpPage(tester);
       await tester.pumpAndSettle();
 
+      await openFilters(tester);
       await tester.tap(find.text('MATIN'));
       await tester.pumpAndSettle();
       expect(find.byType(DepartureCard), findsNWidgets(2));
@@ -264,20 +283,45 @@ void main() {
       expect(find.byType(DepartureCard), findsNWidgets(4));
     });
 
+    testWidgets('un filtre actif se signale dans l’en-tête', (tester) async {
+      // Les puces repliées, la pastille est le seul indice qu'une partie
+      // des départs est écartée. Sans elle, une liste amputée passerait
+      // pour la liste complète.
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.widget<KoraIconButton>(find.byType(KoraIconButton).last),
+        isA<KoraIconButton>().having((b) => b.showBadge, 'showBadge', isFalse),
+      );
+
+      await openFilters(tester);
+      await tester.tap(find.text('MATIN'));
+      await tester.pumpAndSettle();
+      await closeFilters(tester);
+
+      expect(
+        tester.widget<KoraIconButton>(find.byType(KoraIconButton).last),
+        isA<KoraIconButton>().having((b) => b.showBadge, 'showBadge', isTrue),
+      );
+    });
+
     testWidgets('un créneau sans départ affiche un état dédié', (tester) async {
       await pumpPage(tester);
       await tester.pumpAndSettle();
 
+      await openFilters(tester);
       await tester.tap(find.text('APRÈS-MIDI'));
       await tester.pumpAndSettle();
+      await closeFilters(tester);
 
       expect(find.text('Aucun départ sur ce créneau'), findsOneWidget);
       expect(find.byType(DepartureCard), findsNothing);
       // Surtout pas le message « liaison non desservie » : la liaison
       // l'est, ce sont les filtres qui sont trop stricts.
       expect(find.text('Aucun voyage ce jour-là'), findsNothing);
-      // Les puces restent à l'écran pour pouvoir se décocher sur place.
-      expect(find.text('APRÈS-MIDI'), findsOneWidget);
+      // L'icône reste pour rouvrir la feuille et décocher sur place.
+      expect(find.byIcon(Icons.tune_rounded), findsOneWidget);
     });
 
     testWidgets('« Voir tous les départs » rend la liste complète', (
@@ -286,14 +330,38 @@ void main() {
       await pumpPage(tester);
       await tester.pumpAndSettle();
 
+      await openFilters(tester);
       await tester.tap(find.text('APRÈS-MIDI'));
       await tester.pumpAndSettle();
+      await closeFilters(tester);
 
       await tester.tap(find.text('Voir tous les départs'));
       await tester.pumpAndSettle();
 
       expect(find.byType(DepartureCard), findsNWidgets(4));
       expect(find.text('3 départs disponibles'), findsOneWidget);
+    });
+
+    testWidgets('« Réinitialiser » vide les filtres depuis la liste', (
+      tester,
+    ) async {
+      // Le raccourci existe parce que les puces sont repliées : sans lui,
+      // défaire un créneau demanderait de rouvrir la feuille.
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
+
+      await openFilters(tester);
+      await tester.tap(find.text('MATIN'));
+      await tester.pumpAndSettle();
+      await closeFilters(tester);
+
+      expect(find.byType(DepartureCard), findsNWidgets(2));
+
+      await tester.tap(find.text('Réinitialiser'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DepartureCard), findsNWidgets(4));
+      expect(find.text('Réinitialiser'), findsNothing);
     });
   });
 

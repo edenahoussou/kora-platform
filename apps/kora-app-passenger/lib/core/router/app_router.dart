@@ -5,7 +5,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/auth/domain/entities/otp_purpose.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_flow_bloc.dart';
 import '../../features/auth/presentation/pages/create_pin_page.dart';
@@ -15,20 +14,33 @@ import '../../features/auth/presentation/pages/otp_page.dart';
 import '../../features/auth/presentation/pages/permissions_page.dart';
 import '../../features/auth/presentation/pages/signup_email_page.dart';
 import '../../features/booking/domain/entities/search_criteria.dart';
+import '../../features/booking/presentation/bloc/seat_hold_bloc.dart';
 import '../../features/booking/presentation/pages/bus_search_page.dart';
 import '../../features/booking/presentation/pages/departure_detail_page.dart';
 import '../../features/booking/presentation/pages/departures_page.dart';
+import '../../features/booking/presentation/pages/hold_expired_page.dart';
 import '../../features/booking/presentation/pages/passenger_form_page.dart';
 import '../../features/booking/presentation/pages/seats_page.dart';
 import '../../features/booking/presentation/pages/summary_page.dart';
 import '../../features/booking/presentation/pages/ticket_detail_page.dart';
+import '../../features/booking/presentation/pages/ticket_page.dart';
 import '../../features/booking/presentation/pages/tickets_page.dart';
+import '../../features/booking/presentation/widgets/seat_hold_watcher.dart';
 import '../../features/colis/presentation/pages/colis_page.dart';
 import '../../features/home/presentation/pages/city_picker_page.dart';
 import '../../features/home/presentation/pages/date_picker_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/home/presentation/pages/passengers_picker_page.dart';
 import '../../features/notifications/presentation/pages/notifications_page.dart';
+import '../../features/payment/presentation/pages/booking_success_page.dart';
+import '../../features/payment/presentation/pages/card_payment_page.dart';
+import '../../features/payment/presentation/pages/mobile_money_page.dart';
+import '../../features/payment/presentation/pages/payment_args.dart';
+import '../../features/payment/presentation/pages/payment_flow_args.dart';
+import '../../features/payment/presentation/pages/payment_method_page.dart';
+import '../../features/payment/presentation/pages/payment_pending_page.dart';
+import '../../features/payment/presentation/pages/payment_validation_page.dart';
+import '../../features/payment/presentation/pages/wallet_payment_page.dart';
 import '../../features/profil/presentation/pages/birth_date_picker_page.dart';
 import '../../features/profil/presentation/pages/change_pin_page.dart';
 import '../../features/profil/presentation/pages/preferences_page.dart';
@@ -110,6 +122,19 @@ class AppRouter {
   static const String passengerInfoPath = '/passenger-info';
   static const String summaryPath = '/summary';
 
+  /// Le délai est écoulé, les sièges sont retournés à la vente.
+  static const String holdExpiredPath = '/hold-expired';
+
+  /// Les écrans de paiement, dans le tunnel : le décompte doit y courir
+  /// aussi.
+  static const String paymentMethodPath = '/payment-method';
+  static const String paymentMobileMoneyPath = '/payment/mobile-money';
+  static const String paymentWalletPath = '/payment/wallet';
+  static const String paymentCardPath = '/payment/card';
+  static const String paymentValidationPath = '/payment/validation';
+  static const String paymentPendingPath = '/payment/pending';
+  static const String paymentSuccessPath = '/payment/success';
+
   /// Formulaire de réservation en grand (`bus-search`), ouvert depuis
   /// « Réserver un voyage » de l'onglet Voyages.
   static const String busSearchPath = '/bus-search';
@@ -117,6 +142,9 @@ class AppRouter {
   /// Détail d'un billet. Le billet lui-même passe en `extra` : il vient
   /// de la liste déjà chargée, inutile de le redemander.
   static const String ticketDetailPath = '/ticket-detail';
+
+  /// Le billet numérique, celui qu'on présente à l'embarquement.
+  static const String ticketPath = '/billet';
 
   /// Sélection de la ville de départ / d'arrivée.
   ///
@@ -344,6 +372,11 @@ class AppRouter {
           builder: (context, state) => const BusSearchPage(),
         ),
         GoRoute(
+          path: ticketPath,
+          builder: (context, state) =>
+              TicketPage(args: state.extra as TicketArgs?),
+        ),
+        GoRoute(
           path: ticketDetailPath,
           builder: (context, state) {
             final args = state.extra as TicketDetailArgs?;
@@ -403,38 +436,92 @@ class AppRouter {
             passengers: state.uri.queryParameters['passengers'],
           ),
         ),
-        GoRoute(
-          path: seatsPath,
-          builder: (context, state) {
-            final args = state.extra as SeatsArgs?;
+        // Les trois écrans du tunnel partagent un seul [SeatHoldBloc].
+        //
+        // Le décompte commence sur le plan des sièges, s'affiche sur le
+        // formulaire passagers puis sur le récapitulatif, et doit survivre
+        // à un retour en arrière. Fourni par chaque écran, il serait remis
+        // à zéro à chaque navigation — et les sièges resteraient retenus
+        // côté serveur sans que l'app le sache.
+        ShellRoute(
+          builder: (context, state, child) => BlocProvider<SeatHoldBloc>(
+            create: (_) => getIt<SeatHoldBloc>(),
+            child: SeatHoldWatcher(child: child),
+          ),
+          routes: [
+            GoRoute(
+              path: seatsPath,
+              builder: (context, state) {
+                final args = state.extra as SeatsArgs?;
 
-            return SeatsPage(
-              departure: args?.departure,
-              passengers: args?.passengers ?? 1,
-            );
-          },
-        ),
-        GoRoute(
-          path: passengerInfoPath,
-          builder: (context, state) {
-            final args = state.extra as PassengerFormArgs?;
+                return SeatsPage(
+                  departure: args?.departure,
+                  passengers: args?.passengers ?? 1,
+                );
+              },
+            ),
+            GoRoute(
+              path: passengerInfoPath,
+              builder: (context, state) {
+                final args = state.extra as PassengerFormArgs?;
 
-            return PassengerFormPage(
-              departure: args?.departure,
-              seats: args?.seats ?? const [],
-            );
-          },
-        ),
-        GoRoute(
-          path: summaryPath,
-          builder: (context, state) {
-            final args = state.extra as SummaryArgs?;
+                return PassengerFormPage(
+                  departure: args?.departure,
+                  seats: args?.seats ?? const [],
+                );
+              },
+            ),
+            GoRoute(
+              path: summaryPath,
+              builder: (context, state) {
+                final args = state.extra as SummaryArgs?;
 
-            return SummaryPage(
-              departure: args?.departure,
-              passengers: args?.passengers ?? const [],
-            );
-          },
+                return SummaryPage(
+                  departure: args?.departure,
+                  passengers: args?.passengers ?? const [],
+                );
+              },
+            ),
+            GoRoute(
+              path: holdExpiredPath,
+              builder: (context, state) => const HoldExpiredPage(),
+            ),
+            GoRoute(
+              path: paymentMethodPath,
+              builder: (context, state) =>
+                  PaymentMethodPage(args: state.extra as PaymentArgs?),
+            ),
+            GoRoute(
+              path: paymentMobileMoneyPath,
+              builder: (context, state) =>
+                  MobileMoneyPage(args: state.extra as PaymentArgs?),
+            ),
+            GoRoute(
+              path: paymentWalletPath,
+              builder: (context, state) =>
+                  WalletPaymentPage(args: state.extra as PaymentArgs?),
+            ),
+            GoRoute(
+              path: paymentCardPath,
+              builder: (context, state) =>
+                  CardPaymentPage(args: state.extra as PaymentArgs?),
+            ),
+            GoRoute(
+              path: paymentValidationPath,
+              builder: (context, state) =>
+                  PaymentValidationPage(args: state.extra as PaymentFlowArgs?),
+            ),
+            GoRoute(
+              path: paymentPendingPath,
+              builder: (context, state) =>
+                  PaymentPendingPage(args: state.extra as PaymentFlowArgs?),
+            ),
+            GoRoute(
+              path: paymentSuccessPath,
+              builder: (context, state) =>
+                  BookingSuccessPage(args: state.extra as PaymentFlowArgs?),
+            ),
+          ],
         ),
         GoRoute(
           path: departureDetailPath,
@@ -583,10 +670,13 @@ class _AuthFlowNavigator extends StatelessWidget {
             // nouveau venu donne son nom et son téléphone. Une connexion
             // — même sur un appareil inconnu — va droit à l'accueil : le
             // profil est déjà rempli.
+            //
+            // On lit `justRegistered`, pas `purpose` : ce dernier vaut
+            // `registration` par défaut et une connexion ordinaire ne le
+            // change jamais, ce qui renvoyait tout le monde aux
+            // autorisations à chaque fois.
             context.go(
-              flow.purpose == OtpPurpose.registration
-                  ? AppRouter.permissionsPath
-                  : '/home',
+              flow.justRegistered ? AppRouter.permissionsPath : '/home',
             );
         }
       },

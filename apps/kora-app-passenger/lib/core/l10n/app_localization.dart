@@ -411,10 +411,142 @@ class AppLocalization {
       translate('departures_searching_title');
   String get departuresSearchingLead => translate('departures_searching_lead');
   String get departuresSearchingText => translate('departures_searching_text');
+  String get paymentMethodEyebrow => translate('payment_method_eyebrow');
+  String get paymentMethodTitle => translate('payment_method_title');
+  String get paymentMethodMomo => translate('payment_method_momo');
+  String get paymentMethodMomoLead => translate('payment_method_momo_lead');
+  String get paymentMethodWallet => translate('payment_method_wallet');
+  String paymentMethodWalletLead(String balance) =>
+      _withArgs('payment_method_wallet_lead', {'balance': balance});
+  String get paymentMethodCard => translate('payment_method_card');
+  String get paymentMethodCardLead => translate('payment_method_card_lead');
+  String paymentMethodHold(String time) =>
+      _withArgs('payment_method_hold', {'time': time});
+  String get paymentMethodTotal => translate('payment_method_total');
+  String get paymentMomoTitle => translate('payment_momo_title');
+  String paymentMomoEyebrow(String amount) =>
+      _withArgs('payment_momo_eyebrow', {'amount': amount});
+  String get paymentMomoOperator => translate('payment_momo_operator');
+  String get paymentMomoOperatorHint => translate('payment_momo_operator_hint');
+  String get paymentMomoOperatorRequired =>
+      translate('payment_momo_operator_required');
+  String get paymentMomoPhone => translate('payment_momo_phone');
+  String get paymentMomoPhoneRequired =>
+      translate('payment_momo_phone_required');
+  String get paymentMomoPhoneShort => translate('payment_momo_phone_short');
+  String get paymentMomoNotice => translate('payment_momo_notice');
+  String paymentMomoPay(String amount) =>
+      _withArgs('payment_momo_pay', {'amount': amount});
+  String get paymentWalletTitle => translate('payment_wallet_title');
+  String get paymentWalletEyebrow => translate('payment_wallet_eyebrow');
+  String get paymentWalletBalance => translate('payment_wallet_balance');
+  String get paymentWalletAmountTitle =>
+      translate('payment_wallet_amount_title');
+  String get paymentWalletAmountLabel =>
+      translate('payment_wallet_amount_label');
+  String get paymentWalletPoints => translate('payment_wallet_points');
+  String paymentWalletPointsValue(int count) =>
+      _withArgs('payment_wallet_points_value', {'count': count});
+  String get paymentWalletTicketTotal =>
+      translate('payment_wallet_ticket_total');
+  String get paymentWalletCredit => translate('payment_wallet_credit');
+  String get paymentWalletRemainder => translate('payment_wallet_remainder');
+  String get paymentWalletConfirm => translate('payment_wallet_confirm');
+  String get paymentWalletNotice => translate('payment_wallet_notice');
+  String get paymentCardTitle => translate('payment_card_title');
+  String get paymentCardEyebrow => translate('payment_card_eyebrow');
+  String get paymentCardSecure => translate('payment_card_secure');
+  String get paymentCardHolder => translate('payment_card_holder');
+  String get paymentCardHolderRequired =>
+      translate('payment_card_holder_required');
+  String get paymentCardNumber => translate('payment_card_number');
+  String get paymentCardNumberRequired =>
+      translate('payment_card_number_required');
+  String get paymentCardNumberInvalid =>
+      translate('payment_card_number_invalid');
+  String get paymentCardExpiry => translate('payment_card_expiry');
+  String get paymentCardExpiryHint => translate('payment_card_expiry_hint');
+  String get paymentCardExpiryInvalid =>
+      translate('payment_card_expiry_invalid');
+  String get paymentCardCvv => translate('payment_card_cvv');
+  String get paymentCardCvvInvalid => translate('payment_card_cvv_invalid');
+  String get paymentCardSave => translate('payment_card_save');
+  String get paymentCardSaveLead => translate('payment_card_save_lead');
+  String get paymentCardTotal => translate('payment_card_total');
+  String paymentCardPay(String amount) =>
+      _withArgs('payment_card_pay', {'amount': amount});
+  String get paymentCardSwitch => translate('payment_card_switch');
+  String get paymentSoon => translate('payment_soon');
+  String get paymentValidationTitle => translate('payment_validation_title');
+  String get paymentValidationLead => translate('payment_validation_lead');
+  String get paymentValidationText => translate('payment_validation_text');
+  String get paymentValidationConfirmed =>
+      translate('payment_validation_confirmed');
+  String get paymentValidationExpiresIn =>
+      translate('payment_validation_expires_in');
+  String get paymentSwitchMethod => translate('payment_switch_method');
+  String get paymentPendingTitle => translate('payment_pending_title');
+  String get paymentPendingText => translate('payment_pending_text');
+  String get paymentPendingRefresh => translate('payment_pending_refresh');
+  String get paymentPendingReport => translate('payment_pending_report');
+  String paymentPendingPolling(int seconds) =>
+      _withArgs('payment_pending_polling', {'seconds': seconds});
+  String get paymentReference => translate('payment_reference');
+  String get bookingSuccessTitle => translate('booking_success_title');
+  String get bookingSuccessText => translate('booking_success_text');
+  String get bookingSuccessTicket => translate('booking_success_ticket');
+  String bookingSuccessSeat(String seat) =>
+      _withArgs('booking_success_seat', {'seat': seat});
+  String bookingSuccessDeparture(String time, String stop) =>
+      _withArgs('booking_success_departure', {'time': time, 'stop': stop});
+  String get ticketEyebrow => translate('ticket_eyebrow');
+  String get ticketTitle => translate('ticket_title');
+  String get ticketStripTitle => translate('ticket_strip_title');
+  String get ticketStripLead => translate('ticket_strip_lead');
+  String get ticketStateConfirmed => translate('ticket_state_confirmed');
+  String get ticketStateCancelled => translate('ticket_state_cancelled');
+  String get ticketStampCancelled => translate('ticket_stamp_cancelled');
+  String get ticketFieldDate => translate('ticket_field_date');
+  String get ticketFieldDeparture => translate('ticket_field_departure');
+  String get ticketFieldSeat => translate('ticket_field_seat');
+  String get ticketQrSemantics => translate('ticket_qr_semantics');
+  String get ticketTrackTitle => translate('ticket_track_title');
+  String get ticketTrackSubtitle => translate('ticket_track_subtitle');
+  String get ticketShareTitle => translate('ticket_share_title');
+  String get ticketShareSubtitle => translate('ticket_share_subtitle');
+  String get ticketShareSoon => translate('ticket_share_soon');
+  String get ticketOfflineNote => translate('ticket_offline_note');
+  String get ticketMissingTitle => translate('ticket_missing_title');
+  String get ticketMissingText => translate('ticket_missing_text');
+  String get ticketMissingPrimary => translate('ticket_missing_primary');
+  String get seatsHoldEyebrow => translate('seats_hold_eyebrow');
+  String seatsHoldCountdown(String time) =>
+      _withArgs('seats_hold_countdown', {'time': time});
+  String get seatsHoldHolding => translate('seats_hold_holding');
+  String get seatsHoldRelease => translate('seats_hold_release');
+  String get seatsHoldLocked => translate('seats_hold_locked');
+  String get holdExpiredTitle => translate('hold_expired_title');
+  String get holdExpiredText => translate('hold_expired_text');
+  String get holdExpiredPrimary => translate('hold_expired_primary');
+  String get holdExpiredSecondary => translate('hold_expired_secondary');
   String departuresCount(int count) => _withArgs(
     count > 1 ? 'departures_count_plural' : 'departures_count',
     {'count': count},
   );
+  String departuresRecap(int count, String slots, String prices) => _withArgs(
+    count > 1 ? 'departures_recap_plural' : 'departures_recap',
+    {'count': count, 'slots': slots, 'prices': prices},
+  );
+  String get departuresRecapMorning => translate('departures_recap_morning');
+  String get departuresRecapAfternoon =>
+      translate('departures_recap_afternoon');
+  String get departuresRecapEvening => translate('departures_recap_evening');
+  String get departuresRecapSlotsJoin =>
+      translate('departures_recap_slots_join');
+  String departuresRecapPricesRange(String min, String max) =>
+      _withArgs('departures_recap_prices_range', {'min': min, 'max': max});
+  String departuresRecapPricesFlat(String price) =>
+      _withArgs('departures_recap_prices_flat', {'price': price});
   String get departuresEmptyEyebrow => translate('departures_empty_eyebrow');
   String get departuresEmptyTitle => translate('departures_empty_title');
   String get departuresEmptyText => translate('departures_empty_text');
@@ -428,6 +560,9 @@ class AppLocalization {
   String get departuresSortDuration => translate('departures_sort_duration');
 
   String get departuresFilterLabel => translate('departures_filter_label');
+  String get departuresFiltersTitle => translate('departures_filters_title');
+  String get departuresFiltersClear => translate('departures_filters_clear');
+  String get departuresFiltersDone => translate('departures_filters_done');
   String get departuresSlotMorning => translate('departures_slot_morning');
   String get departuresSlotAfternoon => translate('departures_slot_afternoon');
   String get departuresSlotEvening => translate('departures_slot_evening');

@@ -33,6 +33,8 @@ class Departure extends Equatable {
     required this.seatsAvailable,
     this.originStopId,
     this.destinationStopId,
+    this.originCountry,
+    this.destinationCountry,
     this.amenities = const [],
     this.busLabel,
   });
@@ -50,6 +52,31 @@ class Departure extends Equatable {
 
   final int seatsTotal;
   final int seatsAvailable;
+
+  /// Codes pays ISO des deux arrêts choisis (`BJ`, `TG`), quand l'API les
+  /// donne. Voir [isInternational].
+  final String? originCountry;
+  final String? destinationCountry;
+
+  /// Le voyage franchit une frontière.
+  ///
+  /// Se juge sur le **tronçon retenu**, jamais sur la ligne : L1 relie
+  /// Cotonou à Abidjan en traversant quatre pays, et l'API la marque
+  /// `internationale`, mais un Cotonou → Porto-Novo pris dessus ne quitte
+  /// pas le Bénin. Réclamer un passeport pour ce trajet-là au prétexte que
+  /// la ligne va plus loin serait absurde.
+  ///
+  /// Faute de pays connus — un départ mocké, une réponse ancienne — on
+  /// répond `false` : le formulaire simple laisse partir, là où le
+  /// formulaire international bloquerait sur des champs que personne ne
+  /// peut remplir.
+  bool get isInternational {
+    final origin = originCountry;
+    final destination = destinationCountry;
+    if (origin == null || destination == null) return false;
+
+    return origin.toUpperCase() != destination.toUpperCase();
+  }
 
   /// Services à bord (`Wi-Fi`, `Climatisation`, `USB`...).
   final List<String> amenities;
@@ -86,6 +113,8 @@ class Departure extends Equatable {
     id,
     originStopId,
     destinationStopId,
+    originCountry,
+    destinationCountry,
     line,
     departsAt,
     comfort,

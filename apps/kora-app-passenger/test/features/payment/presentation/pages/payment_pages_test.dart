@@ -1,0 +1,170 @@
+// Les quatre écrans de paiement : ce qu'ils affichent, ce qu'ils refusent
+// de laisser passer, et où ils mènent.
+
+import 'package:flutter/material.dart';
+import 'package:flutter_design_system/flutter_design_system.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:kora_app_passenger/core/l10n/app_localization.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/price.dart';
+import 'package:kora_app_passenger/features/booking/presentation/bloc/seat_hold_bloc.dart';
+import 'package:kora_app_passenger/features/payment/presentation/pages/card_payment_page.dart';
+import 'package:kora_app_passenger/features/payment/presentation/pages/mobile_money_page.dart';
+import 'package:kora_app_passenger/features/payment/presentation/pages/payment_args.dart';
+import 'package:kora_app_passenger/features/payment/presentation/pages/payment_method_page.dart';
+import 'package:kora_app_passenger/features/payment/presentation/pages/wallet_payment_page.dart';
+
+import '../../../../support/seat_hold_harness.dart';
+
+void main() {
+  late SeatHoldBloc holdBloc;
+
+  const args = PaymentArgs(total: Price(12500), phone: '+229 01 97 42 18 60');
+
+  /// Les montants passent par [Price.formatted], qui sépare les milliers
+  /// d'une espace fine insécable — pas l'espace du clavier. Les écrire à
+  /// la main ici ne trouverait jamais rien.
+  String money(int amount) => Price(amount).formatted;
+
+  setUpAll(() => AppLocalization.preloadAll());
+
+  setUp(() {
+    holdBloc = SeatHoldBloc(StubReservationRepository());
+    addTearDown(holdBloc.close);
+  });
+
+  Future<void> pump(WidgetTester tester, Widget page) async {
+    tester.view.physicalSize = const Size(390 * 3, 1400 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        locale: const Locale('fr'),
+        supportedLocales: const [Locale('fr'), Locale('en')],
+        localizationsDelegates: const [
+          AppLocalization.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: withSeatHold(page, bloc: holdBloc),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  group('choix du moyen', () {
+    testWidgets('propose les trois moyens et rappelle le total', (
+      tester,
+    ) async {
+      await pump(tester, const PaymentMethodPage(args: args));
+
+      expect(find.text('Comment souhaitez-vous payer ?'), findsOneWidget);
+      expect(find.text('Mobile Money'), findsOneWidget);
+      expect(find.text('KORA Wallet'), findsOneWidget);
+      expect(find.text('Carte bancaire'), findsOneWidget);
+      expect(find.text(money(12500)), findsOneWidget);
+    });
+
+    testWidgets('sans blocage en cours, aucun délai n’est annoncé', (
+      tester,
+    ) async {
+      // Annoncer une protection qui n'existe pas serait pire que de ne
+      // rien dire.
+      await pump(tester, const PaymentMethodPage(args: args));
+
+      expect(find.textContaining('restent réservés'), findsNothing);
+    });
+  });
+
+  group('Mobile Money', () {
+    testWidgets('reprend le numéro du compte et le montant', (tester) async {
+      await pump(tester, const MobileMoneyPage(args: args));
+
+      // `ScreenHeader` met le surtitre en capitales.
+      expect(
+        find.text('PAIEMENT · ${money(12500)}'.toUpperCase()),
+        findsOneWidget,
+      );
+      // L'indicatif est passé dans son propre sélecteur : le champ ne
+      // garde que la partie nationale.
+      expect(find.text('01 97 42 18 60'), findsOneWidget);
+      expect(find.textContaining('+229'), findsOneWidget);
+      expect(find.text('Payer ${money(12500)}'), findsOneWidget);
+    });
+
+    testWidgets('refuse de payer sans opérateur', (tester) async {
+      await pump(tester, const MobileMoneyPage(args: args));
+
+      await tester.tap(find.text('Payer ${money(12500)}'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Choisissez un opérateur'), findsOneWidget);
+    });
+
+    testWidgets('ne demande jamais le code secret', (tester) async {
+      // Un écran qui réclamerait ce code apprendrait au voyageur à le
+      // taper ailleurs que chez son opérateur.
+      await pump(tester, const MobileMoneyPage(args: args));
+
+      expect(find.textContaining('code secret Mobile Money'), findsOneWidget);
+      expect(find.textContaining('Saisir votre code'), findsNothing);
+    });
+  });
+
+  group('Wallet', () {
+    testWidgets('affiche le solde et le reste à payer', (tester) async {
+      await pump(tester, const WalletPaymentPage(args: args));
+
+      expect(find.text(money(18750)), findsOneWidget);
+      expect(find.text('Total du billet'), findsOneWidget);
+      // 100 points d'office, donc 12 400 restants.
+      expect(find.text(money(12400)), findsOneWidget);
+    });
+
+    testWidgets('le crédit ajouté diminue le complément', (tester) async {
+      await pump(tester, const WalletPaymentPage(args: args));
+
+      await tester.tap(find.byIcon(Icons.add_rounded));
+      await tester.pumpAndSettle();
+
+      // 1 000 de crédit + 100 points sur 12 500.
+      expect(find.text(money(11400)), findsOneWidget);
+    });
+  });
+
+  group('carte bancaire', () {
+    testWidgets('n’affiche aucun numéro pré-rempli', (tester) async {
+      // La maquette pré-remplit `4242 4242 4242 4242` ; un numéro affiché
+      // d'avance apprend à ne pas vérifier ce qu'on paie.
+      await pump(tester, const CardPaymentPage(args: args));
+
+      expect(find.text('Numéro de carte'), findsOneWidget);
+      expect(find.textContaining('4242'), findsNothing);
+    });
+
+    testWidgets('rejette un numéro qui ne passe pas la clé de Luhn', (
+      tester,
+    ) async {
+      await pump(tester, const CardPaymentPage(args: args));
+
+      await tester.enterText(find.byType(TextField).at(1), '4242424242424241');
+      await tester.tap(find.text('Payer ${money(12500)}'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Numéro de carte invalide'), findsOneWidget);
+    });
+
+    testWidgets('rejette une date d’expiration passée', (tester) async {
+      await pump(tester, const CardPaymentPage(args: args));
+
+      await tester.enterText(find.byType(TextField).at(2), '01 / 20');
+      await tester.tap(find.text('Payer ${money(12500)}'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Date invalide'), findsOneWidget);
+    });
+  });
+}

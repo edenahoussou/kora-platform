@@ -176,12 +176,19 @@ class HomeHero extends StatelessWidget {
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.vertical(
-                        bottom: Radius.circular(42),
+                  // `IgnorePointer` : ce cadre est posé **par-dessus**
+                  // tout l'en-tête, donc au-dessus de la cloche. Sans lui,
+                  // il intercepte le toucher et le bouton de notifications
+                  // ne répond plus — en thème sombre seulement, ce qui
+                  // rend la panne d'autant plus difficile à voir.
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: const BorderRadius.vertical(
+                          bottom: Radius.circular(42),
+                        ),
+                        border: Border.all(color: context.koraColors.line),
                       ),
-                      border: Border.all(color: context.koraColors.line),
                     ),
                   ),
                 ),

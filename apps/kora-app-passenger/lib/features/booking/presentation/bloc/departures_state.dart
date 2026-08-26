@@ -134,6 +134,30 @@ class DeparturesState extends Equatable {
   int get availableCount =>
       visibleDepartures.where((departure) => !departure.isSoldOut).length;
 
+  /// Tous les départs réservables de la liaison, **filtres ignorés**.
+  ///
+  /// C'est le chiffre du titre. Il ne ment pas au-dessus d'une liste
+  /// filtrée parce que le récapitulatif, juste avant les cartes, dit
+  /// aussitôt combien il en reste et pourquoi : « 3 départs disponibles »
+  /// puis « 2 départs ce matin ». Sans cette seconde ligne, il faudrait
+  /// que le titre suive les filtres — voir [availableCount].
+  int get totalAvailableCount =>
+      departures.where((departure) => !departure.isSoldOut).length;
+
+  /// Le prix le plus bas et le plus haut des départs affichés, pour le
+  /// récapitulatif. `null` quand la liste est vide.
+  (Price, Price)? get visiblePriceRange {
+    final prices =
+        visibleDepartures
+            .where((departure) => !departure.isSoldOut)
+            .map((departure) => departure.price)
+            .toList()
+          ..sort((a, b) => a.amount.compareTo(b.amount));
+
+    if (prices.isEmpty) return null;
+    return (prices.first, prices.last);
+  }
+
   DeparturesState copyWith({
     DeparturesStatus? status,
     SearchCriteria? criteria,

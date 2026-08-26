@@ -5,6 +5,7 @@ import '../../../../core/error/failures.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../domain/entities/city.dart';
 import '../../domain/entities/departure.dart';
+import '../../domain/entities/price.dart';
 import '../../domain/entities/search_criteria.dart';
 import '../../domain/usecases/get_cities_usecase.dart';
 import '../../domain/usecases/search_departures_usecase.dart';

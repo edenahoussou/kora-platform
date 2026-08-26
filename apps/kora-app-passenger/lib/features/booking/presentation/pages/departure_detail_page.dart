@@ -88,8 +88,15 @@ class _DetailContent extends StatelessWidget {
             padding: EdgeInsets.zero,
             children: [
               _TripCard(departure: departure),
-              SectionTitle(title: context.l10n.departureDetailComfort),
-              _ServiceGrid(amenities: departure.amenities),
+              // Titre et grille vont ensemble : l'API ne renvoie aucun
+              // équipement — la table `buses` n'a ni Wi-Fi, ni
+              // climatisation, ni USB — et un intertitre « Votre confort à
+              // bord » suivi de rien laisse croire à un bus sans services
+              // plutôt qu'à une donnée manquante.
+              if (departure.amenities.isNotEmpty) ...[
+                SectionTitle(title: context.l10n.departureDetailComfort),
+                _ServiceGrid(amenities: departure.amenities),
+              ],
               SectionTitle(title: context.l10n.departureDetailStops),
               KoraCard(child: _StopsTimeline(departure: departure)),
               if (segments.length > 1) ...[

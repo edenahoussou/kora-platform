@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../colors/app_colors.dart';
 import '../colors/kora_colors.dart';
@@ -37,6 +38,7 @@ class KoraInput extends StatefulWidget {
     this.obscureText = false,
     this.enabled = true,
     this.keyboardType,
+    this.inputFormatters,
   });
 
   final String? label;
@@ -51,6 +53,11 @@ class KoraInput extends StatefulWidget {
   final bool obscureText;
   final bool enabled;
   final TextInputType? keyboardType;
+
+  /// Mise en forme de la saisie au fil de la frappe — un numéro de carte
+  /// groupé par quatre, un montant, une date. Passé tel quel au
+  /// [TextField] sous-jacent.
+  final List<TextInputFormatter>? inputFormatters;
 
   @override
   State<KoraInput> createState() => _KoraInputState();
@@ -92,6 +99,7 @@ class _KoraInputState extends State<KoraInput> {
           obscureText: _obscured,
           enabled: widget.enabled,
           keyboardType: widget.keyboardType,
+          inputFormatters: widget.inputFormatters,
           style: AppTextStyles.body(koraColors.textPrimary),
           decoration: InputDecoration(
             hintText: widget.hint,

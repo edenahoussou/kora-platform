@@ -11,6 +11,7 @@ import 'trip_segment.dart';
 class Line extends Equatable {
   const Line({
     required this.id,
+    this.code,
     required this.origin,
     required this.destination,
     required this.duration,
@@ -19,6 +20,11 @@ class Line extends Equatable {
   });
 
   final String id;
+
+  /// Le code commercial de la ligne (`L1`), celui qu'affichent les écrans.
+  /// [id] est un UUID : lisible par personne.
+  final String? code;
+
   final City origin;
   final City destination;
 
@@ -43,6 +49,7 @@ class Line extends Equatable {
   @override
   List<Object?> get props => [
     id,
+    code,
     origin,
     destination,
     duration,

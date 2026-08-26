@@ -5,28 +5,22 @@ import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/di/injector.dart';
+import '../../../../core/error/failures.dart';
+import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/seat.dart';
+import '../bloc/seat_hold_bloc.dart';
 import '../bloc/seats_bloc.dart';
 import '../widgets/booking_progress.dart';
+import '../widgets/hold_countdown.dart';
 import '../widgets/state_view.dart';
 import 'passenger_form_page.dart';
 
 /// Données passées à [SeatsPage] par `go_router` (`extra`) — même principe
 /// que le détail : le départ vient d'être affiché, on le transmet.
-/// Le gris « occupé » de la légende du ticket.
-///
-/// [AppColors.seatBlockedTextLight] est translucide : posé sur le panneau
-/// blanc du bus il donne exactement ce gris, mais la pastille de la
-/// légende, elle, repose sur le fond d'écran — le navy en thème sombre —
-/// où le même code vire au noir. Le siège et sa légende annonceraient
-/// deux couleurs différentes pour un seul état. On fige donc le résultat
-/// du mélange sur blanc.
-const Color _occupiedGrey = Color(0xFF7C8088);
-
 class SeatsArgs {
   const SeatsArgs({required this.departure, this.passengers = 1});
 
@@ -129,28 +123,8 @@ class _SeatsContent extends StatelessWidget {
       children: [
         const BookingProgress(step: 3, label: 'Votre siège'),
         const SizedBox(height: 11),
-        const _ProtectionNotice(),
-        const SizedBox(height: 11),
+        const HoldCountdown(margin: EdgeInsets.only(bottom: 11)),
         SeatMap(
-          // Légende du ticket : libre en bleu, occupé en gris, bloqué en
-          // or, choisi en navy. Elle diffère de celle de la maquette, qui
-          // parle à l'équipage — un siège « payé » ou « embarqué » n'a de
-          // sens qu'au contrôle. Le plan étant partagé avec l'app
-          // équipage, chacun passe la sienne.
-          palette: const {
-            KoraSeatStatus.available: AppColors.digital,
-            KoraSeatStatus.paid: _occupiedGrey,
-            KoraSeatStatus.blocked: AppColors.gold,
-            KoraSeatStatus.selected: AppColors.kora,
-          },
-          // Les deux états d'embarquement ne viennent jamais de cet
-          // endpoint : les annoncer au voyageur n'aurait aucun sens.
-          legendStatuses: const [
-            KoraSeatStatus.available,
-            KoraSeatStatus.selected,
-            KoraSeatStatus.paid,
-            KoraSeatStatus.blocked,
-          ],
           seats: [
             for (final seat in state.seats)
               KoraSeat(
@@ -186,69 +160,6 @@ class _SeatsContent extends StatelessWidget {
       SeatStatus.held => KoraSeatStatus.held,
       SeatStatus.blocked => KoraSeatStatus.blocked,
     };
-  }
-}
-
-/// `.seat-reservation-clock` : le rappel que la sélection est protégée.
-///
-/// La maquette y fait défiler un compte à rebours de 7 minutes, avec un
-/// écran dédié à son expiration. Ce parcours n'existe pas encore : plutôt
-/// qu'un minuteur décoratif qui ne se passerait rien à zéro, on annonce la
-/// règle sans l'égrener.
-class _ProtectionNotice extends StatelessWidget {
-  const _ProtectionNotice();
-
-  @override
-  Widget build(BuildContext context) {
-    final koraColors = context.koraColors;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.gold.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppRadius.input),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              color: AppColors.gold,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.schedule_rounded,
-              size: 18,
-              color: AppColors.kora,
-            ),
-          ),
-          const SizedBox(width: 9),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Votre sélection est protégée',
-                  style: TextStyle(color: koraColors.textMuted, fontSize: 9),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '7 minutes pour finaliser la réservation',
-                  style: TextStyle(
-                    color: context.koraTitleColor,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 
@@ -297,27 +208,102 @@ class _Checkout extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-          KoraButton(
-            label: 'Continuer',
-            // `.seat-checkout button { justify-content: space-between }` :
-            // le libellé est calé à gauche, la flèche à droite.
-            icon: Icons.arrow_forward_rounded,
-            iconPosition: KoraButtonIconPosition.edges,
-            // Désactivé tant qu'il manque un siège : la maquette laisse le
-            // bouton actif et affiche un message d'erreur au clic, ce qui
-            // fait faire un aller-retour pour rien.
-            onPressed: state.canContinue
-                ? () => context.push(
-                    AppRouter.passengerInfoPath,
-                    extra: PassengerFormArgs(
-                      departure: state.departure!,
-                      seats: state.selectedSeats,
-                    ),
-                  )
-                : null,
-          ),
+          _ContinueButton(state: state),
         ],
       ),
+    );
+  }
+}
+
+/// Le bouton qui engage la réservation, et ce qui l'accompagne selon que
+/// des sièges sont déjà retenus ou non.
+///
+/// Trois situations, trois comportements :
+/// * **rien de retenu** — « Continuer » bloque les sièges puis mène au
+///   formulaire passagers ;
+/// * **blocage en cours** — le bouton attend la réponse du serveur ;
+/// * **sièges retenus** — on revient sur ses pas : « Continuer » est
+///   grisé, et il faut d'abord annuler pour choisir autrement. Le laisser
+///   actif aurait bloqué une seconde fois les mêmes places, ou d'autres,
+///   sans jamais rendre les premières.
+class _ContinueButton extends StatelessWidget {
+  const _ContinueButton({required this.state});
+
+  final SeatsState state;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocConsumer<SeatHoldBloc, SeatHoldState>(
+      listenWhen: (previous, current) => previous.status != current.status,
+      listener: (context, hold) {
+        if (hold.status == SeatHoldStatus.held) {
+          context.push(
+            AppRouter.passengerInfoPath,
+            extra: PassengerFormArgs(
+              departure: state.departure!,
+              seats: state.selectedSeats,
+            ),
+          );
+          return;
+        }
+
+        final failure = hold.failure;
+        if (hold.status != SeatHoldStatus.failure || failure == null) return;
+
+        KoraToaster.show(context, failure.message);
+
+        // Un siège que le serveur vient d'attribuer à quelqu'un d'autre
+        // doit le montrer sur le plan : le laisser en « votre choix »
+        // inviterait à retaper « Continuer » sur une place perdue.
+        if (failure is SeatUnavailableFailure) {
+          context.read<SeatsBloc>().add(
+            SeatRefused(seatId: failure.seatId, seatLabel: failure.seatLabel),
+          );
+        }
+      },
+      builder: (context, hold) {
+        final l10n = context.l10n;
+
+        if (hold.isHeld) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              KoraButton(
+                label: l10n.seatsHoldRelease,
+                variant: KoraButtonVariant.secondary,
+                onPressed: () =>
+                    context.read<SeatHoldBloc>().add(const SeatHoldReleased()),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                l10n.seatsHoldLocked,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.caption(context.koraColors.textMuted),
+              ),
+            ],
+          );
+        }
+
+        return KoraButton(
+          label: 'Continuer',
+          // `.seat-checkout button { justify-content: space-between }` :
+          // le libellé est calé à gauche, la flèche à droite.
+          icon: Icons.arrow_forward_rounded,
+          iconPosition: KoraButtonIconPosition.edges,
+          isLoading: hold.status == SeatHoldStatus.holding,
+          // Désactivé tant qu'il manque un siège : la maquette laisse le
+          // bouton actif et affiche un message d'erreur au clic, ce qui
+          // fait faire un aller-retour pour rien.
+          onPressed: state.canContinue
+              ? () => context.read<SeatHoldBloc>().add(
+                  SeatHoldRequested(
+                    departure: state.departure!,
+                    seats: state.selectedSeats,
+                  ),
+                )
+              : null,
+        );
+      },
     );
   }
 }

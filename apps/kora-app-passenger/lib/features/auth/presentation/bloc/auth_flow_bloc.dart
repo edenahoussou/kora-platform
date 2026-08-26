@@ -285,6 +285,9 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
           isSubmitting: false,
           step: AuthFlowStep.done,
           session: session,
+          // Le seul chemin qui crée réellement un compte : c'est lui, et
+          // lui seul, qui mène ensuite aux autorisations.
+          justRegistered: true,
         ),
       ),
     );

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../kora_tag.dart';
+import '../../colors/app_colors.dart';
+import '../../colors/kora_colors.dart';
+import '../../typography/app_text_styles.dart';
 
 /// À quel point un départ est rempli, du point de vue du voyageur.
 ///
@@ -13,18 +15,24 @@ import '../kora_tag.dart';
 /// vendues : c'est ce qui reste qui intéresse celui qui réserve.
 enum KoraSeatsLevel {
   /// Au moins 30 % du bus est libre : rien ne presse.
-  plenty(KoraTagVariant.success),
+  plenty,
 
   /// Entre 10 % et 30 % : ça se remplit.
-  limited(KoraTagVariant.gold),
+  limited,
 
   /// Moins de 10 % : dernières places.
-  last(KoraTagVariant.danger);
+  last;
 
-  const KoraSeatsLevel(this.variant);
-
-  /// La variante de [KoraTag] qui porte la couleur du niveau.
-  final KoraTagVariant variant;
+  /// La couleur du niveau, posée sur le texte.
+  ///
+  /// [plenty] ne prend pas de couleur propre : « rien ne presse » n'a rien
+  /// à signaler, et trois lignes colorées sur une carte se disputeraient
+  /// l'attention que les deux vrais avertissements réclament.
+  Color color(KoraColors koraColors) => switch (this) {
+    plenty => koraColors.textMuted,
+    limited => AppColors.gold,
+    last => AppColors.danger,
+  };
 
   /// Le niveau correspondant à [available] places libres sur [total].
   ///
@@ -42,8 +50,12 @@ enum KoraSeatsLevel {
   }
 }
 
-/// Le badge « 12 places » des cartes de départ, coloré selon le
-/// remplissage (vert / orange / rouge — voir [KoraSeatsLevel]).
+/// Le « 12 places » des cartes de départ, coloré selon le remplissage
+/// (neutre / or / rouge — voir [KoraSeatsLevel]).
+///
+/// Du texte, pas une pilule : sur une carte qui en porte déjà une pour le
+/// véhicule, une seconde pastille colorée mettait sur le même plan ce
+/// qu'on choisit — le confort — et ce qui reste à prendre.
 ///
 /// Il ne gère pas le cas « complet » : un départ sans place n'annonce pas
 /// « 0 places » mais un badge « Complet », que porte l'appelant
@@ -69,9 +81,11 @@ class KoraSeatsBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return KoraTag(
-      label: available > 1 ? '$available places' : '$available place',
-      variant: KoraSeatsLevel.of(available: available, total: total).variant,
+    final level = KoraSeatsLevel.of(available: available, total: total);
+
+    return Text(
+      available > 1 ? '$available places' : '$available place',
+      style: AppTextStyles.caption(level.color(context.koraColors)),
     );
   }
 }

@@ -15,10 +15,13 @@ import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_flow_bloc.dart';
 import '../../features/booking/data/datasources/booking_data_source.dart';
 import '../../features/booking/data/datasources/booking_remote_data_source.dart';
+import '../../features/booking/data/datasources/reservation_remote_data_source.dart';
 import '../../features/booking/data/repositories/booking_repository_impl.dart';
 import '../../features/booking/data/repositories/departure_repository_impl.dart';
+import '../../features/booking/data/repositories/reservation_repository_impl.dart';
 import '../../features/booking/domain/repositories/booking_repository.dart';
 import '../../features/booking/domain/repositories/departure_repository.dart';
+import '../../features/booking/domain/repositories/reservation_repository.dart';
 import '../../features/booking/domain/usecases/get_cities_usecase.dart';
 import '../../features/booking/domain/usecases/get_next_trip_usecase.dart';
 import '../../features/booking/domain/usecases/get_recent_cities_usecase.dart';
@@ -26,6 +29,7 @@ import '../../features/booking/domain/usecases/get_seats_usecase.dart';
 import '../../features/booking/domain/usecases/get_tickets_usecase.dart';
 import '../../features/booking/domain/usecases/search_departures_usecase.dart';
 import '../../features/booking/presentation/bloc/departures_bloc.dart';
+import '../../features/booking/presentation/bloc/seat_hold_bloc.dart';
 import '../../features/booking/presentation/bloc/seats_bloc.dart';
 import '../../features/booking/presentation/bloc/tickets_bloc.dart';
 import '../../features/home/presentation/bloc/home_bloc.dart';
@@ -173,6 +177,17 @@ void _registerBookingFeature() {
     () => BookingRepositoryImpl(getIt()),
   );
 
+  // Le blocage des sièges a son propre contrat, et sa propre source :
+  // devis, blocage et libération exigent une session, là où tout le
+  // catalogue est public. Les mêler aurait donné un dépôt dont la moitié
+  // des méthodes réclament un jeton.
+  getIt.registerLazySingleton<ReservationRemoteDataSource>(
+    () => ReservationRemoteDataSource(getIt()),
+  );
+  getIt.registerLazySingleton<ReservationRepository>(
+    () => ReservationRepositoryImpl(getIt()),
+  );
+
   getIt.registerLazySingleton<GetCitiesUseCase>(
     () => GetCitiesUseCase(getIt()),
   );
@@ -194,6 +209,7 @@ void _registerBookingFeature() {
   getIt.registerFactory<HomeBloc>(() => HomeBloc(getIt(), getIt(), getIt()));
   getIt.registerFactory<DeparturesBloc>(() => DeparturesBloc(getIt(), getIt()));
   getIt.registerFactory<SeatsBloc>(() => SeatsBloc(getIt()));
+  getIt.registerFactory<SeatHoldBloc>(() => SeatHoldBloc(getIt()));
   getIt.registerFactory<TicketsBloc>(() => TicketsBloc(getIt()));
 }
 
