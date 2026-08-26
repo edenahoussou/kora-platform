@@ -13,7 +13,7 @@ Bienvenue dans la **référence de l'API KORA BUS**, votre guide complet pour in
 L'API V1 expose un ensemble de fonctionnalités conçues pour le parcours passager Bus :
 
 <CardGroup cols={2}>
-  <Card title="Authentification" icon="lock" href="/reference/auth/otp">
+  <Card title="Authentification" icon="lock" href="/reference/auth/otp-request">
     OTP email, PIN, OAuth sociale (Google, Facebook, TikTok), gestion d'appareils et préférences.
   </Card>
   <Card title="Catalogue Bus" icon="bus-front" href="/reference/bus/cities">
@@ -22,7 +22,7 @@ L'API V1 expose un ensemble de fonctionnalités conçues pour le parcours passag
   <Card title="Devis & blocages" icon="tag" href="/reference/booking/quotes">
     Devis tarifaires figés et blocage temporaire de sièges (holds) avec expiration serveur.
   </Card>
-  <Card title="Réservations" icon="ticket" href="/reference/booking/reservations">
+  <Card title="Réservations" icon="ticket" href="/reference/booking/reservation">
     Cycle de vie complet : réservation, enregistrement des voyageurs, libération.
   </Card>
   <Card title="Paiements" icon="credit-card" href="/reference/payments/initiate">
@@ -145,7 +145,7 @@ Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef
 ```
 
 <Warning>
-  Vos tokens donnent accès aux données de votre compte : conservez-les de manière sécurisée. Ne les committez jamais dans un repo public ni ne les hardcoded dans une app.
+  Vos tokens donnent accès aux données de votre compte : conservez-les de manière sécurisée. Ne les committez jamais dans un repo public ni ne les hardcodez dans une app.
 </Warning>
 
 Pour obtenir un token, consultez le guide [Authentification](/guides/authentication).
@@ -177,10 +177,10 @@ Voir [Rate limiting & throttling](/security/rate-limiting) pour la stratégie de
     Utilisez **staging** (`https://staging-api.korabus.app`) pour les tests d'intégration et **production** (`https://staging.koraexpress.app`) pour le live.
   </Step>
   <Step title="Obtenir un token">
-    Suivez le flow OTP + PIN décrit dans [Authentification](/guides/authentication) ou utilisez [OAuth sociale](/reference/auth/oauth) si votre app supporte Google/Facebook/TikTok.
+    Suivez le flow OTP + PIN décrit dans [Authentification](/guides/authentication) ou utilisez [OAuth sociale](/reference/auth/oauth-token) si votre app supporte Google/Facebook/TikTok.
   </Step>
   <Step title="Explorer les endpoints">
-    Commencez par [Catalogue Bus](/reference/bus/cities) pour lister les villes, puis [Devis](/reference/booking/quotes) et [Réservations](/reference/booking/reservations) pour construire votre parcours de réservation.
+    Commencez par [Catalogue Bus](/reference/bus/cities) pour lister les villes, puis [Devis](/reference/booking/quotes) et [Réservations](/reference/booking/reservation) pour construire votre parcours de réservation.
   </Step>
 </Steps>
 

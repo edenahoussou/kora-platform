@@ -6,7 +6,7 @@ description: Appareils de confiance, révocation et sécurité multi-appareils.
 
 # Gestion des appareils
 
-KORA BUS gère un modèle d'**appareils de confiance** : chaque connexion depuis un nouvel appareil déclenche une vérification OTP supplémentaire, puis l'appareil est enregistré comme可信. L'utilisateur peut lister et révoquer ses appareils à tout moment.
+KORA BUS gère un modèle d'**appareils de confiance** : chaque connexion depuis un nouvel appareil déclenche une vérification OTP supplémentaire, puis l'appareil est enregistré comme **trusted**. L'utilisateur peut lister et révoquer ses appareils à tout moment.
 
 ## Comment fonctionne la confiance d'appareil
 
@@ -38,7 +38,7 @@ for (final d in devices) {
 // Samsung Galaxy S24 (android) — trusted
 ```
 
-Voir la référence : [Appareils — Lister](/reference/auth/devices).
+Voir la référence : [Appareils — Lister](/reference/auth/devices-list).
 
 ## Révoquer un appareil
 
@@ -55,7 +55,7 @@ await authDio.delete('/api/v1/auth/devices/${deviceUuid}');
 
 - Chaque appareil a son **propre token** Sanctum. Révoquer un appareil n'affecte pas les autres.
 - Le `device_fingerprint` doit être **unique et stable** par appareil — utilisez un identifiant matériel ou un UUID persistant côté app.
-- Le `push_token` (FCM/APNs) est optionnel mais recommandé pour les notifications deboarding et de statut de paiement.
+- Le `push_token` (FCM/APNs) est optionnel mais recommandé pour les notifications de boarding et de statut de paiement.
 
 <Note>
   Voir aussi : [Bonnes pratiques de sécurité](/security/best-practices) pour le stockage sécurisé du token et du fingerprint.
