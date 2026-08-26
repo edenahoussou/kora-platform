@@ -108,201 +108,6 @@
         --offset: 24px;
     }
 
-    .kora-toast {
-        --toast-accent: var(--digital);
-        --toast-surface: #ffffff;
-        --toast-text: #111827;
-        --toast-muted-text: #475569;
-        --toast-border: rgba(0, 29, 78, 0.14);
-        position: relative;
-        display: grid !important;
-        grid-template-columns: 32px minmax(0, 1fr) 20px;
-        align-items: start;
-        width: min(390px, calc(100vw - 32px));
-        min-height: 68px;
-        gap: 10px;
-        overflow: hidden;
-        padding: 13px 12px 13px 14px;
-        border: 1px solid var(--toast-border);
-        border-radius: 16px;
-        color: var(--toast-text) !important;
-        background: var(--toast-surface);
-        box-shadow: var(--shadow-kora);
-        font-family: var(--font-sans), sans-serif;
-        isolation: isolate;
-        transition:
-            transform 180ms ease,
-            box-shadow 180ms ease,
-            border-color 180ms ease;
-    }
-
-    .kora-toast::before {
-        position: absolute;
-        inset: 0 auto 0 0;
-        width: 3px;
-        background: var(--toast-accent);
-        content: '';
-    }
-
-    .kora-toast:hover {
-        border-color: color-mix(in srgb,
-                var(--toast-accent) 38%,
-                var(--border));
-        box-shadow: 0 20px 48px color-mix(in srgb, var(--kora) 18%, transparent);
-        transform: translateY(-2px);
-    }
-
-    .kora-toast-content {
-        display: grid;
-        min-width: 0;
-        align-content: center;
-        gap: 3px;
-        padding-top: 1px;
-    }
-
-    .kora-toast-title {
-        overflow: hidden;
-        color: var(--toast-text) !important;
-        font-size: 11px;
-        font-weight: 800;
-        line-height: 1.35;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .kora-toast-description {
-        color: var(--toast-muted-text) !important;
-        font-size: 10px;
-        line-height: 1.45;
-    }
-
-    .kora-toast [data-title] {
-        color: var(--toast-text) !important;
-    }
-
-    .kora-toast [data-description] {
-        color: var(--toast-muted-text) !important;
-    }
-
-    .dark .kora-toast {
-        --toast-surface: #0d2348;
-        --toast-text: #f4f6f8;
-        --toast-muted-text: #c5d0df;
-        --toast-border: rgba(244, 246, 248, 0.18);
-    }
-
-    .kora-toast-icon {
-        display: grid;
-        width: 32px;
-        height: 32px;
-        place-items: center;
-        border: 1px solid color-mix(in srgb, var(--toast-accent) 26%, transparent);
-        border-radius: 10px;
-        color: var(--toast-accent);
-        background: color-mix(in srgb, var(--toast-accent) 12%, transparent);
-    }
-
-    .kora-toast-icon svg {
-        width: 17px;
-        height: 17px;
-        stroke-width: 2.2;
-    }
-
-    .kora-toast-close {
-        display: grid;
-        width: 20px;
-        height: 20px;
-        margin-top: -2px;
-        margin-right: -2px;
-        place-items: center;
-        border: 0;
-        border-radius: 7px;
-        color: var(--toast-muted-text) !important;
-        background: transparent;
-        cursor: pointer;
-        transition:
-            color 150ms ease,
-            background 150ms ease;
-    }
-
-    .kora-toast-close:hover {
-        color: var(--toast-text) !important;
-        background: var(--muted);
-    }
-
-    .kora-toast-close svg {
-        width: 13px;
-        height: 13px;
-    }
-
-    .kora-toast-success {
-        --toast-accent: var(--digital);
-    }
-
-    .kora-toast-info {
-        --toast-accent: var(--digital);
-    }
-
-    .kora-toast-warning {
-        --toast-accent: var(--gold);
-    }
-
-    .kora-toast-error {
-        --toast-accent: var(--destructive);
-    }
-
-    .kora-toast-loading {
-        --toast-accent: var(--gold);
-    }
-
-    .kora-toast-loader {
-        color: var(--toast-accent);
-    }
-
-    .kora-toast-loader svg {
-        animation: kora-toast-spin 900ms linear infinite;
-    }
-
-    .kora-toast [data-button] {
-        min-height: 26px;
-        padding: 0 9px;
-        border: 1px solid color-mix(in srgb, var(--toast-accent) 35%, var(--border));
-        border-radius: 8px;
-        color: var(--toast-accent);
-        background: color-mix(in srgb, var(--toast-accent) 8%, transparent);
-        font-size: 10px;
-        font-weight: 800;
-    }
-
-    .kora-toast [data-button]:hover {
-        background: color-mix(in srgb, var(--toast-accent) 16%, transparent);
-    }
-
-    @keyframes kora-toast-spin {
-        to {
-            transform: rotate(360deg);
-        }
-    }
-
-    @media (max-width: 640px) {
-        [data-sonner-toaster] {
-            --offset: 14px;
-        }
-
-        .kora-toast {
-            width: calc(100vw - 28px);
-        }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-
-        .kora-toast,
-        .kora-toast-close,
-        .kora-toast-loader svg {
-            animation: none;
-            transition: none;
-        }
-    }
 }
 
 @layer kora-sale {
@@ -1736,7 +1541,9 @@
     }
 
     .cash-modal {
-        width: min(100%, 430px);
+        width: min(100%, 640px);
+        max-height: min(90vh, 820px);
+        overflow: auto;
         padding: 24px;
         border: 1px solid color-mix(in srgb, var(--gold) 25%, var(--border));
         border-radius: 18px;
@@ -1744,6 +1551,164 @@
         background: var(--card);
         box-shadow: 0 30px 80px rgba(0, 29, 78, 0.28);
         animation: kora-cash-modal-in 0.22s ease-out both;
+    }
+
+    .cash-opening-modal {
+        width: min(100%, 720px);
+    }
+
+    .cash-opening-list {
+        display: grid;
+        gap: 10px;
+    }
+
+    .cash-opening-row {
+        display: grid;
+        gap: 12px;
+        padding: 13px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: color-mix(in srgb, var(--muted) 35%, var(--card));
+    }
+
+    .cash-opening-row-head {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+    }
+
+    .cash-opening-row-head strong,
+    .cash-opening-row-head small {
+        display: block;
+    }
+
+    .cash-opening-row-head strong {
+        color: var(--foreground);
+        font-size: 11px;
+        font-weight: 900;
+    }
+
+    .cash-opening-row-head small {
+        margin-top: 2px;
+        color: var(--muted-foreground);
+        font-size: 9px;
+    }
+
+    .cash-opening-icon {
+        display: grid;
+        width: 30px;
+        height: 30px;
+        flex: 0 0 auto;
+        place-items: center;
+        border-radius: 8px;
+        color: var(--kora);
+        background: var(--gold);
+    }
+
+    .cash-opening-fields {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    }
+
+    .cash-opening-fields .field,
+    .cash-opening-comment {
+        gap: 5px;
+    }
+
+    .cash-opening-fields .field > span,
+    .cash-opening-comment > span {
+        color: var(--muted-foreground);
+        font-size: 9px;
+        font-weight: 800;
+    }
+
+    .cash-opening-fields b,
+    .cash-opening-comment b,
+    .cash-evidence-input b {
+        color: var(--destructive);
+    }
+
+    .cash-opening-comment em {
+        color: var(--muted-foreground);
+        font-size: 8px;
+        font-style: normal;
+        font-weight: 600;
+    }
+
+    .cash-evidence-input {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        justify-content: center;
+        gap: 4px;
+        padding: 8px 10px;
+        border: 1px dashed color-mix(in srgb, var(--digital) 45%, var(--border));
+        border-radius: 9px;
+        color: var(--foreground);
+        background: var(--card);
+        cursor: pointer;
+    }
+
+    .cash-evidence-input > span {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: var(--digital);
+        font-size: 9px;
+        font-weight: 850;
+    }
+
+    .cash-evidence-input input {
+        width: 100%;
+        color: var(--muted-foreground);
+        font-size: 9px;
+    }
+
+    .cash-evidence-input small {
+        color: var(--muted-foreground);
+        font-size: 8px;
+    }
+
+    .cash-evidence-ready {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        min-width: 0;
+        overflow: hidden;
+        color: #16a34a;
+        font-size: 9px;
+        font-weight: 800;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .cash-opening-total {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 14px;
+        padding-top: 13px;
+        border-top: 1px solid var(--border);
+        color: var(--muted-foreground);
+        font-size: 10px;
+        font-weight: 800;
+    }
+
+    .cash-opening-total strong {
+        color: var(--foreground);
+        font-size: 15px;
+        font-weight: 950;
+    }
+
+    .cash-form-error {
+        margin-top: 12px;
+        padding: 9px 11px;
+        border-radius: 9px;
+        color: var(--destructive);
+        background: color-mix(in srgb, var(--destructive) 10%, transparent);
+        font-size: 10px;
+        font-weight: 700;
     }
 
     .cash-modal-head {
@@ -1845,6 +1810,15 @@
 
         .checkout-main {
             padding: 18px;
+        }
+
+        .cash-modal,
+        .cash-opening-modal {
+            padding: 18px;
+        }
+
+        .cash-opening-fields {
+            grid-template-columns: 1fr;
         }
 
         .premium-form {

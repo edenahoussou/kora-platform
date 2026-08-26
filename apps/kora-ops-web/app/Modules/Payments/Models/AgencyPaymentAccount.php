@@ -7,6 +7,7 @@ use App\Modules\Payments\Data\MobileMoneyNetwork;
 use App\Modules\Support\Models\KoraModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 /**
  * @property string $uuid
@@ -17,6 +18,17 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class AgencyPaymentAccount extends KoraModel
 {
     use SoftDeletes;
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(function (self $model): void {
+            if (! $model->getAttribute('uuid')) {
+                $model->setAttribute('uuid', (string) Str::uuid());
+            }
+        });
+    }
 
     protected $fillable = [
         'uuid',

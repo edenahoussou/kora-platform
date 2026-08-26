@@ -34,8 +34,10 @@ final class MtnMomoAdapter implements PaymentProvider
         private readonly string $userId,
         private readonly string $apiKey,
         private readonly string $environment,
-        private readonly string $targetEnvironment = 'mtncameroon',
-        private readonly string $currency = 'XAF',
+        private readonly string $targetEnvironment = 'mtnbenin',
+        private readonly string $sandboxCurrency = 'EUR',
+        private readonly string $productionCurrency = 'XOF',
+        private readonly ?string $callbackUrl = null,
         private readonly ?string $webhookSecret = null,
     ) {}
 
@@ -49,6 +51,13 @@ final class MtnMomoAdapter implements PaymentProvider
             : self::SANDBOX_URL;
     }
 
+    private function configuredCurrency(): string
+    {
+        return $this->environment === 'production'
+            ? $this->productionCurrency
+            : $this->sandboxCurrency;
+    }
+
     /**
      * Get or refresh the OAuth2 access token from MTN MoMo.
      */
@@ -60,7 +69,7 @@ final class MtnMomoAdapter implements PaymentProvider
             $response = Http::withHeaders([
                 'Authorization' => "Basic {$credentials}",
                 'Ocp-Apim-Subscription-Key' => $this->subscriptionKey,
-            ])->post("{$this->baseUrl()}/collection/token/");
+            ])->timeout(15)->connectTimeout(5)->retry(2, 100)->post("{$this->baseUrl()}/collection/token/");
 
             if (! $response->ok()) {
                 Log::error('MTN MoMo token request failed', [
@@ -81,14 +90,16 @@ final class MtnMomoAdapter implements PaymentProvider
     /**
      * @return array<string, string>
      */
-    private function apiHeaders(): array
+    private function apiHeaders(?string $referenceId = null): array
     {
-        return [
+        return array_filter([
             'Authorization' => 'Bearer '.$this->accessToken(),
             'Ocp-Apim-Subscription-Key' => $this->subscriptionKey,
             'X-Target-Environment' => $this->targetEnvironment,
+            'X-Reference-Id' => $referenceId,
+            'X-Callback-Url' => $this->callbackUrl,
             'Content-Type' => 'application/json',
-        ];
+        ]);
     }
 
     /**
@@ -112,8 +123,8 @@ final class MtnMomoAdapter implements PaymentProvider
             $referenceId = (string) Str::uuid();
 
             $body = [
-                'amount' => (string) $payment->amount,
-                'currency' => $this->currency,
+                'amount' => (string) ($payment->provider_amount ?? $payment->amount),
+                'currency' => $payment->provider_currency ?? $this->configuredCurrency(),
                 'externalId' => $payment->uuid,
                 'payer' => [
                     'partyIdType' => 'MSISDN',
@@ -123,7 +134,10 @@ final class MtnMomoAdapter implements PaymentProvider
                 'payeeNote' => "Payment {$payment->uuid}",
             ];
 
-            $response = Http::withHeaders($this->apiHeaders())
+            $response = Http::withHeaders($this->apiHeaders($referenceId))
+                ->timeout(20)
+                ->connectTimeout(5)
+                ->retry(2, 100)
                 ->post("{$this->baseUrl()}/collection/v1_0/requesttopay", $body);
 
             // 202 Accepted means the request was accepted for processing.
@@ -164,7 +178,7 @@ final class MtnMomoAdapter implements PaymentProvider
         }
     }
 
-    public function confirm(Payment $payment): ProviderResponse
+    public function verify(Payment $payment): ProviderResponse
     {
         if ($payment->provider_reference === null) {
             return new ProviderResponse(
@@ -174,7 +188,10 @@ final class MtnMomoAdapter implements PaymentProvider
         }
 
         try {
-            $response = Http::withHeaders($this->apiHeaders())
+            $response = Http::withHeaders($this->apiHeaders($payment->provider_reference))
+                ->timeout(15)
+                ->connectTimeout(5)
+                ->retry(2, 100)
                 ->get("{$this->baseUrl()}/collection/v1_0/requesttopay/{$payment->provider_reference}");
 
             if (! $response->ok()) {
@@ -195,7 +212,7 @@ final class MtnMomoAdapter implements PaymentProvider
                 message: "MTN MoMo status: {$mtnStatus}",
             );
         } catch (Throwable $e) {
-            Log::error('MTN MoMo confirm failed', [
+            Log::error('MTN MoMo verify failed', [
                 'payment_uuid' => $payment->uuid,
                 'error' => $e->getMessage(),
             ]);

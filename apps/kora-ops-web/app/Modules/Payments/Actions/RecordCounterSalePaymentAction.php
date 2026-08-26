@@ -6,7 +6,11 @@ use App\Models\User;
 use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Models\Reservation;
+use App\Modules\Cash\Data\CashLedgerKind;
+use App\Modules\Cash\Data\CashMovementDirection;
+use App\Modules\Cash\Data\CashMovementStatus;
 use App\Modules\Cash\Data\CashSessionStatus;
+use App\Modules\Cash\Models\CashLedger;
 use App\Modules\Cash\Models\CashMovement;
 use App\Modules\Cash\Models\CashSession;
 use App\Modules\Fiscalization\Data\FiscalInvoiceStatus;
@@ -82,14 +86,21 @@ class RecordCounterSalePaymentAction
 
             CashMovement::query()->create([
                 'cash_session_id' => $cashSession->getKey(),
+                'cash_ledger_id' => $payment->cash_ledger_id,
                 'source_type' => Payment::class,
                 'source_id' => $payment->getKey(),
                 'type' => $movementType,
+                'direction' => CashMovementDirection::In,
+                'status' => CashMovementStatus::Posted,
                 'amount' => $total,
                 'currency' => $lockedReservation->currency,
                 'description' => 'Vente guichet '.$lockedReservation->uuid,
                 'created_by' => $agent->getKey(),
+                'occurred_at' => now(),
             ]);
+
+            $ledger = CashLedger::query()->lockForUpdate()->findOrFail($payment->cash_ledger_id);
+            $ledger->increment('expected_balance', $total);
 
             if ($method === PaymentMethod::Cash) {
                 $cashSession->increment('total_cash', $total);
@@ -210,6 +221,7 @@ class RecordCounterSalePaymentAction
             ->where('agency_id', $agent->agency_id)
             ->whereDate('business_date', now()->toDateString())
             ->where('status', CashSessionStatus::Open->value)
+            ->with('ledgers')
             ->lockForUpdate()
             ->first();
 
@@ -256,6 +268,13 @@ class RecordCounterSalePaymentAction
         ];
 
         if ($method === PaymentMethod::Cash) {
+            $ledger = $cashSession->ledgers->firstWhere('kind', CashLedgerKind::Cash);
+            if (! $ledger instanceof CashLedger) {
+                throw ValidationException::withMessages([
+                    'cash_session' => 'Le sous-journal espèces n’est pas ouvert pour cette caisse.',
+                ]);
+            }
+
             $received = (int) ($attributes['cash_received_amount'] ?? -1);
 
             if ($received < $total) {
@@ -265,6 +284,7 @@ class RecordCounterSalePaymentAction
             }
 
             return $base + [
+                'cash_ledger_id' => $ledger->getKey(),
                 'cash_received_amount' => $received,
                 'change_amount' => $received - $total,
             ];
@@ -276,11 +296,20 @@ class RecordCounterSalePaymentAction
             ->where('agency_id', $agent->agency_id)
             ->where('network', $network->value)
             ->where('status', 'active')
+            ->lockForUpdate()
             ->first();
 
         if ($account === null) {
             throw ValidationException::withMessages([
                 'agency_payment_account_uuid' => 'Le compte Mobile Money sélectionné est invalide pour votre agence.',
+            ]);
+        }
+
+        $ledger = $cashSession->ledgers
+            ->first(fn (CashLedger $cashLedger): bool => $cashLedger->agency_payment_account_id === $account->getKey());
+        if (! $ledger instanceof CashLedger) {
+            throw ValidationException::withMessages([
+                'agency_payment_account_uuid' => 'Le compte Mobile Money n’est pas ouvert dans la caisse du jour.',
             ]);
         }
 
@@ -296,6 +325,7 @@ class RecordCounterSalePaymentAction
         }
 
         return $base + [
+            'cash_ledger_id' => $ledger->getKey(),
             'agency_payment_account_id' => $account->getKey(),
             'mobile_money_network' => $network,
             'provider_reference' => $reference,

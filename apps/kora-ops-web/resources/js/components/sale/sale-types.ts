@@ -2,16 +2,35 @@ export type SaleStage = 'search' | 'seats' | 'passengers' | 'payment';
 
 export type SalePaymentMethod = 'cash' | 'mobile_money';
 
-export type SaleMobileMoneyNetwork =
-    | 'mtn_momo'
-    | 'moov_flooz'
-    | 'celtiis_cash';
+export type SaleMobileMoneyNetwork = 'mtn_momo' | 'moov_flooz' | 'celtiis_cash';
 
 export type SaleMobileMoneyAccount = {
     uuid: string;
     network: SaleMobileMoneyNetwork;
     label: string;
     accountIdentifier: string;
+    ledgerUuid?: string | null;
+};
+
+export type SaleCashLedger = {
+    uuid: string;
+    kind: 'cash' | 'mobile_money';
+    status: 'open' | 'pending_approval' | 'closed';
+    openingBalance: number;
+    expectedBalance: number;
+    actualBalance: number | null;
+    variance: number | null;
+    account: SaleMobileMoneyAccount | null;
+    media?: SaleCashMedia[];
+};
+
+export type SaleCashMedia = {
+    uuid: string;
+    name: string;
+    mimeType: string;
+    size: number;
+    createdAt: string | null;
+    url: string;
 };
 
 export type SaleCashSession = {
@@ -21,6 +40,8 @@ export type SaleCashSession = {
     businessDate: string | null;
     totalCash: number;
     totalMobileMoney: number;
+    status?: 'open' | 'pending_approval' | 'closed' | null;
+    ledgers?: SaleCashLedger[];
 };
 
 export type SalePayment = {

@@ -1,8 +1,8 @@
 # Plan API — Parcours passager BUS (recherche → paiement)
 
 > Source : analyse des maquettes `docs/maquettes/kora-app-passenger/` + modèles/migrations existants.
-> Périmètre : du premier écran (accueil) jusqu'à la confirmation de paiement (booking-success).
-> Hors périmètre : billets/tickets, tracking, annulation, wallet, ride, colis (Sprint 3+).
+> Périmètre : du premier écran (accueil) jusqu'à la confirmation de paiement et la récupération asynchrone des billets.
+> Hors périmètre : Wallet, paiements mixtes, tracking, annulation, ride et colis.
 
 ---
 
@@ -41,7 +41,7 @@
 
 ---
 
-## 3. API à créer — 4 nouveaux endpoints
+## 3. API à créer — paiement et émission asynchrone
 
 ### 3.1 `POST /api/v1/bus/quotes` — Devis tarifaire figé
 
@@ -239,9 +239,9 @@
 
 ### 3.4 `POST /api/v1/payments/initiate` — Initier le paiement
 
-**Écran maquette** : `payment-method` (PAY-02) → `mobile-money` / `wallet-payment` / `card-payment-bus`.
+**Écran maquette** : `payment-method` (PAY-02) → `mobile-money` / `mobile-validation` / `payment-pending`.
 
-**Rôle** : Initier le paiement pour une réservation held. Crée un `Payment` (status=pending) et déclenche le flux provider (Mobile Money, Wallet, ou Card).
+**Rôle** : Initier le paiement Mobile Money pour une réservation held. Crée un `Payment` `pending` et déclenche le push/USSD du provider actif. Le Mini Wallet reste hors MVP.
 
 **Auth** : `auth:sanctum`.
 
@@ -249,11 +249,10 @@
 ```json
 {
   "reservation_uuid": "uuid",
-  "method": "mobile_money|wallet|card",
-  "provider": "mtn_momo|moov_money|celtiis_cash|wave|kora_wallet|visa|mastercard",
+  "method": "mobile_money",
+  "provider": "fedapay|mtn_momo",
+  "mobile_money_network": "mtn_momo|moov_flooz|celtiis_cash",
   "phone": "+2290197421860",
-  "wallet_amount": 5000,
-  "points_amount": 500,
   "idempotency_key": "client-generated-uuid"
 }
 ```
@@ -287,10 +286,9 @@
   1. Vérifier que la reservation est `held` et non expirée
   2. Vérifier l'idempotency_key → si un payment existe déjà avec cette clé, retourner son statut
   3. Créer le `Payment` (status=pending, idempotency_key)
-  4. Pour Mobile Money : appeler l'API provider (MTN/Moov/Celtiis/Wave) pour envoyer la demande USSD/push
-  5. Pour Wallet : vérifier le solde, débiter le wallet si suffisant, confirmer immédiatement
-  6. Pour Card : initier le flux Stripe/redirect 3DS
-  7. Retourner le payment avec provider_reference pour polling
+  4. Sélectionner la devise protocolaire selon l'environnement (MTN sandbox : EUR; production : devise du compte, par défaut XOF) sans appliquer de taux de change métier
+  5. Pour Mobile Money : appeler le provider sélectionné avec le numéro et le réseau
+  6. Retourner le payment avec la référence provider
 
 **Tests** :
 - Payment créé avec status pending
@@ -304,7 +302,7 @@
 
 **Écran maquette** : `payment-pending` (PAY-05) — "Vérification automatique toutes les 10 secondes".
 
-**Rôle** : Polling du statut de paiement par le client mobile pendant que le passager confirme sur son téléphone.
+**Rôle** : Rafraîchir l'état local après une vérification explicite côté serveur. Le mobile appelle aussi `POST /payments/{uuid}/verify` pour interroger le provider.
 
 **Auth** : `auth:sanctum`.
 
@@ -326,15 +324,22 @@
 }
 ```
 
-**Logique backend** :
-- Vérifier que le payment appartient au user authentifié
-- Si le payment est `confirmed` → la reservation passe à `paid` (via listener/job)
-- Si le payment est `failed` → retourner le motif
+**Logique backend** : vérifier que le payment appartient au user authentifié et retourner l'état courant, ainsi que `next_action` et `ticket_issuance`.
 
 **Tests** :
 - Payment pending → 200
 - Payment confirmed → 200 avec reservation.status=paid
 - Payment d'un autre user → 403
+
+### 3.7 `POST /api/v1/payments/{payment_uuid}/verify` — Vérification explicite
+
+**Auth** : `auth:sanctum`.
+
+Le mobile appelle cette route après l'acceptation du push ou lorsqu'il souhaite une vérification immédiate. Le backend appelle la méthode de vérification du provider (`Transaction::retrieve` côté FedaPay, `GET requesttopay/{reference}` côté MTN), enregistre `last_verified_at`, puis applique la transition locale. La route est limitée afin d'éviter les appels abusifs.
+
+### 3.8 `GET /api/v1/bookings/{reservation_uuid}/tickets` — Billets
+
+Après confirmation, la réservation passe à `paid` et un job idempotent émet les billets hors de la transaction d'initiation. Le mobile lit `reservation.ticket_issuance.status`, puis récupère les billets lorsqu'il vaut `issued`.
 
 ---
 

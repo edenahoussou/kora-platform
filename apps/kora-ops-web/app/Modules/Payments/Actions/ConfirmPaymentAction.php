@@ -7,6 +7,7 @@ use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
+use App\Modules\Ticketing\Jobs\IssueReservationTicketsJob;
 use Illuminate\Support\Facades\DB;
 
 class ConfirmPaymentAction
@@ -31,6 +32,7 @@ class ConfirmPaymentAction
                 ->firstOrFail();
 
             $isSuccess = in_array(strtolower($status), ['success', 'confirmed'], true);
+            $isPending = strtolower($status) === PaymentStatus::Pending->value;
             $mergedPayload = array_merge($lockedPayment->provider_payload ?? [], $providerPayload);
 
             if ($lockedPayment->status === PaymentStatus::Confirmed ||
@@ -59,9 +61,19 @@ class ConfirmPaymentAction
 
                 $reservation->update(['status' => ReservationStatus::Paid]);
                 $reservation->segments()->update(['status' => ReservationSegmentStatus::Paid]);
+                $reservation->update(['ticket_issuance_status' => 'pending', 'ticket_issuance_error' => null]);
+                IssueReservationTicketsJob::dispatch($reservation->getKey())->afterCommit();
+            } elseif ($isPending) {
+                $lockedPayment->update([
+                    'status' => PaymentStatus::Pending,
+                    'provider_reference' => $providerReference ?? $lockedPayment->provider_reference,
+                    'provider_payload' => $mergedPayload,
+                ]);
             } else {
                 $lockedPayment->update([
-                    'status' => PaymentStatus::Failed,
+                    'status' => strtolower($status) === PaymentStatus::Cancelled->value
+                        ? PaymentStatus::Cancelled
+                        : PaymentStatus::Failed,
                     'provider_reference' => $providerReference ?? $lockedPayment->provider_reference,
                     'provider_payload' => $mergedPayload,
                 ]);

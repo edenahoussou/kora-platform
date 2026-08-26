@@ -8,13 +8,16 @@ use App\Modules\Departures\Models\Departure;
 use App\Modules\IdentityAccess\Data\AgencyStatus;
 use App\Modules\Payments\Models\AgencyPaymentAccount;
 use App\Modules\Support\Models\KoraModel;
+use Database\Factories\AgencyFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Agency extends KoraModel
 {
-    use SoftDeletes;
+    /** @use HasFactory<AgencyFactory> */
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'uuid',

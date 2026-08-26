@@ -1,0 +1,16 @@
+---
+title: Récupérer les billets émis
+description: Récupère les billets après confirmation asynchrone du paiement.
+api: GET /api/v1/bookings/{reservation_uuid}/tickets
+---
+
+# Récupérer les billets émis
+
+La confirmation du paiement passe la réservation à `paid`, puis un job idempotent émet les billets. Cette étape peut donc être momentanément `pending`, `processing` ou `failed` dans `reservation.ticket_issuance.status`.
+
+```bash cURL
+curl -X GET https://staging.koraexpress.app/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70/tickets \
+  -H 'Authorization: Bearer $TOKEN'
+```
+
+Une réponse réussie contient, pour chaque passager, uniquement les identifiants publics, le code court, le token QR, la date d'émission et le siège. En cas de liste vide alors que le paiement est confirmé, rafraîchissez l'état de la réservation avant d'afficher une erreur définitive.

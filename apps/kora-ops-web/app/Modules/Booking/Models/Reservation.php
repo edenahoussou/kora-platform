@@ -10,6 +10,8 @@ use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Models\PriceQuote;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Support\Models\KoraModel;
+use App\Modules\Ticketing\Data\TicketIssuanceStatus;
+use App\Modules\Ticketing\Models\Ticket;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -19,6 +21,9 @@ use Illuminate\Support\Carbon;
  * @property ReservationStatus $status
  * @property ReservationChannel|null $channel
  * @property Carbon|null $expires_at
+ * @property TicketIssuanceStatus $ticket_issuance_status
+ * @property Carbon|null $ticket_issuance_started_at
+ * @property Carbon|null $ticket_issued_at
  * @property array<string, mixed>|null $total_snapshot
  */
 class Reservation extends KoraModel
@@ -31,6 +36,10 @@ class Reservation extends KoraModel
         'departure_id',
         'price_quote_id',
         'status',
+        'ticket_issuance_status',
+        'ticket_issuance_error',
+        'ticket_issuance_started_at',
+        'ticket_issued_at',
         'total_amount',
         'currency',
         'channel',
@@ -86,12 +95,23 @@ class Reservation extends KoraModel
         return $this->hasMany(Payment::class);
     }
 
+    /**
+     * @return HasMany<Ticket, $this>
+     */
+    public function tickets(): HasMany
+    {
+        return $this->hasMany(Ticket::class);
+    }
+
     protected function casts(): array
     {
         return [
             'status' => ReservationStatus::class,
+            'ticket_issuance_status' => TicketIssuanceStatus::class,
             'channel' => ReservationChannel::class,
             'expires_at' => 'datetime',
+            'ticket_issuance_started_at' => 'datetime',
+            'ticket_issued_at' => 'datetime',
             'total_snapshot' => 'array',
         ];
     }

@@ -1,20 +1,21 @@
 ---
 title: Cycle de vie d'un paiement
-description: Initiation, polling, confirmation provider et gestion des échecs.
+description: Catalogue, initiation, vérification provider et émission asynchrone des billets.
 ---
 
 
 # Cycle de vie d'un paiement
 
-Le paiement KORA BUS suit un cycle asynchrone : **initiation** → **polling** → **confirmation** (webhook provider). Ce guide décrit le flow complet et les cas d'erreur.
+Le paiement KORA BUS suit un cycle asynchrone : **catalogue** → **initiation** → **vérification serveur** → **confirmation locale** → **émission asynchrone des billets**. Le polling sert à rafraîchir l'état; il ne remplace pas la vérification explicite.
 
 ## Vue d'ensemble
 
 ```
-initiate → pending → (webhook provider) → confirmed / failed
-                         ↓
-              reservation: held → paid (si confirmed)
-              reservation: expired (si webhook tardif) → payment: failed
+methods → initiate → pending → verify → confirmed / failed
+                                      ↓
+                    reservation: held → paid
+                                      ↓
+                         ticket issuance: pending → issued
 ```
 
 <Steps>
@@ -30,7 +31,8 @@ curl -X POST https://staging.koraexpress.app/api/v1/payments/initiate \
     "method": "mobile_money",
     "provider": "mtn_momo",
     "idempotency_key": "pay-2026-08-20-001",
-    "phone": "+2290197421860"
+    "phone": "+2290197421860",
+    "mobile_money_network": "mtn_momo"
   }'
 ```
 
@@ -39,17 +41,17 @@ La réponse `201` contient le `uuid` du paiement, le statut `pending`, et `polli
 Voir : [Initier — Référence](/reference/payments/initiate).
   </Step>
 
-  <Step title="2. Poller le statut">
-    Pollez `GET /payments/{uuid}` toutes les `polling_interval_seconds` jusqu'à un statut terminal.
+  <Step title="2. Vérifier côté serveur puis rafraîchir">
+    Appelez `POST /payments/{uuid}/verify` après l'approbation du client. Le serveur interroge l'endpoint officiel du provider, puis l'application peut rafraîchir avec `GET /payments/{uuid}` toutes les `polling_interval_seconds` secondes.
 
 ```dart
 Timer.periodic(Duration(seconds: 10), (timer) async {
   final res = await authDio.get('/api/v1/payments/$paymentUuid');
   final status = res.data['data']['status'];
 
-  if (status == 'confirmed') {
+  if (status == 'confirmed' && data['data']['next_action'] == 'show_tickets') {
     timer.cancel();
-    // Naviguer vers le billet
+    // Appeler GET /bookings/{reservationUuid}/tickets
   } else if (status == 'failed') {
     timer.cancel();
     // Afficher l'erreur
@@ -60,11 +62,12 @@ Timer.periodic(Duration(seconds: 10), (timer) async {
 Voir : [Consulter — Référence](/reference/payments/show).
   </Step>
 
-  <Step title="3. Confirmation provider (webhook)">
-    Le provider appelle `POST /payments/{uuid}/confirm` avec `status: success` ou `failed`. Le backend met à jour le paiement et la réservation.
+  <Step title="3. Attendre l'émission du billet">
+    Après `confirmed`, la réservation passe à `paid` et l'émission des billets est réalisée par un job idempotent. Consultez `reservation.ticket_issuance.status`; une erreur d'émission peut être relancée sans débiter à nouveau le passager.
 
-    - `success` → paiement `confirmed`, réservation `paid`
-    - `failed` → paiement `failed`
+    - `confirmed` + `issued` → afficher les billets
+    - `confirmed` + `pending|processing` → afficher l'attente
+    - `failed` → proposer une nouvelle tentative
 
     L'app mobile n'appelle **pas** cet endpoint — c'est le provider qui le fait.
 
@@ -74,12 +77,12 @@ Voir : [Confirmer — Référence](/reference/payments/confirm).
 
 ## Méthodes de paiement
 
-| Méthode | `method` | Providers courants | Champ requis |
+| Méthode | `method` | Providers configurables au Bénin | Champ requis |
 |---------|----------|-------------------|--------------|
-| Mobile Money | `mobile_money` | `mtn_momo`, `orange_money`, `moov_money` | `phone` |
-| Wallet | `wallet` | (interne) | `wallet_amount` |
-| Carte | `card` | (stripe, etc.) | — |
-| Espèces | `cash` | (guichet) | — |
+| Mobile Money | `mobile_money` | `fedapay`, `mtn_momo` | `phone`, `mobile_money_network` |
+| Mini Wallet | `wallet` | Hors MVP | — |
+
+Les réservations KORA restent en XOF. MTN utilise EUR uniquement dans le sandbox public; le montant numérique de test est transmis tel quel. En production, la devise doit correspondre au compte MTN provisionné.
 
 ## Idempotence
 
@@ -104,24 +107,6 @@ La `idempotency_key` garantit qu'un replay de la même demande ne crée pas un d
 <Warning>
   Le paiement est accepté **uniquement** tant que le hold est valide. Si le webhook de succès arrive après l'expiration, le backend marque le paiement `failed` et ne réactive **jamais** la réservation. Le passager doit recommencer une nouvelle recherche.
 </Warning>
-
-## Split payment (wallet + mobile money)
-
-Vous pouvez combiner plusieurs méthodes via `wallet_amount` et `points_amount` :
-
-```json
-{
-  "reservation_uuid": "9b1deb4d-...",
-  "method": "mobile_money",
-  "provider": "mtn_momo",
-  "idempotency_key": "pay-split-001",
-  "phone": "+2290197421860",
-  "wallet_amount": 5000,
-  "points_amount": 0
-}
-```
-
-Le provider couvre le reste (`total_amount - wallet_amount - points_amount`).
 
 <Card title="Webhooks" href="/guides/webhooks" icon="arrow-right" iconType="solid">
   Comprenez les **événements de paiement** et l'intégration webhook.

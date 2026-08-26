@@ -4,6 +4,7 @@ use App\Models\User;
 use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Models\Reservation;
+use App\Modules\Booking\Models\ReservationPassenger;
 use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
@@ -14,6 +15,8 @@ use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\PaymentManager;
 use App\Modules\Payments\Providers\Fake\FakePaymentProvider;
+use App\Modules\Ticketing\Data\TicketIssuanceStatus;
+use App\Modules\Ticketing\Models\Ticket;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -42,6 +45,47 @@ beforeEach(function (): void {
 it('requires authentication to initiate and poll payments', function (): void {
     $this->postJson('/api/v1/payments/initiate', [])->assertUnauthorized();
     $this->getJson('/api/v1/payments/'.Str::uuid())->assertUnauthorized();
+    $this->getJson('/api/v1/payments/methods')->assertUnauthorized();
+});
+
+it('exposes the configured mobile payment catalog without credentials', function (): void {
+    config()->set('payments.providers.fedapay.enabled', true);
+    config()->set('payments.providers.fedapay.api_key', 'test-fedapay-key');
+    config()->set('payments.providers.mtn_momo.enabled', true);
+    config()->set('payments.providers.mtn_momo.subscription_key', 'test-subscription');
+    config()->set('payments.providers.mtn_momo.user_id', 'test-user');
+    config()->set('payments.providers.mtn_momo.api_key', 'test-api-key');
+
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    $this->getJson('/api/v1/payments/methods')
+        ->assertOk()
+        ->assertJsonPath('data.country', 'BJ')
+        ->assertJsonPath('data.currency', 'XOF')
+        ->assertJsonPath('data.methods.0.code', 'mobile_money')
+        ->assertJsonPath('data.methods.0.providers.0.verification', 'server_verify')
+        ->assertJsonPath('data.methods.1.code', 'wallet')
+        ->assertJsonPath('data.methods.1.enabled', false)
+        ->assertJsonMissingPath('data.methods.0.providers.0.api_key');
+});
+
+it('uses EUR only as the MTN sandbox protocol currency without applying an FX rate', function (): void {
+    $manager = app(PaymentManager::class);
+
+    expect($manager->providerCurrency('mtn_momo'))->toBe('EUR')
+        ->and($manager->providerAmount('mtn_momo', 15000, 'XOF'))->toBe([
+            'amount' => 15000,
+            'currency' => 'EUR',
+        ]);
+
+    config()->set('payments.providers.mtn_momo.environment', 'production');
+
+    expect($manager->providerCurrency('mtn_momo'))->toBe('XOF')
+        ->and($manager->providerAmount('mtn_momo', 15000, 'XOF'))->toBe([
+            'amount' => 15000,
+            'currency' => 'XOF',
+        ]);
 });
 
 it('initiates payment for held reservation', function (): void {
@@ -55,6 +99,7 @@ it('initiates payment for held reservation', function (): void {
         'method' => 'mobile_money',
         'provider' => 'mtn_momo',
         'phone' => '+2290197421860',
+        'mobile_money_network' => 'mtn_momo',
         'idempotency_key' => $idempotencyKey,
     ]);
 
@@ -85,6 +130,7 @@ it('is idempotent on payment initiation with same idempotency key', function ():
         'method' => 'mobile_money',
         'provider' => 'mtn_momo',
         'phone' => '+2290197421860',
+        'mobile_money_network' => 'mtn_momo',
         'idempotency_key' => $idempotencyKey,
     ])->assertCreated()->json();
 
@@ -109,6 +155,8 @@ it('rejects initiation for expired reservation', function (): void {
         'reservation_uuid' => $scenario['reservation']->uuid,
         'method' => 'mobile_money',
         'provider' => 'mtn_momo',
+        'phone' => '+2290197421860',
+        'mobile_money_network' => 'mtn_momo',
         'idempotency_key' => (string) Str::uuid(),
     ])->assertUnprocessable()
         ->assertJsonValidationErrors(['reservation_uuid']);
@@ -152,6 +200,87 @@ it('polls payment status and includes reservation status', function (): void {
         ->assertJsonPath('data.reservation.uuid', $scenario['reservation']->uuid)
         ->assertJsonPath('data.reservation.status', 'held')
         ->assertJsonPath('data.reservation.departure_uuid', $scenario['departure']->uuid);
+});
+
+it('explicitly verifies a pending payment through the provider adapter', function (): void {
+    $scenario = paymentTestScenario();
+    Sanctum::actingAs($scenario['user']);
+
+    $payment = Payment::create([
+        'reservation_id' => $scenario['reservation']->id,
+        'method' => 'mobile_money',
+        'provider' => 'mtn_momo',
+        'mobile_money_network' => 'mtn_momo',
+        'provider_reference' => 'MM-VERIFY1',
+        'idempotency_key' => (string) Str::uuid(),
+        'amount' => 15000,
+        'currency' => 'XOF',
+        'status' => PaymentStatus::Pending,
+    ]);
+
+    FakePaymentProvider::$nextStatus = PaymentStatus::Confirmed;
+
+    $this->postJson("/api/v1/payments/{$payment->uuid}/verify")
+        ->assertOk()
+        ->assertJsonPath('data.status', 'confirmed')
+        ->assertJsonPath('data.next_action', 'wait_for_tickets');
+
+    expect($payment->fresh()->last_verified_at)->not->toBeNull();
+});
+
+it('issues one ticket per passenger asynchronously after payment confirmation', function (): void {
+    $scenario = paymentTestScenario();
+    $passenger = ReservationPassenger::create([
+        'reservation_id' => $scenario['reservation']->id,
+        'first_name' => 'Aïcha',
+        'last_name' => 'HOUNKPÈ',
+        'phone' => '+2290197421860',
+        'nationality' => 'BJ',
+    ]);
+    $scenario['segment']->update(['reservation_passenger_id' => $passenger->id]);
+
+    $payment = Payment::create([
+        'reservation_id' => $scenario['reservation']->id,
+        'method' => 'mobile_money',
+        'provider' => 'mtn_momo',
+        'mobile_money_network' => 'mtn_momo',
+        'provider_reference' => 'MM-TICKET1',
+        'idempotency_key' => (string) Str::uuid(),
+        'amount' => 15000,
+        'currency' => 'XOF',
+        'status' => PaymentStatus::Pending,
+    ]);
+
+    FakePaymentProvider::$nextStatus = PaymentStatus::Confirmed;
+
+    $this->postJson("/api/v1/payments/{$payment->uuid}/confirm", [
+        'status' => 'success',
+        'provider_reference' => 'MM-TICKET1',
+    ])->assertOk();
+
+    expect($scenario['reservation']->fresh()->status)->toBe(ReservationStatus::Ticketed)
+        ->and($scenario['reservation']->fresh()->ticket_issuance_status)->toBe(TicketIssuanceStatus::Issued)
+        ->and(Ticket::query()->where('reservation_id', $scenario['reservation']->id)->count())->toBe(1);
+});
+
+it('cancels a pending payment for its owner', function (): void {
+    $scenario = paymentTestScenario();
+    Sanctum::actingAs($scenario['user']);
+
+    $payment = Payment::create([
+        'reservation_id' => $scenario['reservation']->id,
+        'method' => 'mobile_money',
+        'provider' => 'mtn_momo',
+        'provider_reference' => 'MM-CANCEL1',
+        'idempotency_key' => (string) Str::uuid(),
+        'amount' => 15000,
+        'currency' => 'XOF',
+        'status' => PaymentStatus::Pending,
+    ]);
+
+    $this->postJson("/api/v1/payments/{$payment->uuid}/cancel")
+        ->assertOk()
+        ->assertJsonPath('data.status', 'cancelled');
 });
 
 it('forbids polling payment of another user', function (): void {
@@ -279,6 +408,8 @@ it('hides numeric IDs in payment responses', function (): void {
         'reservation_uuid' => $scenario['reservation']->uuid,
         'method' => 'mobile_money',
         'provider' => 'mtn_momo',
+        'phone' => '+2290197421860',
+        'mobile_money_network' => 'mtn_momo',
         'idempotency_key' => (string) Str::uuid(),
     ])->assertCreated()->json();
 
@@ -305,6 +436,7 @@ it('routes payment to the correct provider via PaymentManager', function (): voi
         'method' => 'mobile_money',
         'provider' => 'fedapay',
         'phone' => '+2290197421860',
+        'mobile_money_network' => 'mtn_momo',
         'idempotency_key' => (string) Str::uuid(),
     ]);
 
@@ -432,6 +564,7 @@ it('does not expose provider credentials in payment response', function (): void
         'method' => 'mobile_money',
         'provider' => 'mtn_momo',
         'phone' => '+2290197421860',
+        'mobile_money_network' => 'mtn_momo',
         'idempotency_key' => (string) Str::uuid(),
     ]);
 

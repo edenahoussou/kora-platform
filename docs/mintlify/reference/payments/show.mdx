@@ -6,7 +6,7 @@ api: GET /api/v1/payments/{payment_uuid}
 
 # Consulter un paiement
 
-Retourne le statut courant d'un paiement via `PaymentResource`. La relation `reservation` est **toujours chargée** dans cet endpoint (`loadMissing(['reservation.departure'])`). À poller après initiation jusqu'à obtention d'un statut terminal (`confirmed` ou `failed`).
+Retourne le statut courant d'un paiement via `PaymentResource`. La relation `reservation` est **toujours chargée** dans cet endpoint (`loadMissing(['reservation.departure'])`). À appeler après `POST /payments/{uuid}/verify` pour rafraîchir l'état jusqu'à l'émission des billets.
 
 ## Paramètres
 
@@ -60,7 +60,11 @@ final status = res.data['data']['status'];
     "reservation": {
       "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
       "status": "paid",
-      "departure_uuid": "a3091549-9179-454e-8440-58179f2208df"
+      "departure_uuid": "a3091549-9179-454e-8440-58179f2208df",
+      "ticket_issuance": {
+        "status": "issued",
+        "tickets_url": "https://staging.koraexpress.app/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70/tickets"
+      }
     }
   }
 }
@@ -84,6 +88,7 @@ final status = res.data['data']['status'];
   <ResponseField name="reservation.uuid" type="UUID" required>UUID de la réservation.</ResponseField>
   <ResponseField name="reservation.status" type="string" required>`held`, `confirmed`, `paid`, `ticketed`, `boarded`, `cancelled`, ou `expired`.</ResponseField>
   <ResponseField name="reservation.departure_uuid" type="UUID">UUID du départ ou `null`.</ResponseField>
+  <ResponseField name="reservation.ticket_issuance" type="object">État asynchrone de l'émission du billet.</ResponseField>
 </ResponseField>
 
 ## Statuts de paiement
@@ -106,5 +111,5 @@ final status = res.data['data']['status'];
 | `404` | Paiement introuvable. |
 
 <Info>
-  Pollez toutes les `polling_interval_seconds` (10s) jusqu'à statut terminal. Évitez un polling trop agressif pour respecter le rate limit.
+  Appelez `POST /payments/{uuid}/verify`, puis rafraîchissez avec ce GET toutes les `polling_interval_seconds` (10s). Évitez un polling trop agressif pour respecter le rate limit.
 </Info>

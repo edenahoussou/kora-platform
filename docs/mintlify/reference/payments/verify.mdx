@@ -1,0 +1,24 @@
+---
+title: Vérifier explicitement un paiement
+description: Interroge le provider côté serveur et met à jour l'état local du paiement.
+api: POST /api/v1/payments/{payment_uuid}/verify
+---
+
+# Vérifier explicitement un paiement
+
+Cet endpoint est appelé par l'application mobile lorsqu'elle veut demander une vérification immédiate côté serveur. Il utilise l'endpoint de vérification du provider lorsqu'il est disponible; ce n'est pas un remplacement du polling d'état local.
+
+```bash cURL
+curl -X POST https://staging.koraexpress.app/api/v1/payments/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80/verify \
+  -H 'Authorization: Bearer $TOKEN' \
+  -H 'Accept: application/json'
+```
+
+La réponse reprend `PaymentResource`, notamment `status`, `last_verified_at`, `next_action` et `reservation.ticket_issuance`. Après `confirmed`, l'émission des billets est traitée séparément. Le mobile attend `next_action=show_tickets`, puis appelle `GET /api/v1/bookings/{reservation_uuid}/tickets`.
+
+| Code | Signification |
+|---|---|
+| `200` | État provider vérifié ou état terminal déjà connu. |
+| `401` | Session absente ou invalide. |
+| `403` | Le paiement appartient à un autre passager. |
+| `429` | Trop de vérifications rapprochées; respecter le délai de 10 secondes. |

@@ -126,8 +126,11 @@
                 "group": "Paiements",
                 "icon": "credit-card",
                 "pages": [
+                  "reference/payments/methods",
                   "reference/payments/initiate",
                   "reference/payments/show",
+                  "reference/payments/verify",
+                  "reference/payments/tickets",
                   "reference/payments/confirm"
                 ]
               },

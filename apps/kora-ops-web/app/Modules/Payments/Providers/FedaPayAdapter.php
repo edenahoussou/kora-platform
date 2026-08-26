@@ -25,6 +25,9 @@ final class FedaPayAdapter implements PaymentProvider
         private readonly string $environment,
         private readonly ?string $callbackUrl,
         private readonly ?string $webhookSecret = null,
+        private readonly string $defaultPhoneCountry = 'bj',
+        /** @var array<string, string> */
+        private readonly array $mobileMoneyModes = [],
     ) {}
 
     /**
@@ -42,7 +45,7 @@ final class FedaPayAdapter implements PaymentProvider
     private function mapStatus(string $fedapayStatus): PaymentStatus
     {
         return match ($fedapayStatus) {
-            'approved' => PaymentStatus::Confirmed,
+            'approved', 'transferred' => PaymentStatus::Confirmed,
             'declined' => PaymentStatus::Failed,
             'canceled', 'cancelled' => PaymentStatus::Cancelled,
             'refunded' => PaymentStatus::Refunded,
@@ -59,7 +62,7 @@ final class FedaPayAdapter implements PaymentProvider
     private function extractPhone(array $payload): array
     {
         $phone = (string) ($payload['phone'] ?? '');
-        $country = (string) ($payload['phone_country'] ?? 'ci');
+        $country = (string) ($payload['phone_country'] ?? $this->defaultPhoneCountry);
 
         return ['number' => $phone, 'country' => $country];
     }
@@ -73,8 +76,8 @@ final class FedaPayAdapter implements PaymentProvider
 
             $transactionData = [
                 'description' => "KORA BUS reservation {$payment->reservation->uuid}",
-                'amount' => $payment->amount,
-                'currency' => ['iso' => $payment->currency],
+                'amount' => $payment->provider_amount ?? $payment->amount,
+                'currency' => ['iso' => $payment->provider_currency ?? $payment->currency],
                 'callback_url' => $this->callbackUrl,
                 'custom_metadata' => [
                     'kora_payment_uuid' => $payment->uuid,
@@ -98,17 +101,35 @@ final class FedaPayAdapter implements PaymentProvider
             /** @var mixed $transaction */
             $transaction = Transaction::create($transactionData);
 
+            if (($payload['method'] ?? null) === 'mobile_money') {
+                $network = (string) ($payload['mobile_money_network'] ?? '');
+                $mode = $this->mobileMoneyModes[$network] ?? null;
+
+                if ($mode === null || $phone['number'] === '') {
+                    throw new \InvalidArgumentException('Le réseau et le numéro sont nécessaires pour initier FedaPay.');
+                }
+
+                $transaction = $transaction->sendNow($mode, [
+                    'number' => $phone['number'],
+                    'country' => $phone['country'],
+                ]);
+            }
+
             /** @var array<string, mixed> $transactionArray */
             $transactionArray = is_object($transaction) && method_exists($transaction, 'toArray') ? $transaction->toArray() : [];
             $reference = '';
+            $transactionId = null;
             if (is_object($transaction) && property_exists($transaction, 'reference')) {
                 $reference = (string) $transaction->reference;
+            }
+            if (is_object($transaction) && property_exists($transaction, 'id')) {
+                $transactionId = (string) $transaction->id;
             }
 
             return new ProviderResponse(
                 status: PaymentStatus::Pending,
                 providerReference: $reference,
-                payload: $transactionArray,
+                payload: array_merge($transactionArray, array_filter(['id' => $transactionId])),
                 message: 'Transaction created on FedaPay.',
             );
         } catch (Throwable $e) {
@@ -125,7 +146,7 @@ final class FedaPayAdapter implements PaymentProvider
         }
     }
 
-    public function confirm(Payment $payment): ProviderResponse
+    public function verify(Payment $payment): ProviderResponse
     {
         if ($payment->provider_reference === null) {
             return new ProviderResponse(
@@ -137,20 +158,26 @@ final class FedaPayAdapter implements PaymentProvider
         try {
             $this->configure();
 
-            /** @var mixed $transactions */
-            $transactions = Transaction::all(['reference' => $payment->provider_reference]);
-            /** @var array<int, mixed> $transactionList */
-            $transactionList = is_iterable($transactions) ? iterator_to_array($transactions) : [];
-
-            if (count($transactionList) === 0) {
-                return new ProviderResponse(
-                    status: PaymentStatus::Pending,
-                    message: 'Transaction not found on FedaPay.',
-                );
-            }
-
             /** @var mixed $transaction */
-            $transaction = $transactionList[0];
+            $transaction = $payment->provider_transaction_id !== null
+                ? Transaction::retrieve($payment->provider_transaction_id)
+                : null;
+
+            if ($transaction === null) {
+                /** @var mixed $transactions */
+                $transactions = Transaction::all(['reference' => $payment->provider_reference]);
+                /** @var array<int, mixed> $transactionList */
+                $transactionList = is_iterable($transactions) ? iterator_to_array($transactions) : [];
+
+                if (count($transactionList) === 0) {
+                    return new ProviderResponse(
+                        status: PaymentStatus::Pending,
+                        message: 'Transaction not found on FedaPay.',
+                    );
+                }
+
+                $transaction = $transactionList[0];
+            }
             $status = is_object($transaction) && property_exists($transaction, 'status') ? (string) $transaction->status : 'pending';
             $reference = is_object($transaction) && property_exists($transaction, 'reference') ? (string) $transaction->reference : $payment->provider_reference;
             /** @var array<string, mixed> $payloadArray */
@@ -160,10 +187,10 @@ final class FedaPayAdapter implements PaymentProvider
                 status: $this->mapStatus($status),
                 providerReference: $reference,
                 payload: $payloadArray,
-                message: "FedaPay status: {$transaction->status}",
+                message: "FedaPay status: {$status}",
             );
         } catch (Throwable $e) {
-            Log::error('FedaPay confirm failed', [
+            Log::error('FedaPay verify failed', [
                 'payment_uuid' => $payment->uuid,
                 'error' => $e->getMessage(),
             ]);

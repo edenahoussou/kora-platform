@@ -66,6 +66,8 @@ class AppServiceProvider extends ServiceProvider
                 environment: (string) ($config['environment'] ?? 'sandbox'),
                 callbackUrl: $config['callback_url'] ?? null,
                 webhookSecret: $config['webhook_secret'] ?? null,
+                defaultPhoneCountry: (string) ($config['default_phone_country'] ?? 'bj'),
+                mobileMoneyModes: (array) ($config['mobile_money_modes'] ?? []),
             );
         });
 
@@ -77,8 +79,10 @@ class AppServiceProvider extends ServiceProvider
                 userId: (string) ($config['user_id'] ?? ''),
                 apiKey: (string) ($config['api_key'] ?? ''),
                 environment: (string) ($config['environment'] ?? 'sandbox'),
-                targetEnvironment: (string) ($config['target_environment'] ?? 'mtncameroon'),
-                currency: (string) ($config['currency'] ?? 'XAF'),
+                targetEnvironment: (string) ($config['target_environment'] ?? 'mtnbenin'),
+                sandboxCurrency: (string) ($config['sandbox_currency'] ?? 'EUR'),
+                productionCurrency: (string) ($config['production_currency'] ?? 'XOF'),
+                callbackUrl: $config['callback_url'] ?? null,
                 webhookSecret: $config['webhook_secret'] ?? null,
             );
         });
@@ -133,6 +137,9 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('bus-search', fn (Request $request): Limit => Limit::perMinute(120)
             ->by($request->ip()));
+
+        RateLimiter::for('payment-verify', fn (Request $request): Limit => Limit::perMinute(6)
+            ->by($request->user()?->getAuthIdentifier().'|'.$request->route('payment')));
 
         DB::prohibitDestructiveCommands(
             app()->isProduction(),

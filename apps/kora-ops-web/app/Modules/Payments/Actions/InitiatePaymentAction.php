@@ -31,6 +31,7 @@ class InitiatePaymentAction
         string $provider,
         string $idempotencyKey,
         ?string $phone = null,
+        ?string $mobileMoneyNetwork = null,
         ?int $walletAmount = null,
         ?int $pointsAmount = null,
     ): array {
@@ -41,8 +42,7 @@ class InitiatePaymentAction
             $provider,
             $idempotencyKey,
             $phone,
-            $walletAmount,
-            $pointsAmount,
+            $mobileMoneyNetwork,
         ): array {
             $lockedReservation = Reservation::query()
                 ->whereKey($reservation->getKey())
@@ -65,6 +65,21 @@ class InitiatePaymentAction
                 ]);
             }
 
+            $network = $mobileMoneyNetwork ?: ($provider === 'mtn_momo' ? 'mtn_momo' : null);
+            $this->manager->assertAvailable($method, $provider, $network);
+
+            if (blank($phone)) {
+                throw ValidationException::withMessages([
+                    'phone' => 'Le numéro du payeur est obligatoire pour initier un paiement Mobile Money.',
+                ]);
+            }
+
+            if (blank($network)) {
+                throw ValidationException::withMessages([
+                    'mobile_money_network' => 'Le réseau Mobile Money est obligatoire.',
+                ]);
+            }
+
             $existingPayment = Payment::query()
                 ->where('idempotency_key', $idempotencyKey)
                 ->first();
@@ -82,20 +97,39 @@ class InitiatePaymentAction
                 ];
             }
 
+            if (Payment::query()
+                ->where('reservation_id', $lockedReservation->getKey())
+                ->whereIn('status', [PaymentStatus::Pending->value, PaymentStatus::Confirmed->value])
+                ->exists()) {
+                throw ValidationException::withMessages([
+                    'reservation_uuid' => 'Cette réservation possède déjà un paiement actif.',
+                ]);
+            }
+
+            $providerAmount = $this->manager->providerAmount(
+                provider: $provider,
+                amount: (int) $lockedReservation->total_amount,
+                currency: (string) $lockedReservation->currency,
+            );
+
             $payment = Payment::create([
                 'reservation_id' => $lockedReservation->id,
+                'method' => $method,
                 'provider' => $provider,
                 'provider_reference' => null,
                 'idempotency_key' => $idempotencyKey,
                 'amount' => $lockedReservation->total_amount,
+                'mobile_money_network' => $network,
+                'payer_phone' => $phone,
                 'currency' => $lockedReservation->currency,
+                'provider_currency' => $providerAmount['currency'],
+                'provider_amount' => $providerAmount['amount'],
                 'status' => PaymentStatus::Pending,
-                'provider_payload' => array_filter([
+                'provider_payload' => [
                     'method' => $method,
                     'phone' => $phone,
-                    'wallet_amount' => $walletAmount,
-                    'points_amount' => $pointsAmount,
-                ], fn ($value) => $value !== null),
+                    'mobile_money_network' => $network,
+                ],
             ]);
 
             // Call the real provider to initiate the transaction.
@@ -104,10 +138,15 @@ class InitiatePaymentAction
                 $response = $providerAdapter->initiate($payment, [
                     'method' => $method,
                     'phone' => $phone,
+                    'mobile_money_network' => $network,
                 ]);
 
                 $payment->update([
                     'provider_reference' => $response->providerReference,
+                    'provider_transaction_id' => $response->payload['id']
+                        ?? $response->payload['transaction_id']
+                        ?? $response->payload['reference_id']
+                        ?? null,
                     'provider_payload' => array_merge(
                         $payment->provider_payload ?? [],
                         ['provider_response' => $response->payload],

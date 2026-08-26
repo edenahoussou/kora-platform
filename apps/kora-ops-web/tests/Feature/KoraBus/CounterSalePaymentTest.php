@@ -7,6 +7,7 @@ use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
+use App\Modules\Cash\Models\CashLedger;
 use App\Modules\Cash\Models\CashSession;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Models\Fare;
@@ -21,6 +22,7 @@ use Database\Seeders\KoraBusReferenceSeeder;
 use Database\Seeders\KoraBusRolePermissionSeeder;
 use Database\Seeders\KoraCounterSaleSeeder;
 use Database\Seeders\KoraDemoUserSeeder;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
@@ -37,7 +39,14 @@ it('opens the current cash session from the counter sale quick action', function
     $scenario = paymentSaleScenario();
 
     $this->actingAs($scenario['agent'])
-        ->post(route('cash.open'), ['opening_float' => 25000])
+        ->post(route('cash.open'), [
+            'ledgers' => [[
+                'kind' => 'cash',
+                'account_uuid' => null,
+                'opening_balance' => 25000,
+                'evidence' => UploadedFile::fake()->image('cash-opening.jpg'),
+            ]],
+        ])
         ->assertRedirect();
 
     $this->assertDatabaseHas('cash_sessions', [
@@ -74,13 +83,7 @@ it('configures the demo counter sale agent and agency Mobile Money accounts', fu
 it('records an exact cash payment, change, cash movement and one ticket per passenger', function (): void {
     $scenario = paymentSaleScenario();
     $reservation = paymentReservation($this, $scenario);
-    CashSession::query()->create([
-        'agent_id' => $scenario['agent']->id,
-        'agency_id' => $scenario['agency']->id,
-        'business_date' => '2026-08-19',
-        'opening_float' => 1000,
-        'status' => 'open',
-    ]);
+    createCashSessionWithLedgers($scenario, openingCash: 1000);
 
     $response = $this->actingAs($scenario['agent'])->post(route('sale.payment', $reservation), [
         'method' => 'cash',
@@ -112,12 +115,7 @@ it('records an exact cash payment, change, cash movement and one ticket per pass
 it('rejects an insufficient cash payment without creating a payment or ticket', function (): void {
     $scenario = paymentSaleScenario();
     $reservation = paymentReservation($this, $scenario);
-    CashSession::query()->create([
-        'agent_id' => $scenario['agent']->id,
-        'agency_id' => $scenario['agency']->id,
-        'business_date' => '2026-08-19',
-        'status' => 'open',
-    ]);
+    createCashSessionWithLedgers($scenario);
 
     $this->actingAs($scenario['agent'])
         ->post(route('sale.payment', $reservation), [
@@ -144,12 +142,7 @@ it('records a manually verified Mobile Money payment on the agency account', fun
         'account_identifier' => '97000000',
         'status' => 'active',
     ]);
-    CashSession::query()->create([
-        'agent_id' => $scenario['agent']->id,
-        'agency_id' => $scenario['agency']->id,
-        'business_date' => '2026-08-19',
-        'status' => 'open',
-    ]);
+    createCashSessionWithLedgers($scenario, accounts: [$account]);
 
     $this->actingAs($scenario['agent'])
         ->post(route('sale.payment', $reservation), [
@@ -206,12 +199,7 @@ it('requires an open cash session and blocks duplicate Mobile Money references',
         ->post(route('sale.payment', $reservation), $payload)
         ->assertSessionHasErrors('cash_session');
 
-    CashSession::query()->create([
-        'agent_id' => $scenario['agent']->id,
-        'agency_id' => $scenario['agency']->id,
-        'business_date' => '2026-08-19',
-        'status' => 'open',
-    ]);
+    createCashSessionWithLedgers($scenario, accounts: [$account]);
     $this->actingAs($scenario['agent'])
         ->post(route('sale.payment', $reservation), $payload)
         ->assertRedirect();
@@ -227,12 +215,7 @@ it('requires an open cash session and blocks duplicate Mobile Money references',
 it('is idempotent when the same request is submitted twice', function (): void {
     $scenario = paymentSaleScenario();
     $reservation = paymentReservation($this, $scenario);
-    CashSession::query()->create([
-        'agent_id' => $scenario['agent']->id,
-        'agency_id' => $scenario['agency']->id,
-        'business_date' => '2026-08-19',
-        'status' => 'open',
-    ]);
+    createCashSessionWithLedgers($scenario);
     $payload = [
         'method' => 'cash',
         'amount' => 11000,
@@ -314,4 +297,47 @@ function paymentReservation(object $test, array $scenario, string $seatCode = '2
     ]);
 
     return $reservation->fresh();
+}
+
+/** @param array{agent: User, agency: Agency} $scenario @param list<AgencyPaymentAccount> $accounts */
+function createCashSessionWithLedgers(array $scenario, int $openingCash = 0, array $accounts = []): CashSession
+{
+    $session = CashSession::query()->create([
+        'agent_id' => $scenario['agent']->id,
+        'agency_id' => $scenario['agency']->id,
+        'business_date' => '2026-08-19',
+        'opening_float' => $openingCash,
+        'expected_balance' => $openingCash,
+        'total_cash' => 0,
+        'total_mobile_money' => 0,
+        'status' => 'open',
+        'opened_at' => now(),
+    ]);
+
+    CashLedger::query()->create([
+        'cash_session_id' => $session->id,
+        'ledger_key' => 'cash',
+        'kind' => 'cash',
+        'opening_balance' => $openingCash,
+        'expected_balance' => $openingCash,
+        'status' => 'open',
+        'opened_by' => $scenario['agent']->id,
+        'opened_at' => now(),
+    ]);
+
+    foreach ($accounts as $account) {
+        CashLedger::query()->create([
+            'cash_session_id' => $session->id,
+            'ledger_key' => $account->uuid,
+            'kind' => 'mobile_money',
+            'agency_payment_account_id' => $account->id,
+            'opening_balance' => 0,
+            'expected_balance' => 0,
+            'status' => 'open',
+            'opened_by' => $scenario['agent']->id,
+            'opened_at' => now(),
+        ]);
+    }
+
+    return $session;
 }

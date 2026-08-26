@@ -1,0 +1,18 @@
+---
+title: Moyens de paiement disponibles
+description: Catalogue des providers et réseaux activés pour l'application passager.
+api: GET /api/v1/payments/methods
+---
+
+# Moyens de paiement disponibles
+
+Retourne le catalogue public des moyens activés pour le Bénin. Le mobile doit afficher uniquement les providers et réseaux présents dans cette réponse; aucune clé secrète n'est exposée.
+
+```bash cURL
+curl -X GET https://staging.koraexpress.app/api/v1/payments/methods \
+  -H 'Authorization: Bearer $TOKEN'
+```
+
+La réponse contient `country: BJ`, la devise KORA `XOF`, les providers actifs et les réseaux supportés. Chaque provider indique `verification: server_verify`: le mobile doit utiliser l'endpoint de vérification explicite après l'initiation.
+
+Le Mini Wallet est retourné comme désactivé avec `availability: out_of_mvp`. L'application ne doit pas proposer son parcours dans ce lot.

@@ -1,4 +1,3 @@
-import { router } from '@inertiajs/react';
 import {
     ArrowLeft,
     Banknote,
@@ -20,8 +19,8 @@ import type { LucideIcon } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 import phoneLabels from 'react-phone-number-input/locale/fr.json';
+import { CashOpeningDialog } from '@/components/cash/cash-opening-dialog';
 import { cn } from '@/lib/utils';
-import { open as openCash } from '@/routes/cash';
 import { SaleJourneySummary } from './sale-journey-summary';
 import type {
     SaleCashSession,
@@ -89,7 +88,8 @@ function smartQuickAmounts(total: number): number[] {
     }
 
     // Use real FCFA bill denominations as steps
-    const steps = total > 5000 ? [1000, 2000, 5000, 10000] : [500, 1000, 2000, 5000];
+    const steps =
+        total > 5000 ? [1000, 2000, 5000, 10000] : [500, 1000, 2000, 5000];
     const maxAmount = total + 10000;
     const amounts = new Set<number>();
 
@@ -144,8 +144,6 @@ export function PaymentStep({
     const [verified, setVerified] = useState(false);
     const [key] = useState(idempotencyKey);
     const [cashModalOpen, setCashModalOpen] = useState(false);
-    const [openingFloat, setOpeningFloat] = useState('');
-    const [openingCash, setOpeningCash] = useState(false);
     const holdCountdown = useHoldCountdown(reservation.expiresAt);
     const expirationHandled = useRef(false);
 
@@ -166,8 +164,8 @@ export function PaymentStep({
         () =>
             network
                 ? mobileMoneyAccounts.filter(
-                    (account) => account.network === network,
-                )
+                      (account) => account.network === network,
+                  )
                 : [],
         [mobileMoneyAccounts, network],
     );
@@ -176,7 +174,8 @@ export function PaymentStep({
         [networkAccounts, accountUuid],
     );
     const cashReady = cashSession.isOpen && isCashSufficient;
-    const phoneValid = payerPhone.trim() !== '' && isValidPhoneNumber(payerPhone);
+    const phoneValid =
+        payerPhone.trim() !== '' && isValidPhoneNumber(payerPhone);
     const mobileReady =
         cashSession.isOpen &&
         network !== '' &&
@@ -194,37 +193,17 @@ export function PaymentStep({
             { label: 'Réseau sélectionné', done: network !== '' },
             { label: 'Compte agence choisi', done: accountUuid !== '' },
             { label: 'Téléphone du payeur saisi', done: phoneValid },
-            { label: 'Référence de transaction', done: reference.trim() !== '' },
+            {
+                label: 'Référence de transaction',
+                done: reference.trim() !== '',
+            },
             { label: 'Crédit vérifié manuellement', done: verified },
         ],
         [network, accountUuid, phoneValid, reference, verified],
     );
-    const mobileChecklistDone = mobileChecklist.filter((item) => item.done).length;
-
-    const openCashSession = () => {
-        const amount = Number(openingFloat);
-
-        if (!Number.isInteger(amount) || amount < 0 || openingCash) {
-            return;
-        }
-
-        setOpeningCash(true);
-
-        router.post(
-            openCash.url(),
-            { opening_float: amount },
-            {
-                preserveState: true,
-                preserveScroll: true,
-                only: ['cashSession'],
-                onSuccess: () => {
-                    setCashModalOpen(false);
-                    setOpeningFloat('');
-                },
-                onFinish: () => setOpeningCash(false),
-            },
-        );
-    };
+    const mobileChecklistDone = mobileChecklist.filter(
+        (item) => item.done,
+    ).length;
 
     const selectNetwork = (value: SaleMobileMoneyNetwork) => {
         setNetwork(value);
@@ -265,8 +244,8 @@ export function PaymentStep({
     const submitLabel = processing
         ? 'Confirmation…'
         : method === 'cash'
-            ? 'Encaisser les espèces'
-            : 'Confirmer le transfert Mobile Money';
+          ? 'Encaisser les espèces'
+          : 'Confirmer le transfert Mobile Money';
 
     return (
         <>
@@ -300,9 +279,7 @@ export function PaymentStep({
                                 <Banknote className="size-5" />
                             </span>
                             <div className="cash-required-copy">
-                                <strong>
-                                    Votre caisse est encore fermée
-                                </strong>
+                                <strong>Votre caisse est encore fermée</strong>
                                 <p>
                                     Ouvrez la session du jour avec votre fond de
                                     caisse pour pouvoir enregistrer cette vente.
@@ -450,21 +427,18 @@ export function PaymentStep({
                     selectedNetwork={
                         network
                             ? {
-                                label: networkMeta[network].label,
-                                color: networkMeta[network].color,
-                            }
+                                  label: networkMeta[network].label,
+                                  color: networkMeta[network].color,
+                              }
                             : null
                     }
                     selectedAccount={selectedAccount ?? null}
                 />
             </form>
             {cashModalOpen && (
-                <CashOpenModal
-                    openingFloat={openingFloat}
-                    openingCash={openingCash}
-                    onChange={setOpeningFloat}
+                <CashOpeningDialog
+                    accounts={mobileMoneyAccounts}
                     onClose={() => setCashModalOpen(false)}
-                    onSubmit={openCashSession}
                 />
             )}
         </>
@@ -499,92 +473,8 @@ function PaymentChoice({
                 <strong>{title}</strong>
                 <small>{description}</small>
             </span>
-            {active && <Check className="size-3.5 payment-choice-check" />}
+            {active && <Check className="payment-choice-check size-3.5" />}
         </button>
-    );
-}
-
-function CashOpenModal({
-    openingFloat,
-    openingCash,
-    onChange,
-    onClose,
-    onSubmit,
-}: {
-    openingFloat: string;
-    openingCash: boolean;
-    onChange: (value: string) => void;
-    onClose: () => void;
-    onSubmit: () => void;
-}) {
-    return (
-        <div className="cash-modal-backdrop" role="presentation">
-            <div
-                className="cash-modal"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="cash-modal-title"
-            >
-                <div className="cash-modal-head">
-                    <div>
-                        <span className="section-kicker">
-                            Session du jour
-                        </span>
-                        <h3 id="cash-modal-title">Ouvrir la caisse</h3>
-                        <p>
-                            Le fond de caisse sert de point de départ au suivi
-                            des espèces.
-                        </p>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        aria-label="Fermer"
-                        className="cash-modal-close"
-                    >
-                        ×
-                    </button>
-                </div>
-                <label className="field">
-                    <span>
-                        Fond de caisse initial{' '}
-                        <span className="required-asterisk">*</span>
-                    </span>
-                    <input
-                        autoFocus
-                        min="0"
-                        inputMode="numeric"
-                        type="number"
-                        className="control"
-                        value={openingFloat}
-                        onChange={(event) => onChange(event.target.value)}
-                        placeholder="0"
-                    />
-                    <small>
-                        Vous pourrez ensuite encaisser les ventes espèces et
-                        Mobile Money.
-                    </small>
-                </label>
-                <div className="cash-modal-actions">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="btn btn-ghost"
-                        disabled={openingCash}
-                    >
-                        Annuler
-                    </button>
-                    <button
-                        type="button"
-                        onClick={onSubmit}
-                        className="btn btn-primary"
-                        disabled={openingCash || openingFloat === ''}
-                    >
-                        {openingCash ? 'Ouverture…' : 'Ouvrir la caisse'}
-                    </button>
-                </div>
-            </div>
-        </div>
     );
 }
 
@@ -649,9 +539,7 @@ function CashPaymentFields({
                             min="0"
                             type="number"
                             value={cashReceived}
-                            onChange={(event) =>
-                                onChange(event.target.value)
-                            }
+                            onChange={(event) => onChange(event.target.value)}
                             aria-invalid={Boolean(error)}
                             placeholder="0"
                         />
@@ -752,9 +640,9 @@ function MobileMoneyFields({
                                     style={
                                         isActive
                                             ? {
-                                                borderColor: meta.color,
-                                                background: meta.bg,
-                                            }
+                                                  borderColor: meta.color,
+                                                  background: meta.bg,
+                                              }
                                             : undefined
                                     }
                                     onClick={() => onNetworkChange(value)}
@@ -771,14 +659,16 @@ function MobileMoneyFields({
                                     <span className="mm-network-copy">
                                         <strong>{meta.label}</strong>
                                         <small>
-                                            {accounts.filter(
-                                                (a) => a.network === value,
-                                            ).length}{' '}
+                                            {
+                                                accounts.filter(
+                                                    (a) => a.network === value,
+                                                ).length
+                                            }{' '}
                                             compte(s)
                                         </small>
                                     </span>
                                     {isActive && (
-                                        <Check className="size-3.5 mm-network-check" />
+                                        <Check className="mm-network-check size-3.5" />
                                     )}
                                 </button>
                             );
@@ -804,11 +694,9 @@ function MobileMoneyFields({
                                     : 'Choisir le réseau d’abord'}
                             </option>
                             {accounts.map((account) => (
-                                <option
-                                    key={account.uuid}
-                                    value={account.uuid}
-                                >
-                                    {account.label} · {account.accountIdentifier}
+                                <option key={account.uuid} value={account.uuid}>
+                                    {account.label} ·{' '}
+                                    {account.accountIdentifier}
                                 </option>
                             ))}
                         </select>
@@ -930,9 +818,7 @@ function MobileMoneyFields({
                                 }
                             />
                             <span>
-                                <strong>
-                                    J’ai vérifié le crédit reçu
-                                </strong>
+                                <strong>J’ai vérifié le crédit reçu</strong>
                                 <small>
                                     Je confirme manuellement que le montant a
                                     été crédité sur le compte Mobile Money de
@@ -945,7 +831,7 @@ function MobileMoneyFields({
                             </span>
                         </label>
                         {verified && (
-                            <CheckCircle2 className="size-5 mm-verify-icon" />
+                            <CheckCircle2 className="mm-verify-icon size-5" />
                         )}
                     </div>
                     {errors.verified_manually && (

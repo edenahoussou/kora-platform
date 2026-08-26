@@ -17,7 +17,7 @@ interface PaymentProvider
     /**
      * Query or confirm the payment status from the provider.
      */
-    public function confirm(Payment $payment): ProviderResponse;
+    public function verify(Payment $payment): ProviderResponse;
 
     /**
      * Verify the authenticity of an incoming webhook request.

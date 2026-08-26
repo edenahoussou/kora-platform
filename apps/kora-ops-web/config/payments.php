@@ -33,6 +33,13 @@ return [
             'environment' => env('FEDAPAY_ENVIRONMENT', 'sandbox'),
             'callback_url' => env('FEDAPAY_CALLBACK_URL'),
             'webhook_secret' => env('FEDAPAY_WEBHOOK_SECRET'),
+            'currency' => env('FEDAPAY_CURRENCY', 'XOF'),
+            'default_phone_country' => env('FEDAPAY_PHONE_COUNTRY', 'bj'),
+            'mobile_money_modes' => [
+                'mtn_momo' => env('FEDAPAY_MODE_MTN_MOMO', 'mtn'),
+                'moov_flooz' => env('FEDAPAY_MODE_MOOV_FLOOZ', 'moov'),
+                'celtiis_cash' => env('FEDAPAY_MODE_CELTIIS_CASH', 'celtiis'),
+            ],
         ],
 
         'mtn_momo' => [
@@ -42,8 +49,11 @@ return [
             'api_key' => env('MTN_MOMO_API_KEY'),
             'environment' => env('MTN_MOMO_ENVIRONMENT', 'sandbox'),
             'callback_url' => env('MTN_MOMO_CALLBACK_URL'),
-            'target_environment' => env('MTN_MOMO_TARGET_ENVIRONMENT', 'mtncameroon'),
-            'currency' => env('MTN_MOMO_CURRENCY', 'XAF'),
+            'target_environment' => env('MTN_MOMO_TARGET_ENVIRONMENT', 'mtnbenin'),
+            // MTN's public sandbox documentation uses EUR for test calls. The
+            // production currency is the currency of the provisioned account.
+            'sandbox_currency' => env('MTN_MOMO_SANDBOX_CURRENCY', 'EUR'),
+            'production_currency' => env('MTN_MOMO_PRODUCTION_CURRENCY', 'XOF'),
             'webhook_secret' => env('MTN_MOMO_WEBHOOK_SECRET'),
         ],
 

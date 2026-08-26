@@ -4,8 +4,10 @@ namespace App\Modules\Payments\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Booking\Models\Reservation;
+use App\Modules\Payments\Actions\CancelPaymentAction;
 use App\Modules\Payments\Actions\ConfirmPaymentAction;
 use App\Modules\Payments\Actions\InitiatePaymentAction;
+use App\Modules\Payments\Actions\VerifyPaymentAction;
 use App\Modules\Payments\Http\Requests\InitiatePaymentRequest;
 use App\Modules\Payments\Http\Resources\PaymentResource;
 use App\Modules\Payments\Models\Payment;
@@ -52,8 +54,7 @@ class PaymentController extends Controller
             provider: $data['provider'],
             idempotencyKey: $data['idempotency_key'],
             phone: $data['phone'],
-            walletAmount: $data['wallet_amount'],
-            pointsAmount: $data['points_amount'],
+            mobileMoneyNetwork: $data['mobile_money_network'],
         );
 
         $statusCode = $result['is_replay'] ? 200 : 201;
@@ -61,6 +62,35 @@ class PaymentController extends Controller
         return (new PaymentResource($result['payment']))
             ->response()
             ->setStatusCode($statusCode);
+    }
+
+    /**
+     * Return the active payment methods and providers configured for the mobile app.
+     */
+    public function methods(PaymentManager $manager): JsonResponse
+    {
+        return response()->json(['data' => $manager->catalog()]);
+    }
+
+    /**
+     * Explicitly verify a pending payment with its provider.
+     */
+    public function verify(Payment $payment, Request $request, VerifyPaymentAction $verifyPayment): JsonResponse
+    {
+        $updatedPayment = $verifyPayment->handle($payment, $request->user());
+
+        return (new PaymentResource($updatedPayment))
+            ->response()
+            ->setStatusCode(200);
+    }
+
+    public function cancel(Payment $payment, Request $request, CancelPaymentAction $cancelPayment): JsonResponse
+    {
+        $updatedPayment = $cancelPayment->handle($payment, $request->user());
+
+        return (new PaymentResource($updatedPayment))
+            ->response()
+            ->setStatusCode(200);
     }
 
     /**
@@ -118,7 +148,7 @@ class PaymentController extends Controller
             }
 
             // Normalize the provider payload into KORA status.
-            $providerResponse = $adapter->confirm($payment);
+            $providerResponse = $adapter->verify($payment);
 
             $updatedPayment = $confirmPayment->handle(
                 payment: $payment,
@@ -214,7 +244,7 @@ class PaymentController extends Controller
             return response()->json(['error' => 'Payment not found.'], 404);
         }
 
-        $providerResponse = $adapter->confirm($payment);
+        $providerResponse = $adapter->verify($payment);
 
         $updatedPayment = $confirmPayment->handle(
             payment: $payment,

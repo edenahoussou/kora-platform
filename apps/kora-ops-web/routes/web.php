@@ -3,6 +3,7 @@
 use App\Modules\Booking\Http\Controllers\CounterSaleController;
 use App\Modules\BusNetwork\Http\Controllers\BusController;
 use App\Modules\BusNetwork\Http\Controllers\LineController;
+use App\Modules\Cash\Http\Controllers\CashMediaController;
 use App\Modules\Cash\Http\Controllers\CashSessionController;
 use App\Modules\Departures\Http\Controllers\DepartureController;
 use App\Modules\DynamicPricing\Http\Controllers\FareController;
@@ -29,8 +30,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('sale/{reservation:uuid}/release', [CounterSaleController::class, 'releaseHold'])->name('sale.release');
     Route::post('sale/{reservation:uuid}/passengers', [CounterSaleController::class, 'storePassengers'])->name('sale.passengers');
     Route::post('sale/{reservation:uuid}/payment', [CounterSaleController::class, 'storePayment'])->name('sale.payment');
-    Route::inertia('cash', 'cash')->name('cash');
+    Route::get('cash', [CashSessionController::class, 'index'])->name('cash');
     Route::post('cash/open', [CashSessionController::class, 'store'])->name('cash.open');
+    Route::post('cash/{cashSession:uuid}/close', [CashSessionController::class, 'close'])->name('cash.close');
+    Route::post('cash/{cashSession:uuid}/approve-variance', [CashSessionController::class, 'approveVariance'])->name('cash.approve-variance');
+    Route::post('cash/movements', [CashSessionController::class, 'storeMovement'])->name('cash.movements.store');
+    Route::post('cash/movements/{movement:uuid}/approve', [CashSessionController::class, 'approveMovement'])->name('cash.movements.approve');
+    Route::post('cash/movements/{movement:uuid}/reject', [CashSessionController::class, 'rejectMovement'])->name('cash.movements.reject');
+    Route::get('cash/media/{mediaUuid}', [CashMediaController::class, 'show'])->name('cash.media');
     Route::inertia('boarding', 'boarding')->name('boarding');
     Route::inertia('manifest', 'manifest')->name('manifest');
 

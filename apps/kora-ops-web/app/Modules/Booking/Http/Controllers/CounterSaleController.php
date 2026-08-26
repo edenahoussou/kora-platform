@@ -18,6 +18,7 @@ use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationPassenger;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\BusNetwork\Services\BusCatalogService;
+use App\Modules\Cash\Data\CashLedgerKind;
 use App\Modules\Cash\Data\CashSessionStatus;
 use App\Modules\Cash\Models\CashSession;
 use App\Modules\Departures\Data\DepartureAvailabilityData;
@@ -468,6 +469,7 @@ class CounterSaleController extends Controller
             ->where('agency_id', $user->agency_id)
             ->whereDate('business_date', now()->toDateString())
             ->where('status', CashSessionStatus::Open->value)
+            ->with('ledgers.agencyPaymentAccount')
             ->first();
 
         return [
@@ -475,8 +477,21 @@ class CounterSaleController extends Controller
             'canOpen' => Gate::allows('create', CashSession::class),
             'uuid' => $session?->uuid,
             'businessDate' => $session === null ? null : $session->business_date->toDateString(),
+            'status' => $session?->status->value,
             'totalCash' => $session === null ? 0 : (int) $session->total_cash,
             'totalMobileMoney' => $session === null ? 0 : (int) $session->total_mobile_money,
+            'ledgers' => $session === null ? [] : $session->ledgers->map(fn ($ledger): array => [
+                'uuid' => $ledger->uuid,
+                'kind' => $ledger->kind->value,
+                'status' => $ledger->status->value,
+                'openingBalance' => (int) $ledger->opening_balance,
+                'expectedBalance' => (int) $ledger->expected_balance,
+                'actualBalance' => $ledger->actual_balance,
+                'variance' => $ledger->variance,
+                'accountUuid' => $ledger->agencyPaymentAccount?->uuid,
+                'accountLabel' => $ledger->agencyPaymentAccount?->label,
+                'accountIdentifier' => $ledger->agencyPaymentAccount ? $this->maskAccountIdentifier($ledger->agencyPaymentAccount->account_identifier) : null,
+            ])->values()->all(),
         ];
     }
 
@@ -499,9 +514,30 @@ class CounterSaleController extends Controller
                 'network' => $account->network->value,
                 'label' => $account->label,
                 'accountIdentifier' => $this->maskAccountIdentifier($account->account_identifier),
+                'ledgerUuid' => $this->openLedgerUuid($account->uuid),
             ])->values()->all();
 
         return array_values($accounts);
+    }
+
+    private function openLedgerUuid(string $accountUuid): ?string
+    {
+        $user = auth()->user();
+        if ($user?->agency_id === null) {
+            return null;
+        }
+
+        $session = CashSession::query()
+            ->where('agent_id', $user->getAuthIdentifier())
+            ->where('agency_id', $user->agency_id)
+            ->whereDate('business_date', now()->toDateString())
+            ->where('status', CashSessionStatus::Open->value)
+            ->with('ledgers')
+            ->first();
+
+        return $session?->ledgers
+            ->first(fn ($ledger): bool => $ledger->kind === CashLedgerKind::MobileMoney && $ledger->ledger_key === $accountUuid)
+            ?->uuid;
     }
 
     private function maskAccountIdentifier(string $identifier): string

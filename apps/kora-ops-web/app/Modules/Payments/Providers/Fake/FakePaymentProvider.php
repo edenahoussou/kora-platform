@@ -35,7 +35,7 @@ final class FakePaymentProvider implements PaymentProvider
         );
     }
 
-    public function confirm(Payment $payment): ProviderResponse
+    public function verify(Payment $payment): ProviderResponse
     {
         return new ProviderResponse(
             status: self::$nextStatus,
