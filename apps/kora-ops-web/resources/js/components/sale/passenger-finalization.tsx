@@ -222,8 +222,8 @@ export function PassengerFinalization({
                                 {completedPassengers && savedAllPassengers
                                     ? 'Informations enregistrées'
                                     : completedPassengers
-                                        ? 'Prêt à enregistrer'
-                                        : `${completeCount}/${passengers.length} complété${completeCount > 1 ? 's' : ''}`}
+                                      ? 'Prêt à enregistrer'
+                                      : `${completeCount}/${passengers.length} complété${completeCount > 1 ? 's' : ''}`}
                             </strong>
                         </div>
                     </div>
@@ -243,7 +243,7 @@ export function PassengerFinalization({
                     const phoneError =
                         fieldError(index, 'phone') ??
                         (passenger.phone.trim() !== '' &&
-                            !isValidPhoneNumber(passenger.phone)
+                        !isValidPhoneNumber(passenger.phone)
                             ? 'Saisissez un numéro international valide.'
                             : undefined);
 
@@ -274,11 +274,11 @@ export function PassengerFinalization({
                                         passenger,
                                         isInternational,
                                     ) && (
-                                            <CheckCircle2
-                                                className="size-3.5"
-                                                aria-label="Informations complètes"
-                                            />
-                                        )}
+                                        <CheckCircle2
+                                            className="size-3.5"
+                                            aria-label="Informations complètes"
+                                        />
+                                    )}
                                     <em>Siège {passenger.seatCode}</em>
                                 </span>
                             </div>
@@ -458,9 +458,7 @@ export function PassengerFinalization({
                                                 <option value="consular_card">
                                                     Carte consulaire
                                                 </option>
-                                                <option value="cip">
-                                                    CIP
-                                                </option>
+                                                <option value="cip">CIP</option>
                                             </select>
                                         </label>
                                         <label className="field">
@@ -608,8 +606,8 @@ export function PassengerFinalization({
                                 {holdCountdown.isExpired
                                     ? 'Le blocage a expiré. Revenez aux places pour le renouveler.'
                                     : completedPassengers
-                                        ? 'Toutes les informations requises sont prêtes. Vous pourrez ensuite encaisser la vente.'
-                                        : 'Complétez les champs requis pour continuer.'}
+                                      ? 'Toutes les informations requises sont prêtes. Vous pourrez ensuite encaisser la vente.'
+                                      : 'Complétez les champs requis pour continuer.'}
                             </span>
                         </span>
                     )}
@@ -628,8 +626,8 @@ export function PassengerFinalization({
                         {processing
                             ? 'Enregistrement…'
                             : savedAllPassengers
-                                ? 'Mettre à jour les voyageurs'
-                                : 'Enregistrer les voyageurs'}
+                              ? 'Mettre à jour les voyageurs'
+                              : 'Enregistrer les voyageurs'}
                         <ArrowRight className="size-4" />
                     </button>
                 </div>

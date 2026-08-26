@@ -148,7 +148,7 @@ export function NationalitySelect({
                 )}
                 <ChevronDown
                     className={cn(
-                        'size-3.5 nationality-chevron',
+                        'nationality-chevron size-3.5',
                         open && 'is-open',
                     )}
                 />
@@ -194,7 +194,7 @@ export function NationalitySelect({
                                         {option.code}
                                     </small>
                                     {option.code === value && (
-                                        <Check className="size-3.5 nationality-option-check" />
+                                        <Check className="nationality-option-check size-3.5" />
                                     )}
                                 </button>
                             ))

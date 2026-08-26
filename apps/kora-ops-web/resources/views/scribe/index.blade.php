@@ -158,6 +158,19 @@
                             </li>
                                                                         </ul>
                             </ul>
+                    <ul id="tocify-header-endpoints" class="tocify-header">
+                <li class="tocify-item level-1" data-unique="endpoints">
+                    <a href="#endpoints">Endpoints</a>
+                </li>
+                                    <ul id="tocify-subheader-endpoints" class="tocify-subheader">
+                                                    <li class="tocify-item level-2" data-unique="endpoints-GETapi-v1-bookings--reservation_uuid--tickets">
+                                <a href="#endpoints-GETapi-v1-bookings--reservation_uuid--tickets">GET api/v1/bookings/{reservation_uuid}/tickets</a>
+                            </li>
+                                                                                <li class="tocify-item level-2" data-unique="endpoints-GETapi-v1-tickets--uuid-">
+                                <a href="#endpoints-GETapi-v1-tickets--uuid-">GET api/v1/tickets/{uuid}</a>
+                            </li>
+                                                                        </ul>
+                            </ul>
                     <ul id="tocify-header-health" class="tocify-header">
                 <li class="tocify-item level-1" data-unique="health">
                     <a href="#health">Health</a>
@@ -177,14 +190,29 @@ process can answer, with no dependency checks.</a>
                     <a href="#payments">Payments</a>
                 </li>
                                     <ul id="tocify-subheader-payments" class="tocify-subheader">
-                                                    <li class="tocify-item level-2" data-unique="payments-POSTapi-v1-payments-initiate">
+                                                    <li class="tocify-item level-2" data-unique="payments-GETapi-v1-payments-methods">
+                                <a href="#payments-GETapi-v1-payments-methods">Return the active payment methods and providers configured for the mobile app.</a>
+                            </li>
+                                                                                <li class="tocify-item level-2" data-unique="payments-POSTapi-v1-payments-initiate">
                                 <a href="#payments-POSTapi-v1-payments-initiate">Initiate a payment for a held reservation.</a>
                             </li>
                                                                                 <li class="tocify-item level-2" data-unique="payments-GETapi-v1-payments--uuid-">
                                 <a href="#payments-GETapi-v1-payments--uuid-">Get payment status (polling).</a>
                             </li>
+                                                                                <li class="tocify-item level-2" data-unique="payments-POSTapi-v1-payments--payment_uuid--verify">
+                                <a href="#payments-POSTapi-v1-payments--payment_uuid--verify">Explicitly verify a pending payment with its provider.</a>
+                            </li>
+                                                                                <li class="tocify-item level-2" data-unique="payments-POSTapi-v1-payments--payment_uuid--cancel">
+                                <a href="#payments-POSTapi-v1-payments--payment_uuid--cancel">POST api/v1/payments/{payment_uuid}/cancel</a>
+                            </li>
                                                                                 <li class="tocify-item level-2" data-unique="payments-POSTapi-v1-payments--payment_uuid--confirm">
                                 <a href="#payments-POSTapi-v1-payments--payment_uuid--confirm">Provider webhook / callback to confirm or fail a payment.</a>
+                            </li>
+                                                                                <li class="tocify-item level-2" data-unique="payments-POSTapi-v1-payments-webhook-fedapay">
+                                <a href="#payments-POSTapi-v1-payments-webhook-fedapay">FedaPay webhook endpoint.</a>
+                            </li>
+                                                                                <li class="tocify-item level-2" data-unique="payments-POSTapi-v1-payments-webhook-mtn-momo">
+                                <a href="#payments-POSTapi-v1-payments-webhook-mtn-momo">MTN MoMo webhook endpoint.</a>
                             </li>
                                                                         </ul>
                             </ul>
@@ -197,7 +225,7 @@ process can answer, with no dependency checks.</a>
     </ul>
 
     <ul class="toc-footer" id="last-updated">
-        <li>Last updated: August 25, 2026</li>
+        <li>Last updated: August 26, 2026</li>
     </ul>
 </div>
 
@@ -493,7 +521,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="b"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>b</code></p>
+<p>Le champ value ne doit pas dépasser 120 caractères. Example: <code>b</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>to</code></b>&nbsp;&nbsp;
@@ -505,7 +533,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="n"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>n</code></p>
+<p>Le champ value ne doit pas dépasser 120 caractères. Example: <code>n</code></p>
         </div>
         </form>
 
@@ -522,14 +550,14 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/bus/lines/f2145d96-8192-45dd-8e8e-e023c988fedf" \
+    --get "http://kora-ops-web.local/api/v1/bus/lines/2c72be75-333a-4272-b6df-a355fcd62eb7" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bus/lines/f2145d96-8192-45dd-8e8e-e023c988fedf"
+    "http://kora-ops-web.local/api/v1/bus/lines/2c72be75-333a-4272-b6df-a355fcd62eb7"
 );
 
 const headers = {
@@ -626,10 +654,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="uuid"                data-endpoint="GETapi-v1-bus-lines--uuid-"
-               value="f2145d96-8192-45dd-8e8e-e023c988fedf"
+               value="2c72be75-333a-4272-b6df-a355fcd62eb7"
                data-component="url">
     <br>
-<p>Example: <code>f2145d96-8192-45dd-8e8e-e023c988fedf</code></p>
+<p>Example: <code>2c72be75-333a-4272-b6df-a355fcd62eb7</code></p>
             </div>
                     </form>
 
@@ -650,7 +678,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
-    \"date\": \"2026-08-25\",
+    \"date\": \"2026-08-26\",
     \"from\": \"b\",
     \"to\": \"n\"
 }"
@@ -676,7 +704,7 @@ const headers = {
 };
 
 let body = {
-    "date": "2026-08-25",
+    "date": "2026-08-26",
     "from": "b",
     "to": "n"
 };
@@ -807,10 +835,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="date"                data-endpoint="GETapi-v1-bus-departures"
-               value="2026-08-25"
+               value="2026-08-26"
                data-component="body">
     <br>
-<p>Must be a valid date in the format <code>Y-m-d</code>. Example: <code>2026-08-25</code></p>
+<p>Must be a valid date in the format <code>Y-m-d</code>. Example: <code>2026-08-26</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>from</code></b>&nbsp;&nbsp;
@@ -822,7 +850,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="b"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>b</code></p>
+<p>Le champ value ne doit pas dépasser 120 caractères. Example: <code>b</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>to</code></b>&nbsp;&nbsp;
@@ -834,7 +862,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="n"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>n</code></p>
+<p>Le champ value ne doit pas dépasser 120 caractères. Example: <code>n</code></p>
         </div>
         </form>
 
@@ -851,7 +879,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/bus/departures/fdf2fdd3-3c88-46d7-8905-bd034500aa82?from=Cotonou&amp;to=Abidjan" \
+    --get "http://kora-ops-web.local/api/v1/bus/departures/1994b8ed-2cc9-47dc-90a3-7b8873a6f3bb?from=Cotonou&amp;to=Abidjan" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -863,7 +891,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bus/departures/fdf2fdd3-3c88-46d7-8905-bd034500aa82"
+    "http://kora-ops-web.local/api/v1/bus/departures/1994b8ed-2cc9-47dc-90a3-7b8873a6f3bb"
 );
 
 const params = {
@@ -972,10 +1000,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="uuid"                data-endpoint="GETapi-v1-bus-departures--uuid-"
-               value="fdf2fdd3-3c88-46d7-8905-bd034500aa82"
+               value="1994b8ed-2cc9-47dc-90a3-7b8873a6f3bb"
                data-component="url">
     <br>
-<p>Example: <code>fdf2fdd3-3c88-46d7-8905-bd034500aa82</code></p>
+<p>Example: <code>1994b8ed-2cc9-47dc-90a3-7b8873a6f3bb</code></p>
             </div>
                         <h4 class="fancy-heading-panel"><b>Query Parameters</b></h4>
                                     <div style="padding-left: 28px; clear: unset;">
@@ -1013,7 +1041,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="b"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>b</code></p>
+<p>Le champ value ne doit pas dépasser 120 caractères. Example: <code>b</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>to</code></b>&nbsp;&nbsp;
@@ -1025,7 +1053,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="n"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>n</code></p>
+<p>Le champ value ne doit pas dépasser 120 caractères. Example: <code>n</code></p>
         </div>
         </form>
 
@@ -1042,7 +1070,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/bus/departures/fdf2fdd3-3c88-46d7-8905-bd034500aa82/seats?origin_stop_uuid=6ff8f7f6-1eb3-3525-be4a-3932c805afed&amp;destination_stop_uuid=6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
+    --get "http://kora-ops-web.local/api/v1/bus/departures/1994b8ed-2cc9-47dc-90a3-7b8873a6f3bb/seats?origin_stop_uuid=6ff8f7f6-1eb3-3525-be4a-3932c805afed&amp;destination_stop_uuid=6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -1054,7 +1082,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bus/departures/fdf2fdd3-3c88-46d7-8905-bd034500aa82/seats"
+    "http://kora-ops-web.local/api/v1/bus/departures/1994b8ed-2cc9-47dc-90a3-7b8873a6f3bb/seats"
 );
 
 const params = {
@@ -1163,10 +1191,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="departure_uuid"                data-endpoint="GETapi-v1-bus-departures--departure_uuid--seats"
-               value="fdf2fdd3-3c88-46d7-8905-bd034500aa82"
+               value="1994b8ed-2cc9-47dc-90a3-7b8873a6f3bb"
                data-component="url">
     <br>
-<p>Example: <code>fdf2fdd3-3c88-46d7-8905-bd034500aa82</code></p>
+<p>Example: <code>1994b8ed-2cc9-47dc-90a3-7b8873a6f3bb</code></p>
             </div>
                         <h4 class="fancy-heading-panel"><b>Query Parameters</b></h4>
                                     <div style="padding-left: 28px; clear: unset;">
@@ -1204,7 +1232,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
                data-component="body">
     <br>
-<p>validation.uuid. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Le champ value doit être un UUID valide. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>destination_stop_uuid</code></b>&nbsp;&nbsp;
@@ -1216,7 +1244,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="6b72fe4a-5b40-307c-bc24-f79acf9a1bb9"
                data-component="body">
     <br>
-<p>validation.uuid. Example: <code>6b72fe4a-5b40-307c-bc24-f79acf9a1bb9</code></p>
+<p>Le champ value doit être un UUID valide. Example: <code>6b72fe4a-5b40-307c-bc24-f79acf9a1bb9</code></p>
         </div>
         </form>
 
@@ -1411,7 +1439,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
                data-component="body">
     <br>
-<p>validation.uuid Must match an existing stored value. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Le champ value doit être un UUID valide. Must match an existing stored value. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>origin_stop_uuid</code></b>&nbsp;&nbsp;
@@ -1423,7 +1451,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="6b72fe4a-5b40-307c-bc24-f79acf9a1bb9"
                data-component="body">
     <br>
-<p>validation.uuid Must match an existing stored value. Example: <code>6b72fe4a-5b40-307c-bc24-f79acf9a1bb9</code></p>
+<p>Le champ value doit être un UUID valide. Must match an existing stored value. Example: <code>6b72fe4a-5b40-307c-bc24-f79acf9a1bb9</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>destination_stop_uuid</code></b>&nbsp;&nbsp;
@@ -1435,7 +1463,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="977e5426-8d13-3824-86aa-b092f8ae52c5"
                data-component="body">
     <br>
-<p>validation.uuid Must match an existing stored value. Example: <code>977e5426-8d13-3824-86aa-b092f8ae52c5</code></p>
+<p>Le champ value doit être un UUID valide. Must match an existing stored value. Example: <code>977e5426-8d13-3824-86aa-b092f8ae52c5</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>service_class_uuid</code></b>&nbsp;&nbsp;
@@ -1447,7 +1475,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="d6fa562b-acd5-35ff-babb-d11194d3737b"
                data-component="body">
     <br>
-<p>validation.uuid Must match an existing stored value. Example: <code>d6fa562b-acd5-35ff-babb-d11194d3737b</code></p>
+<p>Le champ value doit être un UUID valide. Must match an existing stored value. Example: <code>d6fa562b-acd5-35ff-babb-d11194d3737b</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>passenger_count</code></b>&nbsp;&nbsp;
@@ -1459,7 +1487,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="6"
                data-component="body">
     <br>
-<p>validation.min validation.max. Example: <code>6</code></p>
+<p>Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 10. Example: <code>6</code></p>
         </div>
         </form>
 
@@ -1672,7 +1700,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
                data-component="body">
     <br>
-<p>validation.uuid Must match an existing stored value. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Le champ value doit être un UUID valide. Must match an existing stored value. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>origin_stop_uuid</code></b>&nbsp;&nbsp;
@@ -1684,7 +1712,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="6b72fe4a-5b40-307c-bc24-f79acf9a1bb9"
                data-component="body">
     <br>
-<p>validation.uuid Must match an existing stored value. Example: <code>6b72fe4a-5b40-307c-bc24-f79acf9a1bb9</code></p>
+<p>Le champ value doit être un UUID valide. Must match an existing stored value. Example: <code>6b72fe4a-5b40-307c-bc24-f79acf9a1bb9</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>destination_stop_uuid</code></b>&nbsp;&nbsp;
@@ -1696,7 +1724,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="977e5426-8d13-3824-86aa-b092f8ae52c5"
                data-component="body">
     <br>
-<p>validation.uuid Must match an existing stored value. Example: <code>977e5426-8d13-3824-86aa-b092f8ae52c5</code></p>
+<p>Le champ value doit être un UUID valide. Must match an existing stored value. Example: <code>977e5426-8d13-3824-86aa-b092f8ae52c5</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>price_quote_uuid</code></b>&nbsp;&nbsp;
@@ -1708,7 +1736,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="d6fa562b-acd5-35ff-babb-d11194d3737b"
                data-component="body">
     <br>
-<p>validation.uuid Must match an existing stored value. Example: <code>d6fa562b-acd5-35ff-babb-d11194d3737b</code></p>
+<p>Le champ value doit être un UUID valide. Must match an existing stored value. Example: <code>d6fa562b-acd5-35ff-babb-d11194d3737b</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
         <details>
@@ -1718,7 +1746,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
  &nbsp;
 <br>
-<p>validation.min.</p>
+<p>Le champ value doit contenir au moins 1 éléments.</p>
             </summary>
                                                 <div style="margin-left: 14px; clear: unset;">
                         <b style="line-height: 2;"><code>seat_uuid</code></b>&nbsp;&nbsp;
@@ -1730,7 +1758,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
                data-component="body">
     <br>
-<p>validation.uuid Must match an existing stored value. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Le champ value doit être un UUID valide. Must match an existing stored value. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
                     </div>
                                                                 <div style="margin-left: 14px; clear: unset;">
                         <b style="line-height: 2;"><code>passenger_index</code></b>&nbsp;&nbsp;
@@ -1763,14 +1791,14 @@ server-side reservation state instead of requiring the client to rebuild it loca
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/bookings/856f2c2f-333f-466b-80c2-becd09477526" \
+    --get "http://kora-ops-web.local/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bookings/856f2c2f-333f-466b-80c2-becd09477526"
+    "http://kora-ops-web.local/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed"
 );
 
 const headers = {
@@ -1906,10 +1934,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="reservation_uuid"                data-endpoint="GETapi-v1-bookings--reservation_uuid-"
-               value="856f2c2f-333f-466b-80c2-becd09477526"
+               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
                data-component="url">
     <br>
-<p>Example: <code>856f2c2f-333f-466b-80c2-becd09477526</code></p>
+<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
             </div>
                     </form>
 
@@ -1927,7 +1955,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/bookings/856f2c2f-333f-466b-80c2-becd09477526/passengers" \
+    "http://kora-ops-web.local/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed/passengers" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -1937,10 +1965,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
             \"last_name\": \"n\",
             \"phone\": \"g\",
             \"email\": \"rowan.gulgowski@example.com\",
-            \"document_type\": \"national_id\",
+            \"document_type\": \"consular_card\",
             \"document_number\": \"d\",
             \"nationality\": \"lj\",
-            \"birth_date\": \"2026-08-25\",
+            \"birth_date\": \"2026-08-26\",
             \"seat_uuid\": \"c3b6b42e-3a0f-3935-b28d-cb767f8a2a0a\"
         }
     ]
@@ -1950,7 +1978,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bookings/856f2c2f-333f-466b-80c2-becd09477526/passengers"
+    "http://kora-ops-web.local/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed/passengers"
 );
 
 const headers = {
@@ -1965,10 +1993,10 @@ let body = {
             "last_name": "n",
             "phone": "g",
             "email": "rowan.gulgowski@example.com",
-            "document_type": "national_id",
+            "document_type": "consular_card",
             "document_number": "d",
             "nationality": "lj",
-            "birth_date": "2026-08-25",
+            "birth_date": "2026-08-26",
             "seat_uuid": "c3b6b42e-3a0f-3935-b28d-cb767f8a2a0a"
         }
     ]
@@ -2093,10 +2121,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="reservation_uuid"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
-               value="856f2c2f-333f-466b-80c2-becd09477526"
+               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
                data-component="url">
     <br>
-<p>Example: <code>856f2c2f-333f-466b-80c2-becd09477526</code></p>
+<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
             </div>
                             <h4 class="fancy-heading-panel"><b>Body Parameters</b></h4>
         <div style=" padding-left: 28px;  clear: unset;">
@@ -2107,7 +2135,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
  &nbsp;
 <br>
-<p>validation.min.</p>
+<p>Le champ value doit contenir au moins 1 éléments.</p>
             </summary>
                                                 <div style="margin-left: 14px; clear: unset;">
                         <b style="line-height: 2;"><code>first_name</code></b>&nbsp;&nbsp;
@@ -2119,7 +2147,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="b"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>b</code></p>
+<p>Le champ value ne doit pas dépasser 120 caractères. Example: <code>b</code></p>
                     </div>
                                                                 <div style="margin-left: 14px; clear: unset;">
                         <b style="line-height: 2;"><code>last_name</code></b>&nbsp;&nbsp;
@@ -2131,7 +2159,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="n"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>n</code></p>
+<p>Le champ value ne doit pas dépasser 120 caractères. Example: <code>n</code></p>
                     </div>
                                                                 <div style="margin-left: 14px; clear: unset;">
                         <b style="line-height: 2;"><code>phone</code></b>&nbsp;&nbsp;
@@ -2143,7 +2171,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="g"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>g</code></p>
+<p>Le champ value ne doit pas dépasser 32 caractères. Example: <code>g</code></p>
                     </div>
                                                                 <div style="margin-left: 14px; clear: unset;">
                         <b style="line-height: 2;"><code>email</code></b>&nbsp;&nbsp;
@@ -2155,7 +2183,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="rowan.gulgowski@example.com"
                data-component="body">
     <br>
-<p>validation.email validation.max. Example: <code>rowan.gulgowski@example.com</code></p>
+<p>Le champ value doit être une adresse e-mail valide. Le champ value ne doit pas dépasser 255 caractères. Example: <code>rowan.gulgowski@example.com</code></p>
                     </div>
                                                                 <div style="margin-left: 14px; clear: unset;">
                         <b style="line-height: 2;"><code>document_type</code></b>&nbsp;&nbsp;
@@ -2164,12 +2192,12 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="passengers.0.document_type"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
-               value="national_id"
+               value="consular_card"
                data-component="body">
     <br>
-<p>Example: <code>national_id</code></p>
+<p>Example: <code>consular_card</code></p>
 Must be one of:
-<ul style="list-style-type: square;"><li><code>national_id</code></li> <li><code>passport</code></li> <li><code>consular_card</code></li> <li><code>birth_certificate</code></li></ul>
+<ul style="list-style-type: square;"><li><code>national_id</code></li> <li><code>biometric_card</code></li> <li><code>passport</code></li> <li><code>consular_card</code></li> <li><code>cip</code></li></ul>
                     </div>
                                                                 <div style="margin-left: 14px; clear: unset;">
                         <b style="line-height: 2;"><code>document_number</code></b>&nbsp;&nbsp;
@@ -2181,7 +2209,7 @@ Must be one of:
                value="d"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>d</code></p>
+<p>Le champ value ne doit pas dépasser 64 caractères. Example: <code>d</code></p>
                     </div>
                                                                 <div style="margin-left: 14px; clear: unset;">
                         <b style="line-height: 2;"><code>nationality</code></b>&nbsp;&nbsp;
@@ -2193,7 +2221,7 @@ Must be one of:
                value="lj"
                data-component="body">
     <br>
-<p>validation.size. Example: <code>lj</code></p>
+<p>Le champ value doit contenir 2 caractères. Example: <code>lj</code></p>
                     </div>
                                                                 <div style="margin-left: 14px; clear: unset;">
                         <b style="line-height: 2;"><code>birth_date</code></b>&nbsp;&nbsp;
@@ -2202,10 +2230,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="passengers.0.birth_date"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
-               value="2026-08-25"
+               value="2026-08-26"
                data-component="body">
     <br>
-<p>Must be a valid date in the format <code>Y-m-d</code>. Example: <code>2026-08-25</code></p>
+<p>Must be a valid date in the format <code>Y-m-d</code>. Example: <code>2026-08-26</code></p>
                     </div>
                                                                 <div style="margin-left: 14px; clear: unset;">
                         <b style="line-height: 2;"><code>seat_uuid</code></b>&nbsp;&nbsp;
@@ -2217,7 +2245,7 @@ Must be one of:
                value="c3b6b42e-3a0f-3935-b28d-cb767f8a2a0a"
                data-component="body">
     <br>
-<p>validation.uuid. Example: <code>c3b6b42e-3a0f-3935-b28d-cb767f8a2a0a</code></p>
+<p>Le champ value doit être un UUID valide. Example: <code>c3b6b42e-3a0f-3935-b28d-cb767f8a2a0a</code></p>
                     </div>
                                     </details>
         </div>
@@ -2238,14 +2266,14 @@ It never releases a paid or ticketed reservation.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request DELETE \
-    "http://kora-ops-web.local/api/v1/holds/856f2c2f-333f-466b-80c2-becd09477526" \
+    "http://kora-ops-web.local/api/v1/holds/6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/holds/856f2c2f-333f-466b-80c2-becd09477526"
+    "http://kora-ops-web.local/api/v1/holds/6ff8f7f6-1eb3-3525-be4a-3932c805afed"
 );
 
 const headers = {
@@ -2366,10 +2394,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="reservation_uuid"                data-endpoint="DELETEapi-v1-holds--reservation_uuid-"
-               value="856f2c2f-333f-466b-80c2-becd09477526"
+               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
                data-component="url">
     <br>
-<p>Example: <code>856f2c2f-333f-466b-80c2-becd09477526</code></p>
+<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
             </div>
                     </form>
 
@@ -2395,7 +2423,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Accept: application/json" \
     --data "{
     \"email\": \"gbailey@example.net\",
-    \"purpose\": \"registration\"
+    \"purpose\": \"login_new_device\"
 }"
 </code></pre></div>
 
@@ -2412,7 +2440,7 @@ const headers = {
 
 let body = {
     "email": "gbailey@example.net",
-    "purpose": "registration"
+    "purpose": "login_new_device"
 };
 
 fetch(url, {
@@ -2507,7 +2535,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="gbailey@example.net"
                data-component="body">
     <br>
-<p>validation.email validation.max. Example: <code>gbailey@example.net</code></p>
+<p>Le champ value doit être une adresse e-mail valide. Le champ value ne doit pas dépasser 255 caractères. Example: <code>gbailey@example.net</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>purpose</code></b>&nbsp;&nbsp;
@@ -2516,10 +2544,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="purpose"                data-endpoint="POSTapi-v1-auth-otp-request"
-               value="registration"
+               value="login_new_device"
                data-component="body">
     <br>
-<p>Example: <code>registration</code></p>
+<p>Example: <code>login_new_device</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>registration</code></li> <li><code>login_new_device</code></li> <li><code>pin_reset</code></li> <li><code>account_unlock</code></li></ul>
         </div>
@@ -2543,7 +2571,7 @@ Must be one of:
     --header "Accept: application/json" \
     --data "{
     \"otp_challenge_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
-    \"purpose\": \"registration\",
+    \"purpose\": \"login_new_device\",
     \"code\": \"569775\"
 }"
 </code></pre></div>
@@ -2561,7 +2589,7 @@ const headers = {
 
 let body = {
     "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-    "purpose": "registration",
+    "purpose": "login_new_device",
     "code": "569775"
 };
 
@@ -2657,7 +2685,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
                data-component="body">
     <br>
-<p>validation.uuid. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Le champ value doit être un UUID valide. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>purpose</code></b>&nbsp;&nbsp;
@@ -2666,10 +2694,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="purpose"                data-endpoint="POSTapi-v1-auth-otp-verify"
-               value="registration"
+               value="login_new_device"
                data-component="body">
     <br>
-<p>Example: <code>registration</code></p>
+<p>Example: <code>login_new_device</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>registration</code></li> <li><code>login_new_device</code></li> <li><code>pin_reset</code></li> <li><code>account_unlock</code></li></ul>
         </div>
@@ -2683,7 +2711,7 @@ Must be one of:
                value="569775"
                data-component="body">
     <br>
-<p>validation.digits. Example: <code>569775</code></p>
+<p>Le champ value doit contenir 6 chiffres. Example: <code>569775</code></p>
         </div>
         </form>
 
@@ -2819,7 +2847,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
                data-component="body">
     <br>
-<p>validation.uuid. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Le champ value doit être un UUID valide. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>verification_token</code></b>&nbsp;&nbsp;
@@ -2831,7 +2859,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn"
                data-component="body">
     <br>
-<p>validation.size. Example: <code>gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn</code></p>
+<p>Le champ value doit contenir 64 caractères. Example: <code>gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>pin</code></b>&nbsp;&nbsp;
@@ -2843,7 +2871,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="9775"
                data-component="body">
     <br>
-<p>validation.digits. Example: <code>9775</code></p>
+<p>Le champ value doit contenir 4 chiffres. Example: <code>9775</code></p>
         </div>
         </form>
 
@@ -2977,7 +3005,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
                data-component="body">
     <br>
-<p>validation.uuid. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Le champ value doit être un UUID valide. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>verification_token</code></b>&nbsp;&nbsp;
@@ -2989,7 +3017,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn"
                data-component="body">
     <br>
-<p>validation.size. Example: <code>gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn</code></p>
+<p>Le champ value doit contenir 64 caractères. Example: <code>gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn</code></p>
         </div>
         </form>
 
@@ -3014,7 +3042,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"verification_token\": \"gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn\",
     \"pin\": \"9775\",
     \"device_name\": \"n\",
-    \"platform\": \"web\",
+    \"platform\": \"android\",
     \"device_fingerprint\": \"g\",
     \"push_token\": \"z\"
 }"
@@ -3036,7 +3064,7 @@ let body = {
     "verification_token": "gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn",
     "pin": "9775",
     "device_name": "n",
-    "platform": "web",
+    "platform": "android",
     "device_fingerprint": "g",
     "push_token": "z"
 };
@@ -3133,7 +3161,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
                data-component="body">
     <br>
-<p>validation.uuid. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Le champ value doit être un UUID valide. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>verification_token</code></b>&nbsp;&nbsp;
@@ -3145,7 +3173,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn"
                data-component="body">
     <br>
-<p>validation.size. Example: <code>gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn</code></p>
+<p>Le champ value doit contenir 64 caractères. Example: <code>gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>pin</code></b>&nbsp;&nbsp;
@@ -3157,7 +3185,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="9775"
                data-component="body">
     <br>
-<p>validation.digits. Example: <code>9775</code></p>
+<p>Le champ value doit contenir 4 chiffres. Example: <code>9775</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>device_name</code></b>&nbsp;&nbsp;
@@ -3169,7 +3197,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="n"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>n</code></p>
+<p>Le champ value ne doit pas dépasser 120 caractères. Example: <code>n</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>platform</code></b>&nbsp;&nbsp;
@@ -3178,10 +3206,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="platform"                data-endpoint="POSTapi-v1-auth-register-complete"
-               value="web"
+               value="android"
                data-component="body">
     <br>
-<p>Example: <code>web</code></p>
+<p>Example: <code>android</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>android</code></li> <li><code>ios</code></li> <li><code>web</code></li> <li><code>unknown</code></li></ul>
         </div>
@@ -3195,7 +3223,7 @@ Must be one of:
                value="g"
                data-component="body">
     <br>
-<p>validation.min validation.max. Example: <code>g</code></p>
+<p>Le champ value doit contenir au moins 16 caractères. Le champ value ne doit pas dépasser 255 caractères. Example: <code>g</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>push_token</code></b>&nbsp;&nbsp;
@@ -3207,7 +3235,7 @@ Must be one of:
                value="z"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>z</code></p>
+<p>Le champ value ne doit pas dépasser 512 caractères. Example: <code>z</code></p>
         </div>
         </form>
 
@@ -3231,7 +3259,7 @@ Must be one of:
     \"email\": \"gbailey@example.net\",
     \"pin\": \"9775\",
     \"device_name\": \"n\",
-    \"platform\": \"web\",
+    \"platform\": \"unknown\",
     \"device_fingerprint\": \"g\",
     \"push_token\": \"z\",
     \"otp_challenge_uuid\": \"977e5426-8d13-3824-86aa-b092f8ae52c5\",
@@ -3254,7 +3282,7 @@ let body = {
     "email": "gbailey@example.net",
     "pin": "9775",
     "device_name": "n",
-    "platform": "web",
+    "platform": "unknown",
     "device_fingerprint": "g",
     "push_token": "z",
     "otp_challenge_uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
@@ -3353,7 +3381,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="gbailey@example.net"
                data-component="body">
     <br>
-<p>validation.email validation.max. Example: <code>gbailey@example.net</code></p>
+<p>Le champ value doit être une adresse e-mail valide. Le champ value ne doit pas dépasser 255 caractères. Example: <code>gbailey@example.net</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>pin</code></b>&nbsp;&nbsp;
@@ -3365,7 +3393,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="9775"
                data-component="body">
     <br>
-<p>validation.digits. Example: <code>9775</code></p>
+<p>Le champ value doit contenir 4 chiffres. Example: <code>9775</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>device_name</code></b>&nbsp;&nbsp;
@@ -3377,7 +3405,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="n"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>n</code></p>
+<p>Le champ value ne doit pas dépasser 120 caractères. Example: <code>n</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>platform</code></b>&nbsp;&nbsp;
@@ -3386,10 +3414,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="platform"                data-endpoint="POSTapi-v1-auth-login"
-               value="web"
+               value="unknown"
                data-component="body">
     <br>
-<p>Example: <code>web</code></p>
+<p>Example: <code>unknown</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>android</code></li> <li><code>ios</code></li> <li><code>web</code></li> <li><code>unknown</code></li></ul>
         </div>
@@ -3403,7 +3431,7 @@ Must be one of:
                value="g"
                data-component="body">
     <br>
-<p>validation.min validation.max. Example: <code>g</code></p>
+<p>Le champ value doit contenir au moins 16 caractères. Le champ value ne doit pas dépasser 255 caractères. Example: <code>g</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>push_token</code></b>&nbsp;&nbsp;
@@ -3415,7 +3443,7 @@ Must be one of:
                value="z"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>z</code></p>
+<p>Le champ value ne doit pas dépasser 512 caractères. Example: <code>z</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>otp_challenge_uuid</code></b>&nbsp;&nbsp;
@@ -3427,7 +3455,7 @@ Must be one of:
                value="977e5426-8d13-3824-86aa-b092f8ae52c5"
                data-component="body">
     <br>
-<p>This field is required when <code>verification_token</code> is present. validation.uuid. Example: <code>977e5426-8d13-3824-86aa-b092f8ae52c5</code></p>
+<p>This field is required when <code>verification_token</code> is present. Le champ value doit être un UUID valide. Example: <code>977e5426-8d13-3824-86aa-b092f8ae52c5</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>verification_token</code></b>&nbsp;&nbsp;
@@ -3439,7 +3467,7 @@ Must be one of:
                value="yvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtnnoqi"
                data-component="body">
     <br>
-<p>This field is required when <code>otp_challenge_uuid</code> is present. validation.size. Example: <code>yvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtnnoqi</code></p>
+<p>This field is required when <code>otp_challenge_uuid</code> is present. Le champ value doit contenir 64 caractères. Example: <code>yvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtnnoqi</code></p>
         </div>
         </form>
 
@@ -3465,10 +3493,10 @@ compte social, télécharge l'avatar via Spatie Media Library et
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
-    \"provider\": \"tiktok\",
+    \"provider\": \"facebook\",
     \"provider_token\": \"b\",
     \"device_name\": \"n\",
-    \"platform\": \"web\",
+    \"platform\": \"unknown\",
     \"device_fingerprint\": \"g\",
     \"push_token\": \"z\"
 }"
@@ -3486,10 +3514,10 @@ const headers = {
 };
 
 let body = {
-    "provider": "tiktok",
+    "provider": "facebook",
     "provider_token": "b",
     "device_name": "n",
-    "platform": "web",
+    "platform": "unknown",
     "device_fingerprint": "g",
     "push_token": "z"
 };
@@ -3691,10 +3719,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="provider"                data-endpoint="POSTapi-v1-auth-oauth-token"
-               value="tiktok"
+               value="facebook"
                data-component="body">
     <br>
-<p>Example: <code>tiktok</code></p>
+<p>Example: <code>facebook</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>google</code></li> <li><code>facebook</code></li> <li><code>tiktok</code></li></ul>
         </div>
@@ -3708,7 +3736,7 @@ Must be one of:
                value="b"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>b</code></p>
+<p>Le champ value ne doit pas dépasser 4096 caractères. Example: <code>b</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>device_name</code></b>&nbsp;&nbsp;
@@ -3720,7 +3748,7 @@ Must be one of:
                value="n"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>n</code></p>
+<p>Le champ value ne doit pas dépasser 120 caractères. Example: <code>n</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>platform</code></b>&nbsp;&nbsp;
@@ -3729,10 +3757,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="platform"                data-endpoint="POSTapi-v1-auth-oauth-token"
-               value="web"
+               value="unknown"
                data-component="body">
     <br>
-<p>Example: <code>web</code></p>
+<p>Example: <code>unknown</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>android</code></li> <li><code>ios</code></li> <li><code>web</code></li> <li><code>unknown</code></li></ul>
         </div>
@@ -3746,7 +3774,7 @@ Must be one of:
                value="g"
                data-component="body">
     <br>
-<p>validation.min validation.max. Example: <code>g</code></p>
+<p>Le champ value doit contenir au moins 16 caractères. Le champ value ne doit pas dépasser 255 caractères. Example: <code>g</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>push_token</code></b>&nbsp;&nbsp;
@@ -3758,7 +3786,7 @@ Must be one of:
                value="z"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>z</code></p>
+<p>Le champ value ne doit pas dépasser 512 caractères. Example: <code>z</code></p>
         </div>
         </form>
 
@@ -4009,7 +4037,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="b"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>b</code></p>
+<p>Le champ value ne doit pas dépasser 120 caractères. Example: <code>b</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>email</code></b>&nbsp;&nbsp;
@@ -4021,7 +4049,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="zbailey@example.net"
                data-component="body">
     <br>
-<p>validation.email validation.max. Example: <code>zbailey@example.net</code></p>
+<p>Le champ value doit être une adresse e-mail valide. Le champ value ne doit pas dépasser 255 caractères. Example: <code>zbailey@example.net</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>phone</code></b>&nbsp;&nbsp;
@@ -4033,7 +4061,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="iyvdljnikhwaykcm"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>iyvdljnikhwaykcm</code></p>
+<p>Le champ value ne doit pas dépasser 20 caractères. Example: <code>iyvdljnikhwaykcm</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>country_code</code></b>&nbsp;&nbsp;
@@ -4045,7 +4073,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="yuwp"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>yuwp</code></p>
+<p>Le champ value ne doit pas dépasser 4 caractères. Example: <code>yuwp</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>birth_date</code></b>&nbsp;&nbsp;
@@ -4057,7 +4085,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="2022-09-19"
                data-component="body">
     <br>
-<p>validation.date validation.before. Example: <code>2022-09-19</code></p>
+<p>Le champ value doit être une date valide. Le champ value doit être une date antérieure à <code>today</code>. Example: <code>2022-09-19</code></p>
         </div>
         </form>
 
@@ -4191,7 +4219,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="9775"
                data-component="body">
     <br>
-<p>validation.digits. Example: <code>9775</code></p>
+<p>Le champ value doit contenir 4 chiffres. Example: <code>9775</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>new_pin</code></b>&nbsp;&nbsp;
@@ -4203,7 +4231,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="9775"
                data-component="body">
     <br>
-<p>validation.digits Must not be one of <code></code>. Example: <code>9775</code></p>
+<p>Le champ value doit contenir 4 chiffres. Must not be one of <code></code>. Example: <code>9775</code></p>
         </div>
         </form>
 
@@ -4335,11 +4363,11 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
-    \"push_notifications\": false,
-    \"whatsapp_notifications\": false,
-    \"email_notifications\": true,
+    \"push_notifications\": true,
+    \"whatsapp_notifications\": true,
+    \"email_notifications\": false,
     \"locale\": \"fr\",
-    \"theme\": \"dark\"
+    \"theme\": \"light\"
 }"
 </code></pre></div>
 
@@ -4355,11 +4383,11 @@ const headers = {
 };
 
 let body = {
-    "push_notifications": false,
-    "whatsapp_notifications": false,
-    "email_notifications": true,
+    "push_notifications": true,
+    "whatsapp_notifications": true,
+    "email_notifications": false,
     "locale": "fr",
-    "theme": "dark"
+    "theme": "light"
 };
 
 fetch(url, {
@@ -4464,7 +4492,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>false</code></p>
+<p>Example: <code>true</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>whatsapp_notifications</code></b>&nbsp;&nbsp;
@@ -4486,7 +4514,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>false</code></p>
+<p>Example: <code>true</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>email_notifications</code></b>&nbsp;&nbsp;
@@ -4508,7 +4536,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>true</code></p>
+<p>Example: <code>false</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>locale</code></b>&nbsp;&nbsp;
@@ -4531,10 +4559,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="theme"                data-endpoint="PUTapi-v1-auth-preferences"
-               value="dark"
+               value="light"
                data-component="body">
     <br>
-<p>Example: <code>dark</code></p>
+<p>Example: <code>light</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>light</code></li> <li><code>dark</code></li> <li><code>system</code></li></ul>
         </div>
@@ -4886,6 +4914,258 @@ You can check the Dev Tools console for debugging information.</code></pre>
             </div>
                         </form>
 
+                <h1 id="endpoints">Endpoints</h1>
+
+    
+
+                                <h2 id="endpoints-GETapi-v1-bookings--reservation_uuid--tickets">GET api/v1/bookings/{reservation_uuid}/tickets</h2>
+
+<p>
+</p>
+
+
+
+<span id="example-requests-GETapi-v1-bookings--reservation_uuid--tickets">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request GET \
+    --get "http://kora-ops-web.local/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed/tickets" \
+    --header "Content-Type: application/json" \
+    --header "Accept: application/json"</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "http://kora-ops-web.local/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed/tickets"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+};
+
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-GETapi-v1-bookings--reservation_uuid--tickets">
+    </span>
+<span id="execution-results-GETapi-v1-bookings--reservation_uuid--tickets" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-GETapi-v1-bookings--reservation_uuid--tickets"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-GETapi-v1-bookings--reservation_uuid--tickets"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-GETapi-v1-bookings--reservation_uuid--tickets" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-GETapi-v1-bookings--reservation_uuid--tickets">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-GETapi-v1-bookings--reservation_uuid--tickets" data-method="GET"
+      data-path="api/v1/bookings/{reservation_uuid}/tickets"
+      data-authed="0"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('GETapi-v1-bookings--reservation_uuid--tickets', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+                    <button type="button"
+                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-tryout-GETapi-v1-bookings--reservation_uuid--tickets"
+                    onclick="tryItOut('GETapi-v1-bookings--reservation_uuid--tickets');">Try it out ⚡
+            </button>
+            <button type="button"
+                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-canceltryout-GETapi-v1-bookings--reservation_uuid--tickets"
+                    onclick="cancelTryOut('GETapi-v1-bookings--reservation_uuid--tickets');" hidden>Cancel 🛑
+            </button>&nbsp;&nbsp;
+            <button type="submit"
+                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-executetryout-GETapi-v1-bookings--reservation_uuid--tickets"
+                    data-initial-text="Send Request 💥"
+                    data-loading-text="⏱ Sending..."
+                    hidden>Send Request 💥
+            </button>
+            </h3>
+            <p>
+            <small class="badge badge-green">GET</small>
+            <b><code>api/v1/bookings/{reservation_uuid}/tickets</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="GETapi-v1-bookings--reservation_uuid--tickets"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="GETapi-v1-bookings--reservation_uuid--tickets"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                        <h4 class="fancy-heading-panel"><b>URL Parameters</b></h4>
+                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>reservation_uuid</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="reservation_uuid"                data-endpoint="GETapi-v1-bookings--reservation_uuid--tickets"
+               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               data-component="url">
+    <br>
+<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+            </div>
+                    </form>
+
+                    <h2 id="endpoints-GETapi-v1-tickets--uuid-">GET api/v1/tickets/{uuid}</h2>
+
+<p>
+</p>
+
+
+
+<span id="example-requests-GETapi-v1-tickets--uuid-">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request GET \
+    --get "http://kora-ops-web.local/api/v1/tickets/6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
+    --header "Content-Type: application/json" \
+    --header "Accept: application/json"</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "http://kora-ops-web.local/api/v1/tickets/6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+};
+
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-GETapi-v1-tickets--uuid-">
+    </span>
+<span id="execution-results-GETapi-v1-tickets--uuid-" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-GETapi-v1-tickets--uuid-"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-GETapi-v1-tickets--uuid-"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-GETapi-v1-tickets--uuid-" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-GETapi-v1-tickets--uuid-">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-GETapi-v1-tickets--uuid-" data-method="GET"
+      data-path="api/v1/tickets/{uuid}"
+      data-authed="0"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('GETapi-v1-tickets--uuid-', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+                    <button type="button"
+                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-tryout-GETapi-v1-tickets--uuid-"
+                    onclick="tryItOut('GETapi-v1-tickets--uuid-');">Try it out ⚡
+            </button>
+            <button type="button"
+                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-canceltryout-GETapi-v1-tickets--uuid-"
+                    onclick="cancelTryOut('GETapi-v1-tickets--uuid-');" hidden>Cancel 🛑
+            </button>&nbsp;&nbsp;
+            <button type="submit"
+                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-executetryout-GETapi-v1-tickets--uuid-"
+                    data-initial-text="Send Request 💥"
+                    data-loading-text="⏱ Sending..."
+                    hidden>Send Request 💥
+            </button>
+            </h3>
+            <p>
+            <small class="badge badge-green">GET</small>
+            <b><code>api/v1/tickets/{uuid}</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="GETapi-v1-tickets--uuid-"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="GETapi-v1-tickets--uuid-"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                        <h4 class="fancy-heading-panel"><b>URL Parameters</b></h4>
+                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>uuid</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="uuid"                data-endpoint="GETapi-v1-tickets--uuid-"
+               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               data-component="url">
+    <br>
+<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+            </div>
+                    </form>
+
                 <h1 id="health">Health</h1>
 
     <p>Application health and liveness probes for load balancers and monitoring.</p>
@@ -5118,7 +5398,118 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
     <p>Payment lifecycle endpoints: initiation, polling status, and provider webhook confirmation.</p>
 
-                                <h2 id="payments-POSTapi-v1-payments-initiate">Initiate a payment for a held reservation.</h2>
+                                <h2 id="payments-GETapi-v1-payments-methods">Return the active payment methods and providers configured for the mobile app.</h2>
+
+<p>
+</p>
+
+
+
+<span id="example-requests-GETapi-v1-payments-methods">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request GET \
+    --get "http://kora-ops-web.local/api/v1/payments/methods" \
+    --header "Content-Type: application/json" \
+    --header "Accept: application/json"</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "http://kora-ops-web.local/api/v1/payments/methods"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+};
+
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-GETapi-v1-payments-methods">
+    </span>
+<span id="execution-results-GETapi-v1-payments-methods" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-GETapi-v1-payments-methods"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-GETapi-v1-payments-methods"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-GETapi-v1-payments-methods" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-GETapi-v1-payments-methods">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-GETapi-v1-payments-methods" data-method="GET"
+      data-path="api/v1/payments/methods"
+      data-authed="0"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('GETapi-v1-payments-methods', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+                    <button type="button"
+                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-tryout-GETapi-v1-payments-methods"
+                    onclick="tryItOut('GETapi-v1-payments-methods');">Try it out ⚡
+            </button>
+            <button type="button"
+                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-canceltryout-GETapi-v1-payments-methods"
+                    onclick="cancelTryOut('GETapi-v1-payments-methods');" hidden>Cancel 🛑
+            </button>&nbsp;&nbsp;
+            <button type="submit"
+                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-executetryout-GETapi-v1-payments-methods"
+                    data-initial-text="Send Request 💥"
+                    data-loading-text="⏱ Sending..."
+                    hidden>Send Request 💥
+            </button>
+            </h3>
+            <p>
+            <small class="badge badge-green">GET</small>
+            <b><code>api/v1/payments/methods</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="GETapi-v1-payments-methods"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="GETapi-v1-payments-methods"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                        </form>
+
+                    <h2 id="payments-POSTapi-v1-payments-initiate">Initiate a payment for a held reservation.</h2>
 
 <p>
 </p>
@@ -5136,12 +5527,11 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Accept: application/json" \
     --data "{
     \"reservation_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
-    \"method\": \"cash\",
+    \"method\": \"mobile_money\",
     \"provider\": \"g\",
     \"idempotency_key\": \"z\",
     \"phone\": \"m\",
-    \"wallet_amount\": 8,
-    \"points_amount\": 76
+    \"mobile_money_network\": \"celtiis_cash\"
 }"
 </code></pre></div>
 
@@ -5158,12 +5548,11 @@ const headers = {
 
 let body = {
     "reservation_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-    "method": "cash",
+    "method": "mobile_money",
     "provider": "g",
     "idempotency_key": "z",
     "phone": "m",
-    "wallet_amount": 8,
-    "points_amount": 76
+    "mobile_money_network": "celtiis_cash"
 };
 
 fetch(url, {
@@ -5276,7 +5665,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
                data-component="body">
     <br>
-<p>validation.uuid Must match an existing stored value. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Le champ value doit être un UUID valide. Must match an existing stored value. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>method</code></b>&nbsp;&nbsp;
@@ -5285,12 +5674,12 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="method"                data-endpoint="POSTapi-v1-payments-initiate"
-               value="cash"
+               value="mobile_money"
                data-component="body">
     <br>
-<p>Example: <code>cash</code></p>
+<p>Example: <code>mobile_money</code></p>
 Must be one of:
-<ul style="list-style-type: square;"><li><code>mobile_money</code></li> <li><code>wallet</code></li> <li><code>card</code></li> <li><code>cash</code></li></ul>
+<ul style="list-style-type: square;"><li><code>mobile_money</code></li></ul>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>provider</code></b>&nbsp;&nbsp;
@@ -5302,7 +5691,7 @@ Must be one of:
                value="g"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>g</code></p>
+<p>Le champ value ne doit pas dépasser 64 caractères. Example: <code>g</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>idempotency_key</code></b>&nbsp;&nbsp;
@@ -5314,7 +5703,7 @@ Must be one of:
                value="z"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>z</code></p>
+<p>Le champ value ne doit pas dépasser 255 caractères. Example: <code>z</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>phone</code></b>&nbsp;&nbsp;
@@ -5326,31 +5715,21 @@ Must be one of:
                value="m"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>m</code></p>
+<p>Le champ value ne doit pas dépasser 32 caractères. Example: <code>m</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
-            <b style="line-height: 2;"><code>wallet_amount</code></b>&nbsp;&nbsp;
-<small>integer</small>&nbsp;
+            <b style="line-height: 2;"><code>mobile_money_network</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
 <i>optional</i> &nbsp;
  &nbsp;
-                <input type="number" style="display: none"
-               step="any"               name="wallet_amount"                data-endpoint="POSTapi-v1-payments-initiate"
-               value="8"
+                <input type="text" style="display: none"
+                              name="mobile_money_network"                data-endpoint="POSTapi-v1-payments-initiate"
+               value="celtiis_cash"
                data-component="body">
     <br>
-<p>validation.min. Example: <code>8</code></p>
-        </div>
-                <div style=" padding-left: 28px;  clear: unset;">
-            <b style="line-height: 2;"><code>points_amount</code></b>&nbsp;&nbsp;
-<small>integer</small>&nbsp;
-<i>optional</i> &nbsp;
- &nbsp;
-                <input type="number" style="display: none"
-               step="any"               name="points_amount"                data-endpoint="POSTapi-v1-payments-initiate"
-               value="76"
-               data-component="body">
-    <br>
-<p>validation.min. Example: <code>76</code></p>
+<p>Example: <code>celtiis_cash</code></p>
+Must be one of:
+<ul style="list-style-type: square;"><li><code>mtn_momo</code></li> <li><code>moov_flooz</code></li> <li><code>celtiis_cash</code></li></ul>
         </div>
         </form>
 
@@ -5493,6 +5872,254 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="uuid"                data-endpoint="GETapi-v1-payments--uuid-"
+               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               data-component="url">
+    <br>
+<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+            </div>
+                    </form>
+
+                    <h2 id="payments-POSTapi-v1-payments--payment_uuid--verify">Explicitly verify a pending payment with its provider.</h2>
+
+<p>
+</p>
+
+
+
+<span id="example-requests-POSTapi-v1-payments--payment_uuid--verify">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request POST \
+    "http://kora-ops-web.local/api/v1/payments/6ff8f7f6-1eb3-3525-be4a-3932c805afed/verify" \
+    --header "Content-Type: application/json" \
+    --header "Accept: application/json"</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "http://kora-ops-web.local/api/v1/payments/6ff8f7f6-1eb3-3525-be4a-3932c805afed/verify"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+};
+
+
+fetch(url, {
+    method: "POST",
+    headers,
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-POSTapi-v1-payments--payment_uuid--verify">
+</span>
+<span id="execution-results-POSTapi-v1-payments--payment_uuid--verify" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-POSTapi-v1-payments--payment_uuid--verify"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-POSTapi-v1-payments--payment_uuid--verify"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-POSTapi-v1-payments--payment_uuid--verify" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-POSTapi-v1-payments--payment_uuid--verify">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-POSTapi-v1-payments--payment_uuid--verify" data-method="POST"
+      data-path="api/v1/payments/{payment_uuid}/verify"
+      data-authed="0"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('POSTapi-v1-payments--payment_uuid--verify', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+                    <button type="button"
+                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-tryout-POSTapi-v1-payments--payment_uuid--verify"
+                    onclick="tryItOut('POSTapi-v1-payments--payment_uuid--verify');">Try it out ⚡
+            </button>
+            <button type="button"
+                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-canceltryout-POSTapi-v1-payments--payment_uuid--verify"
+                    onclick="cancelTryOut('POSTapi-v1-payments--payment_uuid--verify');" hidden>Cancel 🛑
+            </button>&nbsp;&nbsp;
+            <button type="submit"
+                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-executetryout-POSTapi-v1-payments--payment_uuid--verify"
+                    data-initial-text="Send Request 💥"
+                    data-loading-text="⏱ Sending..."
+                    hidden>Send Request 💥
+            </button>
+            </h3>
+            <p>
+            <small class="badge badge-black">POST</small>
+            <b><code>api/v1/payments/{payment_uuid}/verify</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="POSTapi-v1-payments--payment_uuid--verify"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="POSTapi-v1-payments--payment_uuid--verify"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                        <h4 class="fancy-heading-panel"><b>URL Parameters</b></h4>
+                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>payment_uuid</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="payment_uuid"                data-endpoint="POSTapi-v1-payments--payment_uuid--verify"
+               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               data-component="url">
+    <br>
+<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+            </div>
+                    </form>
+
+                    <h2 id="payments-POSTapi-v1-payments--payment_uuid--cancel">POST api/v1/payments/{payment_uuid}/cancel</h2>
+
+<p>
+</p>
+
+
+
+<span id="example-requests-POSTapi-v1-payments--payment_uuid--cancel">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request POST \
+    "http://kora-ops-web.local/api/v1/payments/6ff8f7f6-1eb3-3525-be4a-3932c805afed/cancel" \
+    --header "Content-Type: application/json" \
+    --header "Accept: application/json"</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "http://kora-ops-web.local/api/v1/payments/6ff8f7f6-1eb3-3525-be4a-3932c805afed/cancel"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+};
+
+
+fetch(url, {
+    method: "POST",
+    headers,
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-POSTapi-v1-payments--payment_uuid--cancel">
+</span>
+<span id="execution-results-POSTapi-v1-payments--payment_uuid--cancel" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-POSTapi-v1-payments--payment_uuid--cancel"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-POSTapi-v1-payments--payment_uuid--cancel"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-POSTapi-v1-payments--payment_uuid--cancel" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-POSTapi-v1-payments--payment_uuid--cancel">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-POSTapi-v1-payments--payment_uuid--cancel" data-method="POST"
+      data-path="api/v1/payments/{payment_uuid}/cancel"
+      data-authed="0"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('POSTapi-v1-payments--payment_uuid--cancel', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+                    <button type="button"
+                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-tryout-POSTapi-v1-payments--payment_uuid--cancel"
+                    onclick="tryItOut('POSTapi-v1-payments--payment_uuid--cancel');">Try it out ⚡
+            </button>
+            <button type="button"
+                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-canceltryout-POSTapi-v1-payments--payment_uuid--cancel"
+                    onclick="cancelTryOut('POSTapi-v1-payments--payment_uuid--cancel');" hidden>Cancel 🛑
+            </button>&nbsp;&nbsp;
+            <button type="submit"
+                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-executetryout-POSTapi-v1-payments--payment_uuid--cancel"
+                    data-initial-text="Send Request 💥"
+                    data-loading-text="⏱ Sending..."
+                    hidden>Send Request 💥
+            </button>
+            </h3>
+            <p>
+            <small class="badge badge-black">POST</small>
+            <b><code>api/v1/payments/{payment_uuid}/cancel</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="POSTapi-v1-payments--payment_uuid--cancel"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="POSTapi-v1-payments--payment_uuid--cancel"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                        <h4 class="fancy-heading-panel"><b>URL Parameters</b></h4>
+                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>payment_uuid</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="payment_uuid"                data-endpoint="POSTapi-v1-payments--payment_uuid--cancel"
                value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
                data-component="url">
     <br>
@@ -5657,7 +6284,7 @@ Must be one of:
                value="b"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>b</code></p>
+<p>Le champ value ne doit pas dépasser 255 caractères. Example: <code>b</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>provider_payload</code></b>&nbsp;&nbsp;
@@ -5672,6 +6299,228 @@ Must be one of:
 
         </div>
         </form>
+
+                    <h2 id="payments-POSTapi-v1-payments-webhook-fedapay">FedaPay webhook endpoint.</h2>
+
+<p>
+</p>
+
+
+
+<span id="example-requests-POSTapi-v1-payments-webhook-fedapay">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request POST \
+    "http://kora-ops-web.local/api/v1/payments/webhook/fedapay" \
+    --header "Content-Type: application/json" \
+    --header "Accept: application/json"</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "http://kora-ops-web.local/api/v1/payments/webhook/fedapay"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+};
+
+
+fetch(url, {
+    method: "POST",
+    headers,
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-POSTapi-v1-payments-webhook-fedapay">
+</span>
+<span id="execution-results-POSTapi-v1-payments-webhook-fedapay" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-POSTapi-v1-payments-webhook-fedapay"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-POSTapi-v1-payments-webhook-fedapay"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-POSTapi-v1-payments-webhook-fedapay" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-POSTapi-v1-payments-webhook-fedapay">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-POSTapi-v1-payments-webhook-fedapay" data-method="POST"
+      data-path="api/v1/payments/webhook/fedapay"
+      data-authed="0"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('POSTapi-v1-payments-webhook-fedapay', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+                    <button type="button"
+                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-tryout-POSTapi-v1-payments-webhook-fedapay"
+                    onclick="tryItOut('POSTapi-v1-payments-webhook-fedapay');">Try it out ⚡
+            </button>
+            <button type="button"
+                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-canceltryout-POSTapi-v1-payments-webhook-fedapay"
+                    onclick="cancelTryOut('POSTapi-v1-payments-webhook-fedapay');" hidden>Cancel 🛑
+            </button>&nbsp;&nbsp;
+            <button type="submit"
+                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-executetryout-POSTapi-v1-payments-webhook-fedapay"
+                    data-initial-text="Send Request 💥"
+                    data-loading-text="⏱ Sending..."
+                    hidden>Send Request 💥
+            </button>
+            </h3>
+            <p>
+            <small class="badge badge-black">POST</small>
+            <b><code>api/v1/payments/webhook/fedapay</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="POSTapi-v1-payments-webhook-fedapay"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="POSTapi-v1-payments-webhook-fedapay"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                        </form>
+
+                    <h2 id="payments-POSTapi-v1-payments-webhook-mtn-momo">MTN MoMo webhook endpoint.</h2>
+
+<p>
+</p>
+
+
+
+<span id="example-requests-POSTapi-v1-payments-webhook-mtn-momo">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request POST \
+    "http://kora-ops-web.local/api/v1/payments/webhook/mtn-momo" \
+    --header "Content-Type: application/json" \
+    --header "Accept: application/json"</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "http://kora-ops-web.local/api/v1/payments/webhook/mtn-momo"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+};
+
+
+fetch(url, {
+    method: "POST",
+    headers,
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-POSTapi-v1-payments-webhook-mtn-momo">
+</span>
+<span id="execution-results-POSTapi-v1-payments-webhook-mtn-momo" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-POSTapi-v1-payments-webhook-mtn-momo"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-POSTapi-v1-payments-webhook-mtn-momo"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-POSTapi-v1-payments-webhook-mtn-momo" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-POSTapi-v1-payments-webhook-mtn-momo">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-POSTapi-v1-payments-webhook-mtn-momo" data-method="POST"
+      data-path="api/v1/payments/webhook/mtn-momo"
+      data-authed="0"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('POSTapi-v1-payments-webhook-mtn-momo', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+                    <button type="button"
+                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-tryout-POSTapi-v1-payments-webhook-mtn-momo"
+                    onclick="tryItOut('POSTapi-v1-payments-webhook-mtn-momo');">Try it out ⚡
+            </button>
+            <button type="button"
+                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-canceltryout-POSTapi-v1-payments-webhook-mtn-momo"
+                    onclick="cancelTryOut('POSTapi-v1-payments-webhook-mtn-momo');" hidden>Cancel 🛑
+            </button>&nbsp;&nbsp;
+            <button type="submit"
+                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-executetryout-POSTapi-v1-payments-webhook-mtn-momo"
+                    data-initial-text="Send Request 💥"
+                    data-loading-text="⏱ Sending..."
+                    hidden>Send Request 💥
+            </button>
+            </h3>
+            <p>
+            <small class="badge badge-black">POST</small>
+            <b><code>api/v1/payments/webhook/mtn-momo</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="POSTapi-v1-payments-webhook-mtn-momo"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="POSTapi-v1-payments-webhook-mtn-momo"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                        </form>
 
             
 

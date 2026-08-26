@@ -21,7 +21,8 @@ export function HoldConfirmation({
                         Places bloquées avec succès
                     </h2>
                     <p className="mt-1 text-[0.6875rem] text-white/70">
-                        La réservation est prête pour la saisie des passagers et l’encaissement.
+                        La réservation est prête pour la saisie des passagers et
+                        l’encaissement.
                     </p>
                 </div>
             </div>
@@ -57,7 +58,8 @@ export function HoldConfirmation({
             </div>
             <div className="flex items-center gap-2 border-t border-border px-5 py-4 text-[0.6875rem] text-muted-foreground sm:px-6">
                 <ShieldCheck className="size-4 text-digital" />
-                Renseignez les passagers, puis passez à l’encaissement pour émettre les billets.
+                Renseignez les passagers, puis passez à l’encaissement pour
+                émettre les billets.
             </div>
         </section>
     );

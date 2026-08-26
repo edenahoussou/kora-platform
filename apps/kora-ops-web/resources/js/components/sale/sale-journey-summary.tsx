@@ -106,7 +106,9 @@ export function SaleJourneySummary({
                 {departure ? formatTime(departure.departureTime) : '—'}
             </SummaryRow>
             <SummaryRow icon={Armchair} label="Sièges">
-                {reservation.segments.map((segment) => segment.seatCode).join(', ')}
+                {reservation.segments
+                    .map((segment) => segment.seatCode)
+                    .join(', ')}
             </SummaryRow>
             <SummaryRow icon={RouteIcon} label="Ligne">
                 {departure?.line.code ?? '—'}
@@ -114,11 +116,11 @@ export function SaleJourneySummary({
             <SummaryRow icon={BusFront} label="Véhicule">
                 {departure
                     ? [
-                        [departure.bus.brand, departure.bus.model]
-                            .filter(Boolean)
-                            .join(' ') || 'Véhicule',
-                        departure.bus.registrationNumber,
-                    ].join(' · ')
+                          [departure.bus.brand, departure.bus.model]
+                              .filter(Boolean)
+                              .join(' ') || 'Véhicule',
+                          departure.bus.registrationNumber,
+                      ].join(' · ')
                     : '—'}
             </SummaryRow>
             <SummaryRow icon={Users} label="Passagers">
@@ -130,7 +132,9 @@ export function SaleJourneySummary({
                     'Standard'}
             </SummaryRow>
 
-            {variant === 'payment' && paymentMethod === 'cash' && cashBreakdown ? (
+            {variant === 'payment' &&
+            paymentMethod === 'cash' &&
+            cashBreakdown ? (
                 <CashBreakdownPanel breakdown={cashBreakdown} />
             ) : null}
 
@@ -141,7 +145,9 @@ export function SaleJourneySummary({
                 </strong>
             </div>
 
-            {variant === 'payment' && paymentMethod === 'mobile_money' && mobileChecklist ? (
+            {variant === 'payment' &&
+            paymentMethod === 'mobile_money' &&
+            mobileChecklist ? (
                 <MobileMoneyChecklistPanel
                     checklist={mobileChecklist}
                     doneCount={mobileChecklistDone ?? 0}
@@ -170,8 +176,8 @@ export function SaleJourneySummary({
                             {holdCountdown.isExpired
                                 ? 'Hold expiré'
                                 : holdCountdown.isUrgent
-                                    ? 'À finaliser rapidement'
-                                    : 'Places sécurisées'}
+                                  ? 'À finaliser rapidement'
+                                  : 'Places sécurisées'}
                         </strong>
                     </span>
                     <time dateTime={reservation.expiresAt ?? undefined}>
@@ -185,8 +191,8 @@ export function SaleJourneySummary({
                     {holdCountdown.isExpired
                         ? 'Le blocage doit être renouvelé avant de poursuivre.'
                         : holdCountdown.isUrgent
-                            ? 'Finalisez les informations ou modifiez les places avant la libération automatique.'
-                            : 'Le temps restant est actualisé automatiquement.'}
+                          ? 'Finalisez les informations ou modifiez les places avant la libération automatique.'
+                          : 'Le temps restant est actualisé automatiquement.'}
                 </p>
             </div>
             {variant === 'payment' ? (
@@ -204,7 +210,10 @@ export function SaleJourneySummary({
                             <Banknote className="size-4" />
                             Caisse à ouvrir
                         </div>
-                        <p>Une caisse ouverte est nécessaire pour confirmer la vente.</p>
+                        <p>
+                            Une caisse ouverte est nécessaire pour confirmer la
+                            vente.
+                        </p>
                         <button type="button" onClick={onOpenCash}>
                             Ouvrir la caisse
                         </button>
@@ -323,7 +332,7 @@ function MobileMoneyChecklistPanel({
                         {item.done ? (
                             <CheckCircle2 className="size-3.5" />
                         ) : (
-                            <Check className="size-3.5 is-pending" />
+                            <Check className="is-pending size-3.5" />
                         )}
                         <span>{item.label}</span>
                     </li>

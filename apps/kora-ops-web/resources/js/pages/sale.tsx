@@ -53,8 +53,7 @@ export default function SalePage(props: SaleProps) {
                 ? reservation.uuid
                 : null,
         );
-    const isPaymentStepOpen =
-        reservation?.uuid === paymentStepReservationUuid;
+    const isPaymentStepOpen = reservation?.uuid === paymentStepReservationUuid;
     const {
         searchForm,
         quoteForm,

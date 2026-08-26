@@ -6,6 +6,39 @@ endpoints:
   -
     custom: []
     httpMethods:
+      - GET
+    uri: api/v1/payments/methods
+    metadata:
+      custom: []
+      groupName: Payments
+      groupDescription: |-
+
+        Payment lifecycle endpoints: initiation, polling status, and provider webhook confirmation.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Return the active payment methods and providers configured for the mobile app.'
+      description: ''
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
       - POST
     uri: api/v1/payments/initiate
     metadata:
@@ -31,7 +64,7 @@ endpoints:
       reservation_uuid:
         custom: []
         name: reservation_uuid
-        description: 'validation.uuid Must match an existing stored value.'
+        description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
         required: true
         example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
         type: string
@@ -44,20 +77,17 @@ endpoints:
         name: method
         description: ''
         required: true
-        example: cash
+        example: mobile_money
         type: string
         enumValues:
           - mobile_money
-          - wallet
-          - card
-          - cash
         exampleWasSpecified: false
         nullable: false
         deprecated: false
       provider:
         custom: []
         name: provider
-        description: validation.max.
+        description: 'Le champ value ne doit pas dépasser 64 caractères.'
         required: true
         example: g
         type: string
@@ -68,7 +98,7 @@ endpoints:
       idempotency_key:
         custom: []
         name: idempotency_key
-        description: validation.max.
+        description: 'Le champ value ne doit pas dépasser 255 caractères.'
         required: true
         example: z
         type: string
@@ -79,7 +109,7 @@ endpoints:
       phone:
         custom: []
         name: phone
-        description: validation.max.
+        description: 'Le champ value ne doit pas dépasser 32 caractères.'
         required: false
         example: m
         type: string
@@ -87,36 +117,27 @@ endpoints:
         exampleWasSpecified: false
         nullable: true
         deprecated: false
-      wallet_amount:
+      mobile_money_network:
         custom: []
-        name: wallet_amount
-        description: validation.min.
+        name: mobile_money_network
+        description: ''
         required: false
-        example: 8
-        type: integer
-        enumValues: []
-        exampleWasSpecified: false
-        nullable: true
-        deprecated: false
-      points_amount:
-        custom: []
-        name: points_amount
-        description: validation.min.
-        required: false
-        example: 76
-        type: integer
-        enumValues: []
+        example: celtiis_cash
+        type: string
+        enumValues:
+          - mtn_momo
+          - moov_flooz
+          - celtiis_cash
         exampleWasSpecified: false
         nullable: true
         deprecated: false
     cleanBodyParameters:
       reservation_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-      method: cash
+      method: mobile_money
       provider: g
       idempotency_key: z
       phone: m
-      wallet_amount: 8
-      points_amount: 76
+      mobile_money_network: celtiis_cash
     fileParameters: []
     responses:
       -
@@ -213,6 +234,96 @@ endpoints:
     custom: []
     httpMethods:
       - POST
+    uri: 'api/v1/payments/{payment_uuid}/verify'
+    metadata:
+      custom: []
+      groupName: Payments
+      groupDescription: |-
+
+        Payment lifecycle endpoints: initiation, polling status, and provider webhook confirmation.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Explicitly verify a pending payment with its provider.'
+      description: ''
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      payment_uuid:
+        custom: []
+        name: payment_uuid
+        description: ''
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      payment_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/payments/{payment_uuid}/cancel'
+    metadata:
+      custom: []
+      groupName: Payments
+      groupDescription: |-
+
+        Payment lifecycle endpoints: initiation, polling status, and provider webhook confirmation.
+      subgroup: ''
+      subgroupDescription: ''
+      title: ''
+      description: ''
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      payment_uuid:
+        custom: []
+        name: payment_uuid
+        description: ''
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      payment_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
     uri: 'api/v1/payments/{payment_uuid}/confirm'
     metadata:
       custom: []
@@ -263,7 +374,7 @@ endpoints:
       provider_reference:
         custom: []
         name: provider_reference
-        description: validation.max.
+        description: 'Le champ value ne doit pas dépasser 255 caractères.'
         required: false
         example: b
         type: string
@@ -285,6 +396,72 @@ endpoints:
     cleanBodyParameters:
       status: success
       provider_reference: b
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/payments/webhook/fedapay
+    metadata:
+      custom: []
+      groupName: Payments
+      groupDescription: |-
+
+        Payment lifecycle endpoints: initiation, polling status, and provider webhook confirmation.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'FedaPay webhook endpoint.'
+      description: ''
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/payments/webhook/mtn-momo
+    metadata:
+      custom: []
+      groupName: Payments
+      groupDescription: |-
+
+        Payment lifecycle endpoints: initiation, polling status, and provider webhook confirmation.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'MTN MoMo webhook endpoint.'
+      description: ''
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
     fileParameters: []
     responses: []
     responseFields: []
