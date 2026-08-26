@@ -4,10 +4,14 @@ namespace App\Modules\Booking\Http\Resources;
 
 use App\Modules\Booking\Models\Reservation;
 <<<<<<< HEAD
+<<<<<<< HEAD
 use App\Modules\BusNetwork\Http\Resources\LineResource;
 use App\Modules\Ticketing\Data\TicketIssuanceStatus;
 =======
 >>>>>>> 752c4ce (feat: implement bus amenity management system)
+=======
+use App\Modules\Ticketing\Data\TicketIssuanceStatus;
+>>>>>>> ce91d81 (Refactor code structure for improved readability and maintainability)
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 

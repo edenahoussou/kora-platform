@@ -19,8 +19,10 @@ use Illuminate\Validation\ValidationException;
 class InitiatePaymentAction
 {
     public function __construct(
-        private readonly PaymentManager $manager,
-    ) {}
+        // private readonly PaymentManager $manager,
+    ) {
+        //
+    }
 
     /**
      * @return array{payment: Payment, is_replay: bool}

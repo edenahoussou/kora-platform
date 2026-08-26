@@ -6,7 +6,6 @@ use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
-use App\Modules\Ticketing\Jobs\IssueReservationTicketsJob;
 use Illuminate\Support\Facades\DB;
 
 class ConfirmPaymentAction
