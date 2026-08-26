@@ -24,10 +24,18 @@ export type BusRecord = {
     seatCount: number;
     agencyId: number | null;
     agencyName: string | null;
+    amenityIds: number[];
+    amenityLabels?: string[];
     status: string;
 };
 type Option = { id: number | string; label: string };
 type AgencyOption = { id: number; name: string };
+type AmenityOption = {
+    id: number;
+    code: string;
+    label: string;
+    icon: string | null;
+};
 type Props = {
     open: boolean;
     bus?: BusRecord | null;
@@ -35,6 +43,7 @@ type Props = {
     agencies: AgencyOption[];
     models: Option[];
     compositions: (Option & { seatCount: number })[];
+    amenities: AmenityOption[];
     onOpenChange: (open: boolean) => void;
 };
 
@@ -52,6 +61,7 @@ export function BusFormDialog({
     agencies,
     models,
     compositions,
+    amenities,
     onOpenChange,
 }: Props) {
     const editing = Boolean(bus);
@@ -162,6 +172,35 @@ export function BusFormDialog({
                                     placeholder="Sélectionner une agence"
                                     error={errors.agency_id}
                                 />
+                                {amenities.length > 0 && (
+                                    <div className="grid gap-2">
+                                        <Label>Équipements</Label>
+                                        <div className="grid grid-cols-2 gap-2.5 rounded-[0.875rem] bg-muted p-3.5 shadow-[inset_0_0_0_1px_var(--border)] sm:grid-cols-3">
+                                            {amenities.map((amenity) => (
+                                                <label
+                                                    key={amenity.id}
+                                                    htmlFor={`amenity-${amenity.id}`}
+                                                    className="flex cursor-pointer items-center gap-2 rounded-[0.6rem] px-2 py-1.5 text-sm text-foreground hover:bg-card"
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        id={`amenity-${amenity.id}`}
+                                                        name="amenity_ids[]"
+                                                        value={amenity.id}
+                                                        defaultChecked={bus?.amenityIds?.includes(
+                                                            amenity.id,
+                                                        )}
+                                                        className="size-4 rounded border-border/60 accent-[var(--kora)]"
+                                                    />
+                                                    {amenity.label}
+                                                </label>
+                                            ))}
+                                        </div>
+                                        <InputError
+                                            message={errors.amenity_ids}
+                                        />
+                                    </div>
+                                )}
                                 <FieldSelect
                                     id="bus-status"
                                     name="status"

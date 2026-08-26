@@ -30,7 +30,27 @@ endpoints:
     bodyParameters: []
     cleanBodyParameters: []
     fileParameters: []
-    responses: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": [
+              {
+                "city": "Cotonou",
+                "country": "BJ",
+                "stops_count": 4
+              },
+              {
+                "city": "Abidjan",
+                "country": "CI",
+                "stops_count": 2
+              }
+            ]
+          }
+        headers: []
+        description: 'Cities list'
     responseFields: []
     auth: []
     controller: null
@@ -111,7 +131,28 @@ endpoints:
       from: b
       to: 'n'
     fileParameters: []
-    responses: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": [
+              {
+                "uuid": "9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f",
+                "code": "L1",
+                "name": "Cotonou - Abidjan",
+                "type": "internationale",
+                "countries_crossed": ["BJ", "TG", "GH", "CI"],
+                "distance_km": 1020,
+                "estimated_duration_minutes": 1260,
+                "status": "active",
+                "stops": []
+              }
+            ]
+          }
+        headers: []
+        description: 'Lines list'
     responseFields: []
     auth: []
     controller: null
@@ -131,7 +172,7 @@ endpoints:
       subgroup: ''
       subgroupDescription: ''
       title: 'Show a Bus line.'
-      description: ''
+      description: "Includes the line's active stops, ordered along the route."
       authenticated: false
       deprecated: false
     headers:
@@ -143,20 +184,77 @@ endpoints:
         name: uuid
         description: ''
         required: true
-        example: 2c72be75-333a-4272-b6df-a355fcd62eb7
+        example: f3e58eb2-66aa-4fee-9e98-f5dd59054e7e
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
+      line:
+        custom: []
+        name: line
+        description: 'Public UUID of the line.'
+        required: true
+        example: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
     cleanUrlParameters:
-      uuid: 2c72be75-333a-4272-b6df-a355fcd62eb7
+      uuid: f3e58eb2-66aa-4fee-9e98-f5dd59054e7e
+      line: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
     cleanBodyParameters: []
     fileParameters: []
-    responses: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": {
+              "uuid": "9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f",
+              "code": "L1",
+              "name": "Cotonou - Abidjan",
+              "type": "internationale",
+              "countries_crossed": ["BJ", "TG", "GH", "CI"],
+              "distance_km": 1020,
+              "estimated_duration_minutes": 1260,
+              "status": "active",
+              "stops": [
+                {
+                  "uuid": "5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21",
+                  "name": "Cotonou · St Michel",
+                  "city": "Cotonou",
+                  "country": "BJ",
+                  "stop_order": 1,
+                  "km_from_origin": 0
+                },
+                {
+                  "uuid": "5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22",
+                  "name": "Abidjan · Adjamé",
+                  "city": "Abidjan",
+                  "country": "CI",
+                  "stop_order": 2,
+                  "km_from_origin": 1020
+                }
+              ]
+            }
+          }
+        headers: []
+        description: 'Line detail'
+      -
+        custom: []
+        status: 404
+        content: |-
+          {
+            "message": "No query results for model [App\\Modules\\BusNetwork\\Models\\Line]."
+          }
+        headers: []
+        description: 'Line not found'
     responseFields: []
     auth: []
     controller: null
@@ -176,7 +274,7 @@ endpoints:
       subgroup: ''
       subgroupDescription: ''
       title: 'List departures.'
-      description: ''
+      description: 'Paginated list of scheduled departures (15 per page by default).'
       authenticated: false
       deprecated: false
     headers:
@@ -191,6 +289,39 @@ endpoints:
         description: 'Travel date in YYYY-MM-DD format.'
         required: true
         example: '2026-08-15'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      line:
+        custom: []
+        name: line
+        description: 'Optional line UUID filter.'
+        required: false
+        example: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      origin_city:
+        custom: []
+        name: origin_city
+        description: 'Optional origin city filter (alias of from).'
+        required: false
+        example: Cotonou
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      destination_city:
+        custom: []
+        name: destination_city
+        description: 'Optional destination city filter (alias of to).'
+        required: false
+        example: Abidjan
         type: string
         enumValues: []
         exampleWasSpecified: true
@@ -218,10 +349,37 @@ endpoints:
         exampleWasSpecified: true
         nullable: false
         deprecated: false
+      per_page:
+        custom: []
+        name: per_page
+        description: 'Optional page size (max 50, default 15).'
+        required: false
+        example: 15
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      page:
+        custom: []
+        name: page
+        description: 'Optional page number.'
+        required: false
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
     cleanQueryParameters:
       date: '2026-08-15'
+      line: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
+      origin_city: Cotonou
+      destination_city: Abidjan
       from: Cotonou
       to: Abidjan
+      per_page: 15
+      page: 1
     bodyParameters:
       date:
         custom: []
@@ -234,12 +392,23 @@ endpoints:
         exampleWasSpecified: false
         nullable: false
         deprecated: false
+      line:
+        custom: []
+        name: line
+        description: 'validation.uuid Must match an existing stored value.'
+        required: false
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
       from:
         custom: []
         name: from
         description: 'Le champ value ne doit pas dépasser 120 caractères.'
         required: false
-        example: b
+        example: g
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -250,18 +419,160 @@ endpoints:
         name: to
         description: 'Le champ value ne doit pas dépasser 120 caractères.'
         required: false
-        example: 'n'
+        example: z
         type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      origin_city:
+        custom: []
+        name: origin_city
+        description: validation.max.
+        required: false
+        example: m
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      destination_city:
+        custom: []
+        name: destination_city
+        description: validation.max.
+        required: false
+        example: i
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      per_page:
+        custom: []
+        name: per_page
+        description: 'validation.min validation.max.'
+        required: false
+        example: 8
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      page:
+        custom: []
+        name: page
+        description: validation.min.
+        required: false
+        example: 16
+        type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: true
         deprecated: false
     cleanBodyParameters:
       date: '2026-08-26'
-      from: b
-      to: 'n'
+      line: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      from: g
+      to: z
+      origin_city: m
+      destination_city: i
+      per_page: 8
+      page: 16
     fileParameters: []
-    responses: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": [
+              {
+                "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e",
+                "departure_date": "2026-08-15",
+                "departure_time": "07:30",
+                "estimated_arrival_at": "2026-08-16T04:30:00.000000Z",
+                "status": "scheduled",
+                "line": {
+                  "uuid": "9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f",
+                  "code": "L1",
+                  "name": "Cotonou - Abidjan",
+                  "type": "internationale",
+                  "countries_crossed": ["BJ", "TG", "GH", "CI"],
+                  "distance_km": 1020,
+                  "estimated_duration_minutes": 1260,
+                  "status": "active",
+                  "stops": []
+                },
+                "bus": {
+                  "uuid": "3a2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e30",
+                  "registration_number": "BJ-9254-RB",
+                  "brand": "KORA",
+                  "model": "Coach 55",
+                  "seat_count": 55,
+                  "layout": [
+                    {"type": "row", "codes": ["1A", "1B", "1C", "1D"]},
+                    {"type": "row", "codes": ["2A", "2B", "2C", "2D"]}
+                  ]
+                },
+                "origin_stop": {
+                  "uuid": "5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21",
+                  "name": "Cotonou · St Michel",
+                  "city": "Cotonou",
+                  "country": "BJ",
+                  "stop_order": 1,
+                  "km_from_origin": 0
+                },
+                "destination_stop": {
+                  "uuid": "5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22",
+                  "name": "Abidjan · Adjamé",
+                  "city": "Abidjan",
+                  "country": "CI",
+                  "stop_order": 2,
+                  "km_from_origin": 1020
+                },
+                "available_seats_count": 41,
+                "fare_preview": {
+                  "fare_uuid": "7d2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e40",
+                  "base_amount": 12500,
+                  "final_amount": 12500,
+                  "currency": "XOF",
+                  "service_class_code": "STD",
+                  "service_class_name": "Standard",
+                  "service_class_description": "Sièges inclinables, climatisation, prise USB.",
+                  "is_quote": false
+                }
+              }
+            ],
+            "links": {
+              "first": "http://kora-ops-web.local/api/v1/bus/departures?page=1",
+              "last": "http://kora-ops-web.local/api/v1/bus/departures?page=1",
+              "prev": null,
+              "next": null
+            },
+            "meta": {
+              "current_page": 1,
+              "from": 1,
+              "last_page": 1,
+              "path": "http://kora-ops-web.local/api/v1/bus/departures",
+              "per_page": 15,
+              "to": 1,
+              "total": 1
+            }
+          }
+        headers: []
+        description: 'Departures list'
+      -
+        custom: []
+        status: 422
+        content: |-
+          {
+            "message": "The date field is required.",
+            "errors": {
+              "date": ["The date field is required."]
+            }
+          }
+        headers: []
+        description: 'Missing required date'
     responseFields: []
     auth: []
     controller: null
@@ -293,14 +604,26 @@ endpoints:
         name: uuid
         description: ''
         required: true
-        example: 1994b8ed-2cc9-47dc-90a3-7b8873a6f3bb
+        example: 48cc889a-8518-4cb2-b4ec-13e225ad597b
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
+      departure:
+        custom: []
+        name: departure
+        description: 'Public UUID of the departure.'
+        required: true
+        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
     cleanUrlParameters:
-      uuid: 1994b8ed-2cc9-47dc-90a3-7b8873a6f3bb
+      uuid: 48cc889a-8518-4cb2-b4ec-13e225ad597b
+      departure: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
     queryParameters:
       from:
         custom: []
@@ -354,7 +677,80 @@ endpoints:
       from: b
       to: 'n'
     fileParameters: []
-    responses: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": {
+              "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e",
+              "departure_date": "2026-08-15",
+              "departure_time": "07:30",
+              "estimated_arrival_at": "2026-08-16T04:30:00.000000Z",
+              "status": "scheduled",
+              "line": {
+                "uuid": "9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f",
+                "code": "L1",
+                "name": "Cotonou - Abidjan",
+                "type": "internationale",
+                "countries_crossed": ["BJ", "TG", "GH", "CI"],
+                "distance_km": 1020,
+                "estimated_duration_minutes": 1260,
+                "status": "active",
+                "stops": []
+              },
+              "bus": {
+                "uuid": "3a2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e30",
+                "registration_number": "BJ-9254-RB",
+                "brand": "KORA",
+                "model": "Coach 55",
+                "seat_count": 55,
+                "layout": [
+                  {"type": "row", "codes": ["1A", "1B", "1C", "1D"]},
+                  {"type": "row", "codes": ["2A", "2B", "2C", "2D"]}
+                ]
+              },
+              "origin_stop": {
+                "uuid": "5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21",
+                "name": "Cotonou · St Michel",
+                "city": "Cotonou",
+                "country": "BJ",
+                "stop_order": 1,
+                "km_from_origin": 0
+              },
+              "destination_stop": {
+                "uuid": "5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22",
+                "name": "Abidjan · Adjamé",
+                "city": "Abidjan",
+                "country": "CI",
+                "stop_order": 2,
+                "km_from_origin": 1020
+              },
+              "available_seats_count": 41,
+              "fare_preview": {
+                "fare_uuid": "7d2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e40",
+                "base_amount": 12500,
+                "final_amount": 12500,
+                "currency": "XOF",
+                "service_class_code": "STD",
+                "service_class_name": "Standard",
+                "service_class_description": "Sièges inclinables, climatisation, prise USB.",
+                "is_quote": false
+              }
+            }
+          }
+        headers: []
+        description: 'Departure detail'
+      -
+        custom: []
+        status: 404
+        content: |-
+          {
+            "message": "No query results for model [App\\Modules\\Departures\\Models\\Departure]."
+          }
+        headers: []
+        description: 'Departure not found'
     responseFields: []
     auth: []
     controller: null
@@ -374,7 +770,9 @@ endpoints:
       subgroup: ''
       subgroupDescription: ''
       title: 'List departure seats.'
-      description: ''
+      description: |-
+        Returns every seat on the assigned bus, with its availability status for
+        the requested origin/destination segment (available, held, occupied, or blocked).
       authenticated: false
       deprecated: false
     headers:
@@ -386,24 +784,36 @@ endpoints:
         name: departure_uuid
         description: ''
         required: true
-        example: 1994b8ed-2cc9-47dc-90a3-7b8873a6f3bb
+        example: 48cc889a-8518-4cb2-b4ec-13e225ad597b
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
+      departure:
+        custom: []
+        name: departure
+        description: 'Public UUID of the departure.'
+        required: true
+        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
     cleanUrlParameters:
-      departure_uuid: 1994b8ed-2cc9-47dc-90a3-7b8873a6f3bb
+      departure_uuid: 48cc889a-8518-4cb2-b4ec-13e225ad597b
+      departure: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
     queryParameters:
       origin_stop_uuid:
         custom: []
         name: origin_stop_uuid
         description: 'Public UUID of the boarding stop.'
         required: true
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        example: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21
         type: string
         enumValues: []
-        exampleWasSpecified: false
+        exampleWasSpecified: true
         nullable: false
         deprecated: false
       destination_stop_uuid:
@@ -411,15 +821,15 @@ endpoints:
         name: destination_stop_uuid
         description: 'Public UUID of the drop-off stop.'
         required: true
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        example: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22
         type: string
         enumValues: []
-        exampleWasSpecified: false
+        exampleWasSpecified: true
         nullable: false
         deprecated: false
     cleanQueryParameters:
-      origin_stop_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-      destination_stop_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      origin_stop_uuid: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21
+      destination_stop_uuid: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22
     bodyParameters:
       origin_stop_uuid:
         custom: []
@@ -447,7 +857,53 @@ endpoints:
       origin_stop_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
       destination_stop_uuid: 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
     fileParameters: []
-    responses: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": [
+              {
+                "uuid": "6e2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e50",
+                "code": "1A",
+                "type": "standard",
+                "sellable": true,
+                "availability_status": "available",
+                "held_until": null
+              },
+              {
+                "uuid": "6e2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e51",
+                "code": "1B",
+                "type": "standard",
+                "sellable": true,
+                "availability_status": "held",
+                "held_until": "2026-08-15T07:20:00.000000Z"
+              },
+              {
+                "uuid": "6e2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e52",
+                "code": "1C",
+                "type": "standard",
+                "sellable": true,
+                "availability_status": "occupied",
+                "held_until": null
+              }
+            ]
+          }
+        headers: []
+        description: 'Seat map'
+      -
+        custom: []
+        status: 422
+        content: |-
+          {
+            "message": "The requested origin and destination do not form a valid ordered segment for this line.",
+            "errors": {
+              "segment": ["The requested origin and destination do not form a valid ordered segment for this line."]
+            }
+          }
+        headers: []
+        description: 'Invalid segment'
     responseFields: []
     auth: []
     controller: null
@@ -467,10 +923,11 @@ endpoints:
       subgroup: ''
       subgroupDescription: ''
       title: 'Create a fixed price quote.'
-      description: 'The quote expiration uses the backend-configured `KORA_QUOTE_TTL_MINUTES` duration.'
+      description: 'Requires a Sanctum bearer token.'
       authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
       Content-Type: application/json
       Accept: application/json
     urlParameters: []
@@ -549,9 +1006,6 @@ endpoints:
             "data": {
               "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
               "departure_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e",
-              "origin_stop_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6f",
-              "destination_stop_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
-              "service_class_uuid": null,
               "base_amount": 12500,
               "coefficient": 1.0,
               "final_amount": 12500,
@@ -572,29 +1026,11 @@ endpoints:
           }
         headers: []
         description: 'Quote created'
-      -
-        custom: []
-        status: 401
-        content: |-
-          {
-            "message": "Unauthenticated."
-          }
-        headers: []
-        description: Unauthenticated
-      -
-        custom: []
-        status: 422
-        content: |-
-          {
-            "message": "The given data was invalid.",
-            "errors": {
-              "destination_stop_uuid": ["L'arrêt de destination doit être situé après l'arrêt d'origine."]
-            }
-          }
-        headers: []
-        description: 'Invalid quote request'
     responseFields: []
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null
@@ -608,14 +1044,15 @@ endpoints:
       groupName: Bus
       groupDescription: |-
 
-        Seat hold endpoint for passenger booking.
+        Seat hold endpoints for passenger booking.
       subgroup: ''
       subgroupDescription: ''
-      title: 'Hold seats for the configured server-side duration.'
-      description: 'The hold starts only when this endpoint is called, after the passenger confirms the selected seats.'
+      title: 'Hold seats for 15 minutes.'
+      description: 'Requires a Sanctum bearer token.'
       authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
       Content-Type: application/json
       Accept: application/json
     urlParameters: []
@@ -724,7 +1161,6 @@ endpoints:
               "currency": "XOF",
               "channel": "mobile",
               "departure_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e",
-              "price_quote_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6f",
               "segments": [
                 {
                   "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb71",
@@ -741,15 +1177,6 @@ endpoints:
         description: 'Seats held'
       -
         custom: []
-        status: 401
-        content: |-
-          {
-            "message": "Unauthenticated."
-          }
-        headers: []
-        description: Unauthenticated
-      -
-        custom: []
         status: 409
         content: |-
           {
@@ -759,43 +1186,39 @@ endpoints:
           }
         headers: []
         description: 'Seat unavailable'
-      -
-        custom: []
-        status: 422
-        content: |-
-          {
-            "message": "The given data was invalid.",
-            "errors": {
-              "seats": ["Le nombre de sièges doit correspondre au nombre de passagers du devis."]
-            }
-          }
-        headers: []
-        description: 'Invalid hold request'
     responseFields: []
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null
   -
     custom: []
     httpMethods:
-      - GET
-    uri: 'api/v1/bookings/{reservation_uuid}'
+      - DELETE
+    uri: 'api/v1/bus/holds/{reservation_uuid}'
     metadata:
       custom: []
       groupName: Bus
       groupDescription: |-
 
-        Reservation lifecycle endpoints for the passenger booking flow.
+        Seat hold endpoints for passenger booking.
       subgroup: ''
       subgroupDescription: ''
-      title: 'Retrieve a reservation and its current booking state.'
+      title: 'Release a seat hold.'
       description: |-
-        This endpoint is safe to call after a mobile session is restored. It returns the
-        server-side reservation state instead of requiring the client to rebuild it locally.
+        Cancels a held reservation and frees its seats immediately, before the
+        15-minute hold expiry. Only the user who created the hold may release it.
+        Releasing an already-released or expired hold is a no-op and still
+        returns 204.
+
+        Requires a Sanctum bearer token.
       authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
       Content-Type: application/json
       Accept: application/json
     urlParameters:
@@ -810,8 +1233,20 @@ endpoints:
         exampleWasSpecified: false
         nullable: false
         deprecated: false
+      reservation:
+        custom: []
+        name: reservation
+        description: 'Public UUID of the held reservation.'
+        required: true
+        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
     cleanUrlParameters:
       reservation_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      reservation: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -820,34 +1255,10 @@ endpoints:
     responses:
       -
         custom: []
-        status: 200
-        content: |-
-          {
-            "data": {
-              "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
-              "status": "held",
-              "expires_at": "2026-08-20T08:15:00Z",
-              "total_amount": 25000,
-              "currency": "XOF",
-              "channel": "mobile",
-              "departure_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e",
-              "price_quote_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6f",
-              "passenger_count": 2,
-              "segments": [],
-              "passengers": []
-            }
-          }
+        status: 204
+        content: ''
         headers: []
-        description: 'Reservation details'
-      -
-        custom: []
-        status: 401
-        content: |-
-          {
-            "message": "Unauthenticated."
-          }
-        headers: []
-        description: Unauthenticated
+        description: 'Hold released'
       -
         custom: []
         status: 403
@@ -856,9 +1267,21 @@ endpoints:
             "message": "This action is unauthorized."
           }
         headers: []
-        description: Forbidden
+        description: 'Reservation belongs to another user'
+      -
+        custom: []
+        status: 404
+        content: |-
+          {
+            "message": "No query results for model [App\\Modules\\Booking\\Models\\Reservation]."
+          }
+        headers: []
+        description: 'Reservation not found'
     responseFields: []
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null
@@ -877,7 +1300,7 @@ endpoints:
       subgroupDescription: ''
       title: 'Store passenger details for a reservation.'
       description: ''
-      authenticated: true
+      authenticated: false
       deprecated: false
     headers:
       Content-Type: application/json
@@ -960,7 +1383,7 @@ endpoints:
         name: 'passengers[].document_type'
         description: ''
         required: false
-        example: consular_card
+        example: birth_certificate
         type: string
         enumValues:
           - national_id
@@ -1021,7 +1444,7 @@ endpoints:
           last_name: 'n'
           phone: g
           email: rowan.gulgowski@example.com
-          document_type: consular_card
+          document_type: birth_certificate
           document_number: d
           nationality: lj
           birth_date: '2026-08-26'
@@ -1058,77 +1481,6 @@ endpoints:
           }
         headers: []
         description: 'Passengers stored'
-    responseFields: []
-    auth: []
-    controller: null
-    method: null
-    route: null
-  -
-    custom: []
-    httpMethods:
-      - DELETE
-    uri: 'api/v1/holds/{reservation_uuid}'
-    metadata:
-      custom: []
-      groupName: Bus
-      groupDescription: |-
-
-        Reservation lifecycle endpoints for the passenger booking flow.
-      subgroup: ''
-      subgroupDescription: ''
-      title: 'Release a held reservation and make its seats available again.'
-      description: |-
-        The operation is explicit and idempotent for a reservation that is no longer held.
-        It never releases a paid or ticketed reservation.
-      authenticated: true
-      deprecated: false
-    headers:
-      Content-Type: application/json
-      Accept: application/json
-    urlParameters:
-      reservation_uuid:
-        custom: []
-        name: reservation_uuid
-        description: ''
-        required: true
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-        type: string
-        enumValues: []
-        exampleWasSpecified: false
-        nullable: false
-        deprecated: false
-    cleanUrlParameters:
-      reservation_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-    queryParameters: []
-    cleanQueryParameters: []
-    bodyParameters: []
-    cleanBodyParameters: []
-    fileParameters: []
-    responses:
-      -
-        custom: []
-        status: 204
-        content: ''
-        headers: []
-        description: 'Hold released'
-      -
-        custom: []
-        status: 401
-        content: |-
-          {
-            "message": "Unauthenticated."
-          }
-        headers: []
-        description: Unauthenticated
-      -
-        custom: []
-        status: 403
-        content: |-
-          {
-            "message": "This action is unauthorized."
-          }
-        headers: []
-        description: Forbidden
     responseFields: []
     auth: []
     controller: null

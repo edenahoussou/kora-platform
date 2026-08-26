@@ -183,7 +183,7 @@ class CounterSaleController extends Controller
      */
     private function searchDepartures(array $filters): Collection
     {
-        return $this->departures->search([
+        return $this->departures->searchSellable([
             'date' => $filters['date'],
             'from' => $filters['from'],
             'to' => $filters['to'],
@@ -303,7 +303,7 @@ class CounterSaleController extends Controller
         return [
             'uuid' => $data->departure->uuid,
             'departureDate' => $data->departure->departure_date?->toDateString(),
-            'departureTime' => $data->departure->formattedDepartureTime(),
+            'departureTime' => $data->departure->departure_time,
             'estimatedArrivalAt' => $data->departure->estimated_arrival_at?->toISOString(),
             'status' => (string) $data->departure->getRawOriginal('status'),
             'line' => [

@@ -66,13 +66,6 @@ class CreateSeatHoldAction
             ]);
         }
 
-        $quotedPassengerCount = (int) ($priceQuote->snapshot['passenger_count'] ?? 1);
-        if (count($seatUuids) !== $quotedPassengerCount) {
-            throw ValidationException::withMessages([
-                'seats' => 'Le nombre de sièges doit correspondre au nombre de passagers du devis.',
-            ]);
-        }
-
         if ($originStop->line_id !== $departure->line_id || $destinationStop->line_id !== $departure->line_id) {
             throw ValidationException::withMessages([
                 'origin_stop_uuid' => 'Les arrêts spécifiés n\'appartiennent pas à la ligne de ce départ.',
@@ -107,6 +100,18 @@ class CreateSeatHoldAction
             }
         }
 
+        $occupiedSeatIds = $this->findOccupiedSeatIds->handle($departure, $originStop, $destinationStop);
+
+        foreach ($seats as $seat) {
+            if ($occupiedSeatIds->contains($seat->id)) {
+                throw new SeatUnavailableException(
+                    message: "Le siège {$seat->code} n'est plus disponible sur ce segment.",
+                    conflictingSeatUuid: $seat->uuid,
+                    seatCode: $seat->code,
+                );
+            }
+        }
+
         try {
             return DB::transaction(function () use (
                 $user,
@@ -128,30 +133,7 @@ class CreateSeatHoldAction
                     ]);
                 }
 
-                if ($priceQuote->expires_at && $priceQuote->expires_at->isPast()) {
-                    throw ValidationException::withMessages([
-                        'price_quote_uuid' => 'Le devis tarifaire a expiré.',
-                    ]);
-                }
-
-                $occupiedSeatIds = $this->findOccupiedSeatIds->handle(
-                    $lockedDeparture,
-                    $originStop,
-                    $destinationStop,
-                );
-
-                foreach ($seats as $seat) {
-                    if ($occupiedSeatIds->contains($seat->id)) {
-                        throw new SeatUnavailableException(
-                            message: "Le siège {$seat->code} n'est plus disponible sur ce segment.",
-                            conflictingSeatUuid: $seat->uuid,
-                            seatCode: $seat->code,
-                        );
-                    }
-                }
-
-                $totalAmount = (int) ($priceQuote->snapshot['total_amount']
-                    ?? ($priceQuote->final_amount * $seats->count()));
+                $totalAmount = (int) ($priceQuote->final_amount * $seats->count());
 
                 $reservation = Reservation::create([
                     'user_id' => $user?->id,
@@ -161,7 +143,7 @@ class CreateSeatHoldAction
                     'total_amount' => $totalAmount,
                     'currency' => $priceQuote->currency,
                     'channel' => $channel,
-                    'expires_at' => now()->addMinutes((int) config('kora.booking.hold_ttl_minutes', 15)),
+                    'expires_at' => now()->addMinutes(15),
                     'total_snapshot' => $priceQuote->snapshot,
                 ]);
 
@@ -179,8 +161,7 @@ class CreateSeatHoldAction
                 }
 
                 return $reservation->load([
-                    'departure.line',
-                    'priceQuote',
+                    'departure',
                     'segments.seat',
                     'segments.originStop',
                     'segments.destinationStop',

@@ -11,6 +11,7 @@ use App\Modules\BusNetwork\Http\Requests\ChangeBusStatusRequest;
 use App\Modules\BusNetwork\Http\Requests\StoreBusRequest;
 use App\Modules\BusNetwork\Http\Requests\UpdateBusRequest;
 use App\Modules\BusNetwork\Models\Bus;
+use App\Modules\BusNetwork\Models\BusAmenity;
 use App\Modules\BusNetwork\Models\BusComposition;
 use App\Modules\BusNetwork\Models\BusModel;
 use App\Modules\IdentityAccess\Models\Agency;
@@ -25,7 +26,7 @@ class BusController extends Controller
     public function index(Request $request): Response
     {
         Gate::authorize('viewAny', Bus::class);
-        $query = Bus::query()->with(['agency', 'busModel', 'composition'])->orderBy('registration_number');
+        $query = Bus::query()->with(['agency', 'busModel', 'composition', 'amenities'])->orderBy('registration_number');
         $search = $request->string('q')->trim()->value();
         if ($search !== '') {
             $term = '%'.mb_strtolower($search).'%';
@@ -50,6 +51,7 @@ class BusController extends Controller
             'agencies' => Agency::query()->where('status', 'active')->orderBy('name')->get()->map(fn (Agency $agency): array => ['id' => $agency->id, 'name' => $agency->name]),
             'models' => BusModel::query()->where('status', 'active')->orderBy('brand')->orderBy('name')->get()->map(fn (BusModel $model): array => ['id' => $model->id, 'label' => $model->brand.' '.$model->name]),
             'compositions' => BusComposition::query()->where('status', 'active')->orderBy('seat_count')->get()->map(fn (BusComposition $composition): array => ['id' => $composition->id, 'label' => $composition->name, 'seatCount' => $composition->seat_count]),
+            'amenities' => BusAmenity::query()->where('status', 'active')->ordered()->get()->map(fn (BusAmenity $amenity): array => ['id' => $amenity->id, 'code' => $amenity->code, 'label' => $amenity->label, 'icon' => $amenity->icon]),
             'permissions' => [
                 'canCreate' => Gate::allows('create', Bus::class),
                 'canUpdate' => Gate::allows('update', new Bus),
@@ -66,6 +68,7 @@ class BusController extends Controller
             'agency',
             'busModel',
             'composition',
+            'amenities',
             'seats' => fn ($q) => $q->orderByRaw('LENGTH(code), code'),
             'departures' => fn ($q) => $q->with('line:id,uuid,code,name')->latest('departure_date')->latest('departure_time')->limit(10),
         ]);
@@ -76,6 +79,7 @@ class BusController extends Controller
             'agencies' => Agency::query()->where('status', 'active')->orderBy('name')->get()->map(fn (Agency $agency): array => ['id' => $agency->id, 'name' => $agency->name]),
             'models' => BusModel::query()->where('status', 'active')->orderBy('brand')->orderBy('name')->get()->map(fn (BusModel $model): array => ['id' => $model->id, 'label' => $model->brand.' '.$model->name]),
             'compositions' => BusComposition::query()->where('status', 'active')->orderBy('seat_count')->get()->map(fn (BusComposition $composition): array => ['id' => $composition->id, 'label' => $composition->name, 'seatCount' => $composition->seat_count]),
+            'amenities' => BusAmenity::query()->where('status', 'active')->ordered()->get()->map(fn (BusAmenity $amenity): array => ['id' => $amenity->id, 'code' => $amenity->code, 'label' => $amenity->label, 'icon' => $amenity->icon]),
             'timeline' => $this->buildTimeline($bus),
             'permissions' => [
                 'canUpdate' => Gate::allows('update', $bus),
@@ -121,6 +125,8 @@ class BusController extends Controller
             'seatCount' => $bus->seat_count,
             'agencyId' => $bus->agency_id,
             'agencyName' => $bus->agency?->name,
+            'amenityIds' => $bus->amenities->pluck('id')->all(),
+            'amenityLabels' => $bus->amenities->pluck('label')->all(),
             'status' => BusStatus::from((string) $bus->getRawOriginal('status'))->value,
         ];
     }
@@ -146,7 +152,7 @@ class BusController extends Controller
                 'lineCode' => $departure->line ? $departure->line->code : '—',
                 'lineName' => $departure->line ? $departure->line->name : '—',
                 'departureDate' => $departure->departure_date,
-                'departureTime' => $departure->formattedDepartureTime(),
+                'departureTime' => $departure->departure_time,
                 'estimatedArrivalAt' => $departure->estimated_arrival_at,
                 'status' => (string) $departure->getRawOriginal('status'),
             ];
@@ -161,6 +167,14 @@ class BusController extends Controller
         $agencyName = $bus->agency ? $bus->agency->name : '—';
         $agencyCity = $bus->agency ? $bus->agency->city : null;
         $agencyCountry = $bus->agency ? $bus->agency->country : null;
+
+        $amenities = $bus->amenities->map(fn (BusAmenity $amenity): array => [
+            'id' => $amenity->id,
+            'uuid' => $amenity->uuid,
+            'code' => $amenity->code,
+            'label' => $amenity->label,
+            'icon' => $amenity->icon,
+        ])->all();
 
         return [
             'uuid' => $bus->uuid,
@@ -178,6 +192,8 @@ class BusController extends Controller
             'agencyName' => $agencyName,
             'agencyCity' => $agencyCity,
             'agencyCountry' => $agencyCountry,
+            'amenities' => $amenities,
+            'amenityIds' => $bus->amenities->pluck('id')->all(),
             'status' => BusStatus::from((string) $bus->getRawOriginal('status'))->value,
             'seats' => $seats,
             'departures' => $departures,

@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Booking\Http\Controllers\CounterSaleController;
+use App\Modules\BusNetwork\Http\Controllers\BusAmenityController;
 use App\Modules\BusNetwork\Http\Controllers\BusController;
 use App\Modules\BusNetwork\Http\Controllers\LineController;
 use App\Modules\Cash\Http\Controllers\CashMediaController;
@@ -74,6 +75,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('fleet', [BusController::class, 'store'])->name('fleet.store');
     Route::put('fleet/{bus:uuid}', [BusController::class, 'update'])->name('fleet.update');
     Route::patch('fleet/{bus:uuid}/status', [BusController::class, 'changeStatus'])->name('fleet.status');
+
+    // Commodités (référentiel réutilisable, table intermédiaire bus <-> commodité)
+    // Route top-level (pas nichée sous /fleet) pour ne pas être capturée par le lien
+    // "Flotte" de la sidebar (isActive() fait un startsWith sur le pathname).
+    Route::get('amenities', [BusAmenityController::class, 'index'])->name('amenities.index');
+    Route::post('amenities', [BusAmenityController::class, 'store'])->name('amenities.store');
+    Route::put('amenities/{amenity:uuid}', [BusAmenityController::class, 'update'])->name('amenities.update');
+    Route::patch('amenities/{amenity:uuid}/status', [BusAmenityController::class, 'changeStatus'])->name('amenities.status');
 
     // V1 MVP — Agences (Ressources — référentiel parent de la flotte et des utilisateurs)
     Route::get('agencies', [AgencyController::class, 'index'])->name('agencies.index');

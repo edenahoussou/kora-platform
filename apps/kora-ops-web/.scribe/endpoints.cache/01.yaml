@@ -46,7 +46,7 @@ endpoints:
         name: purpose
         description: ''
         required: true
-        example: login_new_device
+        example: pin_reset
         type: string
         enumValues:
           - registration
@@ -58,7 +58,7 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       email: gbailey@example.net
-      purpose: login_new_device
+      purpose: pin_reset
     fileParameters: []
     responses: []
     responseFields: []
@@ -107,7 +107,7 @@ endpoints:
         name: purpose
         description: ''
         required: true
-        example: login_new_device
+        example: account_unlock
         type: string
         enumValues:
           - registration
@@ -130,7 +130,7 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       otp_challenge_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-      purpose: login_new_device
+      purpose: account_unlock
       code: '569775'
     fileParameters: []
     responses: []
@@ -449,7 +449,7 @@ endpoints:
         name: platform
         description: ''
         required: true
-        example: unknown
+        example: android
         type: string
         enumValues:
           - android
@@ -507,7 +507,7 @@ endpoints:
       email: gbailey@example.net
       pin: '9775'
       device_name: 'n'
-      platform: unknown
+      platform: android
       device_fingerprint: g
       push_token: z
       otp_challenge_uuid: 977e5426-8d13-3824-86aa-b092f8ae52c5
@@ -558,7 +558,7 @@ endpoints:
         name: provider
         description: ''
         required: true
-        example: facebook
+        example: google
         type: string
         enumValues:
           - google
@@ -594,7 +594,7 @@ endpoints:
         name: platform
         description: ''
         required: true
-        example: unknown
+        example: android
         type: string
         enumValues:
           - android
@@ -627,10 +627,10 @@ endpoints:
         nullable: true
         deprecated: false
     cleanBodyParameters:
-      provider: facebook
+      provider: google
       provider_token: b
       device_name: 'n'
-      platform: unknown
+      platform: android
       device_fingerprint: g
       push_token: z
     fileParameters: []
@@ -1014,7 +1014,7 @@ endpoints:
         name: theme
         description: ''
         required: false
-        example: light
+        example: system
         type: string
         enumValues:
           - light
@@ -1024,11 +1024,11 @@ endpoints:
         nullable: true
         deprecated: false
     cleanBodyParameters:
-      push_notifications: true
+      push_notifications: false
       whatsapp_notifications: true
       email_notifications: false
       locale: fr
-      theme: light
+      theme: system
     fileParameters: []
     responses: []
     responseFields: []

@@ -54,7 +54,6 @@ fi
 
 echo "Running migrations and seeders on $DB_DATABASE"
 
-APP_ENV=testing \
 DB_CONNECTION=pgsql \
 DB_HOST="$DB_HOST" \
 DB_PORT="$DB_PORT" \
@@ -68,7 +67,6 @@ php artisan migrate:fresh --seed --force
 
 echo "Running PostgreSQL-backed tests: $TEST_PATH"
 
-APP_ENV=testing \
 DB_CONNECTION=pgsql \
 DB_HOST="$DB_HOST" \
 DB_PORT="$DB_PORT" \

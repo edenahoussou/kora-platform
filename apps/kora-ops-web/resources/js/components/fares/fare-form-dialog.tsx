@@ -96,7 +96,12 @@ export function FareFormDialog({
         [lines, selectedLineUuid],
     );
 
-    const availableStops = selectedLine?.stops ?? [];
+    // RAPPEL CORRECTION ICI : Envelopper dans useMemo pour stabiliser la référence du tableau
+    // Cela empêche la création d'un nouveau tableau [] à chaque rendu
+    const availableStops = useMemo(
+        () => selectedLine?.stops ?? [],
+        [selectedLine],
+    );
 
     const selectedOrigin = useMemo(
         () => availableStops.find((s) => s.uuid === selectedOriginUuid),
@@ -115,6 +120,7 @@ export function FareFormDialog({
     }, [availableStops, selectedOrigin]);
 
     // Origines possibles : exclure la destination déjà sélectionnée
+    // (Plus besoin de useMemo ici car availableStops est déjà stable, mais on le garde pour la cohérence)
     const originStops = useMemo(() => availableStops, [availableStops]);
 
     return (

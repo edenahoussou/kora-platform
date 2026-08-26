@@ -30,7 +30,7 @@ class DepartureController extends Controller
         Gate::authorize('viewAny', Departure::class);
 
         $query = Departure::query()
-            ->with(['line:id,uuid,code,name', 'bus:id,uuid,registration_number,seat_count', 'agency:id,uuid,name,city', 'driver:id,name', 'conductor:id,name'])
+            ->with(['line:id,uuid,code,name', 'bus:id,uuid,registration_number,seat_count', 'agency:id,uuid,name,city', 'driver:id,uuid,name', 'conductor:id,uuid,name'])
             ->orderBy('departure_date', 'desc')
             ->orderBy('departure_time');
 
@@ -101,8 +101,8 @@ class DepartureController extends Controller
             'bus.agency:id,uuid,name,city',
             'bus.seats' => fn ($q) => $q->orderByRaw('LENGTH(code), code'),
             'agency:id,uuid,name,city,country',
-            'driver:id,name',
-            'conductor:id,name',
+            'driver:id,uuid,name',
+            'conductor:id,uuid,name',
             'creator:id,name',
         ]);
 
@@ -182,7 +182,7 @@ class DepartureController extends Controller
             'agencyName' => $departure->agency->name ?? '—',
             'agencyCity' => $departure->agency->city ?? null,
             'departureDate' => $departure->departure_date?->format('Y-m-d'),
-            'departureTime' => $departure->formattedDepartureTime(),
+            'departureTime' => $departure->departure_time,
             'delayMinutes' => (int) $departure->delay_minutes,
             'delayReason' => $departure->delay_reason,
             'delayRecordedAt' => $departure->delay_recorded_at?->toIso8601String(),
@@ -242,7 +242,7 @@ class DepartureController extends Controller
             'agencyCity' => $departure->agency->city,
             'agencyCountry' => $departure->agency->country,
             'departureDate' => $departure->departure_date?->format('Y-m-d'),
-            'departureTime' => $departure->formattedDepartureTime(),
+            'departureTime' => $departure->departure_time,
             'delayMinutes' => (int) $departure->delay_minutes,
             'delayReason' => $departure->delay_reason,
             'delayRecordedAt' => $departure->delay_recorded_at?->toIso8601String(),
@@ -295,6 +295,7 @@ class DepartureController extends Controller
             ->where('status', 'active')
             ->with('agency:id,uuid')
             ->orderBy('registration_number')
+            ->with('agency:id,uuid')
             ->get()
             ->map(fn (Bus $bus): array => [
                 'uuid' => (string) $bus->uuid,

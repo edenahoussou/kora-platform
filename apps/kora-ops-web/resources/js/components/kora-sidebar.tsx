@@ -134,6 +134,7 @@ const navItems: NavEntry[] = [
         children: [
             { title: 'Agences', href: '/agencies' },
             { title: 'Flotte', href: '/fleet' },
+            { title: 'Commodités', href: '/amenities' },
             { title: 'Maintenance', href: '/maintenance' },
             { title: 'Garages agréés', href: '/garages' },
             { title: 'RH opérationnelle', href: '/hr' },

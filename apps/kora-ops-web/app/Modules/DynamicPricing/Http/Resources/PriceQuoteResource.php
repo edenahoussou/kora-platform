@@ -22,9 +22,6 @@ class PriceQuoteResource extends JsonResource
         return [
             'uuid' => $this->uuid,
             'departure_uuid' => $this->departure?->uuid,
-            'origin_stop_uuid' => $this->originStop?->uuid,
-            'destination_stop_uuid' => $this->destinationStop?->uuid,
-            'service_class_uuid' => $this->fare?->serviceClass?->uuid,
             'base_amount' => $this->base_amount,
             'coefficient' => (float) $this->coefficient,
             'final_amount' => $this->final_amount,

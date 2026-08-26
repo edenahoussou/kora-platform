@@ -24,8 +24,16 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import amenitiesRoutes from '@/routes/amenities';
 import fleet from '@/routes/fleet';
 import type { BreadcrumbItem } from '@/types';
+
+type AmenityOption = {
+    id: number;
+    code: string;
+    label: string;
+    icon: string | null;
+};
 
 type PageProps = {
     buses: {
@@ -41,6 +49,7 @@ type PageProps = {
     agencies: { id: number; name: string }[];
     models: { id: number; label: string }[];
     compositions: { id: number; label: string; seatCount: number }[];
+    amenities: AmenityOption[];
     permissions: {
         canCreate: boolean;
         canUpdate: boolean;
@@ -66,6 +75,7 @@ export default function FleetPage({
     agencies,
     models,
     compositions,
+    amenities,
     permissions,
 }: PageProps) {
     const [open, setOpen] = useState(false);
@@ -157,6 +167,40 @@ export default function FleetPage({
                     {bus.agencyName ?? 'Non rattaché'}
                 </span>
             ),
+        },
+        {
+            key: 'amenities',
+            header: 'Équipements',
+            render: (bus) => {
+                const labels = bus.amenityLabels ?? [];
+
+                if (labels.length === 0) {
+                    return (
+                        <span className="text-xs text-muted-foreground">—</span>
+                    );
+                }
+
+                const shown = labels.slice(0, 2);
+                const rest = labels.length - shown.length;
+
+                return (
+                    <div className="flex flex-wrap gap-1.5">
+                        {shown.map((label) => (
+                            <span
+                                key={label}
+                                className="rounded-full bg-muted px-2 py-1 text-[0.6875rem] font-medium text-foreground"
+                            >
+                                {label}
+                            </span>
+                        ))}
+                        {rest > 0 && (
+                            <span className="rounded-full bg-muted px-2 py-1 text-[0.6875rem] font-medium text-muted-foreground">
+                                +{rest}
+                            </span>
+                        )}
+                    </div>
+                );
+            },
         },
         {
             key: 'status',
@@ -267,16 +311,28 @@ export default function FleetPage({
                     </p>
                 </div>
                 {permissions.canCreate && (
-                    <Button
-                        onClick={() => {
-                            setSelected(null);
-                            setOpen(true);
-                        }}
-                        className="h-11 rounded-[0.75rem] bg-gold px-5 font-medium text-[var(--kora)] hover:bg-[var(--kora)] hover:text-white"
-                    >
-                        <Plus className="size-4" />
-                        Nouveau bus
-                    </Button>
+                    <div className="flex gap-2.5">
+                        <Button
+                            variant="ghost"
+                            onClick={() =>
+                                router.get(amenitiesRoutes.index.url())
+                            }
+                            className="h-11 rounded-[0.75rem] border border-border/60 px-5 font-medium text-foreground"
+                        >
+                            <Wrench className="size-4" />
+                            Commodités
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                setSelected(null);
+                                setOpen(true);
+                            }}
+                            className="h-11 rounded-[0.75rem] bg-gold px-5 font-medium text-[var(--kora)] hover:bg-[var(--kora)] hover:text-white"
+                        >
+                            <Plus className="size-4" />
+                            Nouveau bus
+                        </Button>
+                    </div>
                 )}
             </div>
             <KoraFilterBar
@@ -306,6 +362,7 @@ export default function FleetPage({
                 agencies={agencies}
                 models={models}
                 compositions={compositions}
+                amenities={amenities}
                 onOpenChange={setOpen}
             />
         </>

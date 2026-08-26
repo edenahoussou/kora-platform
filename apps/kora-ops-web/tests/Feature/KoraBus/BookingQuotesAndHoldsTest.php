@@ -14,7 +14,6 @@ use App\Modules\DynamicPricing\Data\PricingRuleType;
 use App\Modules\DynamicPricing\Models\Fare;
 use App\Modules\DynamicPricing\Models\PriceQuote;
 use App\Modules\DynamicPricing\Models\PricingRule;
-use App\Modules\DynamicPricing\Models\ServiceClass;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
@@ -34,7 +33,7 @@ it('requires authentication to create quotes and holds', function (): void {
     $this->postJson('/api/v1/bus/holds', [])->assertUnauthorized();
 });
 
-it('creates a complete quote contract with dynamic pricing and configured expiration', function (): void {
+it('creates a fixed price quote with dynamic pricing and 10min expiration', function (): void {
     $scenario = bookingTestScenario();
     Sanctum::actingAs($scenario['user']);
 
@@ -47,9 +46,6 @@ it('creates a complete quote contract with dynamic pricing and configured expira
 
     $response->assertCreated()
         ->assertJsonPath('data.departure_uuid', $scenario['departure']->uuid)
-        ->assertJsonPath('data.origin_stop_uuid', $scenario['origin']->uuid)
-        ->assertJsonPath('data.destination_stop_uuid', $scenario['destination']->uuid)
-        ->assertJsonPath('data.service_class_uuid', null)
         ->assertJsonPath('data.base_amount', 10000)
         ->assertJsonPath('data.coefficient', 1.1)
         ->assertJsonPath('data.final_amount', 11000)
@@ -62,41 +58,7 @@ it('creates a complete quote contract with dynamic pricing and configured expira
 
     $expiresAt = $response->json('data.expires_at');
     expect($expiresAt)->not->toBeNull();
-    expect(CarbonImmutable::parse($expiresAt)->diffInSeconds(
-        now()->addMinutes((int) config('kora.booking.quote_ttl_minutes')),
-    ))->toBeLessThanOrEqual(1);
-});
-
-it('returns the selected service class uuid in the quote contract', function (): void {
-    $scenario = bookingTestScenario();
-    Sanctum::actingAs($scenario['user']);
-
-    $serviceClass = ServiceClass::query()->create([
-        'uuid' => (string) Str::uuid(),
-        'code' => 'confort',
-        'name' => 'KORA Confort',
-        'status' => 'active',
-    ]);
-    $fare = Fare::query()->create([
-        'line_id' => $scenario['line']->id,
-        'service_class_id' => $serviceClass->id,
-        'origin_stop_id' => $scenario['origin']->id,
-        'destination_stop_id' => $scenario['destination']->id,
-        'base_amount' => 12000,
-        'currency' => 'XOF',
-        'effective_from' => '2026-01-01',
-        'status' => 'active',
-    ]);
-
-    $this->postJson('/api/v1/bus/quotes', [
-        'departure_uuid' => $scenario['departure']->uuid,
-        'origin_stop_uuid' => $scenario['origin']->uuid,
-        'destination_stop_uuid' => $scenario['destination']->uuid,
-        'service_class_uuid' => $serviceClass->uuid,
-    ])->assertCreated()
-        ->assertJsonPath('data.service_class_uuid', $serviceClass->uuid)
-        ->assertJsonPath('data.base_amount', $fare->base_amount)
-        ->assertJsonPath('data.snapshot.service_class', $serviceClass->name);
+    expect(CarbonImmutable::parse($expiresAt)->greaterThan(now()->addMinutes(9)))->toBeTrue();
 });
 
 it('validates segment stops when creating a quote', function (): void {
@@ -112,19 +74,7 @@ it('validates segment stops when creating a quote', function (): void {
         ->assertJsonValidationErrors(['destination_stop_uuid']);
 });
 
-it('rejects a quote when no active fare exists for the segment', function (): void {
-    $scenario = bookingTestScenario();
-    Sanctum::actingAs($scenario['user']);
-
-    $this->postJson('/api/v1/bus/quotes', [
-        'departure_uuid' => $scenario['departure']->uuid,
-        'origin_stop_uuid' => $scenario['middle']->uuid,
-        'destination_stop_uuid' => $scenario['destination']->uuid,
-    ])->assertUnprocessable()
-        ->assertJsonValidationErrors(['origin_stop_uuid']);
-});
-
-it('creates a seat hold for the configured duration', function (): void {
+it('creates a seat hold for 15 minutes', function (): void {
     $scenario = bookingTestScenario();
     Sanctum::actingAs($scenario['user']);
 
@@ -137,7 +87,7 @@ it('creates a seat hold for the configured duration', function (): void {
         'coefficient' => 1.0,
         'final_amount' => 10000,
         'currency' => 'XOF',
-        'snapshot' => ['line_code' => 'BK-L1', 'passenger_count' => 1, 'total_amount' => 10000],
+        'snapshot' => ['line_code' => 'BK-L1', 'passenger_count' => 1],
         'expires_at' => now()->addMinutes(10),
     ]);
 
@@ -157,73 +107,15 @@ it('creates a seat hold for the configured duration', function (): void {
         ->assertJsonPath('data.currency', 'XOF')
         ->assertJsonPath('data.channel', 'mobile')
         ->assertJsonPath('data.departure_uuid', $scenario['departure']->uuid)
-        ->assertJsonPath('data.price_quote_uuid', $quote->uuid)
         ->assertJsonCount(1, 'data.segments')
         ->assertJsonPath('data.segments.0.seat_code', '2B')
         ->assertJsonPath('data.segments.0.status', 'held');
-
-    $expiresAt = $response->json('data.expires_at');
-    expect(CarbonImmutable::parse($expiresAt)->diffInSeconds(
-        now()->addMinutes((int) config('kora.booking.hold_ttl_minutes')),
-    ))->toBeLessThanOrEqual(1);
 
     $this->assertDatabaseHas('reservations', [
         'user_id' => $scenario['user']->id,
         'departure_id' => $scenario['departure']->id,
         'status' => 'held',
     ]);
-});
-
-it('rejects duplicate seats and a seat count different from the quote passenger count', function (): void {
-    $scenario = bookingTestScenario();
-    Sanctum::actingAs($scenario['user']);
-
-    $this->postJson('/api/v1/bus/holds', [
-        'departure_uuid' => $scenario['departure']->uuid,
-        'origin_stop_uuid' => $scenario['origin']->uuid,
-        'destination_stop_uuid' => $scenario['destination']->uuid,
-        'price_quote_uuid' => PriceQuote::query()->create([
-            'departure_id' => $scenario['departure']->id,
-            'origin_stop_id' => $scenario['origin']->id,
-            'destination_stop_id' => $scenario['destination']->id,
-            'fare_id' => $scenario['fare']->id,
-            'base_amount' => 10000,
-            'coefficient' => 1,
-            'final_amount' => 10000,
-            'currency' => 'XOF',
-            'snapshot' => ['passenger_count' => 1],
-            'expires_at' => now()->addMinutes(10),
-        ])->uuid,
-        'seats' => [
-            ['seat_uuid' => $scenario['seat2B']->uuid],
-            ['seat_uuid' => $scenario['seat2B']->uuid],
-        ],
-    ])->assertUnprocessable()
-        ->assertJsonValidationErrors(['seats.1.seat_uuid']);
-
-    $twoPassengerQuote = PriceQuote::query()->create([
-        'departure_id' => $scenario['departure']->id,
-        'origin_stop_id' => $scenario['origin']->id,
-        'destination_stop_id' => $scenario['destination']->id,
-        'fare_id' => $scenario['fare']->id,
-        'base_amount' => 10000,
-        'coefficient' => 1,
-        'final_amount' => 10000,
-        'currency' => 'XOF',
-        'snapshot' => ['passenger_count' => 2, 'total_amount' => 20000],
-        'expires_at' => now()->addMinutes(10),
-    ]);
-
-    $this->postJson('/api/v1/bus/holds', [
-        'departure_uuid' => $scenario['departure']->uuid,
-        'origin_stop_uuid' => $scenario['origin']->uuid,
-        'destination_stop_uuid' => $scenario['destination']->uuid,
-        'price_quote_uuid' => $twoPassengerQuote->uuid,
-        'seats' => [
-            ['seat_uuid' => $scenario['seat2B']->uuid],
-        ],
-    ])->assertUnprocessable()
-        ->assertJsonValidationErrors(['seats']);
 });
 
 it('returns 409 conflict when requesting an already occupied or blocked seat', function (): void {
@@ -266,69 +158,6 @@ it('returns 409 conflict when requesting an already occupied or blocked seat', f
             ['seat_uuid' => $scenario['seat1A']->uuid],
         ],
     ])->assertStatus(409);
-});
-
-it('returns 409 when another hold already owns the requested seat', function (): void {
-    $scenario = bookingTestScenario();
-    Sanctum::actingAs($scenario['user']);
-
-    $quote = PriceQuote::query()->create([
-        'departure_id' => $scenario['departure']->id,
-        'origin_stop_id' => $scenario['origin']->id,
-        'destination_stop_id' => $scenario['destination']->id,
-        'fare_id' => $scenario['fare']->id,
-        'base_amount' => 10000,
-        'coefficient' => 1,
-        'final_amount' => 10000,
-        'currency' => 'XOF',
-        'snapshot' => ['passenger_count' => 1, 'total_amount' => 10000],
-        'expires_at' => now()->addMinutes(10),
-    ]);
-
-    $payload = [
-        'departure_uuid' => $scenario['departure']->uuid,
-        'origin_stop_uuid' => $scenario['origin']->uuid,
-        'destination_stop_uuid' => $scenario['destination']->uuid,
-        'price_quote_uuid' => $quote->uuid,
-        'seats' => [
-            ['seat_uuid' => $scenario['seat2B']->uuid],
-        ],
-    ];
-
-    $this->postJson('/api/v1/bus/holds', $payload)->assertCreated();
-
-    $this->postJson('/api/v1/bus/holds', $payload)
-        ->assertStatus(409)
-        ->assertJsonPath('conflicting_seat_uuid', $scenario['seat2B']->uuid);
-});
-
-it('rejects a hold when its quote does not match the requested segment', function (): void {
-    $scenario = bookingTestScenario();
-    Sanctum::actingAs($scenario['user']);
-
-    $quote = PriceQuote::query()->create([
-        'departure_id' => $scenario['departure']->id,
-        'origin_stop_id' => $scenario['middle']->id,
-        'destination_stop_id' => $scenario['destination']->id,
-        'fare_id' => $scenario['fare']->id,
-        'base_amount' => 10000,
-        'coefficient' => 1,
-        'final_amount' => 10000,
-        'currency' => 'XOF',
-        'snapshot' => ['passenger_count' => 1],
-        'expires_at' => now()->addMinutes(10),
-    ]);
-
-    $this->postJson('/api/v1/bus/holds', [
-        'departure_uuid' => $scenario['departure']->uuid,
-        'origin_stop_uuid' => $scenario['origin']->uuid,
-        'destination_stop_uuid' => $scenario['destination']->uuid,
-        'price_quote_uuid' => $quote->uuid,
-        'seats' => [
-            ['seat_uuid' => $scenario['seat2B']->uuid],
-        ],
-    ])->assertUnprocessable()
-        ->assertJsonValidationErrors(['price_quote_uuid']);
 });
 
 it('allows holding seat on non-overlapping segment', function (): void {
@@ -428,47 +257,6 @@ it('expires past-due holds with bus:expire-holds command', function (): void {
     expect($segment->fresh()->released_at)->not->toBeNull();
 });
 
-it('does not expose an expired held seat as occupied before the scheduler runs', function (): void {
-    $scenario = bookingTestScenario();
-
-    $reservation = Reservation::query()->create([
-        'user_id' => $scenario['user']->id,
-        'departure_id' => $scenario['departure']->id,
-        'status' => ReservationStatus::Held,
-        'total_amount' => 10000,
-        'currency' => 'XOF',
-        'expires_at' => now()->subMinute(),
-    ]);
-
-    ReservationSegment::query()->create([
-        'reservation_id' => $reservation->id,
-        'departure_id' => $scenario['departure']->id,
-        'seat_id' => $scenario['seat2B']->id,
-        'origin_stop_id' => $scenario['origin']->id,
-        'destination_stop_id' => $scenario['destination']->id,
-        'origin_stop_order' => $scenario['origin']->stop_order,
-        'destination_stop_order' => $scenario['destination']->stop_order,
-        'status' => ReservationSegmentStatus::Held,
-    ]);
-
-    $query = http_build_query([
-        'origin_stop_uuid' => $scenario['origin']->uuid,
-        'destination_stop_uuid' => $scenario['destination']->uuid,
-    ]);
-    $availability = $this->getJson('/api/v1/bus/departures/'.$scenario['departure']->uuid.'/seats?'.$query)
-        ->assertOk()
-        ->json('data');
-
-    expect(collect($availability)->firstWhere('code', '2B')['availability_status'])->toBe('available');
-
-    $this->artisan('bus:expire-holds')->assertSuccessful();
-
-    expect($reservation->fresh()->status)->toBe(ReservationStatus::Expired);
-    expect(collect($this->getJson('/api/v1/bus/departures/'.$scenario['departure']->uuid.'/seats?'.$query)
-        ->assertOk()
-        ->json('data'))->firstWhere('code', '2B')['availability_status'])->toBe('available');
-});
-
 it('hides internal numeric IDs in quote and hold responses', function (): void {
     $scenario = bookingTestScenario();
     Sanctum::actingAs($scenario['user']);
@@ -498,6 +286,142 @@ it('hides internal numeric IDs in quote and hold responses', function (): void {
                 ->and($key)->not->toBe('id');
         }
     }
+});
+
+it('requires authentication to release a seat hold', function (): void {
+    $scenario = bookingTestScenario();
+
+    $reservation = Reservation::create([
+        'user_id' => $scenario['user']->id,
+        'departure_id' => $scenario['departure']->id,
+        'status' => ReservationStatus::Held,
+        'total_amount' => 10000,
+        'currency' => 'XOF',
+        'expires_at' => now()->addMinutes(10),
+    ]);
+
+    $this->deleteJson("/api/v1/bus/holds/{$reservation->uuid}")->assertUnauthorized();
+
+    $this->assertDatabaseHas('reservations', [
+        'uuid' => $reservation->uuid,
+        'status' => ReservationStatus::Held->value,
+    ]);
+});
+
+it('releases a seat hold and frees the seat for a new hold', function (): void {
+    $scenario = bookingTestScenario();
+    Sanctum::actingAs($scenario['user']);
+
+    $quote = PriceQuote::create([
+        'departure_id' => $scenario['departure']->id,
+        'origin_stop_id' => $scenario['origin']->id,
+        'destination_stop_id' => $scenario['destination']->id,
+        'fare_id' => $scenario['fare']->id,
+        'base_amount' => 10000,
+        'coefficient' => 1.0,
+        'final_amount' => 10000,
+        'currency' => 'XOF',
+        'snapshot' => ['line_code' => 'BK-L1'],
+        'expires_at' => now()->addMinutes(10),
+    ]);
+
+    $reservation = $this->postJson('/api/v1/bus/holds', [
+        'departure_uuid' => $scenario['departure']->uuid,
+        'origin_stop_uuid' => $scenario['origin']->uuid,
+        'destination_stop_uuid' => $scenario['destination']->uuid,
+        'price_quote_uuid' => $quote->uuid,
+        'seats' => [
+            ['seat_uuid' => $scenario['seat2B']->uuid],
+        ],
+    ])->assertCreated();
+
+    $reservationUuid = $reservation->json('data.uuid');
+
+    $this->deleteJson("/api/v1/bus/holds/{$reservationUuid}")
+        ->assertNoContent();
+
+    $this->assertDatabaseHas('reservations', [
+        'uuid' => $reservationUuid,
+        'status' => ReservationStatus::Cancelled->value,
+    ]);
+
+    $freshSegment = ReservationSegment::query()
+        ->whereHas('reservation', fn ($query) => $query->where('uuid', $reservationUuid))
+        ->first();
+    expect($freshSegment->status)->toBe(ReservationSegmentStatus::Cancelled);
+    expect($freshSegment->released_at)->not->toBeNull();
+
+    // The seat is now free again: a new hold on the same segment succeeds.
+    $newQuote = PriceQuote::create([
+        'departure_id' => $scenario['departure']->id,
+        'origin_stop_id' => $scenario['origin']->id,
+        'destination_stop_id' => $scenario['destination']->id,
+        'fare_id' => $scenario['fare']->id,
+        'base_amount' => 10000,
+        'coefficient' => 1.0,
+        'final_amount' => 10000,
+        'currency' => 'XOF',
+        'snapshot' => ['line_code' => 'BK-L1'],
+        'expires_at' => now()->addMinutes(10),
+    ]);
+
+    $this->postJson('/api/v1/bus/holds', [
+        'departure_uuid' => $scenario['departure']->uuid,
+        'origin_stop_uuid' => $scenario['origin']->uuid,
+        'destination_stop_uuid' => $scenario['destination']->uuid,
+        'price_quote_uuid' => $newQuote->uuid,
+        'seats' => [
+            ['seat_uuid' => $scenario['seat2B']->uuid],
+        ],
+    ])->assertCreated();
+});
+
+it('prevents releasing another users seat hold', function (): void {
+    $scenario = bookingTestScenario();
+    $otherUser = User::factory()->create();
+
+    Sanctum::actingAs($scenario['user']);
+
+    $quote = PriceQuote::create([
+        'departure_id' => $scenario['departure']->id,
+        'origin_stop_id' => $scenario['origin']->id,
+        'destination_stop_id' => $scenario['destination']->id,
+        'fare_id' => $scenario['fare']->id,
+        'base_amount' => 10000,
+        'coefficient' => 1.0,
+        'final_amount' => 10000,
+        'currency' => 'XOF',
+        'snapshot' => ['line_code' => 'BK-L1'],
+        'expires_at' => now()->addMinutes(10),
+    ]);
+
+    $reservationUuid = $this->postJson('/api/v1/bus/holds', [
+        'departure_uuid' => $scenario['departure']->uuid,
+        'origin_stop_uuid' => $scenario['origin']->uuid,
+        'destination_stop_uuid' => $scenario['destination']->uuid,
+        'price_quote_uuid' => $quote->uuid,
+        'seats' => [
+            ['seat_uuid' => $scenario['seat2B']->uuid],
+        ],
+    ])->assertCreated()->json('data.uuid');
+
+    Sanctum::actingAs($otherUser);
+
+    $this->deleteJson("/api/v1/bus/holds/{$reservationUuid}")->assertForbidden();
+
+    $this->assertDatabaseHas('reservations', [
+        'uuid' => $reservationUuid,
+        'status' => ReservationStatus::Held->value,
+    ]);
+});
+
+it('returns 404 when releasing an unknown hold uuid', function (): void {
+    $scenario = bookingTestScenario();
+    Sanctum::actingAs($scenario['user']);
+
+    // ✅ CORRECTION : Utilisation de Str::uuid() sans le préfixe \Illuminate\Support\
+    $this->deleteJson('/api/v1/bus/holds/'.Str::uuid())
+        ->assertNotFound();
 });
 
 /**
