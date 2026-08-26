@@ -3,15 +3,7 @@
 namespace App\Modules\Booking\Http\Resources;
 
 use App\Modules\Booking\Models\Reservation;
-<<<<<<< HEAD
-<<<<<<< HEAD
-use App\Modules\BusNetwork\Http\Resources\LineResource;
 use App\Modules\Ticketing\Data\TicketIssuanceStatus;
-=======
->>>>>>> 752c4ce (feat: implement bus amenity management system)
-=======
-use App\Modules\Ticketing\Data\TicketIssuanceStatus;
->>>>>>> ce91d81 (Refactor code structure for improved readability and maintainability)
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -25,14 +17,13 @@ class ReservationResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        $ticketIssuanceStatus = TicketIssuanceStatus::tryFrom((string) $this->getRawOriginal('ticket_issuance_status'));
+        $rawStatus = (string) $this->getRawOriginal('ticket_issuance_status');
+        $ticketStatus = TicketIssuanceStatus::tryFrom($rawStatus) ?? TicketIssuanceStatus::NotStarted;
 
         return [
             'uuid' => $this->uuid,
             'status' => $this->status->value,
-            'ticket_issuance_status' => $ticketIssuanceStatus instanceof TicketIssuanceStatus
-                ? $ticketIssuanceStatus->value
-                : TicketIssuanceStatus::NotStarted->value,
+            'ticket_issuance_status' => $ticketStatus->value,
             'ticket_issued_at' => $this->ticket_issued_at?->toIso8601String(),
             'expires_at' => $this->expires_at?->toIso8601String(),
             'total_amount' => $this->total_amount,

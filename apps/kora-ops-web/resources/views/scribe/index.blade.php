@@ -595,22 +595,14 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-<<<<<<< HEAD
-    --get "http://kora-ops-web.local/api/v1/bus/lines/2c72be75-333a-4272-b6df-a355fcd62eb7" \
-=======
     --get "http://localhost:8000/api/v1/bus/lines/f3e58eb2-66aa-4fee-9e98-f5dd59054e7e" \
->>>>>>> 752c4ce (feat: implement bus amenity management system)
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-<<<<<<< HEAD
-    "http://kora-ops-web.local/api/v1/bus/lines/2c72be75-333a-4272-b6df-a355fcd62eb7"
-=======
     "http://localhost:8000/api/v1/bus/lines/f3e58eb2-66aa-4fee-9e98-f5dd59054e7e"
->>>>>>> 752c4ce (feat: implement bus amenity management system)
 );
 
 const headers = {
@@ -757,12 +749,6 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="uuid"                data-endpoint="GETapi-v1-bus-lines--uuid-"
-<<<<<<< HEAD
-               value="2c72be75-333a-4272-b6df-a355fcd62eb7"
-               data-component="url">
-    <br>
-<p>Example: <code>2c72be75-333a-4272-b6df-a355fcd62eb7</code></p>
-=======
                value="f3e58eb2-66aa-4fee-9e98-f5dd59054e7e"
                data-component="url">
     <br>
@@ -779,7 +765,6 @@ You can check the Dev Tools console for debugging information.</code></pre>
                data-component="url">
     <br>
 <p>Public UUID of the line. Example: <code>9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f</code></p>
->>>>>>> 752c4ce (feat: implement bus amenity management system)
             </div>
                     </form>
 
@@ -801,10 +786,6 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Accept: application/json" \
     --data "{
     \"date\": \"2026-08-26\",
-<<<<<<< HEAD
-    \"from\": \"b\",
-    \"to\": \"n\"
-=======
     \"line\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
     \"from\": \"g\",
     \"to\": \"z\",
@@ -812,7 +793,6 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"destination_city\": \"i\",
     \"per_page\": 8,
     \"page\": 16
->>>>>>> 752c4ce (feat: implement bus amenity management system)
 }"
 </code></pre></div>
 
@@ -842,10 +822,6 @@ const headers = {
 
 let body = {
     "date": "2026-08-26",
-<<<<<<< HEAD
-    "from": "b",
-    "to": "n"
-=======
     "line": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
     "from": "g",
     "to": "z",
@@ -853,7 +829,6 @@ let body = {
     "destination_city": "i",
     "per_page": 8,
     "page": 16
->>>>>>> 752c4ce (feat: implement bus amenity management system)
 };
 
 fetch(url, {
@@ -1162,8 +1137,6 @@ You can check the Dev Tools console for debugging information.</code></pre>
                data-component="body">
     <br>
 <p>Must be a valid date in the format <code>Y-m-d</code>. Example: <code>2026-08-26</code></p>
-<<<<<<< HEAD
-=======
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>line</code></b>&nbsp;&nbsp;
@@ -1176,7 +1149,6 @@ You can check the Dev Tools console for debugging information.</code></pre>
                data-component="body">
     <br>
 <p>validation.uuid Must match an existing stored value. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
->>>>>>> 752c4ce (feat: implement bus amenity management system)
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>from</code></b>&nbsp;&nbsp;
@@ -1188,11 +1160,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="g"
                data-component="body">
     <br>
-<<<<<<< HEAD
-<p>Le champ value ne doit pas dépasser 120 caractères. Example: <code>b</code></p>
-=======
 <p>validation.max. Example: <code>g</code></p>
->>>>>>> 752c4ce (feat: implement bus amenity management system)
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>to</code></b>&nbsp;&nbsp;
@@ -1204,9 +1172,6 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="z"
                data-component="body">
     <br>
-<<<<<<< HEAD
-<p>Le champ value ne doit pas dépasser 120 caractères. Example: <code>n</code></p>
-=======
 <p>validation.max. Example: <code>z</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
@@ -1256,7 +1221,6 @@ You can check the Dev Tools console for debugging information.</code></pre>
                data-component="body">
     <br>
 <p>validation.min. Example: <code>16</code></p>
->>>>>>> 752c4ce (feat: implement bus amenity management system)
         </div>
         </form>
 
@@ -1273,11 +1237,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-<<<<<<< HEAD
-    --get "http://kora-ops-web.local/api/v1/bus/departures/1994b8ed-2cc9-47dc-90a3-7b8873a6f3bb?from=Cotonou&amp;to=Abidjan" \
-=======
     --get "http://localhost:8000/api/v1/bus/departures/48cc889a-8518-4cb2-b4ec-13e225ad597b?from=Cotonou&amp;to=Abidjan" \
->>>>>>> 752c4ce (feat: implement bus amenity management system)
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -1289,11 +1249,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-<<<<<<< HEAD
-    "http://kora-ops-web.local/api/v1/bus/departures/1994b8ed-2cc9-47dc-90a3-7b8873a6f3bb"
-=======
     "http://localhost:8000/api/v1/bus/departures/48cc889a-8518-4cb2-b4ec-13e225ad597b"
->>>>>>> 752c4ce (feat: implement bus amenity management system)
 );
 
 const params = {
@@ -1496,12 +1452,6 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="uuid"                data-endpoint="GETapi-v1-bus-departures--uuid-"
-<<<<<<< HEAD
-               value="1994b8ed-2cc9-47dc-90a3-7b8873a6f3bb"
-               data-component="url">
-    <br>
-<p>Example: <code>1994b8ed-2cc9-47dc-90a3-7b8873a6f3bb</code></p>
-=======
                value="48cc889a-8518-4cb2-b4ec-13e225ad597b"
                data-component="url">
     <br>
@@ -1518,7 +1468,6 @@ You can check the Dev Tools console for debugging information.</code></pre>
                data-component="url">
     <br>
 <p>Public UUID of the departure. Example: <code>9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e</code></p>
->>>>>>> 752c4ce (feat: implement bus amenity management system)
             </div>
                         <h4 class="fancy-heading-panel"><b>Query Parameters</b></h4>
                                     <div style="padding-left: 28px; clear: unset;">
@@ -1586,11 +1535,7 @@ the requested origin/destination segment (available, held, occupied, or blocked)
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-<<<<<<< HEAD
-    --get "http://kora-ops-web.local/api/v1/bus/departures/1994b8ed-2cc9-47dc-90a3-7b8873a6f3bb/seats?origin_stop_uuid=6ff8f7f6-1eb3-3525-be4a-3932c805afed&amp;destination_stop_uuid=6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
-=======
     --get "http://localhost:8000/api/v1/bus/departures/48cc889a-8518-4cb2-b4ec-13e225ad597b/seats?origin_stop_uuid=5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21&amp;destination_stop_uuid=5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22" \
->>>>>>> 752c4ce (feat: implement bus amenity management system)
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -1602,11 +1547,7 @@ the requested origin/destination segment (available, held, occupied, or blocked)
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-<<<<<<< HEAD
-    "http://kora-ops-web.local/api/v1/bus/departures/1994b8ed-2cc9-47dc-90a3-7b8873a6f3bb/seats"
-=======
     "http://localhost:8000/api/v1/bus/departures/48cc889a-8518-4cb2-b4ec-13e225ad597b/seats"
->>>>>>> 752c4ce (feat: implement bus amenity management system)
 );
 
 const params = {
@@ -1763,12 +1704,6 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="departure_uuid"                data-endpoint="GETapi-v1-bus-departures--departure_uuid--seats"
-<<<<<<< HEAD
-               value="1994b8ed-2cc9-47dc-90a3-7b8873a6f3bb"
-               data-component="url">
-    <br>
-<p>Example: <code>1994b8ed-2cc9-47dc-90a3-7b8873a6f3bb</code></p>
-=======
                value="48cc889a-8518-4cb2-b4ec-13e225ad597b"
                data-component="url">
     <br>
@@ -1785,7 +1720,6 @@ You can check the Dev Tools console for debugging information.</code></pre>
                data-component="url">
     <br>
 <p>Public UUID of the departure. Example: <code>9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e</code></p>
->>>>>>> 752c4ce (feat: implement bus amenity management system)
             </div>
                         <h4 class="fancy-heading-panel"><b>Query Parameters</b></h4>
                                     <div style="padding-left: 28px; clear: unset;">
@@ -2362,25 +2296,16 @@ returns 204.</p>
 
 
 <div class="bash-example">
-<<<<<<< HEAD
-    <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
-=======
     <pre><code class="language-bash">curl --request DELETE \
     "http://localhost:8000/api/v1/bus/holds/6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
->>>>>>> 752c4ce (feat: implement bus amenity management system)
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-<<<<<<< HEAD
-    "http://kora-ops-web.local/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed"
-=======
     "http://localhost:8000/api/v1/bus/holds/6ff8f7f6-1eb3-3525-be4a-3932c805afed"
->>>>>>> 752c4ce (feat: implement bus amenity management system)
 );
 
 const headers = {
@@ -2513,17 +2438,11 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
  &nbsp;
                 <input type="text" style="display: none"
-<<<<<<< HEAD
-                              name="reservation_uuid"                data-endpoint="GETapi-v1-bookings--reservation_uuid-"
-=======
                               name="reservation_uuid"                data-endpoint="DELETEapi-v1-bus-holds--reservation_uuid-"
->>>>>>> 752c4ce (feat: implement bus amenity management system)
                value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
                data-component="url">
     <br>
 <p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
-<<<<<<< HEAD
-=======
             </div>
                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>reservation</code></b>&nbsp;&nbsp;
@@ -2536,7 +2455,6 @@ You can check the Dev Tools console for debugging information.</code></pre>
                data-component="url">
     <br>
 <p>Public UUID of the held reservation. Example: <code>9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70</code></p>
->>>>>>> 752c4ce (feat: implement bus amenity management system)
             </div>
                     </form>
 
@@ -2553,11 +2471,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-<<<<<<< HEAD
-    "http://kora-ops-web.local/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed/passengers" \
-=======
     "http://localhost:8000/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed/passengers" \
->>>>>>> 752c4ce (feat: implement bus amenity management system)
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -2567,11 +2481,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             \"last_name\": \"n\",
             \"phone\": \"g\",
             \"email\": \"rowan.gulgowski@example.com\",
-<<<<<<< HEAD
-            \"document_type\": \"consular_card\",
-=======
             \"document_type\": \"birth_certificate\",
->>>>>>> 752c4ce (feat: implement bus amenity management system)
             \"document_number\": \"d\",
             \"nationality\": \"lj\",
             \"birth_date\": \"2026-08-26\",
@@ -2584,11 +2494,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-<<<<<<< HEAD
-    "http://kora-ops-web.local/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed/passengers"
-=======
     "http://localhost:8000/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed/passengers"
->>>>>>> 752c4ce (feat: implement bus amenity management system)
 );
 
 const headers = {
@@ -2603,11 +2509,7 @@ let body = {
             "last_name": "n",
             "phone": "g",
             "email": "rowan.gulgowski@example.com",
-<<<<<<< HEAD
-            "document_type": "consular_card",
-=======
             "document_type": "birth_certificate",
->>>>>>> 752c4ce (feat: implement bus amenity management system)
             "document_number": "d",
             "nationality": "lj",
             "birth_date": "2026-08-26",
@@ -2806,17 +2708,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="passengers.0.document_type"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
-<<<<<<< HEAD
-               value="consular_card"
-               data-component="body">
-    <br>
-<p>Example: <code>consular_card</code></p>
-=======
                value="birth_certificate"
                data-component="body">
     <br>
 <p>Example: <code>birth_certificate</code></p>
->>>>>>> 752c4ce (feat: implement bus amenity management system)
 Must be one of:
 <ul style="list-style-type: square;"><li><code>national_id</code></li> <li><code>biometric_card</code></li> <li><code>passport</code></li> <li><code>consular_card</code></li> <li><code>cip</code></li></ul>
                     </div>
@@ -2872,159 +2767,6 @@ Must be one of:
         </div>
         </form>
 
-<<<<<<< HEAD
-                    <h2 id="bus-DELETEapi-v1-holds--reservation_uuid-">Release a held reservation and make its seats available again.</h2>
-
-<p>
-<small class="badge badge-darkred">requires authentication</small>
-</p>
-
-<p>The operation is explicit and idempotent for a reservation that is no longer held.
-It never releases a paid or ticketed reservation.</p>
-
-<span id="example-requests-DELETEapi-v1-holds--reservation_uuid-">
-<blockquote>Example request:</blockquote>
-
-
-<div class="bash-example">
-    <pre><code class="language-bash">curl --request DELETE \
-    "http://kora-ops-web.local/api/v1/holds/6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
-    --header "Content-Type: application/json" \
-    --header "Accept: application/json"</code></pre></div>
-
-
-<div class="javascript-example">
-    <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/holds/6ff8f7f6-1eb3-3525-be4a-3932c805afed"
-);
-
-const headers = {
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-};
-
-
-fetch(url, {
-    method: "DELETE",
-    headers,
-}).then(response =&gt; response.json());</code></pre></div>
-
-</span>
-
-<span id="example-responses-DELETEapi-v1-holds--reservation_uuid-">
-            <blockquote>
-            <p>Example response (204, Hold released):</p>
-        </blockquote>
-                <pre>
-<code>Empty response</code>
- </pre>
-            <blockquote>
-            <p>Example response (401, Unauthenticated):</p>
-        </blockquote>
-                <pre>
-
-<code class="language-json" style="max-height: 300px;">{
-    &quot;message&quot;: &quot;Unauthenticated.&quot;
-}</code>
- </pre>
-            <blockquote>
-            <p>Example response (403, Forbidden):</p>
-        </blockquote>
-                <pre>
-
-<code class="language-json" style="max-height: 300px;">{
-    &quot;message&quot;: &quot;This action is unauthorized.&quot;
-}</code>
- </pre>
-    </span>
-<span id="execution-results-DELETEapi-v1-holds--reservation_uuid-" hidden>
-    <blockquote>Received response<span
-                id="execution-response-status-DELETEapi-v1-holds--reservation_uuid-"></span>:
-    </blockquote>
-    <pre class="json"><code id="execution-response-content-DELETEapi-v1-holds--reservation_uuid-"
-      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
-</span>
-<span id="execution-error-DELETEapi-v1-holds--reservation_uuid-" hidden>
-    <blockquote>Request failed with error:</blockquote>
-    <pre><code id="execution-error-message-DELETEapi-v1-holds--reservation_uuid-">
-
-Tip: Check that you&#039;re properly connected to the network.
-If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
-You can check the Dev Tools console for debugging information.</code></pre>
-</span>
-<form id="form-DELETEapi-v1-holds--reservation_uuid-" data-method="DELETE"
-      data-path="api/v1/holds/{reservation_uuid}"
-      data-authed="1"
-      data-hasfiles="0"
-      data-isarraybody="0"
-      autocomplete="off"
-      onsubmit="event.preventDefault(); executeTryOut('DELETEapi-v1-holds--reservation_uuid-', this);">
-    <h3>
-        Request&nbsp;&nbsp;&nbsp;
-                    <button type="button"
-                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
-                    id="btn-tryout-DELETEapi-v1-holds--reservation_uuid-"
-                    onclick="tryItOut('DELETEapi-v1-holds--reservation_uuid-');">Try it out ⚡
-            </button>
-            <button type="button"
-                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
-                    id="btn-canceltryout-DELETEapi-v1-holds--reservation_uuid-"
-                    onclick="cancelTryOut('DELETEapi-v1-holds--reservation_uuid-');" hidden>Cancel 🛑
-            </button>&nbsp;&nbsp;
-            <button type="submit"
-                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
-                    id="btn-executetryout-DELETEapi-v1-holds--reservation_uuid-"
-                    data-initial-text="Send Request 💥"
-                    data-loading-text="⏱ Sending..."
-                    hidden>Send Request 💥
-            </button>
-            </h3>
-            <p>
-            <small class="badge badge-red">DELETE</small>
-            <b><code>api/v1/holds/{reservation_uuid}</code></b>
-        </p>
-                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
-                                <div style="padding-left: 28px; clear: unset;">
-                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
-&nbsp;
- &nbsp;
- &nbsp;
-                <input type="text" style="display: none"
-                              name="Content-Type"                data-endpoint="DELETEapi-v1-holds--reservation_uuid-"
-               value="application/json"
-               data-component="header">
-    <br>
-<p>Example: <code>application/json</code></p>
-            </div>
-                                <div style="padding-left: 28px; clear: unset;">
-                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
-&nbsp;
- &nbsp;
- &nbsp;
-                <input type="text" style="display: none"
-                              name="Accept"                data-endpoint="DELETEapi-v1-holds--reservation_uuid-"
-               value="application/json"
-               data-component="header">
-    <br>
-<p>Example: <code>application/json</code></p>
-            </div>
-                        <h4 class="fancy-heading-panel"><b>URL Parameters</b></h4>
-                    <div style="padding-left: 28px; clear: unset;">
-                <b style="line-height: 2;"><code>reservation_uuid</code></b>&nbsp;&nbsp;
-<small>string</small>&nbsp;
- &nbsp;
- &nbsp;
-                <input type="text" style="display: none"
-                              name="reservation_uuid"                data-endpoint="DELETEapi-v1-holds--reservation_uuid-"
-               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
-               data-component="url">
-    <br>
-<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
-            </div>
-                    </form>
-
-=======
->>>>>>> 752c4ce (feat: implement bus amenity management system)
                 <h1 id="auth">Auth</h1>
 
     <p>OTP challenge request and verification for registration, login, PIN reset and account unlock.</p>
@@ -3047,11 +2789,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Accept: application/json" \
     --data "{
     \"email\": \"gbailey@example.net\",
-<<<<<<< HEAD
-    \"purpose\": \"login_new_device\"
-=======
     \"purpose\": \"pin_reset\"
->>>>>>> 752c4ce (feat: implement bus amenity management system)
 }"
 </code></pre></div>
 
@@ -3068,11 +2806,7 @@ const headers = {
 
 let body = {
     "email": "gbailey@example.net",
-<<<<<<< HEAD
-    "purpose": "login_new_device"
-=======
     "purpose": "pin_reset"
->>>>>>> 752c4ce (feat: implement bus amenity management system)
 };
 
 fetch(url, {
@@ -3176,17 +2910,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="purpose"                data-endpoint="POSTapi-v1-auth-otp-request"
-<<<<<<< HEAD
-               value="login_new_device"
-               data-component="body">
-    <br>
-<p>Example: <code>login_new_device</code></p>
-=======
                value="pin_reset"
                data-component="body">
     <br>
 <p>Example: <code>pin_reset</code></p>
->>>>>>> 752c4ce (feat: implement bus amenity management system)
 Must be one of:
 <ul style="list-style-type: square;"><li><code>registration</code></li> <li><code>login_new_device</code></li> <li><code>pin_reset</code></li> <li><code>account_unlock</code></li></ul>
         </div>
@@ -3210,11 +2937,7 @@ Must be one of:
     --header "Accept: application/json" \
     --data "{
     \"otp_challenge_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
-<<<<<<< HEAD
-    \"purpose\": \"login_new_device\",
-=======
     \"purpose\": \"account_unlock\",
->>>>>>> 752c4ce (feat: implement bus amenity management system)
     \"code\": \"569775\"
 }"
 </code></pre></div>
@@ -3232,11 +2955,7 @@ const headers = {
 
 let body = {
     "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-<<<<<<< HEAD
-    "purpose": "login_new_device",
-=======
     "purpose": "account_unlock",
->>>>>>> 752c4ce (feat: implement bus amenity management system)
     "code": "569775"
 };
 
@@ -3341,17 +3060,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="purpose"                data-endpoint="POSTapi-v1-auth-otp-verify"
-<<<<<<< HEAD
-               value="login_new_device"
-               data-component="body">
-    <br>
-<p>Example: <code>login_new_device</code></p>
-=======
                value="account_unlock"
                data-component="body">
     <br>
 <p>Example: <code>account_unlock</code></p>
->>>>>>> 752c4ce (feat: implement bus amenity management system)
 Must be one of:
 <ul style="list-style-type: square;"><li><code>registration</code></li> <li><code>login_new_device</code></li> <li><code>pin_reset</code></li> <li><code>account_unlock</code></li></ul>
         </div>
@@ -3913,11 +3625,7 @@ Must be one of:
     \"email\": \"gbailey@example.net\",
     \"pin\": \"9775\",
     \"device_name\": \"n\",
-<<<<<<< HEAD
-    \"platform\": \"unknown\",
-=======
     \"platform\": \"android\",
->>>>>>> 752c4ce (feat: implement bus amenity management system)
     \"device_fingerprint\": \"g\",
     \"push_token\": \"z\",
     \"otp_challenge_uuid\": \"977e5426-8d13-3824-86aa-b092f8ae52c5\",
@@ -3940,11 +3648,7 @@ let body = {
     "email": "gbailey@example.net",
     "pin": "9775",
     "device_name": "n",
-<<<<<<< HEAD
-    "platform": "unknown",
-=======
     "platform": "android",
->>>>>>> 752c4ce (feat: implement bus amenity management system)
     "device_fingerprint": "g",
     "push_token": "z",
     "otp_challenge_uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
@@ -4076,17 +3780,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="platform"                data-endpoint="POSTapi-v1-auth-login"
-<<<<<<< HEAD
-               value="unknown"
-               data-component="body">
-    <br>
-<p>Example: <code>unknown</code></p>
-=======
                value="android"
                data-component="body">
     <br>
 <p>Example: <code>android</code></p>
->>>>>>> 752c4ce (feat: implement bus amenity management system)
 Must be one of:
 <ul style="list-style-type: square;"><li><code>android</code></li> <li><code>ios</code></li> <li><code>web</code></li> <li><code>unknown</code></li></ul>
         </div>
@@ -4162,17 +3859,10 @@ compte social, télécharge l'avatar via Spatie Media Library et
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
-<<<<<<< HEAD
-    \"provider\": \"facebook\",
-    \"provider_token\": \"b\",
-    \"device_name\": \"n\",
-    \"platform\": \"unknown\",
-=======
     \"provider\": \"google\",
     \"provider_token\": \"b\",
     \"device_name\": \"n\",
     \"platform\": \"android\",
->>>>>>> 752c4ce (feat: implement bus amenity management system)
     \"device_fingerprint\": \"g\",
     \"push_token\": \"z\"
 }"
@@ -4190,17 +3880,10 @@ const headers = {
 };
 
 let body = {
-<<<<<<< HEAD
-    "provider": "facebook",
-    "provider_token": "b",
-    "device_name": "n",
-    "platform": "unknown",
-=======
     "provider": "google",
     "provider_token": "b",
     "device_name": "n",
     "platform": "android",
->>>>>>> 752c4ce (feat: implement bus amenity management system)
     "device_fingerprint": "g",
     "push_token": "z"
 };
@@ -4402,17 +4085,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="provider"                data-endpoint="POSTapi-v1-auth-oauth-token"
-<<<<<<< HEAD
-               value="facebook"
-               data-component="body">
-    <br>
-<p>Example: <code>facebook</code></p>
-=======
                value="google"
                data-component="body">
     <br>
 <p>Example: <code>google</code></p>
->>>>>>> 752c4ce (feat: implement bus amenity management system)
 Must be one of:
 <ul style="list-style-type: square;"><li><code>google</code></li> <li><code>facebook</code></li> <li><code>tiktok</code></li></ul>
         </div>
@@ -4447,17 +4123,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="platform"                data-endpoint="POSTapi-v1-auth-oauth-token"
-<<<<<<< HEAD
-               value="unknown"
-               data-component="body">
-    <br>
-<p>Example: <code>unknown</code></p>
-=======
                value="android"
                data-component="body">
     <br>
 <p>Example: <code>android</code></p>
->>>>>>> 752c4ce (feat: implement bus amenity management system)
 Must be one of:
 <ul style="list-style-type: square;"><li><code>android</code></li> <li><code>ios</code></li> <li><code>web</code></li> <li><code>unknown</code></li></ul>
         </div>
@@ -5060,19 +4729,11 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
-<<<<<<< HEAD
-    \"push_notifications\": true,
-    \"whatsapp_notifications\": true,
-    \"email_notifications\": false,
-    \"locale\": \"fr\",
-    \"theme\": \"light\"
-=======
     \"push_notifications\": false,
     \"whatsapp_notifications\": true,
     \"email_notifications\": false,
     \"locale\": \"fr\",
     \"theme\": \"system\"
->>>>>>> 752c4ce (feat: implement bus amenity management system)
 }"
 </code></pre></div>
 
@@ -5088,19 +4749,11 @@ const headers = {
 };
 
 let body = {
-<<<<<<< HEAD
-    "push_notifications": true,
-    "whatsapp_notifications": true,
-    "email_notifications": false,
-    "locale": "fr",
-    "theme": "light"
-=======
     "push_notifications": false,
     "whatsapp_notifications": true,
     "email_notifications": false,
     "locale": "fr",
     "theme": "system"
->>>>>>> 752c4ce (feat: implement bus amenity management system)
 };
 
 fetch(url, {
@@ -5272,17 +4925,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="theme"                data-endpoint="PUTapi-v1-auth-preferences"
-<<<<<<< HEAD
-               value="light"
-               data-component="body">
-    <br>
-<p>Example: <code>light</code></p>
-=======
                value="system"
                data-component="body">
     <br>
 <p>Example: <code>system</code></p>
->>>>>>> 752c4ce (feat: implement bus amenity management system)
 Must be one of:
 <ul style="list-style-type: square;"><li><code>light</code></li> <li><code>dark</code></li> <li><code>system</code></li></ul>
         </div>
@@ -6247,11 +5893,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Accept: application/json" \
     --data "{
     \"reservation_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
-<<<<<<< HEAD
-    \"method\": \"mobile_money\",
-=======
     \"method\": \"wallet\",
->>>>>>> 752c4ce (feat: implement bus amenity management system)
     \"provider\": \"g\",
     \"idempotency_key\": \"z\",
     \"phone\": \"m\",
@@ -6272,11 +5914,7 @@ const headers = {
 
 let body = {
     "reservation_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-<<<<<<< HEAD
-    "method": "mobile_money",
-=======
     "method": "wallet",
->>>>>>> 752c4ce (feat: implement bus amenity management system)
     "provider": "g",
     "idempotency_key": "z",
     "phone": "m",
@@ -6402,17 +6040,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="method"                data-endpoint="POSTapi-v1-payments-initiate"
-<<<<<<< HEAD
-               value="mobile_money"
-               data-component="body">
-    <br>
-<p>Example: <code>mobile_money</code></p>
-=======
                value="wallet"
                data-component="body">
     <br>
 <p>Example: <code>wallet</code></p>
->>>>>>> 752c4ce (feat: implement bus amenity management system)
 Must be one of:
 <ul style="list-style-type: square;"><li><code>mobile_money</code></li></ul>
         </div>

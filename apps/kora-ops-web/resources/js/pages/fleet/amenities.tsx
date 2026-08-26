@@ -23,9 +23,9 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import amenitiesRoutes from '@/routes/amenities';
 import fleet from '@/routes/fleet';
 import type { BreadcrumbItem } from '@/types';
-import amenitiesRoutes from '@/routes/amenities';
 
 type PageProps = {
     amenities: {

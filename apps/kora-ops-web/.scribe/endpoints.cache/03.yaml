@@ -79,11 +79,7 @@ endpoints:
         name: method
         description: ''
         required: true
-<<<<<<< HEAD
-        example: mobile_money
-=======
         example: wallet
->>>>>>> 752c4ce (feat: implement bus amenity management system)
         type: string
         enumValues:
           - mobile_money
@@ -139,11 +135,7 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       reservation_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-<<<<<<< HEAD
-      method: mobile_money
-=======
       method: wallet
->>>>>>> 752c4ce (feat: implement bus amenity management system)
       provider: g
       idempotency_key: z
       phone: m
