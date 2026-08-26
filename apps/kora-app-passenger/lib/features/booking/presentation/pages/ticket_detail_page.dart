@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/l10n/app_localization.dart';
+import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../domain/entities/ticket.dart';
+import 'ticket_page.dart';
 
 /// Écran `ticket-detail` de la maquette : le billet en grand, puis ce qu'on
 /// peut en faire — QR code, suivi du bus, partage, annulation.
 ///
-/// Les quatre actions ouvrent des écrans qui n'existent pas encore
-/// (`ticket`, `tracking`, `share-ticket`, `cancel-policy`) : elles
-/// affichent un toast plutôt que de mener à une page blanche.
+/// Seule la première mène quelque part : le billet numérique. Les trois
+/// autres (`tracking`, `share-ticket`, `cancel-policy`) attendent leurs
+/// écrans, et affichent un toast plutôt que de mener à une page blanche.
 class TicketDetailPage extends StatelessWidget {
   const TicketDetailPage({
     super.key,
@@ -57,7 +60,10 @@ class TicketDetailPage extends StatelessWidget {
                           icon: Icons.qr_code_2_rounded,
                           title: l10n.ticketDetailQrTitle,
                           subtitle: l10n.ticketDetailQrSubtitle,
-                          onTap: () => _soon(context),
+                          onTap: () => context.push(
+                            AppRouter.ticketPath,
+                            extra: TicketArgs(ticket: ticket),
+                          ),
                         ),
                         KoraMenuItem(
                           icon: Icons.my_location_rounded,

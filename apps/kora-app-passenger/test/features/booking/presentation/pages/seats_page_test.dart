@@ -4,22 +4,31 @@
 import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_app_passenger/core/di/injector.dart';
+import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/seat.dart';
 import 'package:kora_app_passenger/features/booking/domain/usecases/get_seats_usecase.dart';
+import 'package:kora_app_passenger/features/booking/presentation/bloc/seat_hold_bloc.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/seats_bloc.dart';
 import 'package:kora_app_passenger/features/booking/presentation/pages/seats_page.dart';
 import 'package:mocktail/mocktail.dart';
+
+import '../../../../support/seat_hold_harness.dart';
 
 class MockGetSeatsUseCase extends Mock implements GetSeatsUseCase {}
 
 class _FakeDeparture extends Fake implements Departure {}
 
 void main() {
+  late SeatHoldBloc holdBloc;
+
+  setUpAll(() => AppLocalization.preloadAll());
+
   final cotonou = kMockCities.firstWhere((city) => city.id == 'ctn');
   final malanville = kMockCities.firstWhere((city) => city.id == 'mlv');
 
@@ -30,6 +39,9 @@ void main() {
   setUpAll(() => registerFallbackValue(_FakeDeparture()));
 
   setUp(() {
+    holdBloc = SeatHoldBloc(StubReservationRepository());
+    addTearDown(holdBloc.close);
+
     departure = mockDeparturesFor(
       SearchCriteria(
         origin: cotonou,
@@ -55,7 +67,18 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
-        home: SeatsPage(departure: departure, passengers: passengers),
+        locale: const Locale('fr'),
+        supportedLocales: const [Locale('fr'), Locale('en')],
+        localizationsDelegates: const [
+          AppLocalization.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: withSeatHold(
+          SeatsPage(departure: departure, passengers: passengers),
+          bloc: holdBloc,
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -163,5 +186,57 @@ void main() {
       findsOneWidget,
     );
     expect(find.text((departure.price * 2).formatted), findsOneWidget);
+  });
+
+  group('siège refusé par le serveur', () {
+    test('repeint le siège en occupé et le sort de la sélection', () async {
+      final bloc = SeatsBloc(getSeats);
+      addTearDown(bloc.close);
+
+      bloc.add(SeatsRequested(departure: departure));
+      await bloc.stream.firstWhere(
+        (state) => state.status == SeatsStatus.success,
+      );
+
+      final chosen = bloc.state.seats.firstWhere((seat) => seat.isSelectable);
+      bloc.add(SeatToggled(chosen));
+      await bloc.stream.firstWhere((state) => state.selectedSeats.isNotEmpty);
+
+      // Le serveur nomme le siège qu'il vient d'attribuer à un autre.
+      bloc.add(SeatRefused(seatId: chosen.id, seatLabel: chosen.label));
+      await bloc.stream.firstWhere((state) => state.selectedSeats.isEmpty);
+
+      final refused = bloc.state.seats.firstWhere(
+        (seat) => seat.id == chosen.id,
+      );
+
+      // Le plan dit la vérité, et « Continuer » redevient hors d'atteinte
+      // tant qu'un autre siège n'est pas choisi.
+      expect(refused.status, SeatStatus.occupied);
+      expect(refused.isSelectable, isFalse);
+      expect(bloc.state.canContinue, isFalse);
+    });
+
+    test('sans siège nommé, vide simplement la sélection', () async {
+      final bloc = SeatsBloc(getSeats);
+      addTearDown(bloc.close);
+
+      bloc.add(SeatsRequested(departure: departure));
+      await bloc.stream.firstWhere(
+        (state) => state.status == SeatsStatus.success,
+      );
+
+      bloc.add(
+        SeatToggled(bloc.state.seats.firstWhere((seat) => seat.isSelectable)),
+      );
+      await bloc.stream.firstWhere((state) => state.selectedSeats.isNotEmpty);
+
+      // Un 409 qui ne nomme personne : mieux vaut faire rechoisir que
+      // laisser croire qu'un siège est encore libre.
+      bloc.add(const SeatRefused());
+      await bloc.stream.firstWhere((state) => state.selectedSeats.isEmpty);
+
+      expect(bloc.state.canContinue, isFalse);
+    });
   });
 }

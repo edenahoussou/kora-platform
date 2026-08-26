@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -52,26 +53,38 @@ void main() {
         tester,
         const KoraSeatsBadge(available: 1, total: 55),
       );
-      // Le label passe par KoraTag, qui le met en majuscules.
-      expect(find.text('1 PLACE'), findsOneWidget);
+      expect(find.text('1 place'), findsOneWidget);
 
       await pumpKoraWidget(
         tester,
         const KoraSeatsBadge(available: 12, total: 55),
       );
-      expect(find.text('12 PLACES'), findsOneWidget);
+      expect(find.text('12 places'), findsOneWidget);
     });
 
-    testWidgets('porte la variante de couleur de son niveau', (tester) async {
+    testWidgets('reste du texte, sans pilule autour', (tester) async {
+      // La carte porte déjà une pilule pour le véhicule : une seconde
+      // mettrait sur le même plan ce qu'on choisit et ce qui reste.
       await pumpKoraWidget(
         tester,
         const KoraSeatsBadge(available: 22, total: 55),
       );
 
-      expect(
-        tester.widget<KoraTag>(find.byType(KoraTag)).variant,
-        KoraTagVariant.success,
+      expect(find.byType(KoraTag), findsNothing);
+    });
+
+    testWidgets('porte la couleur de son niveau', (tester) async {
+      await pumpKoraWidget(
+        tester,
+        const KoraSeatsBadge(available: 5, total: 55),
       );
+      expect(_colorOf(tester, '5 places'), AppColors.danger);
+
+      await pumpKoraWidget(
+        tester,
+        const KoraSeatsBadge(available: 12, total: 55),
+      );
+      expect(_colorOf(tester, '12 places'), AppColors.gold);
     });
   });
 
@@ -94,7 +107,7 @@ void main() {
           seatsTotal: 55,
         ),
       );
-      expect(tester.widget<KoraTag>(_seatsTag).variant, KoraTagVariant.gold);
+      expect(_colorOf(tester, '12 places'), AppColors.gold);
 
       await pumpKoraWidget(
         tester,
@@ -109,7 +122,8 @@ void main() {
           seatsTotal: 20,
         ),
       );
-      expect(tester.widget<KoraTag>(_seatsTag).variant, KoraTagVariant.success);
+      // Rien ne presse : la ligne reste dans le gris du reste de la carte.
+      expect(_colorOf(tester, '12 places'), isNot(AppColors.gold));
     });
 
     testWidgets('sans capacité connue, le badge reste neutre', (tester) async {
@@ -126,15 +140,13 @@ void main() {
         ),
       );
 
-      expect(find.text('3 PLACES'), findsOneWidget);
-      expect(tester.widget<KoraTag>(_seatsTag).variant, KoraTagVariant.success);
+      expect(find.text('3 places'), findsOneWidget);
+      // Sans dénominateur, aucune urgence n'est inventée.
+      expect(_colorOf(tester, '3 places'), isNot(AppColors.danger));
     });
   });
 }
 
-/// Le [KoraTag] du badge des places — la carte en contient un second (le
-/// badge doré du véhicule), qu'il faut écarter.
-final Finder _seatsTag = find.descendant(
-  of: find.byType(KoraSeatsBadge),
-  matching: find.byType(KoraTag),
-);
+/// La couleur du texte des places.
+Color? _colorOf(WidgetTester tester, String label) =>
+    tester.widget<Text>(find.text(label)).style?.color;

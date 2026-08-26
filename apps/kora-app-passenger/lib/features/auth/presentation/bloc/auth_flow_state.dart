@@ -27,6 +27,7 @@ class AuthFlowState extends Equatable {
   const AuthFlowState({
     this.step = AuthFlowStep.email,
     this.purpose = OtpPurpose.registration,
+    this.justRegistered = false,
     this.isSubmitting = false,
     this.challenge,
     this.verification,
@@ -40,6 +41,15 @@ class AuthFlowState extends Equatable {
 
   final AuthFlowStep step;
   final OtpPurpose purpose;
+
+  /// Le compte vient d'être créé à l'instant.
+  ///
+  /// **Ne se déduit pas de [purpose].** Celui-ci vaut `registration` par
+  /// défaut — c'est le motif d'OTP le plus courant — et une connexion
+  /// ordinaire ne le change jamais, faute d'OTP. S'y fier renvoyait donc
+  /// tout le monde à l'écran des autorisations après chaque connexion,
+  /// pour y redemander un nom et un téléphone déjà enregistrés.
+  final bool justRegistered;
 
   /// Une requête est en cours : les écrans désactivent leur bouton.
   final bool isSubmitting;
@@ -77,6 +87,7 @@ class AuthFlowState extends Equatable {
   AuthFlowState copyWith({
     AuthFlowStep? step,
     OtpPurpose? purpose,
+    bool? justRegistered,
     bool? isSubmitting,
     OtpChallenge? challenge,
     OtpVerification? verification,
@@ -90,6 +101,7 @@ class AuthFlowState extends Equatable {
     return AuthFlowState(
       step: step ?? this.step,
       purpose: purpose ?? this.purpose,
+      justRegistered: justRegistered ?? this.justRegistered,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       challenge: challenge ?? this.challenge,
       verification: verification ?? this.verification,
@@ -106,6 +118,7 @@ class AuthFlowState extends Equatable {
   List<Object?> get props => [
     step,
     purpose,
+    justRegistered,
     isSubmitting,
     challenge,
     verification,

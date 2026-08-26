@@ -41,6 +41,16 @@ class Seat extends Equatable {
   final int column;
   final SeatStatus status;
 
+  /// Le même siège dans un autre état — un refus du serveur le fait
+  /// passer d'un coup à « occupé ».
+  Seat copyWith({SeatStatus? status}) => Seat(
+    id: id,
+    label: label,
+    row: row,
+    column: column,
+    status: status ?? this.status,
+  );
+
   bool get isSelectable => status == SeatStatus.free;
 
   @override

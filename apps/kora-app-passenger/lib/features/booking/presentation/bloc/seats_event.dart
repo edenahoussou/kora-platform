@@ -29,3 +29,21 @@ class SeatToggled extends SeatsEvent {
   @override
   List<Object?> get props => [seat];
 }
+
+/// Le serveur a refusé un siège au moment de le retenir (409).
+///
+/// Le plan avait été chargé quelques instants plus tôt : entre-temps, un
+/// autre voyageur a gagné la course. On repeint ce siège en occupé et on
+/// le retire de la sélection, plutôt que de laisser le voyageur retaper
+/// « Continuer » sur une place qui ne reviendra pas.
+class SeatRefused extends SeatsEvent {
+  const SeatRefused({this.seatId, this.seatLabel});
+
+  /// L'identifiant renvoyé par le serveur. Le libellé sert de repli : la
+  /// réponse ne porte pas toujours les deux.
+  final String? seatId;
+  final String? seatLabel;
+
+  @override
+  List<Object?> get props => [seatId, seatLabel];
+}

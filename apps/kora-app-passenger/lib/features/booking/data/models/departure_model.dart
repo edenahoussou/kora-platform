@@ -92,6 +92,8 @@ class DepartureModel {
       // deux identifiants, l'appel ne peut pas partir.
       originStopId: originStop.uuid,
       destinationStopId: destinationStop.uuid,
+      originCountry: originStop.country,
+      destinationCountry: destinationStop.country,
       line: line.toEntity(
         origin: originStop,
         destination: destinationStop,

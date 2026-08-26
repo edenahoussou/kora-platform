@@ -63,6 +63,25 @@ class AccountLockedFailure extends Failure {
   ]);
 }
 
+/// Un siège demandé vient d'être pris (409 sur `POST bus/holds`).
+///
+/// Distinct d'un [ValidationFailure] parce que l'écran a de quoi agir : le
+/// plan connaît le siège fautif, il peut le repeindre en occupé et ne
+/// demander qu'un remplaçant, au lieu de renvoyer le voyageur au début
+/// avec un message générique.
+class SeatUnavailableFailure extends Failure {
+  const SeatUnavailableFailure(super.message, {this.seatId, this.seatLabel});
+
+  /// L'identifiant du siège refusé, tel que le renvoie le serveur.
+  final String? seatId;
+
+  /// Son numéro (`4A`), pour le nommer dans le message.
+  final String? seatLabel;
+
+  @override
+  List<Object?> get props => [message, seatId, seatLabel];
+}
+
 /// Filet de sécurité pour toute erreur non prévue explicitement.
 class UnexpectedFailure extends Failure {
   const UnexpectedFailure([

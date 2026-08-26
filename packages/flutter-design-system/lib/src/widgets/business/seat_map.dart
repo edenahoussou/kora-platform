@@ -72,28 +72,7 @@ typedef _SeatVisual = ({
   bool strikethrough,
 });
 
-_SeatVisual _seatVisual(
-  KoraSeatStatus status, [
-  Map<KoraSeatStatus, Color>? palette,
-]) {
-  final override = palette?[status];
-  if (override != null) {
-    // Un état recoloré garde sa forme — barré pour un siège bloqué,
-    // pointillés pour un siège retenu — seul son remplissage change.
-    final base = _seatVisual(status);
-    return (
-      background: override,
-      // Le texte suit le fond : blanc sur une couleur soutenue, navy
-      // sur une couleur claire.
-      foreground: override.computeLuminance() > 0.55
-          ? AppColors.kora
-          : AppColors.white,
-      border: override,
-      dashed: base.dashed,
-      strikethrough: base.strikethrough,
-    );
-  }
-
+_SeatVisual _seatVisual(KoraSeatStatus status) {
   switch (status) {
     case KoraSeatStatus.available:
       return (
@@ -184,8 +163,6 @@ class SeatMap extends StatelessWidget {
     this.columns = 4,
     this.showLegend = true,
     this.onSeatTap,
-    this.palette,
-    this.legendStatuses,
   });
 
   final List<KoraSeat> seats;
@@ -200,18 +177,6 @@ class SeatMap extends StatelessWidget {
 
   final ValueChanged<KoraSeat>? onSeatTap;
 
-  /// Remplace les couleurs de certains états.
-  ///
-  /// Le plan sert deux applications : le passager, qui choisit une place,
-  /// et l'équipage, qui contrôle un embarquement. Les couleurs de la
-  /// maquette parlent à l'équipage — `payé`, `embarqué`, `retenu`. Le
-  /// passager, lui, ne voit que quatre états et suit la légende de son
-  /// ticket. Chacun passe donc la sienne plutôt que d'imposer l'autre.
-  final Map<KoraSeatStatus, Color>? palette;
-
-  /// Les états à montrer dans la légende. Les six par défaut.
-  final List<KoraSeatStatus>? legendStatuses;
-
   @override
   Widget build(BuildContext context) {
     final aisleAfter = columns ~/ 2 - 1;
@@ -224,7 +189,6 @@ class SeatMap extends StatelessWidget {
           columns: columns,
           aisleAfter: aisleAfter,
           onTap: onSeatTap,
-          palette: palette,
         ),
       );
     }
@@ -234,7 +198,7 @@ class SeatMap extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (showLegend) ...[
-          _Legend(palette: palette, statuses: legendStatuses),
+          const _Legend(),
           const SizedBox(height: AppSpacing.md),
         ],
         Container(
@@ -370,14 +334,12 @@ class _SeatRow extends StatelessWidget {
     required this.columns,
     required this.aisleAfter,
     this.onTap,
-    this.palette,
   });
 
   final List<KoraSeat> seats;
   final int columns;
   final int aisleAfter;
   final ValueChanged<KoraSeat>? onTap;
-  final Map<KoraSeatStatus, Color>? palette;
 
   @override
   Widget build(BuildContext context) {
@@ -391,7 +353,7 @@ class _SeatRow extends StatelessWidget {
       for (var c = 0; c < columns; c++) ...[
         if (c == aisleAfter + 1) const SizedBox(),
         c < seats.length
-            ? _SeatButton(seat: seats[c], onTap: onTap, palette: palette)
+            ? _SeatButton(seat: seats[c], onTap: onTap)
             : const SizedBox(),
       ],
     ];
@@ -408,11 +370,10 @@ class _SeatRow extends StatelessWidget {
 }
 
 class _SeatButton extends StatelessWidget {
-  const _SeatButton({required this.seat, this.onTap, this.palette});
+  const _SeatButton({required this.seat, this.onTap});
 
   final KoraSeat seat;
   final ValueChanged<KoraSeat>? onTap;
-  final Map<KoraSeatStatus, Color>? palette;
 
   bool get _isTappable =>
       seat.status == KoraSeatStatus.available ||
@@ -420,7 +381,7 @@ class _SeatButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final visual = _seatVisual(seat.status, palette);
+    final visual = _seatVisual(seat.status);
     final showTimer =
         seat.status == KoraSeatStatus.held && seat.timerLabel != null;
     final label = showTimer ? seat.timerLabel! : seat.label;
@@ -472,10 +433,7 @@ class _SeatButton extends StatelessWidget {
 /// [_seatVisual], donc représente fidèlement la couleur réelle du siège
 /// (contrairement au CSS d'origine, voir la note sur [_SeatVisual]).
 class _Legend extends StatelessWidget {
-  const _Legend({this.palette, this.statuses});
-
-  final Map<KoraSeatStatus, Color>? palette;
-  final List<KoraSeatStatus>? statuses;
+  const _Legend();
 
   static const _entries = [
     ('Libre', KoraSeatStatus.available),
@@ -505,11 +463,9 @@ class _Legend extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          for (final entry in _entries.where(
-            (e) => statuses?.contains(e.$2) ?? true,
-          )) ...[
+          for (final entry in _entries) ...[
             if (entry != _entries.first) const SizedBox(width: 11),
-            _LegendSwatch(status: entry.$2, palette: palette),
+            _LegendSwatch(status: entry.$2),
             const SizedBox(width: 4),
             Text(entry.$1, style: TextStyle(color: textMuted, fontSize: 9)),
           ],
@@ -520,31 +476,19 @@ class _Legend extends StatelessWidget {
 }
 
 class _LegendSwatch extends StatelessWidget {
-  const _LegendSwatch({required this.status, this.palette});
+  const _LegendSwatch({required this.status});
 
   final KoraSeatStatus status;
-  final Map<KoraSeatStatus, Color>? palette;
 
   @override
   Widget build(BuildContext context) {
-    final visual = _seatVisual(status, palette);
-    final koraColors = context.koraColors;
-
-    // Les vrais sièges reposent sur le panneau blanc du bus, toujours
-    // clair ; les pastilles de la légende, elles, sont posées sur le fond
-    // de l'écran. Une pastille de la couleur de ce fond s'y dissout — le
-    // navy de « votre choix » disparaît en thème sombre. On la cerne donc
-    // dès que sa bordure ne suffit pas à la détacher.
-    final border = visual.border == visual.background
-        ? koraColors.line
-        : visual.border;
-
+    final visual = _seatVisual(status);
     return Container(
       width: 9,
       height: 9,
       decoration: BoxDecoration(
         color: visual.background,
-        border: Border.all(color: border),
+        border: Border.all(color: visual.border),
         borderRadius: BorderRadius.circular(3),
       ),
     );

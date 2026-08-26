@@ -101,6 +101,7 @@ class LineModel {
 
     return Line(
       id: uuid,
+      code: code.isEmpty ? null : code,
       origin: origin.toCity(),
       destination: destination.toCity(),
       duration: duration,

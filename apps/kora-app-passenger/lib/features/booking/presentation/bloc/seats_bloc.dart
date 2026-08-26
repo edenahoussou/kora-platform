@@ -18,6 +18,7 @@ class SeatsBloc extends Bloc<SeatsEvent, SeatsState> {
   SeatsBloc(this._getSeats) : super(const SeatsState()) {
     on<SeatsRequested>(_onRequested);
     on<SeatToggled>(_onToggled);
+    on<SeatRefused>(_onRefused);
   }
 
   final GetSeatsUseCase _getSeats;
@@ -38,6 +39,37 @@ class SeatsBloc extends Bloc<SeatsEvent, SeatsState> {
       ),
       (seats) =>
           emit(state.copyWith(status: SeatsStatus.success, seats: seats)),
+    );
+  }
+
+  /// Marque occupé le siège que le serveur vient de refuser.
+  ///
+  /// Sans identifiant ni libellé — une réponse 409 qui ne nomme personne —
+  /// on vide simplement la sélection : mieux vaut faire rechoisir que
+  /// laisser croire qu'un siège est encore libre.
+  void _onRefused(SeatRefused event, Emitter<SeatsState> emit) {
+    final id = event.seatId;
+    final label = event.seatLabel;
+
+    bool isRefused(Seat seat) =>
+        (id != null && seat.id == id) || (label != null && seat.label == label);
+
+    if (id == null && label == null) {
+      emit(state.copyWith(selectedSeats: const []));
+      return;
+    }
+
+    emit(
+      state.copyWith(
+        seats: [
+          for (final seat in state.seats)
+            isRefused(seat) ? seat.copyWith(status: SeatStatus.occupied) : seat,
+        ],
+        selectedSeats: [
+          for (final seat in state.selectedSeats)
+            if (!isRefused(seat)) seat,
+        ],
+      ),
     );
   }
 

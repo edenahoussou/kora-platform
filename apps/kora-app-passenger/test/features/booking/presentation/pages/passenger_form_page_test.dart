@@ -3,32 +3,48 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/core/router/app_router.dart';
 import 'package:kora_app_passenger/core/utils/date_formats.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/seat.dart';
+import 'package:kora_app_passenger/features/booking/presentation/bloc/seat_hold_bloc.dart';
 import 'package:kora_app_passenger/features/booking/presentation/pages/passenger_form_page.dart';
 import 'package:kora_app_passenger/features/booking/presentation/pages/summary_page.dart';
 
+import '../../../../support/seat_hold_harness.dart';
+
 void main() {
+  late SeatHoldBloc holdBloc;
+
   final cotonou = kMockCities.firstWhere((city) => city.id == 'ctn');
   final malanville = kMockCities.firstWhere((city) => city.id == 'mlv');
 
   late Departure departure;
+
+  /// Le même départ, mais pris de Cotonou à Lomé : le tronçon quitte le
+  /// Bénin, et c'est cela seul qui déclenche le formulaire du manifeste.
+  late Departure crossBorder;
+
   late List<Seat> freeSeats;
 
   setUpAll(() async {
+    await AppLocalization.preloadAll();
     // Le récapitulatif, atteint depuis ce formulaire, affiche des dates
     // formatées en français.
     await initializeDateFormatting(KoraDateFormats.locale);
   });
 
   setUp(() {
+    holdBloc = SeatHoldBloc(StubReservationRepository());
+    addTearDown(holdBloc.close);
+
     departure = mockDeparturesFor(
       SearchCriteria(
         origin: cotonou,
@@ -36,12 +52,28 @@ void main() {
         date: DateTime(2026, 8, 14),
       ),
     ).first;
+    crossBorder = Departure(
+      id: departure.id,
+      line: departure.line,
+      departsAt: departure.departsAt,
+      comfort: departure.comfort,
+      price: departure.price,
+      seatsTotal: departure.seatsTotal,
+      seatsAvailable: departure.seatsAvailable,
+      originCountry: 'BJ',
+      destinationCountry: 'TG',
+    );
+
     freeSeats = mockSeatsFor(
       departure,
     ).where((seat) => seat.status == SeatStatus.free).take(2).toList();
   });
 
-  Future<void> pumpForm(WidgetTester tester, {int passengers = 1}) async {
+  Future<void> pumpForm(
+    WidgetTester tester, {
+    int passengers = 1,
+    bool international = false,
+  }) async {
     tester.view.physicalSize = const Size(390 * 3, 1200 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -52,18 +84,24 @@ void main() {
       routes: [
         GoRoute(
           path: '/',
-          builder: (_, _) => PassengerFormPage(
-            departure: departure,
-            seats: freeSeats.take(passengers).toList(),
+          builder: (_, _) => withSeatHold(
+            PassengerFormPage(
+              departure: international ? crossBorder : departure,
+              seats: freeSeats.take(passengers).toList(),
+            ),
+            bloc: holdBloc,
           ),
         ),
         GoRoute(
           path: AppRouter.summaryPath,
           builder: (context, state) {
             final args = state.extra! as SummaryArgs;
-            return SummaryPage(
-              departure: args.departure,
-              passengers: args.passengers,
+            return withSeatHold(
+              SummaryPage(
+                departure: args.departure,
+                passengers: args.passengers,
+              ),
+              bloc: holdBloc,
             );
           },
         ),
@@ -72,7 +110,18 @@ void main() {
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
-      MaterialApp.router(theme: AppTheme.light, routerConfig: router),
+      MaterialApp.router(
+        theme: AppTheme.light,
+        locale: const Locale('fr'),
+        supportedLocales: const [Locale('fr'), Locale('en')],
+        localizationsDelegates: const [
+          AppLocalization.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        routerConfig: router,
+      ),
     );
     await tester.pumpAndSettle();
   }
@@ -141,6 +190,55 @@ void main() {
     expect(find.text('Vérifiez votre voyage'), findsOneWidget);
   });
 
+  group('formulaire international', () {
+    testWidgets('reste simple tant que le trajet ne quitte pas le pays', (
+      tester,
+    ) async {
+      await pumpForm(tester);
+
+      expect(find.text('Qui voyage ?'), findsOneWidget);
+      expect(find.text('E-mail (optionnel)'), findsOneWidget);
+      // Aucun champ de frontière : réclamer un passeport pour un
+      // Cotonou → Malanville n'aurait aucun sens.
+      expect(find.text('Type de document'), findsNothing);
+      expect(find.text('Nationalité'), findsNothing);
+    });
+
+    testWidgets('bascule tout seul dès qu’une frontière est franchie', (
+      tester,
+    ) async {
+      await pumpForm(tester, international: true);
+
+      expect(find.text('Identités internationales'), findsOneWidget);
+      expect(find.text('Type de document'), findsOneWidget);
+      expect(find.text('Numéro du document'), findsOneWidget);
+      expect(find.text('Nationalité'), findsOneWidget);
+      expect(find.text('Naissance'), findsOneWidget);
+      // Le courriel facultatif cède la place : la maquette ne l'affiche
+      // pas sur ce formulaire-là.
+      expect(find.text('E-mail (optionnel)'), findsNothing);
+      expect(
+        find.text('Ces informations servent au manifeste de frontière.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('exige les champs du manifeste avant de continuer', (
+      tester,
+    ) async {
+      await pumpForm(tester, international: true);
+
+      // Identité déjà pré-remplie : seuls les champs de frontière
+      // manquent, et ils doivent suffire à retenir le voyageur.
+      await tester.tap(find.text('Enregistrer et continuer'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Numéro requis'), findsOneWidget);
+      expect(find.text('Date requise'), findsOneWidget);
+      expect(find.text('Récapitulatif'), findsNothing);
+    });
+  });
+
   testWidgets('annonce l’absence de sièges plutôt que d’afficher un vide', (
     tester,
   ) async {
@@ -151,7 +249,18 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
-        home: PassengerFormPage(departure: departure),
+        locale: const Locale('fr'),
+        supportedLocales: const [Locale('fr'), Locale('en')],
+        localizationsDelegates: const [
+          AppLocalization.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: withSeatHold(
+          PassengerFormPage(departure: departure),
+          bloc: holdBloc,
+        ),
       ),
     );
     await tester.pumpAndSettle();

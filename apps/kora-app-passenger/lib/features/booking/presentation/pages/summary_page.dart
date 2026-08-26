@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../../core/widgets/section_title.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../payment/presentation/pages/payment_args.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/passenger.dart';
 import '../widgets/booking_progress.dart';
+import '../widgets/hold_countdown.dart';
 import '../widgets/state_view.dart';
 
 /// Données passées à [SummaryPage] par `go_router` (`extra`).
@@ -84,6 +90,7 @@ class _SummaryContent extends StatelessWidget {
             children: [
               const BookingProgress(step: 5, label: 'Récapitulatif'),
               const SizedBox(height: 11),
+              const HoldCountdown(margin: EdgeInsets.only(bottom: 11)),
               _TripCard(departure: departure, passengers: passengers),
               SectionTitle(
                 title: 'Passagers',
@@ -103,13 +110,23 @@ class _SummaryContent extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: AppSpacing.lg),
           child: KoraButton(
             label: 'Continuer vers le paiement',
-            onPressed: () => ScaffoldMessenger.of(context)
-              ..hideCurrentSnackBar()
-              ..showSnackBar(
-                const SnackBar(
-                  content: Text('Le paiement sera branché au Sprint 2.'),
-                ),
+            onPressed: () => context.push(
+              AppRouter.paymentMethodPath,
+              // Le total est arrêté ici, puis transporté : le recalculer
+              // sur chaque écran de paiement ferait dépendre la somme du
+              // chemin emprunté.
+              extra: PaymentArgs(
+                total: departure.price * passengers.length.clamp(1, 99),
+                // Le numéro du compte, proposé au débit Mobile Money :
+                // c'est celui que le voyageur a sous la main, et le
+                // retaper à ce stade n'apporte rien.
+                phone: context.read<AuthBloc>().state.session?.user.phone,
+                departure: departure,
+                seatLabel: passengers
+                    .map((passenger) => passenger.seat.label)
+                    .join(', '),
               ),
+            ),
           ),
         ),
       ],

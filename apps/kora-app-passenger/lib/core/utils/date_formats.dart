@@ -39,6 +39,12 @@ class KoraDateFormats {
   /// `04 août` — format court des cartes de voyage.
   static final DateFormat dayMonth = DateFormat('dd MMMM', locale);
 
+  /// `04 août` — le mois abrégé, pour les espaces étroits.
+  ///
+  /// Le billet aligne trois champs sur une ligne : « 02 SEPTEMBRE » y
+  /// passerait à la ligne et décalerait l'heure et le siège.
+  static final DateFormat dayMonthShort = DateFormat('dd MMM', locale);
+
   /// `07:30`.
   static final DateFormat time = DateFormat('HH:mm', locale);
 
@@ -61,6 +67,9 @@ class KoraDateFormats {
   /// `août 2026` — en-tête du calendrier. `intl` rend le mois en
   /// minuscules ; voir [capitalize] pour l'affichage.
   static final DateFormat monthYear = DateFormat('MMMM yyyy', locale);
+
+  /// Le mois seul (`août`), pour la grille des mois du calendrier.
+  static final DateFormat monthOnly = DateFormat('MMMM', locale);
 
   /// Met la première lettre en capitale (`août` → `Août`), comme la
   /// maquette affiche les noms de mois.

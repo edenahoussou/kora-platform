@@ -91,6 +91,19 @@ class ApiConstants {
   static String busDepartureSeats(String departureUuid) =>
       '$busDepartures/$departureUuid/seats';
 
+  /// Devis ferme pour un tronçon (`POST`, authentifié). Étape obligée
+  /// avant [busHolds], qui en réclame l'identifiant.
+  static const String busQuotes = '$_v1/bus/quotes';
+
+  /// Blocage des sièges (`POST`, authentifié). C'est cet appel — et lui
+  /// seul — qui retire les places de la vente et arme le compte à
+  /// rebours ; le choix sur le plan n'engage rien.
+  static const String busHolds = '$_v1/bus/holds';
+
+  /// Libération d'un blocage avant son échéance (`DELETE`, authentifié).
+  /// La clé est l'identifiant de la **réservation**, pas du départ.
+  static String hold(String reservationUuid) => '$_v1/holds/$reservationUuid';
+
   // --- Reste de l'API : pas encore documenté ---
 
   static const String busBooking = '/bus/bookings';
