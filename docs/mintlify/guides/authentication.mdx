@@ -43,7 +43,7 @@ final challengeUuid = res.data['data']['otp_challenge_uuid'];
 }
 ```
 
-Voir la référence : [OTP — Demander](/reference/auth/otp).
+Voir la référence : [OTP — Demander](/reference/auth/otp-request).
   </Step>
 
   <Step title="2. Vérifier l'OTP">
@@ -64,7 +64,7 @@ final res = await dio.post('/api/v1/auth/otp/verify', data: {
 final verificationToken = res.data['data']['verification_token'];
 ```
 
-Voir la référence : [OTP — Vérifier](/reference/auth/otp).
+Voir la référence : [OTP — Vérifier](/reference/auth/otp-verify).
   </Step>
 
   <Step title="3. Compléter l'inscription (nouvel utilisateur)">
@@ -109,7 +109,7 @@ final token = res.data['data']['token'];
 }
 ```
 
-Voir la référence : [Sessions & PIN](/reference/auth/sessions).
+Voir la référence : [Compléter l'inscription](/reference/auth/register-complete).
   </Step>
 
   <Step title="4. Connexion (utilisateur existant)">
@@ -136,7 +136,7 @@ final token = res.data['data']['token'];
   **Nouvel appareil** : Si la connexion provient d'un appareil inconnu, l'API retourne `202` avec `requires_otp: true` au lieu d'un token. Le client doit enchaîner : `otp/request` → `otp/verify` → `login` avec `otp_challenge_uuid` + `verification_token`.
 </Warning>
 
-Voir la référence : [Sessions & PIN](/reference/auth/sessions).
+Voir la référence : [Connexion](/reference/auth/login).
   </Step>
 
   <Step title="5. Utiliser le token">
@@ -154,7 +154,7 @@ final me = await authDio.get('/api/v1/auth/me');
 print(me.data['data']['user']['name']);
 ```
 
-Voir la référence : [Profil](/reference/auth/profile).
+Voir la référence : [Profil](/reference/auth/me).
   </Step>
 </Steps>
 
@@ -195,7 +195,7 @@ final token = res.data['data']['token'];
   L'avatar du provider est automatiquement téléchargé et exposé via `avatar_url`. Si aucun email n'est retourné (TikTok notamment), la création est refusée avec `422 email_required`.
 </Info>
 
-Voir la référence : [OAuth sociale](/reference/auth/oauth).
+Voir la référence : [OAuth sociale](/reference/auth/oauth-token).
 
 ## PIN oublié ou compte verrouillé
 
@@ -203,7 +203,7 @@ Voir la référence : [OAuth sociale](/reference/auth/oauth).
   <Step title="PIN oublié">
     Demandez un OTP avec `purpose: "pin_reset"`, vérifiez-le, puis appelez `POST /auth/pin/reset` avec le nouveau PIN.
 
-Voir : [Sessions & PIN](/reference/auth/sessions).
+Voir : [Réinitialiser le PIN](/reference/auth/pin-reset).
   </Step>
   <Step title="Compte verrouillé (423)">
     Après plusieurs PIN incorrects, le compte est verrouillé. Demandez un OTP avec `purpose: "account_unlock"`, vérifiez-le, puis appelez `POST /auth/unlock`.
