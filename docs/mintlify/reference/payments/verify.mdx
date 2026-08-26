@@ -1,6 +1,6 @@
 ---
 title: Vérifier explicitement un paiement
-description: Interroge le provider côté serveur et met à jour l'état local du paiement.
+description: "POST /payments/{uuid}/verify : le serveur interroge FedaPay ou MTN MoMo, met à jour le statut local du paiement et retourne la ressource complète."
 api: POST /api/v1/payments/{payment_uuid}/verify
 ---
 

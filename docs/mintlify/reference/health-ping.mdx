@@ -1,6 +1,6 @@
 ---
 title: Ping
-description: Probe de liveness minimal — retourne 204 si le processus répond.
+description: GET /api/v1/health/ping est le liveness probe minimal de l'API KORA BUS, retourne 204 No Content sans vérifier les services, idéal load balancer.
 api: GET /api/v1/health/ping
 authMethod: none
 ---
