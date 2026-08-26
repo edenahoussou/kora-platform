@@ -130,6 +130,7 @@
                   "reference/payments/initiate",
                   "reference/payments/show",
                   "reference/payments/verify",
+                  "reference/payments/cancel",
                   "reference/payments/tickets",
                   "reference/payments/confirm"
                 ]

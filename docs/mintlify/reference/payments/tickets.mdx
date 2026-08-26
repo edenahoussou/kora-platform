@@ -6,11 +6,94 @@ api: GET /api/v1/bookings/{reservation_uuid}/tickets
 
 # Récupérer les billets émis
 
-La confirmation du paiement passe la réservation à `paid`, puis un job idempotent émet les billets. Cette étape peut donc être momentanément `pending`, `processing` ou `failed` dans `reservation.ticket_issuance.status`.
+La confirmation du paiement passe la réservation à `paid`, puis un job idempotent (`IssueReservationTicketsJob`) émet les billets. Cette étape peut donc être momentanément `pending`, `processing` ou `failed` dans `reservation.ticket_issuance.status`.
+
+L'endpoint retourne **un billet par passager** rattaché à la réservation. Si la liste est vide alors que le paiement est `confirmed`, rafraîchissez l'état de la réservation avant d'afficher une erreur définitive — le job d'émission peut encore être en file d'attente.
+
+## Paramètres
+
+<ParamField path="reservation_uuid" type="UUID" required>
+  UUID de la réservation (route model binding sur colonne `uuid`).
+</ParamField>
+
+<RequestExample>
 
 ```bash cURL
 curl -X GET https://staging.koraexpress.app/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70/tickets \
-  -H 'Authorization: Bearer $TOKEN'
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Accept: application/json'
 ```
 
-Une réponse réussie contient, pour chaque passager, uniquement les identifiants publics, le code court, le token QR, la date d'émission et le siège. En cas de liste vide alors que le paiement est confirmé, rafraîchissez l'état de la réservation avant d'afficher une erreur définitive.
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70/tickets', {
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+const { data } = await res.json();
+```
+
+```typescript TypeScript
+const res = await fetch(`https://staging.koraexpress.app/api/v1/bookings/${reservationUuid}/tickets`, {
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+const data: Ticket[] = (await res.json()).data;
+```
+
+```dart Dart
+final res = await authDio.get('/api/v1/bookings/$reservationUuid/tickets');
+final tickets = res.data['data'] as List;
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "data": [
+    {
+      "uuid": "f1a2b3c4-d5e6-7890-abcd-ef1234567890",
+      "short_code": "KORA-AB12CD",
+      "qr_code": "data:image/png;base64,iVBORw0KGgo...",
+      "status": "issued",
+      "issued_at": "2026-08-20T08:06:30.000Z",
+      "reservation_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+      "passenger": {
+        "uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "first_name": "Aïcha",
+        "last_name": "HOUNKPÈ"
+      },
+      "seat_code": "12A"
+    }
+  ]
+}
+```
+
+</ResponseExample>
+
+## Réponse
+
+<ResponseField name="data" type="array" required>Liste des billets émis (un par passager).</ResponseField>
+<ResponseField name="data[].uuid" type="UUID" required>UUID public du billet.</ResponseField>
+<ResponseField name="data[].short_code" type="string" required>Code court lisible (ex: `KORA-AB12CD`).</ResponseField>
+<ResponseField name="data[].qr_code" type="string" required>Token QR encodé (data URI ou payload brut).</ResponseField>
+<ResponseField name="data[].status" type="string" required>Statut du billet : `issued`, `voided`, `refunded`, etc.</ResponseField>
+<ResponseField name="data[].issued_at" type="string">Date d'émission (ISO 8601) ou `null`.</ResponseField>
+<ResponseField name="data[].reservation_uuid" type="UUID" required>UUID de la réservation parent.</ResponseField>
+<ResponseField name="data[].passenger" type="object">Passager rattaché au billet ou `null`.</ResponseField>
+<ResponseField name="data[].passenger.uuid" type="UUID">UUID du passager.</ResponseField>
+<ResponseField name="data[].passenger.first_name" type="string">Prénom.</ResponseField>
+<ResponseField name="data[].passenger.last_name" type="string">Nom.</ResponseField>
+<ResponseField name="data[].seat_code" type="string">Code du siège attribué ou `null`.</ResponseField>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `200` | Liste des billets (potentiellement vide si l'émission est en cours). |
+| `401` | Token absent ou invalide. |
+| `403` | La réservation appartient à un autre utilisateur. |
+| `404` | Réservation introuvable. |
+
+<Info>
+  Pour consulter un **seul** billet, utilisez `GET /api/v1/tickets/{ticket_uuid}`. Les deux endpoints vérifient la propriété de la réservation.
+</Info>

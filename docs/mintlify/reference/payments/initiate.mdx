@@ -91,9 +91,17 @@ final paymentUuid = res.data['data']['uuid'];
     "status": "pending",
     "amount": 12500,
     "currency": "XOF",
+    "method": "mobile_money",
     "provider": "mtn_momo",
+    "mobile_money_network": "mtn_momo",
+    "provider_currency": "EUR",
+    "provider_amount": 12500,
     "provider_reference": null,
+    "provider_transaction_id": null,
+    "payer_phone": "+2290197421860",
     "confirmed_at": null,
+    "last_verified_at": null,
+    "next_action": "verify",
     "expires_at": "2026-08-20T08:15:00.000Z",
     "polling_interval_seconds": 10
   }
@@ -125,14 +133,20 @@ final paymentUuid = res.data['data']['uuid'];
 <ResponseField name="data" type="Payment" required>
   <ResponseField name="uuid" type="UUID" required>UUID du paiement.</ResponseField>
   <ResponseField name="status" type="string" required>`pending`, `confirmed`, `failed`, `cancelled`, ou `refunded`.</ResponseField>
-  <ResponseField name="amount" type="integer" required>Montant.</ResponseField>
-  <ResponseField name="currency" type="string" required>Devise.</ResponseField>
-  <ResponseField name="provider" type="string" required>Provider utilisé.</ResponseField>
-  <ResponseField name="mobile_money_network" type="string" required>Réseau sélectionné.</ResponseField>
-  <ResponseField name="provider_currency" type="string">Devise envoyée au provider.</ResponseField>
-  <ResponseField name="provider_amount" type="integer">Montant envoyé au provider.</ResponseField>
-  <ResponseField name="provider_reference" type="string">Référence provider ou `null`.</ResponseField>
+  <ResponseField name="amount" type="integer" required>Montant facturé au passager (en `currency`).</ResponseField>
+  <ResponseField name="currency" type="string" required>Devise KORA. Toujours `XOF` au MVP.</ResponseField>
+  <ResponseField name="method" type="string" required>`mobile_money`.</ResponseField>
+  <ResponseField name="provider" type="string" required>Provider utilisé (`fedapay` ou `mtn_momo`).</ResponseField>
+  <ResponseField name="mobile_money_network" type="string" required>Réseau sélectionné (`mtn_momo`, `moov_flooz`, `celtiis_cash`).</ResponseField>
+  <ResponseField name="provider_currency" type="string">Devise envoyée au provider. Peut différer de `currency` (ex: `EUR` en sandbox MTN).</ResponseField>
+  <ResponseField name="provider_amount" type="integer">Montant envoyé au provider (en `provider_currency`).</ResponseField>
+  <ResponseField name="provider_reference" type="string">Référence provider ou `null` si non encore assignée.</ResponseField>
+  <ResponseField name="provider_transaction_id" type="string">ID technique provider ou `null`.</ResponseField>
+  <ResponseField name="payer_phone" type="string">Téléphone du payeur tel que fourni.</ResponseField>
   <ResponseField name="confirmed_at" type="string">Date de confirmation (ISO 8601) ou `null`.</ResponseField>
+  <ResponseField name="last_verified_at" type="string">Dernière vérification serveur (ISO 8601) ou `null`.</ResponseField>
+  <ResponseField name="next_action" type="string" required>Action attendue côté mobile : `verify` (pending), `wait_for_tickets` (confirmed, billets en cours), `show_tickets` (confirmed, billets émis), ou `retry` (failed/cancelled).</ResponseField>
+  <ResponseField name="failure" type="object">Présent uniquement si le paiement a échoué. Contient `code` et `message`.</ResponseField>
   <ResponseField name="expires_at" type="string">Expiration du hold de la réservation (ISO 8601) ou `null`.</ResponseField>
   <ResponseField name="polling_interval_seconds" type="integer" required>Toujours `10`.</ResponseField>
 </ResponseField>

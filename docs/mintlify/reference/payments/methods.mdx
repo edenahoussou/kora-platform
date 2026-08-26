@@ -6,13 +6,118 @@ api: GET /api/v1/payments/methods
 
 # Moyens de paiement disponibles
 
-Retourne le catalogue public des moyens activés pour le Bénin. Le mobile doit afficher uniquement les providers et réseaux présents dans cette réponse; aucune clé secrète n'est exposée.
+Retourne le catalogue public des moyens de paiement activés pour le Bénin. Le mobile doit afficher uniquement les providers et réseaux présents dans cette réponse. Aucune clé secrète n'est exposée.
+
+## Paramètres
+
+Aucun paramètre de corps. Authentification `Bearer` requise.
+
+<RequestExample>
 
 ```bash cURL
 curl -X GET https://staging.koraexpress.app/api/v1/payments/methods \
-  -H 'Authorization: Bearer $TOKEN'
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Accept: application/json'
 ```
 
-La réponse contient `country: BJ`, la devise KORA `XOF`, les providers actifs et les réseaux supportés. Chaque provider indique `verification: server_verify`: le mobile doit utiliser l'endpoint de vérification explicite après l'initiation.
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/payments/methods', {
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+const { data } = await res.json();
+```
 
-Le Mini Wallet est retourné comme désactivé avec `availability: out_of_mvp`. L'application ne doit pas proposer son parcours dans ce lot.
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/payments/methods', {
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+const data: PaymentCatalog = (await res.json()).data;
+```
+
+```dart Dart
+final res = await authDio.get('/api/v1/payments/methods');
+final methods = res.data['data']['methods'];
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "data": {
+    "country": "BJ",
+    "currency": "XOF",
+    "methods": [
+      {
+        "code": "mobile_money",
+        "label": "Mobile Money",
+        "enabled": true,
+        "providers": [
+          {
+            "code": "fedapay",
+            "label": "FedaPay",
+            "enabled": true,
+            "networks": ["mtn_momo", "moov_flooz", "celtiis_cash"],
+            "requires": ["phone", "mobile_money_network"],
+            "interaction": "push_or_redirect",
+            "polling_interval_seconds": 10,
+            "verification": "server_verify"
+          },
+          {
+            "code": "mtn_momo",
+            "label": "MTN MoMo",
+            "enabled": true,
+            "networks": ["mtn_momo"],
+            "requires": ["phone", "mobile_money_network"],
+            "interaction": "push",
+            "polling_interval_seconds": 10,
+            "verification": "server_verify"
+          }
+        ]
+      },
+      {
+        "code": "wallet",
+        "label": "Mini Wallet",
+        "enabled": false,
+        "availability": "out_of_mvp",
+        "providers": []
+      }
+    ]
+  }
+}
+```
+
+</ResponseExample>
+
+## Réponse
+
+<ResponseField name="data" type="object" required>
+  <ResponseField name="data.country" type="string" required>Code pays ISO 3166-1 alpha-2. Toujours `BJ` au MVP.</ResponseField>
+  <ResponseField name="data.currency" type="string" required>Devise KORA (frais facturés au passager). Toujours `XOF`.</ResponseField>
+  <ResponseField name="data.methods" type="array" required>Liste des moyens de paiement.</ResponseField>
+  <ResponseField name="data.methods[].code" type="string" required>Code du moyen (`mobile_money`, `wallet`).</ResponseField>
+  <ResponseField name="data.methods[].label" type="string" required>Libellé affichable.</ResponseField>
+  <ResponseField name="data.methods[].enabled" type="boolean" required>`true` si le moyen est activé.</ResponseField>
+  <ResponseField name="data.methods[].providers" type="array" required>Providers supportant ce moyen.</ResponseField>
+  <ResponseField name="data.methods[].providers[].code" type="string" required>Code provider (`fedapay`, `mtn_momo`).</ResponseField>
+  <ResponseField name="data.methods[].providers[].label" type="string" required>Libellé affichable du provider.</ResponseField>
+  <ResponseField name="data.methods[].providers[].enabled" type="boolean" required>`true` si le provider a des credentials valides.</ResponseField>
+  <ResponseField name="data.methods[].providers[].networks" type="array" required>Réseaux Mobile Money supportés par ce provider.</ResponseField>
+  <ResponseField name="data.methods[].providers[].requires" type="array" required>Champs obligatoires à fournir à `POST /payments/initiate`.</ResponseField>
+  <ResponseField name="data.methods[].providers[].interaction" type="string" required>`push` (USSD push vers le téléphone) ou `push_or_redirect` (push ou redirection web).</ResponseField>
+  <ResponseField name="data.methods[].providers[].polling_interval_seconds" type="integer" required>Intervalle recommandé entre deux vérifications.</ResponseField>
+  <ResponseField name="data.methods[].providers[].verification" type="string" required>Toujours `server_verify` — le mobile doit appeler `POST /payments/{uuid}/verify`.</ResponseField>
+  <ResponseField name="data.methods[].availability" type="string">Présent uniquement si `enabled=false`. `out_of_mvp` pour les moyens hors périmètre.</ResponseField>
+</ResponseField>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `200` | Catalogue retourné. |
+| `401` | Token absent ou invalide. |
+
+<Info>
+  Le Mini Wallet est retourné comme désactivé avec `availability: out_of_mvp`. L'application ne doit pas proposer son parcours dans ce lot.
+</Info>

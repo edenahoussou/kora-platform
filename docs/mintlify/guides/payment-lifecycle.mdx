@@ -11,16 +11,29 @@ Le paiement KORA BUS suit un cycle asynchrone : **catalogue** → **initiation**
 ## Vue d'ensemble
 
 ```
-methods → initiate → pending → verify → confirmed / failed
+methods → initiate → pending → verify → confirmed / failed / cancelled
                                       ↓
                     reservation: held → paid
                                       ↓
-                         ticket issuance: pending → issued
+                         ticket issuance: not_started → pending → issued
+                                      ↓
+                            GET /bookings/{uuid}/tickets
 ```
 
 <Steps>
-  <Step title="1. Initier le paiement">
-    La réservation doit être au statut `held`. Fournissez une `idempotency_key` unique.
+  <Step title="1. Récupérer le catalogue">
+    Avant d'afficher l'écran de paiement, appelez `GET /api/v1/payments/methods`. Le mobile ne doit proposer que les providers et réseaux présents dans la réponse.
+
+```bash
+curl -X GET https://staging.koraexpress.app/api/v1/payments/methods \
+  -H 'Authorization: Bearer $TOKEN'
+```
+
+Voir : [Moyens de paiement — Référence](/reference/payments/methods).
+  </Step>
+
+  <Step title="2. Initier le paiement">
+    La réservation doit être au statut `held`. Fournissez une `idempotency_key` unique, le `provider`, le `phone` et le `mobile_money_network`.
 
 ```bash
 curl -X POST https://staging.koraexpress.app/api/v1/payments/initiate \
@@ -36,53 +49,84 @@ curl -X POST https://staging.koraexpress.app/api/v1/payments/initiate \
   }'
 ```
 
-La réponse `201` contient le `uuid` du paiement, le statut `pending`, et `polling_interval_seconds` (10s).
+La réponse `201` contient le `uuid` du paiement, le statut `pending`, `next_action: "verify"`, et `polling_interval_seconds` (10s).
 
 Voir : [Initier — Référence](/reference/payments/initiate).
   </Step>
 
-  <Step title="2. Vérifier côté serveur puis rafraîchir">
-    Appelez `POST /payments/{uuid}/verify` après l'approbation du client. Le serveur interroge l'endpoint officiel du provider, puis l'application peut rafraîchir avec `GET /payments/{uuid}` toutes les `polling_interval_seconds` secondes.
+  <Step title="3. Vérifier côté serveur puis rafraîchir">
+    Après l'approbation du client sur son téléphone (USSD push), appelez `POST /payments/{uuid}/verify`. Le serveur interroge le provider, met à jour le statut, puis retourne `PaymentResource` avec `next_action`.
 
 ```dart
+// Étape 1 : vérification explicite
+final verifyRes = await authDio.post('/api/v1/payments/$paymentUuid/verify');
+final nextAction = verifyRes.data['data']['next_action'];
+
+// Étape 2 : polling léger en attendant les billets
 Timer.periodic(Duration(seconds: 10), (timer) async {
   final res = await authDio.get('/api/v1/payments/$paymentUuid');
   final status = res.data['data']['status'];
+  final next = res.data['data']['next_action'];
 
-  if (status == 'confirmed' && data['data']['next_action'] == 'show_tickets') {
+  if (next == 'show_tickets') {
     timer.cancel();
     // Appeler GET /bookings/{reservationUuid}/tickets
-  } else if (status == 'failed') {
+  } else if (status == 'failed' || status == 'cancelled') {
     timer.cancel();
     // Afficher l'erreur
   }
 });
 ```
 
-Voir : [Consulter — Référence](/reference/payments/show).
+Voir : [Vérifier — Référence](/reference/payments/verify) et [Consulter — Référence](/reference/payments/show).
   </Step>
 
-  <Step title="3. Attendre l'émission du billet">
-    Après `confirmed`, la réservation passe à `paid` et l'émission des billets est réalisée par un job idempotent. Consultez `reservation.ticket_issuance.status`; une erreur d'émission peut être relancée sans débiter à nouveau le passager.
+  <Step title="4. Annuler si nécessaire">
+    Si le passager refuse la demande USSD ou veut abandonner, appelez `POST /payments/{uuid}/cancel`. Seul un paiement `pending` peut être annulé.
 
-    - `confirmed` + `issued` → afficher les billets
-    - `confirmed` + `pending|processing` → afficher l'attente
-    - `failed` → proposer une nouvelle tentative
+```bash
+curl -X POST https://staging.koraexpress.app/api/v1/payments/$paymentUuid/cancel \
+  -H 'Authorization: Bearer $TOKEN'
+```
 
-    L'app mobile n'appelle **pas** cet endpoint — c'est le provider qui le fait.
+Voir : [Annuler — Référence](/reference/payments/cancel).
+  </Step>
 
-Voir : [Confirmer — Référence](/reference/payments/confirm).
+  <Step title="5. Attendre et récupérer les billets">
+    Après `confirmed`, la réservation passe à `paid` et l'émission des billets est réalisée par un job idempotent. Consultez `reservation.ticket_issuance.status` :
+
+    - `confirmed` + `issued` → appeler `GET /bookings/{reservation_uuid}/tickets`
+    - `confirmed` + `pending` / `processing` → afficher l'attente
+    - `failed` → proposer une nouvelle tentative (sans redébit)
+
+```bash
+curl -X GET https://staging.koraexpress.app/api/v1/bookings/$reservationUuid/tickets \
+  -H 'Authorization: Bearer $TOKEN'
+```
+
+Voir : [Billets — Référence](/reference/payments/tickets).
   </Step>
 </Steps>
 
 ## Méthodes de paiement
 
-| Méthode | `method` | Providers configurables au Bénin | Champ requis |
+| Méthode | `method` | Providers configurables au Bénin | Champs requis |
 |---------|----------|-------------------|--------------|
 | Mobile Money | `mobile_money` | `fedapay`, `mtn_momo` | `phone`, `mobile_money_network` |
 | Mini Wallet | `wallet` | Hors MVP | — |
 
 Les réservations KORA restent en XOF. MTN utilise EUR uniquement dans le sandbox public; le montant numérique de test est transmis tel quel. En production, la devise doit correspondre au compte MTN provisionné.
+
+## Champ `next_action`
+
+Le champ `next_action` guide le mobile à chaque étape :
+
+| `status` | `ticket_issuance` | `next_action` | Action mobile |
+|----------|-------------------|--------------|--------------|
+| `pending` | — | `verify` | Appeler `POST /verify` |
+| `confirmed` | `not_started` / `pending` / `processing` | `wait_for_tickets` | Poller `GET /payments/{uuid}` |
+| `confirmed` | `issued` | `show_tickets` | Appeler `GET /bookings/{uuid}/tickets` |
+| `failed` / `cancelled` / `refunded` | — | `retry` | Proposer un nouveau paiement |
 
 ## Idempotence
 
@@ -101,8 +145,10 @@ La `idempotency_key` garantit qu'un replay de la même demande ne crée pas un d
 |-----------|------|--------|
 | Réservation non `held` | `422` | Vérifier le statut via `GET /bookings/{uuid}` |
 | Hold expiré avant initiation | `422` | Recréer un devis + hold |
+| Paiement déjà actif pour la réservation | `422` | Récupérer le paiement existant |
 | Webhook succès après expiration | — | Paiement `failed`, réservation reste `expired` |
 | Provider timeout | — | Continuer à poller ; le webhook finira par arriver |
+| Trop de `verify` rapprochés | `429` | Respecter le rate limit (6/min) |
 
 <Warning>
   Le paiement est accepté **uniquement** tant que le hold est valide. Si le webhook de succès arrive après l'expiration, le backend marque le paiement `failed` et ne réactive **jamais** la réservation. Le passager doit recommencer une nouvelle recherche.
