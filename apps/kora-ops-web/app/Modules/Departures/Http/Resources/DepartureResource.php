@@ -2,8 +2,10 @@
 
 namespace App\Modules\Departures\Http\Resources;
 
+use App\Modules\BusNetwork\Data\BusAmenityStatus;
 use App\Modules\BusNetwork\Http\Resources\LineResource;
 use App\Modules\BusNetwork\Http\Resources\StopResource;
+use App\Modules\BusNetwork\Models\BusAmenity;
 use App\Modules\Departures\Data\DepartureAvailabilityData;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -25,7 +27,7 @@ class DepartureResource extends JsonResource
         return [
             'uuid' => $departure->uuid,
             'departure_date' => CarbonImmutable::parse((string) $departure->departure_date)->toDateString(),
-            'departure_time' => $departure->formattedDepartureTime(),
+            'departure_time' => $departure->departure_time,
             'estimated_arrival_at' => $departure->estimated_arrival_at
                 ? CarbonImmutable::parse((string) $departure->estimated_arrival_at)->toISOString()
                 : null,
@@ -37,6 +39,16 @@ class DepartureResource extends JsonResource
                 'brand' => $departure->bus->brand,
                 'model' => $departure->bus->model,
                 'seat_count' => $departure->bus->seat_count,
+                'layout' => $departure->bus->composition !== null ? $departure->bus->composition->layout : [],
+                'amenities' => $departure->bus->amenities
+                    ->filter(fn(BusAmenity $amenity): bool => enum_value($amenity->status) === BusAmenityStatus::Active->value)
+                    ->map(fn(BusAmenity $amenity): array => [
+                        'uuid' => $amenity->uuid,
+                        'code' => $amenity->code,
+                        'label' => $amenity->label,
+                        'icon' => $amenity->icon,
+                    ])
+                    ->values(),
             ],
             'origin_stop' => new StopResource($data->originStop),
             'destination_stop' => new StopResource($data->destinationStop),

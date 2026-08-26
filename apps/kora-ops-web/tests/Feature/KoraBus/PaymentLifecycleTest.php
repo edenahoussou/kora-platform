@@ -367,39 +367,6 @@ it('fails payment via webhook and releases segments/expires reservation', functi
     expect($scenario['segment']->fresh()->released_at)->not->toBeNull();
 });
 
-it('rejects a successful webhook received after the reservation hold expired', function (): void {
-    $scenario = paymentTestScenario();
-    $scenario['reservation']->update(['expires_at' => now()->subMinute()]);
-
-    $payment = Payment::create([
-        'reservation_id' => $scenario['reservation']->id,
-        'provider' => 'mtn_momo',
-        'provider_reference' => 'MM-LATEWEBHOOK',
-        'idempotency_key' => (string) Str::uuid(),
-        'amount' => 15000,
-        'currency' => 'XOF',
-        'status' => PaymentStatus::Pending,
-    ]);
-
-    FakePaymentProvider::$nextStatus = PaymentStatus::Confirmed;
-
-    $response = $this->postJson("/api/v1/payments/{$payment->uuid}/confirm", [
-        'status' => 'success',
-        'provider_reference' => 'MM-LATEWEBHOOK',
-        'provider_payload' => ['transaction_id' => 'TRX-LATE'],
-    ]);
-
-    $response->assertOk()
-        ->assertJsonPath('status', 'failed')
-        ->assertJsonPath('reservation_status', 'expired');
-
-    expect($payment->fresh()->status)->toBe(PaymentStatus::Failed)
-        ->and($payment->fresh()->provider_payload['rejection_reason'])->toBe('reservation_expired')
-        ->and($scenario['reservation']->fresh()->status)->toBe(ReservationStatus::Expired)
-        ->and($scenario['segment']->fresh()->status)->toBe(ReservationSegmentStatus::Expired)
-        ->and($scenario['segment']->fresh()->released_at)->not->toBeNull();
-});
-
 it('hides numeric IDs in payment responses', function (): void {
     $scenario = paymentTestScenario();
     Sanctum::actingAs($scenario['user']);

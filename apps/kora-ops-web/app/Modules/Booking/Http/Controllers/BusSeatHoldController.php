@@ -4,24 +4,27 @@ namespace App\Modules\Booking\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Booking\Actions\CreateSeatHoldAction;
+use App\Modules\Booking\Actions\ReleaseSeatHoldAction;
 use App\Modules\Booking\Http\Requests\StoreSeatHoldRequest;
 use App\Modules\Booking\Http\Resources\ReservationResource;
+use App\Modules\Booking\Models\Reservation;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Models\PriceQuote;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
 
 /**
  * @group Bus
  *
- * Seat hold endpoint for passenger booking.
+ * Seat hold endpoints for passenger booking.
  */
 class BusSeatHoldController extends Controller
 {
     /**
-     * Hold seats for the configured server-side duration.
+     * Hold seats for 15 minutes.
      *
-     * The hold starts only when this endpoint is called, after the passenger confirms the selected seats.
+     * Requires a Sanctum bearer token.
      *
      * @authenticated
      *
@@ -34,7 +37,6 @@ class BusSeatHoldController extends Controller
      *     "currency": "XOF",
      *     "channel": "mobile",
      *     "departure_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e",
-     *     "price_quote_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6f",
      *     "segments": [
      *       {
      *         "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb71",
@@ -51,15 +53,6 @@ class BusSeatHoldController extends Controller
      *   "message": "Le siège 4A n'est plus disponible sur ce segment.",
      *   "conflicting_seat_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb72",
      *   "seat_code": "4A"
-     * }
-     * @response 401 scenario="Unauthenticated" {
-     *   "message": "Unauthenticated."
-     * }
-     * @response 422 scenario="Invalid hold request" {
-     *   "message": "The given data was invalid.",
-     *   "errors": {
-     *     "seats": ["Le nombre de sièges doit correspondre au nombre de passagers du devis."]
-     *   }
      * }
      */
     public function store(StoreSeatHoldRequest $request, CreateSeatHoldAction $createSeatHold): JsonResponse
@@ -83,5 +76,34 @@ class BusSeatHoldController extends Controller
         return (new ReservationResource($reservation))
             ->response()
             ->setStatusCode(201);
+    }
+
+    /**
+     * Release a seat hold.
+     *
+     * Cancels a held reservation and frees its seats immediately, before the
+     * 15-minute hold expiry. Only the user who created the hold may release it.
+     * Releasing an already-released or expired hold is a no-op and still
+     * returns 204.
+     *
+     * Requires a Sanctum bearer token.
+     *
+     * @authenticated
+     *
+     * @urlParam reservation string required Public UUID of the held reservation. Example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
+     *
+     * @response 204 scenario="Hold released"
+     * @response 403 scenario="Reservation belongs to another user" {
+     *   "message": "This action is unauthorized."
+     * }
+     * @response 404 scenario="Reservation not found" {
+     *   "message": "No query results for model [App\\Modules\\Booking\\Models\\Reservation]."
+     * }
+     */
+    public function destroy(Reservation $reservation, ReleaseSeatHoldAction $releaseSeatHold): Response
+    {
+        $releaseSeatHold->handle($reservation, request()->user());
+
+        return response()->noContent();
     }
 }

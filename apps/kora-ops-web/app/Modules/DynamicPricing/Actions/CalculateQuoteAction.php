@@ -115,7 +115,7 @@ class CalculateQuoteAction
             'final_amount' => $finalAmount,
             'currency' => $fare->currency,
             'snapshot' => $snapshot,
-            'expires_at' => now()->addMinutes((int) config('kora.booking.quote_ttl_minutes', 10)),
+            'expires_at' => now()->addMinutes(10),
         ]);
     }
 }

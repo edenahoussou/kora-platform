@@ -30,21 +30,6 @@ class ReleaseSeatHoldAction
                 return;
             }
 
-            if ($lockedReservation->expires_at?->isPast()) {
-                $lockedReservation->update([
-                    'status' => ReservationStatus::Expired,
-                ]);
-
-                $lockedReservation->segments()
-                    ->where('status', ReservationSegmentStatus::Held->value)
-                    ->update([
-                        'status' => ReservationSegmentStatus::Expired,
-                        'released_at' => now(),
-                    ]);
-
-                return;
-            }
-
             $lockedReservation->update([
                 'status' => ReservationStatus::Cancelled,
             ]);

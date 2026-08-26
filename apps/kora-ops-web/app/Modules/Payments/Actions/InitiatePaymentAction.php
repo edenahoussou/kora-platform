@@ -9,7 +9,11 @@ use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\PaymentManager;
 use Illuminate\Auth\Access\AuthorizationException;
+<<<<<<< HEAD
 use Illuminate\Support\Facades\DB;
+=======
+use Illuminate\Support\Str;
+>>>>>>> 752c4ce (feat: implement bus amenity management system)
 use Illuminate\Validation\ValidationException;
 
 class InitiatePaymentAction
@@ -35,6 +39,7 @@ class InitiatePaymentAction
         ?int $walletAmount = null,
         ?int $pointsAmount = null,
     ): array {
+<<<<<<< HEAD
         return DB::transaction(function () use (
             $reservation,
             $user,
@@ -161,7 +166,66 @@ class InitiatePaymentAction
             return [
                 'payment' => $payment->fresh(['reservation.departure']),
                 'is_replay' => false,
+=======
+        if ($user && $reservation->user_id && $reservation->user_id !== $user->id) {
+            throw new AuthorizationException('Vous n\'êtes pas autorisé à payer cette réservation.');
+        }
+
+        // Idempotency check: Return existing payment if idempotency key matches
+        $existingPayment = Payment::query()
+            ->where('idempotency_key', $idempotencyKey)
+            ->first();
+
+        if ($existingPayment) {
+            return [
+                'payment' => $existingPayment->loadMissing(['reservation.departure']),
+                'is_replay' => true,
+>>>>>>> 752c4ce (feat: implement bus amenity management system)
             ];
-        });
+        }
+
+        if ($reservation->status === ReservationStatus::Paid || $reservation->status === ReservationStatus::Ticketed) {
+            throw ValidationException::withMessages([
+                'reservation_uuid' => 'Cette réservation a déjà été payée.',
+            ]);
+        }
+
+        if ($reservation->expires_at && $reservation->expires_at->isPast()) {
+            throw ValidationException::withMessages([
+                'reservation_uuid' => 'La réservation a expiré.',
+            ]);
+        }
+
+        $providerPrefix = match ($provider) {
+            'mtn_momo' => 'MM',
+            'moov_money' => 'MOOV',
+            'celtiis_cash' => 'CELTIIS',
+            'wave' => 'WAVE',
+            'kora_wallet' => 'WALLET',
+            default => 'PAY',
+        };
+
+        $providerReference = $providerPrefix.'-'.strtoupper(Str::random(8));
+
+        $payment = Payment::create([
+            'reservation_id' => $reservation->id,
+            'provider' => $provider,
+            'provider_reference' => $providerReference,
+            'idempotency_key' => $idempotencyKey,
+            'amount' => $reservation->total_amount,
+            'currency' => $reservation->currency,
+            'status' => PaymentStatus::Pending,
+            'provider_payload' => array_filter([
+                'method' => $method,
+                'phone' => $phone,
+                'wallet_amount' => $walletAmount,
+                'points_amount' => $pointsAmount,
+            ], fn ($v) => $v !== null),
+        ]);
+
+        return [
+            'payment' => $payment->loadMissing(['reservation.departure']),
+            'is_replay' => false,
+        ];
     }
 }

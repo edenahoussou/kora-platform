@@ -28,7 +28,6 @@ class ReservationPolicy
 
     public function cancel(User $user, Reservation $reservation): bool
     {
-        return $reservation->user_id === $user->id
-            || ($this->allows($user, 'bookings.cancel') && $this->allows($user, 'bookings.view'));
+        return $this->allows($user, 'bookings.cancel');
     }
 }

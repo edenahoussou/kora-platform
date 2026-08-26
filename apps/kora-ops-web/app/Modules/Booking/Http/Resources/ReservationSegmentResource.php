@@ -20,9 +20,7 @@ class ReservationSegmentResource extends JsonResource
             'uuid' => $this->uuid,
             'seat_uuid' => $this->seat?->uuid,
             'seat_code' => $this->seat?->code,
-            'origin_stop_uuid' => $this->originStop?->uuid,
             'origin_stop' => $this->originStop?->name,
-            'destination_stop_uuid' => $this->destinationStop?->uuid,
             'destination_stop' => $this->destinationStop?->name,
             'status' => $this->status->value,
         ];

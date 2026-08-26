@@ -4,7 +4,6 @@ namespace App\Modules\Payments\Actions;
 
 use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\Booking\Data\ReservationStatus;
-use App\Modules\Booking\Models\Reservation;
 use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Ticketing\Jobs\IssueReservationTicketsJob;
@@ -22,43 +21,26 @@ class ConfirmPaymentAction
         array $providerPayload = [],
     ): Payment {
         return DB::transaction(function () use ($payment, $status, $providerReference, $providerPayload): Payment {
-            $lockedPayment = Payment::query()
-                ->whereKey($payment->getKey())
-                ->lockForUpdate()
-                ->firstOrFail();
-            $reservation = Reservation::query()
-                ->whereKey($lockedPayment->reservation_id)
-                ->lockForUpdate()
-                ->firstOrFail();
+            $payment->loadMissing(['reservation.segments']);
 
             $isSuccess = in_array(strtolower($status), ['success', 'confirmed'], true);
+<<<<<<< HEAD
             $isPending = strtolower($status) === PaymentStatus::Pending->value;
             $mergedPayload = array_merge($lockedPayment->provider_payload ?? [], $providerPayload);
+=======
+>>>>>>> 752c4ce (feat: implement bus amenity management system)
 
-            if ($lockedPayment->status === PaymentStatus::Confirmed ||
-                ($lockedPayment->status === PaymentStatus::Failed && $isSuccess)) {
-                return $lockedPayment->fresh(['reservation.departure']);
-            }
+            $mergedPayload = array_merge($payment->provider_payload ?? [], $providerPayload);
 
-            if ($isSuccess && $this->isNotPayable($reservation)) {
-                $mergedPayload['rejection_reason'] = $reservation->status === ReservationStatus::Cancelled
-                    ? 'reservation_cancelled'
-                    : 'reservation_expired';
-                $this->expireReservation($reservation);
-
-                $lockedPayment->update([
-                    'status' => PaymentStatus::Failed,
-                    'provider_reference' => $providerReference ?? $lockedPayment->provider_reference,
-                    'provider_payload' => $mergedPayload,
-                ]);
-            } elseif ($isSuccess) {
-                $lockedPayment->update([
+            if ($isSuccess) {
+                $payment->update([
                     'status' => PaymentStatus::Confirmed,
                     'confirmed_at' => now(),
-                    'provider_reference' => $providerReference ?? $lockedPayment->provider_reference,
+                    'provider_reference' => $providerReference ?? $payment->provider_reference,
                     'provider_payload' => $mergedPayload,
                 ]);
 
+<<<<<<< HEAD
                 $reservation->update(['status' => ReservationStatus::Paid]);
                 $reservation->segments()->update(['status' => ReservationSegmentStatus::Paid]);
                 $reservation->update(['ticket_issuance_status' => 'pending', 'ticket_issuance_error' => null]);
@@ -75,39 +57,31 @@ class ConfirmPaymentAction
                         ? PaymentStatus::Cancelled
                         : PaymentStatus::Failed,
                     'provider_reference' => $providerReference ?? $lockedPayment->provider_reference,
+=======
+                $reservation = $payment->reservation;
+                if ($reservation) {
+                    $reservation->update(['status' => ReservationStatus::Paid]);
+                    $reservation->segments()->update(['status' => ReservationSegmentStatus::Paid]);
+                }
+            } else {
+                $payment->update([
+                    'status' => PaymentStatus::Failed,
+                    'provider_reference' => $providerReference ?? $payment->provider_reference,
+>>>>>>> 752c4ce (feat: implement bus amenity management system)
                     'provider_payload' => $mergedPayload,
                 ]);
 
-                $this->expireReservation($reservation);
+                $reservation = $payment->reservation;
+                if ($reservation) {
+                    $reservation->update(['status' => ReservationStatus::Expired]);
+                    $reservation->segments()->update([
+                        'status' => ReservationSegmentStatus::Expired,
+                        'released_at' => now(),
+                    ]);
+                }
             }
 
-            return $lockedPayment->fresh(['reservation.departure']);
+            return $payment->fresh(['reservation.departure']);
         });
-    }
-
-    private function isNotPayable(Reservation $reservation): bool
-    {
-        return $reservation->status === ReservationStatus::Expired
-            || $reservation->status === ReservationStatus::Cancelled
-            || (($reservation->status === ReservationStatus::Held || $reservation->status === ReservationStatus::Confirmed)
-                && $reservation->expires_at?->isPast());
-    }
-
-    private function expireReservation(Reservation $reservation): void
-    {
-        if ($reservation->status !== ReservationStatus::Held && $reservation->status !== ReservationStatus::Confirmed) {
-            return;
-        }
-
-        $reservation->update(['status' => ReservationStatus::Expired]);
-        $reservation->segments()
-            ->whereIn('status', [
-                ReservationSegmentStatus::Held->value,
-                ReservationSegmentStatus::Confirmed->value,
-            ])
-            ->update([
-                'status' => ReservationSegmentStatus::Expired,
-                'released_at' => now(),
-            ]);
     }
 }

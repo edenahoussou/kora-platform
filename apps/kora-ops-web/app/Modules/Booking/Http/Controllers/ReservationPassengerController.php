@@ -19,8 +19,6 @@ class ReservationPassengerController extends Controller
     /**
      * Store passenger details for a reservation.
      *
-     * @authenticated
-     *
      * @response 200 scenario="Passengers stored" {
      *   "data": {
      *     "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",

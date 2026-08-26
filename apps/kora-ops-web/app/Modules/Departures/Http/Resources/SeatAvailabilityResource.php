@@ -24,6 +24,7 @@ class SeatAvailabilityResource extends JsonResource
             'type' => enum_value($data->seat->type),
             'sellable' => (bool) $data->seat->sellable,
             'availability_status' => enum_value($data->availabilityStatus),
+            'held_until' => $data->heldUntil?->toISOString(),
         ];
     }
 }

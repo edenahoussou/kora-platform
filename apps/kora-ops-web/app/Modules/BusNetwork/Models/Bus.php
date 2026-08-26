@@ -7,6 +7,7 @@ use App\Modules\Departures\Models\Departure;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\Support\Models\KoraModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -64,6 +65,14 @@ class Bus extends KoraModel
     public function departures(): HasMany
     {
         return $this->hasMany(Departure::class);
+    }
+
+    /**
+     * @return BelongsToMany<BusAmenity, $this>
+     */
+    public function amenities(): BelongsToMany
+    {
+        return $this->belongsToMany(BusAmenity::class, 'bus_bus_amenity');
     }
 
     protected function casts(): array

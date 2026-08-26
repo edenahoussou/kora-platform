@@ -44,6 +44,15 @@ type TimelineEvent = {
     date: string | null;
 };
 
+type AmenityOption = {
+    id: number;
+    code: string;
+    label: string;
+    icon: string | null;
+};
+
+type BusAmenityItem = AmenityOption & { uuid: string };
+
 type BusDetail = BusRecord & {
     brand: string;
     model: string;
@@ -51,6 +60,7 @@ type BusDetail = BusRecord & {
     layout: { type?: string; codes: string[] }[];
     agencyCity: string | null;
     agencyCountry: string | null;
+    amenities: BusAmenityItem[];
     seats: SeatItem[];
     departures: DepartureItem[];
     createdAt: string | null;
@@ -63,6 +73,7 @@ type PageProps = {
     agencies: { id: number; name: string }[];
     models: { id: number; label: string }[];
     compositions: { id: number; label: string; seatCount: number }[];
+    amenities: AmenityOption[];
     timeline: TimelineEvent[];
     permissions: {
         canUpdate: boolean;
@@ -146,6 +157,7 @@ export default function FleetDetailPage({
     agencies,
     models,
     compositions,
+    amenities,
     timeline,
     permissions,
 }: PageProps) {
@@ -675,6 +687,29 @@ export default function FleetDetailPage({
                         </div>
                     </section>
 
+                    {/* Équipements */}
+                    <section className="rounded-[var(--kora-radius)] border border-border/50 bg-card p-5 shadow-[0_16px_45px_rgba(0,29,78,0.07)]">
+                        <h3 className="mb-3 text-[0.8125rem] font-bold tracking-tight text-foreground uppercase">
+                            Équipements
+                        </h3>
+                        {bus.amenities.length > 0 ? (
+                            <div className="flex flex-wrap gap-1.5">
+                                {bus.amenities.map((amenity) => (
+                                    <span
+                                        key={amenity.uuid}
+                                        className="rounded-full bg-muted px-2.5 py-1.5 text-[0.6875rem] font-medium text-foreground"
+                                    >
+                                        {amenity.label}
+                                    </span>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-xs text-muted-foreground">
+                                Aucun équipement renseigné pour ce bus.
+                            </p>
+                        )}
+                    </section>
+
                     {/* Vie du véhicule — timeline */}
                     <section className="rounded-[var(--kora-radius)] border border-border/50 bg-card p-5 shadow-[0_16px_45px_rgba(0,29,78,0.07)]">
                         <h3 className="mb-3 text-[0.8125rem] font-bold tracking-tight text-foreground uppercase">
@@ -708,6 +743,7 @@ export default function FleetDetailPage({
                 agencies={agencies}
                 models={models}
                 compositions={compositions}
+                amenities={amenities}
                 onOpenChange={setEditDialog}
             />
         </>

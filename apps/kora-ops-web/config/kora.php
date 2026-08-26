@@ -19,11 +19,6 @@ return [
 
     'api_version' => env('KORA_API_VERSION', 'v1'),
 
-    'booking' => [
-        'quote_ttl_minutes' => max(1, (int) env('KORA_QUOTE_TTL_MINUTES', 10)),
-        'hold_ttl_minutes' => max(1, (int) env('KORA_HOLD_TTL_MINUTES', 15)),
-    ],
-
     'departures' => [
         'sellability' => [
             'default_cutoff_minutes' => env('KORA_SALE_CUTOFF_MINUTES', 30),

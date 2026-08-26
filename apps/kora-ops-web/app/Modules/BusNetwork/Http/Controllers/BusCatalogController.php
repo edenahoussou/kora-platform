@@ -25,6 +25,21 @@ class BusCatalogController extends Controller
      * Returns active cities derived from active Bus stops.
      *
      * @unauthenticated
+     *
+     * @response 200 scenario="Cities list" {
+     *   "data": [
+     *     {
+     *       "city": "Cotonou",
+     *       "country": "BJ",
+     *       "stops_count": 4
+     *     },
+     *     {
+     *       "city": "Abidjan",
+     *       "country": "CI",
+     *       "stops_count": 2
+     *     }
+     *   ]
+     * }
      */
     public function cities(): AnonymousResourceCollection
     {
@@ -38,6 +53,22 @@ class BusCatalogController extends Controller
      * @queryParam to string Optional destination city filter. Example: Abidjan
      *
      * @unauthenticated
+     *
+     * @response 200 scenario="Lines list" {
+     *   "data": [
+     *     {
+     *       "uuid": "9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f",
+     *       "code": "L1",
+     *       "name": "Cotonou - Abidjan",
+     *       "type": "internationale",
+     *       "countries_crossed": ["BJ", "TG", "GH", "CI"],
+     *       "distance_km": 1020,
+     *       "estimated_duration_minutes": 1260,
+     *       "status": "active",
+     *       "stops": []
+     *     }
+     *   ]
+     * }
      */
     public function lines(ListLinesRequest $request): AnonymousResourceCollection
     {
@@ -47,7 +78,45 @@ class BusCatalogController extends Controller
     /**
      * Show a Bus line.
      *
+     * Includes the line's active stops, ordered along the route.
+     *
+     * @urlParam line string required Public UUID of the line. Example: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
+     *
      * @unauthenticated
+     *
+     * @response 200 scenario="Line detail" {
+     *   "data": {
+     *     "uuid": "9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f",
+     *     "code": "L1",
+     *     "name": "Cotonou - Abidjan",
+     *     "type": "internationale",
+     *     "countries_crossed": ["BJ", "TG", "GH", "CI"],
+     *     "distance_km": 1020,
+     *     "estimated_duration_minutes": 1260,
+     *     "status": "active",
+     *     "stops": [
+     *       {
+     *         "uuid": "5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21",
+     *         "name": "Cotonou · St Michel",
+     *         "city": "Cotonou",
+     *         "country": "BJ",
+     *         "stop_order": 1,
+     *         "km_from_origin": 0
+     *       },
+     *       {
+     *         "uuid": "5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22",
+     *         "name": "Abidjan · Adjamé",
+     *         "city": "Abidjan",
+     *         "country": "CI",
+     *         "stop_order": 2,
+     *         "km_from_origin": 1020
+     *       }
+     *     ]
+     *   }
+     * }
+     * @response 404 scenario="Line not found" {
+     *   "message": "No query results for model [App\\Modules\\BusNetwork\\Models\\Line]."
+     * }
      */
     public function line(Line $line): LineResource
     {

@@ -39,6 +39,7 @@ class CalculateFarePreviewAction
             'currency' => $fare->currency,
             'service_class_code' => $fare->serviceClass?->code,
             'service_class_name' => $fare->serviceClass?->name,
+            'service_class_description' => $fare->serviceClass?->description,
             'is_quote' => false,
         ];
     }
