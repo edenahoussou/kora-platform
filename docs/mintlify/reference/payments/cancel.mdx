@@ -1,6 +1,6 @@
 ---
 title: Annuler un paiement
-description: Annule un paiement en attente — action du passager.
+description: "POST /payments/{uuid}/cancel : annuler un paiement Mobile Money pending côté passager. Action définitive, 422 si le paiement est déjà terminal."
 api: POST /api/v1/payments/{payment_uuid}/cancel
 ---
 
