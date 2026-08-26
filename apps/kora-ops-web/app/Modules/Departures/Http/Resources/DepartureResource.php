@@ -41,8 +41,8 @@ class DepartureResource extends JsonResource
                 'seat_count' => $departure->bus->seat_count,
                 'layout' => $departure->bus->composition !== null ? $departure->bus->composition->layout : [],
                 'amenities' => $departure->bus->amenities
-                    ->filter(fn(BusAmenity $amenity): bool => enum_value($amenity->status) === BusAmenityStatus::Active->value)
-                    ->map(fn(BusAmenity $amenity): array => [
+                    ->filter(fn (BusAmenity $amenity): bool => enum_value($amenity->status) === BusAmenityStatus::Active->value)
+                    ->map(fn (BusAmenity $amenity): array => [
                         'uuid' => $amenity->uuid,
                         'code' => $amenity->code,
                         'label' => $amenity->label,
