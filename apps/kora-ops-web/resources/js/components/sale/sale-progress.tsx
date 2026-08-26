@@ -10,7 +10,14 @@ const steps = [
 ];
 
 export function SaleProgress({ stage }: { stage: SaleStage }) {
-    const activeStep = stage === 'search' ? 1 : stage === 'seats' ? 2 : 3;
+    const activeStep =
+        stage === 'search'
+            ? 1
+            : stage === 'seats'
+              ? 2
+              : stage === 'passengers'
+                ? 3
+                : 4;
     const activeLabel =
         stage === 'passengers'
             ? 'Informations voyageurs'

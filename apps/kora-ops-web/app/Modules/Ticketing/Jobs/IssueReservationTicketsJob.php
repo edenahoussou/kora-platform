@@ -1,0 +1,93 @@
+<?php
+
+namespace App\Modules\Ticketing\Jobs;
+
+use App\Modules\Booking\Data\ReservationSegmentStatus;
+use App\Modules\Booking\Data\ReservationStatus;
+use App\Modules\Booking\Models\Reservation;
+use App\Modules\Ticketing\Actions\IssueCounterSaleTicketsAction;
+use App\Modules\Ticketing\Data\TicketIssuanceStatus;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
+
+class IssueReservationTicketsJob implements ShouldQueue
+{
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public int $tries = 3;
+
+    /** @var array<int, int> */
+    public array $backoff = [5, 30, 120];
+
+    public function __construct(public readonly int $reservationId) {}
+
+    public function handle(IssueCounterSaleTicketsAction $issueTickets): void
+    {
+        $reservation = Reservation::query()->find($this->reservationId);
+
+        if ($reservation === null || $reservation->status === ReservationStatus::Ticketed) {
+            return;
+        }
+
+        if ($reservation->status !== ReservationStatus::Paid) {
+            return;
+        }
+
+        try {
+            DB::transaction(function () use ($issueTickets): void {
+                $reservation = Reservation::query()
+                    ->with(['passengers', 'segments'])
+                    ->whereKey($this->reservationId)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                if ($reservation->status !== ReservationStatus::Paid ||
+                    $reservation->ticket_issuance_status === TicketIssuanceStatus::Issued) {
+                    return;
+                }
+
+                if ($reservation->passengers->isEmpty()) {
+                    $reservation->update([
+                        'ticket_issuance_status' => TicketIssuanceStatus::Failed,
+                        'ticket_issuance_error' => 'Aucun passager n’est disponible pour émettre les billets.',
+                    ]);
+
+                    return;
+                }
+
+                $reservation->update([
+                    'ticket_issuance_status' => TicketIssuanceStatus::Processing,
+                    'ticket_issuance_started_at' => now(),
+                    'ticket_issuance_error' => null,
+                ]);
+
+                $issueTickets->execute($reservation);
+
+                $reservation->update([
+                    'status' => ReservationStatus::Ticketed,
+                    'ticket_issuance_status' => TicketIssuanceStatus::Issued,
+                    'ticket_issued_at' => now(),
+                    'ticket_issuance_error' => null,
+                ]);
+                $reservation->segments()->update(['status' => ReservationSegmentStatus::Ticketed]);
+            });
+        } catch (Throwable $exception) {
+            Reservation::query()->whereKey($this->reservationId)->update([
+                'ticket_issuance_status' => TicketIssuanceStatus::Failed->value,
+                'ticket_issuance_error' => $exception->getMessage(),
+            ]);
+            Log::error('Reservation ticket issuance failed.', [
+                'reservation_id' => $this->reservationId,
+                'error' => $exception->getMessage(),
+            ]);
+
+            throw $exception;
+        }
+    }
+}

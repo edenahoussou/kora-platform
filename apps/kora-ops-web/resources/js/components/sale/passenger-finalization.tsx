@@ -1,20 +1,14 @@
 import {
     AlertCircle,
-    Armchair,
     ArrowLeft,
     ArrowRight,
-    BadgeCheck,
-    BusFront,
     CalendarDays,
     CheckCircle2,
-    Clock3,
     FileText,
+    Globe,
     Mail,
     Phone,
-    Route as RouteIcon,
-    ShieldCheck,
     UserRound,
-    Users,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import PhoneInput, {
@@ -23,12 +17,13 @@ import PhoneInput, {
 } from 'react-phone-number-input';
 import phoneLabels from 'react-phone-number-input/locale/fr.json';
 import { cn } from '@/lib/utils';
+import { NationalitySelect } from './nationality-select';
+import { SaleJourneySummary } from './sale-journey-summary';
 import type {
     SaleDeparture,
     SalePassengerForm,
     SaleReservation,
 } from './sale-types';
-import { formatDate, formatMoney, formatTime } from './sale-utils';
 import { useHoldCountdown } from './use-hold-countdown';
 
 type Props = {
@@ -300,7 +295,12 @@ export function PassengerFinalization({
                                     </small>
                                 </div>
                                 <label className="field">
-                                    <span>Prénom *</span>
+                                    <span>
+                                        Prénom{' '}
+                                        <span className="required-asterisk">
+                                            *
+                                        </span>
+                                    </span>
                                     <input
                                         id={`passenger-${index}-first-name`}
                                         className="control"
@@ -324,7 +324,12 @@ export function PassengerFinalization({
                                     )}
                                 </label>
                                 <label className="field">
-                                    <span>Nom *</span>
+                                    <span>
+                                        Nom{' '}
+                                        <span className="required-asterisk">
+                                            *
+                                        </span>
+                                    </span>
                                     <input
                                         id={`passenger-${index}-last-name`}
                                         className="control"
@@ -350,7 +355,10 @@ export function PassengerFinalization({
                                 <label className="field">
                                     <span className="field-label">
                                         <Phone className="size-3.5" />
-                                        Téléphone international *
+                                        Téléphone international{' '}
+                                        <span className="required-asterisk">
+                                            *
+                                        </span>
                                     </span>
                                     <PhoneInput
                                         id={`passenger-${index}-phone`}
@@ -420,7 +428,12 @@ export function PassengerFinalization({
                                             </small>
                                         </div>
                                         <label className="field">
-                                            <span>Type de document *</span>
+                                            <span>
+                                                Type de document{' '}
+                                                <span className="required-asterisk">
+                                                    *
+                                                </span>
+                                            </span>
                                             <select
                                                 id={`passenger-${index}-document-type`}
                                                 className="control"
@@ -436,19 +449,25 @@ export function PassengerFinalization({
                                                 <option value="national_id">
                                                     Carte nationale
                                                 </option>
+                                                <option value="biometric_card">
+                                                    Carte biométrique
+                                                </option>
                                                 <option value="passport">
                                                     Passeport
                                                 </option>
                                                 <option value="consular_card">
                                                     Carte consulaire
                                                 </option>
-                                                <option value="birth_certificate">
-                                                    Acte de naissance
-                                                </option>
+                                                <option value="cip">CIP</option>
                                             </select>
                                         </label>
                                         <label className="field">
-                                            <span>Numéro du document *</span>
+                                            <span>
+                                                Numéro du document{' '}
+                                                <span className="required-asterisk">
+                                                    *
+                                                </span>
+                                            </span>
                                             <input
                                                 id={`passenger-${index}-document-number`}
                                                 className="control"
@@ -462,26 +481,33 @@ export function PassengerFinalization({
                                                 }
                                             />
                                         </label>
-                                        <label className="field">
-                                            <span>Nationalité *</span>
-                                            <input
+                                        <div className="field">
+                                            <span className="field-label">
+                                                <Globe className="size-3.5" />
+                                                Nationalité{' '}
+                                                <span className="required-asterisk">
+                                                    *
+                                                </span>
+                                            </span>
+                                            <NationalitySelect
                                                 id={`passenger-${index}-nationality`}
-                                                className="control"
-                                                maxLength={2}
                                                 value={passenger.nationality}
-                                                onChange={(event) =>
+                                                onChange={(value) =>
                                                     updatePassenger(
                                                         index,
                                                         'nationality',
-                                                        event.target.value.toUpperCase(),
+                                                        value,
                                                     )
                                                 }
                                             />
-                                        </label>
+                                        </div>
                                         <label className="field">
                                             <span className="field-label">
                                                 <CalendarDays className="size-3.5" />
-                                                Date de naissance *
+                                                Date de naissance{' '}
+                                                <span className="required-asterisk">
+                                                    *
+                                                </span>
                                             </span>
                                             <input
                                                 id={`passenger-${index}-birth-date`}
@@ -580,12 +606,8 @@ export function PassengerFinalization({
                                 {holdCountdown.isExpired
                                     ? 'Le blocage a expiré. Revenez aux places pour le renouveler.'
                                     : completedPassengers
-                                      ? 'Toutes les informations requises sont prêtes.'
+                                      ? 'Toutes les informations requises sont prêtes. Vous pourrez ensuite encaisser la vente.'
                                       : 'Complétez les champs requis pour continuer.'}
-                                <small>
-                                    Le paiement sera disponible dans le prochain
-                                    lot.
-                                </small>
                             </span>
                         </span>
                     )}
@@ -611,161 +633,11 @@ export function PassengerFinalization({
                 </div>
             </section>
 
-            <aside className="journey-summary summary">
-                <div className="summary-hero">
-                    <small>Dossier de vente</small>
-                    <h3>Finalisation</h3>
-                    <p>Réservation temporaire</p>
-                </div>
-                <div className="summary-route">
-                    <span>
-                        <b>{departure?.originStop.city ?? '—'}</b>
-                        <small>{departure?.originStop.name ?? 'Origine'}</small>
-                    </span>
-                    <i aria-hidden="true">
-                        <em>K</em>
-                    </i>
-                    <span>
-                        <b>{departure?.destinationStop.city ?? '—'}</b>
-                        <small>
-                            {departure?.destinationStop.name ?? 'Destination'}
-                        </small>
-                    </span>
-                </div>
-                <div className="summary-row">
-                    <span className="summary-label">
-                        <CalendarDays className="size-3.5" />
-                        Date
-                    </span>
-                    <strong>
-                        {departure ? formatDate(departure.departureDate) : '—'}
-                    </strong>
-                </div>
-                <div className="summary-row">
-                    <span className="summary-label">
-                        <Clock3 className="size-3.5" />
-                        Départ
-                    </span>
-                    <strong>
-                        {departure ? formatTime(departure.departureTime) : '—'}
-                    </strong>
-                </div>
-                <div className="summary-row">
-                    <span className="summary-label">
-                        <Armchair className="size-3.5" />
-                        Sièges
-                    </span>
-                    <strong>
-                        {reservation.segments
-                            .map((segment) => segment.seatCode)
-                            .join(', ')}
-                    </strong>
-                </div>
-                <div className="summary-row">
-                    <span className="summary-label">
-                        <RouteIcon className="size-3.5" />
-                        Ligne
-                    </span>
-                    <strong>{departure?.line.code ?? '—'}</strong>
-                </div>
-                <div className="summary-row">
-                    <span className="summary-label">
-                        <BusFront className="size-3.5" />
-                        Véhicule
-                    </span>
-                    <strong>
-                        {departure
-                            ? [
-                                  [departure.bus.brand, departure.bus.model]
-                                      .filter(Boolean)
-                                      .join(' ') || 'Véhicule',
-                                  departure.bus.registrationNumber,
-                              ].join(' · ')
-                            : '—'}
-                    </strong>
-                </div>
-                <div className="summary-row">
-                    <span className="summary-label">
-                        <Users className="size-3.5" />
-                        Capacité
-                    </span>
-                    <strong>
-                        {departure ? `${departure.bus.seatCount} places` : '—'}
-                    </strong>
-                </div>
-                <div className="summary-row">
-                    <span className="summary-label">
-                        <BadgeCheck className="size-3.5" />
-                        Service
-                    </span>
-                    <strong>
-                        {departure?.farePreview?.service_class_name ??
-                            departure?.farePreview?.service_class_code ??
-                            'Standard'}
-                    </strong>
-                </div>
-                <div className="summary-total">
-                    <span>Total à encaisser</span>
-                    <strong>
-                        {formatMoney(
-                            reservation.totalAmount,
-                            reservation.currency,
-                        )}
-                    </strong>
-                </div>
-                <div
-                    className={cn(
-                        'summary-callout',
-                        'hold-countdown',
-                        holdCountdown.isUrgent && 'is-urgent',
-                        holdCountdown.isExpired && 'is-expired',
-                    )}
-                    role="status"
-                    aria-live="polite"
-                >
-                    <div className="hold-countdown-top">
-                        <span className="hold-countdown-icon">
-                            <Clock3 className="size-4" />
-                        </span>
-                        <span className="hold-countdown-copy">
-                            <small>Blocage temporaire</small>
-                            <strong>
-                                {holdCountdown.isExpired
-                                    ? 'Hold expiré'
-                                    : holdCountdown.isUrgent
-                                      ? 'À finaliser rapidement'
-                                      : 'Places sécurisées'}
-                            </strong>
-                        </span>
-                        <time dateTime={reservation.expiresAt ?? undefined}>
-                            {holdCountdown.label}
-                        </time>
-                    </div>
-                    <div className="hold-countdown-track" aria-hidden="true">
-                        <span
-                            style={{ width: `${holdCountdown.percentage}%` }}
-                        />
-                    </div>
-                    <p>
-                        {holdCountdown.isExpired
-                            ? 'Le blocage doit être renouvelé avant de poursuivre.'
-                            : holdCountdown.isUrgent
-                              ? 'Finalisez les informations ou modifiez les places avant la libération automatique.'
-                              : 'Le temps restant est actualisé automatiquement.'}
-                    </p>
-                </div>
-                <div className="summary-callout success">
-                    <div>
-                        <ShieldCheck className="size-4" />
-                        Places sécurisées
-                    </div>
-                    <p>Les sièges restent bloqués pendant la saisie.</p>
-                </div>
-                <div className="payment-disabled-note">
-                    <CheckCircle2 className="size-4" />
-                    Paiement désactivé · MSF sera raccordé au prochain lot.
-                </div>
-            </aside>
+            <SaleJourneySummary
+                departure={departure}
+                reservation={reservation}
+                variant="passengers"
+            />
         </form>
     );
 }

@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             KoraBusReferenceSeeder::class,
             KoraFareSeeder::class,
             KoraDemoUserSeeder::class,
+            KoraCounterSaleSeeder::class,
             KoraDepartureSeeder::class,
         ]);
     }

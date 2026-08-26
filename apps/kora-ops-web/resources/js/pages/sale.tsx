@@ -2,8 +2,10 @@ import { Head } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 import type { SyntheticEvent } from 'react';
 import { toast } from 'sonner';
+import { CounterSaleSuccess } from '@/components/sale/counter-sale-success';
 import { DepartureList } from '@/components/sale/departure-list';
 import { PassengerFinalization } from '@/components/sale/passenger-finalization';
+import { PaymentStep } from '@/components/sale/payment-step';
 import { RouteSearch } from '@/components/sale/route-search';
 import { SalePageHeading } from '@/components/sale/sale-page-heading';
 import { SaleProgress } from '@/components/sale/sale-progress';
@@ -26,6 +28,8 @@ export default function SalePage(props: SaleProps) {
         quote,
         reservation,
         permissions,
+        cashSession,
+        mobileMoneyAccounts,
     } = props;
     const [search, setSearch] = useState<SaleSearch>({
         date: initialSearch.date,
@@ -42,18 +46,28 @@ export default function SalePage(props: SaleProps) {
     );
     const [isSeatPickerOpen, setIsSeatPickerOpen] = useState(false);
     const [isLoadingSeats, setIsLoadingSeats] = useState(false);
+    const [paymentStepReservationUuid, setPaymentStepReservationUuid] =
+        useState<string | null>(() =>
+            reservation &&
+            reservation.passengers.length === reservation.segments.length
+                ? reservation.uuid
+                : null,
+        );
+    const isPaymentStepOpen = reservation?.uuid === paymentStepReservationUuid;
     const {
         searchForm,
         quoteForm,
         holdForm,
         passengersForm,
         releaseForm,
+        paymentForm,
         search: submitSearch,
         selectDeparture,
         calculateQuote,
         holdSeats,
         savePassengers,
         releaseHold,
+        recordPayment,
     } = useCounterSale({ ...props, search });
 
     const selectedSeatCodes = useMemo(
@@ -64,7 +78,9 @@ export default function SalePage(props: SaleProps) {
         [seats, selectedSeatUuids],
     );
     const stage = reservation
-        ? 'passengers'
+        ? isPaymentStepOpen
+            ? 'payment'
+            : 'passengers'
         : selectedDeparture
           ? 'seats'
           : 'search';
@@ -153,7 +169,28 @@ export default function SalePage(props: SaleProps) {
                         }}
                         onSubmit={onSearch}
                     />
-                    {reservation ? (
+                    {reservation && reservation.payment ? (
+                        <CounterSaleSuccess
+                            departure={selectedDeparture}
+                            reservation={reservation}
+                        />
+                    ) : reservation && isPaymentStepOpen ? (
+                        <PaymentStep
+                            departure={selectedDeparture}
+                            reservation={reservation}
+                            cashSession={cashSession}
+                            mobileMoneyAccounts={mobileMoneyAccounts}
+                            processing={paymentForm.processing}
+                            errors={paymentForm.errors}
+                            onSubmit={(payload) =>
+                                recordPayment(reservation.uuid, payload)
+                            }
+                            onBack={() => setPaymentStepReservationUuid(null)}
+                            onHoldExpired={() =>
+                                reopenSeatSelection(reservation.uuid)
+                            }
+                        />
+                    ) : reservation ? (
                         <PassengerFinalization
                             key={reservation.uuid}
                             departure={selectedDeparture}
@@ -162,7 +199,14 @@ export default function SalePage(props: SaleProps) {
                             releasing={releaseForm.processing}
                             errors={passengersForm.errors}
                             onSubmit={(passengers: SalePassengerForm[]) =>
-                                savePassengers(reservation.uuid, passengers)
+                                savePassengers(
+                                    reservation.uuid,
+                                    passengers,
+                                    () =>
+                                        setPaymentStepReservationUuid(
+                                            reservation.uuid,
+                                        ),
+                                )
                             }
                             onBack={() => releaseHold(reservation.uuid)}
                             onHoldExpired={() =>

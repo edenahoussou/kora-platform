@@ -8,14 +8,20 @@ description: Événements de paiement, confirmation provider et intégration web
 
 KORA BUS utilise un webhook pour confirmer le statut d'un paiement côté serveur. Le provider de paiement (Mobile Money, carte) appelle l'API KORA après traitement de la transaction.
 
-## Endpoint de confirmation
+## Endpoints webhook
 
-`POST /api/v1/payments/{payment_uuid}/confirm`
+KORA expose trois endpoints publics pour la confirmation des paiements :
 
-Cet endpoint est **public** (`@unauthenticated`) — il est appelé par le provider, pas par l'app mobile.
+| Endpoint | Provider | Usage |
+|----------|----------|-------|
+| `POST /api/v1/payments/{payment_uuid}/confirm` | Générique / fallback | Confirmation manuelle ou test sans provider réel |
+| `POST /api/v1/payments/webhook/fedapay` | FedaPay | Webhook configuré dans le dashboard FedaPay |
+| `POST /api/v1/payments/webhook/mtn-momo` | MTN MoMo | Webhook configuré dans le dashboard MTN MoMo |
+
+Tous ces endpoints sont **publics** (`@unauthenticated`) — ils sont appelés par le provider, pas par l'app mobile.
 
 <Warning>
-  L'app mobile **n'appelle jamais** cet endpoint. Elle polle le statut via `GET /payments/{uuid}` ou attend une notification push.
+  L'app mobile **n'appelle jamais** ces endpoints. Elle utilise `POST /payments/{uuid}/verify` puis `GET /payments/{uuid}` pour rafraîchir l'état.
 </Warning>
 
 ## Payload du webhook
@@ -53,7 +59,7 @@ Cet endpoint est **public** (`@unauthenticated`) — il est appelé par le provi
 
 | `status` webhook | Réservation | Paiement | Billet |
 |------------------|-------------|----------|--------|
-| `success` / `confirmed` | `held` → `paid` | `pending` → `confirmed` | Émis (fiscalisation MECeF) |
+| `success` / `confirmed` | `held` → `paid` | `pending` → `confirmed` | Émis ensuite par un job asynchrone |
 | `failed` | reste `held` (jusqu'à expiration) | `pending` → `failed` | Non émis |
 
 ## Webhook tardif (après expiration)

@@ -1,5 +1,6 @@
-import { Form } from '@inertiajs/react';
-import { Building2, Check, X } from 'lucide-react';
+import { Form, router } from '@inertiajs/react';
+import { Building2, Check, CreditCard, Plus, Power, X } from 'lucide-react';
+import { useState } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,6 +26,15 @@ export type AgencyRecord = {
     status: string;
     createdAt: string | null;
     updatedAt: string | null;
+    paymentAccounts: AgencyPaymentAccountRecord[];
+};
+
+export type AgencyPaymentAccountRecord = {
+    uuid: string;
+    network: 'mtn_momo' | 'moov_flooz' | 'celtiis_cash';
+    label: string;
+    accountIdentifier: string;
+    status: 'active' | 'inactive';
 };
 
 export type HeadCandidate = {
@@ -62,9 +72,42 @@ export function AgencyFormDialog({
     const form = isEditing
         ? agencies.update.form({ agency: agency!.uuid })
         : agencies.store.form();
+    const [accountNetwork, setAccountNetwork] =
+        useState<AgencyPaymentAccountRecord['network']>('mtn_momo');
+    const [accountLabel, setAccountLabel] = useState('');
+    const [accountIdentifier, setAccountIdentifier] = useState('');
+    const [accountProcessing, setAccountProcessing] = useState(false);
 
     const handleClose = (nextOpen: boolean) => {
         onOpenChange(nextOpen);
+    };
+
+    const submitAccount = () => {
+        if (
+            !agency ||
+            accountLabel.trim() === '' ||
+            accountIdentifier.trim() === ''
+        ) {
+            return;
+        }
+
+        setAccountProcessing(true);
+        router.post(
+            agencies.paymentAccounts.store.url({ agency: agency.uuid }),
+            {
+                network: accountNetwork,
+                label: accountLabel,
+                account_identifier: accountIdentifier,
+            },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    setAccountProcessing(false);
+                    setAccountLabel('');
+                    setAccountIdentifier('');
+                },
+            },
+        );
     };
 
     return (
@@ -229,6 +272,162 @@ export function AgencyFormDialog({
                                     </select>
                                     <InputError message={errors.status} />
                                 </div>
+
+                                {isEditing && (
+                                    <div className="border-t border-border/70 pt-5">
+                                        <div className="mb-4 flex items-center justify-between gap-3">
+                                            <div>
+                                                <span className="flex items-center gap-2 text-sm font-bold text-foreground">
+                                                    <CreditCard className="size-4 text-gold" />{' '}
+                                                    Comptes Mobile Money
+                                                </span>
+                                                <p className="mt-1 text-xs text-muted-foreground">
+                                                    Ces comptes seront proposés
+                                                    uniquement aux agents de
+                                                    cette agence.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="grid gap-2">
+                                            {agency!.paymentAccounts.length ===
+                                            0 ? (
+                                                <p className="rounded-[0.75rem] border border-dashed border-border p-3 text-xs text-muted-foreground">
+                                                    Aucun compte configuré.
+                                                </p>
+                                            ) : (
+                                                agency!.paymentAccounts.map(
+                                                    (account) => (
+                                                        <div
+                                                            key={account.uuid}
+                                                            className="flex items-center justify-between gap-3 rounded-[0.75rem] border border-border bg-muted/30 px-3 py-2.5"
+                                                        >
+                                                            <div>
+                                                                <strong className="block text-xs text-foreground">
+                                                                    {
+                                                                        account.label
+                                                                    }
+                                                                </strong>
+                                                                <span className="text-[0.6875rem] text-muted-foreground">
+                                                                    {
+                                                                        account.network
+                                                                    }{' '}
+                                                                    ·{' '}
+                                                                    {
+                                                                        account.accountIdentifier
+                                                                    }
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <span
+                                                                    className={`text-[0.6875rem] font-bold ${account.status === 'active' ? 'text-digital' : 'text-muted-foreground'}`}
+                                                                >
+                                                                    {account.status ===
+                                                                    'active'
+                                                                        ? 'Actif'
+                                                                        : 'Inactif'}
+                                                                </span>
+                                                                <button
+                                                                    type="button"
+                                                                    className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                                                                    aria-label={`${account.status === 'active' ? 'Désactiver' : 'Activer'} ${account.label}`}
+                                                                    onClick={() =>
+                                                                        router.patch(
+                                                                            agencies.paymentAccounts.status.url(
+                                                                                {
+                                                                                    agency: agency!
+                                                                                        .uuid,
+                                                                                    account:
+                                                                                        account.uuid,
+                                                                                },
+                                                                            ),
+                                                                            {
+                                                                                status:
+                                                                                    account.status ===
+                                                                                    'active'
+                                                                                        ? 'inactive'
+                                                                                        : 'active',
+                                                                            },
+                                                                            {
+                                                                                preserveScroll: true,
+                                                                            },
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <Power className="size-3.5" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ),
+                                                )
+                                            )}
+                                        </div>
+                                        <div className="mt-4 grid gap-3 rounded-[0.75rem] bg-muted/30 p-3">
+                                            <div className="grid gap-3 sm:grid-cols-2">
+                                                <select
+                                                    value={accountNetwork}
+                                                    onChange={(event) =>
+                                                        setAccountNetwork(
+                                                            event.target
+                                                                .value as AgencyPaymentAccountRecord['network'],
+                                                        )
+                                                    }
+                                                    className="control"
+                                                    aria-label="Réseau"
+                                                >
+                                                    <option value="mtn_momo">
+                                                        MTN MoMo
+                                                    </option>
+                                                    <option value="moov_flooz">
+                                                        Moov Money / Flooz
+                                                    </option>
+                                                    <option value="celtiis_cash">
+                                                        Celtis Cash
+                                                    </option>
+                                                </select>
+                                                <Input
+                                                    value={accountLabel}
+                                                    onChange={(event) =>
+                                                        setAccountLabel(
+                                                            event.target.value,
+                                                        )
+                                                    }
+                                                    placeholder="Libellé du compte"
+                                                    required
+                                                    className="h-10 rounded-[0.7rem] border-0 bg-background"
+                                                />
+                                            </div>
+                                            <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                                                <Input
+                                                    value={accountIdentifier}
+                                                    onChange={(event) =>
+                                                        setAccountIdentifier(
+                                                            event.target.value,
+                                                        )
+                                                    }
+                                                    placeholder="Numéro / identifiant du compte"
+                                                    required
+                                                    className="h-10 rounded-[0.7rem] border-0 bg-background"
+                                                />
+                                                <Button
+                                                    type="button"
+                                                    disabled={
+                                                        accountProcessing ||
+                                                        accountLabel.trim() ===
+                                                            '' ||
+                                                        accountIdentifier.trim() ===
+                                                            ''
+                                                    }
+                                                    onClick={submitAccount}
+                                                    size="sm"
+                                                    className="h-10 rounded-[0.7rem] bg-gold text-[var(--kora)] hover:bg-[var(--kora)] hover:text-white"
+                                                >
+                                                    <Plus className="size-4" />{' '}
+                                                    Ajouter
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="flex flex-col-reverse gap-3 border-t border-border/70 bg-muted/30 p-7 sm:flex-row sm:justify-end">

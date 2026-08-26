@@ -9,7 +9,8 @@ enum PassengerDocumentType: string
     use HasEnumUtilities;
 
     case NationalId = 'national_id';
+    case BiometricCard = 'biometric_card';
     case Passport = 'passport';
     case ConsularCard = 'consular_card';
-    case BirthCertificate = 'birth_certificate';
+    case Cip = 'cip';
 }

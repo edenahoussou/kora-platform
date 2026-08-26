@@ -42,8 +42,9 @@ describe('SystemRole enum', function (): void {
         expect($all)->toContain('agencies.view', 'agencies.create', 'agencies.update', 'agencies.deactivate')
             ->and($all)->toContain('bookings.create', 'boarding.scan', 'tickets.cancel', 'fiscalization.view')
             ->and($all)->toContain('network.view', 'network.create', 'network.update', 'network.deactivate')
-            ->and($all)->toHaveCount(39)
-            ->and(count(array_unique($all)))->toBe(39);
+            ->and($all)->toContain('cash.transfer.create', 'cash.transfer.approve', 'cash.media.view', 'cash.adjust')
+            ->and($all)->toHaveCount(43)
+            ->and(count(array_unique($all)))->toBe(43);
     });
 
     it('separates internal, field and management roles', function (): void {

@@ -27,6 +27,7 @@ class CashSessionPolicy
 
     public function approveVariance(User $user, CashSession $cashSession): bool
     {
-        return $this->allows($user, 'cash.approve-variance');
+        return $this->allows($user, 'cash.approve-variance')
+            && $user->agency_id === $cashSession->agency_id;
     }
 }

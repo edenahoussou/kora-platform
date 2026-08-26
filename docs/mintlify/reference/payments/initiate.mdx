@@ -6,7 +6,7 @@ api: POST /api/v1/payments/initiate
 
 # Initier un paiement
 
-Initie un paiement pour une réservation au statut `held`. L'API crée un paiement `pending` et déclenche le flow provider (Mobile Money, carte, etc.). L'idempotence est garantie par `idempotency_key` : un replay avec la même clé retourne le paiement existant en `200` au lieu de `201`.
+Initie un paiement Mobile Money pour une réservation au statut `held`. Au Bénin, KORA facture en `XOF` et FedaPay utilise `XOF`. Le sandbox public MTN impose `EUR` pour les appels de test; cela ne constitue pas une conversion de devise métier. En production, MTN utilise la devise du compte provisionné, configurée séparément. L'idempotence est garantie par `idempotency_key`.
 
 ## Paramètres
 
@@ -15,11 +15,11 @@ Initie un paiement pour une réservation au statut `held`. L'API crée un paieme
 </ParamField>
 
 <ParamField body="method" type="string" required>
-  `mobile_money`, `wallet`, `card`, ou `cash`.
+  `mobile_money` uniquement dans le parcours passager MVP.
 </ParamField>
 
 <ParamField body="provider" type="string" required>
-  Provider (ex: `mtn_momo`, `orange_money`, `moov_money`). Max 64.
+  Provider retourné par `GET /api/v1/payments/methods` (`fedapay` ou `mtn_momo`). Max 64.
 </ParamField>
 
 <ParamField body="idempotency_key" type="string" required>
@@ -30,12 +30,8 @@ Initie un paiement pour une réservation au statut `held`. L'API crée un paieme
   Téléphone Mobile Money (max 32). Requis si `method=mobile_money`.
 </ParamField>
 
-<ParamField body="wallet_amount" type="integer">
-  Montant payé via wallet (split payment, min 0).
-</ParamField>
-
-<ParamField body="points_amount" type="integer">
-  Montant payé via points (split payment, min 0).
+<ParamField body="mobile_money_network" type="string" required>
+  Réseau utilisé : `mtn_momo`, `moov_flooz` ou `celtiis_cash`. Le provider doit supporter ce réseau.
 </ParamField>
 
 <RequestExample>
@@ -49,7 +45,8 @@ curl -X POST https://staging.koraexpress.app/api/v1/payments/initiate \
     "method": "mobile_money",
     "provider": "mtn_momo",
     "idempotency_key": "pay-2026-08-20-001",
-    "phone": "+2290197421860"
+    "phone": "+2290197421860",
+    "mobile_money_network": "mtn_momo"
   }'
 ```
 
@@ -57,7 +54,7 @@ curl -X POST https://staging.koraexpress.app/api/v1/payments/initiate \
 const res = await fetch('https://staging.koraexpress.app/api/v1/payments/initiate', {
   method: 'POST',
   headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-  body: JSON.stringify({ reservation_uuid, method: 'mobile_money', provider: 'mtn_momo', idempotency_key: 'pay-001', phone: '+2290197421860' }),
+  body: JSON.stringify({ reservation_uuid, method: 'mobile_money', provider: 'mtn_momo', mobile_money_network: 'mtn_momo', idempotency_key: 'pay-001', phone: '+2290197421860' }),
 });
 const { data } = await res.json();
 ```
@@ -66,7 +63,7 @@ const { data } = await res.json();
 const res = await fetch('https://staging.koraexpress.app/api/v1/payments/initiate', {
   method: 'POST',
   headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-  body: JSON.stringify({ reservation_uuid, method, provider, idempotency_key, phone } satisfies InitiatePaymentRequest),
+  body: JSON.stringify({ reservation_uuid, method, provider, mobile_money_network, idempotency_key, phone } satisfies InitiatePaymentRequest),
 });
 const data: Payment = (await res.json()).data;
 ```
@@ -78,6 +75,7 @@ final res = await authDio.post('/api/v1/payments/initiate', data: {
   'provider': 'mtn_momo',
   'idempotency_key': 'pay-2026-08-20-001',
   'phone': '+2290197421860',
+  'mobile_money_network': 'mtn_momo',
 });
 final paymentUuid = res.data['data']['uuid'];
 ```
@@ -93,9 +91,17 @@ final paymentUuid = res.data['data']['uuid'];
     "status": "pending",
     "amount": 12500,
     "currency": "XOF",
+    "method": "mobile_money",
     "provider": "mtn_momo",
+    "mobile_money_network": "mtn_momo",
+    "provider_currency": "EUR",
+    "provider_amount": 12500,
     "provider_reference": null,
+    "provider_transaction_id": null,
+    "payer_phone": "+2290197421860",
     "confirmed_at": null,
+    "last_verified_at": null,
+    "next_action": "verify",
     "expires_at": "2026-08-20T08:15:00.000Z",
     "polling_interval_seconds": 10
   }
@@ -127,11 +133,20 @@ final paymentUuid = res.data['data']['uuid'];
 <ResponseField name="data" type="Payment" required>
   <ResponseField name="uuid" type="UUID" required>UUID du paiement.</ResponseField>
   <ResponseField name="status" type="string" required>`pending`, `confirmed`, `failed`, `cancelled`, ou `refunded`.</ResponseField>
-  <ResponseField name="amount" type="integer" required>Montant.</ResponseField>
-  <ResponseField name="currency" type="string" required>Devise.</ResponseField>
-  <ResponseField name="provider" type="string" required>Provider.</ResponseField>
-  <ResponseField name="provider_reference" type="string">Référence provider ou `null`.</ResponseField>
+  <ResponseField name="amount" type="integer" required>Montant facturé au passager (en `currency`).</ResponseField>
+  <ResponseField name="currency" type="string" required>Devise KORA. Toujours `XOF` au MVP.</ResponseField>
+  <ResponseField name="method" type="string" required>`mobile_money`.</ResponseField>
+  <ResponseField name="provider" type="string" required>Provider utilisé (`fedapay` ou `mtn_momo`).</ResponseField>
+  <ResponseField name="mobile_money_network" type="string" required>Réseau sélectionné (`mtn_momo`, `moov_flooz`, `celtiis_cash`).</ResponseField>
+  <ResponseField name="provider_currency" type="string">Devise envoyée au provider. Peut différer de `currency` (ex: `EUR` en sandbox MTN).</ResponseField>
+  <ResponseField name="provider_amount" type="integer">Montant envoyé au provider (en `provider_currency`).</ResponseField>
+  <ResponseField name="provider_reference" type="string">Référence provider ou `null` si non encore assignée.</ResponseField>
+  <ResponseField name="provider_transaction_id" type="string">ID technique provider ou `null`.</ResponseField>
+  <ResponseField name="payer_phone" type="string">Téléphone du payeur tel que fourni.</ResponseField>
   <ResponseField name="confirmed_at" type="string">Date de confirmation (ISO 8601) ou `null`.</ResponseField>
+  <ResponseField name="last_verified_at" type="string">Dernière vérification serveur (ISO 8601) ou `null`.</ResponseField>
+  <ResponseField name="next_action" type="string" required>Action attendue côté mobile : `verify` (pending), `wait_for_tickets` (confirmed, billets en cours), `show_tickets` (confirmed, billets émis), ou `retry` (failed/cancelled).</ResponseField>
+  <ResponseField name="failure" type="object">Présent uniquement si le paiement a échoué. Contient `code` et `message`.</ResponseField>
   <ResponseField name="expires_at" type="string">Expiration du hold de la réservation (ISO 8601) ou `null`.</ResponseField>
   <ResponseField name="polling_interval_seconds" type="integer" required>Toujours `10`.</ResponseField>
 </ResponseField>
@@ -147,5 +162,5 @@ final paymentUuid = res.data['data']['uuid'];
 | `422` | Réservation non `held`, méthode invalide, réservation expirée, ou validation échouée. |
 
 <Warning>
-  Le paiement est accepté **uniquement** tant que le hold est valide. Si un webhook de succès arrive après l'expiration, le backend marque le paiement `failed` et ne réactive pas la réservation.
+  Le paiement est accepté **uniquement** tant que le hold est valide. Après initiation, utilisez `POST /payments/{uuid}/verify` pour demander une vérification serveur explicite; le polling GET reste utile pour rafraîchir l'état.
 </Warning>

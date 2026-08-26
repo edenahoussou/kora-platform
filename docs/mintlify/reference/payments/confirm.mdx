@@ -10,7 +10,7 @@ authMethod: none
 Endpoint appelé par le **provider de paiement** (Mobile Money, carte) pour confirmer ou échouer un paiement. Cet endpoint est **public** — la sécurité repose sur l'isolation réseau et/ou une signature provider (roadmap).
 
 <Warning>
-  L'app mobile **n'appelle jamais** cet endpoint. Elle polle le statut via `GET /payments/{uuid}`.
+  L'app mobile **n'appelle jamais** cet endpoint. Elle utilise `POST /payments/{uuid}/verify`, puis `GET /payments/{uuid}` pour rafraîchir l'état.
 </Warning>
 
 ## Paramètres
@@ -103,7 +103,7 @@ final res = await dio.post('/api/v1/payments/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb8
 
 | `status` webhook | Réservation | Paiement | Billet |
 |------------------|-------------|----------|--------|
-| `success` / `confirmed` | `held` → `paid` | `pending` → `confirmed` | Émis (MECeF) |
+| `success` / `confirmed` | `held` → `paid` | `pending` → `confirmed` | Émis ensuite par un job asynchrone |
 | `failed` | reste `held` (jusqu'à expiration) | `pending` → `failed` | Non émis |
 
 ## Codes de réponse

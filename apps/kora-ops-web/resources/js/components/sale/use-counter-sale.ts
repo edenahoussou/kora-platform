@@ -1,13 +1,28 @@
 import { router, useForm } from '@inertiajs/react';
 import type { SyntheticEvent } from 'react';
 import { sale } from '@/routes';
-import { hold, passengers, quote, release } from '@/routes/sale';
+import { hold, passengers, payment, quote, release } from '@/routes/sale';
+import type { CounterSalePaymentPayload } from './payment-step';
 import type {
     SaleDeparture,
     SalePassengerForm,
     SaleProps,
     SaleSearch,
 } from './sale-types';
+
+function passengerToSnakeCase(passenger: SalePassengerForm) {
+    return {
+        first_name: passenger.firstName,
+        last_name: passenger.lastName,
+        phone: passenger.phone,
+        email: passenger.email,
+        document_type: passenger.documentType,
+        document_number: passenger.documentNumber,
+        nationality: passenger.nationality,
+        birth_date: passenger.birthDate,
+        seat_uuid: passenger.seatUuid,
+    };
+}
 
 function queryFrom(search: SaleSearch, departure?: SaleDeparture | null) {
     return {
@@ -46,6 +61,18 @@ export function useCounterSale(props: SaleProps) {
     const releaseForm = useForm({
         ...queryFrom(props.search, props.selectedDeparture),
         quote_uuid: props.quote?.uuid ?? undefined,
+    });
+    const paymentForm = useForm<CounterSalePaymentPayload>({
+        method: 'cash',
+        amount: 0,
+        idempotency_key: '',
+        cash_received_amount: null,
+        mobile_money_network: null,
+        agency_payment_account_uuid: null,
+        payer_phone: '',
+        payer_name: '',
+        provider_reference: '',
+        verified_manually: false,
     });
     const search = (event: SyntheticEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -107,7 +134,7 @@ export function useCounterSale(props: SaleProps) {
     ) => {
         passengersForm.transform(() => ({
             ...queryFrom(searchForm.data, props.selectedDeparture),
-            passengers: passengerData,
+            passengers: passengerData.map(passengerToSnakeCase),
         }));
         passengersForm.post(passengers.url(reservationUuid), {
             preserveScroll: true,
@@ -134,6 +161,17 @@ export function useCounterSale(props: SaleProps) {
             onError: options.onError,
         });
     };
+    const recordPayment = (
+        reservationUuid: string,
+        paymentData: CounterSalePaymentPayload,
+        onSuccess?: () => void,
+    ) => {
+        paymentForm.transform(() => paymentData);
+        paymentForm.post(payment.url(reservationUuid), {
+            preserveScroll: true,
+            onSuccess,
+        });
+    };
 
     return {
         searchForm,
@@ -141,11 +179,13 @@ export function useCounterSale(props: SaleProps) {
         holdForm,
         passengersForm,
         releaseForm,
+        paymentForm,
         search,
         selectDeparture,
         calculateQuote,
         holdSeats,
         savePassengers,
         releaseHold,
+        recordPayment,
     };
 }

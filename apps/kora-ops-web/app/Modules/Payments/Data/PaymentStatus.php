@@ -13,4 +13,9 @@ enum PaymentStatus: string
     case Failed = 'failed';
     case Cancelled = 'cancelled';
     case Refunded = 'refunded';
+
+    public function isTerminal(): bool
+    {
+        return $this !== self::Pending;
+    }
 }

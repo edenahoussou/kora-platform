@@ -90,7 +90,7 @@ endpoints:
       from:
         custom: []
         name: from
-        description: validation.max.
+        description: 'Le champ value ne doit pas dépasser 120 caractères.'
         required: false
         example: b
         type: string
@@ -101,7 +101,7 @@ endpoints:
       to:
         custom: []
         name: to
-        description: validation.max.
+        description: 'Le champ value ne doit pas dépasser 120 caractères.'
         required: false
         example: 'n'
         type: string
@@ -145,14 +145,14 @@ endpoints:
         name: uuid
         description: ''
         required: true
-        example: f2145d96-8192-45dd-8e8e-e023c988fedf
+        example: 2c72be75-333a-4272-b6df-a355fcd62eb7
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      uuid: f2145d96-8192-45dd-8e8e-e023c988fedf
+      uuid: 2c72be75-333a-4272-b6df-a355fcd62eb7
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -230,7 +230,7 @@ endpoints:
         name: date
         description: 'Must be a valid date in the format <code>Y-m-d</code>.'
         required: true
-        example: '2026-08-25'
+        example: '2026-08-26'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -239,7 +239,7 @@ endpoints:
       from:
         custom: []
         name: from
-        description: validation.max.
+        description: 'Le champ value ne doit pas dépasser 120 caractères.'
         required: false
         example: b
         type: string
@@ -250,7 +250,7 @@ endpoints:
       to:
         custom: []
         name: to
-        description: validation.max.
+        description: 'Le champ value ne doit pas dépasser 120 caractères.'
         required: false
         example: 'n'
         type: string
@@ -259,7 +259,7 @@ endpoints:
         nullable: true
         deprecated: false
     cleanBodyParameters:
-      date: '2026-08-25'
+      date: '2026-08-26'
       from: b
       to: 'n'
     fileParameters: []
@@ -295,14 +295,14 @@ endpoints:
         name: uuid
         description: ''
         required: true
-        example: fdf2fdd3-3c88-46d7-8905-bd034500aa82
+        example: 1994b8ed-2cc9-47dc-90a3-7b8873a6f3bb
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      uuid: fdf2fdd3-3c88-46d7-8905-bd034500aa82
+      uuid: 1994b8ed-2cc9-47dc-90a3-7b8873a6f3bb
     queryParameters:
       from:
         custom: []
@@ -333,7 +333,7 @@ endpoints:
       from:
         custom: []
         name: from
-        description: validation.max.
+        description: 'Le champ value ne doit pas dépasser 120 caractères.'
         required: false
         example: b
         type: string
@@ -344,7 +344,7 @@ endpoints:
       to:
         custom: []
         name: to
-        description: validation.max.
+        description: 'Le champ value ne doit pas dépasser 120 caractères.'
         required: false
         example: 'n'
         type: string
@@ -388,14 +388,14 @@ endpoints:
         name: departure_uuid
         description: ''
         required: true
-        example: fdf2fdd3-3c88-46d7-8905-bd034500aa82
+        example: 1994b8ed-2cc9-47dc-90a3-7b8873a6f3bb
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      departure_uuid: fdf2fdd3-3c88-46d7-8905-bd034500aa82
+      departure_uuid: 1994b8ed-2cc9-47dc-90a3-7b8873a6f3bb
     queryParameters:
       origin_stop_uuid:
         custom: []
@@ -426,7 +426,7 @@ endpoints:
       origin_stop_uuid:
         custom: []
         name: origin_stop_uuid
-        description: validation.uuid.
+        description: 'Le champ value doit être un UUID valide.'
         required: true
         example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
         type: string
@@ -437,7 +437,7 @@ endpoints:
       destination_stop_uuid:
         custom: []
         name: destination_stop_uuid
-        description: validation.uuid.
+        description: 'Le champ value doit être un UUID valide.'
         required: true
         example: 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
         type: string
@@ -483,7 +483,7 @@ endpoints:
       departure_uuid:
         custom: []
         name: departure_uuid
-        description: 'validation.uuid Must match an existing stored value.'
+        description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
         required: true
         example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
         type: string
@@ -494,7 +494,7 @@ endpoints:
       origin_stop_uuid:
         custom: []
         name: origin_stop_uuid
-        description: 'validation.uuid Must match an existing stored value.'
+        description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
         required: true
         example: 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
         type: string
@@ -505,7 +505,7 @@ endpoints:
       destination_stop_uuid:
         custom: []
         name: destination_stop_uuid
-        description: 'validation.uuid Must match an existing stored value.'
+        description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
         required: true
         example: 977e5426-8d13-3824-86aa-b092f8ae52c5
         type: string
@@ -516,7 +516,7 @@ endpoints:
       service_class_uuid:
         custom: []
         name: service_class_uuid
-        description: 'validation.uuid Must match an existing stored value.'
+        description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
         required: false
         example: d6fa562b-acd5-35ff-babb-d11194d3737b
         type: string
@@ -527,7 +527,7 @@ endpoints:
       passenger_count:
         custom: []
         name: passenger_count
-        description: 'validation.min validation.max.'
+        description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 10.'
         required: false
         example: 6
         type: integer
@@ -628,7 +628,7 @@ endpoints:
       departure_uuid:
         custom: []
         name: departure_uuid
-        description: 'validation.uuid Must match an existing stored value.'
+        description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
         required: true
         example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
         type: string
@@ -639,7 +639,7 @@ endpoints:
       origin_stop_uuid:
         custom: []
         name: origin_stop_uuid
-        description: 'validation.uuid Must match an existing stored value.'
+        description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
         required: true
         example: 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
         type: string
@@ -650,7 +650,7 @@ endpoints:
       destination_stop_uuid:
         custom: []
         name: destination_stop_uuid
-        description: 'validation.uuid Must match an existing stored value.'
+        description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
         required: true
         example: 977e5426-8d13-3824-86aa-b092f8ae52c5
         type: string
@@ -661,7 +661,7 @@ endpoints:
       price_quote_uuid:
         custom: []
         name: price_quote_uuid
-        description: 'validation.uuid Must match an existing stored value.'
+        description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
         required: true
         example: d6fa562b-acd5-35ff-babb-d11194d3737b
         type: string
@@ -672,7 +672,7 @@ endpoints:
       seats:
         custom: []
         name: seats
-        description: validation.min.
+        description: 'Le champ value doit contenir au moins 1 éléments.'
         required: true
         example:
           - []
@@ -684,7 +684,7 @@ endpoints:
       'seats[].seat_uuid':
         custom: []
         name: 'seats[].seat_uuid'
-        description: 'validation.uuid Must match an existing stored value.'
+        description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
         required: true
         example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
         type: string
@@ -806,14 +806,14 @@ endpoints:
         name: reservation_uuid
         description: ''
         required: true
-        example: 856f2c2f-333f-466b-80c2-becd09477526
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      reservation_uuid: 856f2c2f-333f-466b-80c2-becd09477526
+      reservation_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -890,21 +890,21 @@ endpoints:
         name: reservation_uuid
         description: ''
         required: true
-        example: 856f2c2f-333f-466b-80c2-becd09477526
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      reservation_uuid: 856f2c2f-333f-466b-80c2-becd09477526
+      reservation_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters:
       passengers:
         custom: []
         name: passengers
-        description: validation.min.
+        description: 'Le champ value doit contenir au moins 1 éléments.'
         required: true
         example:
           - []
@@ -916,7 +916,7 @@ endpoints:
       'passengers[].first_name':
         custom: []
         name: 'passengers[].first_name'
-        description: validation.max.
+        description: 'Le champ value ne doit pas dépasser 120 caractères.'
         required: true
         example: b
         type: string
@@ -927,7 +927,7 @@ endpoints:
       'passengers[].last_name':
         custom: []
         name: 'passengers[].last_name'
-        description: validation.max.
+        description: 'Le champ value ne doit pas dépasser 120 caractères.'
         required: true
         example: 'n'
         type: string
@@ -938,7 +938,7 @@ endpoints:
       'passengers[].phone':
         custom: []
         name: 'passengers[].phone'
-        description: validation.max.
+        description: 'Le champ value ne doit pas dépasser 32 caractères.'
         required: false
         example: g
         type: string
@@ -949,7 +949,7 @@ endpoints:
       'passengers[].email':
         custom: []
         name: 'passengers[].email'
-        description: 'validation.email validation.max.'
+        description: 'Le champ value doit être une adresse e-mail valide. Le champ value ne doit pas dépasser 255 caractères.'
         required: false
         example: rowan.gulgowski@example.com
         type: string
@@ -962,20 +962,21 @@ endpoints:
         name: 'passengers[].document_type'
         description: ''
         required: false
-        example: national_id
+        example: consular_card
         type: string
         enumValues:
           - national_id
+          - biometric_card
           - passport
           - consular_card
-          - birth_certificate
+          - cip
         exampleWasSpecified: false
         nullable: true
         deprecated: false
       'passengers[].document_number':
         custom: []
         name: 'passengers[].document_number'
-        description: validation.max.
+        description: 'Le champ value ne doit pas dépasser 64 caractères.'
         required: false
         example: d
         type: string
@@ -986,7 +987,7 @@ endpoints:
       'passengers[].nationality':
         custom: []
         name: 'passengers[].nationality'
-        description: validation.size.
+        description: 'Le champ value doit contenir 2 caractères.'
         required: false
         example: lj
         type: string
@@ -999,7 +1000,7 @@ endpoints:
         name: 'passengers[].birth_date'
         description: 'Must be a valid date in the format <code>Y-m-d</code>.'
         required: false
-        example: '2026-08-25'
+        example: '2026-08-26'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -1008,7 +1009,7 @@ endpoints:
       'passengers[].seat_uuid':
         custom: []
         name: 'passengers[].seat_uuid'
-        description: validation.uuid.
+        description: 'Le champ value doit être un UUID valide.'
         required: false
         example: c3b6b42e-3a0f-3935-b28d-cb767f8a2a0a
         type: string
@@ -1022,10 +1023,10 @@ endpoints:
           last_name: 'n'
           phone: g
           email: rowan.gulgowski@example.com
-          document_type: national_id
+          document_type: consular_card
           document_number: d
           nationality: lj
-          birth_date: '2026-08-25'
+          birth_date: '2026-08-26'
           seat_uuid: c3b6b42e-3a0f-3935-b28d-cb767f8a2a0a
     fileParameters: []
     responses:
@@ -1092,14 +1093,14 @@ endpoints:
         name: reservation_uuid
         description: ''
         required: true
-        example: 856f2c2f-333f-466b-80c2-becd09477526
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      reservation_uuid: 856f2c2f-333f-466b-80c2-becd09477526
+      reservation_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []

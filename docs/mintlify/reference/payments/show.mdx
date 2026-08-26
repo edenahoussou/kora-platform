@@ -6,7 +6,7 @@ api: GET /api/v1/payments/{payment_uuid}
 
 # Consulter un paiement
 
-Retourne le statut courant d'un paiement via `PaymentResource`. La relation `reservation` est **toujours chargée** dans cet endpoint (`loadMissing(['reservation.departure'])`). À poller après initiation jusqu'à obtention d'un statut terminal (`confirmed` ou `failed`).
+Retourne le statut courant d'un paiement via `PaymentResource`. La relation `reservation` est **toujours chargée** dans cet endpoint (`loadMissing(['reservation.departure'])`). À appeler après `POST /payments/{uuid}/verify` pour rafraîchir l'état jusqu'à l'émission des billets.
 
 ## Paramètres
 
@@ -52,15 +52,27 @@ final status = res.data['data']['status'];
     "status": "confirmed",
     "amount": 12500,
     "currency": "XOF",
+    "method": "mobile_money",
     "provider": "mtn_momo",
+    "mobile_money_network": "mtn_momo",
+    "provider_currency": "EUR",
+    "provider_amount": 12500,
     "provider_reference": "MM-98270341",
+    "provider_transaction_id": "TXN-12345",
+    "payer_phone": "+2290197421860",
     "confirmed_at": "2026-08-20T08:05:00.000Z",
+    "last_verified_at": "2026-08-20T08:05:02.000Z",
+    "next_action": "show_tickets",
     "expires_at": "2026-08-20T08:15:00.000Z",
     "polling_interval_seconds": 10,
     "reservation": {
       "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
       "status": "paid",
-      "departure_uuid": "a3091549-9179-454e-8440-58179f2208df"
+      "departure_uuid": "a3091549-9179-454e-8440-58179f2208df",
+      "ticket_issuance": {
+        "status": "issued",
+        "tickets_url": "https://staging.koraexpress.app/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70/tickets"
+      }
     }
   }
 }
@@ -73,17 +85,29 @@ final status = res.data['data']['status'];
 <ResponseField name="data" type="Payment" required>
   <ResponseField name="uuid" type="UUID" required>UUID du paiement.</ResponseField>
   <ResponseField name="status" type="string" required>`pending`, `confirmed`, `failed`, `cancelled`, ou `refunded`.</ResponseField>
-  <ResponseField name="amount" type="integer" required>Montant.</ResponseField>
-  <ResponseField name="currency" type="string" required>Devise.</ResponseField>
+  <ResponseField name="amount" type="integer" required>Montant facturé au passager.</ResponseField>
+  <ResponseField name="currency" type="string" required>Devise KORA. Toujours `XOF`.</ResponseField>
+  <ResponseField name="method" type="string" required>`mobile_money`.</ResponseField>
   <ResponseField name="provider" type="string" required>Provider.</ResponseField>
+  <ResponseField name="mobile_money_network" type="string">Réseau sélectionné ou `null`.</ResponseField>
+  <ResponseField name="provider_currency" type="string">Devise envoyée au provider.</ResponseField>
+  <ResponseField name="provider_amount" type="integer">Montant envoyé au provider.</ResponseField>
   <ResponseField name="provider_reference" type="string">Référence provider ou `null`.</ResponseField>
+  <ResponseField name="provider_transaction_id" type="string">ID technique provider ou `null`.</ResponseField>
+  <ResponseField name="payer_phone" type="string">Téléphone du payeur ou `null`.</ResponseField>
   <ResponseField name="confirmed_at" type="string">Date de confirmation (ISO 8601) ou `null`.</ResponseField>
+  <ResponseField name="last_verified_at" type="string">Dernière vérification serveur (ISO 8601) ou `null`.</ResponseField>
+  <ResponseField name="next_action" type="string" required>`verify`, `wait_for_tickets`, `show_tickets`, ou `retry`.</ResponseField>
+  <ResponseField name="failure" type="object">Présent si échec. Contient `code` et `message`.</ResponseField>
   <ResponseField name="expires_at" type="string">Expiration du hold (ISO 8601) ou `null`.</ResponseField>
   <ResponseField name="polling_interval_seconds" type="integer" required>Toujours `10`.</ResponseField>
-  <ResponseField name="reservation" type="object" required>Toujours présent dans cet endpoint (relation chargée via `loadMissing`).</ResponseField>
+  <ResponseField name="reservation" type="object" required>Toujours présent (relation chargée via `loadMissing`).</ResponseField>
   <ResponseField name="reservation.uuid" type="UUID" required>UUID de la réservation.</ResponseField>
   <ResponseField name="reservation.status" type="string" required>`held`, `confirmed`, `paid`, `ticketed`, `boarded`, `cancelled`, ou `expired`.</ResponseField>
   <ResponseField name="reservation.departure_uuid" type="UUID">UUID du départ ou `null`.</ResponseField>
+  <ResponseField name="reservation.ticket_issuance" type="object">État asynchrone de l'émission du billet.</ResponseField>
+  <ResponseField name="reservation.ticket_issuance.status" type="string" required>`not_started`, `pending`, `processing`, `issued`, ou `failed`.</ResponseField>
+  <ResponseField name="reservation.ticket_issuance.tickets_url" type="string" required>URL vers `GET /api/v1/bookings/{reservation_uuid}/tickets`.</ResponseField>
 </ResponseField>
 
 ## Statuts de paiement
@@ -106,5 +130,5 @@ final status = res.data['data']['status'];
 | `404` | Paiement introuvable. |
 
 <Info>
-  Pollez toutes les `polling_interval_seconds` (10s) jusqu'à statut terminal. Évitez un polling trop agressif pour respecter le rate limit.
+  Appelez `POST /payments/{uuid}/verify`, puis rafraîchissez avec ce GET toutes les `polling_interval_seconds` (10s). Évitez un polling trop agressif pour respecter le rate limit.
 </Info>

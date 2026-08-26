@@ -2,7 +2,9 @@
 
 namespace App\Modules\Payments\Http\Requests;
 
+use App\Modules\Payments\Data\MobileMoneyNetwork;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class InitiatePaymentRequest extends FormRequest
 {
@@ -18,12 +20,13 @@ class InitiatePaymentRequest extends FormRequest
     {
         return [
             'reservation_uuid' => ['required', 'uuid', 'exists:reservations,uuid'],
-            'method' => ['required', 'string', 'in:mobile_money,wallet,card,cash'],
+            'method' => ['required', 'string', Rule::in(['mobile_money'])],
             'provider' => ['required', 'string', 'max:64'],
             'idempotency_key' => ['required', 'string', 'max:255'],
+            // The action performs these checks after ownership/hold validation so
+            // legacy clients still receive the most relevant reservation error.
             'phone' => ['nullable', 'string', 'max:32'],
-            'wallet_amount' => ['nullable', 'integer', 'min:0'],
-            'points_amount' => ['nullable', 'integer', 'min:0'],
+            'mobile_money_network' => ['nullable', 'string', Rule::in(MobileMoneyNetwork::values())],
         ];
     }
 
@@ -34,8 +37,7 @@ class InitiatePaymentRequest extends FormRequest
      *     provider: string,
      *     idempotency_key: string,
      *     phone: string|null,
-     *     wallet_amount: int|null,
-     *     points_amount: int|null
+     *     mobile_money_network: string|null
      * }
      */
     public function paymentData(): array
@@ -46,8 +48,7 @@ class InitiatePaymentRequest extends FormRequest
             'provider' => $this->string('provider')->value(),
             'idempotency_key' => $this->string('idempotency_key')->value(),
             'phone' => $this->string('phone')->trim()->value() ?: null,
-            'wallet_amount' => $this->has('wallet_amount') ? $this->integer('wallet_amount') : null,
-            'points_amount' => $this->has('points_amount') ? $this->integer('points_amount') : null,
+            'mobile_money_network' => $this->string('mobile_money_network')->value() ?: null,
         ];
     }
 }

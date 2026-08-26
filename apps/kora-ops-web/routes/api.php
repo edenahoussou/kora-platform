@@ -13,6 +13,7 @@ use App\Modules\IdentityAccess\Http\Controllers\AuthSessionController;
 use App\Modules\IdentityAccess\Http\Controllers\UserPreferenceController;
 use App\Modules\Payments\Http\Controllers\PaymentController;
 use App\Modules\Support\Http\Controllers\HealthController;
+use App\Modules\Ticketing\Http\Controllers\TicketController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
@@ -69,8 +70,12 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         });
 
     Route::middleware('auth:sanctum')->group(function (): void {
+        Route::get('payments/methods', [PaymentController::class, 'methods'])
+            ->name('payments.methods');
         Route::get('bookings/{reservation:uuid}', [ReservationController::class, 'show'])
             ->name('bookings.show');
+        Route::get('bookings/{reservation:uuid}/tickets', [TicketController::class, 'index'])
+            ->name('bookings.tickets.index');
 
         Route::post('bookings/{reservation:uuid}/passengers', [ReservationPassengerController::class, 'store'])
             ->name('bookings.passengers.store');
@@ -82,8 +87,22 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->name('payments.initiate');
         Route::get('payments/{payment:uuid}', [PaymentController::class, 'show'])
             ->name('payments.show');
+        Route::post('payments/{payment:uuid}/verify', [PaymentController::class, 'verify'])
+            ->middleware('throttle:payment-verify')
+            ->name('payments.verify');
+        Route::post('payments/{payment:uuid}/cancel', [PaymentController::class, 'cancel'])
+            ->name('payments.cancel');
+
+        Route::get('tickets/{ticket:uuid}', [TicketController::class, 'show'])
+            ->name('tickets.show');
     });
 
     Route::post('payments/{payment:uuid}/confirm', [PaymentController::class, 'confirm'])
         ->name('payments.confirm');
+
+    // Provider-specific webhook endpoints.
+    Route::post('payments/webhook/fedapay', [PaymentController::class, 'webhookFedaPay'])
+        ->name('payments.webhook.fedapay');
+    Route::post('payments/webhook/mtn-momo', [PaymentController::class, 'webhookMtnMomo'])
+        ->name('payments.webhook.mtn-momo');
 });
