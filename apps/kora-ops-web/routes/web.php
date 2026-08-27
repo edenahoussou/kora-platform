@@ -8,6 +8,8 @@ use App\Modules\Cash\Http\Controllers\CashMediaController;
 use App\Modules\Cash\Http\Controllers\CashSessionController;
 use App\Modules\Departures\Http\Controllers\DepartureController;
 use App\Modules\DynamicPricing\Http\Controllers\FareController;
+use App\Modules\DynamicPricing\Http\Controllers\PricingRuleController;
+use App\Modules\DynamicPricing\Http\Controllers\TaxRuleController;
 use App\Modules\IdentityAccess\Http\Controllers\AgencyController;
 use App\Modules\Payments\Http\Controllers\AgencyPaymentAccountController;
 use Illuminate\Support\Facades\Auth;
@@ -56,6 +58,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('fares', [FareController::class, 'store'])->name('fares.store');
     Route::put('fares/{fare:uuid}', [FareController::class, 'update'])->name('fares.update');
     Route::patch('fares/{fare:uuid}/status', [FareController::class, 'changeStatus'])->name('fares.status');
+
+    // Règles de pricing dynamique (CDC §3.1.3.4, §9.2)
+    Route::get('pricing-rules', [PricingRuleController::class, 'index'])->name('pricing-rules.index');
+    Route::post('pricing-rules', [PricingRuleController::class, 'store'])->name('pricing-rules.store');
+    Route::put('pricing-rules/{pricingRule:uuid}', [PricingRuleController::class, 'update'])->name('pricing-rules.update');
+    Route::patch('pricing-rules/{pricingRule:uuid}/status', [PricingRuleController::class, 'changeStatus'])->name('pricing-rules.status');
+    Route::patch('pricing-rules/settings', [PricingRuleController::class, 'updateSettings'])->name('pricing-rules.settings');
+
+    // Taux fiscaux paramétrables (CDC §9.8) — configuration uniquement, non câblé
+    // au calcul de devis public (hors périmètre) ; alimentera la facturation MECeF.
+    Route::get('tax-rules', [TaxRuleController::class, 'index'])->name('tax-rules.index');
+    Route::post('tax-rules', [TaxRuleController::class, 'store'])->name('tax-rules.store');
+    Route::put('tax-rules/{taxRule:uuid}', [TaxRuleController::class, 'update'])->name('tax-rules.update');
+    Route::patch('tax-rules/{taxRule:uuid}/status', [TaxRuleController::class, 'changeStatus'])->name('tax-rules.status');
     Route::inertia('passengers', 'passengers')->name('passengers');
     Route::inertia('tickets', 'tickets')->name('tickets');
 

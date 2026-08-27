@@ -7,6 +7,8 @@ use App\Modules\DynamicPricing\Data\PricingRuleType;
 use App\Modules\Support\Models\KoraModel;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use App\Modules\BusNetwork\Models\Line;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * @property PricingRuleType $type
@@ -41,5 +43,13 @@ class PricingRule extends KoraModel
             'ends_at' => 'datetime',
             'status' => PricingRuleStatus::class,
         ];
+    }
+
+    /**
+     * @return BelongsTo<Line, $this>
+     */
+    public function line(): BelongsTo
+    {
+        return $this->belongsTo(Line::class);
     }
 }
