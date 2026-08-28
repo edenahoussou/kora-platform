@@ -70,8 +70,13 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         });
 
     Route::middleware('auth:sanctum')->group(function (): void {
+        Route::get('payments/methods', [PaymentController::class, 'methods'])
+            ->name('payments.methods');
+
         Route::post('bookings/{reservation:uuid}/passengers', [ReservationPassengerController::class, 'store'])
             ->name('bookings.passengers.store');
+        Route::get('bookings/{reservation:uuid}/tickets', [TicketController::class, 'index'])
+            ->name('bookings.tickets.index');
 
         Route::post('payments/initiate', [PaymentController::class, 'initiate'])
             ->name('payments.initiate');
