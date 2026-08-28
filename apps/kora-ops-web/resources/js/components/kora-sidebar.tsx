@@ -59,6 +59,8 @@ const navItems: NavEntry[] = [
             { title: 'Manifestes', href: '/manifest' },
             { title: 'Lignes & arrêts', href: '/network' },
             { title: 'Tarifs', href: '/fares' },
+            { title: 'Règles de pricing', href: '/pricing-rules' },
+            { title: 'Taux fiscaux', href: '/tax-rules' },
         ],
     },
     {
