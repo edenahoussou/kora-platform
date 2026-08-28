@@ -16,7 +16,7 @@ function createTaxRule(array $overrides = []): TaxRule
         'uuid' => Str::uuid()->toString(),
         'service_type' => 'transport',
         'scope' => 'national',
-        'tax_code' => 'TVA-' . Str::random(6),
+        'tax_code' => 'TVA-'.Str::random(6),
         'tax_rate' => 18.0,
         'starts_on' => '2026-01-01',
         'status' => 'draft',
@@ -29,7 +29,7 @@ it('lists tax rules without exposing numeric ids', function (): void {
     $this->actingAs(commercialDirector())
         ->get(route('tax-rules.index'))
         ->assertSuccessful()
-        ->assertInertia(fn(Assert $page) => $page
+        ->assertInertia(fn (Assert $page) => $page
             ->component('tax-rules')
             ->where('taxRules.data.0.uuid', $rule->uuid)
             ->where('taxRules.data.0.taxCode', $rule->tax_code)

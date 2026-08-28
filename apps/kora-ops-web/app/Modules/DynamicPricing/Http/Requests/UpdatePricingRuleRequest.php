@@ -70,7 +70,7 @@ class UpdatePricingRuleRequest extends FormRequest
                 'fill_rate_max' => $this->input('conditions.fill_rate_max'),
                 'hours_before_departure_min' => $this->input('conditions.hours_before_departure_min'),
                 'hours_before_departure_max' => $this->input('conditions.hours_before_departure_max'),
-            ], fn($value) => $value !== null && $value !== ''),
+            ], fn ($value) => $value !== null && $value !== ''),
             'percentage' => (float) $this->input('percentage'),
             'priority' => (int) $this->input('priority'),
             'starts_at' => $this->filled('starts_at') ? $this->string('starts_at')->value() : null,

@@ -33,12 +33,11 @@ it('lists pricing rules without exposing numeric ids, with settings and conditio
         'percentage' => 15.5,
         'status' => 'active',
     ]);
-    PricingSetting::query()->create(['floor_coefficient' => 0.5, 'ceiling_coefficient' => 2.0]);
-
+    PricingSetting::query()->create(['floor_coefficient' => 0.5, 'ceiling_coefficient' => 2.5]);
     $this->actingAs(commercialDirector())
         ->get(route('pricing-rules.index'))
         ->assertSuccessful()
-        ->assertInertia(fn(Assert $page) => $page
+        ->assertInertia(fn (Assert $page) => $page
             ->component('pricing-rules')
             ->where('rules.data.0.uuid', $rule->uuid)
             ->where('rules.data.0.lineCode', $line->code)
@@ -51,7 +50,7 @@ it('lists pricing rules without exposing numeric ids, with settings and conditio
             ->missing('rules.data.0.id')
             ->missing('rules.data.0.line_id')
             ->where('settings.floorCoefficient', 0.5)
-            ->where('settings.ceilingCoefficient', 2.0)
+            ->where('settings.ceilingCoefficient', 2.5)
             ->where('permissions.canCreate', true));
 });
 
