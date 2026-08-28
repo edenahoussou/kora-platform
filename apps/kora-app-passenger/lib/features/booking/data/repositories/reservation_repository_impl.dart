@@ -3,13 +3,14 @@ import 'package:dio/dio.dart';
 
 import '../../../../core/error/api_failure_mapper.dart';
 import '../../../../core/error/failures.dart';
+import '../../../../core/network/api_json.dart';
 import '../../domain/entities/departure.dart';
+import '../../domain/entities/passenger.dart';
 import '../../domain/entities/quote.dart';
 import '../../domain/entities/seat.dart';
 import '../../domain/entities/seat_hold.dart';
 import '../../domain/repositories/reservation_repository.dart';
 import '../datasources/reservation_remote_data_source.dart';
-import '../models/bus_json.dart';
 
 class ReservationRepositoryImpl
     with ApiFailureMapper
@@ -56,6 +57,17 @@ class ReservationRepositoryImpl
   }
 
   @override
+  Future<Either<Failure, SeatHold>> savePassengers({
+    required String reservationId,
+    required List<Passenger> passengers,
+  }) => attempt(
+    () => _dataSource.savePassengers(
+      reservationId: reservationId,
+      passengers: passengers,
+    ),
+  );
+
+  @override
   Future<Either<Failure, void>> release(String reservationId) =>
       attempt(() => _dataSource.release(reservationId));
 }
@@ -65,17 +77,17 @@ class ReservationRepositoryImpl
 SeatUnavailableFailure? _seatConflict(DioException error) {
   if (error.response?.statusCode != 409) return null;
 
-  final body = BusJson.map(error.response?.data);
-  final label = BusJson.stringOrNull(body['seat_code']);
+  final body = ApiJson.map(error.response?.data);
+  final label = ApiJson.stringOrNull(body['seat_code']);
 
   return SeatUnavailableFailure(
-    BusJson.string(
+    ApiJson.string(
       body['message'],
       label == null
           ? 'Ce siège vient d’être pris.'
           : 'Le siège $label vient d’être pris.',
     ),
-    seatId: BusJson.stringOrNull(body['conflicting_seat_uuid']),
+    seatId: ApiJson.stringOrNull(body['conflicting_seat_uuid']),
     seatLabel: label,
   );
 }

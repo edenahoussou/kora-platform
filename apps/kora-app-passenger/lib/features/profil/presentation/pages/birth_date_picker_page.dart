@@ -11,9 +11,15 @@ import '../../../../core/widgets/screen_header.dart';
 /// Même card, mêmes flèches — une paire de plus pour sauter d'année en
 /// année, la plage couvrant ici plus d'un siècle.
 class BirthDatePickerPage extends StatefulWidget {
-  const BirthDatePickerPage({super.key, this.selected});
+  const BirthDatePickerPage({super.key, this.selected, this.eyebrow});
 
   final DateTime? selected;
+
+  /// Le surtitre de l'écran. `null` prend celui du profil.
+  ///
+  /// Cet écran sert aussi le formulaire voyageurs, où il annonçait
+  /// « PROFIL » alors qu'on renseigne quelqu'un d'autre.
+  final String? eyebrow;
 
   @override
   State<BirthDatePickerPage> createState() => _BirthDatePickerPageState();
@@ -39,7 +45,7 @@ class _BirthDatePickerPageState extends State<BirthDatePickerPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               ScreenHeader(
-                eyebrow: l10n.profileEditEyebrow,
+                eyebrow: widget.eyebrow ?? l10n.profileEditEyebrow,
                 title: l10n.profileEditBirthDate,
               ),
               Expanded(
@@ -75,4 +81,16 @@ class _BirthDatePickerPageState extends State<BirthDatePickerPage> {
       ),
     );
   }
+}
+
+/// Ce que reçoit [BirthDatePickerPage] par `go_router` (`extra`).
+///
+/// L'écran sert deux parcours : le profil et le formulaire voyageurs. Une
+/// simple `DateTime` en `extra` ne laissait pas dire lequel, d'où ces
+/// arguments — une `DateTime` nue reste acceptée pour le profil.
+class BirthDateArgs {
+  const BirthDateArgs({this.selected, this.eyebrow});
+
+  final DateTime? selected;
+  final String? eyebrow;
 }

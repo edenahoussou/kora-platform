@@ -40,6 +40,24 @@ class StubAuthRepository implements AuthRepository {
     ),
   );
 
+  /// La même session, une fois le téléphone renseigné.
+  ///
+  /// [session] décrit un compte **au sortir de l'inscription** : l'écran
+  /// des autorisations n'a pas encore recueilli le numéro, et c'est
+  /// précisément ce que vérifient ses tests. Les écrans du tunnel, eux,
+  /// ne sont atteints qu'après — d'où cette seconde fixture.
+  static final sessionWithPhone = AuthSession(
+    token: session.token,
+    expiresAt: session.expiresAt,
+    user: const AuthUser(
+      uuid: 'user-1',
+      name: 'Aïcha HOUNKPÈ',
+      email: 'aicha@example.com',
+      phone: '+229 0197421860',
+      countryCode: '+229',
+    ),
+  );
+
   Either<Failure, T> _answer<T>(String call, T value) {
     calls.add(call);
     final error = failure;

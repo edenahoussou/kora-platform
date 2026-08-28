@@ -26,6 +26,10 @@ class DepartureRepositoryImpl
       attempt(_dataSource.getCities);
 
   @override
+  Future<Either<Failure, Departure>> byId(String departureId) =>
+      attempt(() => _dataSource.getDeparture(departureId));
+
+  @override
   Future<Either<Failure, List<Departure>>> search({
     required String originCity,
     required String destinationCity,

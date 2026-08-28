@@ -1,5 +1,5 @@
+import '../../../../core/network/api_json.dart';
 import '../../domain/entities/city.dart';
-import 'bus_json.dart';
 import 'city_model.dart';
 
 /// Couche DATA : un arrêt d'une ligne, tel que le renvoie l'API dans
@@ -32,12 +32,12 @@ class StopModel {
 
   factory StopModel.fromJson(Map<String, dynamic> json) {
     return StopModel(
-      uuid: BusJson.string(json['uuid']),
-      name: BusJson.string(json['name']),
-      city: BusJson.string(json['city']),
-      country: BusJson.string(json['country']),
-      stopOrder: BusJson.intOrNull(json['stop_order']) ?? 0,
-      kmFromOrigin: BusJson.doubleOrNull(json['km_from_origin']) ?? 0,
+      uuid: ApiJson.string(json['uuid']),
+      name: ApiJson.string(json['name']),
+      city: ApiJson.string(json['city']),
+      country: ApiJson.string(json['country']),
+      stopOrder: ApiJson.intOrNull(json['stop_order']) ?? 0,
+      kmFromOrigin: ApiJson.doubleOrNull(json['km_from_origin']) ?? 0,
     );
   }
 
@@ -71,6 +71,6 @@ class StopModel {
     // (`"name": "Cotonou"` dans la ville `Cotonou`) : le reprendre
     // afficherait « Cotonou · Cotonou ». Sans gare distincte, il n'y a
     // rien à préciser.
-    station: name == city ? null : BusJson.stringOrNull(name),
+    station: name == city ? null : ApiJson.stringOrNull(name),
   );
 }

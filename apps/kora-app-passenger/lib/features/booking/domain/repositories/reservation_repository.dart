@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 
 import '../../../../core/error/failures.dart';
 import '../entities/departure.dart';
+import '../entities/passenger.dart';
 import '../entities/quote.dart';
 import '../entities/seat.dart';
 import '../entities/seat_hold.dart';
@@ -33,6 +34,16 @@ abstract class ReservationRepository {
     required Departure departure,
     required Quote quote,
     required List<Seat> seats,
+  });
+
+  /// Enregistre les identités des voyageurs sur la réservation retenue.
+  ///
+  /// Rend la réservation rafraîchie : le serveur renvoie `status` et
+  /// `expires_at` à jour, et c'est lui qui fait autorité sur le temps
+  /// restant.
+  Future<Either<Failure, SeatHold>> savePassengers({
+    required String reservationId,
+    required List<Passenger> passengers,
   });
 
   /// Rend les sièges avant l'échéance.

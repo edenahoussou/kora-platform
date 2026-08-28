@@ -328,8 +328,15 @@ class AppRouter {
         ),
         GoRoute(
           path: birthDatePath,
-          builder: (context, state) =>
-              BirthDatePickerPage(selected: state.extra as DateTime?),
+          builder: (context, state) {
+            final extra = state.extra;
+            final args = extra is BirthDateArgs ? extra : null;
+
+            return BirthDatePickerPage(
+              selected: args?.selected ?? (extra is DateTime ? extra : null),
+              eyebrow: args?.eyebrow,
+            );
+          },
         ),
         GoRoute(
           path: securityPath,

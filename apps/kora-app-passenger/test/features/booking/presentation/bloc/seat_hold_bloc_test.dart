@@ -7,6 +7,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_app_passenger/core/error/failures.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/passenger.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/seat.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/seat_hold_bloc.dart';
@@ -137,5 +138,95 @@ void main() {
 
     expect(state.formatted, '00:00');
     expect(past.isBefore(DateTime.now().toUtc()), isTrue);
+  });
+
+  group('identités des voyageurs', () {
+    final travellers = [
+      Passenger(
+        firstName: 'Aïcha',
+        lastName: 'HOUNKPÈ',
+        phone: '+22901974218',
+        seat: seats.first,
+      ),
+      Passenger(
+        firstName: 'Kofi',
+        lastName: 'MENSAH',
+        phone: '+22890000000',
+        seat: seats.last,
+        documentType: TravelDocumentType.consularCard,
+        documentNumber: 'BJ0427851',
+        nationality: 'TG',
+        birthDate: DateTime(1994, 4, 18),
+      ),
+    ];
+
+    Future<SeatHoldBloc> heldBloc(StubReservationRepository repository) async {
+      final bloc = SeatHoldBloc(repository);
+      addTearDown(bloc.close);
+
+      bloc.add(SeatHoldRequested(departure: departure, seats: seats));
+      await bloc.stream.firstWhere(
+        (state) => state.status == SeatHoldStatus.held,
+      );
+      return bloc;
+    }
+
+    test('partent sur la réservation retenue', () async {
+      final repository = StubReservationRepository();
+      final bloc = await heldBloc(repository);
+
+      bloc.add(SeatHoldPassengersSubmitted(travellers));
+      await bloc.stream.firstWhere(
+        (state) => state.passengersStatus == PassengersStatus.saved,
+      );
+
+      expect(repository.calls, ['quote', 'hold', 'passengers:2']);
+    });
+
+    test('le blocage reste actif pendant l’envoi', () async {
+      // Le décompte doit continuer de courir : sans quoi la carte
+      // disparaîtrait le temps de l'appel.
+      final repository = StubReservationRepository();
+      final bloc = await heldBloc(repository);
+
+      bloc.add(SeatHoldPassengersSubmitted(travellers));
+      await bloc.stream.firstWhere(
+        (state) => state.passengersStatus == PassengersStatus.saving,
+      );
+
+      expect(bloc.state.isHeld, isTrue);
+      expect(bloc.state.status, SeatHoldStatus.held);
+    });
+
+    test('un refus du serveur est rapporté sans perdre le blocage', () async {
+      // Le blocage réussit, seul l'envoi échoue : c'est le cas d'une
+      // nationalité ou d'une pièce que le serveur refuse.
+      final repository = StubReservationRepository(
+        passengersFailure: const ValidationFailure('Nationalité invalide'),
+      );
+      final bloc = await heldBloc(repository);
+
+      bloc.add(SeatHoldPassengersSubmitted(travellers));
+      await bloc.stream.firstWhere(
+        (state) => state.passengersStatus == PassengersStatus.failure,
+      );
+
+      // Les sièges restent retenus : le voyageur corrige et retente, il
+      // n'a pas à tout reprendre au plan.
+      expect(bloc.state.failure, isA<ValidationFailure>());
+      expect(bloc.state.isHeld, isTrue);
+    });
+
+    test('sans blocage, rien n’est envoyé', () async {
+      final repository = StubReservationRepository();
+      final bloc = SeatHoldBloc(repository);
+      addTearDown(bloc.close);
+
+      bloc.add(SeatHoldPassengersSubmitted(travellers));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(repository.calls, isEmpty);
+      expect(bloc.state.passengersStatus, PassengersStatus.untouched);
+    });
   });
 }

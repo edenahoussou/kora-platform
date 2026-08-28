@@ -6,7 +6,7 @@
 // vérifierait seulement que le code fait ce que le code fait.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kora_app_passenger/features/booking/data/models/bus_json.dart';
+import 'package:kora_app_passenger/core/network/api_json.dart';
 import 'package:kora_app_passenger/features/booking/data/models/city_model.dart';
 import 'package:kora_app_passenger/features/booking/data/models/departure_model.dart';
 import 'package:kora_app_passenger/features/booking/data/models/line_model.dart';
@@ -18,7 +18,7 @@ import '../../../../support/bus_api_fixtures.dart';
 void main() {
   group('CityModel', () {
     test('lit une ville et en fait une City du domaine', () {
-      final model = CityModel.fromJson(BusJson.list(kCitiesResponse).first);
+      final model = CityModel.fromJson(ApiJson.list(kCitiesResponse).first);
 
       expect(model.city, 'Cotonou');
       expect(model.country, 'BJ');
@@ -207,16 +207,16 @@ void main() {
     });
   });
 
-  group('BusJson', () {
+  group('ApiJson', () {
     test('ouvre l’enveloppe data et ignore ce qui n’est pas un objet', () {
-      expect(BusJson.list(kCitiesResponse), hasLength(3));
-      expect(BusJson.list(const {'data': 'oups'}), isEmpty);
-      expect(BusJson.list(null), isEmpty);
+      expect(ApiJson.list(kCitiesResponse), hasLength(3));
+      expect(ApiJson.list(const {'data': 'oups'}), isEmpty);
+      expect(ApiJson.list(null), isEmpty);
     });
 
     test('accepte une réponse déjà à plat', () {
       expect(
-        BusJson.list(const [
+        ApiJson.list(const [
           {'city': 'Cotonou'},
         ]),
         hasLength(1),
@@ -224,12 +224,12 @@ void main() {
     });
 
     test('lit un nombre quel que soit le type reçu', () {
-      expect(BusJson.intOrNull(49), 49);
-      expect(BusJson.intOrNull('49'), 49);
-      expect(BusJson.intOrNull(49.0), 49);
-      expect(BusJson.intOrNull('nope'), isNull);
-      expect(BusJson.doubleOrNull(1050), 1050.0);
-      expect(BusJson.doubleOrNull('1050.5'), 1050.5);
+      expect(ApiJson.intOrNull(49), 49);
+      expect(ApiJson.intOrNull('49'), 49);
+      expect(ApiJson.intOrNull(49.0), 49);
+      expect(ApiJson.intOrNull('nope'), isNull);
+      expect(ApiJson.doubleOrNull(1050), 1050.0);
+      expect(ApiJson.doubleOrNull('1050.5'), 1050.5);
     });
   });
 

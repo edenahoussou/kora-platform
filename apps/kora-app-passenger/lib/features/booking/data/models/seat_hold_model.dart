@@ -1,6 +1,6 @@
+import '../../../../core/network/api_json.dart';
 import '../../domain/entities/price.dart';
 import '../../domain/entities/seat_hold.dart';
-import 'bus_json.dart';
 import 'quote_model.dart';
 
 /// Couche DATA : la réservation `held` renvoyée par `POST bus/holds`.
@@ -32,18 +32,24 @@ class SeatHoldModel {
   });
 
   factory SeatHoldModel.fromJson(Map<String, dynamic> json) {
+    // Deux endpoints rendent cette même réservation, et ne nomment pas les
+    // sièges au même endroit : `segments` pour le blocage, `passengers`
+    // une fois les identités enregistrées. On lit les deux plutôt que
+    // d'écrire un second modèle pour une différence de clé.
     final seen = <String>{};
     final codes = <String>[];
-    for (final segment in BusJson.list(json['segments'])) {
-      final code = BusJson.string(segment['seat_code']);
-      if (code.isNotEmpty && seen.add(code)) codes.add(code);
+    for (final source in [json['segments'], json['passengers']]) {
+      for (final entry in ApiJson.list(source)) {
+        final code = ApiJson.string(entry['seat_code']);
+        if (code.isNotEmpty && seen.add(code)) codes.add(code);
+      }
     }
 
     return SeatHoldModel(
-      uuid: BusJson.string(json['uuid']),
-      expiresAt: BusJson.stringOrNull(json['expires_at']),
-      totalAmount: BusJson.intOrNull(json['total_amount']) ?? 0,
-      currency: BusJson.string(json['currency'], 'XOF'),
+      uuid: ApiJson.string(json['uuid']),
+      expiresAt: ApiJson.stringOrNull(json['expires_at']),
+      totalAmount: ApiJson.intOrNull(json['total_amount']) ?? 0,
+      currency: ApiJson.string(json['currency'], 'XOF'),
       seatCodes: codes,
     );
   }

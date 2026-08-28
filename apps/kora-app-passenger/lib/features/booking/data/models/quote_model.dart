@@ -1,6 +1,6 @@
+import '../../../../core/network/api_json.dart';
 import '../../domain/entities/price.dart';
 import '../../domain/entities/quote.dart';
-import 'bus_json.dart';
 
 /// Couche DATA : le devis renvoyé par `POST bus/quotes`.
 ///
@@ -29,14 +29,14 @@ class QuoteModel {
 
   factory QuoteModel.fromJson(Map<String, dynamic> json) {
     return QuoteModel(
-      uuid: BusJson.string(json['uuid']),
+      uuid: ApiJson.string(json['uuid']),
       totalAmount:
-          BusJson.intOrNull(json['total_amount']) ??
-          BusJson.intOrNull(json['final_amount']) ??
+          ApiJson.intOrNull(json['total_amount']) ??
+          ApiJson.intOrNull(json['final_amount']) ??
           0,
-      currency: BusJson.string(json['currency'], 'XOF'),
-      passengerCount: BusJson.intOrNull(json['passenger_count']) ?? 1,
-      expiresAt: BusJson.stringOrNull(json['expires_at']),
+      currency: ApiJson.string(json['currency'], 'XOF'),
+      passengerCount: ApiJson.intOrNull(json['passenger_count']) ?? 1,
+      expiresAt: ApiJson.stringOrNull(json['expires_at']),
     );
   }
 

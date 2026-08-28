@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/error/failures.dart';
 
 import '../../domain/entities/departure.dart';
+import '../../domain/entities/passenger.dart';
 import '../../domain/entities/seat.dart';
 import '../../domain/entities/seat_hold.dart';
 import '../../domain/repositories/reservation_repository.dart';
@@ -28,6 +29,7 @@ class SeatHoldBloc extends Bloc<SeatHoldEvent, SeatHoldState> {
     on<SeatHoldRequested>(_onRequested);
     on<SeatHoldReleased>(_onReleased);
     on<SeatHoldSettled>(_onSettled);
+    on<SeatHoldPassengersSubmitted>(_onPassengersSubmitted);
     on<SeatHoldTicked>(_onTicked);
   }
 
@@ -110,6 +112,47 @@ class SeatHoldBloc extends Bloc<SeatHoldEvent, SeatHoldState> {
     // l'échéance. Faire patienter le voyageur devant un appel qui ne peut
     // que réussir plus tard serait gratuit.
     if (hold != null) await _repository.release(hold.id);
+  }
+
+  /// Envoie les identités, puis se recale sur ce que rend le serveur.
+  ///
+  /// `status` et `expires_at` reviennent avec la réponse : c'est le
+  /// serveur qui fait autorité sur le temps restant, et cet appel est
+  /// l'occasion de rattraper une horloge qui aurait dérivé.
+  Future<void> _onPassengersSubmitted(
+    SeatHoldPassengersSubmitted event,
+    Emitter<SeatHoldState> emit,
+  ) async {
+    final hold = state.hold;
+    if (hold == null) return;
+
+    emit(
+      state.copyWith(
+        passengersStatus: PassengersStatus.saving,
+        clearError: true,
+      ),
+    );
+
+    final result = await _repository.savePassengers(
+      reservationId: hold.id,
+      passengers: event.passengers,
+    );
+
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          passengersStatus: PassengersStatus.failure,
+          errorMessage: failure,
+        ),
+      ),
+      (refreshed) => emit(
+        state.copyWith(
+          hold: refreshed,
+          remaining: refreshed.remaining(_clock()),
+          passengersStatus: PassengersStatus.saved,
+        ),
+      ),
+    );
   }
 
   /// Coupe le décompte sans rien rendre : la réservation est payée.

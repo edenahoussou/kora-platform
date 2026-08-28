@@ -1,7 +1,7 @@
+import '../../../../core/network/api_json.dart';
 import '../../domain/entities/line.dart';
 import '../../domain/entities/price.dart';
 import '../../domain/entities/trip_segment.dart';
-import 'bus_json.dart';
 import 'stop_model.dart';
 
 /// Couche DATA : une ligne du réseau, telle que la renvoie l'API dans
@@ -37,16 +37,16 @@ class LineModel {
 
   factory LineModel.fromJson(Map<String, dynamic> json) {
     return LineModel(
-      uuid: BusJson.string(json['uuid']),
-      code: BusJson.string(json['code']),
-      name: BusJson.string(json['name']),
-      countriesCrossed: BusJson.strings(json['countries_crossed']),
-      distanceKm: BusJson.doubleOrNull(json['distance_km']) ?? 0,
+      uuid: ApiJson.string(json['uuid']),
+      code: ApiJson.string(json['code']),
+      name: ApiJson.string(json['name']),
+      countriesCrossed: ApiJson.strings(json['countries_crossed']),
+      distanceKm: ApiJson.doubleOrNull(json['distance_km']) ?? 0,
       estimatedDurationMinutes:
-          BusJson.intOrNull(json['estimated_duration_minutes']) ?? 0,
-      status: BusJson.string(json['status']),
+          ApiJson.intOrNull(json['estimated_duration_minutes']) ?? 0,
+      status: ApiJson.string(json['status']),
       stops: [
-        for (final stop in BusJson.list(json['stops']))
+        for (final stop in ApiJson.list(json['stops']))
           StopModel.fromJson(stop),
       ],
     );

@@ -1,5 +1,5 @@
+import '../../../../core/network/api_json.dart';
 import '../../domain/entities/seat.dart';
-import 'bus_json.dart';
 
 /// Couche DATA : un siège tel que le renvoie
 /// `GET bus/departures/{uuid}/seats`.
@@ -28,11 +28,11 @@ class SeatModel {
 
   factory SeatModel.fromJson(Map<String, dynamic> json) {
     return SeatModel(
-      uuid: BusJson.string(json['uuid']),
-      code: BusJson.string(json['code']),
-      type: BusJson.string(json['type']),
+      uuid: ApiJson.string(json['uuid']),
+      code: ApiJson.string(json['code']),
+      type: ApiJson.string(json['type']),
       sellable: json['sellable'] == true,
-      availabilityStatus: BusJson.string(json['availability_status']),
+      availabilityStatus: ApiJson.string(json['availability_status']),
     );
   }
 

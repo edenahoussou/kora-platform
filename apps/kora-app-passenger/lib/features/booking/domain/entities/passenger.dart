@@ -72,6 +72,23 @@ class Passenger extends Equatable {
   ];
 }
 
-/// Les pièces acceptées au passage d'une frontière, telles que les
-/// propose la maquette.
-enum TravelDocumentType { passport, idCard }
+/// Les pièces acceptées au passage d'une frontière.
+///
+/// Les cinq valeurs du serveur, pas les deux de la maquette : c'est lui
+/// qui refuse (422) une pièce qu'il ne connaît pas, et un voyageur muni
+/// d'une carte consulaire n'a pas à choisir « passeport » par défaut de
+/// mieux.
+///
+/// [wire] est ce que transporte `POST bookings/{uuid}/passengers` ; il ne
+/// se déduit pas du nom Dart, qui suit la casse du langage.
+enum TravelDocumentType {
+  nationalId('national_id'),
+  biometricCard('biometric_card'),
+  passport('passport'),
+  consularCard('consular_card'),
+  cip('cip');
+
+  const TravelDocumentType(this.wire);
+
+  final String wire;
+}

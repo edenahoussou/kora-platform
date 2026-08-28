@@ -1,6 +1,6 @@
-/// Couche DATA : lecture défensive du JSON de l'API Bus.
+/// Couche DATA : lecture défensive du JSON de l'API KORA.
 ///
-/// Les modèles de ce dossier ne font jamais de `as int` ou de `as String`
+/// Les modèles des features ne font jamais de `as int` ou de `as String`
 /// direct sur une réponse réseau : un champ absent, `null` ou renvoyé dans
 /// un autre type (`"49"` au lieu de `49`) ferait tomber tout l'écran alors
 /// qu'il ne manque qu'une information secondaire. Ces lecteurs retombent
@@ -10,7 +10,7 @@
 /// Même principe que `AuthDtos` côté authentification — le domaine ne doit
 /// jamais connaître les noms de champs de l'API (`km_from_origin`,
 /// `available_seats_count`...), ils s'arrêtent ici.
-abstract final class BusJson {
+abstract final class ApiJson {
   /// Ouvre l'enveloppe `{ "data": [ … ] }` des réponses de liste.
   ///
   /// Tolère une réponse déjà « à plat » (un tableau nu) : une API qui

@@ -6,6 +6,7 @@ import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_app_passenger/core/l10n/app_localization.dart';
+import 'package:kora_app_passenger/features/auth/domain/entities/phone_country.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/price.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/seat_hold_bloc.dart';
 import 'package:kora_app_passenger/features/payment/presentation/pages/card_payment_page.dart';
@@ -111,6 +112,61 @@ void main() {
 
       expect(find.textContaining('code secret Mobile Money'), findsOneWidget);
       expect(find.textContaining('Saisir votre code'), findsNothing);
+    });
+
+    testWidgets('propose FedaPay et MTN MoMo, et rien d’autre', (tester) async {
+      await pump(tester, const MobileMoneyPage(args: args));
+
+      await tester.tap(find.text('Sélectionner un opérateur'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('FedaPay'), findsWidgets);
+      expect(find.text('MTN MoMo'), findsWidgets);
+      // Wave figurait dans la maquette ; le serveur ne le connaît pas.
+      expect(find.text('Wave'), findsNothing);
+    });
+  });
+
+  group('indicatif et numéro', () {
+    testWidgets('le 01 béninois disparaît quand on passe au Togo', (
+      tester,
+    ) async {
+      await pump(tester, const MobileMoneyPage(args: args));
+
+      // Le compte est béninois : le champ part avec son `01`.
+      expect(find.text('01 97 42 18 60'), findsOneWidget);
+
+      await tester.tap(find.byType(DropdownButtonFormField<PhoneCountry>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('+228').last);
+      await tester.pumpAndSettle();
+
+      // Un numéro togolais ne commence pas par 01 : le garder afficherait
+      // un numéro qui n'existe dans aucun des deux pays.
+      expect(find.text('01 97 42 18 60'), findsNothing);
+      expect(find.text('97 42 18 60'), findsOneWidget);
+    });
+
+    testWidgets('un numéro béninois sans 01 est refusé, un togolais non', (
+      tester,
+    ) async {
+      await pump(tester, const MobileMoneyPage(args: args));
+
+      await tester.enterText(find.byType(KoraInput), '97 42 18 60');
+      await tester.tap(find.text('Payer ${money(12500)}'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Un numéro Bénin commence par 01.'), findsOneWidget);
+
+      // Le même numéro, sous indicatif togolais, ne doit plus rien
+      // déclencher : le préfixe est une règle béninoise, pas une règle de
+      // l'écran.
+      await tester.tap(find.byType(DropdownButtonFormField<PhoneCountry>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('+228').last);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Un numéro Bénin commence par 01.'), findsNothing);
     });
   });
 

@@ -10,6 +10,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/core/router/app_router.dart';
 import 'package:kora_app_passenger/core/utils/date_formats.dart';
+import 'package:kora_app_passenger/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
@@ -22,6 +23,7 @@ import '../../../../support/seat_hold_harness.dart';
 
 void main() {
   late SeatHoldBloc holdBloc;
+  late AuthBloc authBloc;
 
   final cotonou = kMockCities.firstWhere((city) => city.id == 'ctn');
   final malanville = kMockCities.firstWhere((city) => city.id == 'mlv');
@@ -80,6 +82,9 @@ void main() {
 
     // Un routeur minimal : le formulaire valide empile le récapitulatif
     // avec `context.push`, qui exige un `GoRouter` dans l'arbre.
+    authBloc = await openedSession();
+    addTearDown(authBloc.close);
+
     final router = GoRouter(
       routes: [
         GoRoute(
@@ -90,6 +95,7 @@ void main() {
               seats: freeSeats.take(passengers).toList(),
             ),
             bloc: holdBloc,
+            auth: authBloc,
           ),
         ),
         GoRoute(
@@ -102,6 +108,7 @@ void main() {
                 passengers: args.passengers,
               ),
               bloc: holdBloc,
+              auth: authBloc,
             );
           },
         ),
@@ -137,17 +144,20 @@ void main() {
     expect(find.text('Siège ${freeSeats[1].label}'), findsOneWidget);
   });
 
-  testWidgets('pré-remplit le premier passager seulement', (tester) async {
+  testWidgets('pré-remplit le premier passager avec le titulaire', (
+    tester,
+  ) async {
     await pumpForm(tester, passengers: 2);
 
-    // Le premier voyageur est le titulaire du compte, les suivants sont à
-    // saisir.
+    // Le compte ne garde qu'un nom entier : il est coupé au premier
+    // espace, comme sur « Mes informations ».
     expect(find.text('Aïcha'), findsOneWidget);
     expect(find.text('HOUNKPÈ'), findsOneWidget);
+    expect(find.text('aicha@example.com'), findsOneWidget);
 
-    final champs = tester.widgetList<TextField>(find.byType(TextField));
-    final vides = champs.where((champ) => champ.controller!.text.isEmpty);
-    expect(vides, hasLength(4), reason: 'les 4 champs du 2e passager');
+    // Une seule occurrence de chaque : le second bloc reste vierge, c'est
+    // une autre personne que le titulaire renseigne lui-même.
+    expect(find.text('Passager 2'), findsOneWidget);
   });
 
   testWidgets('refuse de continuer tant qu’un champ requis est vide', (
@@ -260,6 +270,7 @@ void main() {
         home: withSeatHold(
           PassengerFormPage(departure: departure),
           bloc: holdBloc,
+          auth: authBloc,
         ),
       ),
     );
