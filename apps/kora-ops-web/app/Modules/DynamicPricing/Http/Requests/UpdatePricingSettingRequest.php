@@ -16,8 +16,8 @@ class UpdatePricingSettingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'floor_coefficient' => ['nullable', 'numeric', 'min:0', 'max:1'],
-            'ceiling_coefficient' => ['nullable', 'numeric', 'min:1', 'max:10'],
+            'floor_coefficient' => ['nullable', 'numeric', 'min:0', 'max:10'],
+            'ceiling_coefficient' => ['nullable', 'numeric', 'min:0', 'max:10'],
         ];
     }
 

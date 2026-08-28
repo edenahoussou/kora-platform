@@ -12,8 +12,8 @@ enum TaxServiceType: string
 {
     use HasEnumUtilities;
 
-    case Transport = "transport";
-    case Parcel = "parcel";
-    case Fee = "fee";
-    case Other = "other";
+    case Transport = 'transport';
+    case Parcel = 'parcel';
+    case Fee = 'fee';
+    case Other = 'other';
 }

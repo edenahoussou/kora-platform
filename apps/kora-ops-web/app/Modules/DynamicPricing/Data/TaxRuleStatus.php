@@ -8,7 +8,7 @@ enum TaxRuleStatus: string
 {
     use HasEnumUtilities;
 
-    case Draft = "draft";
-    case Active = "active";
-    case Archived = "archived";
+    case Draft = 'draft';
+    case Active = 'active';
+    case Archived = 'archived';
 }

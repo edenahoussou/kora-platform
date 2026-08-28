@@ -12,6 +12,7 @@ use App\Modules\DynamicPricing\Http\Requests\ChangeTaxRuleStatusRequest;
 use App\Modules\DynamicPricing\Http\Requests\StoreTaxRuleRequest;
 use App\Modules\DynamicPricing\Http\Requests\UpdateTaxRuleRequest;
 use App\Modules\DynamicPricing\Models\TaxRule;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -102,8 +103,10 @@ class TaxRuleController extends Controller
             'scope' => $rule->scope,
             'taxCode' => $rule->tax_code,
             'taxRate' => (float) $rule->tax_rate,
-            'startsOn' => $rule->starts_on?->toDateString(),
-            'endsOn' => $rule->ends_on?->toDateString(),
+
+            'startsOn' => $rule->starts_on ? Carbon::parse($rule->starts_on)->toDateString() : null,
+            'endsOn' => $rule->ends_on ? Carbon::parse($rule->ends_on)->toDateString() : null,
+
             'status' => TaxRuleStatus::from((string) $rule->getRawOriginal('status'))->value,
             'validatedByName' => $rule->validator?->name,
             'createdAt' => $rule->created_at?->toIso8601String(),

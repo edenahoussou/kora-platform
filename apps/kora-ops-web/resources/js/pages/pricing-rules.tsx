@@ -333,7 +333,7 @@ export default function PricingRulesPage({
                                         type="number"
                                         step="0.01"
                                         min={0}
-                                        max={1}
+                                        max={10}
                                         defaultValue={
                                             settings.floorCoefficient ?? ''
                                         }

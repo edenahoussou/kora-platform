@@ -30,6 +30,7 @@ it('lists pricing rules without exposing numeric ids, with settings and conditio
     $rule = createPricingRule([
         'line_id' => $line->id,
         'conditions' => ['fill_rate_min' => 80, 'hours_before_departure_max' => 24],
+        'percentage' => 15.5,
         'status' => 'active',
     ]);
     PricingSetting::query()->create(['floor_coefficient' => 0.5, 'ceiling_coefficient' => 2.0]);
@@ -37,12 +38,12 @@ it('lists pricing rules without exposing numeric ids, with settings and conditio
     $this->actingAs(commercialDirector())
         ->get(route('pricing-rules.index'))
         ->assertSuccessful()
-        ->assertInertia(fn (Assert $page) => $page
+        ->assertInertia(fn(Assert $page) => $page
             ->component('pricing-rules')
             ->where('rules.data.0.uuid', $rule->uuid)
             ->where('rules.data.0.lineCode', $line->code)
             ->where('rules.data.0.type', 'increase')
-            ->where('rules.data.0.percentage', 15.0)
+            ->where('rules.data.0.percentage', 15.5)
             ->where('rules.data.0.priority', 10)
             ->where('rules.data.0.conditions.fillRateMin', 80)
             ->where('rules.data.0.conditions.hoursBeforeDepartureMax', 24)
@@ -127,8 +128,8 @@ it('updates the global floor and ceiling settings', function (): void {
 
 it('rejects a floor greater than the ceiling', function (): void {
     $this->actingAs(commercialDirector())->patch(route('pricing-rules.settings'), [
-        'floor_coefficient' => 0.9,
-        'ceiling_coefficient' => 0.5,
+        'floor_coefficient' => 1.5,
+        'ceiling_coefficient' => 1.0,
     ])->assertSessionHasErrors('floor_coefficient');
 });
 

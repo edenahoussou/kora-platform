@@ -28,9 +28,30 @@ class StorePricingRuleRequest extends FormRequest
             // Conditions structurées (CDC §3.1.3.4) : toutes optionnelles — une condition
             // non renseignée n'est pas évaluée. fill_rate en pourcentage (0-100), délai en heures.
             'conditions.fill_rate_min' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'conditions.fill_rate_max' => ['nullable', 'numeric', 'min:0', 'max:100', 'gte:conditions.fill_rate_min'],
+            'conditions.fill_rate_max' => [
+                'nullable',
+                'numeric',
+                'min:0',
+                'max:100',
+                function ($attribute, $value, $fail): void {
+                    $min = $this->input('conditions.fill_rate_min');
+                    if ($min !== null && $min !== '' && (float) $value < (float) $min) {
+                        $fail('Le remplissage max doit être supérieur ou égal au remplissage min.');
+                    }
+                },
+            ],
             'conditions.hours_before_departure_min' => ['nullable', 'integer', 'min:0'],
-            'conditions.hours_before_departure_max' => ['nullable', 'integer', 'min:0', 'gte:conditions.hours_before_departure_min'],
+            'conditions.hours_before_departure_max' => [
+                'nullable',
+                'integer',
+                'min:0',
+                function ($attribute, $value, $fail): void {
+                    $min = $this->input('conditions.hours_before_departure_min');
+                    if ($min !== null && $min !== '' && (int) $value < (int) $min) {
+                        $fail('Le délai max doit être supérieur ou égal au délai min.');
+                    }
+                },
+            ],
         ];
     }
 
@@ -52,7 +73,7 @@ class StorePricingRuleRequest extends FormRequest
                 'fill_rate_max' => $this->input('conditions.fill_rate_max'),
                 'hours_before_departure_min' => $this->input('conditions.hours_before_departure_min'),
                 'hours_before_departure_max' => $this->input('conditions.hours_before_departure_max'),
-            ], fn ($value) => $value !== null && $value !== ''),
+            ], fn($value) => $value !== null && $value !== ''),
             'percentage' => (float) $this->input('percentage'),
             'priority' => (int) $this->input('priority'),
             'starts_at' => $this->filled('starts_at') ? $this->string('starts_at')->value() : null,
