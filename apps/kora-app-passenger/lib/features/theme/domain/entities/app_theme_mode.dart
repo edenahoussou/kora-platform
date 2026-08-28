@@ -7,20 +7,25 @@ enum AppThemeMode {
   light,
   dark,
 
-  /// Suit automatiquement le réglage du téléphone (le plus courant par
-  /// défaut sur une app professionnelle).
+  /// Suit automatiquement le réglage du téléphone.
   system;
 
   /// Convertit une chaîne de caractères stockée (ex: venant de
   /// SharedPreferences) vers une valeur [AppThemeMode].
+  ///
+  /// **Le clair est le défaut**, pas le réglage du téléphone. KORA est
+  /// une app qu'on ouvre en gare, souvent en plein jour : suivre un
+  /// téléphone réglé en sombre donnait un premier écran que le soleil
+  /// rend illisible. Celui qui préfère le sombre le choisit une fois, et
+  /// son choix est relu ici.
   static AppThemeMode fromStorageValue(String? value) {
     switch (value) {
-      case 'light':
-        return AppThemeMode.light;
       case 'dark':
         return AppThemeMode.dark;
-      default:
+      case 'system':
         return AppThemeMode.system;
+      default:
+        return AppThemeMode.light;
     }
   }
 

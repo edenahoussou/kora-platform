@@ -38,8 +38,37 @@ void main() {
     await AppLocalization.preloadAll();
   });
 
+  /// Reconstruit l'injecteur sur un stockage local donné.
+  ///
+  /// Les préférences doivent être posées **avant** : `setupInjector` retient
+  /// l'instance de `SharedPreferences`, et la changer ensuite n'aurait plus
+  /// d'effet. C'est ce qui distingue une première ouverture d'une suivante.
+  Future<void> boot({bool onboardingSeen = true}) async {
+    await getIt.reset();
+    SharedPreferences.setMockInitialValues(
+      onboardingSeen ? {StorageKeys.onboardingSeen: true} : {},
+    );
+
+    // Normalement fait par bootstrap() (voir lib/bootstrap.dart), qu'on ne
+    // passe pas ici puisqu'on veut tester KoraApp isolément.
+    await setupInjector();
+
+    // La recherche Bus tape sur l'API depuis le branchement du Sprint 2 ;
+    // dans un test, aucune requête HTTP n'aboutit et l'accueil resterait
+    // bloqué sur son écran d'erreur. On rebranche le jeu de
+    // démonstration : ce test-ci vérifie la navigation, pas le réseau —
+    // c'est `booking_remote_data_source_test.dart` qui couvre les appels.
+    await getIt.unregister<BookingDataSource>();
+    getIt.registerLazySingleton<BookingDataSource>(
+      () => BookingMockDataSource(),
+    );
+  }
+
   setUp(() async {
-    SharedPreferences.setMockInitialValues({});
+    // Onboarding déjà vu : ces tests portent sur le garde de session, et
+    // sans ce drapeau la première ouverture s'arrêterait sur les trois
+    // temps de présentation. Un test dédié couvre ce cas plus bas.
+    SharedPreferences.setMockInitialValues({StorageKeys.onboardingSeen: true});
     secureStorage = {};
 
     // `flutter_secure_storage` n'a pas de plugin natif en test : on
@@ -64,19 +93,7 @@ void main() {
           },
         );
 
-    // Normalement fait par bootstrap() (voir lib/bootstrap.dart), qu'on ne
-    // passe pas ici puisqu'on veut tester KoraApp isolément.
-    await setupInjector();
-
-    // La recherche Bus tape sur l'API depuis le branchement du Sprint 2 ;
-    // dans un test, aucune requête HTTP n'aboutit et l'accueil resterait
-    // bloqué sur son écran d'erreur. On rebranche le jeu de
-    // démonstration : ce test-ci vérifie la navigation, pas le réseau —
-    // c'est `booking_remote_data_source_test.dart` qui couvre les appels.
-    await getIt.unregister<BookingDataSource>();
-    getIt.registerLazySingleton<BookingDataSource>(
-      () => BookingMockDataSource(),
-    );
+    await boot();
   });
 
   tearDown(() {
@@ -107,9 +124,14 @@ void main() {
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(const KoraApp());
+
     // Pas de `pumpAndSettle` : le bus de l'écran de bienvenue traverse la
-    // route en boucle, l'arbre ne se stabilise jamais.
-    await tester.pump(const Duration(milliseconds: 300));
+    // route en boucle, et l'orbite du lancement tourne sans fin — l'arbre
+    // ne se stabilise jamais. On pompe donc plusieurs fois, le temps que
+    // le stockage sécurisé réponde et que le garde quitte le lancement.
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
   }
 
   testWidgets('sans session, KoraApp s’arrête sur la bienvenue', (
@@ -117,6 +139,11 @@ void main() {
   ) async {
     await pumpApp(tester);
 
+    expect(
+      find.text('Le réseau se connecte…'),
+      findsNothing,
+      reason: 'le lancement doit avoir rendu la main',
+    );
     expect(find.text('Créer mon compte'), findsOneWidget);
     expect(find.text('J’ai déjà un compte'), findsOneWidget);
 
@@ -164,5 +191,38 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
 
     expect(find.text('Votre PIN KORA'), findsOneWidget);
+  });
+
+  testWidgets('à la toute première ouverture, l’onboarding passe avant', (
+    tester,
+  ) async {
+    await boot(onboardingSeen: false);
+    await pumpApp(tester);
+
+    // Trois temps avant de demander un compte : on explique d'abord ce que
+    // l'app fait. Le titre est un `Text.rich` — invisible à `find.text` —
+    // donc on vise le corps du slide et sa navigation.
+    expect(find.textContaining('Villes, date, voyageurs'), findsOneWidget);
+    expect(find.text('Suivant'), findsOneWidget);
+    expect(find.text('Créer mon compte'), findsNothing);
+  });
+
+  testWidgets('l’onboarding vu, il ne revient plus', (tester) async {
+    await boot(onboardingSeen: false);
+    await pumpApp(tester);
+
+    await tester.tap(find.text('Passer'));
+    // Pas de `pumpAndSettle` : l'écran de bienvenue qui suit anime son bus
+    // en boucle, l'arbre ne se stabilise jamais.
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    expect(find.text('Créer mon compte'), findsOneWidget);
+
+    // Le drapeau est écrit : une seconde ouverture va droit à la
+    // bienvenue.
+    await pumpApp(tester);
+    expect(find.textContaining('Villes, date, voyageurs'), findsNothing);
   });
 }

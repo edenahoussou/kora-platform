@@ -526,6 +526,30 @@ class AppLocalization {
   String get ticketMissingText => translate('ticket_missing_text');
   String get ticketMissingPrimary => translate('ticket_missing_primary');
   String get departureDetailStale => translate('departure_detail_stale');
+  String get splashLead => translate('splash_lead');
+  String get onboardingSkip => translate('onboarding_skip');
+  String get onboardingNext => translate('onboarding_next');
+  String get onboardingStart => translate('onboarding_start');
+  String get onboardingSearchTitle => translate('onboarding_search_title');
+  String get onboardingSearchHighlight =>
+      translate('onboarding_search_highlight');
+  String get onboardingSearchText => translate('onboarding_search_text');
+  String get onboardingSearchPill => translate('onboarding_search_pill');
+  String get onboardingSearchPillLead =>
+      translate('onboarding_search_pill_lead');
+  String get onboardingSeatsTitle => translate('onboarding_seats_title');
+  String get onboardingSeatsHighlight =>
+      translate('onboarding_seats_highlight');
+  String get onboardingSeatsText => translate('onboarding_seats_text');
+  String get onboardingSeatsPill => translate('onboarding_seats_pill');
+  String get onboardingSeatsPillLead => translate('onboarding_seats_pill_lead');
+  String get onboardingTicketTitle => translate('onboarding_ticket_title');
+  String get onboardingTicketHighlight =>
+      translate('onboarding_ticket_highlight');
+  String get onboardingTicketText => translate('onboarding_ticket_text');
+  String get onboardingTicketPill => translate('onboarding_ticket_pill');
+  String get onboardingTicketPillLead =>
+      translate('onboarding_ticket_pill_lead');
   String get seatsHoldEyebrow => translate('seats_hold_eyebrow');
   String seatsHoldCountdown(String time) =>
       _withArgs('seats_hold_countdown', {'time': time});

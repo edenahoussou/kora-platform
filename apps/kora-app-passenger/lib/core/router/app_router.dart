@@ -50,6 +50,9 @@ import '../../features/profil/presentation/pages/security_page.dart';
 import '../../features/support/presentation/pages/contact_page.dart';
 import '../../features/support/presentation/pages/help_page.dart';
 import '../../features/wallet/presentation/pages/wallet_page.dart';
+import '../../features/welcome/data/onboarding_store.dart';
+import '../../features/welcome/presentation/pages/onboarding_page.dart';
+import '../../features/welcome/presentation/pages/splash_page.dart';
 import '../../features/welcome/presentation/pages/welcome_page.dart';
 import '../di/injector.dart';
 import '../l10n/app_localization.dart';
@@ -88,6 +91,11 @@ class AppRouter {
   /// Il se montre à **chaque** démarrage : mémoriser qu'il a déjà été vu
   /// demande de stocker un indicateur (`SharedPreferences`), ce que fera la
   /// feature `auth` en même temps qu'elle saura si quelqu'un est connecté.
+  static const String splashPath = '/splash';
+
+  /// Les trois temps montrés à la première ouverture seulement.
+  static const String onboardingPath = '/onboarding';
+
   static const String welcomePath = '/welcome';
 
   /// Première étape de la création de compte : la saisie de l'adresse
@@ -221,9 +229,16 @@ class AppRouter {
   ///   ferait clignoter l'app à chaque lancement.
   static String? _redirect(BuildContext context, GoRouterState state) {
     final auth = context.read<AuthBloc>().state;
-    if (auth.status == AuthStatus.unknown) return null;
-
     final location = state.matchedLocation;
+
+    // Tant que le stockage sécurisé n'a pas répondu, le lancement garde
+    // l'écran. C'est ce qui remplace le clignotement d'avant : l'app
+    // s'ouvrait sur la bienvenue, puis sautait à l'accueil dès que la
+    // session arrivait.
+    if (auth.status == AuthStatus.unknown) {
+      return location == splashPath ? null : splashPath;
+    }
+
     final onPublicScreen = _publicPaths.contains(location);
 
     // Une session ouverte n'a rien à faire sur les écrans qui servent à
@@ -234,11 +249,27 @@ class AppRouter {
       return _entryPaths.contains(location) ? '/home' : null;
     }
 
+    // Première ouverture : on explique l'app avant de demander un compte.
+    // Le drapeau est local et ne dépend pas de la session — le revoir
+    // après une déconnexion serait absurde, la marque n'a pas changé.
+    if (!getIt<OnboardingStore>().hasSeen) {
+      return location == onboardingPath ? null : onboardingPath;
+    }
+
+    // La session est connue et l'app présentée : ces deux écrans n'ont
+    // plus rien à montrer. Sans cette règle le lancement gardait la main,
+    // puisqu'il figure parmi les écrans publics.
+    if (location == splashPath || location == onboardingPath) {
+      return welcomePath;
+    }
+
     return onPublicScreen ? null : welcomePath;
   }
 
   /// Écrans atteignables sans session.
   static const Set<String> _publicPaths = {
+    splashPath,
+    onboardingPath,
     welcomePath,
     loginPath,
     signupPath,
@@ -250,6 +281,8 @@ class AppRouter {
   /// Le sous-ensemble qui n'a de sens que déconnecté : y arriver avec une
   /// session ouverte renvoie à l'accueil.
   static const Set<String> _entryPaths = {
+    splashPath,
+    onboardingPath,
     welcomePath,
     loginPath,
     signupPath,
@@ -276,7 +309,7 @@ class AppRouter {
 
   static GoRouter _create() {
     return GoRouter(
-      initialLocation: welcomePath,
+      initialLocation: splashPath,
       redirect: _redirect,
       // Réévalue `redirect` dès que la session s'ouvre ou se ferme, sans
       // attendre une navigation : une déconnexion doit ramener sur la
@@ -394,6 +427,19 @@ class AppRouter {
 
             return TicketDetailPage(ticket: args.ticket, today: args.today);
           },
+        ),
+        GoRoute(
+          path: splashPath,
+          builder: (context, state) => const SplashPage(),
+        ),
+        GoRoute(
+          path: onboardingPath,
+          builder: (context, state) => OnboardingPage(
+            onDone: () async {
+              await getIt<OnboardingStore>().markSeen();
+              if (context.mounted) context.go(welcomePath);
+            },
+          ),
         ),
         GoRoute(
           path: welcomePath,
