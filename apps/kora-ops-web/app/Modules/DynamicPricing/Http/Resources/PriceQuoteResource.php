@@ -32,4 +32,13 @@ class PriceQuoteResource extends JsonResource
             'snapshot' => $this->snapshot,
         ];
     }
+
+    /**
+     * Ensure float values like 1.0 are serialized as "1.0" (not "1")
+     * so that JSON consumers receive a float, not an integer.
+     */
+    public function jsonOptions(): int
+    {
+        return JSON_PRESERVE_ZERO_FRACTION;
+    }
 }

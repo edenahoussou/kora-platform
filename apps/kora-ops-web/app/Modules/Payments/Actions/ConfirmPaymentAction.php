@@ -6,6 +6,7 @@ use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
+use App\Modules\Ticketing\Jobs\IssueReservationTicketsJob;
 use Illuminate\Support\Facades\DB;
 
 class ConfirmPaymentAction
@@ -19,7 +20,9 @@ class ConfirmPaymentAction
         ?string $providerReference = null,
         array $providerPayload = [],
     ): Payment {
-        return DB::transaction(function () use ($payment, $status, $providerReference, $providerPayload): Payment {
+        $reservationId = null;
+
+        $payment = DB::transaction(function () use ($payment, $status, $providerReference, $providerPayload, &$reservationId): Payment {
             $payment->loadMissing(['reservation.segments']);
 
             $isSuccess = in_array(strtolower($status), ['success', 'confirmed'], true);
@@ -38,6 +41,7 @@ class ConfirmPaymentAction
                 if ($reservation) {
                     $reservation->update(['status' => ReservationStatus::Paid]);
                     $reservation->segments()->update(['status' => ReservationSegmentStatus::Paid]);
+                    $reservationId = $reservation->id;
                 }
             } else {
                 $payment->update([
@@ -58,5 +62,12 @@ class ConfirmPaymentAction
 
             return $payment->fresh(['reservation.departure']);
         });
+
+        // Dispatch after the transaction commits so the job sees the Paid status.
+        if ($reservationId !== null) {
+            IssueReservationTicketsJob::dispatch($reservationId);
+        }
+
+        return $payment;
     }
 }
