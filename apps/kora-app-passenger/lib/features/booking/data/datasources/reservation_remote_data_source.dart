@@ -1,11 +1,12 @@
 import 'package:dio/dio.dart';
 
 import '../../../../core/constants/api_constants.dart';
+import '../../../../core/network/api_json.dart';
 import '../../domain/entities/departure.dart';
+import '../../domain/entities/passenger.dart';
 import '../../domain/entities/quote.dart';
 import '../../domain/entities/seat.dart';
 import '../../domain/entities/seat_hold.dart';
-import '../models/bus_json.dart';
 import '../models/quote_model.dart';
 import '../models/seat_hold_model.dart';
 
@@ -34,7 +35,7 @@ class ReservationRemoteDataSource {
       },
     );
 
-    return QuoteModel.fromJson(BusJson.map(_payload(response.data))).toEntity();
+    return QuoteModel.fromJson(ApiJson.map(_payload(response.data))).toEntity();
   }
 
   Future<SeatHold> hold({
@@ -59,12 +60,66 @@ class ReservationRemoteDataSource {
     );
 
     return SeatHoldModel.fromJson(
-      BusJson.map(_payload(response.data)),
+      ApiJson.map(_payload(response.data)),
+    ).toEntity();
+  }
+
+  /// Enregistre les identités et rend la réservation rafraîchie.
+  ///
+  /// Le serveur renvoie `status` et `expires_at` à jour : c'est lui qui
+  /// fait autorité sur le temps restant, et cet appel est l'occasion de
+  /// resynchroniser le décompte.
+  Future<SeatHold> savePassengers({
+    required String reservationId,
+    required List<Passenger> passengers,
+  }) async {
+    final response = await _dio.post<dynamic>(
+      ApiConstants.bookingPassengers(reservationId),
+      data: {
+        'passengers': [
+          for (final passenger in passengers) _passengerJson(passenger),
+        ],
+      },
+    );
+
+    return SeatHoldModel.fromJson(
+      ApiJson.map(_payload(response.data)),
     ).toEntity();
   }
 
   Future<void> release(String reservationId) =>
       _dio.delete<dynamic>(ApiConstants.hold(reservationId));
+}
+
+/// Un voyageur, tel que l'attend `POST bookings/{uuid}/passengers`.
+///
+/// Les champs du manifeste ne partent que s'ils sont renseignés : sur une
+/// liaison intérieure ils n'existent pas, et envoyer `null` là où le
+/// serveur accepte l'absence ferait passer un formulaire vide pour une
+/// saisie incomplète.
+Map<String, dynamic> _passengerJson(Passenger passenger) {
+  return <String, dynamic>{
+    'first_name': passenger.firstName,
+    'last_name': passenger.lastName,
+    'seat_uuid': passenger.seat.id,
+    if (passenger.phone.isNotEmpty) 'phone': passenger.phone,
+    if (passenger.email != null) 'email': passenger.email,
+    if (passenger.documentType != null)
+      'document_type': passenger.documentType!.wire,
+    if (passenger.documentNumber != null)
+      'document_number': passenger.documentNumber,
+    if (passenger.nationality != null) 'nationality': passenger.nationality,
+    if (passenger.birthDate != null)
+      // `date_format:Y-m-d` : une date seule, sans heure ni fuseau — le
+      // serveur refuse un ISO complet.
+      'birth_date': _isoDay(passenger.birthDate!),
+  };
+}
+
+String _isoDay(DateTime date) {
+  final month = date.month.toString().padLeft(2, '0');
+  final day = date.day.toString().padLeft(2, '0');
+  return '${date.year}-$month-$day';
 }
 
 /// Déballe l'enveloppe `{ "data": … }` quand elle est là.

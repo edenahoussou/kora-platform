@@ -1,6 +1,6 @@
+import '../../../../core/network/api_json.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/price.dart';
-import 'bus_json.dart';
 import 'line_model.dart';
 import 'stop_model.dart';
 
@@ -25,22 +25,22 @@ class DepartureModel {
   });
 
   factory DepartureModel.fromJson(Map<String, dynamic> json) {
-    final fare = BusJson.map(json['fare_preview']);
-    final bus = BusJson.map(json['bus']);
+    final fare = ApiJson.map(json['fare_preview']);
+    final bus = ApiJson.map(json['bus']);
 
     return DepartureModel(
-      uuid: BusJson.string(json['uuid']),
-      departureDate: BusJson.string(json['departure_date']),
-      departureTime: BusJson.string(json['departure_time']),
-      status: BusJson.string(json['status']),
-      line: LineModel.fromJson(BusJson.map(json['line'])),
+      uuid: ApiJson.string(json['uuid']),
+      departureDate: ApiJson.string(json['departure_date']),
+      departureTime: ApiJson.string(json['departure_time']),
+      status: ApiJson.string(json['status']),
+      line: LineModel.fromJson(ApiJson.map(json['line'])),
       bus: bus.isEmpty ? null : BusModel.fromJson(bus),
-      originStop: StopModel.fromJson(BusJson.map(json['origin_stop'])),
+      originStop: StopModel.fromJson(ApiJson.map(json['origin_stop'])),
       destinationStop: StopModel.fromJson(
-        BusJson.map(json['destination_stop']),
+        ApiJson.map(json['destination_stop']),
       ),
       availableSeatsCount:
-          BusJson.intOrNull(json['available_seats_count']) ?? 0,
+          ApiJson.intOrNull(json['available_seats_count']) ?? 0,
       farePreview: fare.isEmpty ? null : FarePreviewModel.fromJson(fare),
     );
   }
@@ -147,11 +147,11 @@ class BusModel {
 
   factory BusModel.fromJson(Map<String, dynamic> json) {
     return BusModel(
-      uuid: BusJson.string(json['uuid']),
-      registrationNumber: BusJson.string(json['registration_number']),
-      brand: BusJson.string(json['brand']),
-      model: BusJson.string(json['model']),
-      seatCount: BusJson.intOrNull(json['seat_count']) ?? 0,
+      uuid: ApiJson.string(json['uuid']),
+      registrationNumber: ApiJson.string(json['registration_number']),
+      brand: ApiJson.string(json['brand']),
+      model: ApiJson.string(json['model']),
+      seatCount: ApiJson.intOrNull(json['seat_count']) ?? 0,
     );
   }
 
@@ -183,10 +183,10 @@ class FarePreviewModel {
       // règles de remplissage appliquées. C'est ce dernier qui s'affiche
       // — la carte le présente comme « prix final garanti ».
       amount:
-          BusJson.intOrNull(json['final_amount']) ??
-          BusJson.intOrNull(json['base_amount']) ??
+          ApiJson.intOrNull(json['final_amount']) ??
+          ApiJson.intOrNull(json['base_amount']) ??
           0,
-      currency: BusJson.string(json['currency']),
+      currency: ApiJson.string(json['currency']),
       isQuote: json['is_quote'] == true,
     );
   }

@@ -37,6 +37,10 @@ import '../../features/language/data/datasources/language_local_data_source.dart
 import '../../features/language/data/repositories/language_repository_impl.dart';
 import '../../features/language/domain/repositories/language_repository.dart';
 import '../../features/language/presentation/bloc/language_bloc.dart';
+import '../../features/payment/data/datasources/payment_remote_data_source.dart';
+import '../../features/payment/data/repositories/payment_repository_impl.dart';
+import '../../features/payment/domain/repositories/payment_repository.dart';
+import '../../features/payment/presentation/bloc/payment_catalog_bloc.dart';
 import '../../features/theme/data/datasources/theme_local_data_source.dart';
 import '../../features/theme/data/repositories/theme_repository_impl.dart';
 import '../../features/theme/domain/repositories/theme_repository.dart';
@@ -67,6 +71,7 @@ Future<void> setupInjector() async {
   _registerThemeFeature();
   _registerLanguageFeature();
   _registerBookingFeature();
+  _registerPaymentFeature();
   _registerAuthFeature();
 
   // Quand on ajoutera une nouvelle feature (ex: "auth"), on suit le même
@@ -211,6 +216,23 @@ void _registerBookingFeature() {
   getIt.registerFactory<SeatsBloc>(() => SeatsBloc(getIt()));
   getIt.registerFactory<SeatHoldBloc>(() => SeatHoldBloc(getIt()));
   getIt.registerFactory<TicketsBloc>(() => TicketsBloc(getIt()));
+}
+
+/// Feature `payment` : le catalogue des moyens de paiement.
+///
+/// Une seule chaine pour l'instant — data source, dépôt, Bloc — parce que
+/// seul `GET payments/methods` est branché. L'initiation et la
+/// vérification viendront s'ajouter ici, sur le même data source.
+void _registerPaymentFeature() {
+  getIt.registerLazySingleton<PaymentRemoteDataSource>(
+    () => PaymentRemoteDataSource(getIt()),
+  );
+
+  getIt.registerLazySingleton<PaymentRepository>(
+    () => PaymentRepositoryImpl(getIt()),
+  );
+
+  getIt.registerFactory<PaymentCatalogBloc>(() => PaymentCatalogBloc(getIt()));
 }
 
 /// Feature `language` : même chaîne que le thème — un data source

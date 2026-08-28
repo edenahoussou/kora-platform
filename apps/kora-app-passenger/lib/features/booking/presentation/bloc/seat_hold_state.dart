@@ -7,6 +7,13 @@ part of 'seat_hold_bloc.dart';
 /// c'est le choix des sièges qui n'a pas encore été confirmé.
 enum SeatHoldStatus { idle, holding, held, expired, failure }
 
+/// Où en est l'envoi des identités des voyageurs.
+///
+/// Séparé de [SeatHoldStatus] : pendant cet envoi le blocage reste `held`
+/// et le décompte doit continuer de courir. Les mêler aurait fait
+/// disparaître la carte de décompte le temps de l'appel.
+enum PassengersStatus { untouched, saving, saved, failure }
+
 class SeatHoldState extends Equatable {
   const SeatHoldState({
     this.status = SeatHoldStatus.idle,
@@ -15,6 +22,7 @@ class SeatHoldState extends Equatable {
     this.failure,
     this.departure,
     this.passengers = 1,
+    this.passengersStatus = PassengersStatus.untouched,
   });
 
   final SeatHoldStatus status;
@@ -26,6 +34,9 @@ class SeatHoldState extends Equatable {
   final Departure? departure;
 
   final int passengers;
+
+  /// L'envoi des identités, indépendant du blocage.
+  final PassengersStatus passengersStatus;
 
   /// Recalculé à chaque seconde depuis `hold.expiresAt`, jamais décrémenté
   /// pas à pas : un minuteur qui compte ses propres battements dérive dès
@@ -53,6 +64,7 @@ class SeatHoldState extends Equatable {
     Failure? errorMessage,
     Departure? departure,
     int? passengers,
+    PassengersStatus? passengersStatus,
     bool clearError = false,
   }) {
     return SeatHoldState(
@@ -62,6 +74,7 @@ class SeatHoldState extends Equatable {
       failure: clearError ? null : (errorMessage ?? failure),
       departure: departure ?? this.departure,
       passengers: passengers ?? this.passengers,
+      passengersStatus: passengersStatus ?? this.passengersStatus,
     );
   }
 
@@ -73,5 +86,6 @@ class SeatHoldState extends Equatable {
     failure,
     departure,
     passengers,
+    passengersStatus,
   ];
 }

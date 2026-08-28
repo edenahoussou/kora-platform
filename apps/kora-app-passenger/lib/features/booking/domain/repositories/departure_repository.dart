@@ -15,6 +15,13 @@ abstract class DepartureRepository {
   /// Villes desservies, pour l'autocomplete de l'accueil.
   Future<Either<Failure, List<City>>> getCities();
 
+  /// Un départ rechargé par son identifiant.
+  ///
+  /// Sert à rafraîchir un détail ouvert depuis la liste : places
+  /// restantes et tarif ont pu bouger depuis la recherche, et c'est juste
+  /// avant de choisir un siège qu'une donnée périmée coûte le plus cher.
+  Future<Either<Failure, Departure>> byId(String departureId);
+
   /// Départs d'une liaison à une date donnée.
   ///
   /// Une liste vide est un **succès** — la liaison n'est pas desservie ce

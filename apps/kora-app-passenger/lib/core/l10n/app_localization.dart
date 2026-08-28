@@ -430,6 +430,12 @@ class AppLocalization {
   String get paymentMomoOperatorHint => translate('payment_momo_operator_hint');
   String get paymentMomoOperatorRequired =>
       translate('payment_momo_operator_required');
+  String get paymentMomoOperatorsLoading =>
+      translate('payment_momo_operators_loading');
+  String get paymentMomoOperatorsFailed =>
+      translate('payment_momo_operators_failed');
+  String get paymentMomoOperatorsNone =>
+      translate('payment_momo_operators_none');
   String get paymentMomoPhone => translate('payment_momo_phone');
   String get paymentMomoPhoneRequired =>
       translate('payment_momo_phone_required');
@@ -519,6 +525,7 @@ class AppLocalization {
   String get ticketMissingTitle => translate('ticket_missing_title');
   String get ticketMissingText => translate('ticket_missing_text');
   String get ticketMissingPrimary => translate('ticket_missing_primary');
+  String get departureDetailStale => translate('departure_detail_stale');
   String get seatsHoldEyebrow => translate('seats_hold_eyebrow');
   String seatsHoldCountdown(String time) =>
       _withArgs('seats_hold_countdown', {'time': time});

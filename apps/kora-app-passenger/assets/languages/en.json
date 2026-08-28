@@ -392,6 +392,9 @@
   "payment_momo_operator": "Choose your operator",
   "payment_momo_operator_hint": "Select an operator",
   "payment_momo_operator_required": "Choose an operator",
+  "payment_momo_operators_loading": "Loading available operators…",
+  "payment_momo_operators_failed": "Cannot tell which operators are accepted.",
+  "payment_momo_operators_none": "No Mobile Money operator is accepted right now.",
   "payment_momo_phone": "Number to debit",
   "payment_momo_phone_required": "Number required",
   "payment_momo_phone_short": "Number too short",
@@ -464,5 +467,6 @@
   "ticket_offline_note": "Ticket saved on this device and available offline",
   "ticket_missing_title": "No ticket to show",
   "ticket_missing_text": "Open a ticket from your trips to show it at boarding.",
-  "ticket_missing_primary": "See my trips"
+  "ticket_missing_primary": "See my trips",
+  "departure_detail_stale": "Seats and fare not refreshed — they date from your search."
 }

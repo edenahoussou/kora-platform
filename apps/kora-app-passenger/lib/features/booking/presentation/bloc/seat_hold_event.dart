@@ -28,6 +28,19 @@ class SeatHoldReleased extends SeatHoldEvent {
   const SeatHoldReleased();
 }
 
+/// Les identités saisies partent au serveur.
+///
+/// Le blocage existe déjà — c'est lui qui porte le `reservation_uuid` —
+/// donc l'événement ne transporte que les voyageurs.
+class SeatHoldPassengersSubmitted extends SeatHoldEvent {
+  const SeatHoldPassengersSubmitted(this.passengers);
+
+  final List<Passenger> passengers;
+
+  @override
+  List<Object?> get props => [passengers];
+}
+
 /// Le paiement a abouti : les sièges ne sont plus retenus, ils sont
 /// vendus.
 ///

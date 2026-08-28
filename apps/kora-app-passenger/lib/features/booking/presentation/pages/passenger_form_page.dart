@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/date_formats.dart';
+import '../../../../core/utils/phone_number.dart';
 import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
+import '../../../auth/domain/entities/auth_user.dart';
+import '../../../auth/domain/entities/phone_country.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../profil/presentation/pages/birth_date_picker_page.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/passenger.dart';
 import '../../domain/entities/seat.dart';
+import '../bloc/seat_hold_bloc.dart';
 import '../widgets/booking_progress.dart';
 import '../widgets/hold_countdown.dart';
 import '../widgets/state_view.dart';
@@ -57,9 +64,17 @@ class PassengerFormPage extends StatefulWidget {
 class _PassengerFormPageState extends State<PassengerFormPage> {
   bool get _isInternational => widget.departure?.isInternational ?? false;
 
+  /// Le premier bloc part des informations du compte : c'est le voyageur
+  /// le plus probable, et les retaper alors qu'elles sont déjà connues
+  /// n'apporte rien. Les suivants restent vides — ce sont d'autres
+  /// personnes, que le titulaire renseigne lui-même.
   late final List<_PassengerFields> _fields = [
     for (var i = 0; i < widget.seats.length; i++)
-      _PassengerFields(index: i, international: _isInternational),
+      _PassengerFields(
+        index: i,
+        international: _isInternational,
+        holder: i == 0 ? context.read<AuthBloc>().state.session?.user : null,
+      ),
   ];
 
   /// Erreurs de saisie, calculées à la validation seulement : signaler un
@@ -90,11 +105,32 @@ class _PassengerFormPageState extends State<PassengerFormPage> {
       return;
     }
 
-    final passengers = [
-      for (var i = 0; i < _fields.length; i++)
-        _fields[i].toPassenger(widget.seats[i]),
-    ];
+    final passengers = _collect();
 
+    // Les identités partent au serveur avant le récapitulatif : c'est lui
+    // qui les rattache à la réservation retenue, et qui rend le `status`
+    // et l'`expires_at` à jour. Avancer sans attendre afficherait un
+    // récapitulatif que le serveur ne connaît pas encore.
+    //
+    // Sans blocage en cours — un lien profond, un retour après
+    // expiration — il n'y a aucune réservation à renseigner : on laisse
+    // passer plutôt que de bloquer sur un appel qui échouerait.
+    final bloc = context.read<SeatHoldBloc>();
+    if (bloc.state.hold == null) {
+      _openSummary(passengers);
+      return;
+    }
+
+    bloc.add(SeatHoldPassengersSubmitted(passengers));
+  }
+
+  /// Les champs saisis, devenus voyageurs.
+  List<Passenger> _collect() => [
+    for (var i = 0; i < _fields.length; i++)
+      _fields[i].toPassenger(widget.seats[i]),
+  ];
+
+  void _openSummary(List<Passenger> passengers) {
     context.push(
       AppRouter.summaryPath,
       extra: SummaryArgs(departure: widget.departure!, passengers: passengers),
@@ -168,9 +204,26 @@ class _PassengerFormPageState extends State<PassengerFormPage> {
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                child: KoraButton(
-                  label: 'Enregistrer et continuer',
-                  onPressed: _submit,
+                child: BlocConsumer<SeatHoldBloc, SeatHoldState>(
+                  listenWhen: (previous, current) =>
+                      previous.passengersStatus != current.passengersStatus,
+                  listener: (context, hold) {
+                    if (hold.passengersStatus == PassengersStatus.saved) {
+                      _openSummary(_collect());
+                      return;
+                    }
+
+                    final failure = hold.failure;
+                    if (hold.passengersStatus == PassengersStatus.failure &&
+                        failure != null) {
+                      KoraToaster.show(context, failure.message);
+                    }
+                  },
+                  builder: (context, hold) => KoraButton(
+                    label: 'Enregistrer et continuer',
+                    isLoading: hold.passengersStatus == PassengersStatus.saving,
+                    onPressed: _submit,
+                  ),
                 ),
               ),
             ],
@@ -236,12 +289,24 @@ class _PassengerCard extends StatelessWidget {
             onChanged: (_) => onChanged(),
           ),
           const SizedBox(height: AppSpacing.md),
-          KoraInput(
+          _PhoneField(
             label: 'Téléphone',
+            country: fields.country,
             controller: fields.phone,
-            keyboardType: TextInputType.phone,
             errorText: errors['phone'],
-            onChanged: (_) => onChanged(),
+            onCountry: (value) {
+              // Le `01` béninois n'a plus de sens sous un autre indicatif
+              // — voir [PhoneNumberInput.rebase], partagé avec les écrans
+              // permissions et Mobile Money.
+              fields.phone.text = PhoneNumberInput.rebase(
+                fields.phone.text,
+                from: fields.country,
+                to: value,
+              );
+              fields.country = value;
+              onChanged();
+            },
+            onChanged: onChanged,
           ),
           const SizedBox(height: AppSpacing.md),
           if (!international)
@@ -378,7 +443,12 @@ class _BirthDateField extends StatelessWidget {
   Future<void> _pick(BuildContext context) async {
     final picked = await context.push<DateTime>(
       AppRouter.birthDatePath,
-      extra: fields.birthDate,
+      // Le même calendrier que le profil, mais annoncé pour ce qu'il est
+      // ici : on renseigne un voyageur, pas son propre compte.
+      extra: BirthDateArgs(
+        selected: fields.birthDate,
+        eyebrow: 'Passager ${fields.index + 1}',
+      ),
     );
     if (picked == null) return;
 
@@ -457,7 +527,10 @@ String _lineLabel(Departure departure) {
 
 String _documentLabel(TravelDocumentType type) => switch (type) {
   TravelDocumentType.passport => 'Passeport',
-  TravelDocumentType.idCard => 'Carte d’identité',
+  TravelDocumentType.nationalId => 'Carte d’identité',
+  TravelDocumentType.biometricCard => 'Carte biométrique',
+  TravelDocumentType.consularCard => 'Carte consulaire',
+  TravelDocumentType.cip => 'CIP',
 };
 
 /// Les nationalités proposées, dans l'ordre de la maquette.
@@ -508,16 +581,18 @@ class _SeatBadge extends StatelessWidget {
 
 /// Les champs d'un passager et leurs règles de validation.
 class _PassengerFields {
-  _PassengerFields({required this.index, required this.international})
-    : firstName = TextEditingController(text: index == 0 ? 'Aïcha' : ''),
-      lastName = TextEditingController(text: index == 0 ? 'HOUNKPÈ' : ''),
-      phone = TextEditingController(
-        text: index == 0 ? '+229 01 97 42 18 60' : '',
-      ),
-      email = TextEditingController(
-        text: index == 0 ? 'aicha@example.com' : '',
-      ),
-      documentNumber = TextEditingController();
+  /// [holder] est le titulaire du compte, ou `null` pour les voyageurs
+  /// suivants : c'est lui qui pré-remplit le premier bloc.
+  _PassengerFields({
+    required this.index,
+    required this.international,
+    AuthUser? holder,
+  }) : firstName = TextEditingController(text: _firstNameOf(holder)),
+       lastName = TextEditingController(text: _lastNameOf(holder)),
+       email = TextEditingController(text: holder?.email ?? ''),
+       documentNumber = TextEditingController(),
+       phone = TextEditingController(text: _nationalPart(holder?.phone)),
+       country = PhoneCountry.fromCode(holder?.countryCode);
 
   final int index;
 
@@ -539,6 +614,13 @@ class _PassengerFields {
   /// Pré-remplie au Bénin, d'où partent les lignes.
   String nationality = 'BJ';
 
+  /// L'indicatif du numéro, choisi à part.
+  ///
+  /// Sans lui, la règle du Bénin — dix chiffres commençant par `01` —
+  /// s'appliquait à tout le monde, et un numéro togolais valide était
+  /// refusé.
+  PhoneCountry country;
+
   DateTime? birthDate;
 
   /// Un message par champ fautif, vide si la saisie est complète.
@@ -552,11 +634,18 @@ class _PassengerFields {
     if (firstName.text.trim().isEmpty) errors['firstName'] = 'Prénom requis';
     if (lastName.text.trim().isEmpty) errors['lastName'] = 'Nom requis';
 
+    // La règle vient du pays choisi, jamais d'un seuil unique : le Bénin
+    // attend dix chiffres ouverts par `01` depuis 2024, le Togo huit sans
+    // préfixe imposé.
     final digits = phone.text.replaceAll(RegExp(r'\D'), '');
     if (digits.isEmpty) {
       errors['phone'] = 'Téléphone requis';
-    } else if (digits.length < 8) {
-      errors['phone'] = 'Numéro trop court';
+    } else if (country.prefix.isNotEmpty &&
+        !digits.startsWith(country.prefix)) {
+      errors['phone'] =
+          'Au ${country.name}, le numéro commence par ${country.prefix}';
+    } else if (digits.length != country.digits) {
+      errors['phone'] = '${country.digits} chiffres attendus';
     }
 
     final mail = email.text.trim();
@@ -584,7 +673,9 @@ class _PassengerFields {
     return Passenger(
       firstName: firstName.text.trim(),
       lastName: lastName.text.trim(),
-      phone: phone.text.trim(),
+      // Recomposé avec son indicatif : le serveur reçoit un numéro
+      // joignable, pas la partie nationale seule.
+      phone: '${country.code} ${phone.text.trim()}',
       seat: seat,
       email: mail.isEmpty ? null : mail,
       // Rien de tout ça sur une liaison intérieure : y laisser des valeurs
@@ -627,4 +718,92 @@ class _MissingSelection extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Indicatif et numéro, côte à côte — la même paire que l'écran des
+/// permissions.
+class _PhoneField extends StatelessWidget {
+  const _PhoneField({
+    required this.label,
+    required this.country,
+    required this.controller,
+    required this.errorText,
+    required this.onCountry,
+    required this.onChanged,
+  });
+
+  final String label;
+  final PhoneCountry country;
+  final TextEditingController controller;
+  final String? errorText;
+  final ValueChanged<PhoneCountry> onCountry;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return _LabelledField(
+      label: label,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 124,
+            child: DropdownButtonFormField<PhoneCountry>(
+              initialValue: country,
+              isExpanded: true,
+              onChanged: (value) => onCountry(value ?? PhoneCountry.benin),
+              items: [
+                for (final item in PhoneCountry.all)
+                  DropdownMenuItem(
+                    value: item,
+                    child: Text(
+                      '${item.flag}  ${item.code}',
+                      style: AppTextStyles.body(context.koraColors.textPrimary),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: KoraInput(
+              hint: country.example,
+              controller: controller,
+              keyboardType: TextInputType.phone,
+              errorText: errorText,
+              onChanged: (_) => onChanged(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Le compte ne garde qu'un nom entier : on le coupe au premier espace,
+/// comme le fait déjà l'écran « Mes informations ».
+String _firstNameOf(AuthUser? holder) {
+  final parts = (holder?.name ?? '').trim().split(RegExp(r'\s+'));
+  return parts.isEmpty ? '' : parts.first;
+}
+
+String _lastNameOf(AuthUser? holder) {
+  final parts = (holder?.name ?? '').trim().split(RegExp(r'\s+'));
+  return parts.length > 1 ? parts.sublist(1).join(' ') : '';
+}
+
+/// Sépare un numéro enregistré de son indicatif.
+///
+/// Le compte garde le numéro complet ; le formulaire, lui, montre les deux
+/// séparément pour qu'on puisse changer de pays.
+String _nationalPart(String? stored) {
+  final raw = (stored ?? '').trim();
+  if (raw.isEmpty) return '';
+
+  for (final country in PhoneCountry.all) {
+    if (raw.startsWith(country.code)) {
+      return raw.substring(country.code.length).trim();
+    }
+  }
+  return raw;
 }

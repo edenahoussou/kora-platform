@@ -6,12 +6,17 @@ import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:kora_app_passenger/core/di/injector.dart';
 import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/core/utils/date_formats.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
+import 'package:kora_app_passenger/features/booking/domain/repositories/departure_repository.dart';
+import 'package:kora_app_passenger/features/booking/presentation/bloc/departure_detail_cubit.dart';
 import 'package:kora_app_passenger/features/booking/presentation/pages/departure_detail_page.dart';
+
+import '../../../../support/stub_departure_repository.dart';
 
 void main() {
   final cotonou = kMockCities.firstWhere((city) => city.id == 'ctn');
@@ -26,6 +31,14 @@ void main() {
   });
 
   setUp(() {
+    // Le détail se rafraîchit sur `GET bus/departures/{uuid}` : sans ce
+    // dépôt, la construction du cubit échoue. Le double échoue par
+    // défaut, donc l'écran garde le départ transmis — ce que vérifient
+    // les tests ci-dessous.
+    getIt.registerLazySingleton<DepartureRepository>(
+      StubDepartureRepository.new,
+    );
+
     departure = mockDeparturesFor(
       SearchCriteria(
         origin: cotonou,
@@ -34,6 +47,8 @@ void main() {
       ),
     ).first;
   });
+
+  tearDown(() => getIt.reset());
 
   Future<void> pumpDetail(WidgetTester tester, {Departure? value}) async {
     tester.view.physicalSize = const Size(390 * 3, 1400 * 3);
@@ -163,5 +178,65 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Ce départ n’est plus disponible'), findsOneWidget);
+  });
+
+  group('rafraîchissement', () {
+    test('recharge le départ par son identifiant', () async {
+      final repository = StubDepartureRepository();
+      final cubit = DepartureDetailCubit(repository, departure: departure);
+      addTearDown(cubit.close);
+
+      await cubit.refresh();
+
+      expect(repository.calls, ['byId:${departure.id}']);
+    });
+
+    test('remplace ce que la liste affichait', () async {
+      // Les places restantes ont bougé depuis la recherche : c'est tout
+      // l'intérêt de recharger juste avant de choisir un siège.
+      final fresher = Departure(
+        id: departure.id,
+        line: departure.line,
+        departsAt: departure.departsAt,
+        comfort: departure.comfort,
+        price: departure.price,
+        seatsTotal: departure.seatsTotal,
+        seatsAvailable: 3,
+      );
+      final cubit = DepartureDetailCubit(
+        StubDepartureRepository(refreshed: fresher),
+        departure: departure,
+      );
+      addTearDown(cubit.close);
+
+      await cubit.refresh();
+
+      expect(cubit.state.departure.seatsAvailable, 3);
+      expect(cubit.state.isStale, isFalse);
+    });
+
+    test('un échec garde le départ affiché et le signale', () async {
+      // Vider l'écran priverait le voyageur d'informations qu'il avait
+      // déjà sous les yeux.
+      final cubit = DepartureDetailCubit(
+        StubDepartureRepository(),
+        departure: departure,
+      );
+      addTearDown(cubit.close);
+
+      await cubit.refresh();
+
+      expect(cubit.state.departure, departure);
+      expect(cubit.state.isStale, isTrue);
+      expect(cubit.state.isRefreshing, isFalse);
+    });
+
+    testWidgets('l’écran prévient quand les données ont vieilli', (
+      tester,
+    ) async {
+      await pumpDetail(tester);
+
+      expect(find.textContaining('non actualisés'), findsOneWidget);
+    });
   });
 }

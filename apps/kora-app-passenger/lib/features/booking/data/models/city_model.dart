@@ -1,5 +1,5 @@
+import '../../../../core/network/api_json.dart';
 import '../../domain/entities/city.dart';
-import 'bus_json.dart';
 
 /// Couche DATA : une ville telle que la renvoie `GET /api/v1/bus/cities`.
 ///
@@ -21,9 +21,9 @@ class CityModel {
 
   factory CityModel.fromJson(Map<String, dynamic> json) {
     return CityModel(
-      city: BusJson.string(json['city']),
-      country: BusJson.string(json['country']),
-      stopsCount: BusJson.intOrNull(json['stops_count']) ?? 0,
+      city: ApiJson.string(json['city']),
+      country: ApiJson.string(json['country']),
+      stopsCount: ApiJson.intOrNull(json['stops_count']) ?? 0,
     );
   }
 

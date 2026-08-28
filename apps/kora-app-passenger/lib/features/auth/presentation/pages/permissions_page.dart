@@ -5,6 +5,7 @@ import 'package:flutter_design_system/flutter_design_system.dart';
 import '../../../../core/di/injector.dart';
 import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/services/app_permissions.dart';
+import '../../../../core/utils/phone_number.dart';
 import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../domain/entities/phone_country.dart';
@@ -149,6 +150,24 @@ class _PermissionsPageState extends State<PermissionsPage> {
     );
   }
 
+  /// Change d'indicatif **et** réaccorde le numéro déjà saisi.
+  ///
+  /// Le `01` imposé au Bénin n'a plus de sens sous un autre indicatif —
+  /// voir [PhoneNumberInput.rebase], partagé avec le formulaire voyageurs
+  /// et le paiement Mobile Money.
+  void _onCountryChanged(PhoneCountry country) {
+    final rebased = PhoneNumberInput.rebase(
+      _phone.text,
+      from: _country,
+      to: country,
+    );
+
+    setState(() {
+      _country = country;
+      if (rebased != _phone.text) _phone.text = rebased;
+    });
+  }
+
   /// Le téléphone reste facultatif — l'API l'accepte vide. Mais un
   /// numéro entamé puis laissé à moitié, ou saisi à l'ancienne, ne part
   /// pas en silence.
@@ -200,8 +219,7 @@ class _PermissionsPageState extends State<PermissionsPage> {
                       nameError: _nameError,
                       phoneError: _phoneError,
                       enabled: !_saving,
-                      onCountry: (country) =>
-                          setState(() => _country = country),
+                      onCountry: _onCountryChanged,
                     ),
                     const SizedBox(height: AppSpacing.md),
                     _PermissionCard(

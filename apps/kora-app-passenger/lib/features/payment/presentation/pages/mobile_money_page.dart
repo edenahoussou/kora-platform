@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../core/utils/phone_number.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../auth/domain/entities/phone_country.dart';
 import '../../../booking/presentation/widgets/hold_countdown.dart';
@@ -12,15 +13,29 @@ import 'payment_args.dart';
 import 'payment_flow_args.dart';
 import 'payment_method_page.dart';
 
-/// Les opérateurs Mobile Money acceptés, dans l'ordre de la maquette.
+/// Les deux encaisseurs proposés au voyageur.
 ///
-/// La clé est celle qu'attend `POST payments/initiate` (`provider`) ; le
-/// libellé est ce que lit le voyageur.
-const Map<String, String> kMobileMoneyOperators = {
+/// **Écrits en dur, et provisoirement.** Cette liste doit venir de
+/// `GET /api/v1/payments/methods` : toute la chaîne existe et est testée
+/// (voir `PaymentCatalogBloc` et `payment_catalog_test.dart`). Mais
+/// l'endpoint répond aujourd'hui **500** sur le staging — le serveur route
+/// `/payments/methods` vers le handler `/payments/{uuid}` et prend le mot
+/// `methods` pour un identifiant :
+///
+/// ```
+/// SQLSTATE[22P02]: invalid input syntax for type uuid: "methods"
+/// ```
+///
+/// Tant que cette route n'est pas corrigée côté back, l'écran resterait
+/// bloqué sur son message d'erreur et personne ne pourrait payer.
+///
+/// **Pour rebrancher l'API**, deux gestes et rien d'autre : rétablir le
+/// `BlocBuilder<PaymentCatalogBloc, …>` autour du sélecteur, et remettre
+/// le `PaymentCatalogRequested` dans le `ShellRoute` du tunnel
+/// (`AppRouter`).
+const Map<String, String> kMobileMoneyProviders = {
+  'fedapay': 'FedaPay',
   'mtn_momo': 'MTN MoMo',
-  'moov_money': 'Moov Money',
-  'celtiis_cash': 'Celtiis Cash',
-  'wave': 'Wave',
 };
 
 /// Écran `mobile-money` de la maquette : opérateur, numéro à débiter, et
@@ -64,30 +79,58 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
       _operator == null ? context.l10n.paymentMomoOperatorRequired : null;
 
   String? get _phoneError {
-    final digits = _phone.text.replaceAll(RegExp(r'\D'), '');
-    if (digits.isEmpty) return context.l10n.paymentMomoPhoneRequired;
-    // La longueur attendue vient du pays : huit chiffres au Togo, dix au
-    // Bénin depuis 2024. Un seuil unique laisserait passer un numéro
-    // béninois amputé de deux chiffres.
-    if (digits.length < _country.digits) {
-      return context.l10n.paymentMomoPhoneShort;
-    }
-    return null;
+    final l10n = context.l10n;
+
+    // Le préfixe imposé dépend du pays, et de lui seul : le Bénin fait
+    // commencer ses numéros par `01`, le Togo n'impose rien. Exiger le
+    // `01` partout — ou nulle part — rendrait l'un des deux cas
+    // invérifiable. La règle vit dans [PhoneNumberInput], partagée avec
+    // les deux autres écrans qui demandent un numéro.
+    return switch (PhoneNumberInput.validate(_phone.text, _country)) {
+      PhoneIssue.missing => l10n.paymentMomoPhoneRequired,
+      // Message générique déjà traduit pour l'écran des permissions :
+      // « Un numéro Bénin commence par 01. »
+      PhoneIssue.wrongPrefix => l10n.permissionsPhonePrefix(
+        _country.name,
+        _country.prefix,
+      ),
+      PhoneIssue.tooShort => l10n.paymentMomoPhoneShort,
+      null => null,
+    };
+  }
+
+  /// Change d'indicatif **et** réaccorde le numéro déjà saisi — voir
+  /// [PhoneNumberInput.rebase] pour la règle.
+  void _onCountryChanged(PhoneCountry? value) {
+    final next = value ?? PhoneCountry.benin;
+    if (next == _country) return;
+
+    final rebased = PhoneNumberInput.rebase(
+      _phone.text,
+      from: _country,
+      to: next,
+    );
+
+    setState(() {
+      _country = next;
+      if (rebased != _phone.text) _phone.text = rebased;
+    });
   }
 
   void _pay() {
     setState(() => _showErrors = true);
     if (_operatorError != null || _phoneError != null) return;
 
-    // `POST payments/initiate` reste à brancher : il attend
-    // `method: mobile_money`, le `provider` choisi ci-dessus et une clé
-    // d'idempotence, et rendra la référence, l'échéance et la cadence de
-    // vérification que les écrans suivants savent déjà afficher.
+    // Le provider choisi part tel quel : `POST payments/initiate` attend
+    // `method: mobile_money`, ce `provider`, le `phone`, le
+    // `mobile_money_network` et une clé d'idempotence. Il reste à
+    // brancher, et rendra la référence et l'échéance que les écrans
+    // suivants savent déjà afficher.
     context.push(
       AppRouter.paymentValidationPath,
       extra: PaymentFlowArgs(
         total: widget.args!.total,
-        providerLabel: kMobileMoneyOperators[_operator] ?? '',
+        providerLabel: kMobileMoneyProviders[_operator] ?? '',
         departure: widget.args!.departure,
         seatLabel: widget.args!.seatLabel,
       ),
@@ -141,7 +184,7 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
                           onSelected: (value) =>
                               setState(() => _operator = value),
                           dropdownMenuEntries: [
-                            for (final entry in kMobileMoneyOperators.entries)
+                            for (final entry in kMobileMoneyProviders.entries)
                               DropdownMenuEntry(
                                 value: entry.key,
                                 label: entry.value,
@@ -164,9 +207,7 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
                             child: DropdownButtonFormField<PhoneCountry>(
                               initialValue: _country,
                               isExpanded: true,
-                              onChanged: (value) => setState(
-                                () => _country = value ?? PhoneCountry.benin,
-                              ),
+                              onChanged: _onCountryChanged,
                               items: [
                                 for (final item in PhoneCountry.all)
                                   DropdownMenuItem(

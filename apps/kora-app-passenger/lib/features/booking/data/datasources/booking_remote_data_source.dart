@@ -1,13 +1,14 @@
 import 'package:dio/dio.dart';
 
 import '../../../../core/constants/api_constants.dart';
+import '../../../../core/error/exceptions.dart';
+import '../../../../core/network/api_json.dart';
 import '../../domain/entities/city.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/search_criteria.dart';
 import '../../domain/entities/seat.dart';
 import '../../domain/entities/ticket.dart';
 import '../../domain/entities/upcoming_trip.dart';
-import '../models/bus_json.dart';
 import '../models/city_model.dart';
 import '../models/departure_model.dart';
 import '../models/seat_model.dart';
@@ -47,7 +48,7 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
     final response = await _dio.get<dynamic>(ApiConstants.busCities);
 
     final cities = [
-      for (final json in BusJson.list(response.data))
+      for (final json in ApiJson.list(response.data))
         CityModel.fromJson(json).toEntity(),
     ]..removeWhere((city) => city.name.isEmpty);
 
@@ -72,7 +73,7 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
     );
 
     return [
-      for (final json in BusJson.list(response.data))
+      for (final json in ApiJson.list(response.data))
         // Un départ que l'API ne date pas est écarté, pas inventé.
         ?DepartureModel.fromJson(json).toEntity(),
     ];
@@ -87,6 +88,32 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
   /// une ville inconnue du serveur mènerait à une recherche vide.
   @override
   Future<List<City>> getRecentCities() async => const [];
+
+  /// Recharge un départ affiché depuis la liste.
+  ///
+  /// Ce n'est pas plus de données qu'on vient chercher, ce sont les
+  /// mêmes, fraîches : entre la recherche et l'ouverture du détail, les
+  /// places restantes et le tarif ont pu bouger.
+  @override
+  Future<Departure> getDeparture(String departureId) async {
+    final response = await _dio.get<dynamic>(
+      ApiConstants.busDeparture(departureId),
+    );
+
+    final body = response.data;
+    final payload = body is Map && body['data'] != null ? body['data'] : body;
+
+    final departure = DepartureModel.fromJson(ApiJson.map(payload)).toEntity();
+
+    // `toEntity` rend `null` quand la date est illisible. Dans une liste
+    // on écarte la ligne ; ici il n'y en a qu'une, et rendre un départ
+    // sans horaire serait pire que de ne rien rendre.
+    if (departure == null) {
+      throw const ServerException('Départ illisible.');
+    }
+
+    return departure;
+  }
 
   /// Pas encore servi par l'API — voir la note de classe.
   @override
@@ -111,7 +138,7 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
     );
 
     return [
-      for (final json in BusJson.list(response.data))
+      for (final json in ApiJson.list(response.data))
         SeatModel.fromJson(json).toEntity(),
     ];
   }

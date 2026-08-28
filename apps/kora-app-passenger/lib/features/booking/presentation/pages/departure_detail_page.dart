@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/di/injector.dart';
 import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/date_formats.dart';
@@ -10,16 +12,19 @@ import '../../../../core/widgets/screen_header.dart';
 import '../../../../core/widgets/section_title.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/trip_segment.dart';
+import '../bloc/departure_detail_cubit.dart';
 import '../widgets/state_view.dart';
 import 'seats_page.dart';
 
 /// Données passées à [DepartureDetailPage] par `go_router` (`extra`).
 ///
-/// Le départ est transmis tel quel plutôt que rechargé par identifiant :
-/// il vient d'être affiché par la liste, le recharger ferait clignoter un
-/// écran de chargement pour des données déjà en mémoire. C'est aussi
-/// pourquoi cette route n'est pas prévue pour un lien profond — elle est
-/// une étape du tunnel de réservation.
+/// Le départ est transmis tel quel **et** rechargé : transmis pour que
+/// l'écran s'affiche tout de suite, rechargé parce que les places
+/// restantes ont pu bouger depuis la recherche. Voir
+/// [DepartureDetailCubit].
+///
+/// Cette route n'est pas prévue pour un lien profond : elle est une étape
+/// du tunnel de réservation.
 class DepartureDetailArgs {
   const DepartureDetailArgs({required this.departure, this.passengers = 1});
 
@@ -31,10 +36,10 @@ class DepartureDetailArgs {
 /// trajet, services à bord, étapes de la ligne, prix par tronçon, puis
 /// l'accès au plan des sièges.
 ///
-/// Écran **purement présentationnel** : il reçoit un [Departure] déjà
-/// chargé et n'a donc pas de Bloc. En Clean Architecture, un Bloc porte un
-/// état à gérer ; ici il n'y en a aucun, en ajouter un n'apporterait que de
-/// l'indirection.
+/// L'écran affiche d'emblée le départ reçu, puis se rafraîchit sur
+/// `GET bus/departures/{uuid}` : pas de squelette, jamais — remplacer par
+/// un chargement ce qu'on vient de montrer ferait clignoter l'écran pour
+/// rien.
 class DepartureDetailPage extends StatelessWidget {
   const DepartureDetailPage({
     super.key,
@@ -58,7 +63,19 @@ class DepartureDetailPage extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 18),
           child: departure == null
               ? const _MissingDeparture()
-              : _DetailContent(departure: departure, passengers: passengers),
+              : BlocProvider<DepartureDetailCubit>(
+                  create: (_) =>
+                      DepartureDetailCubit(getIt(), departure: departure)
+                        ..refresh(),
+                  child:
+                      BlocBuilder<DepartureDetailCubit, DepartureDetailState>(
+                        builder: (context, state) => _DetailContent(
+                          departure: state.departure,
+                          passengers: passengers,
+                          isStale: state.isStale,
+                        ),
+                      ),
+                ),
         ),
       ),
     );
@@ -66,10 +83,18 @@ class DepartureDetailPage extends StatelessWidget {
 }
 
 class _DetailContent extends StatelessWidget {
-  const _DetailContent({required this.departure, required this.passengers});
+  const _DetailContent({
+    required this.departure,
+    required this.passengers,
+    this.isStale = false,
+  });
 
   final Departure departure;
   final int passengers;
+
+  /// Le rafraîchissement a échoué : ce qui est affiché vient de la
+  /// recherche.
+  final bool isStale;
 
   @override
   Widget build(BuildContext context) {
@@ -88,6 +113,30 @@ class _DetailContent extends StatelessWidget {
             padding: EdgeInsets.zero,
             children: [
               _TripCard(departure: departure),
+              // Discret, et seulement en cas d'échec : ce qui est affiché
+              // reste utilisable, il manque juste sa fraîcheur.
+              if (isStale) ...[
+                const SizedBox(height: AppSpacing.sm),
+                KoraCard(
+                  variant: KoraCardVariant.mist,
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.cloud_off_rounded,
+                        size: 15,
+                        color: koraColors.textMuted,
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          context.l10n.departureDetailStale,
+                          style: AppTextStyles.caption(koraColors.textMuted),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               // Titre et grille vont ensemble : l'API ne renvoie aucun
               // équipement — la table `buses` n'a ni Wi-Fi, ni
               // climatisation, ni USB — et un intertitre « Votre confort à

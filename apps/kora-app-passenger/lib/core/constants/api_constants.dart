@@ -86,6 +86,15 @@ class ApiConstants {
   /// `to` (noms de villes) sont facultatifs.
   static const String busDepartures = '$_v1/bus/departures';
 
+  /// Un départ précis, rechargé par son identifiant.
+  ///
+  /// Même forme qu'un élément de la liste : ce n'est pas plus de données
+  /// qu'on vient chercher, ce sont les mêmes, fraîches. Entre la recherche
+  /// et le moment où l'on ouvre le détail, les places restantes ont pu
+  /// bouger.
+  static String busDeparture(String departureUuid) =>
+      '$busDepartures/$departureUuid';
+
   /// Plan des sièges d'un départ. Exige `origin_stop_uuid` et
   /// `destination_stop_uuid` en paramètres de requête.
   static String busDepartureSeats(String departureUuid) =>
@@ -102,7 +111,36 @@ class ApiConstants {
 
   /// Libération d'un blocage avant son échéance (`DELETE`, authentifié).
   /// La clé est l'identifiant de la **réservation**, pas du départ.
-  static String hold(String reservationUuid) => '$_v1/holds/$reservationUuid';
+  ///
+  /// Sous `bus/`, comme les deux autres : la route a été déplacée de
+  /// `/holds/{uuid}` vers `/bus/holds/{uuid}` côté serveur, et l'ancienne
+  /// répond désormais 404. Une libération qui échoue ne se voit pas —
+  /// l'app rend la main tout de suite — mais les sièges restaient retenus
+  /// jusqu'à l'échéance.
+  static String hold(String reservationUuid) => '$busHolds/$reservationUuid';
+
+  /// Identités des voyageurs d'une réservation (`POST`, authentifié).
+  ///
+  /// Rend la réservation entière, `status` et `expires_at` compris : c'est
+  /// l'occasion de resynchroniser le décompte sur ce que dit le serveur.
+  static String bookingPassengers(String reservationUuid) =>
+      '$_v1/bookings/$reservationUuid/passengers';
+
+  // --- Paiements (documenté) ---
+
+  /// Catalogue des moyens de paiement actifs (`GET`, authentifié).
+  ///
+  /// À appeler **avant** d'afficher l'écran de paiement : l'app ne doit
+  /// proposer que les providers et les réseaux présents dans la réponse
+  /// (voir `docs/mintlify/reference/payments/methods.mdx`).
+  ///
+  /// Malgré le `security: []` que lui donne `api/openapi.yaml`, la route
+  /// est bien derrière `auth:sanctum` : sans token elle répond 401, et
+  /// c'est tout le groupe `/payments` qui le fait — même une route
+  /// inexistante y répond 401 au lieu de 404. La spec OpenAPI est en
+  /// retard sur la page de référence, qui, elle, annonce correctement
+  /// « Authentification `Bearer` requise ».
+  static const String paymentMethods = '$_v1/payments/methods';
 
   // --- Reste de l'API : pas encore documenté ---
 
