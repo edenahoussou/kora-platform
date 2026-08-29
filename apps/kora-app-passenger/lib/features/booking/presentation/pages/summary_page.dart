@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../../core/utils/title_color.dart';
@@ -77,30 +78,28 @@ class _SummaryContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const ScreenHeader(
-          eyebrow: 'Récapitulatif',
-          title: 'Vérifiez votre voyage',
-        ),
+        ScreenHeader(eyebrow: l10n.summaryEyebrow, title: l10n.summaryTitle),
         Expanded(
           child: ListView(
             padding: EdgeInsets.zero,
             children: [
-              const BookingProgress(step: 5, label: 'Récapitulatif'),
+              BookingProgress(step: 5, label: l10n.summaryEyebrow),
               const SizedBox(height: 11),
               const HoldCountdown(margin: EdgeInsets.only(bottom: 11)),
               _TripCard(departure: departure, passengers: passengers),
               SectionTitle(
-                title: 'Passagers',
-                actionLabel: 'Modifier',
+                title: l10n.summaryPassengers,
+                actionLabel: l10n.summaryEdit,
                 // Retour à l'écran précédent, celui de la saisie : la
                 // correction se fait là où les champs existent déjà.
                 onActionTap: () => Navigator.of(context).pop(),
               ),
               _PassengersCard(passengers: passengers),
-              const SectionTitle(title: 'Détail du prix'),
+              SectionTitle(title: l10n.summaryPriceDetail),
               _PriceCard(departure: departure, passengers: passengers),
               const SizedBox(height: AppSpacing.lg),
             ],
@@ -109,7 +108,7 @@ class _SummaryContent extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(bottom: AppSpacing.lg),
           child: KoraButton(
-            label: 'Continuer vers le paiement',
+            label: l10n.summaryContinue,
             onPressed: () => context.push(
               AppRouter.paymentMethodPath,
               // Le total est arrêté ici, puis transporté : le recalculer
@@ -143,6 +142,7 @@ class _TripCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final line = departure.line;
     final seats = passengers
         .map((passenger) => passenger.seat.label)
@@ -166,7 +166,9 @@ class _TripCard extends StatelessWidget {
               ),
               Flexible(
                 child: Text(
-                  passengers.length > 1 ? 'Sièges $seats' : 'Siège $seats',
+                  passengers.length > 1
+                      ? context.l10n.summarySeatMany(seats)
+                      : context.l10n.summarySeatOne(seats),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.right,
@@ -198,7 +200,7 @@ class _TripCard extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            _boardingPoint(line.origin.station, line.origin.name),
+            _boardingPoint(l10n, line.origin.station, line.origin.name),
             style: TextStyle(
               color: AppColors.white.withValues(alpha: 0.7),
               fontSize: 12,
@@ -211,8 +213,12 @@ class _TripCard extends StatelessWidget {
 
   /// `Gare KORA St Michel` quand la ville a une gare nommée, sinon son nom
   /// seul — toutes n'en ont qu'une, sans nom propre.
-  String _boardingPoint(String? station, String cityName) {
-    return station == null ? cityName : 'Gare KORA $station';
+  String _boardingPoint(
+    AppLocalization l10n,
+    String? station,
+    String cityName,
+  ) {
+    return station == null ? cityName : l10n.summaryStation(station);
   }
 }
 
@@ -289,6 +295,7 @@ class _PriceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final count = passengers.length;
     final total = departure.price * count;
 
@@ -302,10 +309,13 @@ class _PriceCard extends StatelessWidget {
             value: total.formatted,
           ),
           const Divider(height: 26),
-          const _PriceRow(label: 'Frais de service', value: 'Inclus'),
+          _PriceRow(
+            label: l10n.summaryServiceFee,
+            value: l10n.summaryServiceFeeValue,
+          ),
           const Divider(height: 26),
           _PriceRow(
-            label: 'Total à payer',
+            label: l10n.summaryTotal,
             value: total.formatted,
             isTotal: true,
           ),
@@ -373,15 +383,20 @@ class _MissingReservation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return ListView(
       padding: EdgeInsets.zero,
       children: [
-        const ScreenHeader(eyebrow: 'KORA BUS', title: 'Réservation perdue'),
+        ScreenHeader(
+          eyebrow: l10n.departuresEyebrow,
+          title: l10n.summaryMissingEyebrow,
+        ),
         StateView(
           icon: Icons.help_outline_rounded,
-          title: 'Rien à récapituler',
-          message: 'Reprenez la réservation depuis la recherche de départs.',
-          primaryLabel: 'Retour',
+          title: l10n.summaryMissingTitle,
+          message: l10n.summaryMissingText,
+          primaryLabel: l10n.summaryMissingPrimary,
           onPrimary: () => Navigator.of(context).pop(),
         ),
       ],

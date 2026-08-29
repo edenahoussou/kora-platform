@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 
+import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../../core/widgets/kora_calendar.dart';
 import '../../../../core/widgets/screen_header.dart';
@@ -76,7 +77,7 @@ class _DatePickerPageState extends State<DatePickerPage> {
                 eyebrow: KoraDateFormats.capitalize(
                   KoraDateFormats.monthYear.format(_visibleMonth),
                 ),
-                title: 'Quand partez-vous ?',
+                title: context.l10n.homeDateTitle,
               ),
               Expanded(
                 child: ListView(
@@ -108,8 +109,7 @@ class _DatePickerPageState extends State<DatePickerPage> {
                       // jour choisi, et aucune donnée de disponibilité par
                       // jour n'existe encore. On dit donc ce qui est vrai.
                       child: Text(
-                        'Les départs sont ouverts à la réservation jusqu’à '
-                        '${widget.monthsAhead} mois à l’avance.',
+                        context.l10n.homeDateNotice(widget.monthsAhead),
                         style: AppTextStyles.body(koraColors.textMuted),
                       ),
                     ),
@@ -120,8 +120,9 @@ class _DatePickerPageState extends State<DatePickerPage> {
               Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.lg),
                 child: KoraButton(
-                  label:
-                      'Choisir le ${KoraDateFormats.dayMonth.format(_selected)}',
+                  label: context.l10n.homeDateConfirm(
+                    KoraDateFormats.dayMonth.format(_selected),
+                  ),
                   onPressed: () => Navigator.of(context).pop(_selected),
                 ),
               ),

@@ -3,10 +3,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/features/home/presentation/pages/passengers_picker_page.dart';
 
 void main() {
+  setUpAll(() => AppLocalization.preloadAll());
+
   late int? result;
 
   Future<void> pumpPicker(WidgetTester tester, {int selected = 1}) async {
@@ -18,6 +22,14 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        locale: const Locale('fr'),
+        supportedLocales: const [Locale('fr'), Locale('en')],
+        localizationsDelegates: const [
+          AppLocalization.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
         theme: AppTheme.light,
         home: Builder(
           builder: (context) => Scaffold(

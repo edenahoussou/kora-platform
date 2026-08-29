@@ -88,7 +88,7 @@ class _SeatsView extends StatelessWidget {
                         ? 'KORA BUS'
                         : '${departure.vehicleLabel} · '
                               '${departure.seatsTotal} places',
-                    title: 'Choisissez votre siège',
+                    title: context.l10n.seatsTitle,
                   ),
                   Expanded(
                     child: switch (state.status) {
@@ -121,7 +121,7 @@ class _SeatsContent extends StatelessWidget {
     return ListView(
       padding: EdgeInsets.zero,
       children: [
-        const BookingProgress(step: 3, label: 'Votre siège'),
+        BookingProgress(step: 3, label: context.l10n.seatsStep),
         const SizedBox(height: 11),
         const HoldCountdown(margin: EdgeInsets.only(bottom: 11)),
         SeatMap(
@@ -172,6 +172,7 @@ class _Checkout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final koraColors = context.koraColors;
+    final l10n = context.l10n;
 
     final labels = state.selectedSeats.map((seat) => seat.label).join(', ');
 
@@ -191,17 +192,20 @@ class _Checkout extends StatelessWidget {
               Expanded(
                 child: _CheckoutSlot(
                   label: state.passengers > 1
-                      ? 'Sièges sélectionnés'
-                      : 'Siège sélectionné',
+                      ? l10n.seatsSelectedMany
+                      : l10n.seatsSelectedOne,
                   value: labels.isEmpty
-                      ? 'Aucun siège · 0/${state.passengers}'
-                      : '$labels · ${state.selectedSeats.length}/'
-                            '${state.passengers}',
+                      ? l10n.seatsNone(state.passengers)
+                      : l10n.seatsChosen(
+                          labels,
+                          state.selectedSeats.length,
+                          state.passengers,
+                        ),
                 ),
               ),
               const SizedBox(width: 9),
               _CheckoutSlot(
-                label: 'Total',
+                label: l10n.seatsTotal,
                 value: state.total.formatted,
                 alignEnd: true,
               ),
@@ -285,7 +289,7 @@ class _ContinueButton extends StatelessWidget {
         }
 
         return KoraButton(
-          label: 'Continuer',
+          label: context.l10n.seatsContinue,
           // `.seat-checkout button { justify-content: space-between }` :
           // le libellé est calé à gauche, la flèche à droite.
           icon: Icons.arrow_forward_rounded,
@@ -361,14 +365,16 @@ class _SeatsError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return ListView(
       padding: EdgeInsets.zero,
       children: [
         StateView(
           icon: Icons.cloud_off_rounded,
-          title: 'Plan des sièges indisponible',
-          message: state.errorMessage ?? 'Une erreur inattendue est survenue.',
-          primaryLabel: 'Retour au départ',
+          title: l10n.seatsErrorTitle,
+          message: state.errorMessage ?? l10n.departuresErrorText,
+          primaryLabel: l10n.seatsErrorPrimary,
           onPrimary: () => Navigator.of(context).pop(),
         ),
       ],
@@ -381,15 +387,20 @@ class _MissingDeparture extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return ListView(
       padding: EdgeInsets.zero,
       children: [
-        const ScreenHeader(eyebrow: 'KORA BUS', title: 'Départ introuvable'),
+        ScreenHeader(
+          eyebrow: l10n.departuresEyebrow,
+          title: l10n.seatsMissingEyebrow,
+        ),
         StateView(
           icon: Icons.help_outline_rounded,
-          title: 'Ce départ n’est plus disponible',
-          message: 'Reprenez la recherche pour voir les départs du jour.',
-          primaryLabel: 'Retour aux départs',
+          title: l10n.seatsMissingTitle,
+          message: l10n.seatsMissingText,
+          primaryLabel: l10n.seatsMissingPrimary,
           onPrimary: () => Navigator.of(context).pop(),
         ),
       ],

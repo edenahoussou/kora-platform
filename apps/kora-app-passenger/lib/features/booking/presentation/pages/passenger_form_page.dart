@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../../core/utils/phone_number.dart';
@@ -93,14 +94,13 @@ class _PassengerFormPageState extends State<PassengerFormPage> {
   void _submit() {
     setState(() => _showErrors = true);
 
-    final invalid = _fields.any((fields) => fields.errors.isNotEmpty);
+    final l10n = context.l10n;
+    final invalid = _fields.any((fields) => fields.errorsFor(l10n).isNotEmpty);
     if (invalid) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(
-            content: Text('Complétez les champs signalés pour continuer.'),
-          ),
+          SnackBar(content: Text(context.l10n.passengersIncomplete)),
         );
       return;
     }
@@ -140,6 +140,7 @@ class _PassengerFormPageState extends State<PassengerFormPage> {
   @override
   Widget build(BuildContext context) {
     final koraColors = context.koraColors;
+    final l10n = context.l10n;
     final departure = widget.departure;
 
     if (departure == null || widget.seats.isEmpty) {
@@ -164,17 +165,17 @@ class _PassengerFormPageState extends State<PassengerFormPage> {
             children: [
               ScreenHeader(
                 eyebrow: _isInternational
-                    ? _lineLabel(departure)
+                    ? _lineLabel(l10n, departure)
                     : (count == 1 ? '1 passager' : '$count passagers'),
                 title: _isInternational
-                    ? 'Identités internationales'
-                    : 'Qui voyage ?',
+                    ? l10n.passengersTitleInternational
+                    : l10n.passengersTitle,
               ),
               Expanded(
                 child: ListView(
                   padding: EdgeInsets.zero,
                   children: [
-                    const BookingProgress(step: 4, label: 'Vos informations'),
+                    BookingProgress(step: 4, label: l10n.passengersStep),
                     const SizedBox(height: 11),
                     const HoldCountdown(margin: EdgeInsets.only(bottom: 11)),
                     for (final fields in _fields) ...[
@@ -191,10 +192,8 @@ class _PassengerFormPageState extends State<PassengerFormPage> {
                       variant: KoraCardVariant.mist,
                       child: Text(
                         _isInternational
-                            ? 'Ces informations servent au manifeste de '
-                                  'frontière.'
-                            : 'Ces informations seront associées uniquement '
-                                  'à ce billet.',
+                            ? l10n.passengersNoticeInternational
+                            : l10n.passengersNotice,
                         style: AppTextStyles.body(koraColors.textMuted),
                       ),
                     ),
@@ -220,7 +219,7 @@ class _PassengerFormPageState extends State<PassengerFormPage> {
                     }
                   },
                   builder: (context, hold) => KoraButton(
-                    label: 'Enregistrer et continuer',
+                    label: l10n.passengersSubmit,
                     isLoading: hold.passengersStatus == PassengersStatus.saving,
                     onPressed: _submit,
                   ),
@@ -258,7 +257,10 @@ class _PassengerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final koraColors = context.koraColors;
-    final errors = showErrors ? fields.errors : const <String, String>{};
+    final l10n = context.l10n;
+    final errors = showErrors
+        ? fields.errorsFor(l10n)
+        : const <String, String>{};
 
     return KoraCard(
       child: Column(
@@ -268,7 +270,7 @@ class _PassengerCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Passager ${fields.index + 1}',
+                context.l10n.passengersBlock(fields.index + 1),
                 style: AppTextStyles.eyebrow(koraColors.textMuted),
               ),
               _SeatBadge(label: seat.label),
@@ -276,21 +278,21 @@ class _PassengerCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           KoraInput(
-            label: 'Prénom',
+            label: l10n.passengersFirstName,
             controller: fields.firstName,
             errorText: errors['firstName'],
             onChanged: (_) => onChanged(),
           ),
           const SizedBox(height: AppSpacing.md),
           KoraInput(
-            label: 'Nom',
+            label: l10n.passengersLastName,
             controller: fields.lastName,
             errorText: errors['lastName'],
             onChanged: (_) => onChanged(),
           ),
           const SizedBox(height: AppSpacing.md),
           _PhoneField(
-            label: 'Téléphone',
+            label: l10n.passengersPhone,
             country: fields.country,
             controller: fields.phone,
             errorText: errors['phone'],
@@ -311,7 +313,7 @@ class _PassengerCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
           if (!international)
             KoraInput(
-              label: 'E-mail (optionnel)',
+              label: l10n.passengersEmail,
               controller: fields.email,
               keyboardType: TextInputType.emailAddress,
               errorText: errors['email'],
@@ -321,7 +323,7 @@ class _PassengerCard extends StatelessWidget {
             _DocumentTypeField(fields: fields, onChanged: onChanged),
             const SizedBox(height: AppSpacing.md),
             KoraInput(
-              label: 'Numéro du document',
+              label: l10n.passengersDocumentNumber,
               controller: fields.documentNumber,
               errorText: errors['documentNumber'],
               onChanged: (_) => onChanged(),
@@ -365,7 +367,7 @@ class _DocumentTypeField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _LabelledField(
-      label: 'Type de document',
+      label: context.l10n.passengersDocumentType,
       child: DropdownButtonFormField<TravelDocumentType>(
         initialValue: fields.documentType,
         isExpanded: true,
@@ -379,7 +381,7 @@ class _DocumentTypeField extends StatelessWidget {
             DropdownMenuItem(
               value: type,
               child: Text(
-                _documentLabel(type),
+                _documentLabel(context.l10n, type),
                 style: AppTextStyles.body(context.koraColors.textPrimary),
               ),
             ),
@@ -399,7 +401,7 @@ class _NationalityField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _LabelledField(
-      label: 'Nationalité',
+      label: context.l10n.passengersNationality,
       child: DropdownButtonFormField<String>(
         initialValue: fields.nationality,
         isExpanded: true,
@@ -447,7 +449,7 @@ class _BirthDateField extends StatelessWidget {
       // ici : on renseigne un voyageur, pas son propre compte.
       extra: BirthDateArgs(
         selected: fields.birthDate,
-        eyebrow: 'Passager ${fields.index + 1}',
+        eyebrow: context.l10n.passengersBlock(fields.index + 1),
       ),
     );
     if (picked == null) return;
@@ -462,7 +464,7 @@ class _BirthDateField extends StatelessWidget {
     final date = fields.birthDate;
 
     return _LabelledField(
-      label: 'Naissance',
+      label: context.l10n.passengersBirthDate,
       child: InkWell(
         onTap: () => _pick(context),
         borderRadius: BorderRadius.circular(AppRadius.input),
@@ -470,7 +472,7 @@ class _BirthDateField extends StatelessWidget {
           decoration: InputDecoration(errorText: errorText),
           child: Text(
             date == null
-                ? 'Choisir'
+                ? context.l10n.passengersBirthDateChoose
                 : KoraDateFormats.dayMonthYear.format(date),
             style: AppTextStyles.body(
               date == null ? koraColors.textMuted : koraColors.textPrimary,
@@ -516,22 +518,23 @@ class _LabelledField extends StatelessWidget {
 /// À défaut de code commercial — l'API ne le renvoie pas toujours — on
 /// nomme le trajet plutôt que d'afficher l'UUID de la ligne, que personne
 /// ne sait lire.
-String _lineLabel(Departure departure) {
+String _lineLabel(AppLocalization l10n, Departure departure) {
   final code = departure.line.code;
   final route = code == null
       ? '${departure.line.origin.name} → ${departure.line.destination.name}'
-      : 'Ligne $code';
+      : l10n.passengersLine(code);
 
-  return '$route · Données obligatoires';
+  return '$route · ${l10n.passengersEyebrowInternational}';
 }
 
-String _documentLabel(TravelDocumentType type) => switch (type) {
-  TravelDocumentType.passport => 'Passeport',
-  TravelDocumentType.nationalId => 'Carte d’identité',
-  TravelDocumentType.biometricCard => 'Carte biométrique',
-  TravelDocumentType.consularCard => 'Carte consulaire',
-  TravelDocumentType.cip => 'CIP',
-};
+String _documentLabel(AppLocalization l10n, TravelDocumentType type) =>
+    switch (type) {
+      TravelDocumentType.passport => l10n.passengersDocPassport,
+      TravelDocumentType.nationalId => l10n.passengersDocNationalId,
+      TravelDocumentType.biometricCard => l10n.passengersDocBiometric,
+      TravelDocumentType.consularCard => l10n.passengersDocConsular,
+      TravelDocumentType.cip => l10n.passengersDocCip,
+    };
 
 /// Les nationalités proposées, dans l'ordre de la maquette.
 ///
@@ -568,7 +571,7 @@ class _SeatBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
-        'Siège $label',
+        context.l10n.passengersSeat(label),
         style: const TextStyle(
           color: AppColors.kora,
           fontSize: 10,
@@ -625,33 +628,42 @@ class _PassengerFields {
 
   /// Un message par champ fautif, vide si la saisie est complète.
   ///
+  /// Prend la traduction en paramètre : ces champs vivent hors de l'arbre
+  /// de widgets et n'ont pas de `BuildContext` à interroger.
+  ///
   /// Le téléphone est exigé parce que c'est par lui que passent les avis
   /// de retard le jour du départ ; l'e-mail reste facultatif mais doit
   /// ressembler à une adresse s'il est renseigné.
-  Map<String, String> get errors {
+  Map<String, String> errorsFor(AppLocalization l10n) {
     final errors = <String, String>{};
 
-    if (firstName.text.trim().isEmpty) errors['firstName'] = 'Prénom requis';
-    if (lastName.text.trim().isEmpty) errors['lastName'] = 'Nom requis';
+    if (firstName.text.trim().isEmpty) {
+      errors['firstName'] = l10n.passengersFirstNameRequired;
+    }
+    if (lastName.text.trim().isEmpty) {
+      errors['lastName'] = l10n.passengersLastNameRequired;
+    }
 
     // La règle vient du pays choisi, jamais d'un seuil unique : le Bénin
     // attend dix chiffres ouverts par `01` depuis 2024, le Togo huit sans
     // préfixe imposé.
     final digits = phone.text.replaceAll(RegExp(r'\D'), '');
     if (digits.isEmpty) {
-      errors['phone'] = 'Téléphone requis';
+      errors['phone'] = l10n.passengersPhoneRequired;
     } else if (country.prefix.isNotEmpty &&
         !digits.startsWith(country.prefix)) {
-      errors['phone'] =
-          'Au ${country.name}, le numéro commence par ${country.prefix}';
+      errors['phone'] = l10n.passengersPhonePrefix(
+        country.name,
+        country.prefix,
+      );
     } else if (digits.length != country.digits) {
-      errors['phone'] = '${country.digits} chiffres attendus';
+      errors['phone'] = l10n.passengersPhoneLength(country.digits);
     }
 
     final mail = email.text.trim();
     if (mail.isNotEmpty &&
         !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(mail)) {
-      errors['email'] = 'Adresse e-mail invalide';
+      errors['email'] = l10n.passengersEmailInvalid;
     }
 
     if (!international) return errors;
@@ -660,9 +672,11 @@ class _PassengerFields {
     // sans eux le voyageur est refoulé au poste, et le manifeste que KORA
     // dépose serait incomplet.
     if (documentNumber.text.trim().isEmpty) {
-      errors['documentNumber'] = 'Numéro requis';
+      errors['documentNumber'] = l10n.passengersDocumentNumberRequired;
     }
-    if (birthDate == null) errors['birthDate'] = 'Date requise';
+    if (birthDate == null) {
+      errors['birthDate'] = l10n.passengersBirthDateRequired;
+    }
 
     return errors;
   }
@@ -702,17 +716,20 @@ class _MissingSelection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return ListView(
       padding: EdgeInsets.zero,
       children: [
-        const ScreenHeader(eyebrow: 'KORA BUS', title: 'Réservation perdue'),
+        ScreenHeader(
+          eyebrow: l10n.departuresEyebrow,
+          title: l10n.summaryMissingEyebrow,
+        ),
         StateView(
           icon: Icons.help_outline_rounded,
-          title: 'Aucun siège sélectionné',
-          message:
-              'Reprenez le choix des sièges pour renseigner les '
-              'voyageurs.',
-          primaryLabel: 'Retour au plan des sièges',
+          title: l10n.passengersMissingTitle,
+          message: l10n.passengersMissingText,
+          primaryLabel: l10n.passengersMissingPrimary,
           onPrimary: () => Navigator.of(context).pop(),
         ),
       ],
