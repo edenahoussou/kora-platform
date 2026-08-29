@@ -45,6 +45,7 @@ import '../../features/theme/data/datasources/theme_local_data_source.dart';
 import '../../features/theme/data/repositories/theme_repository_impl.dart';
 import '../../features/theme/domain/repositories/theme_repository.dart';
 import '../../features/theme/presentation/bloc/theme_bloc.dart';
+import '../../features/welcome/data/onboarding_store.dart';
 import '../constants/api_constants.dart';
 import '../constants/storage_keys.dart';
 import '../env/app_env.dart';
@@ -85,6 +86,10 @@ Future<void> setupInjector() async {
 Future<void> _registerExternalDependencies() async {
   final sharedPreferences = await SharedPreferences.getInstance();
   getIt.registerLazySingleton<SharedPreferences>(() => sharedPreferences);
+
+  // Lu par le garde de navigation à chaque changement de route : il doit
+  // répondre sans attendre, d'où la lecture synchrone de SharedPreferences.
+  getIt.registerLazySingleton<OnboardingStore>(() => OnboardingStore(getIt()));
 
   getIt.registerLazySingleton<FlutterSecureStorage>(
     () => const FlutterSecureStorage(),

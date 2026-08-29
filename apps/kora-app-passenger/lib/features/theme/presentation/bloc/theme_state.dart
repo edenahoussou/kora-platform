@@ -6,7 +6,10 @@ part of 'theme_bloc.dart';
 /// peut pas vraiment échouer — on garde donc les choses simples plutôt que
 /// d'ajouter de la complexité inutile.
 class ThemeState extends Equatable {
-  const ThemeState({this.mode = AppThemeMode.system});
+  /// Le clair au démarrage, le temps que la préférence stockée soit lue :
+  /// partir sur `system` faisait clignoter l'app en sombre sur un
+  /// téléphone réglé ainsi, avant de repasser au clair.
+  const ThemeState({this.mode = AppThemeMode.light});
 
   final AppThemeMode mode;
 
