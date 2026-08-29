@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 
+import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
 
@@ -43,9 +44,9 @@ class _PassengersPickerPageState extends State<PassengersPickerPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const ScreenHeader(
-                eyebrow: 'Réservation',
-                title: 'Combien de passagers ?',
+              ScreenHeader(
+                eyebrow: context.l10n.homePassengersEyebrow,
+                title: context.l10n.homePassengersTitle,
               ),
               Expanded(
                 child: ListView(
@@ -60,7 +61,7 @@ class _PassengersPickerPageState extends State<PassengersPickerPage> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  'Passagers',
+                                  context.l10n.homePassengersLabel,
                                   style: AppTextStyles.titleMedium(
                                     context.koraTitleColor,
                                   ),
@@ -90,9 +91,7 @@ class _PassengersPickerPageState extends State<PassengersPickerPage> {
                     KoraCard(
                       variant: KoraCardVariant.mist,
                       child: Text(
-                        'Chaque passager recevra un siège et un QR Code '
-                        'individuel. Un seul paiement couvre toute la '
-                        'réservation.',
+                        context.l10n.homePassengersNotice,
                         style: AppTextStyles.body(koraColors.textMuted),
                       ),
                     ),
@@ -106,24 +105,22 @@ class _PassengersPickerPageState extends State<PassengersPickerPage> {
                       children: [
                         Expanded(
                           child: KoraButton(
-                            label: 'Groupe 5–10',
+                            label: context.l10n.homePassengersGroup,
                             variant: KoraButtonVariant.secondary,
                             onPressed: () => _notAvailableYet(
                               context,
-                              'La réservation de groupe arrive après le '
-                              'MVP Bus.',
+                              context.l10n.homePassengersGroupSoon,
                             ),
                           ),
                         ),
                         const SizedBox(width: 9),
                         Expanded(
                           child: KoraButton(
-                            label: 'Compte entreprise',
+                            label: context.l10n.homePassengersBusiness,
                             variant: KoraButtonVariant.secondary,
                             onPressed: () => _notAvailableYet(
                               context,
-                              'Les comptes entreprise arrivent après le '
-                              'MVP Bus.',
+                              context.l10n.homePassengersBusinessSoon,
                             ),
                           ),
                         ),
@@ -136,9 +133,7 @@ class _PassengersPickerPageState extends State<PassengersPickerPage> {
               Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.lg),
                 child: KoraButton(
-                  label: _count == 1
-                      ? 'Continuer avec 1 passager'
-                      : 'Continuer avec $_count passagers',
+                  label: context.l10n.homePassengersConfirm(_count),
                   onPressed: () => Navigator.of(context).pop(_count),
                 ),
               ),

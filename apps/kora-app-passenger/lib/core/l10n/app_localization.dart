@@ -550,6 +550,115 @@ class AppLocalization {
   String get onboardingTicketPill => translate('onboarding_ticket_pill');
   String get onboardingTicketPillLead =>
       translate('onboarding_ticket_pill_lead');
+  String get homeDateTitle => translate('home_date_title');
+  String homeDateNotice(int months) =>
+      _withArgs('home_date_notice', {'months': months});
+  String homeDateConfirm(String date) =>
+      _withArgs('home_date_confirm', {'date': date});
+  String get homePassengersEyebrow => translate('home_passengers_eyebrow');
+  String get homePassengersTitle => translate('home_passengers_title');
+  String get homePassengersLabel => translate('home_passengers_label');
+  String get homePassengersNotice => translate('home_passengers_notice');
+  String get homePassengersGroup => translate('home_passengers_group');
+  String get homePassengersGroupSoon => translate('home_passengers_group_soon');
+  String get homePassengersBusiness => translate('home_passengers_business');
+  String get homePassengersBusinessSoon =>
+      translate('home_passengers_business_soon');
+  String homePassengersConfirm(int count) => _withArgs(
+    count > 1 ? 'home_passengers_confirm_plural' : 'home_passengers_confirm',
+    {'count': count},
+  );
+  String get priceAssuranceTitle => translate('price_assurance_title');
+  String get priceAssuranceText => translate('price_assurance_text');
+  String get seatsTitle => translate('seats_title');
+  String get seatsStep => translate('seats_step');
+  String get seatsSelectedOne => translate('seats_selected_one');
+  String get seatsSelectedMany => translate('seats_selected_many');
+  String seatsNone(int total) => _withArgs('seats_none', {'total': total});
+  String seatsChosen(String seats, int count, int total) => _withArgs(
+    'seats_chosen',
+    {'seats': seats, 'count': count, 'total': total},
+  );
+  String get seatsTotal => translate('seats_total');
+  String get seatsContinue => translate('seats_continue');
+  String get seatsErrorTitle => translate('seats_error_title');
+  String get seatsErrorPrimary => translate('seats_error_primary');
+  String get seatsMissingEyebrow => translate('seats_missing_eyebrow');
+  String get seatsMissingTitle => translate('seats_missing_title');
+  String get seatsMissingText => translate('seats_missing_text');
+  String get seatsMissingPrimary => translate('seats_missing_primary');
+  String get passengersTitle => translate('passengers_title');
+  String get passengersTitleInternational =>
+      translate('passengers_title_international');
+  String get passengersEyebrowInternational =>
+      translate('passengers_eyebrow_international');
+  String get passengersStep => translate('passengers_step');
+  String get passengersIncomplete => translate('passengers_incomplete');
+  String get passengersNotice => translate('passengers_notice');
+  String get passengersNoticeInternational =>
+      translate('passengers_notice_international');
+  String get passengersSubmit => translate('passengers_submit');
+  String passengersBlock(int index) =>
+      _withArgs('passengers_block', {'index': index});
+  String get passengersFirstName => translate('passengers_first_name');
+  String get passengersFirstNameRequired =>
+      translate('passengers_first_name_required');
+  String get passengersLastName => translate('passengers_last_name');
+  String get passengersLastNameRequired =>
+      translate('passengers_last_name_required');
+  String get passengersPhone => translate('passengers_phone');
+  String get passengersPhoneRequired => translate('passengers_phone_required');
+  String passengersPhonePrefix(String country, String prefix) => _withArgs(
+    'passengers_phone_prefix',
+    {'country': country, 'prefix': prefix},
+  );
+  String passengersPhoneLength(int digits) =>
+      _withArgs('passengers_phone_length', {'digits': digits});
+  String get passengersEmail => translate('passengers_email');
+  String get passengersEmailInvalid => translate('passengers_email_invalid');
+  String get passengersDocumentType => translate('passengers_document_type');
+  String get passengersDocumentNumber =>
+      translate('passengers_document_number');
+  String get passengersDocumentNumberRequired =>
+      translate('passengers_document_number_required');
+  String get passengersNationality => translate('passengers_nationality');
+  String get passengersBirthDate => translate('passengers_birth_date');
+  String get passengersBirthDateChoose =>
+      translate('passengers_birth_date_choose');
+  String get passengersBirthDateRequired =>
+      translate('passengers_birth_date_required');
+  String passengersSeat(String seat) =>
+      _withArgs('passengers_seat', {'seat': seat});
+  String passengersLine(String code) =>
+      _withArgs('passengers_line', {'code': code});
+  String get passengersDocPassport => translate('passengers_doc_passport');
+  String get passengersDocNationalId => translate('passengers_doc_national_id');
+  String get passengersDocBiometric => translate('passengers_doc_biometric');
+  String get passengersDocConsular => translate('passengers_doc_consular');
+  String get passengersDocCip => translate('passengers_doc_cip');
+  String get summaryEyebrow => translate('summary_eyebrow');
+  String get summaryTitle => translate('summary_title');
+  String get summaryPassengers => translate('summary_passengers');
+  String get summaryEdit => translate('summary_edit');
+  String get summaryPriceDetail => translate('summary_price_detail');
+  String get summaryServiceFee => translate('summary_service_fee');
+  String get summaryServiceFeeValue => translate('summary_service_fee_value');
+  String get summaryTotal => translate('summary_total');
+  String get summaryContinue => translate('summary_continue');
+  String summarySeatOne(String seats) =>
+      _withArgs('summary_seat_one', {'seats': seats});
+  String summarySeatMany(String seats) =>
+      _withArgs('summary_seat_many', {'seats': seats});
+  String summaryStation(String station) =>
+      _withArgs('summary_station', {'station': station});
+  String get summaryMissingTitle => translate('summary_missing_title');
+  String get summaryMissingText => translate('summary_missing_text');
+  String get summaryMissingPrimary => translate('summary_missing_primary');
+  String get summaryMissingEyebrow => translate('summary_missing_eyebrow');
+  String get passengersMissingTitle => translate('passengers_missing_title');
+  String get passengersMissingText => translate('passengers_missing_text');
+  String get passengersMissingPrimary =>
+      translate('passengers_missing_primary');
   String get seatsHoldEyebrow => translate('seats_hold_eyebrow');
   String seatsHoldCountdown(String time) =>
       _withArgs('seats_hold_countdown', {'time': time});

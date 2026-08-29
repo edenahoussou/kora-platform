@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 
+import '../../../../core/l10n/app_localization.dart';
+
 import '../../../../core/utils/title_color.dart';
 
 /// `.price-assurance` : le rappel « Prix affichés définitifs » en tête des
@@ -42,7 +44,7 @@ class PriceAssuranceBanner extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Prix affichés définitifs',
+                  context.l10n.priceAssuranceTitle,
                   style: TextStyle(
                     color: context.koraTitleColor,
                     fontSize: 12,
@@ -51,7 +53,7 @@ class PriceAssuranceBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Les éventuelles règles de remplissage sont déjà incluses.',
+                  context.l10n.priceAssuranceText,
                   style: TextStyle(color: koraColors.textMuted, fontSize: 10),
                 ),
               ],
