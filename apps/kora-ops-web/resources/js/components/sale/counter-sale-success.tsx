@@ -77,7 +77,10 @@ export function CounterSaleSuccess({
                     ))}
                 </div>
 
-                <aside className="success-action-rail ticket-screen-only" aria-label="Actions du billet">
+                <aside
+                    className="success-action-rail ticket-screen-only"
+                    aria-label="Actions du billet"
+                >
                     <div className="action-rail-heading">
                         <span>Actions</span>
                         <small>Après encaissement</small>
@@ -121,7 +124,9 @@ export function CounterSaleSuccess({
                             <Plus size={18} strokeWidth={1.7} />
                         </span>
                         <span className="action-rail-label">
-                            <strong>{releasing ? 'Libération…' : 'Nouvelle vente'}</strong>
+                            <strong>
+                                {releasing ? 'Libération…' : 'Nouvelle vente'}
+                            </strong>
                             <small>Revenir au guichet</small>
                         </span>
                     </button>
@@ -149,9 +154,10 @@ function TicketCard({
     const passenger = reservation.passengers.find(
         (item) => item.uuid === ticket.passengerUuid,
     );
-    const ticketAmount = ticketCount(reservation) > 0
-        ? Math.round(reservation.totalAmount / ticketCount(reservation))
-        : reservation.totalAmount;
+    const ticketAmount =
+        ticketCount(reservation) > 0
+            ? Math.round(reservation.totalAmount / ticketCount(reservation))
+            : reservation.totalAmount;
 
     return (
         <article className="ticket-card compact-ticket">
@@ -172,7 +178,9 @@ function TicketCard({
                 </i>
                 <span>
                     <b>{stopCode(departure?.destinationStop.city)}</b>
-                    <small>{departure?.destinationStop.city ?? 'Arrivée'}</small>
+                    <small>
+                        {departure?.destinationStop.city ?? 'Arrivée'}
+                    </small>
                 </span>
             </div>
 
@@ -180,18 +188,31 @@ function TicketCard({
                 <div className="ticket-grid">
                     <TicketField
                         label="Passager"
-                        value={passenger ? `${passenger.firstName} ${passenger.lastName}` : '—'}
+                        value={
+                            passenger
+                                ? `${passenger.firstName} ${passenger.lastName}`
+                                : '—'
+                        }
                     />
                     <TicketField
                         label="Date"
-                        value={formatTicketDate(departure?.departureDate ?? null)}
+                        value={formatTicketDate(
+                            departure?.departureDate ?? null,
+                        )}
                     />
                     <TicketField
                         label="Départ estimé"
-                        value={departure ? `${departure.line.code} · ${formatTime(departure.departureTime)}` : '—'}
+                        value={
+                            departure
+                                ? `${departure.line.code} · ${formatTime(departure.departureTime)}`
+                                : '—'
+                        }
                     />
                     <TicketField label="Siège" value={ticket.seatCode ?? '—'} />
-                    <TicketField label="Numéro billet" value={shortUuid(ticket.ticketNumber)} />
+                    <TicketField
+                        label="Numéro billet"
+                        value={shortUuid(ticket.ticketNumber)}
+                    />
                     <TicketField
                         label="Montant"
                         value={formatMoney(ticketAmount, reservation.currency)}
@@ -199,11 +220,19 @@ function TicketCard({
                     <TicketField label="Code court" value={ticket.shortCode} />
                     <TicketField
                         label="Numéro MECeF"
-                        value={fiscalization?.mecefUid ?? fiscalization?.koraReference ?? 'En attente'}
+                        value={
+                            fiscalization?.mecefUid ??
+                            fiscalization?.koraReference ??
+                            'En attente'
+                        }
                     />
                 </div>
                 <div className="ticket-qr" aria-label="QR Code billet">
-                    {qrValue ? <ReceiptQr value={qrValue} /> : <span>QR indisponible</span>}
+                    {qrValue ? (
+                        <ReceiptQr value={qrValue} />
+                    ) : (
+                        <span>QR indisponible</span>
+                    )}
                     <small>{ticket.shortCode}</small>
                 </div>
             </div>
@@ -211,7 +240,8 @@ function TicketCard({
             <div className="ticket-code">
                 <span aria-hidden="true" />
                 <b>
-                    Achat guichet définitif · Agence {payment?.agencyCode ?? '—'}
+                    Achat guichet définitif · Agence{' '}
+                    {payment?.agencyCode ?? '—'}
                 </b>
                 <span aria-hidden="true" />
             </div>
@@ -260,7 +290,12 @@ function paymentLabel(payment: SaleReservation['payment']): string {
 }
 
 function stopCode(city: string | undefined): string {
-    return city ? city.replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase() : '—';
+    return city
+        ? city
+              .replace(/[^a-zA-Z]/g, '')
+              .slice(0, 3)
+              .toUpperCase()
+        : '—';
 }
 
 function formatTicketDate(value: string | null): string {

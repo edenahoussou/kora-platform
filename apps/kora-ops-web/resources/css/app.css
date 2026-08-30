@@ -2548,7 +2548,8 @@
         place-content: center;
         transform: rotate(4deg);
         border-radius: 2rem;
-        outline: 1px solid color-mix(in srgb, var(--receipt-coral) 20%, transparent);
+        outline: 1px solid
+            color-mix(in srgb, var(--receipt-coral) 20%, transparent);
         background: color-mix(in srgb, var(--receipt-coral) 10%, transparent);
         color: var(--receipt-coral);
         text-align: center;
@@ -2589,7 +2590,8 @@
         border-radius: 2rem;
         outline: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
         background: color-mix(in srgb, var(--foreground) 4%, transparent);
-        box-shadow: 0 2rem 5rem color-mix(in srgb, var(--foreground) 10%, transparent);
+        box-shadow: 0 2rem 5rem
+            color-mix(in srgb, var(--foreground) 10%, transparent);
     }
 
     .receipt-paper {
@@ -2694,7 +2696,11 @@
     .receipt-perforation {
         height: 0.5rem;
         margin: 0 -1.35rem 1.2rem;
-        background-image: radial-gradient(circle, rgb(23 34 31 / 30%) 1px, transparent 1.5px);
+        background-image: radial-gradient(
+            circle,
+            rgb(23 34 31 / 30%) 1px,
+            transparent 1.5px
+        );
         background-position: center;
         background-size: 7px 7px;
         opacity: 0.6;
