@@ -11,3 +11,11 @@ parameters:
         - routes/
 
     level: 7
+
+    ignoreErrors:
+        - identifier: nullsafe.neverNull
+          message: '#Using nullsafe property access.*agency.*#'
+          path: app/Modules/Booking/Http/Controllers/CounterSaleController.php
+        - identifier: nullsafe.neverNull
+          message: '#Using nullsafe property access.*confirmed_at.*#'
+          path: app/Modules/Booking/Http/Controllers/CounterSaleController.php

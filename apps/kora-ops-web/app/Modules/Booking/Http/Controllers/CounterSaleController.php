@@ -491,8 +491,8 @@ class CounterSaleController extends Controller
             ->sortByDesc('id')
             ->first();
         $agent = $payment?->verifier;
-        $agency = $agent->agency ?? auth()->user()?->agency;
-        $confirmedAt = $payment->confirmed_at ?? $payment->verified_at;
+        $agency = $agent?->agency ?? auth()->user()?->agency;
+        $confirmedAt = $payment?->confirmed_at ?? $payment?->verified_at;
         $reservationCode = Str::upper(Str::substr(str_replace('-', '', $reservation->uuid), 0, 8));
         $fiscalInvoice = FiscalInvoice::query()
             ->where('reservation_id', $reservation->getKey())
