@@ -184,7 +184,7 @@ endpoints:
         name: uuid
         description: ''
         required: true
-        example: f3e58eb2-66aa-4fee-9e98-f5dd59054e7e
+        example: 64395134-391d-47cd-8c6f-a9a67b997b87
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -202,7 +202,7 @@ endpoints:
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      uuid: f3e58eb2-66aa-4fee-9e98-f5dd59054e7e
+      uuid: 64395134-391d-47cd-8c6f-a9a67b997b87
       line: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
     queryParameters: []
     cleanQueryParameters: []
@@ -386,7 +386,7 @@ endpoints:
         name: date
         description: 'Must be a valid date in the format <code>Y-m-d</code>.'
         required: true
-        example: '2026-08-26'
+        example: '2026-08-30'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -395,7 +395,7 @@ endpoints:
       line:
         custom: []
         name: line
-        description: 'validation.uuid Must match an existing stored value.'
+        description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
         required: false
         example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
         type: string
@@ -428,7 +428,7 @@ endpoints:
       origin_city:
         custom: []
         name: origin_city
-        description: validation.max.
+        description: 'Le champ value ne doit pas dépasser 120 caractères.'
         required: false
         example: m
         type: string
@@ -439,7 +439,7 @@ endpoints:
       destination_city:
         custom: []
         name: destination_city
-        description: validation.max.
+        description: 'Le champ value ne doit pas dépasser 120 caractères.'
         required: false
         example: i
         type: string
@@ -450,7 +450,7 @@ endpoints:
       per_page:
         custom: []
         name: per_page
-        description: 'validation.min validation.max.'
+        description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 50.'
         required: false
         example: 8
         type: integer
@@ -461,7 +461,7 @@ endpoints:
       page:
         custom: []
         name: page
-        description: validation.min.
+        description: 'Le champ value doit être au moins 1.'
         required: false
         example: 16
         type: integer
@@ -470,7 +470,7 @@ endpoints:
         nullable: true
         deprecated: false
     cleanBodyParameters:
-      date: '2026-08-26'
+      date: '2026-08-30'
       line: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
       from: g
       to: z
@@ -510,8 +510,13 @@ endpoints:
                   "model": "Coach 55",
                   "seat_count": 55,
                   "layout": [
-                    {"type": "row", "codes": ["1A", "1B", "1C", "1D"]},
-                    {"type": "row", "codes": ["2A", "2B", "2C", "2D"]}
+                    {"type": "standard", "codes": ["1A", "1B", "1C", "1D"]},
+                    {"type": "standard", "codes": ["2A", "2B", "2C", "2D"]}
+                  ],
+                  "amenities": [
+                    {"uuid": "a1b2c3d4-0000-0000-0000-000000000001", "code": "wifi", "label": "Wi-Fi à bord", "icon": "wifi"},
+                    {"uuid": "a1b2c3d4-0000-0000-0000-000000000002", "code": "air_conditioning", "label": "Climatisation", "icon": "snowflake"},
+                    {"uuid": "a1b2c3d4-0000-0000-0000-000000000003", "code": "usb_charging", "label": "Prises USB", "icon": "usb"}
                   ]
                 },
                 "origin_stop": {
@@ -604,7 +609,7 @@ endpoints:
         name: uuid
         description: ''
         required: true
-        example: 48cc889a-8518-4cb2-b4ec-13e225ad597b
+        example: 9b153f9b-a746-479d-8d1e-430bdeebb816
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -622,7 +627,7 @@ endpoints:
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      uuid: 48cc889a-8518-4cb2-b4ec-13e225ad597b
+      uuid: 9b153f9b-a746-479d-8d1e-430bdeebb816
       departure: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
     queryParameters:
       from:
@@ -707,8 +712,13 @@ endpoints:
                 "model": "Coach 55",
                 "seat_count": 55,
                 "layout": [
-                  {"type": "row", "codes": ["1A", "1B", "1C", "1D"]},
-                  {"type": "row", "codes": ["2A", "2B", "2C", "2D"]}
+                  {"type": "standard", "codes": ["1A", "1B", "1C", "1D"]},
+                  {"type": "standard", "codes": ["2A", "2B", "2C", "2D"]}
+                ],
+                "amenities": [
+                  {"uuid": "a1b2c3d4-0000-0000-0000-000000000001", "code": "wifi", "label": "Wi-Fi à bord", "icon": "wifi"},
+                  {"uuid": "a1b2c3d4-0000-0000-0000-000000000002", "code": "air_conditioning", "label": "Climatisation", "icon": "snowflake"},
+                  {"uuid": "a1b2c3d4-0000-0000-0000-000000000003", "code": "usb_charging", "label": "Prises USB", "icon": "usb"}
                 ]
               },
               "origin_stop": {
@@ -784,7 +794,7 @@ endpoints:
         name: departure_uuid
         description: ''
         required: true
-        example: 48cc889a-8518-4cb2-b4ec-13e225ad597b
+        example: 9b153f9b-a746-479d-8d1e-430bdeebb816
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -802,7 +812,7 @@ endpoints:
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      departure_uuid: 48cc889a-8518-4cb2-b4ec-13e225ad597b
+      departure_uuid: 9b153f9b-a746-479d-8d1e-430bdeebb816
       departure: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
     queryParameters:
       origin_stop_uuid:
@@ -1383,7 +1393,7 @@ endpoints:
         name: 'passengers[].document_type'
         description: ''
         required: false
-        example: birth_certificate
+        example: biometric_card
         type: string
         enumValues:
           - national_id
@@ -1421,7 +1431,7 @@ endpoints:
         name: 'passengers[].birth_date'
         description: 'Must be a valid date in the format <code>Y-m-d</code>.'
         required: false
-        example: '2026-08-26'
+        example: '2026-08-30'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -1444,10 +1454,10 @@ endpoints:
           last_name: 'n'
           phone: g
           email: rowan.gulgowski@example.com
-          document_type: birth_certificate
+          document_type: biometric_card
           document_number: d
           nationality: lj
-          birth_date: '2026-08-26'
+          birth_date: '2026-08-30'
           seat_uuid: c3b6b42e-3a0f-3935-b28d-cb767f8a2a0a
     fileParameters: []
     responses:

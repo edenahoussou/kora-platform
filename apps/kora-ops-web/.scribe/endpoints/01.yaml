@@ -105,7 +105,7 @@ endpoints:
         name: purpose
         description: ''
         required: true
-        example: account_unlock
+        example: registration
         type: string
         enumValues:
           - registration
@@ -128,7 +128,7 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       otp_challenge_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-      purpose: account_unlock
+      purpose: registration
       code: '569775'
     fileParameters: []
     responses: []
@@ -337,7 +337,7 @@ endpoints:
         name: platform
         description: ''
         required: true
-        example: android
+        example: ios
         type: string
         enumValues:
           - android
@@ -374,7 +374,7 @@ endpoints:
       verification_token: gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn
       pin: '9775'
       device_name: 'n'
-      platform: android
+      platform: ios
       device_fingerprint: g
       push_token: z
     fileParameters: []
@@ -556,7 +556,7 @@ endpoints:
         name: provider
         description: ''
         required: true
-        example: google
+        example: tiktok
         type: string
         enumValues:
           - google
@@ -592,7 +592,7 @@ endpoints:
         name: platform
         description: ''
         required: true
-        example: android
+        example: web
         type: string
         enumValues:
           - android
@@ -625,10 +625,10 @@ endpoints:
         nullable: true
         deprecated: false
     cleanBodyParameters:
-      provider: google
+      provider: tiktok
       provider_token: b
       device_name: 'n'
-      platform: android
+      platform: web
       device_fingerprint: g
       push_token: z
     fileParameters: []
@@ -827,7 +827,7 @@ endpoints:
         name: birth_date
         description: 'Le champ value doit être une date valide. Le champ value doit être une date antérieure à <code>today</code>.'
         required: false
-        example: '2022-09-19'
+        example: '2022-09-24'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -838,7 +838,7 @@ endpoints:
       email: zbailey@example.net
       phone: iyvdljnikhwaykcm
       country_code: yuwp
-      birth_date: '2022-09-19'
+      birth_date: '2022-09-24'
     fileParameters: []
     responses: []
     responseFields: []
@@ -966,7 +966,7 @@ endpoints:
         name: push_notifications
         description: ''
         required: false
-        example: true
+        example: false
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -988,7 +988,7 @@ endpoints:
         name: email_notifications
         description: ''
         required: false
-        example: false
+        example: true
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -1012,7 +1012,7 @@ endpoints:
         name: theme
         description: ''
         required: false
-        example: system
+        example: dark
         type: string
         enumValues:
           - light
@@ -1024,9 +1024,9 @@ endpoints:
     cleanBodyParameters:
       push_notifications: false
       whatsapp_notifications: true
-      email_notifications: false
+      email_notifications: true
       locale: fr
-      theme: system
+      theme: dark
     fileParameters: []
     responses: []
     responseFields: []
