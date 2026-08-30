@@ -4,7 +4,6 @@ import type { SyntheticEvent } from 'react';
 import { toast } from 'sonner';
 import { sale } from '@/routes';
 import {
-    draft,
     hold,
     passengers,
     payment,
@@ -67,13 +66,6 @@ export function useCounterSale(props: SaleProps) {
         ...queryFrom(searchForm.data, props.selectedDeparture),
         passengers: [],
     });
-    const draftForm = useForm<{
-        passengers: ReturnType<typeof passengerToSnakeCase>[];
-    }>({
-        passengers: [],
-    });
-    const transformDraft = draftForm.transform;
-    const patchDraft = draftForm.patch;
     const releaseForm = useForm({
         ...queryFrom(props.search, props.selectedDeparture),
         quote_uuid: props.quote?.uuid ?? undefined,
@@ -157,22 +149,6 @@ export function useCounterSale(props: SaleProps) {
             onSuccess,
         });
     };
-    const saveDraft = useCallback(
-        (
-            reservationUuid: string,
-            passengerData: SalePassengerForm[],
-            onSuccess?: () => void,
-        ) => {
-            transformDraft(() => ({
-                passengers: passengerData.map(passengerToSnakeCase),
-            }));
-            patchDraft(draft.url(reservationUuid), {
-                preserveScroll: true,
-                onSuccess,
-            });
-        },
-        [patchDraft, transformDraft],
-    );
     const releaseHold = (
         reservationUuid: string,
         options: {
@@ -225,7 +201,6 @@ export function useCounterSale(props: SaleProps) {
         quoteForm,
         holdForm,
         passengersForm,
-        draftForm,
         releaseForm,
         paymentForm,
         search,
@@ -233,7 +208,6 @@ export function useCounterSale(props: SaleProps) {
         calculateQuote,
         holdSeats,
         savePassengers,
-        saveDraft,
         releaseHold,
         recordPayment,
     };
