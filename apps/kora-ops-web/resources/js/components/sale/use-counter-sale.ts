@@ -2,13 +2,7 @@ import { router, useForm } from '@inertiajs/react';
 import type { SyntheticEvent } from 'react';
 import { toast } from 'sonner';
 import { sale } from '@/routes';
-import {
-    hold,
-    passengers,
-    payment,
-    quote,
-    release,
-} from '@/routes/sale';
+import { hold, passengers, payment, quote, release } from '@/routes/sale';
 import type { CounterSalePaymentPayload } from './payment-step';
 import type {
     SaleDeparture,
@@ -187,7 +181,9 @@ export function useCounterSale(props: SaleProps) {
                     errorRecord?.idempotency_key ??
                     errorRecord?.method ??
                     (errorRecord
-                        ? Object.values(errorRecord).find((v) => typeof v === 'string')
+                        ? Object.values(errorRecord).find(
+                              (v) => typeof v === 'string',
+                          )
                         : null) ??
                     'Le paiement n’a pas pu être enregistré. Réessayez.';
                 toast.error(message);
