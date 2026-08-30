@@ -1,9 +1,31 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import { ArrowUpRight, BusFront, CircleCheck } from 'lucide-react';
 import { networkReadings } from '@/components/dashboard/dashboard-data';
 import { reports, sale } from '@/routes';
+import type { Auth } from '@/types/auth';
+
+const LONG_DATE_FORMATTER = new Intl.DateTimeFormat('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+});
+
+function greetingFor(hour: number): string {
+    if (hour < 18) {
+        return 'Bonjour';
+    }
+
+    return 'Bonsoir';
+}
 
 export function DashboardHero() {
+    const { auth } = usePage().props as { auth: Auth };
+    const user = auth?.user ?? null;
+    const now = new Date();
+    const longDate = LONG_DATE_FORMATTER.format(now);
+    const greeting = greetingFor(now.getHours());
+    const firstName = user?.name?.split(' ')[0] ?? '';
+
     return (
         <section className="kora-dashboard-hero relative isolate min-h-[20rem] overflow-hidden rounded-[1.75rem] bg-[var(--kora)] px-6 py-7 text-white shadow-[0_28px_65px_rgba(0,29,78,0.22)] ring-1 ring-black/10 sm:px-8 sm:py-8 lg:grid lg:grid-cols-[minmax(0,1.3fr)_minmax(23rem,0.7fr)] lg:items-center lg:gap-8 lg:px-10 dark:ring-white/10">
             <div className="pointer-events-none absolute -right-28 -bottom-48 -z-10 size-[34rem] rounded-full border border-gold/20 sm:-right-20" />
@@ -12,10 +34,10 @@ export function DashboardHero() {
             <div className="relative z-10 flex flex-col justify-between gap-8">
                 <div>
                     <span className="mb-3 block text-[0.625rem] font-black tracking-[0.18em] text-gold uppercase">
-                        Réseau KORA · mercredi 29 juillet
+                        Réseau KORA · {longDate}
                     </span>
                     <h1 className="max-w-6xl text-[clamp(2.125rem,3.5vw,3.3125rem)] leading-[1.02] font-extrabold tracking-[-0.045em] text-balance">
-                        Bonjour Aïcha,
+                        {greeting} {firstName},
                         <br />
                         <em className="font-normal text-gold not-italic">
                             le réseau est sous contrôle.

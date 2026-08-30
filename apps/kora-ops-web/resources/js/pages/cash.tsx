@@ -4,19 +4,18 @@ import {
     ArrowUpRight,
     Banknote,
     Check,
-    CheckCircle2,
     ChevronRight,
     CircleAlert,
+    Download,
     FileCheck2,
-    HandCoins,
-    History,
+    Search,
     Plus,
     Smartphone,
+    SlidersHorizontal,
     Upload,
-    WalletCards,
     X,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { CashOpeningDialog } from '@/components/cash/cash-opening-dialog';
 import type {
     SaleCashLedger,
@@ -65,6 +64,11 @@ const networkLabels: Record<string, string> = {
     moov_flooz: 'Moov Money / Flooz',
     celtiis_cash: 'Celtiis Cash',
 };
+const networkBrands: Record<string, { key: string; mark: string }> = {
+    mtn_momo: { key: 'mtn', mark: 'MTN' },
+    moov_flooz: { key: 'moov', mark: 'moov' },
+    celtiis_cash: { key: 'celtiis', mark: 'celtiis' },
+};
 const statusLabels: Record<string, string> = {
     open: 'Ouverte',
     pending_approval: 'En attente d’approbation',
@@ -76,6 +80,213 @@ const statusLabels: Record<string, string> = {
     reversed: 'Contrepassé',
 };
 
+const movementTypeLabels: Record<string, string> = {
+    counter_sale: 'Vente guichet',
+    mobile_money_payment: 'Paiement Mobile Money',
+    cash_payment: 'Paiement espèces',
+    reversement: 'Reversement',
+    adjustment: 'Ajustement',
+};
+
+const postedStatuses = new Set(['posted', 'approved']);
+
+function buildDemoMovements(): CashMovement[] {
+    const seeds = [
+        {
+            type: 'counter_sale',
+            direction: 'in' as const,
+            amount: 12500,
+            ledgerUuid: 'demo-ledger-cash',
+            reference: 'KORA-240828-001',
+            destinationLabel: null,
+            status: 'posted' as const,
+        },
+        {
+            type: 'mobile_money_payment',
+            direction: 'in' as const,
+            amount: 18500,
+            ledgerUuid: 'demo-ledger-mtn',
+            reference: 'MTN-884201',
+            destinationLabel: 'MTN MoMo',
+            status: 'posted' as const,
+        },
+        {
+            type: 'counter_sale',
+            direction: 'in' as const,
+            amount: 22000,
+            ledgerUuid: 'demo-ledger-cash',
+            reference: 'KORA-240828-003',
+            destinationLabel: null,
+            status: 'posted' as const,
+        },
+        {
+            type: 'mobile_money_payment',
+            direction: 'in' as const,
+            amount: 9500,
+            ledgerUuid: 'demo-ledger-moov',
+            reference: 'FLOOZ-441902',
+            destinationLabel: 'Moov Money / Flooz',
+            status: 'approved' as const,
+        },
+        {
+            type: 'reversement',
+            direction: 'out' as const,
+            amount: 50000,
+            ledgerUuid: 'demo-ledger-cash',
+            reference: 'REV-240828-01',
+            destinationLabel: 'Trésorerie agence',
+            status: 'pending' as const,
+        },
+        {
+            type: 'counter_sale',
+            direction: 'in' as const,
+            amount: 15000,
+            ledgerUuid: 'demo-ledger-cash',
+            reference: 'KORA-240828-006',
+            destinationLabel: null,
+            status: 'posted' as const,
+        },
+        {
+            type: 'mobile_money_payment',
+            direction: 'in' as const,
+            amount: 27500,
+            ledgerUuid: 'demo-ledger-moov',
+            reference: 'FLOOZ-441917',
+            destinationLabel: 'Moov Money / Flooz',
+            status: 'posted' as const,
+        },
+        {
+            type: 'adjustment',
+            direction: 'out' as const,
+            amount: 3000,
+            ledgerUuid: 'demo-ledger-cash',
+            reference: 'AJU-240828-01',
+            destinationLabel: 'Fonds de caisse',
+            status: 'approved' as const,
+        },
+    ];
+
+    return Array.from({ length: 120 }, (_, index) => {
+        const seed = seeds[index % seeds.length];
+        const hour = 7 + ((index * 3) % 10);
+        const minute = (index * 11) % 60;
+        const date = new Date('2026-08-28T00:00:00+01:00');
+        date.setHours(hour, minute, 0, 0);
+
+        return {
+            uuid: `demo-movement-${index + 1}`,
+            ...seed,
+            amount: seed.amount + (index % 5) * 500,
+            reference: `${seed.reference}-${String(index + 1).padStart(3, '0')}`,
+            occurredAt: date.toISOString(),
+            media: [],
+        };
+    });
+}
+
+const demoSession: CashSessionPage = {
+    isOpen: true,
+    canOpen: false,
+    uuid: 'demo-cash-session',
+    businessDate: '2026-08-28',
+    totalCash: 877500,
+    totalMobileMoney: 1157500,
+    status: 'open',
+    openedAt: '2026-08-28T07:32:00+01:00',
+    agentName: 'Aïcha Koudjo',
+    agencyName: 'Agence Cotonou — Étoile Rouge',
+    ledgers: [
+        {
+            uuid: 'demo-ledger-cash',
+            kind: 'cash',
+            status: 'open',
+            openingBalance: 150000,
+            expectedBalance: 877500,
+            actualBalance: null,
+            variance: null,
+            account: null,
+        },
+        {
+            uuid: 'demo-ledger-mtn',
+            kind: 'mobile_money',
+            status: 'open',
+            openingBalance: 200000,
+            expectedBalance: 492500,
+            actualBalance: null,
+            variance: null,
+            account: {
+                uuid: 'demo-account-mtn',
+                network: 'mtn_momo',
+                label: 'Compte principal',
+                accountIdentifier: '•••• 4821',
+            },
+        },
+        {
+            uuid: 'demo-ledger-moov',
+            kind: 'mobile_money',
+            status: 'open',
+            openingBalance: 80000,
+            expectedBalance: 665000,
+            actualBalance: null,
+            variance: null,
+            account: {
+                uuid: 'demo-account-moov',
+                network: 'moov_flooz',
+                label: 'Compte agence',
+                accountIdentifier: '•••• 9056',
+            },
+        },
+        {
+            uuid: 'demo-ledger-celtiis',
+            kind: 'mobile_money',
+            status: 'open',
+            openingBalance: 50000,
+            expectedBalance: 210000,
+            actualBalance: null,
+            variance: null,
+            account: {
+                uuid: 'demo-account-celtiis',
+                network: 'celtiis_cash',
+                label: 'Compte agence',
+                accountIdentifier: '•••• 1374',
+            },
+        },
+    ],
+    movements: buildDemoMovements(),
+};
+
+function formatMovementType(type: string): string {
+    return movementTypeLabels[type] ?? type.replaceAll('_', ' ');
+}
+
+function formatDateTime(value: string | null): string {
+    if (!value) {
+        return '—';
+    }
+
+    return new Intl.DateTimeFormat('fr-FR', {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+    }).format(new Date(value));
+}
+
+function getMovementChannel(
+    movement: CashMovement,
+    session: CashSessionPage,
+): string {
+    const ledger = session.ledgers.find(
+        (item) => item.uuid === movement.ledgerUuid,
+    );
+
+    if (ledger?.kind === 'cash') {
+        return 'Espèces';
+    }
+
+    return networkLabels[ledger?.account?.network ?? ''] ?? 'Mobile Money';
+}
+
 export default function CashPage({
     cashSession,
     mobileMoneyAccounts,
@@ -84,63 +295,320 @@ export default function CashPage({
     const [openingOpen, setOpeningOpen] = useState(false);
     const [closingOpen, setClosingOpen] = useState(false);
     const [movementOpen, setMovementOpen] = useState(false);
+    const [query, setQuery] = useState('');
+    const [channel, setChannel] = useState('all');
+    const [status, setStatus] = useState('all');
+    const [direction, setDirection] = useState('all');
+    const [page, setPage] = useState(1);
+
+    const isDemoSession = cashSession === null;
+    const session = cashSession ?? demoSession;
+    const filteredMovements = useMemo(() => {
+        const normalizedQuery = query.trim().toLowerCase();
+
+        return session.movements.filter((movement) => {
+            const movementChannel = getMovementChannel(movement, session);
+            const matchesQuery =
+                normalizedQuery === '' ||
+                [
+                    formatMovementType(movement.type),
+                    movement.reference ?? '',
+                    movement.destinationLabel ?? '',
+                    movementChannel,
+                ].some((value) =>
+                    value.toLowerCase().includes(normalizedQuery),
+                );
+
+            return (
+                matchesQuery &&
+                (channel === 'all' || movementChannel === channel) &&
+                (status === 'all' || movement.status === status) &&
+                (direction === 'all' || movement.direction === direction)
+            );
+        });
+    }, [channel, direction, query, session, status]);
+
+    const pageSize = 8;
+    const totalPages = Math.max(
+        1,
+        Math.ceil(filteredMovements.length / pageSize),
+    );
+    const visibleMovements = filteredMovements.slice(
+        (page - 1) * pageSize,
+        page * pageSize,
+    );
+    const ledgerCards = [...session.ledgers].sort((first, second) => {
+        if (first.kind === 'cash') {
+            return -1;
+        }
+
+        if (second.kind === 'cash') {
+            return 1;
+        }
+
+        return 0;
+    });
+    const totalExpected = session.ledgers.reduce(
+        (total, ledger) => total + ledger.expectedBalance,
+        0,
+    );
+    const resetFilters = () => {
+        setQuery('');
+        setChannel('all');
+        setStatus('all');
+        setDirection('all');
+        setPage(1);
+    };
+
+    const exportMovements = () => {
+        const rows = [
+            [
+                'Date',
+                'Nature',
+                'Canal',
+                'Référence',
+                'Sens',
+                'Statut',
+                'Montant',
+            ],
+            ...filteredMovements.map((movement) => [
+                formatDateTime(movement.occurredAt),
+                formatMovementType(movement.type),
+                getMovementChannel(movement, session),
+                movement.reference ?? '',
+                movement.direction === 'in' ? 'Encaissement' : 'Sortie',
+                statusLabels[movement.status] ?? movement.status,
+                String(movement.amount),
+            ]),
+        ];
+        const csv = `\ufeff${rows
+            .map((row) =>
+                row.map((cell) => `"${cell.replaceAll('"', '""')}"`).join(';'),
+            )
+            .join('\n')}`;
+        const url = URL.createObjectURL(
+            new Blob([csv], { type: 'text/csv;charset=utf-8' }),
+        );
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `encaissements-${session.businessDate ?? 'jour'}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+    };
 
     return (
         <>
             <Head title="Caisse journalière" />
-            <div className="kora-page-head mb-6 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                    <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
-                        KORA OPS / Finance / Caisse
+            <div className="cash-page">
+                <div className="kora-page-head cash-reveal mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                        <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
+                            KORA OPS / Finance / Caisse
+                        </div>
+                        <h1 className="text-[clamp(1.8rem,3vw,2.65rem)] font-extrabold tracking-[-0.055em] text-foreground">
+                            Caisse journalière
+                        </h1>
+                        <p className="mt-1.5 text-[0.8125rem] leading-6 text-muted-foreground">
+                            Suivez les encaissements et préparez la clôture de
+                            la journée.
+                        </p>
                     </div>
-                    <h1 className="text-[1.8125rem] font-extrabold tracking-[-0.035em] text-foreground">
-                        Caisse journalière
-                    </h1>
-                    <p className="mt-1.5 text-[0.8125rem] text-muted-foreground">
-                        Suivez séparément les espèces et chaque compte Mobile
-                        Money de votre agence.
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2.5">
+                        {isDemoSession && permissions.canOpen && (
+                            <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={() => setOpeningOpen(true)}
+                            >
+                                <Plus className="size-4" /> Ouvrir la caisse
+                            </button>
+                        )}
+                        {session.status === 'open' &&
+                            !isDemoSession &&
+                            permissions.canClose && (
+                                <button
+                                    type="button"
+                                    className="btn btn-primary"
+                                    onClick={() => setClosingOpen(true)}
+                                >
+                                    <FileCheck2 className="size-4" /> Clôturer
+                                    la caisse
+                                </button>
+                            )}
+                    </div>
                 </div>
-                {cashSession?.status === 'open' && permissions.canClose && (
-                    <button
-                        className="btn btn-primary"
-                        type="button"
-                        onClick={() => setClosingOpen(true)}
-                    >
-                        <FileCheck2 className="size-4" /> Préparer la clôture
-                    </button>
-                )}
-            </div>
-            {!cashSession ? (
-                <EmptyCashState
-                    canOpen={permissions.canOpen}
-                    accounts={mobileMoneyAccounts}
-                    onOpen={() => setOpeningOpen(true)}
-                />
-            ) : (
-                <>
-                    <CashHeader
-                        session={cashSession}
-                        onMovement={() => setMovementOpen(true)}
-                        canCreateMovement={permissions.canCreateMovement}
-                    />
-                    <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                        {cashSession.ledgers.map((ledger) => (
-                            <LedgerCard key={ledger.uuid} ledger={ledger} />
-                        ))}
+
+                <section className="cash-reveal cash-reveal-delay-1 cash-hero">
+                    <div>
+                        <span className="section-kicker text-gold">
+                            {isDemoSession
+                                ? 'Aperçu de la session'
+                                : 'Ma caisse journalière'}
+                        </span>
+                        <h2>
+                            {isDemoSession
+                                ? 'Caisse prête à être ouverte'
+                                : `Caisse ouverte depuis ${formatTime(session.openedAt)}`}
+                        </h2>
+                        <p>
+                            {isDemoSession
+                                ? 'Les chiffres illustrent la structure attendue avant le raccordement complet aux écritures du jour.'
+                                : 'Le total additionne les soldes théoriques de chaque compte suivi.'}
+                        </p>
                     </div>
-                    <div className="mt-5 grid gap-5 xl:grid-cols-[1.4fr_0.6fr]">
-                        <MovementTable
-                            movements={cashSession.movements}
-                            canApprove={permissions.canApproveMovement}
+                    <div className="cash-hero-current">
+                        <span>Solde théorique actuel</span>
+                        <strong>{formatMoney(totalExpected, 'XOF')}</strong>
+                    </div>
+                    <span className="cash-status open">
+                        <i />
+                        {isDemoSession ? 'Aperçu statique' : 'Ouverte'}
+                    </span>
+                </section>
+
+                {isDemoSession && (
+                    <div className="cash-demo-note cash-reveal cash-reveal-delay-1">
+                        <CircleAlert className="size-4" /> Les montants affichés
+                        sont des données de démonstration pour valider l’écran.
+                    </div>
+                )}
+
+                <section className="cash-ledger-grid cash-reveal cash-reveal-delay-2">
+                    {ledgerCards.map((ledger) => (
+                        <LedgerBalanceCard
+                            key={ledger.uuid}
+                            ledger={ledger}
+                            movements={session.movements}
                         />
+                    ))}
+                </section>
+
+                <div className="cash-reveal cash-reveal-delay-3 cash-section-intro">
+                    <div>
+                        <span className="section-kicker">
+                            Journal automatique
+                        </span>
+                        <h2>Opérations du jour</h2>
+                    </div>
+                    <div className="actions">
+                        {permissions.canCreateMovement &&
+                            !isDemoSession &&
+                            session.status === 'open' && (
+                                <button
+                                    type="button"
+                                    className="btn btn-ghost"
+                                    onClick={() => setMovementOpen(true)}
+                                >
+                                    <ArrowUpRight className="size-4" />{' '}
+                                    Reversement
+                                </button>
+                            )}
+                        <button
+                            type="button"
+                            className="btn btn-ghost"
+                            onClick={exportMovements}
+                        >
+                            <Download className="size-4" /> Exporter
+                        </button>
+                    </div>
+                </div>
+
+                <div className="cash-filterbar cash-reveal cash-reveal-delay-3">
+                    <Search className="cash-filter-icon size-4" />
+                    <input
+                        value={query}
+                        onChange={(event) => {
+                            setQuery(event.target.value);
+                            setPage(1);
+                        }}
+                        placeholder="Rechercher une opération, une référence…"
+                        className="cash-filter-search"
+                    />
+                    <FilterSelect
+                        label="Canal"
+                        value={channel}
+                        onChange={(value) => {
+                            setChannel(value);
+                            setPage(1);
+                        }}
+                        options={[
+                            ['all', 'Tous les canaux'],
+                            ['Espèces', 'Espèces'],
+                            ['MTN MoMo', 'MTN MoMo'],
+                            ['Moov Money / Flooz', 'Moov Money / Flooz'],
+                            ['Celtiis Cash', 'Celtiis Cash'],
+                        ]}
+                    />
+                    <FilterSelect
+                        label="Statut"
+                        value={status}
+                        onChange={(value) => {
+                            setStatus(value);
+                            setPage(1);
+                        }}
+                        options={[
+                            ['all', 'Tous les statuts'],
+                            ['posted', 'Publié'],
+                            ['approved', 'Approuvé'],
+                            ['pending', 'En attente'],
+                            ['rejected', 'Rejeté'],
+                        ]}
+                    />
+                    <FilterSelect
+                        label="Sens"
+                        value={direction}
+                        onChange={(value) => {
+                            setDirection(value);
+                            setPage(1);
+                        }}
+                        options={[
+                            ['all', 'Tous les sens'],
+                            ['in', 'Encaissements'],
+                            ['out', 'Sorties'],
+                        ]}
+                    />
+                    <button
+                        type="button"
+                        className="btn btn-navy cash-filter-submit"
+                        onClick={() => setPage(1)}
+                    >
+                        <SlidersHorizontal className="size-4" /> Filtrer
+                    </button>
+                    <button
+                        type="button"
+                        className="btn btn-ghost cash-filter-reset"
+                        onClick={resetFilters}
+                    >
+                        Réinitialiser
+                    </button>
+                </div>
+
+                <section className="cash-table-card cash-reveal cash-reveal-delay-4">
+                    <MovementTable
+                        movements={visibleMovements}
+                        session={session}
+                        canApprove={
+                            permissions.canApproveMovement && !isDemoSession
+                        }
+                    />
+                    <Pagination
+                        currentPage={page}
+                        totalPages={totalPages}
+                        total={filteredMovements.length}
+                        pageSize={pageSize}
+                        onPageChange={setPage}
+                    />
+                </section>
+
+                {session.status === 'pending_approval' && (
+                    <div className="cash-reveal cash-reveal-delay-4 mt-5">
                         <PendingActions
-                            session={cashSession}
+                            session={session}
                             canApproveVariance={permissions.canApproveVariance}
                         />
                     </div>
-                </>
-            )}
+                )}
+            </div>
             {openingOpen && (
                 <CashOpeningDialog
                     accounts={mobileMoneyAccounts}
@@ -163,170 +631,110 @@ export default function CashPage({
     );
 }
 
-function EmptyCashState({
-    canOpen,
-    accounts,
-    onOpen,
-}: {
-    canOpen: boolean;
-    accounts: SaleMobileMoneyAccount[];
-    onOpen: () => void;
-}) {
-    return (
-        <section className="kora-panel rounded-[var(--kora-radius)] border border-border bg-card p-8 shadow-[0_8px_30px_rgba(0,29,78,0.045)]">
-            <div className="mx-auto flex max-w-xl flex-col items-center text-center">
-                <span className="mb-5 grid size-16 place-items-center rounded-2xl bg-gold/10 text-gold">
-                    <WalletCards className="size-8" />
-                </span>
-                <span className="mb-2 text-[0.6875rem] font-extrabold tracking-[0.14em] text-muted-foreground uppercase">
-                    Session du jour
-                </span>
-                <h2 className="text-xl font-extrabold tracking-tight text-foreground">
-                    Votre caisse n’est pas ouverte
-                </h2>
-                <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-                    Déclarez votre solde espèces et chaque compte Mobile Money
-                    actif avant d’enregistrer une vente.
-                </p>
-                {canOpen ? (
-                    <button
-                        type="button"
-                        className="btn btn-primary mt-6"
-                        onClick={onOpen}
-                    >
-                        <Plus className="size-4" /> Ouvrir la caisse
-                    </button>
-                ) : (
-                    <div className="mt-6 inline-flex items-center gap-2 rounded-xl bg-muted px-4 py-3 text-xs font-bold text-muted-foreground">
-                        <CircleAlert className="size-4" /> Demandez l’ouverture
-                        à votre responsable.
-                    </div>
-                )}
-                {accounts.length > 0 && (
-                    <p className="mt-5 text-[0.6875rem] text-muted-foreground">
-                        {accounts.length} compte{accounts.length > 1 ? 's' : ''}{' '}
-                        Mobile Money seront à déclarer.
-                    </p>
-                )}
-            </div>
-        </section>
-    );
+function formatTime(value: string | null | undefined): string {
+    if (!value) {
+        return '—';
+    }
+
+    return new Intl.DateTimeFormat('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit',
+    }).format(new Date(value));
 }
 
-function CashHeader({
-    session,
-    onMovement,
-    canCreateMovement,
+function LedgerBalanceCard({
+    ledger,
+    movements,
 }: {
-    session: CashSessionPage;
-    onMovement: () => void;
-    canCreateMovement: boolean;
+    ledger: SaleCashLedger;
+    movements: CashMovement[];
 }) {
-    const totalExpected = session.ledgers.reduce(
-        (sum, ledger) => sum + ledger.expectedBalance,
-        0,
+    const ledgerMovements = movements.filter(
+        (movement) => movement.ledgerUuid === ledger.uuid,
     );
-    const pending = session.movements.filter(
-        (movement) => movement.status === 'pending',
-    ).length;
-
-    return (
-        <section className="kora-panel flex flex-col gap-5 rounded-[var(--kora-radius)] border border-border bg-card p-5 shadow-[0_8px_30px_rgba(0,29,78,0.045)] sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-3">
-                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-kora text-gold">
-                    <CheckCircle2 className="size-5" />
-                </span>
-                <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-sm font-extrabold text-foreground">
-                            Session du {session.businessDate}
-                        </h2>
-                        <StatusPill status={session.status ?? 'open'} />
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                        {session.agentName ?? 'Agent connecté'}
-                        {session.agencyName ? ` · ${session.agencyName}` : ''}
-                    </p>
-                </div>
-            </div>
-            <div className="flex items-center gap-4 sm:gap-7">
-                <div>
-                    <span className="block text-[0.65rem] font-bold tracking-wide text-muted-foreground uppercase">
-                        Solde attendu
-                    </span>
-                    <strong className="mt-1 block text-lg font-black tracking-tight text-foreground">
-                        {formatMoney(totalExpected, 'XOF')}
-                    </strong>
-                </div>
-                {pending > 0 && (
-                    <div className="rounded-lg bg-gold/10 px-3 py-2 text-[0.6875rem] font-extrabold text-gold">
-                        {pending} en attente
-                    </div>
-                )}
-                {canCreateMovement && session.status === 'open' && (
-                    <button
-                        type="button"
-                        className="btn btn-ghost"
-                        onClick={onMovement}
-                    >
-                        <ArrowUpRight className="size-4" /> Reversement
-                    </button>
-                )}
-            </div>
-        </section>
-    );
-}
-
-function LedgerCard({ ledger }: { ledger: SaleCashLedger }) {
+    const inflows = ledgerMovements
+        .filter(
+            (movement) =>
+                movement.direction === 'in' &&
+                postedStatuses.has(movement.status),
+        )
+        .reduce((total, movement) => total + movement.amount, 0);
+    const outflows = ledgerMovements
+        .filter(
+            (movement) =>
+                movement.direction === 'out' &&
+                postedStatuses.has(movement.status),
+        )
+        .reduce((total, movement) => total + movement.amount, 0);
     const isCash = ledger.kind === 'cash';
-    const label = isCash
+    const network = isCash
         ? 'Espèces'
-        : `${networkLabels[ledger.account?.network ?? ''] ?? 'Mobile Money'} · ${ledger.account?.label ?? 'Compte'}`;
-    const balance = ledger.actualBalance ?? ledger.expectedBalance;
+        : (networkLabels[ledger.account?.network ?? ''] ?? 'Mobile Money');
+    const brand = isCash
+        ? { key: 'cash', mark: '₣' }
+        : (networkBrands[ledger.account?.network ?? ''] ?? {
+              key: 'default',
+              mark: 'MM',
+          });
+    const accountLabel = isCash
+        ? 'Caisse physique'
+        : (ledger.account?.label ?? 'Compte Mobile Money');
+    const balance = ledger.expectedBalance;
 
     return (
-        <article className="kora-panel rounded-[var(--kora-radius)] border border-border bg-card p-4 shadow-[0_8px_30px_rgba(0,29,78,0.045)]">
-            <div className="flex items-start justify-between gap-3">
-                <span
-                    className={cn(
-                        'grid size-9 place-items-center rounded-lg',
-                        isCash
-                            ? 'bg-gold/15 text-gold'
-                            : 'bg-digital/10 text-digital',
-                    )}
-                >
-                    {isCash ? (
-                        <HandCoins className="size-4" />
-                    ) : (
-                        <Smartphone className="size-4" />
-                    )}
-                </span>
+        <article
+            className={cn('cash-ledger-card', `cash-ledger-card-${brand.key}`)}
+        >
+            <div className="cash-ledger-head">
+                <div className="cash-ledger-identity">
+                    <span className="cash-ledger-brand">{brand.mark}</span>
+                    <div>
+                        <span className="cash-ledger-title">{network}</span>
+                        <small>
+                            {ledger.account?.accountIdentifier ?? accountLabel}
+                        </small>
+                    </div>
+                </div>
                 <StatusPill status={ledger.status} />
             </div>
-            <p
-                className="mt-4 truncate text-xs font-extrabold text-foreground"
-                title={label}
-            >
-                {label}
-            </p>
-            {ledger.account && (
-                <p className="mt-1 text-[0.6875rem] text-muted-foreground">
-                    {ledger.account.accountIdentifier}
-                </p>
-            )}
-            <strong className="mt-4 block text-xl font-black tracking-tight text-foreground">
-                {formatMoney(balance, 'XOF')}
-            </strong>
-            <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-[0.65rem] font-bold text-muted-foreground">
-                <span>
-                    Ouverture {formatMoney(ledger.openingBalance, 'XOF')}
-                </span>
-                {ledger.variance !== null && ledger.variance !== 0 ? (
-                    <span className="text-destructive">
-                        Écart {formatMoney(ledger.variance, 'XOF')}
-                    </span>
+
+            <div className="cash-ledger-balance">
+                <span>Solde théorique</span>
+                <strong>{formatMoney(balance, 'XOF')}</strong>
+            </div>
+
+            <div className="cash-ledger-breakdown">
+                <div>
+                    <span>Ouverture</span>
+                    <strong>{formatMoney(ledger.openingBalance, 'XOF')}</strong>
+                </div>
+                <div>
+                    <span>Entrées</span>
+                    <strong className="is-positive">
+                        +{formatMoney(inflows, 'XOF')}
+                    </strong>
+                </div>
+                <div>
+                    <span>Sorties</span>
+                    <strong className="is-negative">
+                        −{formatMoney(outflows, 'XOF')}
+                    </strong>
+                </div>
+            </div>
+
+            <div className="cash-ledger-foot">
+                {isCash ? (
+                    <Banknote className="size-3.5" strokeWidth={1.7} />
                 ) : (
-                    <span className="text-emerald-600">À jour</span>
+                    <Smartphone className="size-3.5" strokeWidth={1.7} />
+                )}
+                <span>
+                    {ledgerMovements.length === 0
+                        ? 'Aucun mouvement enregistré'
+                        : `${ledgerMovements.length} mouvement${ledgerMovements.length > 1 ? 's' : ''} enregistré${ledgerMovements.length > 1 ? 's' : ''}`}
+                </span>
+                {ledger.actualBalance !== null && (
+                    <b>Constaté {formatMoney(ledger.actualBalance, 'XOF')}</b>
                 )}
             </div>
         </article>
@@ -335,116 +743,271 @@ function LedgerCard({ ledger }: { ledger: SaleCashLedger }) {
 
 function MovementTable({
     movements,
+    session,
     canApprove,
 }: {
     movements: CashMovement[];
+    session: CashSessionPage;
     canApprove: boolean;
 }) {
+    if (movements.length === 0) {
+        return (
+            <p className="px-6 py-16 text-center text-sm text-muted-foreground">
+                Aucun mouvement ne correspond à ces filtres.
+            </p>
+        );
+    }
+
     return (
-        <section className="kora-panel overflow-hidden rounded-[var(--kora-radius)] border border-border bg-card shadow-[0_8px_30px_rgba(0,29,78,0.045)]">
-            <div className="flex items-center justify-between border-b border-border px-5 py-4">
-                <div>
-                    <h2 className="text-sm font-extrabold text-foreground">
-                        Mouvements récents
-                    </h2>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                        Les écritures publiées restent traçables.
-                    </p>
-                </div>
-                <History className="size-4 text-muted-foreground" />
-            </div>
-            {movements.length === 0 ? (
-                <p className="px-5 py-10 text-center text-sm text-muted-foreground">
-                    Aucun mouvement enregistré aujourd’hui.
-                </p>
-            ) : (
-                <div className="divide-y divide-border">
+        <div className="cash-table-scroll overflow-x-auto">
+            <table className="w-full min-w-[850px] text-left">
+                <thead className="bg-muted/45 text-[0.625rem] font-black tracking-[0.14em] text-muted-foreground uppercase">
+                    <tr>
+                        <th className="px-4 py-3">Date & heure</th>
+                        <th className="px-4 py-3">Opération</th>
+                        <th className="px-4 py-3">Canal</th>
+                        <th className="px-4 py-3">Référence</th>
+                        <th className="px-4 py-3">Statut</th>
+                        <th className="px-4 py-3 text-right">Montant</th>
+                        <th className="px-4 py-3 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
                     {movements.map((movement) => (
                         <MovementRow
                             key={movement.uuid}
                             movement={movement}
+                            session={session}
                             canApprove={canApprove}
                         />
                     ))}
-                </div>
-            )}
-        </section>
+                </tbody>
+            </table>
+        </div>
     );
 }
 
 function MovementRow({
     movement,
+    session,
     canApprove,
 }: {
     movement: CashMovement;
+    session: CashSessionPage;
     canApprove: boolean;
 }) {
     return (
-        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
-            <div className="flex min-w-0 items-center gap-3">
-                <span
-                    className={cn(
-                        'grid size-8 shrink-0 place-items-center rounded-lg',
-                        movement.direction === 'in'
-                            ? 'bg-emerald-500/10 text-emerald-600'
-                            : 'bg-orange-500/10 text-orange-600',
-                    )}
-                >
-                    {movement.direction === 'in' ? (
-                        <ArrowDownLeft className="size-4" />
-                    ) : (
-                        <ArrowUpRight className="size-4" />
-                    )}
-                </span>
-                <div className="min-w-0">
-                    <p className="truncate text-xs font-extrabold text-foreground">
-                        {movement.type.replaceAll('_', ' ')}
-                    </p>
-                    <p className="mt-0.5 truncate text-[0.65rem] text-muted-foreground">
-                        {movement.reference ?? 'Sans référence'}
-                        {movement.destinationLabel
-                            ? ` · ${movement.destinationLabel}`
-                            : ''}
-                    </p>
+        <tr className="group border-b border-black/[0.045] transition-[background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-muted/30">
+            <td className="px-4 py-3.5 text-xs font-bold text-foreground">
+                {formatDateTime(movement.occurredAt)}
+            </td>
+            <td className="px-4 py-3.5">
+                <div className="flex items-center gap-3">
+                    <span
+                        className={cn(
+                            'grid size-9 shrink-0 place-items-center rounded-xl',
+                            movement.direction === 'in'
+                                ? 'bg-emerald-500/10 text-emerald-600'
+                                : 'bg-orange-500/10 text-orange-600',
+                        )}
+                    >
+                        {movement.direction === 'in' ? (
+                            <ArrowDownLeft
+                                className="size-4"
+                                strokeWidth={1.6}
+                            />
+                        ) : (
+                            <ArrowUpRight
+                                className="size-4"
+                                strokeWidth={1.6}
+                            />
+                        )}
+                    </span>
+                    <div>
+                        <p className="text-xs font-black text-foreground">
+                            {formatMovementType(movement.type)}
+                        </p>
+                        <p className="mt-0.5 text-[0.625rem] text-muted-foreground">
+                            {movement.direction === 'in'
+                                ? 'Encaissement'
+                                : 'Sortie de caisse'}
+                        </p>
+                    </div>
                 </div>
-            </div>
-            <div className="flex items-center gap-3">
-                <strong
-                    className={cn(
-                        'text-xs font-black',
-                        movement.direction === 'in'
-                            ? 'text-emerald-600'
-                            : 'text-orange-600',
-                    )}
-                >
-                    {movement.direction === 'in' ? '+' : '-'}
-                    {formatMoney(movement.amount, 'XOF')}
-                </strong>
+            </td>
+            <td className="px-4 py-3.5 text-xs font-bold text-foreground">
+                {getMovementChannel(movement, session)}
+            </td>
+            <td className="px-4 py-3.5 font-mono text-[0.6875rem] text-muted-foreground">
+                {movement.reference ?? 'Sans référence'}
+            </td>
+            <td className="px-4 py-3.5">
                 <StatusPill status={movement.status} />
-                {canApprove && movement.status === 'pending' && (
-                    <>
-                        <button
-                            className="grid size-7 place-items-center rounded-md bg-emerald-500/10 text-emerald-600"
-                            onClick={() =>
-                                router.post(approve.url(movement.uuid))
-                            }
-                            aria-label="Approuver"
-                        >
-                            <Check className="size-3.5" />
-                        </button>
-                        <button
-                            className="grid size-7 place-items-center rounded-md bg-destructive/10 text-destructive"
-                            onClick={() =>
-                                router.post(reject.url(movement.uuid), {
-                                    reason: 'Rejeté depuis la caisse',
-                                })
-                            }
-                            aria-label="Rejeter"
-                        >
-                            <X className="size-3.5" />
-                        </button>
-                    </>
+            </td>
+            <td
+                className={cn(
+                    'px-4 py-3.5 text-right text-xs font-black',
+                    movement.direction === 'in'
+                        ? 'text-emerald-600'
+                        : 'text-orange-600',
                 )}
+            >
+                {movement.direction === 'in' ? '+' : '-'}
+                {formatMoney(movement.amount, 'XOF')}
+            </td>
+            <td className="px-4 py-3.5">
+                <div className="flex justify-end gap-1.5">
+                    {canApprove && movement.status === 'pending' ? (
+                        <>
+                            <button
+                                className="grid size-8 place-items-center rounded-full bg-emerald-500/10 text-emerald-600 transition-[transform,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-105 hover:bg-emerald-500/20"
+                                onClick={() =>
+                                    router.post(approve.url(movement.uuid))
+                                }
+                                aria-label="Approuver"
+                            >
+                                <Check className="size-3.5" strokeWidth={1.7} />
+                            </button>
+                            <button
+                                className="grid size-8 place-items-center rounded-full bg-destructive/10 text-destructive transition-[transform,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-105 hover:bg-destructive/20"
+                                onClick={() =>
+                                    router.post(reject.url(movement.uuid), {
+                                        reason: 'Rejeté depuis la caisse',
+                                    })
+                                }
+                                aria-label="Rejeter"
+                            >
+                                <X className="size-3.5" strokeWidth={1.7} />
+                            </button>
+                        </>
+                    ) : (
+                        <span className="grid size-8 place-items-center rounded-full text-muted-foreground/45">
+                            <ChevronRight
+                                className="size-4"
+                                strokeWidth={1.5}
+                            />
+                        </span>
+                    )}
+                </div>
+            </td>
+        </tr>
+    );
+}
+
+function FilterSelect({
+    label,
+    value,
+    onChange,
+    options,
+}: {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    options: string[][];
+}) {
+    return (
+        <label className="cash-filter-field relative block">
+            <span className="sr-only">{label}</span>
+            <select
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+                className="cash-filter-select h-11 w-full appearance-none rounded-xl bg-muted/55 px-3 pr-8 text-xs font-bold text-foreground ring-1 ring-black/[0.045] transition-[box-shadow,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] outline-none focus:bg-card focus:ring-2 focus:ring-gold/35"
+            >
+                {options.map(([optionValue, optionLabel]) => (
+                    <option key={optionValue} value={optionValue}>
+                        {optionLabel}
+                    </option>
+                ))}
+            </select>
+            <ChevronRight
+                className="pointer-events-none absolute top-1/2 right-3 size-3.5 -translate-y-1/2 rotate-90 text-muted-foreground"
+                strokeWidth={1.7}
+            />
+        </label>
+    );
+}
+
+function Pagination({
+    currentPage,
+    totalPages,
+    total,
+    pageSize,
+    onPageChange,
+}: {
+    currentPage: number;
+    totalPages: number;
+    total: number;
+    pageSize: number;
+    onPageChange: (page: number) => void;
+}) {
+    const pages: (number | 'ellipsis')[] = [];
+
+    for (let index = 1; index <= totalPages; index += 1) {
+        if (
+            index === 1 ||
+            index === totalPages ||
+            Math.abs(index - currentPage) <= 1
+        ) {
+            pages.push(index);
+        } else if (pages[pages.length - 1] !== 'ellipsis') {
+            pages.push('ellipsis');
+        }
+    }
+
+    const from = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+    const to = Math.min(currentPage * pageSize, total);
+
+    return (
+        <div className="flex flex-col gap-4 px-4 py-3 text-[0.6875rem] text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+            <span>
+                {from}–{to} sur {total} opérations
+            </span>
+            <div className="flex items-center gap-[5px]">
+                <button
+                    type="button"
+                    onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className="grid size-[31px] place-items-center rounded-[8px] bg-muted text-foreground transition-[transform,opacity,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-x-0.5 hover:bg-gold/15 disabled:pointer-events-none disabled:opacity-35"
+                >
+                    <ChevronRight
+                        className="size-3.5 rotate-180"
+                        strokeWidth={1.7}
+                    />
+                </button>
+                {pages.map((page, index) =>
+                    page === 'ellipsis' ? (
+                        <span
+                            key={`ellipsis-${index}`}
+                            className="grid size-[31px] place-items-center"
+                        >
+                            …
+                        </span>
+                    ) : (
+                        <button
+                            key={page}
+                            type="button"
+                            onClick={() => onPageChange(page)}
+                            className={cn(
+                                'grid size-[31px] place-items-center rounded-[8px] text-xs font-black transition-[transform,background-color,color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5',
+                                page === currentPage
+                                    ? 'bg-[var(--kora)] text-white'
+                                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                            )}
+                        >
+                            {page}
+                        </button>
+                    ),
+                )}
+                <button
+                    type="button"
+                    onClick={() =>
+                        onPageChange(Math.min(totalPages, currentPage + 1))
+                    }
+                    disabled={currentPage === totalPages}
+                    className="grid size-[31px] place-items-center rounded-[8px] bg-muted text-foreground transition-[transform,opacity,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:translate-x-0.5 hover:bg-gold/15 disabled:pointer-events-none disabled:opacity-35"
+                >
+                    <ChevronRight className="size-3.5" strokeWidth={1.7} />
+                </button>
             </div>
         </div>
     );

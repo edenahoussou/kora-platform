@@ -1,36 +1,36 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
     AlertTriangle,
-    BadgePercent,
     Bell,
     Bus,
-    Car,
     FileText,
-    Landmark,
     LayoutDashboard,
-    Package,
     PanelLeftClose,
     PanelLeftOpen,
-    Receipt,
-    Settings,
     Store,
     Ticket,
-    TrendingUp,
-    Truck,
     Users,
     Wallet,
 } from 'lucide-react';
 import { useState } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { useCurrentUrl } from '@/hooks/use-current-url';
+import { usePermissions } from '@/hooks/use-permissions';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
+
+type NavChild = {
+    title: string;
+    href: string;
+    permission: string | null;
+};
 
 type NavEntry = {
     title: string;
     href: string;
     icon: typeof LayoutDashboard;
-    children?: { title: string; href: string }[];
+    permission: string | null;
+    children?: NavChild[];
 };
 
 const navItems: NavEntry[] = [
@@ -38,155 +38,101 @@ const navItems: NavEntry[] = [
         title: 'Accueil',
         href: dashboard().url,
         icon: LayoutDashboard,
+        permission: null,
     },
     {
         title: 'Vente guichet',
         href: '/sale',
         icon: Ticket,
+        permission: 'counter-sales.create',
     },
     {
         title: 'Caisse',
         href: '/cash',
         icon: Wallet,
+        permission: 'cash.view',
     },
     {
         title: 'Exploitation',
         href: '/operations',
         icon: Bus,
+        permission: null,
         children: [
-            { title: 'Départs', href: '/departures' },
-            { title: 'Embarquement', href: '/boarding' },
-            { title: 'Manifestes', href: '/manifest' },
-            { title: 'Lignes & arrêts', href: '/network' },
-            { title: 'Tarifs', href: '/fares' },
-            { title: 'Règles de pricing', href: '/pricing-rules' },
-            { title: 'Taux fiscaux', href: '/tax-rules' },
+            {
+                title: 'Départs',
+                href: '/departures',
+                permission: 'departures.view',
+            },
+            {
+                title: 'Embarquement',
+                href: '/boarding',
+                permission: 'departures.view',
+            },
+            {
+                title: 'Manifestes',
+                href: '/manifest',
+                permission: 'departures.view',
+            },
+            {
+                title: 'Lignes & arrêts',
+                href: '/network',
+                permission: 'network.view',
+            },
+            { title: 'Tarifs', href: '/fares', permission: 'pricing.view' },
+            {
+                title: 'Règles de pricing',
+                href: '/pricing-rules',
+                permission: 'pricing.view',
+            },
+            {
+                title: 'Taux fiscaux',
+                href: '/tax-rules',
+                permission: 'pricing.view',
+            },
         ],
     },
     {
         title: 'Passagers',
         href: '/passengers',
         icon: Users,
+        permission: 'bookings.view',
     },
     {
         title: 'Billets',
         href: '/tickets',
         icon: FileText,
-    },
-    {
-        title: 'Colis',
-        href: '/parcels',
-        icon: Package,
-    },
-    {
-        title: 'KORA RIDE',
-        href: '/ride',
-        icon: Car,
-        children: [
-            { title: 'Pilotage RIDE', href: '/ride/dashboard' },
-            { title: 'Matching & disponibilité', href: '/ride/matching' },
-            { title: 'Courses', href: '/ride/courses' },
-            { title: 'Chauffeurs', href: '/ride/drivers' },
-            { title: 'Dossiers chauffeurs', href: '/ride/onboarding' },
-            { title: 'Formation', href: '/ride/training' },
-            { title: 'KORA Champions', href: '/ride/champions' },
-            { title: 'Véhicules', href: '/ride/vehicles' },
-            { title: 'Leasing KORA', href: '/ride/leasing' },
-            { title: 'Zones & couverture', href: '/ride/zones' },
-            { title: 'Catégories', href: '/ride/categories' },
-            { title: 'Tarification', href: '/ride/pricing' },
-            { title: 'Paiements', href: '/ride/payments' },
-            { title: 'Commissions chauffeurs', href: '/ride/commissions' },
-            { title: 'Incidents & sécurité', href: '/ride/incidents' },
-            { title: 'Évaluations', href: '/ride/ratings' },
-            { title: 'Rapprochements', href: '/ride/reconciliation' },
-            { title: 'Rentabilité', href: '/ride/profitability' },
-        ],
-    },
-    {
-        title: 'Wallet & fidélité',
-        href: '/wallet',
-        icon: BadgePercent,
-        children: [
-            { title: 'Pilotage Wallet', href: '/wallet/dashboard' },
-            { title: 'Comptes Wallet', href: '/wallet/accounts' },
-            { title: 'Mouvements', href: '/wallet/transactions' },
-            { title: 'Règles de fidélité', href: '/wallet/rules' },
-            { title: 'Expirations', href: '/wallet/expiry' },
-            { title: 'Rapprochements Wallet', href: '/wallet/reconciliation' },
-        ],
-    },
-    {
-        title: 'Réseau commercial',
-        href: '/network-commercial',
-        icon: Store,
-        children: [
-            { title: 'KORA POINT', href: '/kora-points' },
-            { title: 'Commissions', href: '/commissions' },
-            { title: 'Reversements', href: '/settlements' },
-            { title: 'Promotions', href: '/promotions' },
-            { title: 'Tarification dynamique', href: '/dynamic-pricing' },
-            { title: 'Comptes entreprise', href: '/companies' },
-        ],
+        permission: 'tickets.view',
     },
     {
         title: 'Ressources',
         href: '/resources',
-        icon: Truck,
+        icon: Store,
+        permission: null,
         children: [
-            { title: 'Agences', href: '/agencies' },
-            { title: 'Flotte', href: '/fleet' },
-            { title: 'Commodités', href: '/amenities' },
-            { title: 'Maintenance', href: '/maintenance' },
-            { title: 'Garages agréés', href: '/garages' },
-            { title: 'RH opérationnelle', href: '/hr' },
+            {
+                title: 'Agences',
+                href: '/agencies',
+                permission: 'agencies.view',
+            },
+            { title: 'Flotte', href: '/fleet', permission: 'fleet.view' },
+            {
+                title: 'Commodités',
+                href: '/amenities',
+                permission: 'fleet.view',
+            },
         ],
-    },
-    {
-        title: 'Finance',
-        href: '/finance',
-        icon: Landmark,
-        children: [
-            { title: 'Recettes', href: '/revenue' },
-            { title: 'Dépenses', href: '/expenses' },
-            { title: 'Rapprochements', href: '/reconciliation' },
-            { title: 'CassKai', href: '/casskai' },
-            { title: 'MECeF', href: '/mecef' },
-            { title: 'Paie & déclarations', href: '/payroll' },
-        ],
-    },
-    {
-        title: 'Rentabilité',
-        href: '/profitability',
-        icon: TrendingUp,
-    },
-    {
-        title: 'Rapports',
-        href: '/reports',
-        icon: Receipt,
     },
     {
         title: 'Notifications',
         href: '/notifications',
         icon: Bell,
-    },
-    {
-        title: 'Administration',
-        href: '/administration',
-        icon: Settings,
-        children: [
-            { title: 'Utilisateurs', href: '/users' },
-            { title: 'Rôles', href: '/roles' },
-            { title: 'Paramètres', href: '/settings' },
-            { title: 'Terminaux P501', href: '/terminals' },
-            { title: 'Intégrations', href: '/integrations' },
-            { title: 'Audit', href: '/audit' },
-        ],
+        permission: null,
     },
     {
         title: 'Alertes',
         href: '/alerts',
         icon: AlertTriangle,
+        permission: null,
     },
 ];
 
@@ -203,6 +149,7 @@ export function KoraSidebar({
 }) {
     const { isCurrentUrl } = useCurrentUrl();
     const { auth } = usePage().props;
+    const { can } = usePermissions();
     const [openGroups, setOpenGroups] = useState<string[]>([]);
 
     const toggleGroup = (title: string) => {
@@ -295,6 +242,17 @@ export function KoraSidebar({
                 aria-label="Navigation principale"
             >
                 {navItems.map((item) => {
+                    const visibleChildren = item.children?.filter((child) =>
+                        can(child.permission),
+                    );
+
+                    if (
+                        !can(item.permission) ||
+                        (item.children && visibleChildren?.length === 0)
+                    ) {
+                        return null;
+                    }
+
                     const active = isActive(item.href);
 
                     if (item.children) {
@@ -337,7 +295,7 @@ export function KoraSidebar({
                                 </button>
                                 {!isCollapsed && isOpen && (
                                     <div className="mx-0 my-[3px] mb-1.5 ml-8 flex flex-col gap-0.5">
-                                        {item.children.map((child) => (
+                                        {visibleChildren?.map((child) => (
                                             <Link
                                                 key={child.href}
                                                 href={child.href}

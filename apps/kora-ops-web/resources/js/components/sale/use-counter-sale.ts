@@ -1,5 +1,6 @@
 import { router, useForm } from '@inertiajs/react';
 import type { SyntheticEvent } from 'react';
+import { toast } from 'sonner';
 import { sale } from '@/routes';
 import { hold, passengers, payment, quote, release } from '@/routes/sale';
 import type { CounterSalePaymentPayload } from './payment-step';
@@ -170,6 +171,23 @@ export function useCounterSale(props: SaleProps) {
         paymentForm.post(payment.url(reservationUuid), {
             preserveScroll: true,
             onSuccess,
+            onError: (errors) => {
+                const errorRecord = errors as Record<string, string>;
+                const message =
+                    errorRecord?.reservation ??
+                    errorRecord?.cash_session ??
+                    errorRecord?.amount ??
+                    errorRecord?.cash_received_amount ??
+                    errorRecord?.idempotency_key ??
+                    errorRecord?.method ??
+                    (errorRecord
+                        ? Object.values(errorRecord).find(
+                              (v) => typeof v === 'string',
+                          )
+                        : null) ??
+                    'Le paiement n’a pas pu être enregistré. Réessayez.';
+                toast.error(message);
+            },
         });
     };
 
