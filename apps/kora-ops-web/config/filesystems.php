@@ -36,6 +36,16 @@ return [
             'serve' => true,
             'throw' => false,
             'report' => false,
+            'permissions' => [
+                'file' => [
+                    'public' => 0644,
+                    'private' => 0660,
+                ],
+                'dir' => [
+                    'public' => 0775,
+                    'private' => 0770,
+                ],
+            ],
         ],
 
         'private' => [
@@ -43,6 +53,16 @@ return [
             'root' => storage_path('app/private'),
             'throw' => false,
             'report' => false,
+            'permissions' => [
+                'file' => [
+                    'public' => 0644,
+                    'private' => 0660,
+                ],
+                'dir' => [
+                    'public' => 0775,
+                    'private' => 0770,
+                ],
+            ],
         ],
 
         'public' => [

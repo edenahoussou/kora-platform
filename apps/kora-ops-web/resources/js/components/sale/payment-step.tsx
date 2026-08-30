@@ -116,11 +116,30 @@ function smartQuickAmounts(total: number): number[] {
 }
 
 function idempotencyKey(): string {
-    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-        return crypto.randomUUID();
+    const c = globalThis.crypto;
+
+    if (c?.randomUUID) {
+        return c.randomUUID();
     }
 
-    return `counter-sale-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    // Fallback: generate a valid RFC 4122 v4 UUID without crypto.randomUUID
+    // (needed for non-secure contexts like http:// non-localhost domains)
+    const bytes = new Uint8Array(16);
+
+    if (c?.getRandomValues) {
+        c.getRandomValues(bytes);
+    } else {
+        for (let i = 0; i < 16; i++) {
+            bytes[i] = Math.floor(Math.random() * 256);
+        }
+    }
+
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+    const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0'));
+
+    return `${hex.slice(0, 4).join('')}-${hex.slice(4, 6).join('')}-${hex.slice(6, 8).join('')}-${hex.slice(8, 10).join('')}-${hex.slice(10, 16).join('')}`;
 }
 
 export function PaymentStep({
@@ -164,8 +183,8 @@ export function PaymentStep({
         () =>
             network
                 ? mobileMoneyAccounts.filter(
-                      (account) => account.network === network,
-                  )
+                    (account) => account.network === network,
+                )
                 : [],
         [mobileMoneyAccounts, network],
     );
@@ -244,8 +263,8 @@ export function PaymentStep({
     const submitLabel = processing
         ? 'Confirmation…'
         : method === 'cash'
-          ? 'Encaisser les espèces'
-          : 'Confirmer le transfert Mobile Money';
+            ? 'Encaisser les espèces'
+            : 'Confirmer le transfert Mobile Money';
 
     return (
         <>
@@ -427,9 +446,9 @@ export function PaymentStep({
                     selectedNetwork={
                         network
                             ? {
-                                  label: networkMeta[network].label,
-                                  color: networkMeta[network].color,
-                              }
+                                label: networkMeta[network].label,
+                                color: networkMeta[network].color,
+                            }
                             : null
                     }
                     selectedAccount={selectedAccount ?? null}
@@ -640,9 +659,9 @@ function MobileMoneyFields({
                                     style={
                                         isActive
                                             ? {
-                                                  borderColor: meta.color,
-                                                  background: meta.bg,
-                                              }
+                                                borderColor: meta.color,
+                                                background: meta.bg,
+                                            }
                                             : undefined
                                     }
                                     onClick={() => onNetworkChange(value)}

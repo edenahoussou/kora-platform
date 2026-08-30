@@ -137,11 +137,36 @@ class CounterSaleController extends Controller
         Reservation $reservation,
         RecordCounterSalePaymentAction $recordPayment,
     ): RedirectResponse {
-        $result = $recordPayment->execute(
-            reservation: $reservation,
-            agent: $request->user(),
-            attributes: $request->payload(),
-        );
+        try {
+            $result = $recordPayment->execute(
+                reservation: $reservation,
+                agent: $request->user(),
+                attributes: $request->payload(),
+            );
+        } catch (ValidationException $exception) {
+            logger()->warning('Counter sale payment validation failed', [
+                'reservation_uuid' => $reservation->uuid,
+                'errors' => $exception->errors(),
+                'input' => $request->except(['evidence']),
+            ]);
+
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => collect($exception->errors())->flatten()->first() ?? __('Le paiement n’a pas pu être enregistré.'),
+            ]);
+
+            throw $exception;
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => __('Une erreur technique est survenue lors de l’encaissement. Réessayez ou contactez le support.'),
+            ]);
+
+            return to_route('sale', $request->saleQuery($reservation->uuid))
+                ->withInput();
+        }
 
         Inertia::flash('toast', [
             'type' => 'success',

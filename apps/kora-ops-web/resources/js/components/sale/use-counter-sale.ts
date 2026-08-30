@@ -1,7 +1,16 @@
 import { router, useForm } from '@inertiajs/react';
+import { useCallback } from 'react';
 import type { SyntheticEvent } from 'react';
+import { toast } from 'sonner';
 import { sale } from '@/routes';
-import { hold, passengers, payment, quote, release } from '@/routes/sale';
+import {
+    draft,
+    hold,
+    passengers,
+    payment,
+    quote,
+    release,
+} from '@/routes/sale';
 import type { CounterSalePaymentPayload } from './payment-step';
 import type {
     SaleDeparture,
@@ -58,6 +67,13 @@ export function useCounterSale(props: SaleProps) {
         ...queryFrom(searchForm.data, props.selectedDeparture),
         passengers: [],
     });
+    const draftForm = useForm<{
+        passengers: ReturnType<typeof passengerToSnakeCase>[];
+    }>({
+        passengers: [],
+    });
+    const transformDraft = draftForm.transform;
+    const patchDraft = draftForm.patch;
     const releaseForm = useForm({
         ...queryFrom(props.search, props.selectedDeparture),
         quote_uuid: props.quote?.uuid ?? undefined,
@@ -141,6 +157,22 @@ export function useCounterSale(props: SaleProps) {
             onSuccess,
         });
     };
+    const saveDraft = useCallback(
+        (
+            reservationUuid: string,
+            passengerData: SalePassengerForm[],
+            onSuccess?: () => void,
+        ) => {
+            transformDraft(() => ({
+                passengers: passengerData.map(passengerToSnakeCase),
+            }));
+            patchDraft(draft.url(reservationUuid), {
+                preserveScroll: true,
+                onSuccess,
+            });
+        },
+        [patchDraft, transformDraft],
+    );
     const releaseHold = (
         reservationUuid: string,
         options: {
@@ -170,6 +202,21 @@ export function useCounterSale(props: SaleProps) {
         paymentForm.post(payment.url(reservationUuid), {
             preserveScroll: true,
             onSuccess,
+            onError: (errors) => {
+                const errorRecord = errors as Record<string, string>;
+                const message =
+                    errorRecord?.reservation ??
+                    errorRecord?.cash_session ??
+                    errorRecord?.amount ??
+                    errorRecord?.cash_received_amount ??
+                    errorRecord?.idempotency_key ??
+                    errorRecord?.method ??
+                    (errorRecord
+                        ? Object.values(errorRecord).find((v) => typeof v === 'string')
+                        : null) ??
+                    'Le paiement n’a pas pu être enregistré. Réessayez.';
+                toast.error(message);
+            },
         });
     };
 
@@ -178,6 +225,7 @@ export function useCounterSale(props: SaleProps) {
         quoteForm,
         holdForm,
         passengersForm,
+        draftForm,
         releaseForm,
         paymentForm,
         search,
@@ -185,6 +233,7 @@ export function useCounterSale(props: SaleProps) {
         calculateQuote,
         holdSeats,
         savePassengers,
+        saveDraft,
         releaseHold,
         recordPayment,
     };
