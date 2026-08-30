@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             KoraBusRolePermissionSeeder::class,
             KoraServiceClassSeeder::class,
             KoraBusReferenceSeeder::class,
+            KoraBusAmenitySeeder::class,
             KoraFareSeeder::class,
             KoraDemoUserSeeder::class,
             KoraCounterSaleSeeder::class,
