@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <title>KORA Platform API Documentation</title>
+    <title>KORA PLATEFORME WEB API Documentation</title>
 
     <link href="https://fonts.googleapis.com/css?family=Open+Sans&display=swap" rel="stylesheet">
 
@@ -26,7 +26,7 @@
             </style>
 
     <script>
-        var tryItOutBaseUrl = "http://localhost:8000";
+        var tryItOutBaseUrl = "http://kora-ops-web.local";
         var useCsrf = Boolean();
         var csrfUrl = "/sanctum/csrf-cookie";
     </script>
@@ -222,7 +222,7 @@ process can answer, with no dependency checks.</a>
     </ul>
 
     <ul class="toc-footer" id="last-updated">
-        <li>Last updated: August 26, 2026</li>
+        <li>Last updated: August 30, 2026</li>
     </ul>
 </div>
 
@@ -232,7 +232,7 @@ process can answer, with no dependency checks.</a>
         <h1 id="introduction">Introduction</h1>
 <p>KORA BUS MVP REST API.</p>
 <aside>
-    <strong>Base URL</strong>: <code>http://localhost:8000</code>
+    <strong>Base URL</strong>: <code>http://kora-ops-web.local</code>
 </aside>
 <pre><code>KORA BUS MVP exposes public read endpoints for Bus search and protected operational endpoints as the product grows.
 
@@ -260,14 +260,14 @@ Public identifiers are UUIDs or domain codes. Numeric backend IDs are never part
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://localhost:8000/api/v1/bus/cities" \
+    --get "http://kora-ops-web.local/api/v1/bus/cities" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/bus/cities"
+    "http://kora-ops-web.local/api/v1/bus/cities"
 );
 
 const headers = {
@@ -391,7 +391,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://localhost:8000/api/v1/bus/lines?from=Cotonou&amp;to=Abidjan" \
+    --get "http://kora-ops-web.local/api/v1/bus/lines?from=Cotonou&amp;to=Abidjan" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -403,7 +403,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/bus/lines"
+    "http://kora-ops-web.local/api/v1/bus/lines"
 );
 
 const params = {
@@ -595,14 +595,14 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://localhost:8000/api/v1/bus/lines/f3e58eb2-66aa-4fee-9e98-f5dd59054e7e" \
+    --get "http://kora-ops-web.local/api/v1/bus/lines/64395134-391d-47cd-8c6f-a9a67b997b87" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/bus/lines/f3e58eb2-66aa-4fee-9e98-f5dd59054e7e"
+    "http://kora-ops-web.local/api/v1/bus/lines/64395134-391d-47cd-8c6f-a9a67b997b87"
 );
 
 const headers = {
@@ -749,10 +749,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="uuid"                data-endpoint="GETapi-v1-bus-lines--uuid-"
-               value="f3e58eb2-66aa-4fee-9e98-f5dd59054e7e"
+               value="64395134-391d-47cd-8c6f-a9a67b997b87"
                data-component="url">
     <br>
-<p>Example: <code>f3e58eb2-66aa-4fee-9e98-f5dd59054e7e</code></p>
+<p>Example: <code>64395134-391d-47cd-8c6f-a9a67b997b87</code></p>
             </div>
                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>line</code></b>&nbsp;&nbsp;
@@ -781,11 +781,11 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://localhost:8000/api/v1/bus/departures?date=2026-08-15&amp;line=9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f&amp;origin_city=Cotonou&amp;destination_city=Abidjan&amp;from=Cotonou&amp;to=Abidjan&amp;per_page=15&amp;page=1" \
+    --get "http://kora-ops-web.local/api/v1/bus/departures?date=2026-08-15&amp;line=9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f&amp;origin_city=Cotonou&amp;destination_city=Abidjan&amp;from=Cotonou&amp;to=Abidjan&amp;per_page=15&amp;page=1" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
-    \"date\": \"2026-08-26\",
+    \"date\": \"2026-08-30\",
     \"line\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
     \"from\": \"g\",
     \"to\": \"z\",
@@ -799,7 +799,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/bus/departures"
+    "http://kora-ops-web.local/api/v1/bus/departures"
 );
 
 const params = {
@@ -821,7 +821,7 @@ const headers = {
 };
 
 let body = {
-    "date": "2026-08-26",
+    "date": "2026-08-30",
     "line": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
     "from": "g",
     "to": "z",
@@ -877,7 +877,7 @@ fetch(url, {
                 &quot;seat_count&quot;: 55,
                 &quot;layout&quot;: [
                     {
-                        &quot;type&quot;: &quot;row&quot;,
+                        &quot;type&quot;: &quot;standard&quot;,
                         &quot;codes&quot;: [
                             &quot;1A&quot;,
                             &quot;1B&quot;,
@@ -886,13 +886,33 @@ fetch(url, {
                         ]
                     },
                     {
-                        &quot;type&quot;: &quot;row&quot;,
+                        &quot;type&quot;: &quot;standard&quot;,
                         &quot;codes&quot;: [
                             &quot;2A&quot;,
                             &quot;2B&quot;,
                             &quot;2C&quot;,
                             &quot;2D&quot;
                         ]
+                    }
+                ],
+                &quot;amenities&quot;: [
+                    {
+                        &quot;uuid&quot;: &quot;a1b2c3d4-0000-0000-0000-000000000001&quot;,
+                        &quot;code&quot;: &quot;wifi&quot;,
+                        &quot;label&quot;: &quot;Wi-Fi &agrave; bord&quot;,
+                        &quot;icon&quot;: &quot;wifi&quot;
+                    },
+                    {
+                        &quot;uuid&quot;: &quot;a1b2c3d4-0000-0000-0000-000000000002&quot;,
+                        &quot;code&quot;: &quot;air_conditioning&quot;,
+                        &quot;label&quot;: &quot;Climatisation&quot;,
+                        &quot;icon&quot;: &quot;snowflake&quot;
+                    },
+                    {
+                        &quot;uuid&quot;: &quot;a1b2c3d4-0000-0000-0000-000000000003&quot;,
+                        &quot;code&quot;: &quot;usb_charging&quot;,
+                        &quot;label&quot;: &quot;Prises USB&quot;,
+                        &quot;icon&quot;: &quot;usb&quot;
                     }
                 ]
             },
@@ -1133,10 +1153,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="date"                data-endpoint="GETapi-v1-bus-departures"
-               value="2026-08-26"
+               value="2026-08-30"
                data-component="body">
     <br>
-<p>Must be a valid date in the format <code>Y-m-d</code>. Example: <code>2026-08-26</code></p>
+<p>Must be a valid date in the format <code>Y-m-d</code>. Example: <code>2026-08-30</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>line</code></b>&nbsp;&nbsp;
@@ -1148,7 +1168,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
                data-component="body">
     <br>
-<p>validation.uuid Must match an existing stored value. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Le champ value doit être un UUID valide. Must match an existing stored value. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>from</code></b>&nbsp;&nbsp;
@@ -1160,7 +1180,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="g"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>g</code></p>
+<p>Le champ value ne doit pas dépasser 120 caractères. Example: <code>g</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>to</code></b>&nbsp;&nbsp;
@@ -1172,7 +1192,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="z"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>z</code></p>
+<p>Le champ value ne doit pas dépasser 120 caractères. Example: <code>z</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>origin_city</code></b>&nbsp;&nbsp;
@@ -1184,7 +1204,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="m"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>m</code></p>
+<p>Le champ value ne doit pas dépasser 120 caractères. Example: <code>m</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>destination_city</code></b>&nbsp;&nbsp;
@@ -1196,7 +1216,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="i"
                data-component="body">
     <br>
-<p>validation.max. Example: <code>i</code></p>
+<p>Le champ value ne doit pas dépasser 120 caractères. Example: <code>i</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>per_page</code></b>&nbsp;&nbsp;
@@ -1208,7 +1228,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="8"
                data-component="body">
     <br>
-<p>validation.min validation.max. Example: <code>8</code></p>
+<p>Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 50. Example: <code>8</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>page</code></b>&nbsp;&nbsp;
@@ -1220,7 +1240,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="16"
                data-component="body">
     <br>
-<p>validation.min. Example: <code>16</code></p>
+<p>Le champ value doit être au moins 1. Example: <code>16</code></p>
         </div>
         </form>
 
@@ -1237,7 +1257,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://localhost:8000/api/v1/bus/departures/48cc889a-8518-4cb2-b4ec-13e225ad597b?from=Cotonou&amp;to=Abidjan" \
+    --get "http://kora-ops-web.local/api/v1/bus/departures/9b153f9b-a746-479d-8d1e-430bdeebb816?from=Cotonou&amp;to=Abidjan" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -1249,7 +1269,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/bus/departures/48cc889a-8518-4cb2-b4ec-13e225ad597b"
+    "http://kora-ops-web.local/api/v1/bus/departures/9b153f9b-a746-479d-8d1e-430bdeebb816"
 );
 
 const params = {
@@ -1314,7 +1334,7 @@ fetch(url, {
             &quot;seat_count&quot;: 55,
             &quot;layout&quot;: [
                 {
-                    &quot;type&quot;: &quot;row&quot;,
+                    &quot;type&quot;: &quot;standard&quot;,
                     &quot;codes&quot;: [
                         &quot;1A&quot;,
                         &quot;1B&quot;,
@@ -1323,13 +1343,33 @@ fetch(url, {
                     ]
                 },
                 {
-                    &quot;type&quot;: &quot;row&quot;,
+                    &quot;type&quot;: &quot;standard&quot;,
                     &quot;codes&quot;: [
                         &quot;2A&quot;,
                         &quot;2B&quot;,
                         &quot;2C&quot;,
                         &quot;2D&quot;
                     ]
+                }
+            ],
+            &quot;amenities&quot;: [
+                {
+                    &quot;uuid&quot;: &quot;a1b2c3d4-0000-0000-0000-000000000001&quot;,
+                    &quot;code&quot;: &quot;wifi&quot;,
+                    &quot;label&quot;: &quot;Wi-Fi &agrave; bord&quot;,
+                    &quot;icon&quot;: &quot;wifi&quot;
+                },
+                {
+                    &quot;uuid&quot;: &quot;a1b2c3d4-0000-0000-0000-000000000002&quot;,
+                    &quot;code&quot;: &quot;air_conditioning&quot;,
+                    &quot;label&quot;: &quot;Climatisation&quot;,
+                    &quot;icon&quot;: &quot;snowflake&quot;
+                },
+                {
+                    &quot;uuid&quot;: &quot;a1b2c3d4-0000-0000-0000-000000000003&quot;,
+                    &quot;code&quot;: &quot;usb_charging&quot;,
+                    &quot;label&quot;: &quot;Prises USB&quot;,
+                    &quot;icon&quot;: &quot;usb&quot;
                 }
             ]
         },
@@ -1452,10 +1492,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="uuid"                data-endpoint="GETapi-v1-bus-departures--uuid-"
-               value="48cc889a-8518-4cb2-b4ec-13e225ad597b"
+               value="9b153f9b-a746-479d-8d1e-430bdeebb816"
                data-component="url">
     <br>
-<p>Example: <code>48cc889a-8518-4cb2-b4ec-13e225ad597b</code></p>
+<p>Example: <code>9b153f9b-a746-479d-8d1e-430bdeebb816</code></p>
             </div>
                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>departure</code></b>&nbsp;&nbsp;
@@ -1535,7 +1575,7 @@ the requested origin/destination segment (available, held, occupied, or blocked)
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://localhost:8000/api/v1/bus/departures/48cc889a-8518-4cb2-b4ec-13e225ad597b/seats?origin_stop_uuid=5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21&amp;destination_stop_uuid=5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22" \
+    --get "http://kora-ops-web.local/api/v1/bus/departures/9b153f9b-a746-479d-8d1e-430bdeebb816/seats?origin_stop_uuid=5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21&amp;destination_stop_uuid=5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -1547,7 +1587,7 @@ the requested origin/destination segment (available, held, occupied, or blocked)
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/bus/departures/48cc889a-8518-4cb2-b4ec-13e225ad597b/seats"
+    "http://kora-ops-web.local/api/v1/bus/departures/9b153f9b-a746-479d-8d1e-430bdeebb816/seats"
 );
 
 const params = {
@@ -1704,10 +1744,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="departure_uuid"                data-endpoint="GETapi-v1-bus-departures--departure_uuid--seats"
-               value="48cc889a-8518-4cb2-b4ec-13e225ad597b"
+               value="9b153f9b-a746-479d-8d1e-430bdeebb816"
                data-component="url">
     <br>
-<p>Example: <code>48cc889a-8518-4cb2-b4ec-13e225ad597b</code></p>
+<p>Example: <code>9b153f9b-a746-479d-8d1e-430bdeebb816</code></p>
             </div>
                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>departure</code></b>&nbsp;&nbsp;
@@ -1787,7 +1827,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://localhost:8000/api/v1/bus/quotes" \
+    "http://kora-ops-web.local/api/v1/bus/quotes" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
@@ -1803,7 +1843,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/bus/quotes"
+    "http://kora-ops-web.local/api/v1/bus/quotes"
 );
 
 const headers = {
@@ -2018,7 +2058,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://localhost:8000/api/v1/bus/holds" \
+    "http://kora-ops-web.local/api/v1/bus/holds" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
@@ -2039,7 +2079,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/bus/holds"
+    "http://kora-ops-web.local/api/v1/bus/holds"
 );
 
 const headers = {
@@ -2297,7 +2337,7 @@ returns 204.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request DELETE \
-    "http://localhost:8000/api/v1/bus/holds/6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
+    "http://kora-ops-web.local/api/v1/bus/holds/6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -2305,7 +2345,7 @@ returns 204.</p>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/bus/holds/6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+    "http://kora-ops-web.local/api/v1/bus/holds/6ff8f7f6-1eb3-3525-be4a-3932c805afed"
 );
 
 const headers = {
@@ -2471,7 +2511,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://localhost:8000/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed/passengers" \
+    "http://kora-ops-web.local/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed/passengers" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -2481,10 +2521,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
             \"last_name\": \"n\",
             \"phone\": \"g\",
             \"email\": \"rowan.gulgowski@example.com\",
-            \"document_type\": \"birth_certificate\",
+            \"document_type\": \"biometric_card\",
             \"document_number\": \"d\",
             \"nationality\": \"lj\",
-            \"birth_date\": \"2026-08-26\",
+            \"birth_date\": \"2026-08-30\",
             \"seat_uuid\": \"c3b6b42e-3a0f-3935-b28d-cb767f8a2a0a\"
         }
     ]
@@ -2494,7 +2534,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed/passengers"
+    "http://kora-ops-web.local/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed/passengers"
 );
 
 const headers = {
@@ -2509,10 +2549,10 @@ let body = {
             "last_name": "n",
             "phone": "g",
             "email": "rowan.gulgowski@example.com",
-            "document_type": "birth_certificate",
+            "document_type": "biometric_card",
             "document_number": "d",
             "nationality": "lj",
-            "birth_date": "2026-08-26",
+            "birth_date": "2026-08-30",
             "seat_uuid": "c3b6b42e-3a0f-3935-b28d-cb767f8a2a0a"
         }
     ]
@@ -2708,10 +2748,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="passengers.0.document_type"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
-               value="birth_certificate"
+               value="biometric_card"
                data-component="body">
     <br>
-<p>Example: <code>birth_certificate</code></p>
+<p>Example: <code>biometric_card</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>national_id</code></li> <li><code>biometric_card</code></li> <li><code>passport</code></li> <li><code>consular_card</code></li> <li><code>cip</code></li></ul>
                     </div>
@@ -2746,10 +2786,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="passengers.0.birth_date"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
-               value="2026-08-26"
+               value="2026-08-30"
                data-component="body">
     <br>
-<p>Must be a valid date in the format <code>Y-m-d</code>. Example: <code>2026-08-26</code></p>
+<p>Must be a valid date in the format <code>Y-m-d</code>. Example: <code>2026-08-30</code></p>
                     </div>
                                                                 <div style="margin-left: 14px; clear: unset;">
                         <b style="line-height: 2;"><code>seat_uuid</code></b>&nbsp;&nbsp;
@@ -2784,7 +2824,7 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://localhost:8000/api/v1/auth/otp/request" \
+    "http://kora-ops-web.local/api/v1/auth/otp/request" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -2796,7 +2836,7 @@ Must be one of:
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/auth/otp/request"
+    "http://kora-ops-web.local/api/v1/auth/otp/request"
 );
 
 const headers = {
@@ -2932,12 +2972,12 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://localhost:8000/api/v1/auth/otp/verify" \
+    "http://kora-ops-web.local/api/v1/auth/otp/verify" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
     \"otp_challenge_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
-    \"purpose\": \"account_unlock\",
+    \"purpose\": \"registration\",
     \"code\": \"569775\"
 }"
 </code></pre></div>
@@ -2945,7 +2985,7 @@ Must be one of:
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/auth/otp/verify"
+    "http://kora-ops-web.local/api/v1/auth/otp/verify"
 );
 
 const headers = {
@@ -2955,7 +2995,7 @@ const headers = {
 
 let body = {
     "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-    "purpose": "account_unlock",
+    "purpose": "registration",
     "code": "569775"
 };
 
@@ -3060,10 +3100,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="purpose"                data-endpoint="POSTapi-v1-auth-otp-verify"
-               value="account_unlock"
+               value="registration"
                data-component="body">
     <br>
-<p>Example: <code>account_unlock</code></p>
+<p>Example: <code>registration</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>registration</code></li> <li><code>login_new_device</code></li> <li><code>pin_reset</code></li> <li><code>account_unlock</code></li></ul>
         </div>
@@ -3094,7 +3134,7 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://localhost:8000/api/v1/auth/pin/reset" \
+    "http://kora-ops-web.local/api/v1/auth/pin/reset" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -3107,7 +3147,7 @@ Must be one of:
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/auth/pin/reset"
+    "http://kora-ops-web.local/api/v1/auth/pin/reset"
 );
 
 const headers = {
@@ -3254,7 +3294,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://localhost:8000/api/v1/auth/unlock" \
+    "http://kora-ops-web.local/api/v1/auth/unlock" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -3266,7 +3306,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/auth/unlock"
+    "http://kora-ops-web.local/api/v1/auth/unlock"
 );
 
 const headers = {
@@ -3400,7 +3440,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://localhost:8000/api/v1/auth/register/complete" \
+    "http://kora-ops-web.local/api/v1/auth/register/complete" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -3408,7 +3448,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"verification_token\": \"gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn\",
     \"pin\": \"9775\",
     \"device_name\": \"n\",
-    \"platform\": \"android\",
+    \"platform\": \"ios\",
     \"device_fingerprint\": \"g\",
     \"push_token\": \"z\"
 }"
@@ -3417,7 +3457,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/auth/register/complete"
+    "http://kora-ops-web.local/api/v1/auth/register/complete"
 );
 
 const headers = {
@@ -3430,7 +3470,7 @@ let body = {
     "verification_token": "gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn",
     "pin": "9775",
     "device_name": "n",
-    "platform": "android",
+    "platform": "ios",
     "device_fingerprint": "g",
     "push_token": "z"
 };
@@ -3572,10 +3612,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="platform"                data-endpoint="POSTapi-v1-auth-register-complete"
-               value="android"
+               value="ios"
                data-component="body">
     <br>
-<p>Example: <code>android</code></p>
+<p>Example: <code>ios</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>android</code></li> <li><code>ios</code></li> <li><code>web</code></li> <li><code>unknown</code></li></ul>
         </div>
@@ -3618,7 +3658,7 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://localhost:8000/api/v1/auth/login" \
+    "http://kora-ops-web.local/api/v1/auth/login" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -3636,7 +3676,7 @@ Must be one of:
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/auth/login"
+    "http://kora-ops-web.local/api/v1/auth/login"
 );
 
 const headers = {
@@ -3855,14 +3895,14 @@ compte social, télécharge l'avatar via Spatie Media Library et
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://localhost:8000/api/v1/auth/oauth/token" \
+    "http://kora-ops-web.local/api/v1/auth/oauth/token" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
-    \"provider\": \"google\",
+    \"provider\": \"tiktok\",
     \"provider_token\": \"b\",
     \"device_name\": \"n\",
-    \"platform\": \"android\",
+    \"platform\": \"web\",
     \"device_fingerprint\": \"g\",
     \"push_token\": \"z\"
 }"
@@ -3871,7 +3911,7 @@ compte social, télécharge l'avatar via Spatie Media Library et
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/auth/oauth/token"
+    "http://kora-ops-web.local/api/v1/auth/oauth/token"
 );
 
 const headers = {
@@ -3880,10 +3920,10 @@ const headers = {
 };
 
 let body = {
-    "provider": "google",
+    "provider": "tiktok",
     "provider_token": "b",
     "device_name": "n",
-    "platform": "android",
+    "platform": "web",
     "device_fingerprint": "g",
     "push_token": "z"
 };
@@ -4085,10 +4125,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="provider"                data-endpoint="POSTapi-v1-auth-oauth-token"
-               value="google"
+               value="tiktok"
                data-component="body">
     <br>
-<p>Example: <code>google</code></p>
+<p>Example: <code>tiktok</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>google</code></li> <li><code>facebook</code></li> <li><code>tiktok</code></li></ul>
         </div>
@@ -4123,10 +4163,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="platform"                data-endpoint="POSTapi-v1-auth-oauth-token"
-               value="android"
+               value="web"
                data-component="body">
     <br>
-<p>Example: <code>android</code></p>
+<p>Example: <code>web</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>android</code></li> <li><code>ios</code></li> <li><code>web</code></li> <li><code>unknown</code></li></ul>
         </div>
@@ -4169,14 +4209,14 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://localhost:8000/api/v1/auth/me" \
+    --get "http://kora-ops-web.local/api/v1/auth/me" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/auth/me"
+    "http://kora-ops-web.local/api/v1/auth/me"
 );
 
 const headers = {
@@ -4280,7 +4320,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request PUT \
-    "http://localhost:8000/api/v1/auth/me" \
+    "http://kora-ops-web.local/api/v1/auth/me" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -4288,14 +4328,14 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"email\": \"zbailey@example.net\",
     \"phone\": \"iyvdljnikhwaykcm\",
     \"country_code\": \"yuwp\",
-    \"birth_date\": \"2022-09-19\"
+    \"birth_date\": \"2022-09-24\"
 }"
 </code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/auth/me"
+    "http://kora-ops-web.local/api/v1/auth/me"
 );
 
 const headers = {
@@ -4308,7 +4348,7 @@ let body = {
     "email": "zbailey@example.net",
     "phone": "iyvdljnikhwaykcm",
     "country_code": "yuwp",
-    "birth_date": "2022-09-19"
+    "birth_date": "2022-09-24"
 };
 
 fetch(url, {
@@ -4448,10 +4488,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="birth_date"                data-endpoint="PUTapi-v1-auth-me"
-               value="2022-09-19"
+               value="2022-09-24"
                data-component="body">
     <br>
-<p>Le champ value doit être une date valide. Le champ value doit être une date antérieure à <code>today</code>. Example: <code>2022-09-19</code></p>
+<p>Le champ value doit être une date valide. Le champ value doit être une date antérieure à <code>today</code>. Example: <code>2022-09-24</code></p>
         </div>
         </form>
 
@@ -4468,7 +4508,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://localhost:8000/api/v1/auth/pin/change" \
+    "http://kora-ops-web.local/api/v1/auth/pin/change" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -4480,7 +4520,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/auth/pin/change"
+    "http://kora-ops-web.local/api/v1/auth/pin/change"
 );
 
 const headers = {
@@ -4614,14 +4654,14 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://localhost:8000/api/v1/auth/preferences" \
+    --get "http://kora-ops-web.local/api/v1/auth/preferences" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/auth/preferences"
+    "http://kora-ops-web.local/api/v1/auth/preferences"
 );
 
 const headers = {
@@ -4725,22 +4765,22 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request PUT \
-    "http://localhost:8000/api/v1/auth/preferences" \
+    "http://kora-ops-web.local/api/v1/auth/preferences" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
     \"push_notifications\": false,
     \"whatsapp_notifications\": true,
-    \"email_notifications\": false,
+    \"email_notifications\": true,
     \"locale\": \"fr\",
-    \"theme\": \"system\"
+    \"theme\": \"dark\"
 }"
 </code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/auth/preferences"
+    "http://kora-ops-web.local/api/v1/auth/preferences"
 );
 
 const headers = {
@@ -4751,9 +4791,9 @@ const headers = {
 let body = {
     "push_notifications": false,
     "whatsapp_notifications": true,
-    "email_notifications": false,
+    "email_notifications": true,
     "locale": "fr",
-    "theme": "system"
+    "theme": "dark"
 };
 
 fetch(url, {
@@ -4858,7 +4898,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>true</code></p>
+<p>Example: <code>false</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>whatsapp_notifications</code></b>&nbsp;&nbsp;
@@ -4902,7 +4942,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>false</code></p>
+<p>Example: <code>true</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>locale</code></b>&nbsp;&nbsp;
@@ -4925,10 +4965,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="theme"                data-endpoint="PUTapi-v1-auth-preferences"
-               value="system"
+               value="dark"
                data-component="body">
     <br>
-<p>Example: <code>system</code></p>
+<p>Example: <code>dark</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>light</code></li> <li><code>dark</code></li> <li><code>system</code></li></ul>
         </div>
@@ -4947,14 +4987,14 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://localhost:8000/api/v1/auth/devices" \
+    --get "http://kora-ops-web.local/api/v1/auth/devices" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/auth/devices"
+    "http://kora-ops-web.local/api/v1/auth/devices"
 );
 
 const headers = {
@@ -5058,14 +5098,14 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request DELETE \
-    "http://localhost:8000/api/v1/auth/devices/6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
+    "http://kora-ops-web.local/api/v1/auth/devices/6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/auth/devices/6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+    "http://kora-ops-web.local/api/v1/auth/devices/6ff8f7f6-1eb3-3525-be4a-3932c805afed"
 );
 
 const headers = {
@@ -5182,14 +5222,14 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://localhost:8000/api/v1/auth/logout" \
+    "http://kora-ops-web.local/api/v1/auth/logout" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/auth/logout"
+    "http://kora-ops-web.local/api/v1/auth/logout"
 );
 
 const headers = {
@@ -5550,14 +5590,14 @@ balancers and monitoring can drain traffic from an unhealthy instance.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://localhost:8000/api/v1/health" \
+    --get "http://kora-ops-web.local/api/v1/health" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/health"
+    "http://kora-ops-web.local/api/v1/health"
 );
 
 const headers = {
@@ -5662,14 +5702,14 @@ process can answer, with no dependency checks.</h2>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://localhost:8000/api/v1/health/ping" \
+    --get "http://kora-ops-web.local/api/v1/health/ping" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/health/ping"
+    "http://kora-ops-web.local/api/v1/health/ping"
 );
 
 const headers = {
@@ -5888,12 +5928,12 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://localhost:8000/api/v1/payments/initiate" \
+    "http://kora-ops-web.local/api/v1/payments/initiate" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
     \"reservation_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
-    \"method\": \"wallet\",
+    \"method\": \"mobile_money\",
     \"provider\": \"g\",
     \"idempotency_key\": \"z\",
     \"phone\": \"m\",
@@ -5904,7 +5944,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/payments/initiate"
+    "http://kora-ops-web.local/api/v1/payments/initiate"
 );
 
 const headers = {
@@ -5914,7 +5954,7 @@ const headers = {
 
 let body = {
     "reservation_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-    "method": "wallet",
+    "method": "mobile_money",
     "provider": "g",
     "idempotency_key": "z",
     "phone": "m",
@@ -6040,10 +6080,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="method"                data-endpoint="POSTapi-v1-payments-initiate"
-               value="wallet"
+               value="mobile_money"
                data-component="body">
     <br>
-<p>Example: <code>wallet</code></p>
+<p>Example: <code>mobile_money</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>mobile_money</code></li></ul>
         </div>
@@ -6112,14 +6152,14 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://localhost:8000/api/v1/payments/6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
+    --get "http://kora-ops-web.local/api/v1/payments/6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/payments/6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+    "http://kora-ops-web.local/api/v1/payments/6ff8f7f6-1eb3-3525-be4a-3932c805afed"
 );
 
 const headers = {
@@ -6506,7 +6546,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://localhost:8000/api/v1/payments/6ff8f7f6-1eb3-3525-be4a-3932c805afed/confirm" \
+    "http://kora-ops-web.local/api/v1/payments/6ff8f7f6-1eb3-3525-be4a-3932c805afed/confirm" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -6518,7 +6558,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://localhost:8000/api/v1/payments/6ff8f7f6-1eb3-3525-be4a-3932c805afed/confirm"
+    "http://kora-ops-web.local/api/v1/payments/6ff8f7f6-1eb3-3525-be4a-3932c805afed/confirm"
 );
 
 const headers = {

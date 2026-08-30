@@ -66,8 +66,13 @@ class BusDepartureController extends Controller
      *         "model": "Coach 55",
      *         "seat_count": 55,
      *         "layout": [
-     *           {"type": "row", "codes": ["1A", "1B", "1C", "1D"]},
-     *           {"type": "row", "codes": ["2A", "2B", "2C", "2D"]}
+     *           {"type": "standard", "codes": ["1A", "1B", "1C", "1D"]},
+     *           {"type": "standard", "codes": ["2A", "2B", "2C", "2D"]}
+     *         ],
+     *         "amenities": [
+     *           {"uuid": "a1b2c3d4-0000-0000-0000-000000000001", "code": "wifi", "label": "Wi-Fi à bord", "icon": "wifi"},
+     *           {"uuid": "a1b2c3d4-0000-0000-0000-000000000002", "code": "air_conditioning", "label": "Climatisation", "icon": "snowflake"},
+     *           {"uuid": "a1b2c3d4-0000-0000-0000-000000000003", "code": "usb_charging", "label": "Prises USB", "icon": "usb"}
      *         ]
      *       },
      *       "origin_stop": {
@@ -162,8 +167,13 @@ class BusDepartureController extends Controller
      *       "model": "Coach 55",
      *       "seat_count": 55,
      *       "layout": [
-     *         {"type": "row", "codes": ["1A", "1B", "1C", "1D"]},
-     *         {"type": "row", "codes": ["2A", "2B", "2C", "2D"]}
+     *         {"type": "standard", "codes": ["1A", "1B", "1C", "1D"]},
+     *         {"type": "standard", "codes": ["2A", "2B", "2C", "2D"]}
+     *       ],
+     *       "amenities": [
+     *         {"uuid": "a1b2c3d4-0000-0000-0000-000000000001", "code": "wifi", "label": "Wi-Fi à bord", "icon": "wifi"},
+     *         {"uuid": "a1b2c3d4-0000-0000-0000-000000000002", "code": "air_conditioning", "label": "Climatisation", "icon": "snowflake"},
+     *         {"uuid": "a1b2c3d4-0000-0000-0000-000000000003", "code": "usb_charging", "label": "Prises USB", "icon": "usb"}
      *       ]
      *     },
      *     "origin_stop": {

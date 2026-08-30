@@ -72,7 +72,17 @@ final res = await dio.get('/api/v1/bus/departures/a3091549-9179-454e-8440-58179f
       "registration_number": "BJ-2024-AB-1234",
       "brand": "Mercedes",
       "model": "Travego",
-      "seat_count": 52
+      "seat_count": 52,
+      "layout": [
+        { "type": "standard", "codes": ["1A", "1B", "1C", "1D"] },
+        { "type": "standard", "codes": ["2A", "2B", "2C", "2D"] },
+        { "type": "premium", "codes": ["3A", "3B"] }
+      ],
+      "amenities": [
+        { "uuid": "a1b2c3d4-...", "code": "wifi", "label": "Wi-Fi à bord", "icon": "wifi" },
+        { "uuid": "e5f6g7h8-...", "code": "air_conditioning", "label": "Climatisation", "icon": "snowflake" },
+        { "uuid": "i9j0k1l2-...", "code": "usb_charging", "label": "Prises USB", "icon": "usb" }
+      ]
     },
     "origin_stop": {
       "uuid": "6b72fe4a-5b40-307c-bc24-f79acf9a1bb9",
