@@ -2,8 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\BusAmenity;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class KoraBusAmenitySeeder extends Seeder
 {
@@ -50,8 +52,64 @@ class KoraBusAmenitySeeder extends Seeder
         foreach ($amenities as $amenity) {
             BusAmenity::query()->firstOrCreate(
                 ['code' => $amenity['code']],
-                $amenity + ['status' => 'active'],
+                ['uuid' => (string) Str::uuid()] + $amenity + ['status' => 'active'],
             );
+        }
+
+        $this->attachAmenitiesToBuses();
+    }
+
+    /**
+     * Associate a realistic subset of amenities to each seeded bus.
+     */
+    private function attachAmenitiesToBuses(): void
+    {
+        $commonAmenities = [
+            'air_conditioning',
+            'reclining_seats',
+            'usb_charging',
+            'reading_light',
+            'luggage_storage',
+            'seat_belt',
+            'gps_tracking',
+            'security_camera',
+            'headrest',
+        ];
+
+        $premiumAmenities = [
+            'wifi',
+            'power_outlet',
+            'extra_legroom',
+            'onboard_snack',
+            'bottled_water',
+            'blanket',
+            'pillow',
+            'premium_seat',
+            'tv_screen',
+            'entertainment',
+            'priority_boarding',
+        ];
+
+        $longHaulAmenities = [
+            'onboard_toilet',
+            'meal_service',
+            'individual_seat',
+        ];
+
+        $buses = Bus::all();
+
+        foreach ($buses as $bus) {
+            $codes = array_merge(
+                $commonAmenities,
+                $premiumAmenities,
+                $longHaulAmenities,
+            );
+
+            $amenityIds = BusAmenity::query()
+                ->whereIn('code', $codes)
+                ->pluck('id');
+
+            $bus->amenities()->sync($amenityIds);
         }
     }
 }

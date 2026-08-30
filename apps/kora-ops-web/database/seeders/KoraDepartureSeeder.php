@@ -11,6 +11,7 @@ use App\Modules\Departures\Models\Departure;
 use App\Modules\IdentityAccess\Models\Agency;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 class KoraDepartureSeeder extends Seeder
 {
@@ -162,6 +163,7 @@ class KoraDepartureSeeder extends Seeder
                     'departure_time' => $data['time'],
                 ],
                 [
+                    'uuid' => (string) Str::uuid(),
                     'agency_id' => $agency->id,
                     'estimated_arrival_at' => $estimatedArrivalAt,
                     'driver_id' => $data['driver']?->id,
