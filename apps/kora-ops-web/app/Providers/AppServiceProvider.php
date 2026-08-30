@@ -62,7 +62,7 @@ class AppServiceProvider extends ServiceProvider
             $config = config('payments.providers.fedapay', []);
 
             return new FedaPayAdapter(
-                apiKey: (string) ($config['api_key'] ?? ''),
+                apiKey: (string) ($config['secret_key'] ?? ''),
                 environment: (string) ($config['environment'] ?? 'sandbox'),
                 callbackUrl: $config['callback_url'] ?? null,
                 webhookSecret: $config['webhook_secret'] ?? null,

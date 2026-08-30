@@ -29,7 +29,7 @@ return [
 
         'fedapay' => [
             'enabled' => env('FEDAPAY_ENABLED', false),
-            'api_key' => env('FEDAPAY_API_KEY'),
+            'secret_key' => env('FEDAPAY_SECRET_KEY'),
             'environment' => env('FEDAPAY_ENVIRONMENT', 'sandbox'),
             'callback_url' => env('FEDAPAY_CALLBACK_URL'),
             'webhook_secret' => env('FEDAPAY_WEBHOOK_SECRET'),
