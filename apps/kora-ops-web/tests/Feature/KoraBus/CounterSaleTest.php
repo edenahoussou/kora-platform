@@ -42,6 +42,115 @@ it('renders upcoming scheduled departures by default', function (): void {
         );
 });
 
+it('resumes the latest active counter sale when opening the sale page without context', function (): void {
+    $scenario = counterSaleScenario();
+    $reservation = createCounterSaleHold($this, $scenario);
+
+    $response = $this->actingAs($scenario['agent'])->get(route('sale'));
+
+    $response->assertRedirect();
+    expect($response->headers->get('Location'))
+        ->toContain('reservation_uuid='.$reservation->uuid)
+        ->toContain('departure_uuid='.$scenario['departure']->uuid)
+        ->toContain('origin_stop_uuid='.$scenario['origin']->uuid)
+        ->toContain('destination_stop_uuid='.$scenario['destination']->uuid);
+});
+
+it('does not resume a counter sale belonging to another agent', function (): void {
+    $scenario = counterSaleScenario();
+    createCounterSaleHold($this, $scenario);
+    $otherAgent = User::factory()->create();
+    $otherAgent->assignRole('agency_agent');
+
+    $this->actingAs($otherAgent)
+        ->get(route('sale'))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page): Assert => $page->where('reservation', null));
+});
+
+it('ignores expired, cancelled, paid and ticketed counter sales during resume', function (): void {
+    $scenario = counterSaleScenario();
+
+    foreach ([
+        ReservationStatus::Held->value => Carbon::now()->subMinute(),
+        ReservationStatus::Cancelled->value => Carbon::now()->addMinutes(10),
+        ReservationStatus::Paid->value => Carbon::now()->addMinutes(10),
+        ReservationStatus::Ticketed->value => Carbon::now()->addMinutes(10),
+    ] as $status => $expiresAt) {
+        Reservation::query()->create([
+            'user_id' => $scenario['agent']->id,
+            'departure_id' => $scenario['departure']->id,
+            'status' => $status,
+            'total_amount' => 10000,
+            'currency' => 'XOF',
+            'channel' => ReservationChannel::Counter,
+            'expires_at' => $expiresAt,
+        ]);
+    }
+
+    $this->actingAs($scenario['agent'])
+        ->get(route('sale'))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page): Assert => $page->where('reservation', null));
+});
+
+it('saves a partial counter sale draft and restores it in Inertia props', function (): void {
+    $scenario = counterSaleScenario();
+    $reservation = createCounterSaleHold($this, $scenario);
+    $context = counterSaleContext($scenario);
+
+    $this->actingAs($scenario['agent'])
+        ->patch(route('sale.draft', $reservation), [
+            'passengers' => [[
+                'first_name' => 'Aïcha',
+                'last_name' => '',
+                'phone' => '+229 97 24 18 06',
+                'email' => '',
+                'document_type' => 'national_id',
+                'document_number' => '',
+                'nationality' => '',
+                'birth_date' => '',
+                'seat_uuid' => $scenario['seat2A']->uuid,
+            ]],
+        ])
+        ->assertRedirect();
+
+    $draft = $reservation->fresh()->draft_data;
+    expect($draft['passengers'][$scenario['seat2A']->uuid]['first_name'])->toBe('Aïcha');
+    expect($reservation->fresh()->passengers)->toHaveCount(0);
+
+    $this->actingAs($scenario['agent'])
+        ->get(route('sale', $context + ['reservation_uuid' => $reservation->uuid]))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->where('reservation.draftPassengers.0.firstName', 'Aïcha')
+            ->where('reservation.draftPassengers.0.phone', '+229 97 24 18 06')
+            ->where('reservation.passengers', [])
+        );
+});
+
+it('rejects a draft for an unauthorized or expired reservation', function (): void {
+    $scenario = counterSaleScenario();
+    $reservation = createCounterSaleHold($this, $scenario);
+    $otherAgent = User::factory()->create();
+    $otherAgent->assignRole('agency_agent');
+    $payload = [
+        'passengers' => [[
+            'first_name' => 'Aïcha',
+            'seat_uuid' => $scenario['seat2A']->uuid,
+        ]],
+    ];
+
+    $this->actingAs($otherAgent)
+        ->patch(route('sale.draft', $reservation), $payload)
+        ->assertForbidden();
+
+    $reservation->update(['expires_at' => Carbon::now()->subMinute()]);
+    $this->actingAs($scenario['agent'])
+        ->patch(route('sale.draft', $reservation), $payload)
+        ->assertSessionHasErrors('reservation');
+});
+
 it('renders the counter sale page with real departure and seat props', function (): void {
     $scenario = counterSaleScenario();
 
@@ -193,6 +302,13 @@ it('captures counter-sale passengers through the web finalization step', functio
         ]);
     $reservation = Reservation::query()->latest('id')->firstOrFail();
 
+    $reservation->update(['draft_data' => [
+        'passengers' => [$scenario['seat2A']->uuid => [
+            'seat_uuid' => $scenario['seat2A']->uuid,
+            'first_name' => 'Brouillon',
+        ]],
+    ]]);
+
     $response = $this->actingAs($scenario['agent'])
         ->post(route('sale.passengers', $reservation), $context + [
             'passengers' => [[
@@ -219,6 +335,7 @@ it('captures counter-sale passengers through the web finalization step', functio
         'reservation_id' => $reservation->id,
         'reservation_passenger_id' => $reservation->passengers()->firstOrFail()->id,
     ]);
+    expect($reservation->fresh()->draft_data)->toBeNull();
 
     $this->actingAs($scenario['agent'])
         ->get($response->headers->get('Location'))
@@ -262,6 +379,7 @@ it('releases the temporary hold when returning to seat selection', function (): 
         'status' => ReservationSegmentStatus::Cancelled->value,
     ]);
     expect($reservation->segments()->firstOrFail()->fresh()->released_at)->not->toBeNull();
+    expect($reservation->fresh()->draft_data)->toBeNull();
 
     $this->actingAs($scenario['agent'])
         ->get($response->headers->get('Location'))
@@ -492,4 +610,35 @@ function counterSaleScenario(): array
     ]);
 
     return compact('agent', 'line', 'origin', 'destination', 'bus', 'seat1A', 'seat2A', 'seat2B', 'departure');
+}
+
+/** @return array<string, string> */
+function counterSaleContext(array $scenario): array
+{
+    return [
+        'date' => '2026-08-20',
+        'from' => 'Cotonou',
+        'to' => 'Abidjan',
+        'departure_uuid' => $scenario['departure']->uuid,
+        'origin_stop_uuid' => $scenario['origin']->uuid,
+        'destination_stop_uuid' => $scenario['destination']->uuid,
+    ];
+}
+
+function createCounterSaleHold(mixed $test, array $scenario, string $seatCode = '2A'): Reservation
+{
+    $context = counterSaleContext($scenario);
+    $seat = $seatCode === '2B' ? $scenario['seat2B'] : $scenario['seat2A'];
+
+    $test->actingAs($scenario['agent'])
+        ->post(route('sale.quote'), $context + ['passenger_count' => 1]);
+    $quote = PriceQuote::query()->latest('id')->firstOrFail();
+
+    $test->actingAs($scenario['agent'])
+        ->post(route('sale.hold'), $context + [
+            'price_quote_uuid' => $quote->uuid,
+            'seats' => [['seat_uuid' => $seat->uuid]],
+        ]);
+
+    return Reservation::query()->latest('id')->firstOrFail();
 }

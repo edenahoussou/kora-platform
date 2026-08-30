@@ -3,14 +3,18 @@
 namespace App\Modules\Booking\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Modules\Booking\Actions\CreateSeatHoldAction;
 use App\Modules\Booking\Actions\ReleaseSeatHoldAction;
+use App\Modules\Booking\Actions\SaveCounterSaleDraftAction;
 use App\Modules\Booking\Actions\UpdateReservationPassengersAction;
 use App\Modules\Booking\Data\ReservationChannel;
+use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Exceptions\SeatUnavailableException;
 use App\Modules\Booking\Http\Requests\CounterSaleSearchRequest;
 use App\Modules\Booking\Http\Requests\HoldCounterSaleSeatsRequest;
 use App\Modules\Booking\Http\Requests\ReleaseCounterSaleHoldRequest;
+use App\Modules\Booking\Http\Requests\StoreCounterSaleDraftRequest;
 use App\Modules\Booking\Http\Requests\StoreCounterSalePassengersRequest;
 use App\Modules\Booking\Http\Requests\StoreCounterSalePaymentRequest;
 use App\Modules\Booking\Http\Requests\StoreCounterSaleQuoteRequest;
@@ -26,6 +30,7 @@ use App\Modules\Departures\Models\Departure;
 use App\Modules\Departures\Services\DepartureSearchService;
 use App\Modules\DynamicPricing\Actions\CalculateQuoteAction;
 use App\Modules\DynamicPricing\Models\PriceQuote;
+use App\Modules\Fiscalization\Models\FiscalInvoice;
 use App\Modules\Payments\Actions\RecordCounterSalePaymentAction;
 use App\Modules\Payments\Models\AgencyPaymentAccount;
 use App\Modules\SeatInventory\Actions\BuildCounterSaleSeatAvailabilityAction;
@@ -35,6 +40,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -50,9 +56,17 @@ class CounterSaleController extends Controller
         private BuildCounterSaleSeatAvailabilityAction $counterSaleSeatAvailability,
     ) {}
 
-    public function index(CounterSaleSearchRequest $request): Response
+    public function index(CounterSaleSearchRequest $request): Response|RedirectResponse
     {
         Gate::authorize('viewAny', Departure::class);
+
+        if (! $request->hasExplicitSaleContext()) {
+            $activeReservation = $this->latestActiveCounterSale();
+
+            if ($activeReservation !== null) {
+                return to_route('sale', $this->saleQueryFromReservation($activeReservation));
+            }
+        }
 
         $filters = $request->departureFilters();
         $context = $request->selectedContext();
@@ -202,6 +216,20 @@ class CounterSaleController extends Controller
         return to_route('sale', $request->saleQuery());
     }
 
+    public function saveDraft(
+        StoreCounterSaleDraftRequest $request,
+        Reservation $reservation,
+        SaveCounterSaleDraftAction $saveDraft,
+    ): RedirectResponse {
+        $saveDraft->handle(
+            reservation: $reservation,
+            user: $request->user(),
+            passengersData: $request->passengersData(),
+        );
+
+        return back();
+    }
+
     /**
      * @param  array{date: string|null, from: string|null, to: string|null}  $filters
      * @return Collection<int, DepartureAvailabilityData>
@@ -296,8 +324,49 @@ class CounterSaleController extends Controller
                 'segments.destinationStop',
                 'passengers.segments.seat',
                 'payments',
+                'payments.agencyPaymentAccount',
+                'payments.verifier.agency',
             ])
             ->firstOrFail();
+    }
+
+    private function latestActiveCounterSale(): ?Reservation
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return null;
+        }
+
+        return Reservation::query()
+            ->where('user_id', $user->getKey())
+            ->where('channel', ReservationChannel::Counter->value)
+            ->where('status', ReservationStatus::Held->value)
+            ->where('expires_at', '>', now())
+            ->with([
+                'departure',
+                'segments.originStop',
+                'segments.destinationStop',
+            ])
+            ->latest('updated_at')
+            ->latest('id')
+            ->first();
+    }
+
+    /** @return array<string, string> */
+    private function saleQueryFromReservation(Reservation $reservation): array
+    {
+        $segment = $reservation->segments->first();
+
+        return array_filter([
+            'date' => $reservation->departure?->departure_date?->toDateString(),
+            'from' => $segment?->originStop?->city,
+            'to' => $segment?->destinationStop?->city,
+            'departure_uuid' => $reservation->departure?->uuid,
+            'origin_stop_uuid' => $segment?->originStop?->uuid,
+            'destination_stop_uuid' => $segment?->destinationStop?->uuid,
+            'reservation_uuid' => $reservation->uuid,
+        ], static fn (mixed $value): bool => $value !== null && $value !== '');
     }
 
     /**
@@ -421,11 +490,22 @@ class CounterSaleController extends Controller
         $payment = $reservation->payments
             ->sortByDesc('id')
             ->first();
+        $agent = $payment?->verifier;
+        $agency = $agent?->agency ?? auth()->user()?->agency;
+        $confirmedAt = $payment?->confirmed_at ?? $payment?->verified_at;
+        $reservationCode = Str::upper(Str::substr(str_replace('-', '', $reservation->uuid), 0, 8));
+        $fiscalInvoice = FiscalInvoice::query()
+            ->where('reservation_id', $reservation->getKey())
+            ->first();
         $tickets = Ticket::query()
             ->where('reservation_id', $reservation->getKey())
             ->with('reservationPassenger.segments.seat')
             ->orderBy('id')
             ->get();
+
+        $draftPassengers = is_array($reservation->draft_data['passengers'] ?? null)
+            ? $reservation->draft_data['passengers']
+            : [];
 
         return [
             'uuid' => $reservation->uuid,
@@ -451,12 +531,31 @@ class CounterSaleController extends Controller
                     'accountIdentifier' => $this->maskAccountIdentifier($payment->agencyPaymentAccount->account_identifier),
                 ] : null,
                 'verifiedAt' => $payment->verified_at?->toISOString(),
-                'verifiedByName' => $payment->verifier?->name,
-                'agencyName' => auth()->user()?->agency?->name,
+                'confirmedAt' => $confirmedAt?->toISOString(),
+                'verifiedByName' => $agent?->name,
+                'verifiedByUuid' => $agent?->uuid,
+                'agencyName' => $agency?->name,
+                'agencyCode' => $agency?->code,
+            ] : null,
+            'qrPayload' => $payment ? [
+                'version' => 1,
+                'type' => 'reservation_confirmation',
+                'reservationCode' => $reservationCode,
+                'reservationUuid' => $reservation->uuid,
+                'agencyCode' => $agency?->code,
+                'agencyName' => $agency?->name,
+                'confirmedAt' => $confirmedAt?->toISOString(),
+                'agentUuid' => $agent?->uuid,
+            ] : null,
+            'fiscalization' => $fiscalInvoice ? [
+                'status' => $fiscalInvoice->status?->value,
+                'koraReference' => $fiscalInvoice->kora_reference,
+                'mecefUid' => $fiscalInvoice->mecef_uid,
             ] : null,
             'tickets' => $tickets->map(fn (Ticket $ticket): array => [
                 'uuid' => $ticket->uuid,
                 'shortCode' => $ticket->short_code,
+                'ticketNumber' => $ticket->uuid,
                 'qrCode' => $ticket->qr_code,
                 'seatCode' => $ticket->reservationPassenger?->segments->first()?->seat?->code,
                 'passengerUuid' => $ticket->reservationPassenger?->uuid,
@@ -482,6 +581,25 @@ class CounterSaleController extends Controller
                 'seatUuid' => $passenger->segments->first()?->seat?->uuid,
                 'seatCode' => $passenger->segments->first()?->seat?->code,
             ])->values()->all(),
+            'draftPassengers' => $reservation->segments->map(function ($segment) use ($draftPassengers): array {
+                $seatUuid = $segment->seat?->uuid;
+                $draft = $seatUuid !== null && is_array($draftPassengers[$seatUuid] ?? null)
+                    ? $draftPassengers[$seatUuid]
+                    : [];
+
+                return [
+                    'firstName' => $draft['first_name'] ?? '',
+                    'lastName' => $draft['last_name'] ?? '',
+                    'phone' => $draft['phone'] ?? '',
+                    'email' => $draft['email'] ?? '',
+                    'documentType' => $draft['document_type'] ?? 'national_id',
+                    'documentNumber' => $draft['document_number'] ?? '',
+                    'nationality' => $draft['nationality'] ?? '',
+                    'birthDate' => $draft['birth_date'] ?? '',
+                    'seatUuid' => $seatUuid,
+                    'seatCode' => $segment->seat?->code,
+                ];
+            })->values()->all(),
         ];
     }
 

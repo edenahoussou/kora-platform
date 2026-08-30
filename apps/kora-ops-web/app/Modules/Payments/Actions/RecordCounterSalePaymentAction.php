@@ -112,7 +112,10 @@ class RecordCounterSalePaymentAction
                 $cashSession->increment('total_mobile_money', $total);
             }
 
-            $lockedReservation->update(['status' => ReservationStatus::Paid]);
+            $lockedReservation->update([
+                'status' => ReservationStatus::Paid,
+                'draft_data' => null,
+            ]);
             $lockedReservation->segments()->update(['status' => ReservationSegmentStatus::Paid]);
 
             $tickets = $this->issueTickets->execute($lockedReservation);
@@ -182,7 +185,10 @@ class RecordCounterSalePaymentAction
         }
 
         if ($reservation->expires_at === null || $reservation->expires_at->isPast()) {
-            $reservation->update(['status' => ReservationStatus::Expired]);
+            $reservation->update([
+                'status' => ReservationStatus::Expired,
+                'draft_data' => null,
+            ]);
             $reservation->segments()
                 ->where('status', ReservationSegmentStatus::Held->value)
                 ->update([

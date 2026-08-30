@@ -1,160 +1,283 @@
-import { CheckCircle2, Printer, Send, TicketCheck } from 'lucide-react';
-import type { SaleDeparture, SaleReservation } from './sale-types';
-import { formatDate, formatMoney, formatTime } from './sale-utils';
+import { Check, MessageCircle, Plus, Printer } from 'lucide-react';
+import { useEffect } from 'react';
+import { receiptQrValue, ReceiptQr } from './receipt-qr';
+import type { SaleDeparture, SaleReservation, SaleTicket } from './sale-types';
+import { formatMoney, formatTime } from './sale-utils';
 
 export function CounterSaleSuccess({
     departure,
     reservation,
+    onNewSale,
+    releasing,
 }: {
     departure: SaleDeparture | null;
     reservation: SaleReservation;
+    onNewSale: () => void;
+    releasing: boolean;
 }) {
+    useEffect(() => {
+        const clearPrintMode = () =>
+            document.body.classList.remove('receipt-print-mode');
+
+        window.addEventListener('afterprint', clearPrintMode);
+
+        return () => {
+            window.removeEventListener('afterprint', clearPrintMode);
+            clearPrintMode();
+        };
+    }, []);
+
     const payment = reservation.payment;
+    const qrPayload = reservation.qrPayload;
+    const qrValue = qrPayload
+        ? receiptQrValue({
+              reservationCode: qrPayload.reservationCode,
+              reservationUuid: qrPayload.reservationUuid,
+              agencyCode: qrPayload.agencyCode,
+              confirmedAt: qrPayload.confirmedAt,
+              agentUuid: qrPayload.agentUuid,
+          })
+        : null;
+    const ticketCount = reservation.tickets.length;
+    const paymentName = paymentLabel(payment);
 
     return (
-        <div className="grid gap-5">
-            <section className="kora-panel overflow-hidden p-8 text-center sm:p-12">
-                <span className="mx-auto grid size-16 place-items-center rounded-full bg-digital/12 text-digital">
-                    <CheckCircle2 className="size-9" />
-                </span>
-                <span className="section-kicker mt-5 block">
-                    Vente enregistrée
-                </span>
-                <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-foreground">
-                    Paiement confirmé
-                </h2>
-                <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
-                    La vente est rattachée à la caisse de l’agence et les
-                    billets sont prêts. L’impression P501 et l’envoi WhatsApp
-                    pourront être lancés séparément.
-                </p>
-                <div className="mx-auto mt-7 grid max-w-3xl gap-3 text-left sm:grid-cols-3">
-                    <Summary
-                        label="Réservation"
-                        value={reservation.uuid.slice(0, 8).toUpperCase()}
-                    />
-                    <Summary
-                        label="Montant"
-                        value={formatMoney(
-                            reservation.totalAmount,
-                            reservation.currency,
-                        )}
-                    />
-                    <Summary
-                        label="Paiement"
-                        value={
-                            payment?.method === 'mobile_money'
-                                ? payment.network
-                                    ? networkLabel(payment.network)
-                                    : 'Mobile Money'
-                                : 'Espèces'
-                        }
-                    />
+        <section className="sale-success">
+            <header className="success-header">
+                <div className="success-mark" aria-hidden="true">
+                    <Check size={22} strokeWidth={1.8} />
                 </div>
-            </section>
-            <section className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-                <div className="kora-panel p-6">
-                    <div className="mb-5 flex items-center gap-3">
-                        <span className="grid size-10 place-items-center rounded-[0.75rem] bg-gold/15 text-[var(--kora)]">
-                            <TicketCheck className="size-5" />
+                <div className="success-copy">
+                    <span className="hero-kicker">Vente confirmée</span>
+                    <h1>
+                        {ticketCount > 1
+                            ? `${ticketCount} billets sont prêts.`
+                            : 'Le billet est prêt.'}
+                    </h1>
+                    <p>
+                        {ticketCount > 1
+                            ? `La transaction ${departure?.line.code ?? 'KORA'} a été encaissée par ${paymentName.toLowerCase()} et intégrée à la caisse journalière.`
+                            : `La place ${reservation.tickets[0]?.seatCode ?? '—'} est réservée pour ${passengerName(reservation, reservation.tickets[0])}. Le paiement ${paymentName.toLowerCase()} est enregistré dans la caisse journalière.`}
+                    </p>
+                </div>
+            </header>
+
+            <div className="success-workspace">
+                <div className="issued-ticket-list">
+                    {reservation.tickets.map((ticket) => (
+                        <TicketCard
+                            key={ticket.uuid}
+                            departure={departure}
+                            fiscalization={reservation.fiscalization}
+                            payment={payment}
+                            qrValue={qrValue}
+                            reservation={reservation}
+                            ticket={ticket}
+                        />
+                    ))}
+                </div>
+
+                <aside className="success-action-rail ticket-screen-only" aria-label="Actions du billet">
+                    <div className="action-rail-heading">
+                        <span>Actions</span>
+                        <small>Après encaissement</small>
+                    </div>
+                    <button
+                        type="button"
+                        className="action-rail-button action-rail-button-primary"
+                        onClick={() => {
+                            document.body.classList.add('receipt-print-mode');
+                            window.print();
+                        }}
+                    >
+                        <span className="action-rail-icon" aria-hidden="true">
+                            <Printer size={18} strokeWidth={1.7} />
                         </span>
-                        <div>
-                            <h3 className="font-bold text-foreground">
-                                Billets émis
-                            </h3>
-                            <p className="text-xs text-muted-foreground">
-                                Un billet par passager.
-                            </p>
-                        </div>
-                    </div>
-                    <div className="grid gap-3">
-                        {reservation.tickets.map((ticket) => (
-                            <div
-                                key={ticket.uuid}
-                                className="flex items-center justify-between rounded-[0.8rem] border border-border bg-muted/25 px-4 py-3"
-                            >
-                                <div>
-                                    <strong className="block text-sm text-foreground">
-                                        {ticket.shortCode}
-                                    </strong>
-                                    <span className="text-xs text-muted-foreground">
-                                        Siège {ticket.seatCode ?? '—'}
-                                    </span>
-                                </div>
-                                <span className="text-xs font-semibold text-digital">
-                                    Émis
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-                <div className="kora-panel p-6">
-                    <h3 className="font-bold text-foreground">
-                        Détails du trajet
-                    </h3>
-                    <div className="mt-4 grid gap-3 text-sm">
-                        <Summary
-                            label="Trajet"
-                            value={
-                                departure
-                                    ? `${departure.originStop.city} → ${departure.destinationStop.city}`
-                                    : '—'
-                            }
-                        />
-                        <Summary
-                            label="Départ"
-                            value={
-                                departure
-                                    ? `${formatDate(departure.departureDate)} · ${formatTime(departure.departureTime)}`
-                                    : '—'
-                            }
-                        />
-                        <Summary
-                            label="Agence"
-                            value={payment?.agencyName ?? '—'}
-                        />
-                        <Summary
-                            label="Agent"
-                            value={payment?.verifiedByName ?? '—'}
-                        />
-                    </div>
-                    <div className="mt-6 flex flex-wrap gap-2">
-                        <button
-                            type="button"
-                            disabled
-                            className="inline-flex h-10 items-center gap-2 rounded-[0.75rem] border border-border px-4 text-xs font-semibold text-muted-foreground opacity-60"
-                        >
-                            <Printer className="size-4" /> Imprimer · bientôt
-                        </button>
-                        <button
-                            type="button"
-                            disabled
-                            className="inline-flex h-10 items-center gap-2 rounded-[0.75rem] border border-border px-4 text-xs font-semibold text-muted-foreground opacity-60"
-                        >
-                            <Send className="size-4" /> WhatsApp · bientôt
-                        </button>
-                    </div>
-                </div>
-            </section>
-        </div>
+                        <span className="action-rail-label">
+                            <strong>Imprimer</strong>
+                            <small>Ticket caisse</small>
+                        </span>
+                    </button>
+                    <button
+                        type="button"
+                        className="action-rail-button"
+                        disabled
+                    >
+                        <span className="action-rail-icon" aria-hidden="true">
+                            <MessageCircle size={18} strokeWidth={1.7} />
+                        </span>
+                        <span className="action-rail-label">
+                            <strong>WhatsApp</strong>
+                            <small>Bientôt disponible</small>
+                        </span>
+                    </button>
+                    <button
+                        type="button"
+                        className="action-rail-button action-rail-button-new"
+                        onClick={onNewSale}
+                        disabled={releasing}
+                    >
+                        <span className="action-rail-icon" aria-hidden="true">
+                            <Plus size={18} strokeWidth={1.7} />
+                        </span>
+                        <span className="action-rail-label">
+                            <strong>{releasing ? 'Libération…' : 'Nouvelle vente'}</strong>
+                            <small>Revenir au guichet</small>
+                        </span>
+                    </button>
+                </aside>
+            </div>
+        </section>
     );
 }
 
-function Summary({ label, value }: { label: string; value: string }) {
+function TicketCard({
+    departure,
+    fiscalization,
+    payment,
+    qrValue,
+    reservation,
+    ticket,
+}: {
+    departure: SaleDeparture | null;
+    fiscalization: SaleReservation['fiscalization'];
+    payment: SaleReservation['payment'];
+    qrValue: string | null;
+    reservation: SaleReservation;
+    ticket: SaleTicket;
+}) {
+    const passenger = reservation.passengers.find(
+        (item) => item.uuid === ticket.passengerUuid,
+    );
+    const ticketAmount = ticketCount(reservation) > 0
+        ? Math.round(reservation.totalAmount / ticketCount(reservation))
+        : reservation.totalAmount;
+
+    return (
+        <article className="ticket-card compact-ticket">
+            <div className="ticket-brand">
+                <div className="ticket-brand-lockup">
+                    <img src="/kora-logo-sidebar.png" alt="KORA EXPRESS" />
+                </div>
+                <span className="status navy">Payé</span>
+            </div>
+
+            <div className="ticket-route-large">
+                <span>
+                    <b>{stopCode(departure?.originStop.city)}</b>
+                    <small>{departure?.originStop.city ?? 'Départ'}</small>
+                </span>
+                <i aria-hidden="true">
+                    <em>K</em>
+                </i>
+                <span>
+                    <b>{stopCode(departure?.destinationStop.city)}</b>
+                    <small>{departure?.destinationStop.city ?? 'Arrivée'}</small>
+                </span>
+            </div>
+
+            <div className="ticket-content">
+                <div className="ticket-grid">
+                    <TicketField
+                        label="Passager"
+                        value={passenger ? `${passenger.firstName} ${passenger.lastName}` : '—'}
+                    />
+                    <TicketField
+                        label="Date"
+                        value={formatTicketDate(departure?.departureDate ?? null)}
+                    />
+                    <TicketField
+                        label="Départ estimé"
+                        value={departure ? `${departure.line.code} · ${formatTime(departure.departureTime)}` : '—'}
+                    />
+                    <TicketField label="Siège" value={ticket.seatCode ?? '—'} />
+                    <TicketField label="Numéro billet" value={shortUuid(ticket.ticketNumber)} />
+                    <TicketField
+                        label="Montant"
+                        value={formatMoney(ticketAmount, reservation.currency)}
+                    />
+                    <TicketField label="Code court" value={ticket.shortCode} />
+                    <TicketField
+                        label="Numéro MECeF"
+                        value={fiscalization?.mecefUid ?? fiscalization?.koraReference ?? 'En attente'}
+                    />
+                </div>
+                <div className="ticket-qr" aria-label="QR Code billet">
+                    {qrValue ? <ReceiptQr value={qrValue} /> : <span>QR indisponible</span>}
+                    <small>{ticket.shortCode}</small>
+                </div>
+            </div>
+
+            <div className="ticket-code">
+                <span aria-hidden="true" />
+                <b>
+                    Achat guichet définitif · Agence {payment?.agencyCode ?? '—'}
+                </b>
+                <span aria-hidden="true" />
+            </div>
+        </article>
+    );
+}
+
+function TicketField({ label, value }: { label: string; value: string }) {
     return (
         <div>
-            <span className="block text-xs text-muted-foreground">{label}</span>
-            <strong className="block text-sm text-foreground">{value}</strong>
+            <small>{label}</small>
+            <strong>{value}</strong>
         </div>
     );
 }
 
-function networkLabel(
-    value: NonNullable<NonNullable<SaleReservation['payment']>['network']>,
-) {
-    return value === 'mtn_momo'
+function ticketCount(reservation: SaleReservation): number {
+    return reservation.tickets.length;
+}
+
+function passengerName(
+    reservation: SaleReservation,
+    ticket: SaleTicket | undefined,
+): string {
+    const passenger = reservation.passengers.find(
+        (item) => item.uuid === ticket?.passengerUuid,
+    );
+
+    return passenger ? `${passenger.firstName} ${passenger.lastName}` : '—';
+}
+
+function paymentLabel(payment: SaleReservation['payment']): string {
+    if (!payment) {
+        return 'paiement';
+    }
+
+    if (payment.method !== 'mobile_money') {
+        return 'espèces';
+    }
+
+    return payment.network === 'mtn_momo'
         ? 'MTN MoMo'
-        : value === 'moov_flooz'
+        : payment.network === 'moov_flooz'
           ? 'Moov Money / Flooz'
           : 'Celtis Cash';
+}
+
+function stopCode(city: string | undefined): string {
+    return city ? city.replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase() : '—';
+}
+
+function formatTicketDate(value: string | null): string {
+    if (!value) {
+        return '—';
+    }
+
+    return new Intl.DateTimeFormat('fr-FR', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+    })
+        .format(new Date(`${value}T12:00:00`))
+        .replace('.', '')
+        .toUpperCase();
+}
+
+function shortUuid(uuid: string): string {
+    return `${uuid.slice(0, 8)}…${uuid.slice(-4)}`;
 }

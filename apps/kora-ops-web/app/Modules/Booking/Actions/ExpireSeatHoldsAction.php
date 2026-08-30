@@ -26,7 +26,10 @@ class ExpireSeatHoldsAction
             $count = 0;
 
             foreach ($expiredReservations as $reservation) {
-                $reservation->update(['status' => ReservationStatus::Expired]);
+                $reservation->update([
+                    'status' => ReservationStatus::Expired,
+                    'draft_data' => null,
+                ]);
 
                 $reservation->segments()
                     ->where('status', ReservationSegmentStatus::Held->value)

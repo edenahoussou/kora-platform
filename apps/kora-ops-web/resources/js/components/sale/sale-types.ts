@@ -60,13 +60,28 @@ export type SalePayment = {
         accountIdentifier: string;
     } | null;
     verifiedAt: string | null;
+    confirmedAt: string | null;
     verifiedByName: string | null;
+    verifiedByUuid: string | null;
     agencyName: string | null;
+    agencyCode: string | null;
+};
+
+export type SaleReceiptQrPayload = {
+    version: 1;
+    type: 'reservation_confirmation';
+    reservationCode: string;
+    reservationUuid: string;
+    agencyCode: string | null;
+    agencyName: string | null;
+    confirmedAt: string | null;
+    agentUuid: string | null;
 };
 
 export type SaleTicket = {
     uuid: string;
     shortCode: string;
+    ticketNumber: string;
     qrCode: string;
     seatCode: string | null;
     passengerUuid: string | null;
@@ -124,6 +139,19 @@ export type SalePassengerForm = {
     birthDate: string;
     seatUuid: string;
     seatCode: string;
+};
+
+export type SalePassengerDraft = {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email: string;
+    documentType: string;
+    documentNumber: string;
+    nationality: string;
+    birthDate: string;
+    seatUuid: string | null;
+    seatCode: string | null;
 };
 
 export type SaleStop = {
@@ -195,8 +223,15 @@ export type SaleReservation = {
     channel: string | null;
     departureUuid: string | null;
     payment: SalePayment | null;
+    qrPayload: SaleReceiptQrPayload | null;
+    fiscalization: {
+        status: string | null;
+        koraReference: string | null;
+        mecefUid: string | null;
+    } | null;
     tickets: SaleTicket[];
     passengers: SalePassenger[];
+    draftPassengers: SalePassengerDraft[];
     segments: Array<{
         uuid: string;
         seatUuid: string | null;
