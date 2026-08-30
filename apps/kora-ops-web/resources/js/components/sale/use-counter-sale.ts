@@ -1,5 +1,4 @@
 import { router, useForm } from '@inertiajs/react';
-import { useCallback } from 'react';
 import type { SyntheticEvent } from 'react';
 import { toast } from 'sonner';
 import { sale } from '@/routes';
