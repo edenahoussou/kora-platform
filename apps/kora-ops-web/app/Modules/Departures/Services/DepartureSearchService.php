@@ -54,9 +54,7 @@ class DepartureSearchService
             );
         }
 
-        $paginator = $this->baseQuery($date, $lineIds)->paginate($perPage);
-
-        $items = $paginator->getCollection()
+        $items = $this->baseQuery($date, $lineIds)->get()
             ->map(fn (Departure $departure): ?DepartureAvailabilityData => $this->buildDepartureData(
                 $departure,
                 $filters['from'] ?? null,
@@ -66,11 +64,15 @@ class DepartureSearchService
             ->when($sellableOnly, fn (Collection $items) => $items->filter(fn (DepartureAvailabilityData $item): bool => $item->sellability->isSellable))
             ->values();
 
+        $page = LengthAwarePaginator::resolveCurrentPage();
+        $offset = ($page - 1) * $perPage;
+        $pageItems = $items->slice($offset, $perPage)->values();
+
         return new LengthAwarePaginator(
-            $items,
-            $paginator->total(),
-            $paginator->perPage(),
-            $paginator->currentPage(),
+            $pageItems,
+            $items->count(),
+            $perPage,
+            $page,
             ['path' => LengthAwarePaginator::resolveCurrentPath(), 'query' => request()->query()],
         );
     }
