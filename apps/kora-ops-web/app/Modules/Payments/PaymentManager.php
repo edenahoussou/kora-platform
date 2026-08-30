@@ -198,7 +198,7 @@ class PaymentManager
     private function requiredCredentials(string $provider): array
     {
         return match ($provider) {
-            'fedapay' => ['api_key'],
+            'fedapay' => ['secret_key'],
             'mtn_momo' => ['subscription_key', 'user_id', 'api_key'],
             default => [],
         };
