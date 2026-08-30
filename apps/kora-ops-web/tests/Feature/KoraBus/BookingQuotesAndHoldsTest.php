@@ -235,6 +235,7 @@ it('expires past-due holds with bus:expire-holds command', function (): void {
         'total_amount' => 10000,
         'currency' => 'XOF',
         'expires_at' => now()->subMinutes(5),
+        'draft_data' => ['passengers' => ['seat-draft' => ['first_name' => 'Brouillon']]],
     ]);
 
     $segment = ReservationSegment::create([
@@ -253,6 +254,7 @@ it('expires past-due holds with bus:expire-holds command', function (): void {
         ->assertSuccessful();
 
     expect($reservation->fresh()->status)->toBe(ReservationStatus::Expired);
+    expect($reservation->fresh()->draft_data)->toBeNull();
     expect($segment->fresh()->status)->toBe(ReservationSegmentStatus::Expired);
     expect($segment->fresh()->released_at)->not->toBeNull();
 });

@@ -25,6 +25,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $ticket_issuance_started_at
  * @property Carbon|null $ticket_issued_at
  * @property array<string, mixed>|null $total_snapshot
+ * @property array<string, mixed>|null $draft_data
  */
 class Reservation extends KoraModel
 {
@@ -45,6 +46,7 @@ class Reservation extends KoraModel
         'channel',
         'expires_at',
         'total_snapshot',
+        'draft_data',
     ];
 
     /**
@@ -113,6 +115,7 @@ class Reservation extends KoraModel
             'ticket_issuance_started_at' => 'datetime',
             'ticket_issued_at' => 'datetime',
             'total_snapshot' => 'array',
+            'draft_data' => 'array',
         ];
     }
 }

@@ -33,6 +33,9 @@ type Props = {
     releasing: boolean;
     errors: Record<string, string>;
     onSubmit: (passengers: SalePassengerForm[]) => void;
+    onDraftChange: (passengers: SalePassengerForm[]) => void;
+    draftSaving: boolean;
+    draftSaved: boolean;
     onBack: () => void;
     onHoldExpired: () => void;
 };
@@ -42,16 +45,21 @@ function initialPassengers(reservation: SaleReservation): SalePassengerForm[] {
         const passenger = reservation.passengers.find(
             (candidate) => candidate.seatUuid === segment.seatUuid,
         );
+        const draft = reservation.draftPassengers.find(
+            (candidate) => candidate.seatUuid === segment.seatUuid,
+        );
 
         return {
-            firstName: passenger?.firstName ?? '',
-            lastName: passenger?.lastName ?? '',
-            phone: normalizePhoneValue(passenger?.phone),
-            email: passenger?.email ?? '',
-            documentType: passenger?.documentType ?? 'national_id',
-            documentNumber: passenger?.documentNumber ?? '',
-            nationality: passenger?.nationality ?? '',
-            birthDate: passenger?.birthDate ?? '',
+            firstName: draft?.firstName ?? passenger?.firstName ?? '',
+            lastName: draft?.lastName ?? passenger?.lastName ?? '',
+            phone: normalizePhoneValue(draft?.phone ?? passenger?.phone),
+            email: draft?.email ?? passenger?.email ?? '',
+            documentType:
+                draft?.documentType ?? passenger?.documentType ?? 'national_id',
+            documentNumber:
+                draft?.documentNumber ?? passenger?.documentNumber ?? '',
+            nationality: draft?.nationality ?? passenger?.nationality ?? '',
+            birthDate: draft?.birthDate ?? passenger?.birthDate ?? '',
             seatUuid: segment.seatUuid ?? '',
             seatCode: segment.seatCode ?? '—',
         };
@@ -114,6 +122,9 @@ export function PassengerFinalization({
     releasing,
     errors,
     onSubmit,
+    onDraftChange,
+    draftSaving,
+    draftSaved,
     onBack,
     onHoldExpired,
 }: Props) {
@@ -126,6 +137,29 @@ export function PassengerFinalization({
     const [confirmingBack, setConfirmingBack] = useState(false);
     const holdCountdown = useHoldCountdown(reservation.expiresAt);
     const expirationHandled = useRef(false);
+    const latestPassengers = useRef(passengers);
+    const flushOnUnmount = useRef(true);
+
+    useEffect(() => {
+        latestPassengers.current = passengers;
+    }, [passengers]);
+
+    useEffect(() => {
+        const timeout = window.setTimeout(() => {
+            onDraftChange(passengers);
+        }, 700);
+
+        return () => window.clearTimeout(timeout);
+    }, [onDraftChange, passengers]);
+
+    useEffect(
+        () => () => {
+            if (flushOnUnmount.current && latestPassengers.current.length > 0) {
+                onDraftChange(latestPassengers.current);
+            }
+        },
+        [onDraftChange],
+    );
 
     useEffect(() => {
         if (!holdCountdown.isExpired || expirationHandled.current) {
@@ -133,6 +167,7 @@ export function PassengerFinalization({
         }
 
         expirationHandled.current = true;
+        flushOnUnmount.current = false;
         onHoldExpired();
     }, [holdCountdown.isExpired, onHoldExpired]);
 
@@ -183,7 +218,13 @@ export function PassengerFinalization({
             return;
         }
 
+        flushOnUnmount.current = false;
         onSubmit(passengers);
+    };
+
+    const goBackToSeats = () => {
+        flushOnUnmount.current = false;
+        onBack();
     };
 
     return (
@@ -226,6 +267,19 @@ export function PassengerFinalization({
                                       : `${completeCount}/${passengers.length} complété${completeCount > 1 ? 's' : ''}`}
                             </strong>
                         </div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-end gap-2 text-[0.7rem] font-semibold text-muted-foreground">
+                        <span
+                            className={cn(
+                                'size-1.5 rounded-full bg-emerald-500',
+                                draftSaving && 'animate-pulse bg-gold',
+                            )}
+                        />
+                        {draftSaving
+                            ? 'Enregistrement du brouillon…'
+                            : draftSaved
+                              ? 'Brouillon enregistré'
+                              : 'Brouillon local prêt à enregistrer'}
                     </div>
                     <div
                         className="finalization-progress"
@@ -589,7 +643,7 @@ export function PassengerFinalization({
                                         type="button"
                                         className="btn btn-primary"
                                         disabled={releasing}
-                                        onClick={onBack}
+                                        onClick={goBackToSeats}
                                     >
                                         {releasing
                                             ? 'Retour…'

@@ -54,4 +54,24 @@ class CounterSaleSearchRequest extends FormRequest
             'reservation_uuid' => $this->string('reservation_uuid')->trim()->value() ?: null,
         ];
     }
+
+    public function hasExplicitSaleContext(): bool
+    {
+        foreach ([
+            'date',
+            'from',
+            'to',
+            'departure_uuid',
+            'origin_stop_uuid',
+            'destination_stop_uuid',
+            'quote_uuid',
+            'reservation_uuid',
+        ] as $key) {
+            if ($this->filled($key)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

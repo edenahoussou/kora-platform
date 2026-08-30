@@ -43,6 +43,8 @@ class UpdateReservationPassengersAction
         }
 
         if ($reservation->expires_at && $reservation->expires_at->isPast()) {
+            $reservation->update(['draft_data' => null]);
+
             throw ValidationException::withMessages([
                 'reservation' => 'La réservation a expiré.',
             ]);
@@ -77,6 +79,7 @@ class UpdateReservationPassengersAction
             // Unlink existing segments
             $reservation->segments()->update(['reservation_passenger_id' => null]);
             $reservation->passengers()->delete();
+            $reservation->update(['draft_data' => null]);
 
             $segmentsBySeatUuid = $segments->keyBy(fn (ReservationSegment $s) => $s->seat->uuid ?? '');
             $unassignedSegments = $segments->values();

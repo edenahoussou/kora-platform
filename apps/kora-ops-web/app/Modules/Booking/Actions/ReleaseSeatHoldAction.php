@@ -32,6 +32,7 @@ class ReleaseSeatHoldAction
 
             $lockedReservation->update([
                 'status' => ReservationStatus::Cancelled,
+                'draft_data' => null,
             ]);
 
             $lockedReservation->segments()

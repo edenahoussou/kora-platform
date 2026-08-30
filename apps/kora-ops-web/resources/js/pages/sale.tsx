@@ -1,5 +1,5 @@
-import { Head } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
+import { Head, router } from '@inertiajs/react';
+import { useCallback, useMemo, useState } from 'react';
 import type { SyntheticEvent } from 'react';
 import { toast } from 'sonner';
 import { CounterSaleSuccess } from '@/components/sale/counter-sale-success';
@@ -17,6 +17,7 @@ import type {
 } from '@/components/sale/sale-types';
 import { SeatPicker } from '@/components/sale/seat-picker';
 import { useCounterSale } from '@/components/sale/use-counter-sale';
+import { sale } from '@/routes';
 
 export default function SalePage(props: SaleProps) {
     const {
@@ -42,7 +43,7 @@ export default function SalePage(props: SaleProps) {
         ) ?? [],
     );
     const [passengerCount, setPassengerCount] = useState(
-        quote?.passengerCount ?? 1,
+        reservation?.segments.length ?? quote?.passengerCount ?? 1,
     );
     const [isSeatPickerOpen, setIsSeatPickerOpen] = useState(false);
     const [isLoadingSeats, setIsLoadingSeats] = useState(false);
@@ -54,11 +55,14 @@ export default function SalePage(props: SaleProps) {
                 : null,
         );
     const isPaymentStepOpen = reservation?.uuid === paymentStepReservationUuid;
+    const isSaleCompleted =
+        reservation !== null && reservation.payment !== null;
     const {
         searchForm,
         quoteForm,
         holdForm,
         passengersForm,
+        draftForm,
         releaseForm,
         paymentForm,
         search: submitSearch,
@@ -66,9 +70,39 @@ export default function SalePage(props: SaleProps) {
         calculateQuote,
         holdSeats,
         savePassengers,
+        saveDraft,
         releaseHold,
         recordPayment,
     } = useCounterSale({ ...props, search });
+
+    const activeReservationUuid = reservation?.uuid;
+    const savePassengerDraft = useCallback(
+        (passengers: SalePassengerForm[]) => {
+            if (!activeReservationUuid) {
+                return;
+            }
+
+            saveDraft(activeReservationUuid, passengers);
+        },
+        [activeReservationUuid, saveDraft],
+    );
+
+    const startNewSale = () => {
+        if (
+            reservation === null ||
+            !window.confirm(
+                'Abandonner cette vente en cours et libérer les sièges bloqués ?',
+            )
+        ) {
+            return;
+        }
+
+        releaseHold(reservation.uuid, {
+            onSuccess: () => {
+                router.get(sale.url(), {}, { preserveState: false });
+            },
+        });
+    };
 
     const selectedSeatCodes = useMemo(
         () =>
@@ -150,29 +184,48 @@ export default function SalePage(props: SaleProps) {
         <>
             <Head title="Vente au guichet" />
             <main className="w-full max-w-full overflow-x-hidden">
-                <SalePageHeading />
+                <SalePageHeading
+                    action={
+                        reservation && !reservation.payment ? (
+                            <button
+                                type="button"
+                                className="btn btn-ghost"
+                                onClick={startNewSale}
+                                disabled={releaseForm.processing}
+                            >
+                                {releaseForm.processing
+                                    ? 'Abandon…'
+                                    : 'Nouvelle vente'}
+                            </button>
+                        ) : undefined
+                    }
+                />
                 {!permissions.canCreate && (
                     <div className="mb-5 rounded-[0.9rem] border border-gold/30 bg-gold/10 px-4 py-3 text-[0.75rem] font-bold text-foreground">
                         Votre profil peut consulter les départs, mais ne dispose
                         pas de l’autorisation de créer une vente guichet.
                     </div>
                 )}
-                <SaleProgress stage={stage} />
-                <div className="grid gap-5">
-                    <RouteSearch
-                        cities={cities}
-                        value={search}
-                        processing={searchForm.processing}
-                        onChange={(nextSearch) => {
-                            setSearch(nextSearch);
-                            searchForm.setData(nextSearch);
-                        }}
-                        onSubmit={onSearch}
-                    />
+                {!isSaleCompleted && <SaleProgress stage={stage} />}
+                <div className={isSaleCompleted ? undefined : 'grid gap-5'}>
+                    {!isSaleCompleted && (
+                        <RouteSearch
+                            cities={cities}
+                            value={search}
+                            processing={searchForm.processing}
+                            onChange={(nextSearch) => {
+                                setSearch(nextSearch);
+                                searchForm.setData(nextSearch);
+                            }}
+                            onSubmit={onSearch}
+                        />
+                    )}
                     {reservation && reservation.payment ? (
                         <CounterSaleSuccess
                             departure={selectedDeparture}
                             reservation={reservation}
+                            onNewSale={startNewSale}
+                            releasing={releaseForm.processing}
                         />
                     ) : reservation && isPaymentStepOpen ? (
                         <PaymentStep
@@ -198,6 +251,9 @@ export default function SalePage(props: SaleProps) {
                             processing={passengersForm.processing}
                             releasing={releaseForm.processing}
                             errors={passengersForm.errors}
+                            onDraftChange={savePassengerDraft}
+                            draftSaving={draftForm.processing}
+                            draftSaved={draftForm.recentlySuccessful}
                             onSubmit={(passengers: SalePassengerForm[]) =>
                                 savePassengers(
                                     reservation.uuid,
