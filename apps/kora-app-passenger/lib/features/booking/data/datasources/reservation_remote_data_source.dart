@@ -223,6 +223,16 @@ Map<String, dynamic> _passengerJson(Passenger passenger) {
       // `date_format:Y-m-d` : une date seule, sans heure ni fuseau — le
       // serveur refuse un ISO complet.
       'birth_date': _isoDay(passenger.birthDate!),
+    // Déclaration de vaccination contre la fièvre jaune, demandée à la
+    // revue Kora du 29 août 2026.
+    //
+    // **Le serveur la jette aujourd'hui** : `StorePassengersRequest`
+    // recopie une liste fermée de champs, et celui-ci n'en fait pas
+    // partie. On l'envoie quand même — le jour où la colonne existe, la
+    // valeur arrive sans qu'il faille repasser par le magasin
+    // d'applications. Envoyée toujours, jamais conditionnée : « non
+    // vacciné » est une réponse, pas une absence de réponse.
+    'yellow_fever_vaccinated': passenger.yellowFeverVaccinated,
   };
 }
 

@@ -614,7 +614,6 @@ class AppLocalization {
   String get passengersEyebrowInternational =>
       translate('passengers_eyebrow_international');
   String get passengersStep => translate('passengers_step');
-  String get passengersIncomplete => translate('passengers_incomplete');
   String get passengersNotice => translate('passengers_notice');
   String get passengersNoticeInternational =>
       translate('passengers_notice_international');
@@ -637,6 +636,21 @@ class AppLocalization {
       _withArgs('passengers_phone_length', {'digits': digits});
   String get passengersEmail => translate('passengers_email');
   String get passengersEmailInvalid => translate('passengers_email_invalid');
+  String passengersIncompleteDetail(String details) =>
+      _withArgs('passengers_incomplete_detail', {'details': details});
+  String passengersIncompletePassenger(int index, String fields) => _withArgs(
+    'passengers_incomplete_passenger',
+    {'index': index, 'fields': fields},
+  );
+  String get passengersDocumentTypeOptional =>
+      translate('passengers_document_type_optional');
+  String get passengersDocumentNumberOptional =>
+      translate('passengers_document_number_optional');
+  String get passengersDocumentNone => translate('passengers_document_none');
+  String get passengersYellowFever => translate('passengers_yellow_fever');
+  String get passengersAccuracy => translate('passengers_accuracy');
+  String get passengersAccuracyRequired =>
+      translate('passengers_accuracy_required');
   String get passengersDocumentType => translate('passengers_document_type');
   String get passengersDocumentNumber =>
       translate('passengers_document_number');
@@ -656,7 +670,6 @@ class AppLocalization {
   String get passengersDocNationalId => translate('passengers_doc_national_id');
   String get passengersDocBiometric => translate('passengers_doc_biometric');
   String get passengersDocConsular => translate('passengers_doc_consular');
-  String get passengersDocCip => translate('passengers_doc_cip');
   String get summaryEyebrow => translate('summary_eyebrow');
   String get summaryTitle => translate('summary_title');
   String get summaryPassengers => translate('summary_passengers');

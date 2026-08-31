@@ -153,6 +153,85 @@ void main() {
     expect(sent.containsKey('email'), isFalse);
   });
 
+  test('porte la déclaration de vaccination de chaque voyageur', () async {
+    // Revue Kora du 29 août 2026 : la case est indépendante et propre à
+    // chaque voyageur. Deux personnes du même billet n'ont pas le même
+    // carnet, et la réponse du premier ne doit rien décider pour le
+    // second.
+    await dataSource.savePassengers(
+      reservationId: 'res-1',
+      passengers: [
+        const Passenger(
+          firstName: 'Aïcha',
+          lastName: 'HOUNKPÈ',
+          phone: '+22901974218',
+          seat: seatA,
+        ),
+        const Passenger(
+          firstName: 'Kofi',
+          lastName: 'MENSAH',
+          phone: '+22890000000',
+          seat: seatB,
+          yellowFeverVaccinated: true,
+        ),
+      ],
+    );
+
+    expect(sentPassengers().map((p) => p['yellow_fever_vaccinated']), [
+      false,
+      true,
+    ]);
+  });
+
+  test('envoie « non vacciné » plutôt que de taire la question', () async {
+    // Contrairement aux champs du manifeste, celui-ci part toujours : une
+    // absence se lirait « pas encore demandé », alors que le voyageur a
+    // répondu.
+    await dataSource.savePassengers(
+      reservationId: 'res-1',
+      passengers: [
+        const Passenger(
+          firstName: 'Aïcha',
+          lastName: 'HOUNKPÈ',
+          phone: '+22901974218',
+          seat: seatA,
+        ),
+      ],
+    );
+
+    expect(
+      sentPassengers().single.containsKey('yellow_fever_vaccinated'),
+      isTrue,
+    );
+  });
+
+  test('tait un document laissé vide, sans le remplacer', () async {
+    // Type et numéro sont facultatifs depuis la revue Kora : le voyageur
+    // dont la pièce est expirée passe sans, et le serveur ne doit pas
+    // recevoir une pièce déclarée sans référence.
+    await dataSource.savePassengers(
+      reservationId: 'res-1',
+      passengers: [
+        Passenger(
+          firstName: 'Kofi',
+          lastName: 'MENSAH',
+          phone: '+22890000000',
+          seat: seatB,
+          nationality: 'TG',
+          birthDate: DateTime(1994, 4, 18),
+        ),
+      ],
+    );
+
+    final sent = sentPassengers().single;
+
+    expect(sent.containsKey('document_type'), isFalse);
+    expect(sent.containsKey('document_number'), isFalse);
+    // Le reste du manifeste part quand même.
+    expect(sent['nationality'], 'TG');
+    expect(sent['birth_date'], '1994-04-18');
+  });
+
   test('rend la réservation rafraîchie par le serveur', () async {
     final hold = await dataSource.savePassengers(
       reservationId: 'res-1',
