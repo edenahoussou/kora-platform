@@ -521,7 +521,6 @@
   "passengers_title_international": "Identités internationales",
   "passengers_eyebrow_international": "Données obligatoires",
   "passengers_step": "Vos informations",
-  "passengers_incomplete": "Complétez les champs signalés pour continuer.",
   "passengers_notice": "Ces informations seront associées uniquement à ce billet.",
   "passengers_notice_international": "Ces informations servent au manifeste de frontière.",
   "passengers_submit": "Enregistrer et continuer",
@@ -549,7 +548,6 @@
   "passengers_doc_national_id": "Carte d’identité",
   "passengers_doc_biometric": "Carte biométrique",
   "passengers_doc_consular": "Carte consulaire",
-  "passengers_doc_cip": "CIP",
   "summary_eyebrow": "Récapitulatif",
   "summary_title": "Vérifiez votre voyage",
   "summary_passengers": "Passagers",
@@ -568,5 +566,13 @@
   "summary_missing_eyebrow": "Réservation perdue",
   "passengers_missing_title": "Aucun siège sélectionné",
   "passengers_missing_text": "Reprenez le choix des sièges pour renseigner les voyageurs.",
-  "passengers_missing_primary": "Retour au plan des sièges"
+  "passengers_missing_primary": "Retour au plan des sièges",
+  "passengers_document_type_optional": "Type de document (facultatif)",
+  "passengers_document_number_optional": "Numéro du document (facultatif)",
+  "passengers_document_none": "Non renseigné",
+  "passengers_yellow_fever": "Vacciné contre la fièvre jaune",
+  "passengers_accuracy": "Je confirme l’exactitude des informations saisies.",
+  "passengers_accuracy_required": "Confirmez l’exactitude des informations pour continuer.",
+  "passengers_incomplete_detail": "Il manque : {details}.",
+  "passengers_incomplete_passenger": "Passager {index} — {fields}"
 }

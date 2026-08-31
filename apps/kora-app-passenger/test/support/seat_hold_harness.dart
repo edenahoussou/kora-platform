@@ -51,6 +51,13 @@ class StubReservationRepository implements ReservationRepository {
 
   final List<String> calls = [];
 
+  /// Les voyageurs reçus par [savePassengers], tels quels.
+  ///
+  /// [calls] n'en retient que le nombre ; un test qui vérifie ce que porte
+  /// chaque voyageur — sa déclaration de vaccination, par exemple — a
+  /// besoin des objets eux-mêmes.
+  final List<Passenger> savedPassengers = [];
+
   @override
   Future<Either<Failure, Quote>> quote({
     required Departure departure,
@@ -96,6 +103,9 @@ class StubReservationRepository implements ReservationRepository {
     required List<Passenger> passengers,
   }) async {
     calls.add('passengers:${passengers.length}');
+    savedPassengers
+      ..clear()
+      ..addAll(passengers);
     final failure = passengersFailure ?? this.failure;
     if (failure != null) return Left(failure);
 

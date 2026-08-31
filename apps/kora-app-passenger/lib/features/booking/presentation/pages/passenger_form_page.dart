@@ -83,6 +83,17 @@ class _PassengerFormPageState extends State<PassengerFormPage> {
   /// n'aide personne.
   var _showErrors = false;
 
+  /// Le titulaire certifie l'exactitude de ce qu'il a saisi.
+  ///
+  /// Une seule pour la réservation, quel que soit le nombre de voyageurs :
+  /// c'est la personne qui remplit le formulaire qui s'engage, pas chacun
+  /// de ceux qu'elle inscrit. La déclaration de vaccination, elle, est
+  /// bien par voyageur.
+  ///
+  /// Demandée à la revue Kora du 29 août 2026 : c'est elle qui remplace
+  /// l'obligation de pièce d'identité comme condition de poursuite.
+  var _accuracyConfirmed = false;
+
   @override
   void dispose() {
     for (final fields in _fields) {
@@ -95,12 +106,29 @@ class _PassengerFormPageState extends State<PassengerFormPage> {
     setState(() => _showErrors = true);
 
     final l10n = context.l10n;
-    final invalid = _fields.any((fields) => fields.errorsFor(l10n).isNotEmpty);
-    if (invalid) {
+
+    final missing = _missing(l10n);
+    if (missing.isNotEmpty) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          SnackBar(content: Text(context.l10n.passengersIncomplete)),
+          SnackBar(
+            content: Text(l10n.passengersIncompleteDetail(missing.join(' · '))),
+          ),
+        );
+      return;
+    }
+
+    // La confirmation en dernier, et non en premier : réclamer une
+    // certification d'exactitude alors qu'un nom manque encore
+    // demanderait de certifier un formulaire incomplet. Une fois la
+    // saisie tenable, c'est elle seule qui retient le voyageur — la revue
+    // Kora n'a voulu qu'un seul verrou à ce stade.
+    if (!_accuracyConfirmed) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(l10n.passengersAccuracyRequired)),
         );
       return;
     }
@@ -122,6 +150,31 @@ class _PassengerFormPageState extends State<PassengerFormPage> {
     }
 
     bloc.add(SeatHoldPassengersSubmitted(passengers));
+  }
+
+  /// Ce qui manque, voyageur par voyageur, en clair.
+  ///
+  /// Un « Complétez les champs signalés » ne dit pas *lequel* : sur le
+  /// formulaire international, le champ Naissance tombe juste sous le bloc
+  /// document, et le message générique se lisait comme si la pièce
+  /// d'identité bloquait encore — alors qu'elle est facultative depuis la
+  /// revue Kora. Nommer le voyageur et le champ lève l'ambiguïté.
+  List<String> _missing(AppLocalization l10n) {
+    final summaries = <String>[];
+
+    for (final fields in _fields) {
+      final errors = fields.errorsFor(l10n);
+      if (errors.isEmpty) continue;
+
+      summaries.add(
+        l10n.passengersIncompletePassenger(
+          fields.index + 1,
+          errors.keys.map((key) => _fieldLabel(l10n, key)).join(', '),
+        ),
+      );
+    }
+
+    return summaries;
   }
 
   /// Les champs saisis, devenus voyageurs.
@@ -188,6 +241,18 @@ class _PassengerFormPageState extends State<PassengerFormPage> {
                       ),
                       const SizedBox(height: 10),
                     ],
+                    KoraCard(
+                      child: _CheckRow(
+                        value: _accuracyConfirmed,
+                        label: l10n.passengersAccuracy,
+                        errorText: _showErrors && !_accuracyConfirmed
+                            ? l10n.passengersAccuracyRequired
+                            : null,
+                        onChanged: (value) =>
+                            setState(() => _accuracyConfirmed = value),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
                     KoraCard(
                       variant: KoraCardVariant.mist,
                       child: Text(
@@ -323,9 +388,10 @@ class _PassengerCard extends StatelessWidget {
             _DocumentTypeField(fields: fields, onChanged: onChanged),
             const SizedBox(height: AppSpacing.md),
             KoraInput(
-              label: l10n.passengersDocumentNumber,
+              label: l10n.passengersDocumentNumberOptional,
               controller: fields.documentNumber,
-              errorText: errors['documentNumber'],
+              // Aucun `errorText` : le numéro est facultatif depuis la
+              // revue Kora, et plus rien ne peut le mettre en faute.
               onChanged: (_) => onChanged(),
             ),
             const SizedBox(height: AppSpacing.md),
@@ -351,8 +417,96 @@ class _PassengerCard extends StatelessWidget {
               ],
             ),
           ],
+          const SizedBox(height: AppSpacing.md),
+          // Posée pour tout le monde, intérieur comme international : la
+          // revue Kora la veut « indépendante », et elle ne suit donc pas
+          // la bascule qui gouverne les champs du manifeste.
+          _CheckRow(
+            value: fields.yellowFeverVaccinated,
+            label: l10n.passengersYellowFever,
+            onChanged: (value) {
+              fields.yellowFeverVaccinated = value;
+              onChanged();
+            },
+          ),
         ],
       ),
+    );
+  }
+}
+
+/// Une case à cocher et son libellé, sur toute la largeur.
+///
+/// Le rail [KoraToggle] du design system dirait « réglage » ; ces deux
+/// cases-ci sont des déclarations que le voyageur fait sur lui-même, et
+/// la case carrée est la forme que la revue Kora a demandée.
+class _CheckRow extends StatelessWidget {
+  const _CheckRow({
+    required this.value,
+    required this.label,
+    required this.onChanged,
+    this.errorText,
+  });
+
+  final bool value;
+  final String label;
+  final ValueChanged<bool> onChanged;
+
+  /// Affiché sous la ligne, en rouge, quand la case est due et non cochée.
+  final String? errorText;
+
+  @override
+  Widget build(BuildContext context) {
+    final koraColors = context.koraColors;
+    final error = errorText;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Toute la ligne est cliquable : viser une case de 18 points au
+        // pouce, dans un bus, ne marche pas.
+        InkWell(
+          onTap: () => onChanged(!value),
+          borderRadius: BorderRadius.circular(10),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: Checkbox(
+                    value: value,
+                    onChanged: (next) => onChanged(next ?? false),
+                    activeColor: AppColors.gold,
+                    checkColor: AppColors.kora,
+                    side: BorderSide(
+                      color: error == null ? koraColors.line : AppColors.danger,
+                      width: 1.5,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Text(
+                      label,
+                      style: AppTextStyles.body(koraColors.textPrimary),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (error != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 32, top: 2),
+            child: Text(error, style: AppTextStyles.caption(AppColors.danger)),
+          ),
+      ],
     );
   }
 }
@@ -367,16 +521,23 @@ class _DocumentTypeField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _LabelledField(
-      label: context.l10n.passengersDocumentType,
-      child: DropdownButtonFormField<TravelDocumentType>(
+      label: context.l10n.passengersDocumentTypeOptional,
+      child: DropdownButtonFormField<TravelDocumentType?>(
         initialValue: fields.documentType,
         isExpanded: true,
+        // Le `null` est une réponse valable, pas un abandon de saisie :
+        // c'est ce qui permet de revenir sur un choix fait par erreur.
         onChanged: (value) {
-          if (value == null) return;
           fields.documentType = value;
           onChanged();
         },
         items: [
+          DropdownMenuItem(
+            child: Text(
+              context.l10n.passengersDocumentNone,
+              style: AppTextStyles.body(context.koraColors.textMuted),
+            ),
+          ),
           for (final type in TravelDocumentType.values)
             DropdownMenuItem(
               value: type,
@@ -527,13 +688,26 @@ String _lineLabel(AppLocalization l10n, Departure departure) {
   return '$route · ${l10n.passengersEyebrowInternational}';
 }
 
+/// Le nom affichable d'un champ, depuis la clé que porte son erreur.
+///
+/// Les clés viennent de [_PassengerFields.errorsFor] ; le `default` rend
+/// la clé brute plutôt que de faire sauter l'app si un champ s'ajoute sans
+/// passer par ici.
+String _fieldLabel(AppLocalization l10n, String key) => switch (key) {
+  'firstName' => l10n.passengersFirstName,
+  'lastName' => l10n.passengersLastName,
+  'phone' => l10n.passengersPhone,
+  'email' => l10n.passengersEmail,
+  'birthDate' => l10n.passengersBirthDate,
+  _ => key,
+};
+
 String _documentLabel(AppLocalization l10n, TravelDocumentType type) =>
     switch (type) {
       TravelDocumentType.passport => l10n.passengersDocPassport,
       TravelDocumentType.nationalId => l10n.passengersDocNationalId,
       TravelDocumentType.biometricCard => l10n.passengersDocBiometric,
       TravelDocumentType.consularCard => l10n.passengersDocConsular,
-      TravelDocumentType.cip => l10n.passengersDocCip,
     };
 
 /// Les nationalités proposées, dans l'ordre de la maquette.
@@ -609,10 +783,17 @@ class _PassengerFields {
   final TextEditingController email;
   final TextEditingController documentNumber;
 
-  /// Le passeport d'abord : c'est la pièce qu'attendent les postes
-  /// frontière de la sous-région, la carte d'identité n'étant acceptée
-  /// qu'entre certains pays.
-  TravelDocumentType documentType = TravelDocumentType.passport;
+  /// Aucune pièce présélectionnée.
+  ///
+  /// Le champ est facultatif depuis la revue Kora du 29 août 2026 :
+  /// pré-cocher « passeport » ferait porter au billet une pièce que
+  /// personne n'a déclarée, et le voyageur qui n'en a pas ne pourrait pas
+  /// revenir en arrière.
+  TravelDocumentType? documentType;
+
+  /// Déclaration de vaccination contre la fièvre jaune, propre à ce
+  /// voyageur.
+  bool yellowFeverVaccinated = false;
 
   /// Pré-remplie au Bénin, d'où partent les lignes.
   String nationality = 'BJ';
@@ -668,12 +849,10 @@ class _PassengerFields {
 
     if (!international) return errors;
 
-    // Au-delà de la frontière, ces champs ne sont plus des agréments :
-    // sans eux le voyageur est refoulé au poste, et le manifeste que KORA
-    // dépose serait incomplet.
-    if (documentNumber.text.trim().isEmpty) {
-      errors['documentNumber'] = l10n.passengersDocumentNumberRequired;
-    }
+    // La pièce d'identité ne bloque plus : type et numéro sont
+    // facultatifs depuis la revue Kora du 29 août 2026, pour le voyageur
+    // dont le document est expiré, perdu ou en cours de renouvellement.
+    // La date de naissance, elle, reste due au manifeste de frontière.
     if (birthDate == null) {
       errors['birthDate'] = l10n.passengersBirthDateRequired;
     }
@@ -696,9 +875,16 @@ class _PassengerFields {
       // par défaut ferait porter au billet une identité que personne n'a
       // saisie.
       documentType: international ? documentType : null,
-      documentNumber: international ? documentNumber.text.trim() : null,
+      // Une chaîne vide n'est pas un numéro : le serveur la prendrait pour
+      // une pièce déclarée sans référence.
+      documentNumber: international && documentNumber.text.trim().isNotEmpty
+          ? documentNumber.text.trim()
+          : null,
       nationality: international ? nationality : null,
       birthDate: international ? birthDate : null,
+      // Posée pour chaque voyageur, y compris sur une liaison intérieure :
+      // la case est indépendante du reste du formulaire.
+      yellowFeverVaccinated: yellowFeverVaccinated,
     );
   }
 
