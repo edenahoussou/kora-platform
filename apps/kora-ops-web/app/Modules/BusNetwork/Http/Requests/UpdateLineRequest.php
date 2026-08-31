@@ -28,6 +28,7 @@ class UpdateLineRequest extends FormRequest
             'code' => ['sometimes', 'required', 'string', 'max:32', Rule::unique('lines', 'code')->ignore($lineId)],
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'type' => ['sometimes', 'required', Rule::enum(LineType::class)],
+            'bidirectional' => ['sometimes', 'boolean'],
             'countries_crossed' => ['nullable', 'array'],
             'countries_crossed.*' => ['string', 'max:2'],
             'distance_km' => ['nullable', 'integer', 'min:0'],
@@ -37,7 +38,7 @@ class UpdateLineRequest extends FormRequest
     }
 
     /**
-     * @return array{code?: string, name?: string, type?: string, countries_crossed?: array<string>|null, distance_km?: int|null, estimated_duration_minutes?: int|null, status?: string}
+     * @return array{code?: string, name?: string, type?: string, bidirectional?: bool, countries_crossed?: array<string>|null, distance_km?: int|null, estimated_duration_minutes?: int|null, status?: string}
      */
     public function payload(): array
     {
@@ -51,6 +52,9 @@ class UpdateLineRequest extends FormRequest
         }
         if ($this->has('type')) {
             $payload['type'] = $this->string('type')->trim()->value();
+        }
+        if ($this->has('bidirectional')) {
+            $payload['bidirectional'] = $this->boolean('bidirectional');
         }
         if ($this->has('countries_crossed')) {
             $payload['countries_crossed'] = $this->array('countries_crossed') ?: null;

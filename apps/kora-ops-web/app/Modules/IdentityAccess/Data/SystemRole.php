@@ -10,6 +10,7 @@ enum SystemRole: string
 
     case Passenger = 'passenger';
     case BusDriver = 'bus_driver';
+    case Mechanic = 'mechanic';
     case Conductor = 'conductor';
     case AgencyAgent = 'agency_agent';
     case AgencyManager = 'agency_manager';
@@ -34,6 +35,7 @@ enum SystemRole: string
             self::BusDriver => [
                 'departures.view',
             ],
+            self::Mechanic => ['departures.view'],
             self::Conductor => [
                 'departures.view',
                 'boarding.scan',
@@ -210,6 +212,7 @@ enum SystemRole: string
     {
         return [
             self::BusDriver,
+            self::Mechanic,
             self::Conductor,
             self::AgencyAgent,
             self::AgencyManager,

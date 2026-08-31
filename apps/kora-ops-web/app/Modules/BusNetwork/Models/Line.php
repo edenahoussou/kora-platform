@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property array<string, string>|null $countries_crossed
  * @property LineStatus $status
  * @property LineType $type
+ * @property bool $bidirectional
  */
 class Line extends KoraModel
 {
@@ -24,6 +25,7 @@ class Line extends KoraModel
         'code',
         'name',
         'type',
+        'bidirectional',
         'countries_crossed',
         'distance_km',
         'estimated_duration_minutes',
@@ -58,6 +60,7 @@ class Line extends KoraModel
     {
         return [
             'countries_crossed' => 'array',
+            'bidirectional' => 'boolean',
             'status' => LineStatus::class,
             'type' => LineType::class,
         ];

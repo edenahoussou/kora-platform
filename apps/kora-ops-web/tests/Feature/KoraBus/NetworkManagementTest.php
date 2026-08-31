@@ -80,6 +80,48 @@ it('creates a line with nested stops', function (): void {
         ->and($line->stops()->orderBy('stop_order')->first()->name)->toBe('Cotonou');
 });
 
+it('creates a bidirectional line and exposes the flag in the list and detail', function (): void {
+    $manager = networkManager();
+
+    $this->actingAs($manager)->post(route('network.store'), [
+        'code' => 'L7',
+        'name' => 'Cotonou - Parakou',
+        'type' => 'nationale',
+        'bidirectional' => true,
+        'status' => 'active',
+        'stops' => [
+            ['name' => 'Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0],
+            ['name' => 'Parakou', 'city' => 'Parakou', 'country' => 'BJ', 'stop_order' => 2, 'km_from_origin' => 600],
+        ],
+    ])->assertRedirect(route('network.index', absolute: false));
+
+    $line = Line::query()->where('code', 'L7')->firstOrFail();
+    expect($line->bidirectional)->toBeTrue();
+
+    $this->actingAs($manager)
+        ->get(route('network.index'))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('lines.data.0.bidirectional', true));
+
+    $this->actingAs($manager)
+        ->get(route('network.show', $line))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('line.bidirectional', true));
+});
+
+it('defaults bidirectional to true when the field is omitted', function (): void {
+    $this->actingAs(networkManager())->post(route('network.store'), [
+        'code' => 'L8',
+        'name' => 'Ligne par défaut',
+        'type' => 'nationale',
+        'status' => 'draft',
+    ])->assertRedirect(route('network.index', absolute: false));
+
+    expect(Line::query()->where('code', 'L8')->firstOrFail()->bidirectional)->toBeTrue();
+});
+
 it('rejects duplicate line codes', function (): void {
     Line::query()->create([
         'uuid' => Str::uuid()->toString(),

@@ -7,6 +7,7 @@ use App\Modules\BusNetwork\Http\Controllers\LineController;
 use App\Modules\Cash\Http\Controllers\CashMediaController;
 use App\Modules\Cash\Http\Controllers\CashSessionController;
 use App\Modules\Departures\Http\Controllers\DepartureController;
+use App\Modules\Departures\Http\Controllers\ProgrammingController;
 use App\Modules\DynamicPricing\Http\Controllers\FareController;
 use App\Modules\DynamicPricing\Http\Controllers\PricingRuleController;
 use App\Modules\DynamicPricing\Http\Controllers\TaxRuleController;
@@ -46,6 +47,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('manifest', 'manifest')->name('manifest');
 
     // V1 MVP — Départs (CRUD)
+    Route::prefix('programming')->name('programming.')->group(function (): void {
+        Route::get('/', [ProgrammingController::class, 'index'])->name('index');
+        Route::get('templates/create', [ProgrammingController::class, 'createTemplate'])->name('templates.create');
+        Route::get('templates/{template:uuid}/edit', [ProgrammingController::class, 'editTemplate'])->name('templates.edit');
+        Route::post('templates', [ProgrammingController::class, 'saveTemplate'])->name('templates.store');
+        Route::put('templates/{template:uuid}', [ProgrammingController::class, 'saveTemplate'])->name('templates.update');
+        Route::patch('templates/{template:uuid}/archive', [ProgrammingController::class, 'archiveTemplate'])->name('templates.archive');
+        Route::get('programmes/create', [ProgrammingController::class, 'createProgramme'])->name('programmes.create');
+        Route::post('programmes/preview', [ProgrammingController::class, 'previewProgramme'])->name('programmes.preview');
+        Route::post('programmes', [ProgrammingController::class, 'storeProgramme'])->name('programmes.store');
+        Route::post('programmes/{programme:uuid}/actions', [ProgrammingController::class, 'programmeAction'])->name('programmes.actions');
+        Route::get('items/{item:uuid}', [ProgrammingController::class, 'item'])->name('items.show');
+        Route::post('actions', [ProgrammingController::class, 'mutate'])->name('actions');
+    });
+
     Route::get('departures', [DepartureController::class, 'index'])->name('departures.index');
     Route::get('departures/{departure:uuid}', [DepartureController::class, 'show'])->name('departures.show');
     Route::post('departures', [DepartureController::class, 'store'])->name('departures.store');

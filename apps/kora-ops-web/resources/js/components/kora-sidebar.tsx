@@ -18,6 +18,7 @@ import { useCurrentUrl } from '@/hooks/use-current-url';
 import { usePermissions } from '@/hooks/use-permissions';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
+import programming from '@/routes/programming';
 
 type NavChild = {
     title: string;
@@ -58,6 +59,11 @@ const navItems: NavEntry[] = [
         icon: Bus,
         permission: null,
         children: [
+            {
+                title: 'Programmation',
+                href: programming.index.url(),
+                permission: 'departures.manage',
+            },
             {
                 title: 'Départs',
                 href: '/departures',

@@ -1,6 +1,6 @@
 # Staging environment - deploiement automatique sur merge vers main
 services:
-  app:
+  app: &application
     image: ghcr.io/edenahoussou/kora-ops-web:staging
     build:
       context: .
@@ -9,6 +9,7 @@ services:
     working_dir: /app
     env_file: .env.staging
     environment:
+      QUEUE_CONNECTION: redis
       DB_CONNECTION: pgsql
       DB_HOST: postgres
       DB_PORT: 5432
@@ -40,6 +41,18 @@ services:
     networks:
       - kora-staging
     restart: unless-stopped
+
+  queue:
+    <<: *application
+    container_name: kora-staging-queue
+    command: ["php", "artisan", "queue:work", "--sleep=1", "--tries=3", "--timeout=60", "--max-time=3600"]
+    stop_grace_period: 90s
+
+  scheduler:
+    <<: *application
+    container_name: kora-staging-scheduler
+    command: ["php", "artisan", "schedule:work"]
+    stop_grace_period: 90s
 
   nginx:
     build:

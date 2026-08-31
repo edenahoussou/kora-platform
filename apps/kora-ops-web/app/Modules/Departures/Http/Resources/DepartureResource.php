@@ -26,6 +26,11 @@ class DepartureResource extends JsonResource
 
         return [
             'uuid' => $departure->uuid,
+            'scheduled_at' => $departure->scheduledDepartureAt()->toIso8601String(),
+            'departure_timezone' => $departure->departure_timezone ?? config('app.timezone'),
+            'local_departure_date' => $departure->scheduledDepartureAt()->setTimezone($departure->departure_timezone ?? config('app.timezone'))->toDateString(),
+            'local_departure_time' => $departure->scheduledDepartureAt()->setTimezone($departure->departure_timezone ?? config('app.timezone'))->format('H:i'),
+            'stop_times' => $departure->stop_times ?? [],
             'departure_date' => CarbonImmutable::parse((string) $departure->departure_date)->toDateString(),
             'departure_time' => $departure->departure_time,
             'estimated_arrival_at' => $departure->estimated_arrival_at

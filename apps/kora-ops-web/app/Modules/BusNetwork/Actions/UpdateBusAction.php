@@ -15,6 +15,7 @@ class UpdateBusAction
     public function execute(Bus $bus, array $attributes): Bus
     {
         return DB::transaction(function () use ($bus, $attributes): Bus {
+            $bus = Bus::query()->whereKey($bus->id)->lockForUpdate()->firstOrFail();
             $amenityIds = $attributes['amenity_ids'] ?? null;
             unset($attributes['amenity_ids']);
 

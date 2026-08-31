@@ -108,6 +108,8 @@ class DepartureController extends Controller
 
         return inertia('departures/detail', [
             'departure' => $this->serializeDepartureDetail($departure),
+            'programmingSource' => $departure->plannedOccurrence?->programme->uuid,
+            'canProgram' => $request->user()?->can('departures.manage') ?? false,
             'statuses' => DepartureStatus::options(),
             'lines' => $this->lineOptions(),
             'agencies' => $this->agencyOptions(),

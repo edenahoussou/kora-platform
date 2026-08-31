@@ -118,7 +118,7 @@ it('shows bus detail page with seats, departures, and timeline without exposing 
         ->where('bus.seats.0.code', '1A')
         ->where('bus.seats.0.sellable', true)
         ->where('bus.departures.0.lineCode', 'L1')
-        ->where('bus.departures.0.departureTime', '07:30')
+        ->where('bus.departures.0.departureTime', fn (string $time): bool => substr($time, 0, 5) === '07:30')
         ->missing('bus.id')
         ->missing('bus.seats.0.id')
         ->missing('bus.departures.0.id')

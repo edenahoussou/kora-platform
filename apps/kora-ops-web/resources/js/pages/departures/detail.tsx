@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
     ArrowLeft,
     BusFront,
@@ -12,7 +12,10 @@ import { useState } from 'react';
 import { DepartureFormDialog } from '@/components/departures/departure-form-dialog';
 import type { DepartureRecord } from '@/components/departures/departure-form-dialog';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
+import { Button } from '@/components/ui/button';
 import departures from '@/routes/departures';
+import programming from '@/routes/programming';
+import templateRoutes from '@/routes/programming/templates';
 import type { BreadcrumbItem } from '@/types';
 
 type Stop = {
@@ -57,6 +60,8 @@ type BusOption = { uuid: string; label: string; agencyUuid: string | null };
 
 type PageProps = {
     departure: DepartureDetail;
+    programmingSource: string | null;
+    canProgram: boolean;
     statuses: Record<string, string>;
     lines: Option[];
     agencies: AgencyOption[];
@@ -130,6 +135,8 @@ function formatTime(iso: string | null): string {
 
 export default function DepartureDetailPage({
     departure,
+    programmingSource,
+    canProgram,
     statuses,
     lines,
     agencies,
@@ -278,6 +285,38 @@ export default function DepartureDetailPage({
     return (
         <>
             <Head title={`${departure.lineCode} — Départ`} />
+            {canProgram && (
+                <div className="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4 text-sm">
+                    <span>
+                        {programmingSource
+                            ? 'Ce départ provient d’un programme réutilisable.'
+                            : 'Réutilisez ce départ pour préparer vos prochaines semaines.'}
+                    </span>
+                    {programmingSource && (
+                        <Button variant="outline" asChild>
+                            <Link
+                                href={programming.index({
+                                    query: {
+                                        programme: programmingSource,
+                                        date: departure.departureDate ?? '',
+                                    },
+                                })}
+                            >
+                                Ouvrir la programmation
+                            </Link>
+                        </Button>
+                    )}
+                    <Button variant="outline" asChild>
+                        <Link
+                            href={templateRoutes.create({
+                                query: { departure: departure.uuid },
+                            })}
+                        >
+                            Créer un modèle à partir de ce départ
+                        </Link>
+                    </Button>
+                </div>
+            )}
 
             {/* 1. PAGE-HEAD */}
             <div className="mb-6 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">

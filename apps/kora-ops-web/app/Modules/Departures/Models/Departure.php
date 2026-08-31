@@ -2,6 +2,7 @@
 
 namespace App\Modules\Departures\Models;
 
+use App\Casts\UtcDateTime;
 use App\Models\User;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationSegment;
@@ -13,10 +14,13 @@ use App\Modules\Support\Models\KoraModel;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**
+ * @property CarbonImmutable|null $scheduled_at
+ * @property array<int, array<string, mixed>>|null $stop_times
  * @property Carbon|null $departure_date
  * @property Carbon|null $estimated_arrival_at
  * @property DepartureStatus $status
@@ -29,7 +33,7 @@ class Departure extends KoraModel
     use SoftDeletes;
 
     protected $fillable = [
-        'uuid',
+        'uuid', 'scheduled_at', 'departure_timezone', 'stop_times', 'secondary_driver_id', 'mechanic_id',
         'line_id',
         'bus_id',
         'agency_id',
@@ -102,8 +106,18 @@ class Departure extends KoraModel
         return $this->belongsTo(User::class, 'delay_recorded_by');
     }
 
+    /** @return HasOne<PlannedDeparture, $this> */
+    public function plannedOccurrence(): HasOne
+    {
+        return $this->hasOne(PlannedDeparture::class, 'departure_id');
+    }
+
     public function scheduledDepartureAt(): CarbonImmutable
     {
+        if ($this->scheduled_at !== null) {
+            return CarbonImmutable::instance($this->scheduled_at);
+        }
+
         return CarbonImmutable::parse(
             $this->departure_date?->toDateString().' '.substr((string) $this->departure_time, 0, 8),
             config('app.timezone'),
@@ -129,6 +143,8 @@ class Departure extends KoraModel
     protected function casts(): array
     {
         return [
+            'scheduled_at' => UtcDateTime::class,
+            'stop_times' => 'array',
             'departure_date' => 'date',
             'estimated_arrival_at' => 'datetime',
             'delay_recorded_at' => 'datetime',

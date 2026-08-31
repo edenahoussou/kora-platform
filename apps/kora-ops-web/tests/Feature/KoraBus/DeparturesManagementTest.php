@@ -272,7 +272,7 @@ it('creates a departure and computes estimated arrival from line duration', func
     expect($departure->estimated_arrival_at->format('H:i'))->toBe('05:00');
 });
 
-it('rejects creation when bus does not belong to the selected agency', function (): void {
+it('allows a network bus to depart from another agency', function (): void {
     [$agency1, $line, $bus1, $model, $composition] = departuresReferences();
 
     $agency2 = Agency::query()->create([
@@ -283,14 +283,14 @@ it('rejects creation when bus does not belong to the selected agency', function 
         'status' => 'active',
     ]);
 
-    // bus1 belongs to agency1, but we pass agency2
     $this->actingAs(departuresManager())->post(route('departures.store'), [
         'line_uuid' => $line->uuid,
         'bus_uuid' => $bus1->uuid,
         'agency_uuid' => $agency2->uuid,
         'departure_date' => Carbon::today()->addDay()->format('Y-m-d'),
         'departure_time' => '08:00',
-    ])->assertSessionHasErrors(['bus_uuid']);
+    ])->assertRedirect(route('departures.index'))->assertSessionHasNoErrors();
+    $this->assertDatabaseHas('departures', ['bus_id' => $bus1->id, 'agency_id' => $agency2->id]);
 });
 
 it('updates a scheduled departure and blocks modification after departure', function (): void {
@@ -313,7 +313,7 @@ it('updates a scheduled departure and blocks modification after departure', func
         ->assertRedirect(route('departures.index'));
 
     $departure->refresh();
-    expect($departure->departure_time)->toBe('09:00');
+    expect(substr($departure->departure_time, 0, 5))->toBe('09:00');
 
     // Now set status to departed and try to update — should fail
     $departure->update(['status' => DepartureStatus::Departed->value]);

@@ -22,6 +22,7 @@ class StoreLineRequest extends FormRequest
             'code' => ['required', 'string', 'max:32', Rule::unique('lines', 'code')],
             'name' => ['required', 'string', 'max:255'],
             'type' => ['required', Rule::enum(LineType::class)],
+            'bidirectional' => ['sometimes', 'boolean'],
             'countries_crossed' => ['nullable', 'array'],
             'countries_crossed.*' => ['string', 'max:2'],
             'distance_km' => ['nullable', 'integer', 'min:0'],
@@ -39,7 +40,7 @@ class StoreLineRequest extends FormRequest
     }
 
     /**
-     * @return array{code: string, name: string, type: string, countries_crossed: array<string>|null, distance_km: int|null, estimated_duration_minutes: int|null, status: string}
+     * @return array{code: string, name: string, type: string, bidirectional: bool, countries_crossed: array<string>|null, distance_km: int|null, estimated_duration_minutes: int|null, status: string}
      */
     public function payload(): array
     {
@@ -47,6 +48,7 @@ class StoreLineRequest extends FormRequest
             'code' => strtoupper($this->string('code')->trim()->value()),
             'name' => $this->string('name')->trim()->value(),
             'type' => $this->string('type')->trim()->value(),
+            'bidirectional' => $this->boolean('bidirectional', true),
             'countries_crossed' => $this->array('countries_crossed') ?: null,
             'distance_km' => $this->filled('distance_km') ? (int) $this->input('distance_km') : null,
             'estimated_duration_minutes' => $this->filled('estimated_duration_minutes') ? (int) $this->input('estimated_duration_minutes') : null,

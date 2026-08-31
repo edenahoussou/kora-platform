@@ -10,3 +10,5 @@ Artisan::command('inspire', function () {
 
 Schedule::command('bus:expire-holds')->everyMinute()->withoutOverlapping();
 Schedule::command('bus:flag-stale-departures')->dailyAt('02:00')->withoutOverlapping();
+
+Schedule::command('bus:maintain-programmes')->hourly()->withoutOverlapping();

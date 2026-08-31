@@ -8,7 +8,6 @@ use App\Modules\Departures\Models\Departure;
 use App\Modules\IdentityAccess\Models\Agency;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Validator;
 
 class StoreDepartureRequest extends FormRequest
 {
@@ -29,22 +28,6 @@ class StoreDepartureRequest extends FormRequest
             'driver_uuid' => ['nullable', 'uuid', 'exists:users,uuid'],
             'conductor_uuid' => ['nullable', 'uuid', 'exists:users,uuid'],
         ];
-    }
-
-    public function withValidator(Validator $validator): void
-    {
-        $validator->after(function (Validator $validator): void {
-            $busUuid = $this->string('bus_uuid')->value();
-            $agencyUuid = $this->string('agency_uuid')->value();
-
-            if ($busUuid !== '' && $agencyUuid !== '') {
-                $bus = Bus::query()->where('uuid', $busUuid)->first(['id', 'agency_id']);
-                $agency = Agency::query()->where('uuid', $agencyUuid)->first(['id']);
-                if ($bus !== null && $agency !== null && $bus->agency_id !== $agency->id) {
-                    $validator->errors()->add('bus_uuid', "Le bus doit appartenir à l'agence sélectionnée.");
-                }
-            }
-        });
     }
 
     /** @return array{line_uuid: string, bus_uuid: string, agency_uuid: string, departure_date: string, departure_time: string, driver_uuid: string|null, conductor_uuid: string|null, created_by: int|null} */

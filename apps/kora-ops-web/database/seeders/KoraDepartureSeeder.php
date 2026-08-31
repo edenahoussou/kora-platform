@@ -33,6 +33,7 @@ class KoraDepartureSeeder extends Seeder
                 'uuid' => (string) \Str::uuid(),
                 'name' => 'Cotonou - Lomé',
                 'type' => 'internationale',
+                'bidirectional' => true,
                 'countries_crossed' => ['BJ', 'TG'],
                 'distance_km' => 170,
                 'estimated_duration_minutes' => 210,
