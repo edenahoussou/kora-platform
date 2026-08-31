@@ -50,8 +50,8 @@ class TemplateService
         foreach ($slots as $index => $slot) {
             $path = 'slots.'.$index;
             $line = Line::query()->with('stops')->where('uuid', $slot['line_uuid'] ?? null)->where('status', 'active')->first();
-            if ($line === null || empty($slot['agency_uuid']) || empty($slot['days'])) {
-                $errors[$path.'.line_uuid'] = 'Choisissez une ligne active, une agence et des jours de circulation.';
+            if ($line === null || empty($slot['days'])) {
+                $errors[$path.'.line_uuid'] = 'Choisissez une ligne active et des jours de circulation.';
 
                 continue;
             }

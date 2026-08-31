@@ -21,8 +21,6 @@ export type DepartureRecord = {
     lineName: string;
     busUuid?: string | null;
     busRegistration: string;
-    agencyUuid?: string | null;
-    agencyName: string;
     departureDate: string | null;
     departureTime: string | null;
     driverUuid?: string | null;
@@ -33,15 +31,13 @@ export type DepartureRecord = {
 };
 
 type Option = { uuid: string; label: string };
-type AgencyOption = { uuid: string; name: string };
-type BusOption = { uuid: string; label: string; agencyUuid: string | null };
+type BusOption = { uuid: string; label: string };
 
 type Props = {
     open: boolean;
     departure?: DepartureRecord | null;
     statuses: Record<string, string>;
     lines: Option[];
-    agencies: AgencyOption[];
     buses: BusOption[];
     drivers: Option[];
     conductors: Option[];
@@ -52,7 +48,6 @@ export function DepartureFormDialog({
     open,
     departure,
     lines,
-    agencies,
     buses,
     drivers,
     conductors,
@@ -122,19 +117,6 @@ export function DepartureFormDialog({
                                     options={lines}
                                     placeholder="Sélectionner une ligne"
                                     error={errors.line_uuid}
-                                />
-
-                                <FieldSelect
-                                    id="departure-agency"
-                                    name="agency_uuid"
-                                    label="Agence de départ *"
-                                    value={departure?.agencyUuid ?? undefined}
-                                    options={agencies.map((item) => ({
-                                        uuid: item.uuid,
-                                        label: item.name,
-                                    }))}
-                                    placeholder="Sélectionner une agence"
-                                    error={errors.agency_uuid}
                                 />
 
                                 <div className="grid gap-5 sm:grid-cols-2">
@@ -250,8 +232,8 @@ export function DepartureFormDialog({
                                     {processing
                                         ? 'Enregistrement…'
                                         : editing
-                                          ? 'Enregistrer les changements'
-                                          : 'Créer le départ'}
+                                            ? 'Enregistrer les changements'
+                                            : 'Créer le départ'}
                                 </Button>
                             </div>
                         </>

@@ -46,7 +46,6 @@ type PageProps = {
         to: number | null;
     };
     statuses: Record<string, string>;
-    agencies: { id: number; name: string }[];
     models: { id: number; label: string }[];
     compositions: { id: number; label: string; seatCount: number }[];
     amenities: AmenityOption[];
@@ -72,7 +71,6 @@ const statusTones: Record<string, 'navy' | 'gold' | 'blue' | 'muted'> = {
 export default function FleetPage({
     buses,
     statuses,
-    agencies,
     models,
     compositions,
     amenities,
@@ -91,17 +89,8 @@ export default function FleetPage({
                     label: statusLabels[value] ?? label,
                 })),
             },
-            {
-                name: 'agency_id',
-                label: 'Agence',
-                placeholder: 'Toutes les agences',
-                options: agencies.map((agency) => ({
-                    value: String(agency.id),
-                    label: agency.name,
-                })),
-            },
         ],
-        [statuses, agencies],
+        [statuses],
     );
     const pagination: PaginationMeta = {
         currentPage: buses.current_page,
@@ -157,15 +146,6 @@ export default function FleetPage({
                         {bus.seatCount} places
                     </span>
                 </div>
-            ),
-        },
-        {
-            key: 'agency',
-            header: 'Agence',
-            render: (bus) => (
-                <span className="font-medium text-foreground">
-                    {bus.agencyName ?? 'Non rattaché'}
-                </span>
             ),
         },
         {
@@ -306,8 +286,7 @@ export default function FleetPage({
                         Flotte
                     </h1>
                     <p className="mt-1.5 text-[0.8125rem] text-muted-foreground">
-                        Gérez les bus, leur composition et leur rattachement
-                        agence.
+                        Gérez les bus et leur composition.
                     </p>
                 </div>
                 {permissions.canCreate && (
@@ -337,7 +316,7 @@ export default function FleetPage({
             </div>
             <KoraFilterBar
                 route="/fleet"
-                searchPlaceholder="Rechercher par immatriculation, modèle ou agence…"
+                searchPlaceholder="Rechercher par immatriculation ou modèle…"
                 filters={filters}
             />
             <KoraTable
@@ -359,7 +338,6 @@ export default function FleetPage({
                 open={open}
                 bus={selected}
                 statuses={statuses}
-                agencies={agencies}
                 models={models}
                 compositions={compositions}
                 amenities={amenities}

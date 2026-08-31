@@ -63,3 +63,7 @@ _Avoid_: Mobile Money, registre de remboursement MVP
 **KORA POINT**:
 Point physique ou relais partenaire susceptible de vendre ou supporter les services KORA dans une phase ulterieure. Hors MVP Bus.
 _Avoid_: Guichet agence KORA OPS Web du MVP
+
+**Agence**:
+Entite commerciale KORA ou l'argent circule (vente guichet, caisse, encaissement mobile money, terminal P501). L'agence se rattache aux utilisateurs et aux flux financiers, pas aux ressources d'exploitation. Un bus, une ligne, un arret ou un depart n'appartient pas a une agence — ce sont des ressources du reseau KORA. L'arret (ou le bus s'arrete) et l'agence (ou l'argent change de mains) sont deux concepts distincts qui peuvent coexister geographiquement sans etre lies structurellement.
+_Avoid_: Lier un bus ou un depart a une agence; confondre l'arret avec l'agence

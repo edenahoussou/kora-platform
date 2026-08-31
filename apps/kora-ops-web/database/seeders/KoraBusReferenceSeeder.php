@@ -56,7 +56,6 @@ class KoraBusReferenceSeeder extends Seeder
             );
         }
 
-        $agency = Agency::query()->where('code', 'CTN')->firstOrFail();
         $model = BusModel::query()->firstOrCreate(
             ['brand' => 'KORA', 'name' => 'Coach 55'],
             ['uuid' => (string) Str::uuid(), 'default_seat_count' => 55, 'status' => 'active'],
@@ -85,7 +84,6 @@ class KoraBusReferenceSeeder extends Seeder
                     'uuid' => (string) Str::uuid(),
                     'bus_model_id' => $model->id,
                     'composition_id' => $composition->id,
-                    'agency_id' => $agency->id,
                     'brand' => 'KORA',
                     'model' => 'Coach 55',
                     'seat_count' => 55,

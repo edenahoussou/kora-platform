@@ -2,7 +2,6 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import {
     ArrowLeft,
     ArrowRight,
-    Building2,
     CalendarClock,
     Check,
     Clock3,
@@ -442,37 +441,22 @@ export default function TemplateEditor({
                                                     onChange={(v) => lineChange(outboundSlot, v)}
                                                 />
 
-                                                <div className="grid gap-4 md:grid-cols-2">
-                                                    <SelectField
-                                                        label="Agence de départ"
-                                                        icon={Building2}
-                                                        required
-                                                        hint="L'agence qui initialise et gère le départ de ce trajet."
-                                                        value={outboundSlot.agency_uuid}
-                                                        options={refs.agencies}
-                                                        onChange={(v) =>
-                                                            updateDirection('outbound', {
-                                                                agency_uuid: v || null,
-                                                            })
-                                                        }
-                                                    />
-                                                    <SelectField
-                                                        label="Fuseau horaire de départ"
-                                                        icon={Globe2}
-                                                        required
-                                                        hint="Fuseau utilisé pour exprimer les heures de départ."
-                                                        value={outboundSlot.timezone}
-                                                        options={refs.timezones.map((z) => ({
-                                                            uuid: z,
-                                                            label: formatTimezoneLabel(z),
-                                                        }))}
-                                                        onChange={(v) =>
-                                                            updateDirection('outbound', {
-                                                                timezone: v || refs.timezone,
-                                                            })
-                                                        }
-                                                    />
-                                                </div>
+                                                <SelectField
+                                                    label="Fuseau horaire de départ"
+                                                    icon={Globe2}
+                                                    required
+                                                    hint="Fuseau utilisé pour exprimer les heures de départ."
+                                                    value={outboundSlot.timezone}
+                                                    options={refs.timezones.map((z) => ({
+                                                        uuid: z,
+                                                        label: formatTimezoneLabel(z),
+                                                    }))}
+                                                    onChange={(v) =>
+                                                        updateDirection('outbound', {
+                                                            timezone: v || refs.timezone,
+                                                        })
+                                                    }
+                                                />
 
                                                 {outboundSlot.line_uuid && (
                                                     <div className="rounded-xl border border-digital/20 bg-digital/[0.03] p-3.5">
@@ -536,37 +520,22 @@ export default function TemplateEditor({
                                                     onChange={(v) => lineChange(returnSlot, v)}
                                                 />
 
-                                                <div className="grid gap-4 md:grid-cols-2">
-                                                    <SelectField
-                                                        label="Agence de départ (Retour)"
-                                                        icon={Building2}
-                                                        required
-                                                        hint="L'agence où débute le trajet retour."
-                                                        value={returnSlot.agency_uuid}
-                                                        options={refs.agencies}
-                                                        onChange={(v) =>
-                                                            updateDirection('return', {
-                                                                agency_uuid: v || null,
-                                                            })
-                                                        }
-                                                    />
-                                                    <SelectField
-                                                        label="Fuseau horaire de départ"
-                                                        icon={Globe2}
-                                                        required
-                                                        hint="Fuseau horaire pour le départ retour."
-                                                        value={returnSlot.timezone}
-                                                        options={refs.timezones.map((z) => ({
-                                                            uuid: z,
-                                                            label: formatTimezoneLabel(z),
-                                                        }))}
-                                                        onChange={(v) =>
-                                                            updateDirection('return', {
-                                                                timezone: v || refs.timezone,
-                                                            })
-                                                        }
-                                                    />
-                                                </div>
+                                                <SelectField
+                                                    label="Fuseau horaire de départ"
+                                                    icon={Globe2}
+                                                    required
+                                                    hint="Fuseau horaire pour le départ retour."
+                                                    value={returnSlot.timezone}
+                                                    options={refs.timezones.map((z) => ({
+                                                        uuid: z,
+                                                        label: formatTimezoneLabel(z),
+                                                    }))}
+                                                    onChange={(v) =>
+                                                        updateDirection('return', {
+                                                            timezone: v || refs.timezone,
+                                                        })
+                                                    }
+                                                />
 
                                                 {returnSlot.line_uuid && (
                                                     <div className="rounded-xl border border-gold/20 bg-gold/[0.03] p-3.5">
@@ -1047,7 +1016,7 @@ export default function TemplateEditor({
                             </div>
                         </Surface>
                     </aside>
-                </div>
+                </div >
 
                 <footer className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card/95 p-4 shadow-[0_8px_30px_rgba(0,29,78,0.12)] backdrop-blur">
                     <span className="text-xs font-semibold text-muted-foreground">
@@ -1091,7 +1060,7 @@ export default function TemplateEditor({
                         </PrimaryButton>
                     </div>
                 </footer>
-            </div>
+            </div >
         </>
     );
 }

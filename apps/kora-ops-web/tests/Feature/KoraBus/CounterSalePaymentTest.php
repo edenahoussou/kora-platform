@@ -273,14 +273,14 @@ function paymentSaleScenario(): array
         'line_id' => $line->id, 'name' => 'Abidjan', 'city' => 'Abidjan', 'country' => 'CI', 'stop_order' => 2, 'km_from_origin' => 700, 'status' => 'active',
     ]);
     $bus = Bus::query()->create([
-        'registration_number' => 'PAY-BUS', 'brand' => 'KORA', 'model' => 'Coach', 'seat_count' => 2, 'agency_id' => $agency->id, 'status' => 'active',
+        'registration_number' => 'PAY-BUS', 'brand' => 'KORA', 'model' => 'Coach', 'seat_count' => 2, 'status' => 'active',
     ]);
     $seats = [
         '2A' => Seat::query()->create(['bus_id' => $bus->id, 'code' => '2A', 'type' => 'standard', 'sellable' => true, 'status' => 'active']),
         '2B' => Seat::query()->create(['bus_id' => $bus->id, 'code' => '2B', 'type' => 'standard', 'sellable' => true, 'status' => 'active']),
     ];
     $departure = Departure::query()->create([
-        'line_id' => $line->id, 'bus_id' => $bus->id, 'agency_id' => $agency->id, 'departure_date' => '2026-08-20', 'departure_time' => '08:00', 'estimated_arrival_at' => Carbon::parse('2026-08-20 18:00'), 'status' => 'scheduled',
+        'line_id' => $line->id, 'bus_id' => $bus->id, 'departure_date' => '2026-08-20', 'departure_time' => '08:00', 'estimated_arrival_at' => Carbon::parse('2026-08-20 18:00'), 'status' => 'scheduled',
     ]);
     $serviceClass = ServiceClass::query()->create(['code' => 'pay-confort', 'name' => 'Confort']);
     Fare::query()->create([

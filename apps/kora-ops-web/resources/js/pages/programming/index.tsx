@@ -204,7 +204,6 @@ export default function ProgrammingPage({
         ([k, v]) =>
             [
                 'line',
-                'agency',
                 'bus',
                 'person',
                 'programme',
@@ -500,13 +499,6 @@ export default function ProgrammingPage({
                                     onChange={(v) => navigate({ line: v })}
                                 />
                                 <SelectField
-                                    label="Agence de départ"
-                                    value={filters.agency}
-                                    empty="Toutes les agences"
-                                    options={refs.agencies}
-                                    onChange={(v) => navigate({ agency: v })}
-                                />
-                                <SelectField
                                     label="Bus assigné"
                                     value={filters.bus}
                                     empty="Tous les bus"
@@ -559,7 +551,6 @@ export default function ProgrammingPage({
                                         onClick={() =>
                                             navigate({
                                                 line: '',
-                                                agency: '',
                                                 bus: '',
                                                 person: '',
                                                 programme: '',

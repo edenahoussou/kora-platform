@@ -22,14 +22,11 @@ export type BusRecord = {
     compositionId: number | null;
     compositionName: string | null;
     seatCount: number;
-    agencyId: number | null;
-    agencyName: string | null;
     amenityIds: number[];
     amenityLabels?: string[];
     status: string;
 };
 type Option = { id: number | string; label: string };
-type AgencyOption = { id: number; name: string };
 type AmenityOption = {
     id: number;
     code: string;
@@ -40,7 +37,6 @@ type Props = {
     open: boolean;
     bus?: BusRecord | null;
     statuses: Record<string, string>;
-    agencies: AgencyOption[];
     models: Option[];
     compositions: (Option & { seatCount: number })[];
     amenities: AmenityOption[];
@@ -58,7 +54,6 @@ export function BusFormDialog({
     open,
     bus,
     statuses,
-    agencies,
     models,
     compositions,
     amenities,
@@ -103,9 +98,8 @@ export function BusFormDialog({
                                                 : 'Nouveau bus'}
                                         </DialogTitle>
                                         <DialogDescription className="mt-1.5 text-sm text-muted-foreground">
-                                            Identifiez le véhicule, sa
-                                            composition et son agence de
-                                            rattachement.
+                                            Identifiez le véhicule et sa
+                                            composition.
                                         </DialogDescription>
                                     </div>
                                 </div>
@@ -160,18 +154,6 @@ export function BusFormDialog({
                                         error={errors.composition_id}
                                     />
                                 </div>
-                                <FieldSelect
-                                    id="bus-agency"
-                                    name="agency_id"
-                                    label="Agence de rattachement *"
-                                    value={bus?.agencyId}
-                                    options={agencies.map((item) => ({
-                                        id: item.id,
-                                        label: item.name,
-                                    }))}
-                                    placeholder="Sélectionner une agence"
-                                    error={errors.agency_id}
-                                />
                                 {amenities.length > 0 && (
                                     <div className="grid gap-2">
                                         <Label>Équipements</Label>
@@ -235,8 +217,8 @@ export function BusFormDialog({
                                     {processing
                                         ? 'Enregistrement…'
                                         : editing
-                                          ? 'Enregistrer les changements'
-                                          : 'Créer le bus'}
+                                            ? 'Enregistrer les changements'
+                                            : 'Créer le bus'}
                                 </Button>
                             </div>
                         </>

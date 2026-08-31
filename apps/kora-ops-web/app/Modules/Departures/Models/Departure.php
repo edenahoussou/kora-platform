@@ -9,7 +9,6 @@ use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\Departures\Data\DepartureStatus;
-use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\Support\Models\KoraModel;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -36,7 +35,6 @@ class Departure extends KoraModel
         'uuid', 'scheduled_at', 'departure_timezone', 'stop_times', 'secondary_driver_id', 'mechanic_id',
         'line_id',
         'bus_id',
-        'agency_id',
         'departure_date',
         'departure_time',
         'delay_minutes',
@@ -64,14 +62,6 @@ class Departure extends KoraModel
     public function bus(): BelongsTo
     {
         return $this->belongsTo(Bus::class);
-    }
-
-    /**
-     * @return BelongsTo<Agency, $this>
-     */
-    public function agency(): BelongsTo
-    {
-        return $this->belongsTo(Agency::class);
     }
 
     /**

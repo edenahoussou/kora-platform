@@ -9,7 +9,6 @@ use App\Modules\BusNetwork\Models\Line;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\Departures\Models\PlannedDeparture;
 use App\Modules\DynamicPricing\Models\Fare;
-use App\Modules\IdentityAccess\Models\Agency;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +16,7 @@ use Illuminate\Validation\ValidationException;
 
 class PublicationService
 {
-    /** @var array{lines: array<array-key, Line>, buses: array<array-key, Bus>, agencies: list<int>, people: array<string, User>, fares: Collection<int, Fare>, planned: Collection<int, PlannedDeparture>, departures: Collection<int, Departure>}|null */
+    /** @var array{lines: array<array-key, Line>, buses: array<array-key, Bus>, people: array<string, User>, fares: Collection<int, Fare>, planned: Collection<int, PlannedDeparture>, departures: Collection<int, Departure>}|null */
     private ?array $batch = null;
 
     public function __construct(private TemplateService $templates) {}
@@ -41,9 +40,6 @@ class PublicationService
             $blockers[] = 'La ligne n’est plus active.';
         } elseif ($line->stops->filter(fn ($stop): bool => $stop->getRawOriginal('status') === 'active')->pluck('uuid')->values()->all() !== array_column($item->snapshot['stops'], 'stop_uuid')) {
             $blockers[] = 'Le parcours a changé. Révisez les horaires du modèle.';
-        }
-        if (! ($this->batch !== null ? in_array($item->agency_id, $this->batch['agencies'], true) : Agency::query()->whereKey($item->agency_id)->where('status', 'active')->exists())) {
-            $blockers[] = 'L’agence de départ n’est plus active.';
         }
         $date = $item->scheduled_at->setTimezone($item->timezone)->toDateString();
         $fares = $this->batch !== null ? $this->batch['fares']->filter(fn (Fare $fare): bool => $fare->line_id === $item->line_id && $fare->effective_from->toDateString() <= $date && ($fare->effective_until === null || $fare->effective_until->toDateString() >= $date))->count() : Fare::query()->where('line_id', $item->line_id)->where('status', 'active')
@@ -103,7 +99,6 @@ class PublicationService
         $this->batch = [
             'lines' => Line::query()->with('stops')->whereIn('id', $lines)->get()->keyBy('id')->all(),
             'buses' => Bus::query()->with('seats')->whereIn('id', array_filter(array_map(fn (PlannedDeparture $item): ?int => $item->bus_id, $items)))->get()->keyBy('id')->all(),
-            'agencies' => array_values(Agency::query()->where('status', 'active')->pluck('id')->all()),
             'people' => User::query()->with('roles')->whereIn('id', array_filter($people))->get()->keyBy('uuid')->all(),
             'fares' => Fare::query()->whereIn('line_id', $lines)->where('status', 'active')->get(),
             'planned' => PlannedDeparture::query()->where('state', '!=', 'excluded')->whereNull('departure_id')->where('scheduled_at', '<', UtcDateTime::databaseValue($until, $items[0]))->where('arrival_at', '>', UtcDateTime::databaseValue($from, $items[0]))->get(),
@@ -151,7 +146,7 @@ class PublicationService
     public function guardOperationalResources(Departure $departure): void
     {
         $item = new PlannedDeparture([
-            'line_id' => $departure->line_id, 'agency_id' => $departure->agency_id, 'bus_id' => $departure->bus_id,
+            'line_id' => $departure->line_id, 'bus_id' => $departure->bus_id,
             'driver_id' => $departure->driver_id, 'secondary_driver_id' => $departure->secondary_driver_id,
             'conductor_id' => $departure->conductor_id, 'mechanic_id' => $departure->mechanic_id,
             'scheduled_at' => $departure->scheduledDepartureAt()->utc(),
@@ -276,7 +271,7 @@ class PublicationService
                 }
                 $time = $entry->scheduled_at->setTimezone(config('app.timezone'));
                 $departure = Departure::query()->create([
-                    'line_id' => $entry->line_id, 'agency_id' => $entry->agency_id, 'bus_id' => $entry->bus_id,
+                    'line_id' => $entry->line_id, 'bus_id' => $entry->bus_id,
                     'driver_id' => $entry->driver_id, 'secondary_driver_id' => $entry->secondary_driver_id,
                     'conductor_id' => $entry->conductor_id, 'mechanic_id' => $entry->mechanic_id,
                     'departure_date' => $time->toDateString(), 'departure_time' => $time->format('H:i:s'),

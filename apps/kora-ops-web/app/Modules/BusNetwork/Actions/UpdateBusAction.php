@@ -11,7 +11,7 @@ class UpdateBusAction
 {
     public function __construct(private SyncBusSeatsAction $syncBusSeats) {}
 
-    /** @param array{registration_number: string, bus_model_id: int, composition_id: int, agency_id: int, status: string, amenity_ids?: list<int>} $attributes */
+    /** @param array{registration_number: string, bus_model_id: int, composition_id: int, status: string, amenity_ids?: list<int>} $attributes */
     public function execute(Bus $bus, array $attributes): Bus
     {
         return DB::transaction(function () use ($bus, $attributes): Bus {

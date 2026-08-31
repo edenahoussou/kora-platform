@@ -26,7 +26,6 @@ return [
             'stale_threshold_hours' => env('KORA_STALE_DEPARTURE_HOURS', 24),
             'max_delay_minutes' => env('KORA_MAX_DEPARTURE_DELAY_MINUTES', 720),
             'overrides' => [
-                'agencies' => [],
                 'lines' => [],
             ],
         ],

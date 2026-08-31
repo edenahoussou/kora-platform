@@ -58,8 +58,6 @@ type BusDetail = BusRecord & {
     model: string;
     compositionCode: string | null;
     layout: { type?: string; codes: string[] }[];
-    agencyCity: string | null;
-    agencyCountry: string | null;
     amenities: BusAmenityItem[];
     seats: SeatItem[];
     departures: DepartureItem[];
@@ -70,7 +68,6 @@ type BusDetail = BusRecord & {
 type PageProps = {
     bus: BusDetail;
     statuses: Record<string, string>;
-    agencies: { id: number; name: string }[];
     models: { id: number; label: string }[];
     compositions: { id: number; label: string; seatCount: number }[];
     amenities: AmenityOption[];
@@ -154,7 +151,6 @@ function formatDateShort(iso: string | null): string {
 export default function FleetDetailPage({
     bus,
     statuses,
-    agencies,
     models,
     compositions,
     amenities,
@@ -210,7 +206,7 @@ export default function FleetDetailPage({
                     </h1>
                     <p className="mt-1.5 text-sm text-muted-foreground">
                         {bus.modelName ?? 'Modèle standard'} · {bus.seatCount}{' '}
-                        places · {bus.agencyName ?? 'Agence KORA'}
+                        places
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2.5">
@@ -271,11 +267,10 @@ export default function FleetDetailPage({
                     <button
                         key={key}
                         onClick={() => setTab(key)}
-                        className={`border-b-2 px-4 py-3 text-[0.6875rem] font-extrabold tracking-[0.035em] whitespace-nowrap transition-colors ${
-                            tab === key
-                                ? 'border-gold text-foreground'
-                                : 'border-transparent text-muted-foreground hover:text-foreground'
-                        }`}
+                        className={`border-b-2 px-4 py-3 text-[0.6875rem] font-extrabold tracking-[0.035em] whitespace-nowrap transition-colors ${tab === key
+                            ? 'border-gold text-foreground'
+                            : 'border-transparent text-muted-foreground hover:text-foreground'
+                            }`}
                     >
                         {label}
                     </button>
@@ -362,11 +357,10 @@ export default function FleetDetailPage({
                                         return (
                                             <div
                                                 key={seat.uuid}
-                                                className={`flex flex-col items-center justify-center rounded-[0.65rem] border p-2 text-center transition-all ${
-                                                    isCrew
-                                                        ? 'border-gold/40 bg-gold/10 text-[var(--kora)]'
-                                                        : 'border-border/60 bg-card text-foreground hover:border-border'
-                                                }`}
+                                                className={`flex flex-col items-center justify-center rounded-[0.65rem] border p-2 text-center transition-all ${isCrew
+                                                    ? 'border-gold/40 bg-gold/10 text-[var(--kora)]'
+                                                    : 'border-border/60 bg-card text-foreground hover:border-border'
+                                                    }`}
                                             >
                                                 <span className="text-xs font-black">
                                                     {seat.code}
@@ -430,12 +424,11 @@ export default function FleetDetailPage({
                                                 </td>
                                                 <td className="py-2.5">
                                                     <span
-                                                        className={`inline-flex rounded-full px-2 py-0.5 text-[0.625rem] font-bold ${
-                                                            seat.status ===
+                                                        className={`inline-flex rounded-full px-2 py-0.5 text-[0.625rem] font-bold ${seat.status ===
                                                             'active'
-                                                                ? 'bg-emerald-500/10 text-emerald-700'
-                                                                : 'bg-gold/15 text-[var(--kora)]'
-                                                        }`}
+                                                            ? 'bg-emerald-500/10 text-emerald-700'
+                                                            : 'bg-gold/15 text-[var(--kora)]'
+                                                            }`}
                                                     >
                                                         {seatStatusLabels[
                                                             seat.status
@@ -651,14 +644,6 @@ export default function FleetDetailPage({
                             </div>
                             <div className="flex items-center justify-between border-b border-border/40 pb-2">
                                 <span className="text-muted-foreground">
-                                    Agence
-                                </span>
-                                <span className="font-medium text-foreground">
-                                    {bus.agencyName ?? 'Non rattaché'}
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-between border-b border-border/40 pb-2">
-                                <span className="text-muted-foreground">
                                     Places totales
                                 </span>
                                 <span className="font-bold text-foreground">
@@ -740,7 +725,6 @@ export default function FleetDetailPage({
                 open={editDialog}
                 bus={bus}
                 statuses={statuses}
-                agencies={agencies}
                 models={models}
                 compositions={compositions}
                 amenities={amenities}

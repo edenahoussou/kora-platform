@@ -4,7 +4,6 @@ namespace App\Modules\BusNetwork\Models;
 
 use App\Modules\BusNetwork\Data\BusStatus;
 use App\Modules\Departures\Models\Departure;
-use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\Support\Models\KoraModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -20,7 +19,6 @@ class Bus extends KoraModel
         'registration_number',
         'bus_model_id',
         'composition_id',
-        'agency_id',
         'brand',
         'model',
         'seat_count',
@@ -41,14 +39,6 @@ class Bus extends KoraModel
     public function composition(): BelongsTo
     {
         return $this->belongsTo(BusComposition::class, 'composition_id');
-    }
-
-    /**
-     * @return BelongsTo<Agency, $this>
-     */
-    public function agency(): BelongsTo
-    {
-        return $this->belongsTo(Agency::class);
     }
 
     /**

@@ -5,7 +5,6 @@ namespace App\Modules\Departures\Http\Requests;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\Departures\Models\Departure;
-use App\Modules\IdentityAccess\Models\Agency;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -24,7 +23,6 @@ class UpdateDepartureRequest extends FormRequest
         return [
             'line_uuid' => ['sometimes', 'required', 'uuid', Rule::exists(Line::class, 'uuid')->whereNull('deleted_at')],
             'bus_uuid' => ['sometimes', 'required', 'uuid', Rule::exists(Bus::class, 'uuid')->whereNull('deleted_at')],
-            'agency_uuid' => ['sometimes', 'required', 'uuid', Rule::exists(Agency::class, 'uuid')->whereNull('deleted_at')],
             'departure_date' => ['sometimes', 'required', 'date'],
             'departure_time' => ['sometimes', 'required', 'date_format:H:i'],
             'driver_uuid' => ['nullable', 'uuid', 'exists:users,uuid'],
@@ -32,7 +30,7 @@ class UpdateDepartureRequest extends FormRequest
         ];
     }
 
-    /** @return array{line_uuid?: string, bus_uuid?: string, agency_uuid?: string, departure_date?: string, departure_time?: string, driver_uuid?: string|null, conductor_uuid?: string|null} */
+    /** @return array{line_uuid?: string, bus_uuid?: string, departure_date?: string, departure_time?: string, driver_uuid?: string|null, conductor_uuid?: string|null} */
     public function payload(): array
     {
         $payload = [];
@@ -42,9 +40,6 @@ class UpdateDepartureRequest extends FormRequest
         }
         if ($this->filled('bus_uuid')) {
             $payload['bus_uuid'] = $this->string('bus_uuid')->value();
-        }
-        if ($this->filled('agency_uuid')) {
-            $payload['agency_uuid'] = $this->string('agency_uuid')->value();
         }
         if ($this->filled('departure_date')) {
             $payload['departure_date'] = $this->string('departure_date')->value();

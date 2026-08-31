@@ -19,7 +19,7 @@ class PlanningQueryRequest extends FormRequest
             'date' => ['sometimes', 'date_format:Y-m-d'],
             'view' => ['sometimes', Rule::in(['week', 'month', 'list'])],
             'tab' => ['sometimes', Rule::in(['planning', 'templates', 'programmes'])],
-            'line' => ['nullable', 'uuid'], 'agency' => ['nullable', 'uuid'],
+            'line' => ['nullable', 'uuid'],
             'bus' => ['nullable', 'uuid'], 'person' => ['nullable', 'uuid'],
             'programme' => ['nullable', 'uuid'],
             'template' => ['nullable', 'uuid'],

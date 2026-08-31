@@ -78,7 +78,6 @@ const base: Slot = {
     ...freshSlot(refs.timezone),
     key: 'morning',
     line_uuid: 'cotonou-lome',
-    agency_uuid: 'ganhi',
     time: '07:00',
     duration_minutes: 180,
     stops: [

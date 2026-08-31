@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class PlannedDeparture extends KoraModel
 {
-    protected $fillable = ['uuid', 'programme_id', 'version_id', 'slot_key', 'service_date', 'scheduled_at', 'arrival_at', 'timezone', 'line_id', 'agency_id', 'bus_id', 'driver_id', 'secondary_driver_id', 'conductor_id', 'mechanic_id', 'departure_id', 'state', 'is_exception', 'snapshot', 'revision'];
+    protected $fillable = ['uuid', 'programme_id', 'version_id', 'slot_key', 'service_date', 'scheduled_at', 'arrival_at', 'timezone', 'line_id', 'bus_id', 'driver_id', 'secondary_driver_id', 'conductor_id', 'mechanic_id', 'departure_id', 'state', 'is_exception', 'snapshot', 'revision'];
 
     protected function casts(): array
     {

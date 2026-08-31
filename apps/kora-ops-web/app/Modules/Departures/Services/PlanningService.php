@@ -182,7 +182,7 @@ class PlanningService
         }
         $time = $item->scheduled_at->setTimezone(config('app.timezone'));
         $item->departure->update([
-            'line_id' => $item->line_id, 'agency_id' => $item->agency_id, 'bus_id' => $item->bus_id,
+            'line_id' => $item->line_id, 'bus_id' => $item->bus_id,
             'driver_id' => $item->driver_id, 'secondary_driver_id' => $item->secondary_driver_id,
             'conductor_id' => $item->conductor_id, 'mechanic_id' => $item->mechanic_id,
             'scheduled_at' => $item->scheduled_at, 'departure_timezone' => $item->timezone,

@@ -8,7 +8,6 @@ use App\Modules\BusNetwork\Models\Line;
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\Departures\Services\PublicationService;
-use App\Modules\IdentityAccess\Models\Agency;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -17,14 +16,13 @@ class CreateDepartureAction
     public function __construct(private PublicationService $publication) {}
 
     /**
-     * @param  array{line_uuid: string, bus_uuid: string, agency_uuid: string, departure_date: string, departure_time: string, driver_uuid?: string|null, conductor_uuid?: string|null, created_by?: int|null}  $attributes
+     * @param  array{line_uuid: string, bus_uuid: string, departure_date: string, departure_time: string, driver_uuid?: string|null, conductor_uuid?: string|null, created_by?: int|null}  $attributes
      */
     public function execute(array $attributes): Departure
     {
         return DB::transaction(function () use ($attributes): Departure {
             $line = Line::query()->where('uuid', $attributes['line_uuid'])->firstOrFail();
-            $bus = Bus::query()->with('agency')->where('uuid', $attributes['bus_uuid'])->firstOrFail();
-            $agency = Agency::query()->where('uuid', $attributes['agency_uuid'])->firstOrFail();
+            $bus = Bus::query()->where('uuid', $attributes['bus_uuid'])->firstOrFail();
 
             $driverId = null;
             if (isset($attributes['driver_uuid'])) {
@@ -44,7 +42,6 @@ class CreateDepartureAction
             $departure = new Departure([
                 'line_id' => $line->id,
                 'bus_id' => $bus->id,
-                'agency_id' => $agency->id,
                 'departure_date' => $attributes['departure_date'],
                 'departure_time' => $attributes['departure_time'],
                 'estimated_arrival_at' => $estimatedArrivalAt,

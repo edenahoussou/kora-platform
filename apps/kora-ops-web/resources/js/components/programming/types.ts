@@ -9,7 +9,6 @@ export type Slot = {
     key: string;
     direction: 'outbound' | 'return';
     line_uuid: string | null;
-    agency_uuid: string | null;
     timezone: string;
     time: string;
     days: number[];

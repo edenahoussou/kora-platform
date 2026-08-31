@@ -16,7 +16,6 @@ use App\Modules\Departures\Services\RecurrenceService;
 use App\Modules\Departures\Services\TemplateService;
 use App\Modules\DynamicPricing\Models\Fare;
 use Carbon\CarbonImmutable;
-use Database\Factories\AgencyFactory;
 use Database\Seeders\KoraBusRolePermissionSeeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
@@ -29,15 +28,14 @@ beforeEach(function (): void {
     $this->seed(KoraBusRolePermissionSeeder::class);
     $this->actor = User::factory()->create();
     $this->actor->assignRole('operations_director');
-    $this->agency = AgencyFactory::new()->create(['status' => 'active']);
     $this->line = Line::query()->create(['code' => 'COT-LOM', 'name' => 'Cotonou → Lomé', 'type' => 'internationale', 'status' => 'active', 'estimated_duration_minutes' => 180]);
     $first = $this->line->stops()->create(['name' => 'Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0, 'status' => 'active']);
     $last = $this->line->stops()->create(['name' => 'Lomé', 'city' => 'Lomé', 'country' => 'TG', 'stop_order' => 2, 'km_from_origin' => 150, 'status' => 'active']);
-    $this->bus = Bus::query()->create(['registration_number' => 'KORA-TEST', 'brand' => 'KORA', 'model' => 'Bus', 'seat_count' => 1, 'agency_id' => $this->agency->id, 'status' => 'active']);
+    $this->bus = Bus::query()->create(['registration_number' => 'KORA-TEST', 'brand' => 'KORA', 'model' => 'Bus', 'seat_count' => 1, 'status' => 'active']);
     Seat::query()->create(['bus_id' => $this->bus->id, 'code' => '1A', 'type' => 'standard', 'sellable' => true, 'status' => 'active']);
     Fare::query()->create(['line_id' => $this->line->id, 'origin_stop_id' => $first->id, 'destination_stop_id' => $last->id, 'base_amount' => 5000, 'currency' => 'XOF', 'effective_from' => '2026-01-01', 'status' => 'active']);
     $this->slot = [
-        'key' => (string) Str::uuid(), 'direction' => 'outbound', 'line_uuid' => $this->line->uuid, 'agency_uuid' => $this->agency->uuid,
+        'key' => (string) Str::uuid(), 'direction' => 'outbound', 'line_uuid' => $this->line->uuid,
         'timezone' => 'Africa/Porto-Novo', 'time' => '07:00', 'days' => [1, 2, 3, 4, 5], 'interval_weeks' => 1,
         'duration_minutes' => 180, 'preparation_minutes' => 0, 'bus_uuid' => null, 'driver_uuid' => null, 'secondary_driver_uuid' => null, 'conductor_uuid' => null, 'mechanic_uuid' => null,
         'return_key' => null, 'return_day_offset' => 0, 'turnaround_minutes' => 30,
@@ -124,7 +122,7 @@ it('validates stop chronology and saves incomplete drafts', function (): void {
 it('renders planning with manual departures and only public identifiers', function (): void {
     $programme = programmingProgramme($this);
     app(PlanningService::class)->generate($programme, $programme->starts_on, $programme->ends_on, $this->actor);
-    $manual = Departure::query()->create(['line_id' => $this->line->id, 'agency_id' => $this->agency->id, 'bus_id' => $this->bus->id, 'departure_date' => '2026-09-07', 'departure_time' => '13:00', 'status' => 'scheduled']);
+    $manual = Departure::query()->create(['line_id' => $this->line->id, 'bus_id' => $this->bus->id, 'departure_date' => '2026-09-07', 'departure_time' => '13:00', 'status' => 'scheduled']);
     $this->actingAs($this->actor)->get(route('programming.index', ['date' => '2026-09-07', 'view' => 'list']))->assertSuccessful()->assertInertia(fn (AssertableInertia $page) => $page
         ->component('programming/index')->has('items', 2)->where('items.1.uuid', $manual->uuid)->where('items.1.manual', true)
         ->missing('items.0.id')->missing('templates.0.id')->missing('references.buses.0.id'));
@@ -134,7 +132,7 @@ it('prevents manual departure creation from stealing a programmed bus', function
     $this->slot['bus_uuid'] = $this->bus->uuid;
     $programme = programmingProgramme($this);
     app(PlanningService::class)->generate($programme, $programme->starts_on, $programme->ends_on, $this->actor);
-    $this->actingAs($this->actor)->postJson(route('departures.store'), ['line_uuid' => $this->line->uuid, 'agency_uuid' => $this->agency->uuid, 'bus_uuid' => $this->bus->uuid, 'departure_date' => '2026-09-07', 'departure_time' => '08:00'])->assertUnprocessable();
+    $this->actingAs($this->actor)->postJson(route('departures.store'), ['line_uuid' => $this->line->uuid, 'bus_uuid' => $this->bus->uuid, 'departure_date' => '2026-09-07', 'departure_time' => '08:00'])->assertUnprocessable();
     expect(Departure::count())->toBe(0);
 });
 

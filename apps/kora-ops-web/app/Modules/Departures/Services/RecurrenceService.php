@@ -7,7 +7,6 @@ use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\Departures\Models\DepartureProgramme;
 use App\Modules\Departures\Models\DepartureTemplateVersion;
-use App\Modules\IdentityAccess\Models\Agency;
 use Carbon\CarbonImmutable;
 use Illuminate\Validation\ValidationException;
 
@@ -81,7 +80,6 @@ class RecurrenceService
         $attributes = $this->timing($slot, $date) + [
             'timezone' => $slot['timezone'], 'snapshot' => $slot,
             'line_id' => Line::withTrashed()->where('uuid', $slot['line_uuid'])->firstOrFail()->id,
-            'agency_id' => Agency::withTrashed()->where('uuid', $slot['agency_uuid'])->firstOrFail()->id,
             'bus_id' => empty($slot['bus_uuid']) ? null : Bus::withTrashed()->where('uuid', $slot['bus_uuid'])->firstOrFail()->id,
         ];
         foreach (['driver', 'secondary_driver', 'conductor', 'mechanic'] as $role) {

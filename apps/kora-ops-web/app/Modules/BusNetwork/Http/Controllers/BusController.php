@@ -14,7 +14,6 @@ use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\BusAmenity;
 use App\Modules\BusNetwork\Models\BusComposition;
 use App\Modules\BusNetwork\Models\BusModel;
-use App\Modules\IdentityAccess\Models\Agency;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -26,29 +25,23 @@ class BusController extends Controller
     public function index(Request $request): Response
     {
         Gate::authorize('viewAny', Bus::class);
-        $query = Bus::query()->with(['agency', 'busModel', 'composition', 'amenities'])->orderBy('registration_number');
+        $query = Bus::query()->with(['busModel', 'composition', 'amenities'])->orderBy('registration_number');
         $search = $request->string('q')->trim()->value();
         if ($search !== '') {
             $term = '%'.mb_strtolower($search).'%';
             $query->where(function ($q) use ($term): void {
                 $q->whereRaw('LOWER(registration_number) LIKE ?', [$term])
-                    ->orWhereHas('busModel', fn ($model) => $model->whereRaw('LOWER(brand) LIKE ?', [$term])->orWhereRaw('LOWER(name) LIKE ?', [$term]))
-                    ->orWhereHas('agency', fn ($agency) => $agency->whereRaw('LOWER(name) LIKE ?', [$term]));
+                    ->orWhereHas('busModel', fn ($model) => $model->whereRaw('LOWER(brand) LIKE ?', [$term])->orWhereRaw('LOWER(name) LIKE ?', [$term]));
             });
         }
         $status = $request->string('status')->trim()->value();
         if ($status !== '' && in_array($status, array_column(BusStatus::cases(), 'value'), true)) {
             $query->where('status', $status);
         }
-        $agencyId = $request->integer('agency_id');
-        if ($agencyId > 0) {
-            $query->where('agency_id', $agencyId);
-        }
 
         return inertia('fleet', [
             'buses' => $query->paginate(15)->through(fn (Bus $bus): array => $this->serializeBus($bus)),
             'statuses' => BusStatus::options(),
-            'agencies' => Agency::query()->where('status', 'active')->orderBy('name')->get()->map(fn (Agency $agency): array => ['id' => $agency->id, 'name' => $agency->name]),
             'models' => BusModel::query()->where('status', 'active')->orderBy('brand')->orderBy('name')->get()->map(fn (BusModel $model): array => ['id' => $model->id, 'label' => $model->brand.' '.$model->name]),
             'compositions' => BusComposition::query()->where('status', 'active')->orderBy('seat_count')->get()->map(fn (BusComposition $composition): array => ['id' => $composition->id, 'label' => $composition->name, 'seatCount' => $composition->seat_count]),
             'amenities' => BusAmenity::query()->where('status', 'active')->ordered()->get()->map(fn (BusAmenity $amenity): array => ['id' => $amenity->id, 'code' => $amenity->code, 'label' => $amenity->label, 'icon' => $amenity->icon]),
@@ -65,7 +58,6 @@ class BusController extends Controller
         Gate::authorize('view', $bus);
 
         $bus->load([
-            'agency',
             'busModel',
             'composition',
             'amenities',
@@ -76,7 +68,6 @@ class BusController extends Controller
         return inertia('fleet/detail', [
             'bus' => $this->serializeBusDetail($bus),
             'statuses' => BusStatus::options(),
-            'agencies' => Agency::query()->where('status', 'active')->orderBy('name')->get()->map(fn (Agency $agency): array => ['id' => $agency->id, 'name' => $agency->name]),
             'models' => BusModel::query()->where('status', 'active')->orderBy('brand')->orderBy('name')->get()->map(fn (BusModel $model): array => ['id' => $model->id, 'label' => $model->brand.' '.$model->name]),
             'compositions' => BusComposition::query()->where('status', 'active')->orderBy('seat_count')->get()->map(fn (BusComposition $composition): array => ['id' => $composition->id, 'label' => $composition->name, 'seatCount' => $composition->seat_count]),
             'amenities' => BusAmenity::query()->where('status', 'active')->ordered()->get()->map(fn (BusAmenity $amenity): array => ['id' => $amenity->id, 'code' => $amenity->code, 'label' => $amenity->label, 'icon' => $amenity->icon]),
@@ -123,8 +114,6 @@ class BusController extends Controller
             'compositionId' => $bus->composition_id,
             'compositionName' => $bus->composition?->name,
             'seatCount' => $bus->seat_count,
-            'agencyId' => $bus->agency_id,
-            'agencyName' => $bus->agency?->name,
             'amenityIds' => $bus->amenities->pluck('id')->all(),
             'amenityLabels' => $bus->amenities->pluck('label')->all(),
             'status' => BusStatus::from((string) $bus->getRawOriginal('status'))->value,
@@ -164,9 +153,6 @@ class BusController extends Controller
         $compositionName = $bus->composition ? $bus->composition->name : '—';
         $compositionCode = $bus->composition ? $bus->composition->code : null;
         $layout = $bus->composition ? $bus->composition->layout : [];
-        $agencyName = $bus->agency ? $bus->agency->name : '—';
-        $agencyCity = $bus->agency ? $bus->agency->city : null;
-        $agencyCountry = $bus->agency ? $bus->agency->country : null;
 
         $amenities = $bus->amenities->map(fn (BusAmenity $amenity): array => [
             'id' => $amenity->id,
@@ -188,10 +174,6 @@ class BusController extends Controller
             'compositionName' => $compositionName,
             'layout' => $layout,
             'seatCount' => $bus->seat_count,
-            'agencyId' => $bus->agency_id,
-            'agencyName' => $agencyName,
-            'agencyCity' => $agencyCity,
-            'agencyCountry' => $agencyCountry,
             'amenities' => $amenities,
             'amenityIds' => $bus->amenities->pluck('id')->all(),
             'status' => BusStatus::from((string) $bus->getRawOriginal('status'))->value,

@@ -180,7 +180,6 @@ export function freshSlot(timezone: string): Slot {
         key: uuid(),
         direction: 'outbound',
         line_uuid: null,
-        agency_uuid: null,
         timezone,
         time: '07:00',
         days: [1, 2, 3, 4, 5],

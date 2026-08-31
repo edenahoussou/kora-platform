@@ -11,7 +11,6 @@ use App\Modules\Departures\Models\DepartureProgramme;
 use App\Modules\Departures\Models\DepartureTemplate;
 use App\Modules\Departures\Models\PlannedDeparture;
 use App\Modules\Departures\Models\ProgrammingRun;
-use App\Modules\IdentityAccess\Models\Agency;
 use Carbon\CarbonImmutable;
 use Spatie\Activitylog\Models\Activity;
 
@@ -27,7 +26,6 @@ class PlanningReadService
                 'uuid' => $line->uuid, 'label' => $line->name, 'code' => $line->code, 'duration' => $line->estimated_duration_minutes, 'bidirectional' => (bool) $line->bidirectional,
                 'stops' => $line->stops->filter(fn (Stop $stop): bool => $stop->getRawOriginal('status') === 'active')->map(fn (Stop $stop): array => ['uuid' => $stop->uuid, 'label' => $stop->name, 'country' => $stop->country])->values()->all(),
             ])->all(),
-            'agencies' => Agency::query()->where('status', 'active')->orderBy('name')->get()->map(fn (Agency $agency): array => ['uuid' => $agency->uuid, 'label' => $agency->name])->all(),
             'buses' => Bus::query()->orderBy('registration_number')->get()->map(fn (Bus $bus): array => ['uuid' => $bus->uuid, 'label' => $bus->registration_number, 'capacity' => $bus->seat_count, 'model' => $bus->model, 'status' => $bus->getRawOriginal('status')])->all(),
             'people' => User::query()->where('status', 'active')->whereHas('roles', fn ($q) => $q->whereIn('name', ['bus_driver', 'conductor', 'mechanic']))->with('roles')->orderBy('name')->get()->map(fn (User $user): array => ['uuid' => $user->uuid, 'label' => $user->name, 'roles' => $user->roles->pluck('name')->all()])->all(),
             'timezone' => config('app.timezone'),
@@ -120,7 +118,7 @@ class PlanningReadService
     /** @return array<string, mixed> */
     public function departureSlot(Departure $departure): array
     {
-        $departure->loadMissing(['line.stops', 'bus', 'agency', 'driver', 'conductor']);
+        $departure->loadMissing(['line.stops', 'bus', 'driver', 'conductor']);
         $start = $departure->scheduledDepartureAt();
         $timezone = $departure->departure_timezone ?? config('app.timezone');
         $duration = $departure->estimated_arrival_at === null ? ($departure->line->estimated_duration_minutes ?? 180) : (int) $start->diffInMinutes($departure->estimated_arrival_at);
@@ -128,7 +126,7 @@ class PlanningReadService
 
         return [
             'key' => $departure->uuid, 'direction' => 'outbound',
-            'line_uuid' => $departure->line->uuid, 'agency_uuid' => $departure->agency->uuid,
+            'line_uuid' => $departure->line->uuid,
             'bus_uuid' => $departure->bus?->uuid, 'driver_uuid' => $departure->driver?->uuid, 'conductor_uuid' => $departure->conductor?->uuid,
             'secondary_driver_uuid' => $departure->secondary_driver_id === null ? null : User::query()->find($departure->secondary_driver_id)?->uuid,
             'mechanic_uuid' => $departure->mechanic_id === null ? null : User::query()->find($departure->mechanic_id)?->uuid,
@@ -183,14 +181,14 @@ class PlanningReadService
         $assessments = $this->publication->assessBatch(array_values($occurrences->all()));
         $items = $occurrences->map(fn (PlannedDeparture $item, int $index): array => $this->item($item, false, $assessments[$index]));
         if (empty($filters['programme'])) {
-            $manual = Departure::query()->with(['line.stops', 'agency', 'bus', 'driver', 'conductor'])->whereNotIn('id', PlannedDeparture::query()->whereNotNull('departure_id')->select('departure_id'))
+            $manual = Departure::query()->with(['line.stops', 'bus', 'driver', 'conductor'])->whereNotIn('id', PlannedDeparture::query()->whereNotNull('departure_id')->select('departure_id'))
                 ->whereDate('departure_date', '>=', $from->subDay()->toDateString())->whereDate('departure_date', '<=', $until->addDay()->toDateString())->get()
                 ->map(fn (Departure $departure): array => $this->manualItem($departure))
                 ->filter(fn (array $item): bool => $item['date'] >= $from->toDateString() && $item['date'] <= $until->toDateString());
             $items = $items->concat($manual)->sortBy('scheduledAt');
         }
         $items = $items->filter(function (array $item) use ($filters): bool {
-            foreach (['line' => 'line_uuid', 'agency' => 'agency_uuid', 'bus' => 'bus_uuid', 'direction' => 'direction'] as $filter => $field) {
+            foreach (['line' => 'line_uuid', 'bus' => 'bus_uuid', 'direction' => 'direction'] as $filter => $field) {
                 if (! empty($filters[$filter]) && ($item['snapshot'][$field] ?? null) !== $filters[$filter]) {
                     return false;
                 }

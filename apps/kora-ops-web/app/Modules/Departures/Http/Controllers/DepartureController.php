@@ -16,7 +16,6 @@ use App\Modules\Departures\Http\Requests\RecordDepartureDelayRequest;
 use App\Modules\Departures\Http\Requests\StoreDepartureRequest;
 use App\Modules\Departures\Http\Requests\UpdateDepartureRequest;
 use App\Modules\Departures\Models\Departure;
-use App\Modules\IdentityAccess\Models\Agency;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -30,7 +29,7 @@ class DepartureController extends Controller
         Gate::authorize('viewAny', Departure::class);
 
         $query = Departure::query()
-            ->with(['line:id,uuid,code,name', 'bus:id,uuid,registration_number,seat_count', 'agency:id,uuid,name,city', 'driver:id,uuid,name', 'conductor:id,uuid,name'])
+            ->with(['line:id,uuid,code,name', 'bus:id,uuid,registration_number,seat_count', 'driver:id,uuid,name', 'conductor:id,uuid,name'])
             ->orderBy('departure_date', 'desc')
             ->orderBy('departure_time');
 
@@ -39,22 +38,13 @@ class DepartureController extends Controller
             $term = '%'.mb_strtolower($search).'%';
             $query->where(function ($q) use ($term): void {
                 $q->whereHas('line', fn ($line) => $line->whereRaw('LOWER(code) LIKE ?', [$term])->orWhereRaw('LOWER(name) LIKE ?', [$term]))
-                    ->orWhereHas('bus', fn ($bus) => $bus->whereRaw('LOWER(registration_number) LIKE ?', [$term]))
-                    ->orWhereHas('agency', fn ($agency) => $agency->whereRaw('LOWER(name) LIKE ?', [$term]));
+                    ->orWhereHas('bus', fn ($bus) => $bus->whereRaw('LOWER(registration_number) LIKE ?', [$term]));
             });
         }
 
         $status = $request->string('status')->trim()->value();
         if ($status !== '' && in_array($status, DepartureStatus::values(), true)) {
             $query->where('status', $status);
-        }
-
-        $agencyUuid = $request->string('agency_uuid')->trim()->value();
-        if ($agencyUuid !== '') {
-            $agency = Agency::query()->where('uuid', $agencyUuid)->first(['id']);
-            if ($agency !== null) {
-                $query->where('agency_id', $agency->id);
-            }
         }
 
         $lineUuid = $request->string('line_uuid')->trim()->value();
@@ -78,7 +68,6 @@ class DepartureController extends Controller
             'departures' => $paginated->through(fn (Departure $departure): array => $this->serializeDeparture($departure)),
             'statuses' => DepartureStatus::options(),
             'lines' => $this->lineOptions(),
-            'agencies' => $this->agencyOptions(),
             'buses' => $this->busOptions(),
             'drivers' => $this->userOptions('bus_driver'),
             'conductors' => $this->userOptions('conductor'),
@@ -97,10 +86,8 @@ class DepartureController extends Controller
 
         $departure->load([
             'line.stops' => fn ($q) => $q->where('status', 'active')->orderBy('stop_order'),
-            'bus:id,uuid,registration_number,seat_count,agency_id',
-            'bus.agency:id,uuid,name,city',
+            'bus:id,uuid,registration_number,seat_count',
             'bus.seats' => fn ($q) => $q->orderByRaw('LENGTH(code), code'),
-            'agency:id,uuid,name,city,country',
             'driver:id,uuid,name',
             'conductor:id,uuid,name',
             'creator:id,name',
@@ -112,7 +99,6 @@ class DepartureController extends Controller
             'canProgram' => $request->user()?->can('departures.manage') ?? false,
             'statuses' => DepartureStatus::options(),
             'lines' => $this->lineOptions(),
-            'agencies' => $this->agencyOptions(),
             'buses' => $this->busOptions(),
             'drivers' => $this->userOptions('bus_driver'),
             'conductors' => $this->userOptions('conductor'),
@@ -180,9 +166,6 @@ class DepartureController extends Controller
             'busUuid' => $departure->bus?->uuid,
             'busRegistration' => $departure->bus->registration_number ?? 'À affecter',
             'busSeatCount' => $seatCount,
-            'agencyUuid' => $departure->agency?->uuid,
-            'agencyName' => $departure->agency->name ?? '—',
-            'agencyCity' => $departure->agency->city ?? null,
             'departureDate' => $departure->departure_date?->format('Y-m-d'),
             'departureTime' => $departure->departure_time,
             'delayMinutes' => (int) $departure->delay_minutes,
@@ -237,12 +220,7 @@ class DepartureController extends Controller
             'busUuid' => $departure->bus?->uuid,
             'busRegistration' => $departure->bus->registration_number ?? 'À affecter',
             'busSeatCount' => $seatCount,
-            'busAgencyName' => $departure->bus->agency?->name,
             'seats' => $seats,
-            'agencyUuid' => $departure->agency?->uuid,
-            'agencyName' => $departure->agency->name ?? '—',
-            'agencyCity' => $departure->agency->city,
-            'agencyCountry' => $departure->agency->country,
             'departureDate' => $departure->departure_date?->format('Y-m-d'),
             'departureTime' => $departure->departure_time,
             'delayMinutes' => (int) $departure->delay_minutes,
@@ -276,33 +254,16 @@ class DepartureController extends Controller
             ->all();
     }
 
-    /** @return array<int, array{uuid: string, name: string}> */
-    private function agencyOptions(): array
-    {
-        return Agency::query()
-            ->where('status', 'active')
-            ->orderBy('name')
-            ->get()
-            ->map(fn (Agency $agency): array => [
-                'uuid' => (string) $agency->uuid,
-                'name' => $agency->name,
-            ])
-            ->all();
-    }
-
-    /** @return array<int, array{uuid: string, label: string, agencyUuid: string|null}> */
+    /** @return array<int, array{uuid: string, label: string}> */
     private function busOptions(): array
     {
         return Bus::query()
             ->where('status', 'active')
-            ->with('agency:id,uuid')
             ->orderBy('registration_number')
-            ->with('agency:id,uuid')
             ->get()
             ->map(fn (Bus $bus): array => [
                 'uuid' => (string) $bus->uuid,
                 'label' => (string) $bus->registration_number,
-                'agencyUuid' => $bus->agency?->uuid,
             ])
             ->all();
     }
