@@ -38,6 +38,7 @@ import '../../features/home/presentation/pages/date_picker_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/home/presentation/pages/passengers_picker_page.dart';
 import '../../features/notifications/presentation/pages/notifications_page.dart';
+import '../../features/payment/presentation/bloc/payment_catalog_bloc.dart';
 import '../../features/payment/presentation/pages/booking_success_page.dart';
 import '../../features/payment/presentation/pages/card_payment_page.dart';
 import '../../features/payment/presentation/pages/mobile_money_page.dart';
@@ -535,6 +536,18 @@ class AppRouter {
               // Les billets du groupe, listés après paiement.
               BlocProvider<GroupTicketsCubit>(
                 create: (_) => getIt<GroupTicketsCubit>(),
+              ),
+              // Le catalogue des moyens de paiement est demandé dès
+              // l'entrée du tunnel, pas à l'ouverture de l'écran de
+              // paiement : la réponse est ainsi déjà là quand le voyageur
+              // arrive au choix du moyen, après avoir rempli ses
+              // formulaires. Le charger plus tard ferait clignoter le
+              // dernier écran du parcours, celui où l'hésitation coûte le
+              // plus cher.
+              BlocProvider<PaymentCatalogBloc>(
+                create: (_) =>
+                    getIt<PaymentCatalogBloc>()
+                      ..add(const PaymentCatalogRequested()),
               ),
             ],
             child: SeatHoldWatcher(child: child),

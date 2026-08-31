@@ -26,6 +26,7 @@ import 'package:kora_app_passenger/features/booking/presentation/bloc/group_quot
 import 'package:kora_app_passenger/features/booking/presentation/bloc/seat_hold_bloc.dart';
 import 'package:kora_app_passenger/features/payment/domain/entities/payment_catalog.dart';
 import 'package:kora_app_passenger/features/payment/domain/repositories/payment_repository.dart';
+import 'package:kora_app_passenger/features/payment/presentation/bloc/payment_catalog_bloc.dart';
 
 import 'stub_auth_repository.dart';
 
@@ -280,21 +281,45 @@ Future<AuthBloc> openedSession([StubAuthRepository? repository]) async {
   return bloc;
 }
 
-/// Enveloppe [child] des deux Blocs que l'app fournit au-dessus du
-/// tunnel : le blocage des sièges, et la session — le formulaire
-/// voyageurs pré-remplit le premier bloc avec le titulaire du compte.
+/// Un [PaymentCatalogBloc] dont le catalogue est **déjà chargé**.
 ///
-/// Le catalogue des moyens de paiement n'y figure plus : l'écran Mobile
-/// Money affiche une liste écrite en dur le temps que l'endpoint soit
-/// réparé côté serveur (voir `kMobileMoneyProviders`). Le
-/// [StubPaymentRepository] ci-dessus reste, lui, utilisé par les tests du
-/// Bloc — la chaîne est prête à rebrancher.
+/// Comme [openedSession], l'attente est nécessaire : le chargement passe
+/// par un événement, et sans elle l'écran de paiement se construit sur un
+/// catalogue vide — donc sans aucun moyen à proposer. Dans l'app la
+/// demande part à l'entrée du tunnel, bien avant l'écran de paiement.
+///
+/// Passer [failure] simule un serveur injoignable ; passer [catalog]
+/// simule un serveur qui n'annonce pas les mêmes moyens.
+Future<PaymentCatalogBloc> loadedCatalog({
+  PaymentCatalog catalog = kStubPaymentCatalog,
+  Failure? failure,
+}) async {
+  final bloc = PaymentCatalogBloc(
+    StubPaymentRepository(value: catalog, failure: failure),
+  )..add(const PaymentCatalogRequested());
+
+  await bloc.stream.firstWhere(
+    (state) => state.status != PaymentCatalogStatus.loading,
+  );
+  return bloc;
+}
+
+/// Enveloppe [child] des trois Blocs que l'app fournit au-dessus du
+/// tunnel : le blocage des sièges, la session — le formulaire voyageurs
+/// pré-remplit le premier bloc avec le titulaire du compte — et le
+/// catalogue des moyens de paiement.
+///
+/// Le catalogue est fourni **chargé** par défaut, parce que c'est l'état
+/// normal quand on arrive au paiement : il est demandé à l'entrée du
+/// tunnel, plusieurs écrans plus tôt. Les tests qui veulent éprouver le
+/// chargement ou l'échec passent leur propre [catalog].
 Widget withSeatHold(
   Widget child, {
   required SeatHoldBloc bloc,
   AuthBloc? auth,
   GroupQuoteCubit? groupQuote,
   GroupPayerCubit? groupPayer,
+  PaymentCatalogBloc? catalog,
 }) {
   return MultiBlocProvider(
     providers: [
@@ -310,6 +335,12 @@ Widget withSeatHold(
       // Le payeur du groupe : choisi sur l'écran de groupe, lu au blocage.
       BlocProvider<GroupPayerCubit>.value(
         value: groupPayer ?? GroupPayerCubit(StubReservationRepository()),
+      ),
+      BlocProvider<PaymentCatalogBloc>.value(
+        value:
+            catalog ??
+            (PaymentCatalogBloc(StubPaymentRepository())
+              ..add(const PaymentCatalogRequested())),
       ),
     ],
     child: child,

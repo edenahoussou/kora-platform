@@ -10,10 +10,12 @@ import '../../../../core/utils/date_formats.dart';
 import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../../core/widgets/section_title.dart';
+import '../../domain/entities/amenity.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/group_booking_limits.dart';
 import '../../domain/entities/trip_segment.dart';
 import '../bloc/departure_detail_cubit.dart';
+import '../widgets/amenity_view.dart';
 import '../widgets/state_view.dart';
 import 'group_booking_page.dart';
 import 'seats_page.dart';
@@ -139,11 +141,10 @@ class _DetailContent extends StatelessWidget {
                   ),
                 ),
               ],
-              // Titre et grille vont ensemble : l'API ne renvoie aucun
-              // équipement — la table `buses` n'a ni Wi-Fi, ni
-              // climatisation, ni USB — et un intertitre « Votre confort à
-              // bord » suivi de rien laisse croire à un bus sans services
-              // plutôt qu'à une donnée manquante.
+              // Titre et grille vont ensemble : un départ sans bus affecté
+              // n'annonce aucun service, et un intertitre « Votre confort à
+              // bord » suivi de rien laisserait croire à un bus dépouillé
+              // plutôt qu'à une donnée pas encore connue.
               if (departure.amenities.isNotEmpty) ...[
                 SectionTitle(title: context.l10n.departureDetailComfort),
                 _ServiceGrid(amenities: departure.amenities),
@@ -336,38 +337,45 @@ class _TimePoint extends StatelessWidget {
 }
 
 /// `.quick-grid` : une tuile par service à bord.
+///
+/// En lignes de trois, et non en une seule rangée : le serveur annonce
+/// jusqu'à vingt-huit services pour un même bus, là où la maquette n'en
+/// montrait que trois. Une `Row` les aurait comprimés jusqu'à l'illisible.
 class _ServiceGrid extends StatelessWidget {
   const _ServiceGrid({required this.amenities});
 
-  final List<String> amenities;
+  final List<Amenity> amenities;
 
-  /// Le jeu de données décrit les services par leur nom ; on leur associe
-  /// ici un pictogramme, avec une icône neutre pour tout service inconnu.
-  static const Map<String, IconData> _icons = {
-    'Wi-Fi': Icons.wifi_rounded,
-    'Climatisation': Icons.ac_unit_rounded,
-    'USB': Icons.usb_rounded,
-  };
+  /// Tuiles par ligne, et écart entre elles.
+  static const int _columns = 3;
+  static const double _gap = 10;
 
   @override
   Widget build(BuildContext context) {
     if (amenities.isEmpty) return const SizedBox.shrink();
 
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (final amenity in amenities) ...[
-            Expanded(
-              child: _ServiceTile(
-                label: amenity,
-                icon: _icons[amenity] ?? Icons.check_circle_outline_rounded,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Largeur d'une tuile pour que trois tiennent exactement, gouttières
+        // comprises. Sans ce calcul, `Wrap` n'en placerait que deux et
+        // laisserait un vide à droite.
+        final width = (constraints.maxWidth - _gap * (_columns - 1)) / _columns;
+
+        return Wrap(
+          spacing: _gap,
+          runSpacing: _gap,
+          children: [
+            for (final amenity in amenities)
+              SizedBox(
+                width: width,
+                child: _ServiceTile(
+                  label: amenity.displayLabel(context),
+                  icon: amenity.icon,
+                ),
               ),
-            ),
-            if (amenity != amenities.last) const SizedBox(width: 10),
           ],
-        ],
-      ),
+        );
+      },
     );
   }
 }

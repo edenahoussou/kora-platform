@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:go_router/go_router.dart';
 
@@ -8,35 +9,39 @@ import '../../../../core/utils/phone_number.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../auth/domain/entities/phone_country.dart';
 import '../../../booking/presentation/widgets/hold_countdown.dart';
+import '../bloc/payment_catalog_bloc.dart';
 import '../widgets/labelled_field.dart';
 import 'payment_args.dart';
 import 'payment_flow_args.dart';
 import 'payment_method_page.dart';
 
-/// Les deux encaisseurs proposés au voyageur.
+/// Le nom d'affichage des réseaux Mobile Money.
 ///
-/// **Écrits en dur, et provisoirement.** Cette liste doit venir de
-/// `GET /api/v1/payments/methods` : toute la chaîne existe et est testée
-/// (voir `PaymentCatalogBloc` et `payment_catalog_test.dart`). Mais
-/// l'endpoint répond aujourd'hui **500** sur le staging — le serveur route
-/// `/payments/methods` vers le handler `/payments/{uuid}` et prend le mot
-/// `methods` pour un identifiant :
+/// **La liste des réseaux, elle, vient du serveur** (`GET
+/// /payments/methods`) : seule leur graphie est écrite ici. Des marques ne
+/// se traduisent pas — « MTN MoMo » s'écrit pareil en français et en
+/// anglais — mais elles se capitalisent, et le serveur renvoie des codes
+/// (`mtn_momo`) qu'on ne montre pas à un voyageur.
 ///
-/// ```
-/// SQLSTATE[22P02]: invalid input syntax for type uuid: "methods"
-/// ```
-///
-/// Tant que cette route n'est pas corrigée côté back, l'écran resterait
-/// bloqué sur son message d'erreur et personne ne pourrait payer.
-///
-/// **Pour rebrancher l'API**, deux gestes et rien d'autre : rétablir le
-/// `BlocBuilder<PaymentCatalogBloc, …>` autour du sélecteur, et remettre
-/// le `PaymentCatalogRequested` dans le `ShellRoute` du tunnel
-/// (`AppRouter`).
-const Map<String, String> kMobileMoneyProviders = {
-  'fedapay': 'FedaPay',
+/// Un réseau inconnu de cette table n'est pas masqué : il s'affiche sous
+/// son code remis en forme, ce qui reste choisissable.
+const Map<String, String> kMobileMoneyNetworks = {
   'mtn_momo': 'MTN MoMo',
+  'moov_flooz': 'Moov Flooz',
+  'celtiis_cash': 'Celtiis Cash',
 };
+
+/// Le nom lisible d'un réseau : sa marque, ou son code remis en forme.
+String mobileMoneyLabel(String network) {
+  final known = kMobileMoneyNetworks[network];
+  if (known != null) return known;
+
+  return network
+      .split('_')
+      .where((word) => word.isNotEmpty)
+      .map((word) => word[0].toUpperCase() + word.substring(1))
+      .join(' ');
+}
 
 /// Écran `mobile-money` de la maquette : opérateur, numéro à débiter, et
 /// le rappel de sécurité.
@@ -117,20 +122,38 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
     });
   }
 
+  /// L'invite du sélecteur : « Sélectionner un opérateur » quand il y a
+  /// quelque chose à sélectionner, et la raison du vide sinon.
+  String _hint(BuildContext context, PaymentCatalogState catalog) {
+    final l10n = context.l10n;
+
+    if (catalog.hasMobileMoney) return l10n.paymentMomoOperatorHint;
+    if (catalog.isLoading) return l10n.paymentMethodLoading;
+
+    return catalog.hasFailed
+        ? l10n.paymentMethodFailed
+        : l10n.paymentMethodNone;
+  }
+
   void _pay() {
     setState(() => _showErrors = true);
     if (_operatorError != null || _phoneError != null) return;
 
-    // Le provider choisi part tel quel : `POST payments/initiate` attend
-    // `method: mobile_money`, ce `provider`, le `phone`, le
-    // `mobile_money_network` et une clé d'idempotence. Il reste à
-    // brancher, et rendra la référence et l'échéance que les écrans
-    // suivants savent déjà afficher.
+    // Le voyageur choisit un **réseau** (`mtn_momo`), pas un encaisseur :
+    // il a un compte MTN, pas un compte FedaPay. Le provider s'en déduit
+    // — c'est un détail d'acheminement, et le serveur range son catalogue
+    // par ordre de préférence.
+    //
+    // `POST payments/initiate` attend les deux : `provider` et
+    // `mobile_money_network`, plus `method: mobile_money`, le `phone` et
+    // une clé d'idempotence. L'appel reste à brancher, et rendra la
+    // référence et l'échéance que les écrans suivants savent déjà
+    // afficher.
     context.push(
       AppRouter.paymentValidationPath,
       extra: PaymentFlowArgs(
         total: widget.args!.total,
-        providerLabel: kMobileMoneyProviders[_operator] ?? '',
+        providerLabel: mobileMoneyLabel(_operator ?? ''),
         departure: widget.args!.departure,
         seatLabel: widget.args!.seatLabel,
       ),
@@ -169,29 +192,43 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
                       // s'ancre **sous** le champ, comme le `<select>` de
                       // la maquette — on garde sous les yeux ce qu'on est
                       // en train de renseigner.
-                      child: LayoutBuilder(
-                        builder: (context, constraints) => DropdownMenu<String>(
-                          width: constraints.maxWidth,
-                          initialSelection: _operator,
-                          hintText: l10n.paymentMomoOperatorHint,
-                          errorText: _showErrors ? _operatorError : null,
-                          textStyle: AppTextStyles.body(koraColors.textPrimary),
-                          menuStyle: MenuStyle(
-                            backgroundColor: WidgetStatePropertyAll(
-                              koraColors.surface,
+                      child:
+                          BlocBuilder<PaymentCatalogBloc, PaymentCatalogState>(
+                            builder: (context, catalog) => LayoutBuilder(
+                              builder: (context, constraints) =>
+                                  DropdownMenu<String>(
+                                    width: constraints.maxWidth,
+                                    initialSelection: _operator,
+                                    // Rien à choisir tant que le serveur
+                                    // n'a pas répondu : un menu vide qui
+                                    // s'ouvre sur rien vaut moins qu'un
+                                    // champ visiblement inerte.
+                                    enabled: catalog.hasMobileMoney,
+                                    hintText: _hint(context, catalog),
+                                    errorText: _showErrors
+                                        ? _operatorError
+                                        : null,
+                                    textStyle: AppTextStyles.body(
+                                      koraColors.textPrimary,
+                                    ),
+                                    menuStyle: MenuStyle(
+                                      backgroundColor: WidgetStatePropertyAll(
+                                        koraColors.surface,
+                                      ),
+                                    ),
+                                    onSelected: (value) =>
+                                        setState(() => _operator = value),
+                                    dropdownMenuEntries: [
+                                      for (final network
+                                          in catalog.mobileMoneyNetworks)
+                                        DropdownMenuEntry(
+                                          value: network,
+                                          label: mobileMoneyLabel(network),
+                                        ),
+                                    ],
+                                  ),
                             ),
                           ),
-                          onSelected: (value) =>
-                              setState(() => _operator = value),
-                          dropdownMenuEntries: [
-                            for (final entry in kMobileMoneyProviders.entries)
-                              DropdownMenuEntry(
-                                value: entry.key,
-                                label: entry.value,
-                              ),
-                          ],
-                        ),
-                      ),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     LabelledField(

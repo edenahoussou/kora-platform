@@ -5,10 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kora_app_passenger/core/error/failures.dart';
 import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/features/auth/domain/entities/phone_country.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/price.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/seat_hold_bloc.dart';
+import 'package:kora_app_passenger/features/payment/domain/entities/payment_catalog.dart';
+import 'package:kora_app_passenger/features/payment/presentation/bloc/payment_catalog_bloc.dart';
 import 'package:kora_app_passenger/features/payment/presentation/pages/card_payment_page.dart';
 import 'package:kora_app_passenger/features/payment/presentation/pages/mobile_money_page.dart';
 import 'package:kora_app_passenger/features/payment/presentation/pages/payment_args.dart';
@@ -34,7 +37,11 @@ void main() {
     addTearDown(holdBloc.close);
   });
 
-  Future<void> pump(WidgetTester tester, Widget page) async {
+  Future<void> pump(
+    WidgetTester tester,
+    Widget page, {
+    PaymentCatalogBloc? catalog,
+  }) async {
     tester.view.physicalSize = const Size(390 * 3, 1400 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -50,23 +57,118 @@ void main() {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        home: withSeatHold(page, bloc: holdBloc),
+        home: withSeatHold(page, bloc: holdBloc, catalog: catalog),
       ),
     );
     await tester.pumpAndSettle();
   }
 
   group('choix du moyen', () {
-    testWidgets('propose les trois moyens et rappelle le total', (
-      tester,
-    ) async {
-      await pump(tester, const PaymentMethodPage(args: args));
+    testWidgets('ne propose que ce que le serveur encaisse', (tester) async {
+      await pump(
+        tester,
+        const PaymentMethodPage(args: args),
+        catalog: await loadedCatalog(),
+      );
 
       expect(find.text('Comment souhaitez-vous payer ?'), findsOneWidget);
       expect(find.text('Mobile Money'), findsOneWidget);
       expect(find.text('KORA Wallet'), findsOneWidget);
-      expect(find.text('Carte bancaire'), findsOneWidget);
       expect(find.text(money(12500)), findsOneWidget);
+
+      // La maquette montrait un troisième pavé. Le serveur n'annonce pas
+      // ce moyen : le proposer mènerait à un paiement refusé après que le
+      // voyageur a saisi son numéro de carte.
+      expect(find.text('Carte bancaire'), findsNothing);
+    });
+
+    testWidgets('grise le Wallet plutôt que de le faire disparaître', (
+      tester,
+    ) async {
+      // Le serveur le renvoie exprès, désactivé, avec sa raison : le
+      // masquer laisserait croire à un bug plutôt qu'à un moyen à venir.
+      await pump(
+        tester,
+        const PaymentMethodPage(args: args),
+        catalog: await loadedCatalog(),
+      );
+
+      expect(find.text('KORA Wallet'), findsOneWidget);
+      expect(find.text('Bientôt disponible'), findsOneWidget);
+
+      // Inerte : un pavé grisé ne mène nulle part.
+      await tester.tap(find.text('KORA Wallet'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Comment souhaitez-vous payer ?'), findsOneWidget);
+    });
+
+    testWidgets('des moyens tous inertes s’expliquent', (tester) async {
+      // Le cas réel du staging : le serveur annonce Mobile Money et le
+      // Wallet, mais aucun provider n'a d'identifiants valides. Deux pavés
+      // grisés sans un mot laisseraient le voyageur devant un écran qui
+      // refuse sans dire pourquoi.
+      await pump(
+        tester,
+        const PaymentMethodPage(args: args),
+        catalog: await loadedCatalog(
+          catalog: const PaymentCatalog(
+            country: 'BJ',
+            currency: 'XOF',
+            methods: [
+              PaymentMethod(
+                code: PaymentCatalog.mobileMoneyCode,
+                label: 'Mobile Money',
+                // Le serveur le désactive quand aucun encaisseur n'est
+                // configuré.
+                enabled: false,
+              ),
+              PaymentMethod(
+                code: PaymentCatalog.walletCode,
+                label: 'Mini Wallet',
+                enabled: false,
+                availability: 'out_of_mvp',
+              ),
+            ],
+          ),
+        ),
+      );
+
+      expect(find.text('Mobile Money'), findsOneWidget);
+      expect(find.text('Indisponible'), findsOneWidget);
+      expect(
+        find.text('Aucun moyen de paiement n’est disponible pour le moment.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('le total reste lisible pendant le chargement', (tester) async {
+      // Même sans savoir *comment* payer, le voyageur doit voir *combien*.
+      await pump(
+        tester,
+        const PaymentMethodPage(args: args),
+        catalog: PaymentCatalogBloc(const StubPaymentRepository()),
+      );
+
+      expect(find.text('Chargement des moyens de paiement…'), findsOneWidget);
+      expect(find.text(money(12500)), findsOneWidget);
+      expect(find.text('Mobile Money'), findsNothing);
+    });
+
+    testWidgets('un serveur injoignable propose de réessayer', (tester) async {
+      await pump(
+        tester,
+        const PaymentMethodPage(args: args),
+        catalog: await loadedCatalog(
+          failure: const NetworkFailure('Connexion perdue.'),
+        ),
+      );
+
+      expect(find.text('Connexion perdue.'), findsOneWidget);
+      expect(find.text('Réessayer'), findsOneWidget);
+      // Aucun moyen affiché : mieux vaut un écran qui l'avoue qu'un choix
+      // qui échouera à la fin.
+      expect(find.text('Mobile Money'), findsNothing);
     });
 
     testWidgets('sans blocage en cours, aucun délai n’est annoncé', (
@@ -82,7 +184,11 @@ void main() {
 
   group('Mobile Money', () {
     testWidgets('reprend le numéro du compte et le montant', (tester) async {
-      await pump(tester, const MobileMoneyPage(args: args));
+      await pump(
+        tester,
+        const MobileMoneyPage(args: args),
+        catalog: await loadedCatalog(),
+      );
 
       // `ScreenHeader` met le surtitre en capitales.
       expect(
@@ -97,7 +203,11 @@ void main() {
     });
 
     testWidgets('refuse de payer sans opérateur', (tester) async {
-      await pump(tester, const MobileMoneyPage(args: args));
+      await pump(
+        tester,
+        const MobileMoneyPage(args: args),
+        catalog: await loadedCatalog(),
+      );
 
       await tester.tap(find.text('Payer ${money(12500)}'));
       await tester.pumpAndSettle();
@@ -108,22 +218,54 @@ void main() {
     testWidgets('ne demande jamais le code secret', (tester) async {
       // Un écran qui réclamerait ce code apprendrait au voyageur à le
       // taper ailleurs que chez son opérateur.
-      await pump(tester, const MobileMoneyPage(args: args));
+      await pump(
+        tester,
+        const MobileMoneyPage(args: args),
+        catalog: await loadedCatalog(),
+      );
 
       expect(find.textContaining('code secret Mobile Money'), findsOneWidget);
       expect(find.textContaining('Saisir votre code'), findsNothing);
     });
 
-    testWidgets('propose FedaPay et MTN MoMo, et rien d’autre', (tester) async {
-      await pump(tester, const MobileMoneyPage(args: args));
+    testWidgets('liste les réseaux annoncés par le serveur', (tester) async {
+      // Le voyageur a un compte MTN ou Moov, pas un compte FedaPay :
+      // c'est le **réseau** qu'il choisit. L'encaisseur s'en déduit — un
+      // détail d'acheminement que l'écran n'a pas à lui montrer.
+      await pump(
+        tester,
+        const MobileMoneyPage(args: args),
+        catalog: await loadedCatalog(),
+      );
 
       await tester.tap(find.text('Sélectionner un opérateur'));
       await tester.pumpAndSettle();
 
-      expect(find.text('FedaPay'), findsWidgets);
       expect(find.text('MTN MoMo'), findsWidgets);
+      expect(find.text('Moov Flooz'), findsWidgets);
+      expect(find.text('Celtiis Cash'), findsWidgets);
+
       // Wave figurait dans la maquette ; le serveur ne le connaît pas.
       expect(find.text('Wave'), findsNothing);
+      // FedaPay encaisse, mais n'est pas un opérateur téléphonique.
+      expect(find.text('FedaPay'), findsNothing);
+    });
+
+    testWidgets('sans réseau annoncé, le sélecteur le dit et reste inerte', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        const MobileMoneyPage(args: args),
+        catalog: await loadedCatalog(
+          catalog: const PaymentCatalog(country: 'BJ', currency: 'XOF'),
+        ),
+      );
+
+      expect(
+        find.text('Aucun moyen de paiement n’est disponible pour le moment.'),
+        findsOneWidget,
+      );
     });
   });
 
@@ -131,7 +273,11 @@ void main() {
     testWidgets('le 01 béninois disparaît quand on passe au Togo', (
       tester,
     ) async {
-      await pump(tester, const MobileMoneyPage(args: args));
+      await pump(
+        tester,
+        const MobileMoneyPage(args: args),
+        catalog: await loadedCatalog(),
+      );
 
       // Le compte est béninois : le champ part avec son `01`.
       expect(find.text('01 97 42 18 60'), findsOneWidget);
@@ -150,7 +296,11 @@ void main() {
     testWidgets('un numéro béninois sans 01 est refusé, un togolais non', (
       tester,
     ) async {
-      await pump(tester, const MobileMoneyPage(args: args));
+      await pump(
+        tester,
+        const MobileMoneyPage(args: args),
+        catalog: await loadedCatalog(),
+      );
 
       await tester.enterText(find.byType(KoraInput), '97 42 18 60');
       await tester.tap(find.text('Payer ${money(12500)}'));
