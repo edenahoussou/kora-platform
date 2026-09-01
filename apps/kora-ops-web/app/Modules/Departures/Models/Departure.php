@@ -4,7 +4,6 @@ namespace App\Modules\Departures\Models;
 
 use App\Casts\UtcDateTime;
 use App\Models\User;
-use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
@@ -112,14 +111,6 @@ class Departure extends KoraModel
             $this->departure_date?->toDateString().' '.substr((string) $this->departure_time, 0, 8),
             config('app.timezone'),
         );
-    }
-
-    /**
-     * @return HasMany<Reservation, $this>
-     */
-    public function reservations(): HasMany
-    {
-        return $this->hasMany(Reservation::class);
     }
 
     /**

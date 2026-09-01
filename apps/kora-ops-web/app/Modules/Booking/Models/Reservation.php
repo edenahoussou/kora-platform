@@ -34,7 +34,6 @@ class Reservation extends KoraModel
     protected $fillable = [
         'uuid',
         'user_id',
-        'departure_id',
         'price_quote_id',
         'status',
         'ticket_issuance_status',
@@ -58,14 +57,6 @@ class Reservation extends KoraModel
     }
 
     /**
-     * @return BelongsTo<Departure, $this>
-     */
-    public function departure(): BelongsTo
-    {
-        return $this->belongsTo(Departure::class);
-    }
-
-    /**
      * @return BelongsTo<PriceQuote, $this>
      */
     public function priceQuote(): BelongsTo
@@ -74,11 +65,13 @@ class Reservation extends KoraModel
     }
 
     /**
+     * Ordered legs of this itinerary (by leg_order).
+     *
      * @return HasMany<ReservationSegment, $this>
      */
     public function segments(): HasMany
     {
-        return $this->hasMany(ReservationSegment::class);
+        return $this->hasMany(ReservationSegment::class)->orderBy('leg_order');
     }
 
     /**
@@ -117,5 +110,16 @@ class Reservation extends KoraModel
             'total_snapshot' => 'array',
             'draft_data' => 'array',
         ];
+    }
+
+    /**
+     * Departure of the first leg, replacing the former direct departure_id relation.
+     * Use this for receipts, redirects, and any place that previously read reservation->departure.
+     */
+    public function primaryDeparture(): ?Departure
+    {
+        $first = $this->segments()->orderBy('leg_order')->first();
+
+        return $first?->departure;
     }
 }

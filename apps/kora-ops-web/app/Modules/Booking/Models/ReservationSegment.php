@@ -22,6 +22,7 @@ class ReservationSegment extends KoraModel
     protected $fillable = [
         'uuid',
         'reservation_id',
+        'leg_order',
         'reservation_passenger_id',
         'departure_id',
         'seat_id',
