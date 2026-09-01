@@ -19,3 +19,9 @@ parameters:
         - identifier: nullsafe.neverNull
           message: '#Using nullsafe property access.*confirmed_at.*#'
           path: app/Modules/Booking/Http/Controllers/CounterSaleController.php
+        - identifier: argument.templateType
+          message: '#Unable to resolve the template type TRelatedModel.*whereHas.*#'
+          path: app/Modules/Departures/Actions/UpdateDepartureAction.php
+        - identifier: argument.templateType
+          message: '#Unable to resolve the template type TRelatedModel.*whereHas.*#'
+          path: app/Modules/Departures/Services/PlanningService.php

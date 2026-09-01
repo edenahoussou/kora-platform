@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Booking\Http\Controllers\BusSeatHoldController;
+use App\Modules\Booking\Http\Controllers\ItineraryController;
 use App\Modules\Booking\Http\Controllers\ReservationPassengerController;
 use App\Modules\BusNetwork\Http\Controllers\BusCatalogController;
 use App\Modules\Departures\Http\Controllers\BusDepartureController;
@@ -61,11 +62,14 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::get('departures', [BusDepartureController::class, 'index'])->name('departures.index');
             Route::get('departures/{departure:uuid}', [BusDepartureController::class, 'show'])->name('departures.show');
             Route::get('departures/{departure:uuid}/seats', [BusDepartureController::class, 'seats'])->name('departures.seats.index');
+            Route::get('itineraries', [ItineraryController::class, 'index'])->name('itineraries.index');
 
             Route::middleware('auth:sanctum')->group(function (): void {
                 Route::post('quotes', [BusQuoteController::class, 'store'])->name('quotes.store');
                 Route::post('holds', [BusSeatHoldController::class, 'store'])->name('holds.store');
                 Route::delete('holds/{reservation:uuid}', [BusSeatHoldController::class, 'destroy'])->name('holds.destroy');
+                Route::post('itinerary-quotes', [ItineraryController::class, 'quote'])->name('itinerary-quotes.store');
+                Route::post('itinerary-holds', [ItineraryController::class, 'hold'])->name('itinerary-holds.store');
             });
         });
 
