@@ -6,6 +6,7 @@ use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\BusComposition;
 use App\Modules\BusNetwork\Models\BusModel;
 use App\Modules\BusNetwork\Models\Line;
+use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\IdentityAccess\Models\Agency;
@@ -50,9 +51,13 @@ class KoraBusReferenceSeeder extends Seeder
         ];
 
         foreach ($stops as $stop) {
+            $physical = PhysicalStop::query()->firstOrCreate(
+                ['name' => $stop['name'].' Ref', 'city' => $stop['city']],
+                ['uuid' => (string) Str::uuid(), 'country' => $stop['country'], 'status' => 'active'],
+            );
             Stop::query()->firstOrCreate(
                 ['line_id' => $line->id, 'stop_order' => $stop['stop_order']],
-                $stop + ['uuid' => (string) Str::uuid(), 'status' => 'active'],
+                $stop + ['uuid' => (string) Str::uuid(), 'physical_stop_id' => $physical->id, 'status' => 'active'],
             );
         }
 

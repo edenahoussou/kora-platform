@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
+use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Models\Departure;
@@ -24,7 +25,7 @@ class KoraDepartureSeeder extends Seeder
         $line2 = Line::query()->firstOrCreate(
             ['code' => 'L2'],
             [
-                'uuid' => (string) \Str::uuid(),
+                'uuid' => (string) Str::uuid(),
                 'name' => 'Cotonou - Lomé',
                 'type' => 'internationale',
                 'bidirectional' => true,
@@ -42,9 +43,13 @@ class KoraDepartureSeeder extends Seeder
                 ['name' => 'Lome', 'city' => 'Lome', 'country' => 'TG', 'stop_order' => 3, 'km_from_origin' => 170],
             ] as $stop
         ) {
+            $physical = PhysicalStop::query()->firstOrCreate(
+                ['name' => $stop['name'].' Dep', 'city' => $stop['city']],
+                ['uuid' => (string) Str::uuid(), 'country' => $stop['country'], 'status' => 'active'],
+            );
             Stop::query()->firstOrCreate(
                 ['line_id' => $line2->id, 'stop_order' => $stop['stop_order']],
-                $stop + ['uuid' => (string) \Str::uuid(), 'status' => 'active'],
+                $stop + ['uuid' => (string) Str::uuid(), 'physical_stop_id' => $physical->id, 'status' => 'active'],
             );
         }
 
@@ -150,7 +155,12 @@ class KoraDepartureSeeder extends Seeder
                 ? $departureDateTime->addMinutes((int) $data['line']->estimated_duration_minutes)
                 : null;
 
-            Departure::query()->updateOrCreate(
+            // `firstOrCreate` garantit que l'uuid d'un départ existant n'est jamais
+            // réécrit lors d'un réensemencement : tout ticket, lien ou référence
+            // externe stocké contre l'uuid reste stable. Les champs mutables
+            // (conducteur, statut, heure d'arrivée estimée) sont rafraîchis
+            // séparément via `update`, sans toucher à l'uuid.
+            $departure = Departure::query()->firstOrCreate(
                 [
                     'line_id' => $data['line']->id,
                     'bus_id' => $data['bus']->id,
@@ -165,6 +175,13 @@ class KoraDepartureSeeder extends Seeder
                     'status' => $data['status']->value,
                 ],
             );
+
+            $departure->update([
+                'estimated_arrival_at' => $estimatedArrivalAt,
+                'driver_id' => $data['driver']?->id,
+                'conductor_id' => $data['conductor']?->id,
+                'status' => $data['status']->value,
+            ]);
         }
     }
 }
