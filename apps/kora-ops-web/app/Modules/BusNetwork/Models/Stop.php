@@ -16,6 +16,7 @@ class Stop extends KoraModel
     protected $fillable = [
         'uuid',
         'line_id',
+        'physical_stop_id',
         'name',
         'city',
         'country',
@@ -32,6 +33,14 @@ class Stop extends KoraModel
     public function line(): BelongsTo
     {
         return $this->belongsTo(Line::class);
+    }
+
+    /**
+     * @return BelongsTo<PhysicalStop, $this>
+     */
+    public function physicalStop(): BelongsTo
+    {
+        return $this->belongsTo(PhysicalStop::class);
     }
 
     /**
