@@ -2,7 +2,6 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import {
     AlertTriangle,
     ArrowLeft,
-    ArrowRight,
     BusFront,
     CalendarDays,
     CalendarRange,
@@ -13,11 +12,9 @@ import {
     Layers,
     Plus,
     SlidersHorizontal,
-    Sparkles,
     Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
-import { cn } from '@/lib/utils';
 import {
     ProgrammingButton as Button,
     ProgrammingInput as Input,
@@ -40,6 +37,7 @@ import type {
     References,
     Template,
 } from '@/components/programming/types';
+import { cn } from '@/lib/utils';
 import programming from '@/routes/programming';
 import programmes from '@/routes/programming/programmes';
 
@@ -440,12 +438,15 @@ export default function ProgrammeEditor({
                                                             )}
                                                             onChange={(v) => {
                                                                 const exceptions = [...form.data.exceptions];
+
                                                                 if (v) {
                                                                     exceptions[i] = { ...exception, bus_uuid: v };
                                                                 } else {
-                                                                    const { bus_uuid: _, ...rest } = exception;
+                                                                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                                                                    const { bus_uuid: _busUuid, ...rest } = exception;
                                                                     exceptions[i] = rest;
                                                                 }
+
                                                                 form.setData('exceptions', exceptions);
                                                             }}
                                                         />
@@ -518,6 +519,7 @@ export default function ProgrammeEditor({
                                         <div className="max-h-96 space-y-2 overflow-y-auto rounded-xl border border-border bg-card p-3">
                                             {preview.rows.map((row) => {
                                                 const isBlocked = row.state === 'blocked';
+
                                                 return (
                                                     <div
                                                         key={row.key}

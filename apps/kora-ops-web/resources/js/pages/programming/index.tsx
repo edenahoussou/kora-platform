@@ -99,6 +99,7 @@ export default function ProgrammingPage({
         if (filters.view === 'month') {
             const date = new Date(`${filters.date.slice(0, 7)}-01T12:00:00Z`);
             date.setUTCMonth(date.getUTCMonth() + direction);
+
             return date.toISOString().slice(0, 10);
         }
 
@@ -125,6 +126,7 @@ export default function ProgrammingPage({
     async function open(item: PlanningItem) {
         if (item.manual && item.departureUuid) {
             router.visit(departures.show.url(item.departureUuid));
+
             return;
         }
 
@@ -944,7 +946,6 @@ export default function ProgrammingPage({
                         programmes.find((p) => p.uuid === programme.uuid) ??
                         programme
                     }
-                    templates={templates}
                     runs={runs}
                     onClose={() => setProgramme(null)}
                 />

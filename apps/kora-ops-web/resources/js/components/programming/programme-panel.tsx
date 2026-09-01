@@ -1,5 +1,4 @@
 import { router } from '@inertiajs/react';
-import { CalendarDays, CheckCircle2, Clock, Eye, Info, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import {
     Sheet,
@@ -16,21 +15,18 @@ import {
     Errors,
     Field,
     PrimaryButton,
-    SelectField,
     shiftDate,
     today,
     useProgrammingRequest,
 } from './shared';
-import type { ChangePreview, Preview, Programme, Run, Template } from './types';
+import type { Preview, Programme, Run } from './types';
 
 export function ProgrammePanel({
     programme: p,
-    templates,
     runs,
     onClose,
 }: {
     programme: Programme;
-    templates: Template[];
     runs: Run[];
     onClose: () => void;
 }) {
@@ -46,8 +42,6 @@ export function ProgrammePanel({
     );
     const [preview, setPreview] = useState<Preview | null>(null);
     const [autoPreview, setAutoPreview] = useState<Preview | null>(null);
-    const [revision, setRevision] = useState<ChangePreview | null>(null);
-    const [version, setVersion] = useState('');
     const [tab, setTab] = useState('summary');
     const [message, setMessage] = useState('');
     const path = programmeRoutes.actions.url(p.uuid);
@@ -84,27 +78,6 @@ export function ProgrammePanel({
         }
     }
 
-    async function compare(apply = false) {
-        const result = await api.send<ChangePreview>(path, {
-            operation: 'revision',
-            from,
-            version_uuid: version,
-            apply,
-            token: revision?.token,
-        });
-
-        if (result) {
-            setRevision(result);
-
-            if (apply) {
-                router.reload();
-                setMessage(
-                    'Nouvelle version appliquée au programme. L’automatisation a été mise en pause pour vérification.',
-                );
-            }
-        }
-    }
-
     return (
         <Sheet
             open
@@ -135,8 +108,8 @@ export function ProgrammePanel({
                             key={value}
                             onClick={() => setTab(value)}
                             className={`flex-1 rounded-lg py-2 text-xs font-extrabold transition-colors ${tab === value
-                                    ? 'bg-card text-foreground shadow-xs'
-                                    : 'text-muted-foreground hover:text-foreground'
+                                ? 'bg-card text-foreground shadow-xs'
+                                : 'text-muted-foreground hover:text-foreground'
                                 }`}
                         >
                             {label}
@@ -185,8 +158,8 @@ export function ProgrammePanel({
                                     </h3>
                                     <span
                                         className={`rounded-md px-2 py-0.5 text-[0.6875rem] font-bold ${p.automatic
-                                                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                                                : 'bg-muted text-muted-foreground'
+                                            ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                            : 'bg-muted text-muted-foreground'
                                             }`}
                                     >
                                         {p.automatic ? 'Actif' : 'En pause'}

@@ -54,7 +54,6 @@ const stepDescriptions = [
     'Ajustez les heures d’arrêt intermédiaires et pré-affectez les ressources.',
     'Vérifiez le récapitulatif avant de rendre le modèle disponible.',
 ];
-const stepIcons = [Route, CalendarClock, Layers, Check];
 
 export default function TemplateEditor({
     template,
@@ -186,11 +185,16 @@ export default function TemplateEditor({
                 const lastStop =
                     outboundLine.stops[outboundLine.stops.length - 1].label;
                 const oppositeLine = refs.lines.find((l) => {
-                    if (l.stops.length < 2) return false;
+                    if (l.stops.length < 2) {
+                        return false;
+                    }
+
                     const opFirst = l.stops[0].label;
                     const opLast = l.stops[l.stops.length - 1].label;
+
                     return opFirst === lastStop && opLast === firstStop;
                 });
+
                 if (oppositeLine) {
                     returnLineUuid = oppositeLine.uuid;
                 }
@@ -320,7 +324,6 @@ export default function TemplateEditor({
                     className="grid grid-cols-1 gap-2 rounded-2xl border border-border bg-card p-2 sm:grid-cols-4"
                 >
                     {steps.map((label, i) => {
-                        const StepIcon = stepIcons[i];
                         const isActive = step === i;
                         const isDone = step > i;
 
@@ -547,6 +550,7 @@ export default function TemplateEditor({
                                                                 const stopRef = refs.lines
                                                                     .find((l) => l.uuid === returnSlot.line_uuid)
                                                                     ?.stops.find((s) => s.uuid === stop.stop_uuid);
+
                                                                 return (
                                                                     <li
                                                                         key={stop.stop_uuid}
@@ -736,6 +740,7 @@ export default function TemplateEditor({
                                                 >
                                                     {days.map((d, i) => {
                                                         const isSelected = slot.days.includes(i + 1);
+
                                                         return (
                                                             <button
                                                                 key={d}
@@ -787,6 +792,7 @@ export default function TemplateEditor({
                                     <div className="flex flex-wrap gap-3">
                                         {(['outbound', 'return'] as const).map((dir) => {
                                             const sample = slots.find((s) => s.direction === dir);
+
                                             return (
                                                 sample && (
                                                     <Button
@@ -819,6 +825,7 @@ export default function TemplateEditor({
 
                                     {slots.map((slot, index) => {
                                         const line = refs.lines.find((l) => l.uuid === slot.line_uuid);
+
                                         return (
                                             <DirectionSection
                                                 key={slot.key}
@@ -932,8 +939,9 @@ export default function TemplateEditor({
                                     </div>
 
                                     <div className="grid gap-3">
-                                        {slots.map((slot, index) => {
+                                        {slots.map((slot) => {
                                             const line = refs.lines.find((l) => l.uuid === slot.line_uuid);
+
                                             return (
                                                 <div
                                                     key={slot.key}

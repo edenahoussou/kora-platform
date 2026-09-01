@@ -536,6 +536,7 @@ function countryToFlag(countryCode: string): string {
     if (!countryCode || countryCode.length !== 2) {
         return '';
     }
+
     return String.fromCodePoint(
         0x1f1e6 + countryCode.charCodeAt(0) - 65,
         0x1f1e6 + countryCode.charCodeAt(1) - 65,
@@ -559,9 +560,11 @@ export function getUtcOffset(timezone: string): string {
         const absMinutes = Math.abs(diffMinutes);
         const hours = Math.floor(absMinutes / 60);
         const minutes = absMinutes % 60;
+
         if (minutes === 0) {
             return `UTC${sign}${hours}`;
         }
+
         return `UTC${sign}${hours}:${String(minutes).padStart(2, '0')}`;
     } catch {
         return '';
@@ -581,9 +584,12 @@ export function formatTimezoneLabel(timezone: string): string {
     const flag = getTimezoneFlag(timezone);
     const offset = getUtcOffset(timezone);
     const parts = [timezone];
+
     if (offset) {
         parts.push(`— ${offset}`);
     }
+
     const label = parts.join(' ');
+
     return flag ? `${flag}  ${label}` : label;
 }

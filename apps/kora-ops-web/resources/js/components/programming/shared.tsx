@@ -18,7 +18,7 @@ import {
     X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Button as BaseButton } from '@/components/ui/button';
 import {
@@ -498,6 +498,7 @@ export function SelectField({
                             </button>
                             {matches.map((o, idx) => {
                                 const isSelected = o.uuid === value;
+
                                 return (
                                     <button
                                         key={o.uuid}
@@ -817,6 +818,7 @@ export function ResourceFields({
                         .filter((other) => other.key !== c.key)
                         .map((other) => slot[other.key])
                         .filter(Boolean);
+
                     return (
                         <SelectField
                             key={c.key}
@@ -859,6 +861,7 @@ export function FillGauge({
         if (busCapacity === null) {
             return null;
         }
+
         return (
             <span
                 className={cn('text-[0.625rem] font-bold tabular-nums text-muted-foreground', className)}

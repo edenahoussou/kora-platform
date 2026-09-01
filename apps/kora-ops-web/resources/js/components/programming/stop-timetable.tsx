@@ -1,13 +1,14 @@
-import { ArrowRight, CalendarDays, Clock3, Globe2, MapPin } from 'lucide-react';
+import { Clock3, Globe2, MapPin } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { ProgrammingInput as Input, Field, SelectField, today } from './shared';
-import type { References, Slot, StopTime } from './types';
 import { formatTimezoneLabel } from './timezone-utils';
+import type { References, Slot, StopTime } from './types';
 
 function safeLocalParts(instant: number, timezone: string) {
     if (isNaN(instant) || instant <= 0) {
         return { date: '2026-01-01', time: '00:00' };
     }
+
     try {
         const parts = new Intl.DateTimeFormat('en-CA', {
             timeZone: timezone || 'UTC',
@@ -41,14 +42,17 @@ function safeInstantFor(date: string, time: string, timezone: string): number {
     const validTime = time && /^\d{1,2}:\d{2}$/.test(time) ? (time.length === 4 ? `0${time}` : time) : '00:00';
 
     const target = Date.parse(`${validDate}T${validTime}:00Z`);
+
     if (isNaN(target)) {
         return Date.now();
     }
 
     let instant = target;
+
     for (let i = 0; i < 3; i++) {
         const local = safeLocalParts(instant, timezone);
         const localParsed = Date.parse(`${local.date}T${local.time}:00Z`);
+
         if (!isNaN(localParsed)) {
             instant += target - localParsed;
         }
@@ -83,6 +87,7 @@ function ClockField({
         if (validValue === null) {
             return { date, time: '' };
         }
+
         return safeLocalParts(base + validValue * 60000, timezone);
     }, [base, validValue, timezone, date]);
 
@@ -90,21 +95,26 @@ function ClockField({
         if (validValue === null) {
             return 0;
         }
+
         const baseDay = Date.parse(`${date}T00:00Z`);
         const targetDay = Date.parse(`${local.date}T00:00Z`);
+
         if (isNaN(baseDay) || isNaN(targetDay)) {
             return 0;
         }
+
         return Math.round((targetDay - baseDay) / 86400000);
     }, [date, local.date, validValue]);
 
     function change(timeStr: string, dayOffset: number) {
         if (!timeStr || !/^\d{1,2}:\d{2}$/.test(timeStr)) {
             onChange(null);
+
             return;
         }
 
         const baseTimestamp = Date.parse(`${date}T00:00Z`);
+
         if (isNaN(baseTimestamp)) {
             return;
         }
@@ -148,6 +158,7 @@ function ClockField({
                     value={day}
                     onChange={(e) => {
                         const newDay = Number(e.target.value);
+
                         if (local.time) {
                             change(local.time, newDay);
                         }
@@ -173,7 +184,7 @@ export function StopTimetable({
     references: References;
     onChange: (changes: Partial<Slot>) => void;
 }) {
-    const [date, setDate] = useState(today());
+    const [date] = useState(today());
     const slotTime = slot.time && /^\d{1,2}:\d{2}$/.test(slot.time) ? slot.time : '07:00';
     const base = safeInstantFor(date, slotTime, slot.timezone || refs.timezone);
     const line = refs.lines.find((l) => l.uuid === slot.line_uuid);

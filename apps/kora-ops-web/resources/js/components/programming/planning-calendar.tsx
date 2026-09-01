@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowLeft, ArrowRight, Bus, CalendarDays, CheckCircle2, ChevronRight, Info, User, Users } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Bus, ChevronRight, Info, User, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
     ProgrammingButton as Button,
@@ -45,6 +45,7 @@ export function PlanningCalendar({
     }
 
     const dates: string[] = [];
+
     for (let d = from; d <= until; d = shiftDate(d, 1)) {
         dates.push(d);
     }

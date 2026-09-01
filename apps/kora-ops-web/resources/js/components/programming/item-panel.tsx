@@ -11,7 +11,6 @@ import {
     MapPin,
     ShieldAlert,
     Trash2,
-    Users,
 } from 'lucide-react';
 import { useState } from 'react';
 import {
@@ -296,6 +295,7 @@ export function ItemPanel({
                                     <div className="grid gap-2 text-xs">
                                         {crewFields.map((c) => {
                                             const person = refs.people.find((p) => p.uuid === slot[c.key]);
+
                                             return (
                                                 <div
                                                     key={c.key}
