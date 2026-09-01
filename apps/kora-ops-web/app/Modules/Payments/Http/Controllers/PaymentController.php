@@ -120,7 +120,7 @@ class PaymentController extends Controller
             throw new AuthorizationException('Vous n\'avez pas accès à ce paiement.');
         }
 
-        return (new PaymentResource($payment->loadMissing(['reservation.departure'])))
+        return (new PaymentResource($payment->loadMissing(['reservation.segments.departure'])))
             ->response()
             ->setStatusCode(200);
     }

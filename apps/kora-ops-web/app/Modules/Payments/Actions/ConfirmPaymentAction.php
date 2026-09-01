@@ -60,7 +60,7 @@ class ConfirmPaymentAction
                 }
             }
 
-            return $payment->fresh(['reservation.departure']);
+            return $payment->fresh(['reservation.segments.departure']);
         });
 
         // Dispatch after the transaction commits so the job sees the Paid status.

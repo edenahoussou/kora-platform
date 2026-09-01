@@ -32,7 +32,7 @@ class CancelPaymentAction
 
             $lockedPayment->update(['status' => PaymentStatus::Cancelled]);
 
-            return $lockedPayment->fresh(['reservation.departure']);
+            return $lockedPayment->fresh(['reservation.segments.departure']);
         });
     }
 }

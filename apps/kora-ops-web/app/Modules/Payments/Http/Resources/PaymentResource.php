@@ -44,7 +44,7 @@ class PaymentResource extends JsonResource
             'reservation' => $this->whenLoaded('reservation', fn () => [
                 'uuid' => $this->reservation->uuid,
                 'status' => $this->reservation->status->value,
-                'departure_uuid' => $this->reservation->departure?->uuid,
+                'departure_uuid' => $this->reservation?->primaryDeparture()?->uuid,
                 'ticket_issuance' => [
                     'status' => $ticketIssuanceStatus instanceof TicketIssuanceStatus
                         ? $ticketIssuanceStatus->value
