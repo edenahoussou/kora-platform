@@ -3,9 +3,13 @@
 use App\Jobs\MaintainDepartureProgramme;
 use App\Jobs\ProcessProgrammingSelection;
 use App\Models\User;
+use App\Modules\Booking\Models\Reservation;
+use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
+use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Seat;
+use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\Departures\Models\DepartureProgramme;
 use App\Modules\Departures\Models\DepartureTemplate;
@@ -29,8 +33,10 @@ beforeEach(function (): void {
     $this->actor = User::factory()->create();
     $this->actor->assignRole('operations_director');
     $this->line = Line::query()->create(['code' => 'COT-LOM', 'name' => 'Cotonou → Lomé', 'type' => 'internationale', 'status' => 'active', 'estimated_duration_minutes' => 180]);
-    $first = $this->line->stops()->create(['name' => 'Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0, 'status' => 'active']);
-    $last = $this->line->stops()->create(['name' => 'Lomé', 'city' => 'Lomé', 'country' => 'TG', 'stop_order' => 2, 'km_from_origin' => 150, 'status' => 'active']);
+    $firstPhysical = PhysicalStop::query()->create(['uuid' => (string) Str::uuid(), 'name' => 'Cotonou DP', 'city' => 'Cotonou', 'country' => 'BJ', 'status' => 'active']);
+    $lastPhysical = PhysicalStop::query()->create(['uuid' => (string) Str::uuid(), 'name' => 'Lomé DP', 'city' => 'Lomé', 'country' => 'TG', 'status' => 'active']);
+    $first = $this->line->stops()->create(['uuid' => (string) Str::uuid(), 'physical_stop_id' => $firstPhysical->id, 'name' => 'Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0, 'status' => 'active']);
+    $last = $this->line->stops()->create(['uuid' => (string) Str::uuid(), 'physical_stop_id' => $lastPhysical->id, 'name' => 'Lomé', 'city' => 'Lomé', 'country' => 'TG', 'stop_order' => 2, 'km_from_origin' => 150, 'status' => 'active']);
     $this->bus = Bus::query()->create(['registration_number' => 'KORA-TEST', 'brand' => 'KORA', 'model' => 'Bus', 'seat_count' => 1, 'status' => 'active']);
     Seat::query()->create(['bus_id' => $this->bus->id, 'code' => '1A', 'type' => 'standard', 'sellable' => true, 'status' => 'active']);
     Fare::query()->create(['line_id' => $this->line->id, 'origin_stop_id' => $first->id, 'destination_stop_id' => $last->id, 'base_amount' => 5000, 'currency' => 'XOF', 'effective_from' => '2026-01-01', 'status' => 'active']);
@@ -143,7 +149,18 @@ it('preserves paid departures and manual exceptions when applying a version', fu
     $planning->generate($programme, $programme->starts_on, $programme->ends_on, $this->actor);
     $first = $programme->occurrences()->orderBy('service_date')->first();
     $planning->mutate([['uuid' => $first->uuid, 'revision' => 1]], 'publish', [], $this->actor);
-    $reservation = $first->refresh()->departure->reservations()->create(['status' => 'cancelled', 'total_amount' => 5000, 'currency' => 'XOF', 'channel' => 'online']);
+    $reservation = Reservation::create(['status' => 'cancelled', 'total_amount' => 5000, 'currency' => 'XOF', 'channel' => 'online']);
+    ReservationSegment::create([
+        'reservation_id' => $reservation->id,
+        'leg_order' => 1,
+        'departure_id' => $first->refresh()->departure->id,
+        'seat_id' => Seat::query()->where('bus_id', $first->refresh()->departure->bus_id)->first()->id,
+        'origin_stop_id' => Stop::query()->where('line_id', $first->refresh()->departure->line_id)->orderBy('stop_order')->first()->id,
+        'destination_stop_id' => Stop::query()->where('line_id', $first->refresh()->departure->line_id)->orderBy('stop_order', 'desc')->first()->id,
+        'origin_stop_order' => 1,
+        'destination_stop_order' => 2,
+        'status' => 'cancelled',
+    ]);
     $reservation->payments()->create(['provider' => 'sandbox', 'provider_reference' => 'PAID', 'idempotency_key' => (string) Str::uuid(), 'amount' => 5000, 'currency' => 'XOF', 'status' => 'confirmed']);
     $second = $programme->occurrences()->whereDate('service_date', '2026-09-08')->first();
     $planning->mutate([['uuid' => $second->uuid, 'revision' => 1]], 'change', ['time' => '06:00'], $this->actor);

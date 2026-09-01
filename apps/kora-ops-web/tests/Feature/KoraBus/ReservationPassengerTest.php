@@ -7,6 +7,7 @@ use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
+use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
@@ -186,13 +187,21 @@ function passengerTestScenario(bool $isInternational = false): array
         ],
     );
 
+    $originPhysical = PhysicalStop::query()->firstOrCreate(
+        ['name' => 'Origin PS Physical'],
+        ['city' => 'Cotonou', 'country' => 'BJ', 'status' => 'active'],
+    );
     $origin = Stop::query()->firstOrCreate(
         ['line_id' => $line->id, 'stop_order' => 1],
-        ['name' => 'Origin PS', 'city' => 'Cotonou', 'country' => 'BJ', 'km_from_origin' => 0, 'status' => 'active'],
+        ['physical_stop_id' => $originPhysical->id, 'name' => 'Origin PS', 'city' => 'Cotonou', 'country' => 'BJ', 'km_from_origin' => 0, 'status' => 'active'],
+    );
+    $destinationPhysical = PhysicalStop::query()->firstOrCreate(
+        ['name' => $isInternational ? 'Lome PS Physical' : 'Parakou PS Physical'],
+        ['city' => $isInternational ? 'Lome' : 'Parakou', 'country' => $isInternational ? 'TG' : 'BJ', 'status' => 'active'],
     );
     $destination = Stop::query()->firstOrCreate(
         ['line_id' => $line->id, 'stop_order' => 2],
-        ['name' => 'Dest PS', 'city' => $isInternational ? 'Lome' : 'Parakou', 'country' => $isInternational ? 'TG' : 'BJ', 'km_from_origin' => 450, 'status' => 'active'],
+        ['physical_stop_id' => $destinationPhysical->id, 'name' => 'Dest PS', 'city' => $isInternational ? 'Lome' : 'Parakou', 'country' => $isInternational ? 'TG' : 'BJ', 'km_from_origin' => 450, 'status' => 'active'],
     );
 
     $bus = Bus::query()->firstOrCreate(
@@ -216,7 +225,6 @@ function passengerTestScenario(bool $isInternational = false): array
 
     $reservation = Reservation::create([
         'user_id' => $user->id,
-        'departure_id' => $departure->id,
         'status' => ReservationStatus::Held,
         'total_amount' => 20000,
         'currency' => 'XOF',

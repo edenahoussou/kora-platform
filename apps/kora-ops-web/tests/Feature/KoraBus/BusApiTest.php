@@ -6,6 +6,7 @@ use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\BusAmenity;
 use App\Modules\BusNetwork\Models\BusComposition;
 use App\Modules\BusNetwork\Models\Line;
+use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
@@ -173,7 +174,6 @@ it('marks a seat as held (not occupied) with a visible expiry while a temporary 
     ]);
 
     $heldReservation = Reservation::query()->create([
-        'departure_id' => $scenario['departure']->id,
         'status' => 'held',
         'total_amount' => 12500,
         'currency' => 'XOF',
@@ -286,17 +286,29 @@ function koraBusApiScenario(): array
         ],
     );
 
+    $originPhysical = PhysicalStop::query()->firstOrCreate(
+        ['name' => 'Cotonou Central API'],
+        ['city' => 'Cotonou', 'country' => 'BJ', 'status' => 'active'],
+    );
     $origin = Stop::query()->firstOrCreate(
         ['line_id' => $line->id, 'stop_order' => 1],
-        ['name' => 'Cotonou API', 'city' => 'Cotonou', 'country' => 'BJ', 'km_from_origin' => 0, 'status' => 'active'],
+        ['physical_stop_id' => $originPhysical->id, 'name' => 'Cotonou API', 'city' => 'Cotonou', 'country' => 'BJ', 'km_from_origin' => 0, 'status' => 'active'],
+    );
+    $middlePhysical = PhysicalStop::query()->firstOrCreate(
+        ['name' => 'Lome Central API'],
+        ['city' => 'Lome', 'country' => 'TG', 'status' => 'active'],
     );
     $middle = Stop::query()->firstOrCreate(
         ['line_id' => $line->id, 'stop_order' => 2],
-        ['name' => 'Lome API', 'city' => 'Lome', 'country' => 'TG', 'km_from_origin' => 170, 'status' => 'active'],
+        ['physical_stop_id' => $middlePhysical->id, 'name' => 'Lome API', 'city' => 'Lome', 'country' => 'TG', 'km_from_origin' => 170, 'status' => 'active'],
+    );
+    $destinationPhysical = PhysicalStop::query()->firstOrCreate(
+        ['name' => 'Abidjan Central API'],
+        ['city' => 'Abidjan', 'country' => 'CI', 'status' => 'active'],
     );
     $destination = Stop::query()->firstOrCreate(
         ['line_id' => $line->id, 'stop_order' => 3],
-        ['name' => 'Abidjan API', 'city' => 'Abidjan', 'country' => 'CI', 'km_from_origin' => 1020, 'status' => 'active'],
+        ['physical_stop_id' => $destinationPhysical->id, 'name' => 'Abidjan API', 'city' => 'Abidjan', 'country' => 'CI', 'km_from_origin' => 1020, 'status' => 'active'],
     );
 
     $composition = BusComposition::query()->firstOrCreate(
@@ -355,10 +367,12 @@ function koraBusApiScenario(): array
         ['service_class_id' => $serviceClass->id, 'base_amount' => 12500, 'currency' => 'XOF', 'effective_from' => '2026-01-01', 'status' => 'active'],
     );
 
-    $reservation = Reservation::query()->firstOrCreate(
-        ['departure_id' => $departure->id, 'status' => 'confirmed'],
-        ['total_amount' => 12500, 'currency' => 'XOF', 'channel' => 'online'],
-    );
+    $reservation = Reservation::query()->create([
+        'status' => 'confirmed',
+        'total_amount' => 12500,
+        'currency' => 'XOF',
+        'channel' => 'online',
+    ]);
 
     ReservationSegment::query()->firstOrCreate(
         ['reservation_id' => $reservation->id, 'seat_id' => $occupiedSeat->id],

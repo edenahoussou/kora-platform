@@ -7,6 +7,7 @@ use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
+use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
@@ -113,7 +114,6 @@ it('creates a seat hold for 15 minutes', function (): void {
 
     $this->assertDatabaseHas('reservations', [
         'user_id' => $scenario['user']->id,
-        'departure_id' => $scenario['departure']->id,
         'status' => 'held',
     ]);
 });
@@ -230,7 +230,6 @@ it('expires past-due holds with bus:expire-holds command', function (): void {
 
     $reservation = Reservation::create([
         'user_id' => $scenario['user']->id,
-        'departure_id' => $scenario['departure']->id,
         'status' => ReservationStatus::Held,
         'total_amount' => 10000,
         'currency' => 'XOF',
@@ -295,7 +294,6 @@ it('requires authentication to release a seat hold', function (): void {
 
     $reservation = Reservation::create([
         'user_id' => $scenario['user']->id,
-        'departure_id' => $scenario['departure']->id,
         'status' => ReservationStatus::Held,
         'total_amount' => 10000,
         'currency' => 'XOF',
@@ -444,17 +442,29 @@ function bookingTestScenario(): array
         ],
     );
 
+    $originPhysical = PhysicalStop::query()->firstOrCreate(
+        ['name' => 'Cotonou Central BK'],
+        ['city' => 'Cotonou', 'country' => 'BJ', 'status' => 'active'],
+    );
     $origin = Stop::query()->firstOrCreate(
         ['line_id' => $line->id, 'stop_order' => 1],
-        ['name' => 'Cotonou BK', 'city' => 'Cotonou', 'country' => 'BJ', 'km_from_origin' => 0, 'status' => 'active'],
+        ['physical_stop_id' => $originPhysical->id, 'name' => 'Cotonou BK', 'city' => 'Cotonou', 'country' => 'BJ', 'km_from_origin' => 0, 'status' => 'active'],
+    );
+    $middlePhysical = PhysicalStop::query()->firstOrCreate(
+        ['name' => 'Lome Central BK'],
+        ['city' => 'Lome', 'country' => 'TG', 'status' => 'active'],
     );
     $middle = Stop::query()->firstOrCreate(
         ['line_id' => $line->id, 'stop_order' => 2],
-        ['name' => 'Lome BK', 'city' => 'Lome', 'country' => 'TG', 'km_from_origin' => 170, 'status' => 'active'],
+        ['physical_stop_id' => $middlePhysical->id, 'name' => 'Lome BK', 'city' => 'Lome', 'country' => 'TG', 'km_from_origin' => 170, 'status' => 'active'],
+    );
+    $destinationPhysical = PhysicalStop::query()->firstOrCreate(
+        ['name' => 'Abidjan Central BK'],
+        ['city' => 'Abidjan', 'country' => 'CI', 'status' => 'active'],
     );
     $destination = Stop::query()->firstOrCreate(
         ['line_id' => $line->id, 'stop_order' => 3],
-        ['name' => 'Abidjan BK', 'city' => 'Abidjan', 'country' => 'CI', 'km_from_origin' => 1020, 'status' => 'active'],
+        ['physical_stop_id' => $destinationPhysical->id, 'name' => 'Abidjan BK', 'city' => 'Abidjan', 'country' => 'CI', 'km_from_origin' => 1020, 'status' => 'active'],
     );
 
     $bus = Bus::query()->firstOrCreate(
@@ -497,10 +507,12 @@ function bookingTestScenario(): array
     );
 
     // Existing reservation on segment 1->2 for seat 2A
-    $existingRes = Reservation::query()->firstOrCreate(
-        ['departure_id' => $departure->id, 'status' => 'confirmed'],
-        ['total_amount' => 5000, 'currency' => 'XOF', 'channel' => 'online'],
-    );
+    $existingRes = Reservation::query()->create([
+        'status' => 'confirmed',
+        'total_amount' => 5000,
+        'currency' => 'XOF',
+        'channel' => 'online',
+    ]);
 
     ReservationSegment::query()->firstOrCreate(
         ['reservation_id' => $existingRes->id, 'seat_id' => $seat2A->id],

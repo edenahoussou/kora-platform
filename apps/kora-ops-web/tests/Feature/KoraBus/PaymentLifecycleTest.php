@@ -8,6 +8,7 @@ use App\Modules\Booking\Models\ReservationPassenger;
 use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
+use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
@@ -564,13 +565,21 @@ function paymentTestScenario(): array
         ],
     );
 
+    $originPhysical = PhysicalStop::query()->firstOrCreate(
+        ['name' => 'Origin PAY Physical'],
+        ['city' => 'Cotonou', 'country' => 'BJ', 'status' => 'active'],
+    );
     $origin = Stop::query()->firstOrCreate(
         ['line_id' => $line->id, 'stop_order' => 1],
-        ['name' => 'Origin PAY', 'city' => 'Cotonou', 'country' => 'BJ', 'km_from_origin' => 0, 'status' => 'active'],
+        ['physical_stop_id' => $originPhysical->id, 'name' => 'Origin PAY', 'city' => 'Cotonou', 'country' => 'BJ', 'km_from_origin' => 0, 'status' => 'active'],
+    );
+    $destinationPhysical = PhysicalStop::query()->firstOrCreate(
+        ['name' => 'Dest PAY Physical'],
+        ['city' => 'Parakou', 'country' => 'BJ', 'status' => 'active'],
     );
     $destination = Stop::query()->firstOrCreate(
         ['line_id' => $line->id, 'stop_order' => 2],
-        ['name' => 'Dest PAY', 'city' => 'Parakou', 'country' => 'BJ', 'km_from_origin' => 450, 'status' => 'active'],
+        ['physical_stop_id' => $destinationPhysical->id, 'name' => 'Dest PAY', 'city' => 'Parakou', 'country' => 'BJ', 'km_from_origin' => 450, 'status' => 'active'],
     );
 
     $bus = Bus::query()->firstOrCreate(
@@ -590,7 +599,6 @@ function paymentTestScenario(): array
 
     $reservation = Reservation::create([
         'user_id' => $user->id,
-        'departure_id' => $departure->id,
         'status' => ReservationStatus::Held,
         'total_amount' => 15000,
         'currency' => 'XOF',

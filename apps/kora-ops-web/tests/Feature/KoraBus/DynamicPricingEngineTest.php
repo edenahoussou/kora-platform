@@ -5,6 +5,7 @@ use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
+use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
@@ -42,9 +43,18 @@ function pricingEngineScenario(int $occupiedSeats, float $hoursFromNow): array
         'status' => 'active',
     ]);
 
+    $originPhysical = PhysicalStop::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'name' => 'Origine Physical',
+        'city' => 'Cotonou',
+        'country' => 'BJ',
+        'status' => 'active',
+    ]);
+
     $origin = Stop::query()->create([
         'uuid' => Str::uuid()->toString(),
         'line_id' => $line->id,
+        'physical_stop_id' => $originPhysical->id,
         'name' => 'Origine',
         'city' => 'Cotonou',
         'country' => 'BJ',
@@ -53,9 +63,18 @@ function pricingEngineScenario(int $occupiedSeats, float $hoursFromNow): array
         'status' => 'active',
     ]);
 
+    $destinationPhysical = PhysicalStop::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'name' => 'Destination Physical',
+        'city' => 'Parakou',
+        'country' => 'BJ',
+        'status' => 'active',
+    ]);
+
     $destination = Stop::query()->create([
         'uuid' => Str::uuid()->toString(),
         'line_id' => $line->id,
+        'physical_stop_id' => $destinationPhysical->id,
         'name' => 'Destination',
         'city' => 'Parakou',
         'country' => 'BJ',
@@ -108,7 +127,6 @@ function pricingEngineScenario(int $occupiedSeats, float $hoursFromNow): array
     if ($occupiedSeats > 0) {
         $reservation = Reservation::query()->create([
             'uuid' => Str::uuid()->toString(),
-            'departure_id' => $departure->id,
             'status' => 'confirmed',
             'total_amount' => 10000,
             'currency' => 'XOF',

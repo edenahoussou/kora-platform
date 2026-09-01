@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\BusNetwork\Models\Line;
+use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\DynamicPricing\Data\ServiceClassStatus;
 use App\Modules\DynamicPricing\Models\Fare;
@@ -76,8 +77,10 @@ it('links a fare to a service class through the belongsTo relationship', functio
     $serviceClass = ServiceClass::query()->create(['uuid' => Str::uuid()->toString(), 'code' => 'confort', 'name' => 'KORA Confort']);
 
     $line = Line::query()->create(['uuid' => Str::uuid()->toString(), 'code' => 'L'.Str::random(6), 'name' => 'Cotonou - Parakou', 'status' => 'active']);
-    $origin = Stop::query()->create(['uuid' => Str::uuid()->toString(), 'line_id' => $line->id, 'name' => 'Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0, 'status' => 'active']);
-    $destination = Stop::query()->create(['uuid' => Str::uuid()->toString(), 'line_id' => $line->id, 'name' => 'Parakou', 'city' => 'Parakou', 'country' => 'BJ', 'stop_order' => 2, 'km_from_origin' => 420, 'status' => 'active']);
+    $originPhysical = PhysicalStop::query()->create(['uuid' => Str::uuid()->toString(), 'name' => 'Cotonou SC Physical', 'city' => 'Cotonou', 'country' => 'BJ', 'status' => 'active']);
+    $origin = Stop::query()->create(['uuid' => Str::uuid()->toString(), 'line_id' => $line->id, 'physical_stop_id' => $originPhysical->id, 'name' => 'Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0, 'status' => 'active']);
+    $destinationPhysical = PhysicalStop::query()->create(['uuid' => Str::uuid()->toString(), 'name' => 'Parakou SC Physical', 'city' => 'Parakou', 'country' => 'BJ', 'status' => 'active']);
+    $destination = Stop::query()->create(['uuid' => Str::uuid()->toString(), 'line_id' => $line->id, 'physical_stop_id' => $destinationPhysical->id, 'name' => 'Parakou', 'city' => 'Parakou', 'country' => 'BJ', 'stop_order' => 2, 'km_from_origin' => 420, 'status' => 'active']);
 
     $fare = Fare::query()->create([
         'uuid' => Str::uuid()->toString(),

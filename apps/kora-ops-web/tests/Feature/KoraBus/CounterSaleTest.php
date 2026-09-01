@@ -7,6 +7,7 @@ use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
+use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
@@ -79,7 +80,6 @@ it('ignores expired, cancelled, paid and ticketed counter sales during resume', 
     ] as $status => $expiresAt) {
         Reservation::query()->create([
             'user_id' => $scenario['agent']->id,
-            'departure_id' => $scenario['departure']->id,
             'status' => $status,
             'total_amount' => 10000,
             'currency' => 'XOF',
@@ -526,8 +526,16 @@ function counterSaleScenario(): array
         'status' => 'active',
     ]);
 
+    $originPhysical = PhysicalStop::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'name' => 'Cotonou Guichet Physical',
+        'city' => 'Cotonou',
+        'country' => 'BJ',
+        'status' => 'active',
+    ]);
     $origin = Stop::query()->create([
         'line_id' => $line->id,
+        'physical_stop_id' => $originPhysical->id,
         'name' => 'Cotonou Guichet',
         'city' => 'Cotonou',
         'country' => 'BJ',
@@ -535,8 +543,16 @@ function counterSaleScenario(): array
         'km_from_origin' => 0,
         'status' => 'active',
     ]);
+    $destinationPhysical = PhysicalStop::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'name' => 'Abidjan Guichet Physical',
+        'city' => 'Abidjan',
+        'country' => 'CI',
+        'status' => 'active',
+    ]);
     $destination = Stop::query()->create([
         'line_id' => $line->id,
+        'physical_stop_id' => $destinationPhysical->id,
         'name' => 'Abidjan Guichet',
         'city' => 'Abidjan',
         'country' => 'CI',
