@@ -50,7 +50,7 @@ class UpdateReservationPassengersAction
             ]);
         }
 
-        $reservation->loadMissing(['departure.line', 'segments.seat']);
+        $reservation->loadMissing(['segments.departure.line', 'segments.seat']);
 
         $segments = $reservation->segments;
         if (count($passengersData) !== $segments->count()) {
@@ -60,7 +60,7 @@ class UpdateReservationPassengersAction
         }
 
         $isInternational = false;
-        $countriesCrossed = $reservation->departure->line?->countries_crossed;
+        $countriesCrossed = $reservation->primaryDeparture()?->line?->countries_crossed;
         if (is_array($countriesCrossed) && count($countriesCrossed) > 1) {
             $isInternational = true;
         }
@@ -115,7 +115,7 @@ class UpdateReservationPassengersAction
             }
 
             return $reservation->load([
-                'departure',
+                'segments.departure',
                 'segments.seat',
                 'segments.originStop',
                 'segments.destinationStop',

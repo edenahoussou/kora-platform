@@ -141,7 +141,6 @@ class CreateSeatHoldAction
 
                 $reservation = Reservation::create([
                     'user_id' => $user?->id,
-                    'departure_id' => $lockedDeparture->id,
                     'price_quote_id' => $priceQuote->id,
                     'status' => ReservationStatus::Held,
                     'total_amount' => $totalAmount,
@@ -154,6 +153,7 @@ class CreateSeatHoldAction
                 foreach ($seats as $seat) {
                     ReservationSegment::create([
                         'reservation_id' => $reservation->id,
+                        'leg_order' => 1,
                         'departure_id' => $lockedDeparture->id,
                         'seat_id' => $seat->id,
                         'origin_stop_id' => $originStop->id,
@@ -165,7 +165,7 @@ class CreateSeatHoldAction
                 }
 
                 return $reservation->load([
-                    'departure',
+                    'segments.departure',
                     'segments.seat',
                     'segments.originStop',
                     'segments.destinationStop',

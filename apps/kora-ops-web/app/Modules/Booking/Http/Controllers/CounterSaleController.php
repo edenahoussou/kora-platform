@@ -188,18 +188,18 @@ class CounterSaleController extends Controller
         ]);
 
         $confirmedReservation = $result['reservation']->load([
-            'departure.line',
-            'departure.bus',
+            'segments.departure.line',
+            'segments.departure.bus',
             'segments.originStop',
             'segments.destinationStop',
         ]);
         $segment = $confirmedReservation->segments->first();
 
         return to_route('sale', array_filter([
-            'date' => $confirmedReservation->departure?->departure_date?->toDateString(),
+            'date' => $segment?->departure?->departure_date?->toDateString(),
             'from' => $segment?->originStop?->city,
             'to' => $segment?->destinationStop?->city,
-            'departure_uuid' => $confirmedReservation->departure?->uuid,
+            'departure_uuid' => $segment?->departure?->uuid,
             'origin_stop_uuid' => $segment?->originStop?->uuid,
             'destination_stop_uuid' => $segment?->destinationStop?->uuid,
             'reservation_uuid' => $confirmedReservation->uuid,
@@ -318,7 +318,7 @@ class CounterSaleController extends Controller
             ->where('uuid', $context['reservation_uuid'])
             ->where('user_id', auth()->id())
             ->with([
-                'departure.line',
+                'segments.departure.line',
                 'segments.seat',
                 'segments.originStop',
                 'segments.destinationStop',
@@ -344,7 +344,7 @@ class CounterSaleController extends Controller
             ->where('status', ReservationStatus::Held->value)
             ->where('expires_at', '>', now())
             ->with([
-                'departure',
+                'segments.departure',
                 'segments.originStop',
                 'segments.destinationStop',
             ])
@@ -359,10 +359,10 @@ class CounterSaleController extends Controller
         $segment = $reservation->segments->first();
 
         return array_filter([
-            'date' => $reservation->departure?->departure_date?->toDateString(),
+            'date' => $segment?->departure?->departure_date?->toDateString(),
             'from' => $segment?->originStop?->city,
             'to' => $segment?->destinationStop?->city,
-            'departure_uuid' => $reservation->departure?->uuid,
+            'departure_uuid' => $segment?->departure?->uuid,
             'origin_stop_uuid' => $segment?->originStop?->uuid,
             'destination_stop_uuid' => $segment?->destinationStop?->uuid,
             'reservation_uuid' => $reservation->uuid,
@@ -514,7 +514,7 @@ class CounterSaleController extends Controller
             'totalAmount' => (int) $reservation->total_amount,
             'currency' => $reservation->currency,
             'channel' => $reservation->getRawOriginal('channel'),
-            'departureUuid' => $reservation->departure?->uuid,
+            'departureUuid' => $reservation->segments->first()?->departure?->uuid,
             'payment' => $payment ? [
                 'uuid' => $payment->uuid,
                 'method' => $payment->method?->value,
