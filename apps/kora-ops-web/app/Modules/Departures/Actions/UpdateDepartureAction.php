@@ -7,15 +7,19 @@ use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Models\Departure;
-use App\Modules\IdentityAccess\Models\Agency;
+use App\Modules\Departures\Models\PlannedDeparture;
+use App\Modules\Departures\Services\PublicationService;
+use App\Modules\DynamicPricing\Models\PriceQuote;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class UpdateDepartureAction
 {
+    public function __construct(private PublicationService $publication) {}
+
     /**
-     * @param  array{line_uuid?: string, bus_uuid?: string, agency_uuid?: string, departure_date?: string, departure_time?: string, driver_uuid?: string|null, conductor_uuid?: string|null}  $attributes
+     * @param  array{line_uuid?: string, bus_uuid?: string, departure_date?: string, departure_time?: string, driver_uuid?: string|null, conductor_uuid?: string|null}  $attributes
      */
     public function execute(Departure $departure, array $attributes): Departure
     {
@@ -27,6 +31,14 @@ class UpdateDepartureAction
         }
 
         return DB::transaction(function () use ($departure, $attributes): Departure {
+            $departure = Departure::query()->whereKey($departure->id)->lockForUpdate()->firstOrFail();
+            if ($departure->getRawOriginal('status') !== 'scheduled' || $departure->reservations()->whereNotIn('status', ['expired', 'cancelled'])->exists() || $departure->reservations()->whereHas('tickets')->exists() || $departure->reservations()->whereHas('payments', fn ($query) => $query->whereIn('status', ['pending', 'confirmed', 'refunded']))->exists()) {
+                throw ValidationException::withMessages(['departure' => 'Ce départ est protégé par une réservation ou son état opérationnel.']);
+            }
+            if (PlannedDeparture::query()->where('departure_id', $departure->id)->exists()) {
+                throw ValidationException::withMessages(['departure' => 'Modifiez ce départ depuis Programmation pour conserver sa provenance.']);
+            }
+            PriceQuote::query()->where('departure_id', $departure->id)->update(['expires_at' => now()]);
             $lineId = $departure->line_id;
             if (isset($attributes['line_uuid'])) {
                 $lineId = Line::query()->where('uuid', $attributes['line_uuid'])->firstOrFail(['id'])->id;
@@ -36,11 +48,6 @@ class UpdateDepartureAction
             $busId = $departure->bus_id;
             if (isset($attributes['bus_uuid'])) {
                 $busId = Bus::query()->where('uuid', $attributes['bus_uuid'])->firstOrFail(['id'])->id;
-            }
-
-            $agencyId = $departure->agency_id;
-            if (isset($attributes['agency_uuid'])) {
-                $agencyId = Agency::query()->where('uuid', $attributes['agency_uuid'])->firstOrFail(['id'])->id;
             }
 
             $driverId = $departure->driver_id;
@@ -64,16 +71,18 @@ class UpdateDepartureAction
                 ? $departureDateTime->addMinutes((int) $line->estimated_duration_minutes)
                 : null;
 
-            $departure->update([
+            $departure->fill([
                 'line_id' => $lineId,
                 'bus_id' => $busId,
-                'agency_id' => $agencyId,
                 'departure_date' => $date,
                 'departure_time' => $time,
                 'estimated_arrival_at' => $estimatedArrivalAt,
                 'driver_id' => $driverId,
                 'conductor_id' => $conductorId,
             ]);
+
+            $this->publication->guardOperationalResources($departure);
+            $departure->save();
 
             return $departure->refresh();
         });

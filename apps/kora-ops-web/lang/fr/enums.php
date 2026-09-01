@@ -16,6 +16,7 @@ return [
     'system_role' => [
         'passenger' => 'Passager',
         'bus_driver' => 'Chauffeur de bus',
+        'mechanic' => 'Mécanicien',
         'conductor' => 'Convoyeur',
         'agency_agent' => "Agent d'agence",
         'agency_manager' => "Chef d'agence",

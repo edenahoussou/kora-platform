@@ -17,9 +17,6 @@ type DepartureListItem = {
     busUuid: string | null;
     busRegistration: string;
     busSeatCount: number;
-    agencyUuid: string | null;
-    agencyName: string;
-    agencyCity: string | null;
     departureDate: string | null;
     departureTime: string | null;
     estimatedArrivalAt: string | null;
@@ -42,8 +39,7 @@ type Stats = {
 };
 
 type Option = { uuid: string; label: string };
-type AgencyOption = { uuid: string; name: string };
-type BusOption = { uuid: string; label: string; agencyUuid: string | null };
+type BusOption = { uuid: string; label: string };
 
 type PageProps = {
     departures: {
@@ -57,7 +53,6 @@ type PageProps = {
     };
     statuses: Record<string, string>;
     lines: Option[];
-    agencies: AgencyOption[];
     buses: BusOption[];
     drivers: Option[];
     conductors: Option[];
@@ -89,7 +84,6 @@ export default function DeparturesPage({
     departures: departureData,
     statuses,
     lines,
-    agencies,
     buses,
     drivers,
     conductors,
@@ -117,15 +111,6 @@ export default function DeparturesPage({
                 })),
             },
             {
-                name: 'agency_uuid',
-                label: 'Agence',
-                placeholder: 'Toutes les agences',
-                options: agencies.map((agency) => ({
-                    value: agency.uuid,
-                    label: agency.name,
-                })),
-            },
-            {
                 name: 'status',
                 label: 'Statut',
                 placeholder: 'Tous les statuts',
@@ -135,7 +120,7 @@ export default function DeparturesPage({
                 })),
             },
         ],
-        [statuses, lines, agencies],
+        [statuses, lines],
     );
 
     return (
@@ -282,10 +267,6 @@ export default function DeparturesPage({
                                     <span className="block text-[1.625rem] font-black tracking-tight text-foreground">
                                         {departure.departureTime ?? '—'}
                                     </span>
-                                    <small className="mt-1 block text-[0.5625rem] font-bold tracking-[0.04em] text-muted-foreground">
-                                        {departure.agencyCity ??
-                                            departure.agencyName}
-                                    </small>
                                 </div>
 
                                 {/* OPS-ROUTE */}
@@ -445,7 +426,6 @@ export default function DeparturesPage({
                 departure={selected}
                 statuses={statuses}
                 lines={lines}
-                agencies={agencies}
                 buses={buses}
                 drivers={drivers}
                 conductors={conductors}

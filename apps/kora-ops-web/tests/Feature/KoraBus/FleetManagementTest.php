@@ -33,27 +33,25 @@ function fleetReferences(): array
     ];
 }
 
-it('lists buses with their model, composition, and agency without exposing numeric ids', function (): void {
+it('lists buses with their model and composition without exposing numeric ids', function (): void {
     [$agency, $model, $composition] = fleetReferences();
-    $bus = Bus::query()->create(['registration_number' => 'BJ-9254-RB', 'bus_model_id' => $model->id, 'composition_id' => $composition->id, 'agency_id' => $agency->id, 'seat_count' => 55, 'status' => 'active']);
+    $bus = Bus::query()->create(['registration_number' => 'BJ-9254-RB', 'bus_model_id' => $model->id, 'composition_id' => $composition->id, 'seat_count' => 55, 'status' => 'active']);
 
     $this->actingAs(fleetManager())->get(route('fleet.index'))->assertSuccessful()->assertInertia(fn (Assert $page) => $page
         ->component('fleet')
         ->where('buses.data.0.uuid', $bus->uuid)
         ->where('buses.data.0.modelName', 'KORA Coach 55')
         ->where('buses.data.0.compositionName', 'Standard 2+2 — 55 places')
-        ->where('buses.data.0.agencyName', 'Agence Cotonou')
         ->missing('buses.data.0.id')
         ->where('permissions.canCreate', true),
     );
 });
 
-it('filters buses by search term, status, and agency', function (): void {
+it('filters buses by search term and status', function (): void {
     [$agency1, $model, $composition] = fleetReferences();
-    $agency2 = Agency::query()->create(['code' => 'PAR', 'name' => 'Agence Parakou', 'city' => 'Parakou', 'country' => 'BJ', 'status' => 'active']);
 
-    $bus1 = Bus::query()->create(['registration_number' => 'BJ-1111-RB', 'bus_model_id' => $model->id, 'composition_id' => $composition->id, 'agency_id' => $agency1->id, 'seat_count' => 55, 'status' => 'active']);
-    $bus2 = Bus::query()->create(['registration_number' => 'BJ-2222-RB', 'bus_model_id' => $model->id, 'composition_id' => $composition->id, 'agency_id' => $agency2->id, 'seat_count' => 55, 'status' => 'maintenance']);
+    $bus1 = Bus::query()->create(['registration_number' => 'BJ-1111-RB', 'bus_model_id' => $model->id, 'composition_id' => $composition->id, 'seat_count' => 55, 'status' => 'active']);
+    $bus2 = Bus::query()->create(['registration_number' => 'BJ-2222-RB', 'bus_model_id' => $model->id, 'composition_id' => $composition->id, 'seat_count' => 55, 'status' => 'maintenance']);
 
     // Filter by search query
     $this->actingAs(fleetManager())->get(route('fleet.index', ['q' => '1111']))
@@ -70,14 +68,6 @@ it('filters buses by search term, status, and agency', function (): void {
             ->where('buses.total', 1)
             ->where('buses.data.0.uuid', $bus2->uuid),
         );
-
-    // Filter by agency
-    $this->actingAs(fleetManager())->get(route('fleet.index', ['agency_id' => $agency2->id]))
-        ->assertSuccessful()
-        ->assertInertia(fn (Assert $page) => $page
-            ->where('buses.total', 1)
-            ->where('buses.data.0.uuid', $bus2->uuid),
-        );
 });
 
 it('shows bus detail page with seats, departures, and timeline without exposing numeric ids', function (): void {
@@ -88,7 +78,6 @@ it('shows bus detail page with seats, departures, and timeline without exposing 
         'registration_number' => 'BJ-9254-RB',
         'bus_model_id' => $model->id,
         'composition_id' => $composition->id,
-        'agency_id' => $agency->id,
         'status' => 'active',
     ]);
 
@@ -113,12 +102,11 @@ it('shows bus detail page with seats, departures, and timeline without exposing 
         ->where('bus.registrationNumber', 'BJ-9254-RB')
         ->where('bus.modelName', 'KORA Coach 55')
         ->where('bus.compositionName', 'Standard 2+2 — 55 places')
-        ->where('bus.agencyName', 'Agence Cotonou')
         ->where('bus.seatCount', 55)
         ->where('bus.seats.0.code', '1A')
         ->where('bus.seats.0.sellable', true)
         ->where('bus.departures.0.lineCode', 'L1')
-        ->where('bus.departures.0.departureTime', '07:30')
+        ->where('bus.departures.0.departureTime', fn (string $time): bool => substr($time, 0, 5) === '07:30')
         ->missing('bus.id')
         ->missing('bus.seats.0.id')
         ->missing('bus.departures.0.id')
@@ -135,7 +123,6 @@ it('creates a bus from a model and composition and generates its seats', functio
         'registration_number' => ' bj-9254-rb ',
         'bus_model_id' => $model->id,
         'composition_id' => $composition->id,
-        'agency_id' => $agency->id,
         'status' => 'draft',
     ])->assertRedirect(route('fleet.index', absolute: false));
 
@@ -158,7 +145,6 @@ it('updates a bus and resyncs seats when composition changes', function (): void
         'registration_number' => 'BJ-9254-RB',
         'bus_model_id' => $model->id,
         'composition_id' => $composition1->id,
-        'agency_id' => $agency->id,
         'status' => 'active',
     ]);
 
@@ -168,7 +154,6 @@ it('updates a bus and resyncs seats when composition changes', function (): void
         'registration_number' => 'BJ-9254-RB',
         'bus_model_id' => $model->id,
         'composition_id' => $composition2->id,
-        'agency_id' => $agency->id,
         'status' => 'active',
     ])->assertRedirect(route('fleet.index', absolute: false));
 
@@ -193,7 +178,6 @@ it('prevents composition change when bus already has departures', function (): v
         'registration_number' => 'BJ-9254-RB',
         'bus_model_id' => $model->id,
         'composition_id' => $composition1->id,
-        'agency_id' => $agency->id,
         'status' => 'active',
     ]);
 
@@ -216,7 +200,6 @@ it('prevents composition change when bus already has departures', function (): v
         'registration_number' => 'BJ-9254-RB',
         'bus_model_id' => $model->id,
         'composition_id' => $composition2->id,
-        'agency_id' => $agency->id,
         'status' => 'active',
     ])->assertSessionHasErrors('composition_id');
 });
@@ -227,7 +210,6 @@ it('changes bus status through status endpoint', function (): void {
         'registration_number' => 'BJ-9254-RB',
         'bus_model_id' => $model->id,
         'composition_id' => $composition->id,
-        'agency_id' => $agency->id,
         'seat_count' => 55,
         'status' => 'active',
     ]);
@@ -247,13 +229,13 @@ it('changes bus status through status endpoint', function (): void {
 
 it('rejects duplicate registrations and unauthorized fleet access', function (): void {
     [$agency, $model, $composition] = fleetReferences();
-    Bus::query()->create(['registration_number' => 'BJ-9254-RB', 'bus_model_id' => $model->id, 'composition_id' => $composition->id, 'agency_id' => $agency->id, 'seat_count' => 55, 'status' => 'active']);
+    Bus::query()->create(['registration_number' => 'BJ-9254-RB', 'bus_model_id' => $model->id, 'composition_id' => $composition->id, 'seat_count' => 55, 'status' => 'active']);
 
-    $this->actingAs(fleetManager())->post(route('fleet.store'), ['registration_number' => 'BJ-9254-RB', 'bus_model_id' => $model->id, 'composition_id' => $composition->id, 'agency_id' => $agency->id, 'status' => 'active'])->assertSessionHasErrors('registration_number');
+    $this->actingAs(fleetManager())->post(route('fleet.store'), ['registration_number' => 'BJ-9254-RB', 'bus_model_id' => $model->id, 'composition_id' => $composition->id, 'status' => 'active'])->assertSessionHasErrors('registration_number');
 
     $agent = User::factory()->create();
     $agent->assignRole('agency_agent');
     $this->actingAs($agent)->get(route('fleet.index'))->assertForbidden();
     $this->actingAs($agent)->get(route('fleet.show', Bus::first()))->assertForbidden();
-    $this->actingAs($agent)->post(route('fleet.store'), ['registration_number' => 'BJ-0000-RB', 'bus_model_id' => $model->id, 'composition_id' => $composition->id, 'agency_id' => $agency->id, 'status' => 'active'])->assertForbidden();
+    $this->actingAs($agent)->post(route('fleet.store'), ['registration_number' => 'BJ-0000-RB', 'bus_model_id' => $model->id, 'composition_id' => $composition->id, 'status' => 'active'])->assertForbidden();
 });

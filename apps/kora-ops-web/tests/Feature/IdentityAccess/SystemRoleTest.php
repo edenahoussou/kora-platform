@@ -4,11 +4,12 @@ use App\Modules\IdentityAccess\Data\SystemRole;
 use App\Modules\IdentityAccess\Data\TerminalP501Status;
 
 describe('SystemRole enum', function (): void {
-    it('has all nine system roles', function (): void {
-        expect(SystemRole::cases())->toHaveCount(9)
+    it('has all ten system roles', function (): void {
+        expect(SystemRole::cases())->toHaveCount(10)
             ->and(array_column(SystemRole::cases(), 'value'))->toBe([
                 'passenger',
                 'bus_driver',
+                'mechanic',
                 'conductor',
                 'agency_agent',
                 'agency_manager',
@@ -49,10 +50,10 @@ describe('SystemRole enum', function (): void {
 
     it('separates internal, field and management roles', function (): void {
         expect(SystemRole::internalRoles())
-            ->toHaveCount(8)
+            ->toHaveCount(9)
             ->not->toContain(SystemRole::Passenger)
             ->and(SystemRole::fieldRoles())
-            ->toBe([SystemRole::BusDriver, SystemRole::Conductor, SystemRole::AgencyAgent, SystemRole::AgencyManager])
+            ->toBe([SystemRole::BusDriver, SystemRole::Mechanic, SystemRole::Conductor, SystemRole::AgencyAgent, SystemRole::AgencyManager])
             ->and(SystemRole::managementRoles())
             ->toBe([
                 SystemRole::OperationsDirector,
@@ -71,6 +72,7 @@ describe('SystemRole enum', function (): void {
         app()->setLocale('fr');
 
         expect(SystemRole::Passenger->translatedLabel())->toBe('Passager')
+            ->and(SystemRole::Mechanic->translatedLabel())->toBe('Mécanicien')
             ->and(SystemRole::BusDriver->translatedLabel())->toBe('Chauffeur de bus')
             ->and(SystemRole::Conductor->translatedLabel())->toBe('Convoyeur')
             ->and(SystemRole::AgencyAgent->translatedLabel())->toBe("Agent d'agence")
@@ -93,7 +95,7 @@ describe('SystemRole enum', function (): void {
         expect($options)->toHaveKey('passenger')
             ->and($options['passenger'])->toBe('Passager')
             ->and($options['bus_driver'])->toBe('Chauffeur de bus')
-            ->and($options)->toHaveCount(9);
+            ->and($options)->toHaveCount(10);
     });
 
     it('falls back to headline label when translation key is missing', function (): void {

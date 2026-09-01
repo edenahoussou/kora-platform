@@ -58,8 +58,6 @@ type BusDetail = BusRecord & {
     model: string;
     compositionCode: string | null;
     layout: { type?: string; codes: string[] }[];
-    agencyCity: string | null;
-    agencyCountry: string | null;
     amenities: BusAmenityItem[];
     seats: SeatItem[];
     departures: DepartureItem[];
@@ -70,7 +68,6 @@ type BusDetail = BusRecord & {
 type PageProps = {
     bus: BusDetail;
     statuses: Record<string, string>;
-    agencies: { id: number; name: string }[];
     models: { id: number; label: string }[];
     compositions: { id: number; label: string; seatCount: number }[];
     amenities: AmenityOption[];
@@ -154,7 +151,6 @@ function formatDateShort(iso: string | null): string {
 export default function FleetDetailPage({
     bus,
     statuses,
-    agencies,
     models,
     compositions,
     amenities,
@@ -210,7 +206,7 @@ export default function FleetDetailPage({
                     </h1>
                     <p className="mt-1.5 text-sm text-muted-foreground">
                         {bus.modelName ?? 'Modèle standard'} · {bus.seatCount}{' '}
-                        places · {bus.agencyName ?? 'Agence KORA'}
+                        places
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2.5">
@@ -651,14 +647,6 @@ export default function FleetDetailPage({
                             </div>
                             <div className="flex items-center justify-between border-b border-border/40 pb-2">
                                 <span className="text-muted-foreground">
-                                    Agence
-                                </span>
-                                <span className="font-medium text-foreground">
-                                    {bus.agencyName ?? 'Non rattaché'}
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-between border-b border-border/40 pb-2">
-                                <span className="text-muted-foreground">
                                     Places totales
                                 </span>
                                 <span className="font-bold text-foreground">
@@ -740,7 +728,6 @@ export default function FleetDetailPage({
                 open={editDialog}
                 bus={bus}
                 statuses={statuses}
-                agencies={agencies}
                 models={models}
                 compositions={compositions}
                 amenities={amenities}

@@ -133,6 +133,10 @@ class CreateSeatHoldAction
                     ]);
                 }
 
+                $priceQuote->refresh();
+                if (($priceQuote->expires_at !== null && $priceQuote->expires_at->lte(now())) || $lockedDeparture->line_id !== $originStop->line_id || $seats->contains(fn (Seat $seat): bool => $seat->bus_id !== $lockedDeparture->bus_id)) {
+                    throw ValidationException::withMessages(['price_quote_uuid' => 'Le départ a changé. Demandez un nouveau devis et sélectionnez à nouveau les sièges.']);
+                }
                 $totalAmount = (int) ($priceQuote->final_amount * $seats->count());
 
                 $reservation = Reservation::create([

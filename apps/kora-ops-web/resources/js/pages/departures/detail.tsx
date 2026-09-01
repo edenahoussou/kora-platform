@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
     ArrowLeft,
     BusFront,
@@ -12,7 +12,10 @@ import { useState } from 'react';
 import { DepartureFormDialog } from '@/components/departures/departure-form-dialog';
 import type { DepartureRecord } from '@/components/departures/departure-form-dialog';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
+import { Button } from '@/components/ui/button';
 import departures from '@/routes/departures';
+import programming from '@/routes/programming';
+import templateRoutes from '@/routes/programming/templates';
 import type { BreadcrumbItem } from '@/types';
 
 type Stop = {
@@ -34,10 +37,7 @@ type DepartureDetail = DepartureRecord & {
     lineEstimatedDuration: number | null;
     stops: Stop[];
     busSeatCount: number;
-    busAgencyName: string | null;
     seats: SeatItem[];
-    agencyCity: string | null;
-    agencyCountry: string | null;
     estimatedArrivalAt: string | null;
     creatorName: string | null;
     fillRate: number;
@@ -52,14 +52,14 @@ type TimelineEvent = {
 };
 
 type Option = { uuid: string; label: string };
-type AgencyOption = { uuid: string; name: string };
-type BusOption = { uuid: string; label: string; agencyUuid: string | null };
+type BusOption = { uuid: string; label: string };
 
 type PageProps = {
     departure: DepartureDetail;
+    programmingSource: string | null;
+    canProgram: boolean;
     statuses: Record<string, string>;
     lines: Option[];
-    agencies: AgencyOption[];
     buses: BusOption[];
     drivers: Option[];
     conductors: Option[];
@@ -130,9 +130,10 @@ function formatTime(iso: string | null): string {
 
 export default function DepartureDetailPage({
     departure,
+    programmingSource,
+    canProgram,
     statuses,
     lines,
-    agencies,
     buses,
     drivers,
     conductors,
@@ -278,6 +279,38 @@ export default function DepartureDetailPage({
     return (
         <>
             <Head title={`${departure.lineCode} — Départ`} />
+            {canProgram && (
+                <div className="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4 text-sm">
+                    <span>
+                        {programmingSource
+                            ? 'Ce départ provient d’un programme réutilisable.'
+                            : 'Réutilisez ce départ pour préparer vos prochaines semaines.'}
+                    </span>
+                    {programmingSource && (
+                        <Button variant="outline" asChild>
+                            <Link
+                                href={programming.index({
+                                    query: {
+                                        programme: programmingSource,
+                                        date: departure.departureDate ?? '',
+                                    },
+                                })}
+                            >
+                                Ouvrir la programmation
+                            </Link>
+                        </Button>
+                    )}
+                    <Button variant="outline" asChild>
+                        <Link
+                            href={templateRoutes.create({
+                                query: { departure: departure.uuid },
+                            })}
+                        >
+                            Créer un modèle à partir de ce départ
+                        </Link>
+                    </Button>
+                </div>
+            )}
 
             {/* 1. PAGE-HEAD */}
             <div className="mb-6 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
@@ -389,10 +422,6 @@ export default function DepartureDetailPage({
                                 <InfoCard
                                     label="Bus"
                                     value={departure.busRegistration}
-                                />
-                                <InfoCard
-                                    label="Agence"
-                                    value={departure.agencyName ?? '—'}
                                 />
                                 <InfoCard
                                     label="Places"
@@ -821,14 +850,6 @@ export default function DepartureDetailPage({
                             </div>
                             <div className="flex items-center justify-between border-b border-border/40 pb-2">
                                 <span className="text-muted-foreground">
-                                    Agence
-                                </span>
-                                <span className="font-medium text-foreground">
-                                    {departure.agencyName ?? '—'}
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-between border-b border-border/40 pb-2">
-                                <span className="text-muted-foreground">
                                     Départ
                                 </span>
                                 <span className="font-bold text-foreground">
@@ -876,7 +897,6 @@ export default function DepartureDetailPage({
                 departure={departure}
                 statuses={statuses}
                 lines={lines}
-                agencies={agencies}
                 buses={buses}
                 drivers={drivers}
                 conductors={conductors}

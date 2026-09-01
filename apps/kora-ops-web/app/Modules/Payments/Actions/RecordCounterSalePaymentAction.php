@@ -201,12 +201,6 @@ class RecordCounterSalePaymentAction
             ]);
         }
 
-        if ($agent->agency_id === null || $reservation->departure?->agency_id !== $agent->agency_id) {
-            throw ValidationException::withMessages([
-                'reservation' => 'La vente doit être enregistrée dans l’agence de l’agent connecté.',
-            ]);
-        }
-
         if ($reservation->passengers->count() === 0 || $reservation->passengers->count() !== $reservation->segments->count()) {
             throw ValidationException::withMessages([
                 'reservation' => 'Renseignez tous les passagers avant de confirmer le paiement.',

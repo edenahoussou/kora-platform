@@ -124,17 +124,20 @@ final departures = res.data['data'] as List;
   <ResponseField name="estimated_arrival_at" type="string">Arrivée estimée (ISO 8601) ou `null`.</ResponseField>
   <ResponseField name="status" type="string" required>`scheduled`, `boarding`, `departed`, `arrived`, ou `cancelled`.</ResponseField>
   <ResponseField name="line" type="Line" required>Ligne du départ.</ResponseField>
-  <ResponseField name="bus" type="object" required>Bus assigné.
+  <ResponseField name="bus" type="object" required>
+    Bus assigné.
     <ResponseField name="bus.uuid" type="UUID" required>UUID public du bus.</ResponseField>
     <ResponseField name="bus.registration_number" type="string" required>Immatriculation du bus.</ResponseField>
     <ResponseField name="bus.brand" type="string" required>Marque du bus.</ResponseField>
     <ResponseField name="bus.model" type="string" required>Modèle du bus.</ResponseField>
     <ResponseField name="bus.seat_count" type="integer" required>Nombre total de sièges.</ResponseField>
-    <ResponseField name="bus.layout" type="array" required>Composition du bus par rangée, utilisée pour le rendu du plan de sièges.
+    <ResponseField name="bus.layout" type="array" required>
+      Composition du bus par rangées, utilisée pour le rendu du plan de sièges.
       <ResponseField name="bus.layout[].type" type="string" required>Type de siège : `standard`, `premium`, ou `crew`.</ResponseField>
       <ResponseField name="bus.layout[].codes" type="string[]" required>Codes des sièges de la rangée (ex: `["1A", "1B", "1C", "1D"]`).</ResponseField>
     </ResponseField>
-    <ResponseField name="bus.amenities" type="array" required>Équipements et commodités du bus. Tableau vide si aucun.
+    <ResponseField name="bus.amenities" type="array" required>
+      Équipements et commodités du bus. Tableau vide si aucun.
       <ResponseField name="bus.amenities[].uuid" type="UUID" required>UUID public de l'équipement.</ResponseField>
       <ResponseField name="bus.amenities[].code" type="string" required>Code machine (ex: `wifi`, `air_conditioning`, `usb_charging`).</ResponseField>
       <ResponseField name="bus.amenities[].label" type="string" required>Libellé affichable.</ResponseField>

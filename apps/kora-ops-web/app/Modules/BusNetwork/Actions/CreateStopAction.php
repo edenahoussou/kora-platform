@@ -16,6 +16,10 @@ class CreateStopAction
     public function execute(Line $line, array $attributes): Stop
     {
         return DB::transaction(function () use ($line, $attributes): Stop {
+            Line::query()->whereKey($line->id)->lockForUpdate()->firstOrFail();
+            if ($line->departures()->exists()) {
+                throw ValidationException::withMessages(['stop_order' => 'Ce parcours est utilisé par des départs publiés. Créez une nouvelle ligne pour changer les segments.']);
+            }
             $existingOrder = $line->stops()->where('stop_order', $attributes['stop_order'])->exists();
             if ($existingOrder) {
                 throw ValidationException::withMessages([

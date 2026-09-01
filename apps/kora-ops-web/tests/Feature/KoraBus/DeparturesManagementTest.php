@@ -91,7 +91,6 @@ function departuresReferences(): array
         'registration_number' => 'BJ-9254-RB',
         'bus_model_id' => $model->id,
         'composition_id' => $composition->id,
-        'agency_id' => $agency->id,
         'brand' => 'KORA',
         'model' => 'Coach 55',
         'seat_count' => 55,
@@ -107,14 +106,13 @@ function departuresReferences(): array
     return [$agency, $line, $bus, $model, $composition, $driver, $conductor];
 }
 
-it('lists departures with line, bus, agency, and crew without exposing numeric ids', function (): void {
+it('lists departures with line, bus, and crew without exposing numeric ids', function (): void {
     [$agency, $line, $bus, $model, $composition, $driver, $conductor] = departuresReferences();
 
     $departure = Departure::query()->create([
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id,
         'bus_id' => $bus->id,
-        'agency_id' => $agency->id,
         'departure_date' => Carbon::today()->format('Y-m-d'),
         'departure_time' => '07:30',
         'estimated_arrival_at' => Carbon::today()->setTime(7, 30)->addMinutes(1260),
@@ -132,7 +130,6 @@ it('lists departures with line, bus, agency, and crew without exposing numeric i
             ->where('departures.data.0.lineCode', 'L1')
             ->where('departures.data.0.lineName', 'Cotonou - Abidjan')
             ->where('departures.data.0.busRegistration', 'BJ-9254-RB')
-            ->where('departures.data.0.agencyName', 'Agence Cotonou')
             ->where('departures.data.0.driverName', 'Jean Driver')
             ->where('departures.data.0.conductorName', 'Marc Conductor')
             ->where('departures.data.0.status', 'scheduled')
@@ -141,23 +138,14 @@ it('lists departures with line, bus, agency, and crew without exposing numeric i
         );
 });
 
-it('filters departures by status, agency, and search term', function (): void {
+it('filters departures by status and search term', function (): void {
     [$agency1, $line, $bus1, $model, $composition] = departuresReferences();
-
-    $agency2 = Agency::query()->create([
-        'code' => 'PAR',
-        'name' => 'Agence Parakou',
-        'city' => 'Parakou',
-        'country' => 'BJ',
-        'status' => 'active',
-    ]);
 
     $bus2 = Bus::query()->create([
         'uuid' => (string) Str::uuid(),
         'registration_number' => 'BJ-2222-RB',
         'bus_model_id' => $model->id,
         'composition_id' => $composition->id,
-        'agency_id' => $agency2->id,
         'brand' => 'KORA',
         'model' => 'Coach 55',
         'seat_count' => 55,
@@ -168,7 +156,6 @@ it('filters departures by status, agency, and search term', function (): void {
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id,
         'bus_id' => $bus1->id,
-        'agency_id' => $agency1->id,
         'departure_date' => Carbon::today()->format('Y-m-d'),
         'departure_time' => '07:30',
         'status' => DepartureStatus::Scheduled->value,
@@ -178,7 +165,6 @@ it('filters departures by status, agency, and search term', function (): void {
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id,
         'bus_id' => $bus2->id,
-        'agency_id' => $agency2->id,
         'departure_date' => Carbon::today()->format('Y-m-d'),
         'departure_time' => '10:30',
         'status' => DepartureStatus::Boarding->value,
@@ -187,15 +173,6 @@ it('filters departures by status, agency, and search term', function (): void {
     // Filter by status
     $this->actingAs(departuresManager())
         ->get(route('departures.index', ['status' => 'boarding']))
-        ->assertSuccessful()
-        ->assertInertia(fn (Assert $page) => $page
-            ->where('departures.total', 1)
-            ->where('departures.data.0.uuid', $departure2->uuid),
-        );
-
-    // Filter by agency
-    $this->actingAs(departuresManager())
-        ->get(route('departures.index', ['agency_uuid' => $agency2->uuid]))
         ->assertSuccessful()
         ->assertInertia(fn (Assert $page) => $page
             ->where('departures.total', 1)
@@ -212,14 +189,13 @@ it('filters departures by status, agency, and search term', function (): void {
         );
 });
 
-it('shows a departure detail with line stops, bus, agency, and crew', function (): void {
+it('shows a departure detail with line stops, bus, and crew', function (): void {
     [$agency, $line, $bus, $model, $composition, $driver, $conductor] = departuresReferences();
 
     $departure = Departure::query()->create([
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id,
         'bus_id' => $bus->id,
-        'agency_id' => $agency->id,
         'departure_date' => Carbon::today()->format('Y-m-d'),
         'departure_time' => '07:30',
         'estimated_arrival_at' => Carbon::today()->setTime(7, 30)->addMinutes(1260),
@@ -237,7 +213,6 @@ it('shows a departure detail with line stops, bus, agency, and crew', function (
             ->where('departure.lineCode', 'L1')
             ->where('departure.lineName', 'Cotonou - Abidjan')
             ->where('departure.busRegistration', 'BJ-9254-RB')
-            ->where('departure.agencyName', 'Agence Cotonou')
             ->where('departure.driverName', 'Jean Driver')
             ->where('departure.conductorName', 'Marc Conductor')
             ->where('departure.status', 'scheduled')
@@ -253,7 +228,6 @@ it('creates a departure and computes estimated arrival from line duration', func
     $response = $this->actingAs($manager)->post(route('departures.store'), [
         'line_uuid' => $line->uuid,
         'bus_uuid' => $bus->uuid,
-        'agency_uuid' => $agency->uuid,
         'departure_date' => Carbon::today()->addDay()->format('Y-m-d'),
         'departure_time' => '08:00',
         'driver_uuid' => null,
@@ -265,32 +239,10 @@ it('creates a departure and computes estimated arrival from line duration', func
     $departure = Departure::query()->where('line_id', $line->id)->where('bus_id', $bus->id)->first();
     expect($departure)->not->toBeNull()
         ->and($departure->status)->toBe(DepartureStatus::Scheduled)
-        ->and($departure->agency_id)->toBe($agency->id)
         ->and($departure->estimated_arrival_at)->not->toBeNull();
 
     // 08:00 + 1260 minutes (21h) = 05:00 next day
     expect($departure->estimated_arrival_at->format('H:i'))->toBe('05:00');
-});
-
-it('rejects creation when bus does not belong to the selected agency', function (): void {
-    [$agency1, $line, $bus1, $model, $composition] = departuresReferences();
-
-    $agency2 = Agency::query()->create([
-        'code' => 'PAR',
-        'name' => 'Agence Parakou',
-        'city' => 'Parakou',
-        'country' => 'BJ',
-        'status' => 'active',
-    ]);
-
-    // bus1 belongs to agency1, but we pass agency2
-    $this->actingAs(departuresManager())->post(route('departures.store'), [
-        'line_uuid' => $line->uuid,
-        'bus_uuid' => $bus1->uuid,
-        'agency_uuid' => $agency2->uuid,
-        'departure_date' => Carbon::today()->addDay()->format('Y-m-d'),
-        'departure_time' => '08:00',
-    ])->assertSessionHasErrors(['bus_uuid']);
 });
 
 it('updates a scheduled departure and blocks modification after departure', function (): void {
@@ -300,7 +252,6 @@ it('updates a scheduled departure and blocks modification after departure', func
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id,
         'bus_id' => $bus->id,
-        'agency_id' => $agency->id,
         'departure_date' => Carbon::today()->format('Y-m-d'),
         'departure_time' => '07:30',
         'status' => DepartureStatus::Scheduled->value,
@@ -313,7 +264,7 @@ it('updates a scheduled departure and blocks modification after departure', func
         ->assertRedirect(route('departures.index'));
 
     $departure->refresh();
-    expect($departure->departure_time)->toBe('09:00');
+    expect(substr($departure->departure_time, 0, 5))->toBe('09:00');
 
     // Now set status to departed and try to update — should fail
     $departure->update(['status' => DepartureStatus::Departed->value]);
@@ -332,7 +283,6 @@ it('allows valid status transitions and blocks invalid ones', function (): void 
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id,
         'bus_id' => $bus->id,
-        'agency_id' => $agency->id,
         'departure_date' => Carbon::today()->format('Y-m-d'),
         'departure_time' => '07:30',
         'status' => DepartureStatus::Scheduled->value,
@@ -369,7 +319,6 @@ it('cancels a scheduled departure', function (): void {
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id,
         'bus_id' => $bus->id,
-        'agency_id' => $agency->id,
         'departure_date' => Carbon::today()->format('Y-m-d'),
         'departure_time' => '07:30',
         'status' => DepartureStatus::Scheduled->value,
@@ -389,7 +338,6 @@ it('prevents agency agents from creating departures', function (): void {
         ->post(route('departures.store'), [
             'line_uuid' => $line->uuid,
             'bus_uuid' => $bus->uuid,
-            'agency_uuid' => $agency->uuid,
             'departure_date' => Carbon::today()->addDay()->format('Y-m-d'),
             'departure_time' => '08:00',
         ])
@@ -401,13 +349,13 @@ it('exposes stats for the departures ribbon', function (): void {
 
     Departure::query()->create([
         'uuid' => (string) Str::uuid(),
-        'line_id' => $line->id, 'bus_id' => $bus->id, 'agency_id' => $agency->id,
+        'line_id' => $line->id, 'bus_id' => $bus->id,
         'departure_date' => Carbon::today()->format('Y-m-d'), 'departure_time' => '07:30',
         'status' => DepartureStatus::Scheduled->value,
     ]);
     Departure::query()->create([
         'uuid' => (string) Str::uuid(),
-        'line_id' => $line->id, 'bus_id' => $bus->id, 'agency_id' => $agency->id,
+        'line_id' => $line->id, 'bus_id' => $bus->id,
         'departure_date' => Carbon::today()->format('Y-m-d'), 'departure_time' => '10:30',
         'status' => DepartureStatus::Boarding->value,
     ]);
@@ -427,13 +375,13 @@ it('filters departures by exact date', function (): void {
 
     $today = Departure::query()->create([
         'uuid' => (string) Str::uuid(),
-        'line_id' => $line->id, 'bus_id' => $bus->id, 'agency_id' => $agency->id,
+        'line_id' => $line->id, 'bus_id' => $bus->id,
         'departure_date' => Carbon::today()->format('Y-m-d'), 'departure_time' => '07:30',
         'status' => DepartureStatus::Scheduled->value,
     ]);
     Departure::query()->create([
         'uuid' => (string) Str::uuid(),
-        'line_id' => $line->id, 'bus_id' => $bus->id, 'agency_id' => $agency->id,
+        'line_id' => $line->id, 'bus_id' => $bus->id,
         'departure_date' => Carbon::tomorrow()->format('Y-m-d'), 'departure_time' => '07:30',
         'status' => DepartureStatus::Scheduled->value,
     ]);
@@ -469,7 +417,6 @@ it('exposes buses, drivers, and conductors for the departure form', function ():
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id,
         'bus_id' => $bus->id,
-        'agency_id' => $agency->id,
         'departure_date' => Carbon::today()->format('Y-m-d'),
         'departure_time' => '07:30',
         'driver_id' => $driver->id,
@@ -497,7 +444,6 @@ it('never exposes internal numeric ids on departure ERP pages', function (): voi
         'uuid' => (string) Str::uuid(),
         'line_id' => $line->id,
         'bus_id' => $bus->id,
-        'agency_id' => $agency->id,
         'departure_date' => Carbon::today()->format('Y-m-d'),
         'departure_time' => '07:30',
         'driver_id' => $driver->id,
@@ -513,13 +459,10 @@ it('never exposes internal numeric ids on departure ERP pages', function (): voi
         ->assertInertia(fn (Assert $page) => $page
             ->missing('departures.data.0.lineId')
             ->missing('departures.data.0.busId')
-            ->missing('departures.data.0.agencyId')
             ->missing('departures.data.0.driverId')
             ->missing('departures.data.0.conductorId')
             ->missing('lines.0.id')
-            ->missing('agencies.0.id')
             ->missing('buses.0.id')
-            ->missing('buses.0.agencyId')
             ->missing('drivers.0.id')
             ->missing('conductors.0.id')
             ->where('lines.0.uuid', $line->uuid)
@@ -532,12 +475,10 @@ it('never exposes internal numeric ids on departure ERP pages', function (): voi
         ->assertInertia(fn (Assert $page) => $page
             ->missing('departure.lineId')
             ->missing('departure.busId')
-            ->missing('departure.agencyId')
             ->missing('departure.driverId')
             ->missing('departure.conductorId')
             ->where('departure.lineUuid', $line->uuid)
-            ->where('departure.busUuid', $bus->uuid)
-            ->where('departure.agencyUuid', $agency->uuid),
+            ->where('departure.busUuid', $bus->uuid),
         );
 });
 
@@ -566,16 +507,15 @@ it('exposes a non-paginated collection via searchSellable for internal consumers
         'uuid' => (string) Str::uuid(), 'code' => '2+2-55-SELL', 'name' => 'Standard', 'seat_count' => 55,
         'layout' => [['type' => 'standard', 'codes' => ['1A', '1B']]], 'status' => 'active',
     ]);
-    $agency = Agency::query()->create(['code' => 'SEL', 'name' => 'Agence Vente', 'city' => 'Cotonou', 'country' => 'BJ', 'status' => 'active']);
     $bus = Bus::query()->create([
         'uuid' => (string) Str::uuid(), 'registration_number' => 'SELL-001', 'bus_model_id' => $model->id,
-        'composition_id' => $composition->id, 'agency_id' => $agency->id, 'brand' => 'KORA', 'model' => 'Coach 55',
+        'composition_id' => $composition->id, 'brand' => 'KORA', 'model' => 'Coach 55',
         'seat_count' => 55, 'status' => 'active',
     ]);
 
     Departure::query()->create([
         'uuid' => (string) Str::uuid(),
-        'line_id' => $line->id, 'bus_id' => $bus->id, 'agency_id' => $agency->id,
+        'line_id' => $line->id, 'bus_id' => $bus->id,
         'departure_date' => Carbon::today()->format('Y-m-d'), 'departure_time' => '07:30',
         'status' => DepartureStatus::Scheduled->value,
     ]);

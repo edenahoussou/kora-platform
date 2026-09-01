@@ -8,7 +8,6 @@ use App\Modules\BusNetwork\Models\Line;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Models\Departure;
-use App\Modules\IdentityAccess\Models\Agency;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -17,11 +16,6 @@ class KoraDepartureSeeder extends Seeder
 {
     public function run(): void
     {
-        $agency = Agency::query()->where('code', 'CTN')->first();
-        if ($agency === null) {
-            return;
-        }
-
         $line = Line::query()->where('code', 'L1')->first();
         if ($line === null) {
             return;
@@ -33,6 +27,7 @@ class KoraDepartureSeeder extends Seeder
                 'uuid' => (string) \Str::uuid(),
                 'name' => 'Cotonou - Lomé',
                 'type' => 'internationale',
+                'bidirectional' => true,
                 'countries_crossed' => ['BJ', 'TG'],
                 'distance_km' => 170,
                 'estimated_duration_minutes' => 210,
@@ -164,7 +159,6 @@ class KoraDepartureSeeder extends Seeder
                 ],
                 [
                     'uuid' => (string) Str::uuid(),
-                    'agency_id' => $agency->id,
                     'estimated_arrival_at' => $estimatedArrivalAt,
                     'driver_id' => $data['driver']?->id,
                     'conductor_id' => $data['conductor']?->id,

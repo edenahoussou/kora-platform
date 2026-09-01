@@ -13,9 +13,11 @@ use Database\Seeders\KoraCounterSaleSeeder;
 use Database\Seeders\KoraDemoUserSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 beforeEach(function (): void {
     Carbon::setTestNow('2026-08-19 07:00:00');
+    Storage::fake('private');
     $this->seed(KoraBusRolePermissionSeeder::class);
 });
 
