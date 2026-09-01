@@ -1,4 +1,13 @@
-import { AlertTriangle, ArrowLeft, ArrowRight, Bus, ChevronRight, Info, User, Users } from 'lucide-react';
+import {
+    AlertTriangle,
+    ArrowLeft,
+    ArrowRight,
+    Bus,
+    ChevronRight,
+    Info,
+    User,
+    Users,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
     ProgrammingButton as Button,
@@ -39,7 +48,8 @@ export function PlanningCalendar({
     if (items.length === 0) {
         return (
             <Empty title="Aucun départ sur cette sélection">
-                Préparez une période depuis un modèle ou ajustez les filtres ci-dessus pour afficher vos départs.
+                Préparez une période depuis un modèle ou ajustez les filtres
+                ci-dessus pour afficher vos départs.
             </Empty>
         );
     }
@@ -68,7 +78,11 @@ export function PlanningCalendar({
                     className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border border-border bg-kora/[0.03] px-4 py-3 text-xs text-muted-foreground"
                 >
                     <span className="inline-flex items-center gap-1.5 font-bold text-foreground">
-                        <Info size={15} strokeWidth={2} className="text-kora dark:text-gold" />
+                        <Info
+                            size={15}
+                            strokeWidth={2}
+                            className="text-kora dark:text-gold"
+                        />
                         À traiter sur cette sélection :
                     </span>
                     {blockedCount > 0 && (
@@ -105,15 +119,26 @@ export function PlanningCalendar({
                         (p) => p.uuid === item.snapshot.conductor_uuid,
                     );
                     const hasBus = item.snapshot.bus_uuid !== null;
-                    const dayName = days[new Date(item.date + 'T12:00:00').getUTCDay() === 0 ? 6 : new Date(item.date + 'T12:00:00').getUTCDay() - 1];
-                    const dayNum = new Date(item.date + 'T12:00:00').getUTCDate();
+                    const dayName =
+                        days[
+                            new Date(item.date + 'T12:00:00').getUTCDay() === 0
+                                ? 6
+                                : new Date(
+                                      item.date + 'T12:00:00',
+                                  ).getUTCDay() - 1
+                        ];
+                    const dayNum = new Date(
+                        item.date + 'T12:00:00',
+                    ).getUTCDate();
 
                     return (
                         <div
                             key={item.uuid}
-                            style={{ animationDelay: `${Math.min(idx * 30, 300)}ms` }}
+                            style={{
+                                animationDelay: `${Math.min(idx * 30, 300)}ms`,
+                            }}
                             className={cn(
-                                'group relative animate-in fade-in slide-in-from-bottom-2 duration-400 rounded-2xl border bg-card p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(0,29,78,0.08)]',
+                                'group relative animate-in rounded-2xl border bg-card p-4 transition-all duration-200 duration-400 fade-in slide-in-from-bottom-2 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(0,29,78,0.08)]',
                                 item.state === 'blocked'
                                     ? 'border-destructive/30 hover:border-destructive/50 hover:shadow-[0_8px_30px_rgba(220,38,38,0.08)]'
                                     : 'border-border hover:border-gold hover:ring-1 hover:ring-gold/20',
@@ -122,9 +147,11 @@ export function PlanningCalendar({
                             {/* Checkbox de sélection */}
                             <input
                                 type="checkbox"
-                                className="absolute left-3 top-3 size-4 rounded-sm accent-gold cursor-pointer opacity-0 transition-opacity group-hover:opacity-100 [.touch_&]:opacity-100"
+                                className="absolute top-3 left-3 size-4 cursor-pointer rounded-sm accent-gold opacity-0 transition-opacity group-hover:opacity-100 [.touch_&]:opacity-100"
                                 checked={selected.includes(item.uuid)}
-                                disabled={item.manual || item.state === 'excluded'}
+                                disabled={
+                                    item.manual || item.state === 'excluded'
+                                }
                                 onChange={() => onSelect(item.uuid)}
                                 aria-label={`Sélectionner ${dateLabel(item.date)} à ${item.snapshot.time}`}
                             />
@@ -136,10 +163,10 @@ export function PlanningCalendar({
                                 {/* En-tête : badge date + direction + heure */}
                                 <div className="flex items-start gap-3">
                                     <div className="flex shrink-0 flex-col items-center rounded-lg bg-kora/[0.06] px-2 py-1.5 dark:bg-gold/[0.08]">
-                                        <span className="text-[0.5625rem] font-bold uppercase tracking-wider text-muted-foreground">
+                                        <span className="text-[0.5625rem] font-bold tracking-wider text-muted-foreground uppercase">
                                             {dayName}
                                         </span>
-                                        <strong className="text-lg font-black tabular-nums leading-none text-foreground">
+                                        <strong className="text-lg leading-none font-black text-foreground tabular-nums">
                                             {dayNum}
                                         </strong>
                                     </div>
@@ -153,9 +180,12 @@ export function PlanningCalendar({
                                                         : 'bg-gold/20 text-kora group-hover:-translate-x-0.5 dark:text-gold',
                                                 )}
                                             >
-                                                <DirectionIcon size={12} strokeWidth={2.5} />
+                                                <DirectionIcon
+                                                    size={12}
+                                                    strokeWidth={2.5}
+                                                />
                                             </span>
-                                            <strong className="text-base tabular-nums text-foreground">
+                                            <strong className="text-base text-foreground tabular-nums">
                                                 {item.snapshot.time}
                                             </strong>
                                             {item.isException && (
@@ -165,7 +195,8 @@ export function PlanningCalendar({
                                             )}
                                         </div>
                                         <span className="truncate text-xs font-extrabold text-foreground">
-                                            {line?.label ?? 'Ligne indisponible'}
+                                            {line?.label ??
+                                                'Ligne indisponible'}
                                         </span>
                                         <span className="truncate text-[0.6875rem] text-muted-foreground">
                                             {item.programmeName}
@@ -183,23 +214,39 @@ export function PlanningCalendar({
                                                 : 'font-semibold text-sky-700 dark:text-sky-300',
                                         )}
                                     >
-                                        <Bus size={12} strokeWidth={1.75} className={hasBus ? '' : 'animate-pulse'} />
+                                        <Bus
+                                            size={12}
+                                            strokeWidth={1.75}
+                                            className={
+                                                hasBus ? '' : 'animate-pulse'
+                                            }
+                                        />
                                         {bus?.label ?? 'Bus à affecter'}
                                         {bus && hasBus && (
-                                            <span className="text-muted-foreground/60">· {bus.capacity} pl.</span>
+                                            <span className="text-muted-foreground/60">
+                                                · {bus.capacity} pl.
+                                            </span>
                                         )}
                                     </span>
                                     {(driver || conductor) && (
                                         <div className="flex items-center gap-3 text-[0.625rem] text-muted-foreground">
                                             {driver && (
                                                 <span className="flex items-center gap-1 truncate">
-                                                    <User size={10} strokeWidth={2} className="text-kora dark:text-gold" />
+                                                    <User
+                                                        size={10}
+                                                        strokeWidth={2}
+                                                        className="text-kora dark:text-gold"
+                                                    />
                                                     {driver.label}
                                                 </span>
                                             )}
                                             {conductor && (
                                                 <span className="flex items-center gap-1 truncate">
-                                                    <Users size={10} strokeWidth={2} className="text-kora dark:text-gold" />
+                                                    <Users
+                                                        size={10}
+                                                        strokeWidth={2}
+                                                        className="text-kora dark:text-gold"
+                                                    />
                                                     {conductor.label}
                                                 </span>
                                             )}
@@ -249,17 +296,21 @@ export function PlanningCalendar({
                                 className={cn(
                                     'p-3 text-center transition-colors',
                                     date === today()
-                                        ? 'bg-gold/15 ring-1 ring-inset ring-gold/30'
+                                        ? 'bg-gold/15 ring-1 ring-gold/30 ring-inset'
                                         : 'bg-kora/[0.04]',
                                 )}
                             >
-                                <span className="text-[0.625rem] font-extrabold tracking-wider uppercase text-muted-foreground">
+                                <span className="text-[0.625rem] font-extrabold tracking-wider text-muted-foreground uppercase">
                                     {days[i]}
                                 </span>
-                                <strong className={cn(
-                                    'mt-0.5 block text-xs font-extrabold tabular-nums',
-                                    date === today() ? 'text-gold' : 'text-foreground',
-                                )}>
+                                <strong
+                                    className={cn(
+                                        'mt-0.5 block text-xs font-extrabold tabular-nums',
+                                        date === today()
+                                            ? 'text-gold'
+                                            : 'text-foreground',
+                                    )}
+                                >
                                     {dateLabel(date)}
                                 </strong>
                             </div>
@@ -287,16 +338,20 @@ export function PlanningCalendar({
                                         </p>
                                         <div className="mt-2 flex items-center gap-1.5">
                                             <span
-                                                className={`rounded px-1.5 py-0.5 text-[0.625rem] font-bold ${sample.snapshot.direction === 'outbound'
-                                                    ? 'bg-digital/15 text-digital'
-                                                    : 'bg-gold/20 text-kora dark:text-gold'
-                                                    }`}
+                                                className={`rounded px-1.5 py-0.5 text-[0.625rem] font-bold ${
+                                                    sample.snapshot
+                                                        .direction ===
+                                                    'outbound'
+                                                        ? 'bg-digital/15 text-digital'
+                                                        : 'bg-gold/20 text-kora dark:text-gold'
+                                                }`}
                                             >
-                                                {sample.snapshot.direction === 'outbound'
+                                                {sample.snapshot.direction ===
+                                                'outbound'
                                                     ? 'Aller'
                                                     : 'Retour'}
                                             </span>
-                                            <span className="text-[0.6875rem] text-muted-foreground truncate">
+                                            <span className="truncate text-[0.6875rem] text-muted-foreground">
                                                 {sample.snapshot.timezone}
                                             </span>
                                         </div>
@@ -330,12 +385,13 @@ export function PlanningCalendar({
                                                     ))}
                                                 {daily.length > 3 && (
                                                     <button
-                                                        className="p-1.5 text-center text-xs font-semibold text-kora hover:underline dark:text-gold animate-pulse"
+                                                        className="animate-pulse p-1.5 text-center text-xs font-semibold text-kora hover:underline dark:text-gold"
                                                         onClick={() =>
                                                             onDay(date)
                                                         }
                                                     >
-                                                        + {daily.length - 3} autre(s)
+                                                        + {daily.length - 3}{' '}
+                                                        autre(s)
                                                     </button>
                                                 )}
                                             </div>
@@ -346,7 +402,8 @@ export function PlanningCalendar({
                         })}
                     </div>
                     <p className="mt-3 text-xs text-muted-foreground">
-                        Horaires locaux au départ · Cliquez sur un départ pour voir les détails, affecter un bus ou publier.
+                        Horaires locaux au départ · Cliquez sur un départ pour
+                        voir les détails, affecter un bus ou publier.
                     </p>
                 </div>
             )}
@@ -376,16 +433,24 @@ export function PlanningCalendar({
                                         : 'border-border bg-gradient-to-br from-card to-kora/[0.02] hover:border-gold',
                                 )}
                             >
-                                <span className={cn(
-                                    'text-xs font-extrabold tabular-nums',
-                                    date === today() ? 'text-gold' : 'text-foreground',
-                                )}>
+                                <span
+                                    className={cn(
+                                        'text-xs font-extrabold tabular-nums',
+                                        date === today()
+                                            ? 'text-gold'
+                                            : 'text-foreground',
+                                    )}
+                                >
                                     {dateLabel(date)}
                                 </span>
-                                <span className={cn(
-                                    'text-xs font-semibold',
-                                    daily.length === 0 ? 'text-muted-foreground/50' : 'text-muted-foreground',
-                                )}>
+                                <span
+                                    className={cn(
+                                        'text-xs font-semibold',
+                                        daily.length === 0
+                                            ? 'text-muted-foreground/50'
+                                            : 'text-muted-foreground',
+                                    )}
+                                >
                                     {daily.length} départ(s)
                                 </span>
                                 {statesPresent.length > 0 && (
@@ -420,8 +485,8 @@ export function PlanningCalendar({
                     view === 'week'
                         ? '@[1100px]:hidden'
                         : view === 'month'
-                            ? 'md:hidden'
-                            : ''
+                          ? 'md:hidden'
+                          : ''
                 }
             >
                 {list}
@@ -434,7 +499,8 @@ export function PlanningCalendar({
                         onClick={() => onDay(from)}
                         className="gap-1 text-xs text-kora hover:underline dark:text-gold"
                     >
-                        Afficher la vue liste complète <ChevronRight size={14} />
+                        Afficher la vue liste complète{' '}
+                        <ChevronRight size={14} />
                     </Button>
                 </div>
             )}

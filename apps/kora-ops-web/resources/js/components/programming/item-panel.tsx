@@ -95,7 +95,8 @@ export function ItemPanel({
     }
 
     const assignedBus = refs.buses.find((b) => b.uuid === slot.bus_uuid);
-    const DirectionIcon = slot.direction === 'outbound' ? ArrowRight : ArrowLeft;
+    const DirectionIcon =
+        slot.direction === 'outbound' ? ArrowRight : ArrowLeft;
 
     return (
         <>
@@ -108,13 +109,14 @@ export function ItemPanel({
                 }}
             >
                 <SheetContent className="w-full overflow-y-auto px-6 pb-8 sm:max-w-[520px]">
-                    <SheetHeader className="px-0 pb-4 border-b border-border">
+                    <SheetHeader className="border-b border-border px-0 pb-4">
                         <div className="flex items-center gap-2">
                             <span
-                                className={`grid size-7 place-items-center rounded-lg text-xs font-black ${slot.direction === 'outbound'
-                                    ? 'bg-digital/15 text-digital'
-                                    : 'bg-gold/20 text-kora dark:text-gold'
-                                    }`}
+                                className={`grid size-7 place-items-center rounded-lg text-xs font-black ${
+                                    slot.direction === 'outbound'
+                                        ? 'bg-digital/15 text-digital'
+                                        : 'bg-gold/20 text-kora dark:text-gold'
+                                }`}
                             >
                                 <DirectionIcon size={15} strokeWidth={2.5} />
                             </span>
@@ -122,7 +124,7 @@ export function ItemPanel({
                                 {line?.label ?? 'Départ'}
                             </SheetTitle>
                         </div>
-                        <SheetDescription className="flex items-center gap-2 text-xs font-medium text-muted-foreground mt-1">
+                        <SheetDescription className="mt-1 flex items-center gap-2 text-xs font-medium text-muted-foreground">
                             <Calendar size={13} /> {dateLabel(item.date)} ·{' '}
                             <Clock size={13} />{' '}
                             <span className="font-mono font-bold text-foreground">
@@ -140,11 +142,11 @@ export function ItemPanel({
 
                         {item.blockers.length > 0 && (
                             <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-xs font-semibold text-destructive">
-                                <div className="flex items-center gap-2 mb-1.5 font-extrabold">
+                                <div className="mb-1.5 flex items-center gap-2 font-extrabold">
                                     <AlertTriangle size={15} />
                                     Blocages à résoudre avant publication :
                                 </div>
-                                <ul className="list-disc list-inside space-y-1">
+                                <ul className="list-inside list-disc space-y-1">
                                     {item.blockers.map((b, i) => (
                                         <li key={i}>{b}</li>
                                     ))}
@@ -168,11 +170,17 @@ export function ItemPanel({
                                         Modifier ce départ ponctuel
                                     </h3>
                                     <p className="mt-0.5 text-xs text-muted-foreground">
-                                        Ces changements s'appliquent uniquement à cette date spécifique sans altérer le modèle général.
+                                        Ces changements s'appliquent uniquement
+                                        à cette date spécifique sans altérer le
+                                        modèle général.
                                     </p>
                                 </div>
 
-                                <Field label="Heure locale de départ" icon={Clock} required>
+                                <Field
+                                    label="Heure locale de départ"
+                                    icon={Clock}
+                                    required
+                                >
                                     <Input
                                         type="time"
                                         value={slot.time}
@@ -218,7 +226,10 @@ export function ItemPanel({
                                 {/* PARCOURS ET ARRÊTS */}
                                 <section className="grid gap-3 rounded-2xl border border-border bg-card p-4">
                                     <h3 className="flex items-center gap-1.5 text-xs font-extrabold text-foreground">
-                                        <MapPin size={14} className="text-kora dark:text-gold" />
+                                        <MapPin
+                                            size={14}
+                                            className="text-kora dark:text-gold"
+                                        />
                                         Itinéraire & Heures de passage
                                     </h3>
                                     <div className="space-y-3 pt-1">
@@ -228,17 +239,22 @@ export function ItemPanel({
                                                 stop.departure_minutes ??
                                                 0;
                                             const instant = new Date(
-                                                new Date(item.scheduledAt).getTime() +
-                                                minutes * 60000,
+                                                new Date(
+                                                    item.scheduledAt,
+                                                ).getTime() +
+                                                    minutes * 60000,
                                             );
-                                            const localDate = new Intl.DateTimeFormat(
-                                                'en-CA',
-                                                { timeZone: stop.timezone },
-                                            ).format(instant);
+                                            const localDate =
+                                                new Intl.DateTimeFormat(
+                                                    'en-CA',
+                                                    { timeZone: stop.timezone },
+                                                ).format(instant);
                                             const dayOffset = Math.round(
                                                 (new Date(localDate).getTime() -
-                                                    new Date(item.date).getTime()) /
-                                                86400000,
+                                                    new Date(
+                                                        item.date,
+                                                    ).getTime()) /
+                                                    86400000,
                                             );
 
                                             return (
@@ -261,7 +277,8 @@ export function ItemPanel({
                                                         {instant.toLocaleTimeString(
                                                             'fr-FR',
                                                             {
-                                                                timeZone: stop.timezone,
+                                                                timeZone:
+                                                                    stop.timezone,
                                                                 hour: '2-digit',
                                                                 minute: '2-digit',
                                                             },
@@ -281,31 +298,41 @@ export function ItemPanel({
                                 {/* RESSOURCES AFFECTÉES */}
                                 <section className="grid gap-3 rounded-2xl border border-border bg-card p-4">
                                     <h3 className="flex items-center gap-1.5 text-xs font-extrabold text-foreground">
-                                        <Bus size={14} className="text-kora dark:text-gold" />
+                                        <Bus
+                                            size={14}
+                                            className="text-kora dark:text-gold"
+                                        />
                                         Ressources affectées
                                     </h3>
 
                                     <div className="flex items-center justify-between rounded-lg bg-muted/40 p-2.5 text-xs">
-                                        <span className="text-muted-foreground font-medium">Bus :</span>
+                                        <span className="font-medium text-muted-foreground">
+                                            Bus :
+                                        </span>
                                         <span className="font-extrabold text-foreground">
-                                            {assignedBus ? `${assignedBus.label} (${assignedBus.capacity} pl)` : 'Non affecté'}
+                                            {assignedBus
+                                                ? `${assignedBus.label} (${assignedBus.capacity} pl)`
+                                                : 'Non affecté'}
                                         </span>
                                     </div>
 
                                     <div className="grid gap-2 text-xs">
                                         {crewFields.map((c) => {
-                                            const person = refs.people.find((p) => p.uuid === slot[c.key]);
+                                            const person = refs.people.find(
+                                                (p) => p.uuid === slot[c.key],
+                                            );
 
                                             return (
                                                 <div
                                                     key={c.key}
-                                                    className="flex items-center justify-between text-xs py-1 border-b border-border/40 last:border-none"
+                                                    className="flex items-center justify-between border-b border-border/40 py-1 text-xs last:border-none"
                                                 >
                                                     <span className="text-muted-foreground">
                                                         {c.label}
                                                     </span>
                                                     <span className="font-semibold text-foreground">
-                                                        {person?.label ?? 'Non affecté'}
+                                                        {person?.label ??
+                                                            'Non affecté'}
                                                     </span>
                                                 </div>
                                             );
@@ -317,16 +344,20 @@ export function ItemPanel({
                                 <section className="rounded-xl border border-border bg-muted/30 p-3.5 text-xs text-muted-foreground">
                                     <div className="flex items-center justify-between">
                                         <span>Programme d'origine :</span>
-                                        <strong className="text-foreground">{item.programmeName}</strong>
+                                        <strong className="text-foreground">
+                                            {item.programmeName}
+                                        </strong>
                                     </div>
                                     {item.isException && (
-                                        <span className="mt-1 block text-gold font-semibold">
-                                            • Ce départ comporte des exceptions manuelles.
+                                        <span className="mt-1 block font-semibold text-gold">
+                                            • Ce départ comporte des exceptions
+                                            manuelles.
                                         </span>
                                     )}
                                     {item.protected && (
-                                        <span className="mt-1 flex items-center gap-1 text-sky-700 dark:text-sky-300 font-semibold">
-                                            <ShieldAlert size={13} /> Départ protégé (billets vendus).
+                                        <span className="mt-1 flex items-center gap-1 font-semibold text-sky-700 dark:text-sky-300">
+                                            <ShieldAlert size={13} /> Départ
+                                            protégé (billets vendus).
                                         </span>
                                     )}
                                 </section>
@@ -335,26 +366,35 @@ export function ItemPanel({
                                 <div className="mt-auto grid gap-2.5 pt-4">
                                     {item.departureUuid && (
                                         <Button asChild className="gap-2">
-                                            <Link href={departures.show(item.departureUuid)}>
+                                            <Link
+                                                href={departures.show(
+                                                    item.departureUuid,
+                                                )}
+                                            >
                                                 <FileCheck2 size={15} />
-                                                Ouvrir la fiche de vente et contrôle
+                                                Ouvrir la fiche de vente et
+                                                contrôle
                                             </Link>
                                         </Button>
                                     )}
 
-                                    {!item.protected && item.state !== 'excluded' && (
-                                        <Button
-                                            variant="outline"
-                                            onClick={() => setEditing(true)}
-                                            className="gap-2"
-                                        >
-                                            Modifier cette date / affecter les ressources
-                                        </Button>
-                                    )}
+                                    {!item.protected &&
+                                        item.state !== 'excluded' && (
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => setEditing(true)}
+                                                className="gap-2"
+                                            >
+                                                Modifier cette date / affecter
+                                                les ressources
+                                            </Button>
+                                        )}
 
                                     {item.state === 'ready' && (
                                         <PrimaryButton
-                                            onClick={() => setConfirm('publish')}
+                                            onClick={() =>
+                                                setConfirm('publish')
+                                            }
                                             className="gap-2"
                                         >
                                             <CheckCircle2 size={16} />
@@ -362,16 +402,20 @@ export function ItemPanel({
                                         </PrimaryButton>
                                     )}
 
-                                    {canCancel && !item.protected && item.state !== 'excluded' && (
-                                        <Button
-                                            variant="ghost"
-                                            className="text-destructive hover:bg-destructive/10 hover:text-destructive gap-1.5"
-                                            onClick={() => setConfirm('exclude')}
-                                        >
-                                            <Trash2 size={14} />
-                                            Exclure cette date du programme
-                                        </Button>
-                                    )}
+                                    {canCancel &&
+                                        !item.protected &&
+                                        item.state !== 'excluded' && (
+                                            <Button
+                                                variant="ghost"
+                                                className="gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                onClick={() =>
+                                                    setConfirm('exclude')
+                                                }
+                                            >
+                                                <Trash2 size={14} />
+                                                Exclure cette date du programme
+                                            </Button>
+                                        )}
                                 </div>
                             </>
                         )}
@@ -390,17 +434,19 @@ export function ItemPanel({
                 action={
                     <PrimaryButton
                         disabled={api.busy}
-                        onClick={() => act(confirm === 'publish' ? 'publish' : 'exclude')}
+                        onClick={() =>
+                            act(confirm === 'publish' ? 'publish' : 'exclude')
+                        }
                     >
                         {api.busy
                             ? 'Traitement en cours…'
                             : confirm === 'publish'
-                                ? 'Confirmer la publication'
-                                : 'Confirmer l’exclusion'}
+                              ? 'Confirmer la publication'
+                              : 'Confirmer l’exclusion'}
                     </PrimaryButton>
                 }
             >
-                <p className="text-xs text-muted-foreground leading-relaxed">
+                <p className="text-xs leading-relaxed text-muted-foreground">
                     {confirm === 'publish'
                         ? 'Le départ deviendra visible pour tous les guichets et canaux de vente autorisés.'
                         : 'Le départ sera retiré du planning pour cette date. Vous pourrez le rétablir ultérieurement si nécessaire.'}

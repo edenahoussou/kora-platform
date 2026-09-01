@@ -88,13 +88,17 @@ export function ProgrammePanel({
             }}
         >
             <SheetContent className="w-full overflow-y-auto px-6 pb-8 sm:max-w-[620px]">
-                <SheetHeader className="px-0 pb-4 border-b border-border">
+                <SheetHeader className="border-b border-border px-0 pb-4">
                     <SheetTitle className="text-xl font-extrabold tracking-[-0.03em] text-foreground">
                         {p.name}
                     </SheetTitle>
-                    <SheetDescription className="text-xs text-muted-foreground mt-1">
-                        Modèle : <strong className="text-foreground">{p.templateName}</strong> · Version {p.version} ·{' '}
-                        {dateLabel(p.startsOn)} au {dateLabel(p.endsOn)}
+                    <SheetDescription className="mt-1 text-xs text-muted-foreground">
+                        Modèle :{' '}
+                        <strong className="text-foreground">
+                            {p.templateName}
+                        </strong>{' '}
+                        · Version {p.version} · {dateLabel(p.startsOn)} au{' '}
+                        {dateLabel(p.endsOn)}
                     </SheetDescription>
                 </SheetHeader>
 
@@ -107,10 +111,11 @@ export function ProgrammePanel({
                         <button
                             key={value}
                             onClick={() => setTab(value)}
-                            className={`flex-1 rounded-lg py-2 text-xs font-extrabold transition-colors ${tab === value
-                                ? 'bg-card text-foreground shadow-xs'
-                                : 'text-muted-foreground hover:text-foreground'
-                                }`}
+                            className={`flex-1 rounded-lg py-2 text-xs font-extrabold transition-colors ${
+                                tab === value
+                                    ? 'bg-card text-foreground shadow-xs'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            }`}
                         >
                             {label}
                         </button>
@@ -136,7 +141,7 @@ export function ProgrammePanel({
                                     <span className="text-[0.6875rem] font-bold text-muted-foreground uppercase">
                                         En préparation
                                     </span>
-                                    <p className="mt-1 text-2xl font-extrabold tabular-nums text-foreground">
+                                    <p className="mt-1 text-2xl font-extrabold text-foreground tabular-nums">
                                         {p.prepared}
                                     </p>
                                 </div>
@@ -144,7 +149,7 @@ export function ProgrammePanel({
                                     <span className="text-[0.6875rem] font-bold text-muted-foreground uppercase">
                                         Publiés (En vente)
                                     </span>
-                                    <p className="mt-1 text-2xl font-extrabold tabular-nums text-emerald-600 dark:text-emerald-400">
+                                    <p className="mt-1 text-2xl font-extrabold text-emerald-600 tabular-nums dark:text-emerald-400">
                                         {p.published}
                                     </p>
                                 </div>
@@ -154,21 +159,26 @@ export function ProgrammePanel({
                             <section className="grid gap-4 rounded-2xl border border-border bg-card p-5">
                                 <div className="flex items-center justify-between gap-3">
                                     <h3 className="text-xs font-extrabold text-foreground">
-                                        Horizon glissant et génération automatique
+                                        Horizon glissant et génération
+                                        automatique
                                     </h3>
                                     <span
-                                        className={`rounded-md px-2 py-0.5 text-[0.6875rem] font-bold ${p.automatic
-                                            ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                                            : 'bg-muted text-muted-foreground'
-                                            }`}
+                                        className={`rounded-md px-2 py-0.5 text-[0.6875rem] font-bold ${
+                                            p.automatic
+                                                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                                : 'bg-muted text-muted-foreground'
+                                        }`}
                                     >
                                         {p.automatic ? 'Actif' : 'En pause'}
                                     </span>
                                 </div>
 
                                 <p className="text-xs leading-relaxed text-muted-foreground">
-                                    Le programme maintient automatiquement un stock de départs d'avance sur l'horizon configuré.
-                                    Les départs complets avec bus assigné sont publiés directement ; les autres restent en préparation.
+                                    Le programme maintient automatiquement un
+                                    stock de départs d'avance sur l'horizon
+                                    configuré. Les départs complets avec bus
+                                    assigné sont publiés directement ; les
+                                    autres restent en préparation.
                                 </p>
 
                                 <Field
@@ -194,11 +204,19 @@ export function ProgrammePanel({
                                         disabled={api.busy}
                                         onClick={async () => {
                                             const autoFrom =
-                                                today() < p.startsOn ? p.startsOn : today();
+                                                today() < p.startsOn
+                                                    ? p.startsOn
+                                                    : today();
                                             const autoUntil =
-                                                shiftDate(today(), horizon - 1) > p.endsOn
+                                                shiftDate(
+                                                    today(),
+                                                    horizon - 1,
+                                                ) > p.endsOn
                                                     ? p.endsOn
-                                                    : shiftDate(today(), horizon - 1);
+                                                    : shiftDate(
+                                                          today(),
+                                                          horizon - 1,
+                                                      );
                                             setAutoPreview(
                                                 await api.send<Preview>(path, {
                                                     operation: 'preview',
@@ -214,15 +232,26 @@ export function ProgrammePanel({
 
                                 {autoPreview && (
                                     <div className="rounded-xl border border-border bg-muted/40 p-3.5 text-xs text-foreground">
-                                        <strong>{autoPreview.counts.create}</strong> départs calculés ·{' '}
+                                        <strong>
+                                            {autoPreview.counts.create}
+                                        </strong>{' '}
+                                        départs calculés ·{' '}
                                         <strong className="text-emerald-600">
-                                            {autoPreview.rows.filter((r) => r.state === 'ready').length} prêts à publier
+                                            {
+                                                autoPreview.rows.filter(
+                                                    (r) => r.state === 'ready',
+                                                ).length
+                                            }{' '}
+                                            prêts à publier
                                         </strong>
                                     </div>
                                 )}
 
                                 <PrimaryButton
-                                    disabled={api.busy || (!p.automatic && autoPreview === null)}
+                                    disabled={
+                                        api.busy ||
+                                        (!p.automatic && autoPreview === null)
+                                    }
                                     onClick={automate}
                                 >
                                     {p.automatic
@@ -285,7 +314,10 @@ export function ProgrammePanel({
                                 {preview && (
                                     <div className="grid gap-3">
                                         <div className="rounded-xl border border-border bg-muted/40 p-3 text-xs">
-                                            <strong>{preview.counts.create}</strong> départs à ajouter au planning.
+                                            <strong>
+                                                {preview.counts.create}
+                                            </strong>{' '}
+                                            départs à ajouter au planning.
                                         </div>
                                         <PrimaryButton
                                             disabled={api.busy}
@@ -303,7 +335,8 @@ export function ProgrammePanel({
                         <div className="grid gap-3">
                             {p.exceptions.length === 0 ? (
                                 <div className="rounded-xl border border-dashed border-border bg-muted/20 p-6 text-center text-xs text-muted-foreground">
-                                    Aucune exception enregistrée pour ce programme.
+                                    Aucune exception enregistrée pour ce
+                                    programme.
                                 </div>
                             ) : (
                                 p.exceptions.map((exc, i) => (
@@ -312,13 +345,15 @@ export function ProgrammePanel({
                                         className="flex items-center justify-between rounded-xl border border-border bg-card p-3.5 text-xs"
                                     >
                                         <div>
-                                            <strong className="text-foreground">{dateLabel(exc.date)}</strong>
+                                            <strong className="text-foreground">
+                                                {dateLabel(exc.date)}
+                                            </strong>
                                             <span className="ml-2 text-muted-foreground">
                                                 {exc.action === 'exclude'
                                                     ? 'Départ annulé'
                                                     : exc.action === 'add'
-                                                        ? `Ajout exceptionnel (${exc.time || 'standard'})`
-                                                        : `Modification (${exc.time || 'standard'})`}
+                                                      ? `Ajout exceptionnel (${exc.time || 'standard'})`
+                                                      : `Modification (${exc.time || 'standard'})`}
                                             </span>
                                         </div>
                                     </div>
@@ -329,7 +364,8 @@ export function ProgrammePanel({
 
                     {tab === 'history' && (
                         <div className="grid gap-3">
-                            {runs.filter((r) => r.programmeUuid === p.uuid).length === 0 ? (
+                            {runs.filter((r) => r.programmeUuid === p.uuid)
+                                .length === 0 ? (
                                 <div className="rounded-xl border border-dashed border-border bg-muted/20 p-6 text-center text-xs text-muted-foreground">
                                     Aucun traitement récent archivé.
                                 </div>
@@ -342,15 +378,19 @@ export function ProgrammePanel({
                                             className="rounded-xl border border-border bg-card p-4 text-xs"
                                         >
                                             <div className="flex items-center justify-between">
-                                                <strong className="text-foreground uppercase tracking-wider text-[0.6875rem]">
+                                                <strong className="text-[0.6875rem] tracking-wider text-foreground uppercase">
                                                     {run.operation}
                                                 </strong>
                                                 <span className="text-muted-foreground">
-                                                    {new Date(run.at).toLocaleString('fr-FR')}
+                                                    {new Date(
+                                                        run.at,
+                                                    ).toLocaleString('fr-FR')}
                                                 </span>
                                             </div>
                                             <p className="mt-2 text-muted-foreground">
-                                                {run.processed} départ(s) traité(s) · Statut : {run.status}
+                                                {run.processed} départ(s)
+                                                traité(s) · Statut :{' '}
+                                                {run.status}
                                             </p>
                                         </div>
                                     ))

@@ -38,8 +38,14 @@ function safeLocalParts(instant: number, timezone: string) {
 }
 
 function safeInstantFor(date: string, time: string, timezone: string): number {
-    const validDate = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : '2026-01-01';
-    const validTime = time && /^\d{1,2}:\d{2}$/.test(time) ? (time.length === 4 ? `0${time}` : time) : '00:00';
+    const validDate =
+        date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : '2026-01-01';
+    const validTime =
+        time && /^\d{1,2}:\d{2}$/.test(time)
+            ? time.length === 4
+                ? `0${time}`
+                : time
+            : '00:00';
 
     const target = Date.parse(`${validDate}T${validTime}:00Z`);
 
@@ -163,7 +169,7 @@ function ClockField({
                             change(local.time, newDay);
                         }
                     }}
-                    className="h-10 shrink-0 rounded-[10px] border border-border bg-background px-2.5 text-xs font-semibold text-foreground outline-none transition-colors focus:border-gold focus:ring-2 focus:ring-gold/20 disabled:opacity-40"
+                    className="h-10 shrink-0 rounded-[10px] border border-border bg-background px-2.5 text-xs font-semibold text-foreground transition-colors outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 disabled:opacity-40"
                 >
                     <option value={0}>Même jour (J)</option>
                     <option value={1}>Lendemain (J+1)</option>
@@ -185,7 +191,8 @@ export function StopTimetable({
     onChange: (changes: Partial<Slot>) => void;
 }) {
     const [date] = useState(today());
-    const slotTime = slot.time && /^\d{1,2}:\d{2}$/.test(slot.time) ? slot.time : '07:00';
+    const slotTime =
+        slot.time && /^\d{1,2}:\d{2}$/.test(slot.time) ? slot.time : '07:00';
     const base = safeInstantFor(date, slotTime, slot.timezone || refs.timezone);
     const line = refs.lines.find((l) => l.uuid === slot.line_uuid);
 
@@ -197,7 +204,9 @@ export function StopTimetable({
         onChange({
             stops,
             duration_minutes:
-                lastArrival !== null && lastArrival !== undefined && !isNaN(lastArrival)
+                lastArrival !== null &&
+                lastArrival !== undefined &&
+                !isNaN(lastArrival)
                     ? lastArrival
                     : slot.duration_minutes,
         });
@@ -207,12 +216,14 @@ export function StopTimetable({
         return (
             <div className="rounded-xl border border-dashed border-border bg-muted/30 p-6 text-center text-xs text-muted-foreground">
                 <MapPin className="mx-auto mb-2 size-6 text-muted-foreground/60" />
-                Veuillez sélectionner une ligne à l’étape précédente pour configurer les arrêts et horaires.
+                Veuillez sélectionner une ligne à l’étape précédente pour
+                configurer les arrêts et horaires.
             </div>
         );
     }
 
-    const totalDurationMinutes = slot.stops.at(-1)?.arrival_minutes ?? slot.duration_minutes ?? 0;
+    const totalDurationMinutes =
+        slot.stops.at(-1)?.arrival_minutes ?? slot.duration_minutes ?? 0;
     const hours = Math.floor(Math.max(0, totalDurationMinutes) / 60);
     const mins = Math.max(0, totalDurationMinutes) % 60;
 
@@ -225,13 +236,20 @@ export function StopTimetable({
                             Itinéraire et horaires d'arrêt
                         </h4>
                         <p className="mt-1 text-xs text-muted-foreground">
-                            Indiquez les heures locales de passage pour chaque agence/arrêt. Les durées de trajet sont calculées automatiquement.
+                            Indiquez les heures locales de passage pour chaque
+                            agence/arrêt. Les durées de trajet sont calculées
+                            automatiquement.
                         </p>
                     </div>
-                    <div className="inline-flex items-center gap-2 rounded-lg bg-card px-3 py-1.5 text-xs font-bold shadow-xs border border-border">
-                        <span className="text-muted-foreground">Durée totale estimée :</span>
+                    <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-bold shadow-xs">
+                        <span className="text-muted-foreground">
+                            Durée totale estimée :
+                        </span>
                         <span className="font-extrabold text-kora dark:text-gold">
-                            {hours}h {mins > 0 ? `${String(mins).padStart(2, '0')}min` : ''}
+                            {hours}h{' '}
+                            {mins > 0
+                                ? `${String(mins).padStart(2, '0')}min`
+                                : ''}
                         </span>
                     </div>
                 </div>
@@ -241,7 +259,9 @@ export function StopTimetable({
                 {slot.stops.map((stop, i) => {
                     const isFirst = i === 0;
                     const isLast = i === slot.stops.length - 1;
-                    const stopRef = line?.stops.find((s) => s.uuid === stop.stop_uuid);
+                    const stopRef = line?.stops.find(
+                        (s) => s.uuid === stop.stop_uuid,
+                    );
                     const stopName = stopRef?.label || `Arrêt ${i + 1}`;
 
                     const arrivalMin = stop.arrival_minutes;
@@ -260,12 +280,13 @@ export function StopTimetable({
                             className="relative flex items-start gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-gold/50"
                         >
                             <span
-                                className={`relative z-10 mt-1 flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-black shadow-xs ${isFirst
-                                    ? 'bg-emerald-500 text-white'
-                                    : isLast
-                                        ? 'bg-kora text-white dark:bg-gold dark:text-kora'
-                                        : 'border border-border bg-muted text-foreground'
-                                    }`}
+                                className={`relative z-10 mt-1 flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-black shadow-xs ${
+                                    isFirst
+                                        ? 'bg-emerald-500 text-white'
+                                        : isLast
+                                          ? 'bg-kora text-white dark:bg-gold dark:text-kora'
+                                          : 'border border-border bg-muted text-foreground'
+                                }`}
                             >
                                 {i + 1}
                             </span>
@@ -280,17 +301,25 @@ export function StopTimetable({
                                             {isFirst
                                                 ? 'Départ initial'
                                                 : isLast
-                                                    ? 'Terminus / Destination finale'
-                                                    : 'Arrêt intermédiaire'}
-                                            {stopRef?.country ? ` · ${stopRef.country}` : ''}
+                                                  ? 'Terminus / Destination finale'
+                                                  : 'Arrêt intermédiaire'}
+                                            {stopRef?.country
+                                                ? ` · ${stopRef.country}`
+                                                : ''}
                                         </span>
                                     </div>
 
-                                    {arrivalMin !== null && !isFirst && arrivalHours !== null && (
-                                        <span className="rounded-md bg-muted px-2 py-0.5 text-[0.6875rem] font-bold text-muted-foreground">
-                                            +{arrivalHours}h {arrivalMins ? `${arrivalMins}m` : ''} après le départ
-                                        </span>
-                                    )}
+                                    {arrivalMin !== null &&
+                                        !isFirst &&
+                                        arrivalHours !== null && (
+                                            <span className="rounded-md bg-muted px-2 py-0.5 text-[0.6875rem] font-bold text-muted-foreground">
+                                                +{arrivalHours}h{' '}
+                                                {arrivalMins
+                                                    ? `${arrivalMins}m`
+                                                    : ''}{' '}
+                                                après le départ
+                                            </span>
+                                        )}
                                 </div>
 
                                 <div className="grid gap-3 sm:grid-cols-2">
@@ -300,21 +329,35 @@ export function StopTimetable({
                                             value={stop.arrival_minutes}
                                             base={base}
                                             date={date}
-                                            timezone={stop.timezone || slot.timezone}
+                                            timezone={
+                                                stop.timezone || slot.timezone
+                                            }
                                             disabled={false}
                                             required={isLast}
                                             hint="Heure locale à laquelle le bus arrive à cet arrêt."
-                                            onChange={(v) => patch(i, { arrival_minutes: v })}
+                                            onChange={(v) =>
+                                                patch(i, { arrival_minutes: v })
+                                            }
                                         />
                                     )}
 
                                     {!isLast && (
                                         <ClockField
-                                            label={isFirst ? 'Heure de départ (initial)' : 'Heure de redémarrage'}
-                                            value={isFirst ? 0 : stop.departure_minutes}
+                                            label={
+                                                isFirst
+                                                    ? 'Heure de départ (initial)'
+                                                    : 'Heure de redémarrage'
+                                            }
+                                            value={
+                                                isFirst
+                                                    ? 0
+                                                    : stop.departure_minutes
+                                            }
                                             base={base}
                                             date={date}
-                                            timezone={stop.timezone || slot.timezone}
+                                            timezone={
+                                                stop.timezone || slot.timezone
+                                            }
                                             disabled={isFirst}
                                             required={isFirst}
                                             hint={
@@ -322,7 +365,11 @@ export function StopTimetable({
                                                     ? 'Départ initial calé sur l’horaire du modèle.'
                                                     : 'Heure locale à laquelle le bus repart de l’arrêt.'
                                             }
-                                            onChange={(v) => patch(i, { departure_minutes: v })}
+                                            onChange={(v) =>
+                                                patch(i, {
+                                                    departure_minutes: v,
+                                                })
+                                            }
                                         />
                                     )}
                                 </div>
@@ -339,7 +386,9 @@ export function StopTimetable({
                                             label: formatTimezoneLabel(z),
                                         }))}
                                         onChange={(v) =>
-                                            patch(i, { timezone: v || slot.timezone })
+                                            patch(i, {
+                                                timezone: v || slot.timezone,
+                                            })
                                         }
                                     />
                                 </div>

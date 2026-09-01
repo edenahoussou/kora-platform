@@ -171,7 +171,10 @@ export function LineFormDialog({ open, line, statuses, onOpenChange }: Props) {
                                             Ligne Aller-Retour
                                         </Label>
                                         <p className="text-xs text-muted-foreground">
-                                            Cette ligne est exploitable dans les deux sens. Les arrêts du retour seront automatiquement inversés lors de la création du modèle.
+                                            Cette ligne est exploitable dans les
+                                            deux sens. Les arrêts du retour
+                                            seront automatiquement inversés lors
+                                            de la création du modèle.
                                         </p>
                                     </div>
                                     <label className="relative inline-flex shrink-0 cursor-pointer items-center">
@@ -190,7 +193,7 @@ export function LineFormDialog({ open, line, statuses, onOpenChange }: Props) {
                                             }
                                             className="peer sr-only"
                                         />
-                                        <span className="grid h-7 w-12 place-items-center rounded-full bg-muted-foreground/30 transition-colors peer-checked:bg-gold peer-focus-visible:ring-2 peer-focus-visible:ring-gold/40 after:absolute after:left-1 after:top-1 after:size-5 after:rounded-full after:bg-white after:transition-transform after:content-[''] peer-checked:after:translate-x-5" />
+                                        <span className="grid h-7 w-12 place-items-center rounded-full bg-muted-foreground/30 transition-colors peer-checked:bg-gold peer-focus-visible:ring-2 peer-focus-visible:ring-gold/40 after:absolute after:top-1 after:left-1 after:size-5 after:rounded-full after:bg-white after:transition-transform after:content-[''] peer-checked:after:translate-x-5" />
                                     </label>
                                 </div>
                                 <div className="grid gap-5 sm:grid-cols-2">
@@ -255,8 +258,8 @@ export function LineFormDialog({ open, line, statuses, onOpenChange }: Props) {
                                     {processing
                                         ? 'Enregistrement…'
                                         : editing
-                                            ? 'Enregistrer les changements'
-                                            : 'Créer la ligne'}
+                                          ? 'Enregistrer les changements'
+                                          : 'Créer la ligne'}
                                 </Button>
                             </div>
                         </>

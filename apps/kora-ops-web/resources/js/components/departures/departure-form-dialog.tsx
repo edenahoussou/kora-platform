@@ -232,8 +232,8 @@ export function DepartureFormDialog({
                                     {processing
                                         ? 'Enregistrement…'
                                         : editing
-                                            ? 'Enregistrer les changements'
-                                            : 'Créer le départ'}
+                                          ? 'Enregistrer les changements'
+                                          : 'Créer le départ'}
                                 </Button>
                             </div>
                         </>

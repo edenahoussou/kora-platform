@@ -217,7 +217,7 @@ export default function ProgrammingPage({
     return (
         <>
             <Head title="Programmation des départs" />
-            <div className="w-full grid gap-6 pb-24">
+            <div className="grid w-full gap-6 pb-24">
                 {/* HEADER */}
                 <header className="flex flex-wrap items-end justify-between gap-5">
                     <div>
@@ -228,15 +228,13 @@ export default function ProgrammingPage({
                             Programmation des départs
                         </h1>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            Générez vos départs réguliers depuis des modèles types, affectez vos bus et publiez vos plannings pour la vente.
+                            Générez vos départs réguliers depuis des modèles
+                            types, affectez vos bus et publiez vos plannings
+                            pour la vente.
                         </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2.5">
-                        <Button
-                            variant="outline"
-                            asChild
-                            className="gap-2"
-                        >
+                        <Button variant="outline" asChild className="gap-2">
                             <Link href={departures.index()}>
                                 <FilePlus2 size={15} />
                                 Départ ponctuel
@@ -264,32 +262,40 @@ export default function ProgrammingPage({
                     className="grid gap-4 md:grid-cols-3"
                     aria-label="Parcours de programmation"
                 >
-                    {flow.map(({ icon: Icon, title, text, href, action: actionLabel }) => (
-                        <Link
-                            key={title}
-                            href={href}
-                            className="group flex flex-col justify-between rounded-2xl border border-border bg-card p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-gold hover:shadow-xs"
-                        >
-                            <div>
-                                <span className="grid size-10 place-items-center rounded-xl bg-gold/15 text-kora transition-transform group-hover:scale-105 dark:text-gold">
-                                    <Icon size={20} strokeWidth={2} />
+                    {flow.map(
+                        ({
+                            icon: Icon,
+                            title,
+                            text,
+                            href,
+                            action: actionLabel,
+                        }) => (
+                            <Link
+                                key={title}
+                                href={href}
+                                className="group flex flex-col justify-between rounded-2xl border border-border bg-card p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-gold hover:shadow-xs"
+                            >
+                                <div>
+                                    <span className="grid size-10 place-items-center rounded-xl bg-gold/15 text-kora transition-transform group-hover:scale-105 dark:text-gold">
+                                        <Icon size={20} strokeWidth={2} />
+                                    </span>
+                                    <h2 className="mt-4 text-sm font-extrabold tracking-[-0.02em] text-foreground">
+                                        {title}
+                                    </h2>
+                                    <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                                        {text}
+                                    </p>
+                                </div>
+                                <span className="mt-4 inline-flex items-center gap-1 text-xs font-extrabold text-kora dark:text-gold">
+                                    {actionLabel}{' '}
+                                    <ChevronRight
+                                        size={14}
+                                        className="transition-transform group-hover:translate-x-1"
+                                    />
                                 </span>
-                                <h2 className="mt-4 text-sm font-extrabold tracking-[-0.02em] text-foreground">
-                                    {title}
-                                </h2>
-                                <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                                    {text}
-                                </p>
-                            </div>
-                            <span className="mt-4 inline-flex items-center gap-1 text-xs font-extrabold text-kora dark:text-gold">
-                                {actionLabel}{' '}
-                                <ChevronRight
-                                    size={14}
-                                    className="transition-transform group-hover:translate-x-1"
-                                />
-                            </span>
-                        </Link>
-                    ))}
+                            </Link>
+                        ),
+                    )}
                 </section>
 
                 {/* OVERVIEW STATS */}
@@ -319,24 +325,24 @@ export default function ProgrammingPage({
                         </div>
                         {showGuide && (
                             <div className="mt-4 grid gap-3 border-t border-border pt-4 sm:grid-cols-3">
-                                <div className="rounded-xl bg-gold/10 p-3.5 border border-gold/20">
-                                    <span className="text-2xl font-black tabular-nums text-foreground">
+                                <div className="rounded-xl border border-gold/20 bg-gold/10 p-3.5">
+                                    <span className="text-2xl font-black text-foreground tabular-nums">
                                         {readyCount}
                                     </span>
                                     <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
                                         Prêts à publier (Complets)
                                     </p>
                                 </div>
-                                <div className="rounded-xl bg-destructive/10 p-3.5 border border-destructive/20">
-                                    <span className="text-2xl font-black tabular-nums text-destructive">
+                                <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-3.5">
+                                    <span className="text-2xl font-black text-destructive tabular-nums">
                                         {blockedCount}
                                     </span>
                                     <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
                                         À corriger (Alertes)
                                     </p>
                                 </div>
-                                <div className="rounded-xl bg-emerald-500/10 p-3.5 border border-emerald-500/20">
-                                    <span className="text-2xl font-black tabular-nums text-emerald-600 dark:text-emerald-400">
+                                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3.5">
+                                    <span className="text-2xl font-black text-emerald-600 tabular-nums dark:text-emerald-400">
                                         {publishedCount}
                                     </span>
                                     <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
@@ -347,22 +353,25 @@ export default function ProgrammingPage({
                         )}
                     </div>
 
-                    <div className="rounded-2xl border border-gold/30 bg-gold/[0.08] p-5 md:col-span-4 flex flex-col justify-between">
+                    <div className="flex flex-col justify-between rounded-2xl border border-gold/30 bg-gold/[0.08] p-5 md:col-span-4">
                         <div>
-                            <div className="flex items-center gap-2 text-kora dark:text-gold font-extrabold text-xs">
+                            <div className="flex items-center gap-2 text-xs font-extrabold text-kora dark:text-gold">
                                 <Settings2 size={16} />
                                 Guide rapide
                             </div>
                             <p className="mt-2 text-xs leading-relaxed text-foreground/90">
-                                Commencez par créer un <strong>modèle</strong> si vos départs ont des horaires fixes.
-                                Appliquez-le ensuite pour générer vos <strong>programmes</strong>.
+                                Commencez par créer un <strong>modèle</strong>{' '}
+                                si vos départs ont des horaires fixes.
+                                Appliquez-le ensuite pour générer vos{' '}
+                                <strong>programmes</strong>.
                             </p>
                         </div>
                         <Link
                             href={templateRoutes.create()}
                             className="mt-4 inline-flex items-center gap-1.5 text-xs font-extrabold text-kora dark:text-gold"
                         >
-                            <BookOpen size={14} /> Créer votre premier modèle de départs
+                            <BookOpen size={14} /> Créer votre premier modèle de
+                            départs
                         </Link>
                     </div>
                 </section>
@@ -381,10 +390,11 @@ export default function ProgrammingPage({
                             key={key}
                             onClick={() => navigate({ tab: key })}
                             aria-current={tab === key ? 'page' : undefined}
-                            className={`rounded-lg px-4 py-2.5 text-xs font-extrabold transition-colors ${tab === key
-                                ? 'bg-kora text-white shadow-xs dark:bg-gold dark:text-kora'
-                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                                }`}
+                            className={`rounded-lg px-4 py-2.5 text-xs font-extrabold transition-colors ${
+                                tab === key
+                                    ? 'bg-kora text-white shadow-xs dark:bg-gold dark:text-kora'
+                                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                            }`}
                         >
                             {label}
                         </button>
@@ -442,7 +452,7 @@ export default function ProgrammingPage({
                                     id="planning-date"
                                     type="date"
                                     value={filters.date}
-                                    className="w-auto h-10"
+                                    className="h-10 w-auto"
                                     onChange={(e) => {
                                         if (e.target.value) {
                                             navigate({ date: e.target.value });
@@ -464,10 +474,11 @@ export default function ProgrammingPage({
                                         key={key}
                                         aria-pressed={filters.view === key}
                                         onClick={() => navigate({ view: key })}
-                                        className={`rounded-lg px-3.5 py-1.5 text-xs font-extrabold transition-all ${filters.view === key
-                                            ? 'bg-card text-foreground shadow-xs'
-                                            : 'text-muted-foreground hover:text-foreground'
-                                            }`}
+                                        className={`rounded-lg px-3.5 py-1.5 text-xs font-extrabold transition-all ${
+                                            filters.view === key
+                                                ? 'bg-card text-foreground shadow-xs'
+                                                : 'text-muted-foreground hover:text-foreground'
+                                        }`}
                                     >
                                         {label}
                                     </button>
@@ -479,15 +490,18 @@ export default function ProgrammingPage({
                         <details className="group rounded-2xl border border-border bg-card p-4 transition-all">
                             <summary className="flex cursor-pointer items-center justify-between text-xs font-extrabold text-foreground">
                                 <span className="flex items-center gap-2">
-                                    <Filter size={15} className="text-kora dark:text-gold" />
+                                    <Filter
+                                        size={15}
+                                        className="text-kora dark:text-gold"
+                                    />
                                     Filtres avancés du planning
                                     {hasActiveFilters && (
-                                        <span className="rounded-full bg-gold/20 px-2 py-0.5 text-[0.6875rem] text-kora dark:text-gold font-extrabold">
+                                        <span className="rounded-full bg-gold/20 px-2 py-0.5 text-[0.6875rem] font-extrabold text-kora dark:text-gold">
                                             Filtres actifs
                                         </span>
                                     )}
                                 </span>
-                                <span className="text-xs text-muted-foreground font-normal">
+                                <span className="text-xs font-normal text-muted-foreground">
                                     {hasActiveFilters ? 'Modifier' : 'Ouvrir'}
                                 </span>
                             </summary>
@@ -529,19 +543,27 @@ export default function ProgrammingPage({
                                     value={filters.direction}
                                     empty="Tous les sens"
                                     options={[
-                                        { uuid: 'outbound', label: 'Aller uniquement' },
-                                        { uuid: 'return', label: 'Retour uniquement' },
+                                        {
+                                            uuid: 'outbound',
+                                            label: 'Aller uniquement',
+                                        },
+                                        {
+                                            uuid: 'return',
+                                            label: 'Retour uniquement',
+                                        },
                                     ]}
                                     onChange={(v) => navigate({ direction: v })}
                                 />
-                                <label className="flex items-center gap-2.5 text-xs font-bold text-foreground cursor-pointer pt-6">
+                                <label className="flex cursor-pointer items-center gap-2.5 pt-6 text-xs font-bold text-foreground">
                                     <input
                                         type="checkbox"
                                         className="size-4 rounded accent-gold"
                                         checked={filters.exceptions === '1'}
                                         onChange={(e) =>
                                             navigate({
-                                                exceptions: e.target.checked ? '1' : '',
+                                                exceptions: e.target.checked
+                                                    ? '1'
+                                                    : '',
                                             })
                                         }
                                     />
@@ -600,9 +622,9 @@ export default function ProgrammingPage({
                                             'inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-extrabold transition-all',
                                             active
                                                 ? (theme?.chipActive ??
-                                                    'border-gold bg-gold/15 text-foreground ring-1 ring-gold/40')
+                                                      'border-gold bg-gold/15 text-foreground ring-1 ring-gold/40')
                                                 : (theme?.chip ??
-                                                    'border-border bg-card text-muted-foreground hover:border-gold/60 hover:text-foreground'),
+                                                      'border-border bg-card text-muted-foreground hover:border-gold/60 hover:text-foreground'),
                                         )}
                                     >
                                         {theme && (
@@ -617,7 +639,7 @@ export default function ProgrammingPage({
                                             />
                                         )}
                                         {label}{' '}
-                                        <span className="tabular-nums font-mono opacity-80">
+                                        <span className="font-mono tabular-nums opacity-80">
                                             ({count})
                                         </span>
                                     </button>
@@ -629,10 +651,17 @@ export default function ProgrammingPage({
                         <Surface>
                             <div
                                 aria-busy={loading}
-                                className={loading ? 'pointer-events-none opacity-60' : ''}
+                                className={
+                                    loading
+                                        ? 'pointer-events-none opacity-60'
+                                        : ''
+                                }
                             >
                                 {loading && (
-                                    <p role="status" className="mb-3 text-xs font-semibold text-muted-foreground">
+                                    <p
+                                        role="status"
+                                        className="mb-3 text-xs font-semibold text-muted-foreground"
+                                    >
                                         Mise à jour du planning…
                                     </p>
                                 )}
@@ -646,7 +675,9 @@ export default function ProgrammingPage({
                                     onSelect={(uuid) =>
                                         setSelected(
                                             selected.includes(uuid)
-                                                ? selected.filter((v) => v !== uuid)
+                                                ? selected.filter(
+                                                      (v) => v !== uuid,
+                                                  )
                                                 : [...selected, uuid],
                                         )
                                     }
@@ -667,7 +698,9 @@ export default function ProgrammingPage({
                     >
                         Traitement en arrière-plan en cours :{' '}
                         {runs
-                            .filter((r) => ['queued', 'running'].includes(r.status))
+                            .filter((r) =>
+                                ['queued', 'running'].includes(r.status),
+                            )
                             .map((r) => `${r.processed} départs`)
                             .join(' · ')}
                     </div>
@@ -708,7 +741,10 @@ export default function ProgrammingPage({
                                             >
                                                 <div className="flex items-start gap-4">
                                                     <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-gold/15 text-kora dark:text-gold">
-                                                        <Layers size={20} strokeWidth={2} />
+                                                        <Layers
+                                                            size={20}
+                                                            strokeWidth={2}
+                                                        />
                                                     </span>
                                                     <div>
                                                         <div className="flex items-center gap-2">
@@ -716,23 +752,33 @@ export default function ProgrammingPage({
                                                                 {t.name}
                                                             </h2>
                                                             <span
-                                                                className={`rounded-md px-2 py-0.5 text-[0.6875rem] font-bold ${t.status === 'available'
-                                                                    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                                                                    : t.status === 'draft'
-                                                                        ? 'bg-gold/20 text-kora dark:text-gold'
-                                                                        : 'bg-muted text-muted-foreground'
-                                                                    }`}
+                                                                className={`rounded-md px-2 py-0.5 text-[0.6875rem] font-bold ${
+                                                                    t.status ===
+                                                                    'available'
+                                                                        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                                                        : t.status ===
+                                                                            'draft'
+                                                                          ? 'bg-gold/20 text-kora dark:text-gold'
+                                                                          : 'bg-muted text-muted-foreground'
+                                                                }`}
                                                             >
-                                                                {t.status === 'available'
+                                                                {t.status ===
+                                                                'available'
                                                                     ? `Version ${t.versions[0]?.number}`
-                                                                    : t.status === 'draft'
-                                                                        ? 'Brouillon'
-                                                                        : 'Archivé'}
+                                                                    : t.status ===
+                                                                        'draft'
+                                                                      ? 'Brouillon'
+                                                                      : 'Archivé'}
                                                             </span>
                                                         </div>
 
                                                         <p className="mt-1 text-xs text-muted-foreground">
-                                                            {slots.length} créneau(x) d'horaires · {t.programmeCount} programme(s) généré(s)
+                                                            {slots.length}{' '}
+                                                            créneau(x)
+                                                            d'horaires ·{' '}
+                                                            {t.programmeCount}{' '}
+                                                            programme(s)
+                                                            généré(s)
                                                         </p>
 
                                                         <p className="mt-2 text-xs font-semibold text-foreground">
@@ -741,10 +787,13 @@ export default function ProgrammingPage({
                                                                     slots.map(
                                                                         (s) =>
                                                                             refs.lines.find(
-                                                                                (l) =>
+                                                                                (
+                                                                                    l,
+                                                                                ) =>
                                                                                     l.uuid ===
                                                                                     s.line_uuid,
-                                                                            )?.label,
+                                                                            )
+                                                                                ?.label,
                                                                     ),
                                                                 ),
                                                             ]
@@ -755,37 +804,69 @@ export default function ProgrammingPage({
                                                 </div>
 
                                                 <div className="flex flex-wrap items-center gap-2">
-                                                    <Button variant="outline" asChild size="sm">
-                                                        <Link href={templateRoutes.edit(t.uuid)}>
+                                                    <Button
+                                                        variant="outline"
+                                                        asChild
+                                                        size="sm"
+                                                    >
+                                                        <Link
+                                                            href={templateRoutes.edit(
+                                                                t.uuid,
+                                                            )}
+                                                        >
                                                             Modifier
                                                         </Link>
                                                     </Button>
-                                                    <Button variant="ghost" asChild size="sm">
+                                                    <Button
+                                                        variant="ghost"
+                                                        asChild
+                                                        size="sm"
+                                                    >
                                                         <Link
-                                                            href={templateRoutes.create({
-                                                                query: { source: t.uuid },
-                                                            })}
+                                                            href={templateRoutes.create(
+                                                                {
+                                                                    query: {
+                                                                        source: t.uuid,
+                                                                    },
+                                                                },
+                                                            )}
                                                         >
                                                             Dupliquer
                                                         </Link>
                                                     </Button>
-                                                    {t.status === 'available' && (
-                                                        <PrimaryButton asChild size="sm" className="gap-1.5">
+                                                    {t.status ===
+                                                        'available' && (
+                                                        <PrimaryButton
+                                                            asChild
+                                                            size="sm"
+                                                            className="gap-1.5"
+                                                        >
                                                             <Link
-                                                                href={programmeRoutes.create({
-                                                                    query: { template: t.uuid },
-                                                                })}
+                                                                href={programmeRoutes.create(
+                                                                    {
+                                                                        query: {
+                                                                            template:
+                                                                                t.uuid,
+                                                                        },
+                                                                    },
+                                                                )}
                                                             >
-                                                                <Sparkles size={14} />
-                                                                Préparer une période
+                                                                <Sparkles
+                                                                    size={14}
+                                                                />
+                                                                Préparer une
+                                                                période
                                                             </Link>
                                                         </PrimaryButton>
                                                     )}
-                                                    {t.status !== 'archived' && (
+                                                    {t.status !==
+                                                        'archived' && (
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
-                                                            onClick={() => setArchive(t)}
+                                                            onClick={() =>
+                                                                setArchive(t)
+                                                            }
                                                             className="text-muted-foreground hover:text-destructive"
                                                         >
                                                             Archiver
@@ -798,10 +879,14 @@ export default function ProgrammingPage({
                                 </div>
                             ) : (
                                 <Empty title="Aucun modèle de départs">
-                                    Créez votre première semaine type réutilisable pour automatiser la création de vos départs.
+                                    Créez votre première semaine type
+                                    réutilisable pour automatiser la création de
+                                    vos départs.
                                     <div className="pt-3">
                                         <PrimaryButton asChild>
-                                            <Link href={templateRoutes.create()}>
+                                            <Link
+                                                href={templateRoutes.create()}
+                                            >
                                                 <Plus size={15} />
                                                 Créer un modèle
                                             </Link>
@@ -839,26 +924,33 @@ export default function ProgrammingPage({
                                                     {p.name}
                                                 </h2>
                                                 <p className="mt-1 text-xs text-muted-foreground">
-                                                    Modèle : <strong className="text-foreground">{p.templateName}</strong> · Version {p.version}
+                                                    Modèle :{' '}
+                                                    <strong className="text-foreground">
+                                                        {p.templateName}
+                                                    </strong>{' '}
+                                                    · Version {p.version}
                                                 </p>
                                                 <p className="mt-2 text-xs font-semibold text-kora dark:text-gold">
-                                                    Du {dateLabel(p.startsOn)} au {dateLabel(p.endsOn)}
+                                                    Du {dateLabel(p.startsOn)}{' '}
+                                                    au {dateLabel(p.endsOn)}
                                                 </p>
                                             </div>
 
                                             <div className="text-right">
                                                 <span
-                                                    className={`rounded-md px-2 py-0.5 text-xs font-extrabold ${p.automatic
-                                                        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                                                        : 'bg-muted text-muted-foreground'
-                                                        }`}
+                                                    className={`rounded-md px-2 py-0.5 text-xs font-extrabold ${
+                                                        p.automatic
+                                                            ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                                            : 'bg-muted text-muted-foreground'
+                                                    }`}
                                                 >
                                                     {p.automatic
                                                         ? `Auto · ${p.horizonDays} jours`
                                                         : 'Génération manuelle'}
                                                 </span>
                                                 <p className="mt-2 text-xs text-muted-foreground">
-                                                    {p.prepared} en préparation ·{' '}
+                                                    {p.prepared} en préparation
+                                                    ·{' '}
                                                     <strong className="text-emerald-600">
                                                         {p.published} publiés
                                                     </strong>
@@ -869,10 +961,14 @@ export default function ProgrammingPage({
                                 </div>
                             ) : (
                                 <Empty title="Aucun programme de période">
-                                    Appliquez un modèle sur un mois ou une période de votre choix pour alimenter le planning.
+                                    Appliquez un modèle sur un mois ou une
+                                    période de votre choix pour alimenter le
+                                    planning.
                                     <div className="pt-3">
                                         <PrimaryButton asChild>
-                                            <Link href={programmeRoutes.create()}>
+                                            <Link
+                                                href={programmeRoutes.create()}
+                                            >
                                                 <Plus size={15} />
                                                 Préparer une période
                                             </Link>
@@ -957,8 +1053,8 @@ export default function ProgrammingPage({
                     action === 'publish'
                         ? 'Publication des départs sélectionnés'
                         : action === 'assign'
-                            ? 'Affectation d’un bus à la sélection'
-                            : 'Exclusion de dates'
+                          ? 'Affectation d’un bus à la sélection'
+                          : 'Exclusion de dates'
                 }
                 busy={api.busy}
                 onClose={() => setAction(null)}
@@ -974,12 +1070,12 @@ export default function ProgrammingPage({
                         {api.busy
                             ? 'Traitement en cours…'
                             : action === 'publish'
-                                ? `Publier les ${ready} départ(s) prêt(s)`
-                                : 'Confirmer'}
+                              ? `Publier les ${ready} départ(s) prêt(s)`
+                              : 'Confirmer'}
                     </PrimaryButton>
                 }
             >
-                <p className="text-xs text-muted-foreground leading-relaxed">
+                <p className="text-xs leading-relaxed text-muted-foreground">
                     {selection.length} départs sélectionnés.{' '}
                     {action === 'publish'
                         ? 'Les départs sans blocage seront immédiatement ouverts à la réservation.'
@@ -1002,14 +1098,15 @@ export default function ProgrammingPage({
                     </div>
                 )}
 
-                <div className="max-h-60 overflow-y-auto space-y-1.5 pt-2">
+                <div className="max-h-60 space-y-1.5 overflow-y-auto pt-2">
                     {selection.map((i) => (
                         <div
                             key={i.uuid}
                             className="flex items-center justify-between border-b border-border/50 py-2 text-xs"
                         >
                             <span>
-                                {dateLabel(i.date)} à <strong>{i.snapshot.time}</strong>
+                                {dateLabel(i.date)} à{' '}
+                                <strong>{i.snapshot.time}</strong>
                             </span>
                             <StateBadge state={i.state} />
                         </div>
@@ -1038,8 +1135,10 @@ export default function ProgrammingPage({
                     </Button>
                 }
             >
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                    Les programmes existants continueront de fonctionner. Ce modèle ne sera plus proposé pour de nouvelles périodes de planification.
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                    Les programmes existants continueront de fonctionner. Ce
+                    modèle ne sera plus proposé pour de nouvelles périodes de
+                    planification.
                 </p>
             </Confirm>
         </>

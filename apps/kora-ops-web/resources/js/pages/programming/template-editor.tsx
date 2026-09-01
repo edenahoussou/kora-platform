@@ -145,20 +145,20 @@ export default function TemplateEditor({
                 ...slots.map((s) =>
                     s.direction === 'outbound'
                         ? {
-                            ...s,
-                            line_uuid: lineUuid || null,
-                            duration_minutes: duration,
-                            stops:
-                                line?.stops.map((stop, i) => ({
-                                    stop_uuid: stop.uuid,
-                                    timezone: s.timezone,
-                                    arrival_minutes:
-                                        i === line.stops.length - 1
-                                            ? duration
-                                            : null,
-                                    departure_minutes: i === 0 ? 0 : null,
-                                })) ?? [],
-                        }
+                              ...s,
+                              line_uuid: lineUuid || null,
+                              duration_minutes: duration,
+                              stops:
+                                  line?.stops.map((stop, i) => ({
+                                      stop_uuid: stop.uuid,
+                                      timezone: s.timezone,
+                                      arrival_minutes:
+                                          i === line.stops.length - 1
+                                              ? duration
+                                              : null,
+                                      departure_minutes: i === 0 ? 0 : null,
+                                  })) ?? [],
+                          }
                         : s,
                 ),
                 returnSlot,
@@ -273,8 +273,14 @@ export default function TemplateEditor({
 
     return (
         <>
-            <Head title={template ? 'Modifier le modèle' : 'Nouveau modèle de départs'} />
-            <div className="w-full grid gap-6 pb-24">
+            <Head
+                title={
+                    template
+                        ? 'Modifier le modèle'
+                        : 'Nouveau modèle de départs'
+                }
+            />
+            <div className="grid w-full gap-6 pb-24">
                 <header className="grid gap-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                         <Link
@@ -293,10 +299,13 @@ export default function TemplateEditor({
 
                     <div>
                         <h1 className="text-[clamp(1.8rem,3vw,2.4rem)] font-extrabold tracking-[-0.04em] text-foreground">
-                            {template ? template.name : 'Nouveau modèle de départs'}
+                            {template
+                                ? template.name
+                                : 'Nouveau modèle de départs'}
                         </h1>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            Configurez une semaine type réutilisable pour générer vos plannings de départs en quelques clics.
+                            Configurez une semaine type réutilisable pour
+                            générer vos plannings de départs en quelques clics.
                         </p>
                     </div>
 
@@ -309,8 +318,12 @@ export default function TemplateEditor({
                                 Comment fonctionne un modèle de départs ?
                             </p>
                             <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                                Un modèle regroupe vos liaisons régulières (ex&nbsp;: Cotonou ↔ Lomé) avec leurs heures habituelles et arrêts.
-                                Vous pourrez ensuite l'appliquer sur n'importe quel mois ou période de votre choix dans «&nbsp;Préparer une période&nbsp;».
+                                Un modèle regroupe vos liaisons régulières
+                                (ex&nbsp;: Cotonou ↔ Lomé) avec leurs heures
+                                habituelles et arrêts. Vous pourrez ensuite
+                                l'appliquer sur n'importe quel mois ou période
+                                de votre choix dans «&nbsp;Préparer une
+                                période&nbsp;».
                             </p>
                         </div>
                         <span className="hidden rounded-lg bg-muted px-3 py-1.5 text-xs font-bold text-muted-foreground sm:block">
@@ -333,20 +346,26 @@ export default function TemplateEditor({
                                 onClick={() => setStep(i)}
                                 aria-current={isActive ? 'step' : undefined}
                                 title={stepDescriptions[i]}
-                                className={`flex items-center gap-3 rounded-xl px-3 py-3 text-left transition-all duration-200 ${isActive
-                                    ? 'bg-gold/15 text-foreground ring-1 ring-gold/40'
-                                    : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
-                                    }`}
+                                className={`flex items-center gap-3 rounded-xl px-3 py-3 text-left transition-all duration-200 ${
+                                    isActive
+                                        ? 'bg-gold/15 text-foreground ring-1 ring-gold/40'
+                                        : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+                                }`}
                             >
                                 <span
-                                    className={`grid size-8 shrink-0 place-content-center rounded-full border text-xs font-extrabold transition-colors ${isDone
-                                        ? 'border-emerald-500 bg-emerald-500 text-white'
-                                        : isActive
-                                            ? 'border-gold bg-gold text-kora'
-                                            : 'border-border bg-card text-muted-foreground'
-                                        }`}
+                                    className={`grid size-8 shrink-0 place-content-center rounded-full border text-xs font-extrabold transition-colors ${
+                                        isDone
+                                            ? 'border-emerald-500 bg-emerald-500 text-white'
+                                            : isActive
+                                              ? 'border-gold bg-gold text-kora'
+                                              : 'border-border bg-card text-muted-foreground'
+                                    }`}
                                 >
-                                    {isDone ? <Check size={14} strokeWidth={3} /> : i + 1}
+                                    {isDone ? (
+                                        <Check size={14} strokeWidth={3} />
+                                    ) : (
+                                        i + 1
+                                    )}
                                 </span>
                                 <span className="min-w-0">
                                     <strong className="block text-xs font-extrabold text-foreground">
@@ -365,7 +384,9 @@ export default function TemplateEditor({
 
                 {template?.status === 'archived' && (
                     <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-xs font-semibold text-destructive">
-                        Ce modèle est actuellement archivé. Vous devez le réactiver ou créer un nouveau modèle pour générer de nouveaux départs.
+                        Ce modèle est actuellement archivé. Vous devez le
+                        réactiver ou créer un nouveau modèle pour générer de
+                        nouveaux départs.
                     </div>
                 )}
 
@@ -401,7 +422,10 @@ export default function TemplateEditor({
                                         <Input
                                             value={form.data.name}
                                             onChange={(e) =>
-                                                form.setData('name', e.target.value)
+                                                form.setData(
+                                                    'name',
+                                                    e.target.value,
+                                                )
                                             }
                                             placeholder="Ex: Cotonou ↔ Lomé — Départs Express"
                                             className="h-11 font-semibold"
@@ -430,18 +454,31 @@ export default function TemplateEditor({
                                                     icon={Route}
                                                     required
                                                     hint={
-                                                        refs.lines.find((l) => l.uuid === outboundSlot.line_uuid)?.bidirectional
+                                                        refs.lines.find(
+                                                            (l) =>
+                                                                l.uuid ===
+                                                                outboundSlot.line_uuid,
+                                                        )?.bidirectional
                                                             ? 'Cette ligne est Aller-Retour : le retour sera proposé automatiquement avec les arrêts inversés.'
-                                                            : 'Sélectionnez l\'itinéraire définissant la ville de départ et d\'arrivée.'
+                                                            : "Sélectionnez l'itinéraire définissant la ville de départ et d'arrivée."
                                                     }
-                                                    value={outboundSlot.line_uuid}
-                                                    options={refs.lines.map((l) => ({
-                                                        ...l,
-                                                        label: l.bidirectional
-                                                            ? `${l.label} · Aller-Retour`
-                                                            : l.label,
-                                                    }))}
-                                                    onChange={(v) => lineChange(outboundSlot, v)}
+                                                    value={
+                                                        outboundSlot.line_uuid
+                                                    }
+                                                    options={refs.lines.map(
+                                                        (l) => ({
+                                                            ...l,
+                                                            label: l.bidirectional
+                                                                ? `${l.label} · Aller-Retour`
+                                                                : l.label,
+                                                        }),
+                                                    )}
+                                                    onChange={(v) =>
+                                                        lineChange(
+                                                            outboundSlot,
+                                                            v,
+                                                        )
+                                                    }
                                                 />
 
                                                 <SelectField
@@ -449,40 +486,75 @@ export default function TemplateEditor({
                                                     icon={Globe2}
                                                     required
                                                     hint="Fuseau utilisé pour exprimer les heures de départ."
-                                                    value={outboundSlot.timezone}
-                                                    options={refs.timezones.map((z) => ({
-                                                        uuid: z,
-                                                        label: formatTimezoneLabel(z),
-                                                    }))}
+                                                    value={
+                                                        outboundSlot.timezone
+                                                    }
+                                                    options={refs.timezones.map(
+                                                        (z) => ({
+                                                            uuid: z,
+                                                            label: formatTimezoneLabel(
+                                                                z,
+                                                            ),
+                                                        }),
+                                                    )}
                                                     onChange={(v) =>
-                                                        updateDirection('outbound', {
-                                                            timezone: v || refs.timezone,
-                                                        })
+                                                        updateDirection(
+                                                            'outbound',
+                                                            {
+                                                                timezone:
+                                                                    v ||
+                                                                    refs.timezone,
+                                                            },
+                                                        )
                                                     }
                                                 />
 
                                                 {outboundSlot.line_uuid && (
                                                     <div className="rounded-xl border border-digital/20 bg-digital/[0.03] p-3.5">
                                                         <span className="block text-[0.6875rem] font-bold text-digital uppercase">
-                                                            Arrêts de la ligne sélectionnée
+                                                            Arrêts de la ligne
+                                                            sélectionnée
                                                         </span>
                                                         <ol className="mt-2 grid gap-1.5 text-xs text-foreground">
                                                             {refs.lines
-                                                                .find((l) => l.uuid === outboundSlot.line_uuid)
-                                                                ?.stops.map((stop, i) => (
-                                                                    <li
-                                                                        key={stop.uuid}
-                                                                        className="flex items-center gap-2"
-                                                                    >
-                                                                        <span className="grid size-5 place-items-center rounded-full bg-digital/10 text-[0.625rem] font-bold text-digital">
-                                                                            {i + 1}
-                                                                        </span>
-                                                                        <span className="font-semibold">{stop.label}</span>
-                                                                        {stop.country && (
-                                                                            <span className="text-muted-foreground">({stop.country})</span>
-                                                                        )}
-                                                                    </li>
-                                                                ))}
+                                                                .find(
+                                                                    (l) =>
+                                                                        l.uuid ===
+                                                                        outboundSlot.line_uuid,
+                                                                )
+                                                                ?.stops.map(
+                                                                    (
+                                                                        stop,
+                                                                        i,
+                                                                    ) => (
+                                                                        <li
+                                                                            key={
+                                                                                stop.uuid
+                                                                            }
+                                                                            className="flex items-center gap-2"
+                                                                        >
+                                                                            <span className="grid size-5 place-items-center rounded-full bg-digital/10 text-[0.625rem] font-bold text-digital">
+                                                                                {i +
+                                                                                    1}
+                                                                            </span>
+                                                                            <span className="font-semibold">
+                                                                                {
+                                                                                    stop.label
+                                                                                }
+                                                                            </span>
+                                                                            {stop.country && (
+                                                                                <span className="text-muted-foreground">
+                                                                                    (
+                                                                                    {
+                                                                                        stop.country
+                                                                                    }
+
+                                                                                    )
+                                                                                </span>
+                                                                            )}
+                                                                        </li>
+                                                                    ),
+                                                                )}
                                                         </ol>
                                                     </div>
                                                 )}
@@ -499,7 +571,9 @@ export default function TemplateEditor({
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    onClick={removeReturnDirection}
+                                                    onClick={
+                                                        removeReturnDirection
+                                                    }
                                                     className="h-8 gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
                                                 >
                                                     <Trash2 size={14} />
@@ -520,7 +594,12 @@ export default function TemplateEditor({
                                                     hint="Sélectionnez l'itinéraire de retour (ex: sens inverse)."
                                                     value={returnSlot.line_uuid}
                                                     options={refs.lines}
-                                                    onChange={(v) => lineChange(returnSlot, v)}
+                                                    onChange={(v) =>
+                                                        lineChange(
+                                                            returnSlot,
+                                                            v,
+                                                        )
+                                                    }
                                                 />
 
                                                 <SelectField
@@ -529,43 +608,80 @@ export default function TemplateEditor({
                                                     required
                                                     hint="Fuseau horaire pour le départ retour."
                                                     value={returnSlot.timezone}
-                                                    options={refs.timezones.map((z) => ({
-                                                        uuid: z,
-                                                        label: formatTimezoneLabel(z),
-                                                    }))}
+                                                    options={refs.timezones.map(
+                                                        (z) => ({
+                                                            uuid: z,
+                                                            label: formatTimezoneLabel(
+                                                                z,
+                                                            ),
+                                                        }),
+                                                    )}
                                                     onChange={(v) =>
-                                                        updateDirection('return', {
-                                                            timezone: v || refs.timezone,
-                                                        })
+                                                        updateDirection(
+                                                            'return',
+                                                            {
+                                                                timezone:
+                                                                    v ||
+                                                                    refs.timezone,
+                                                            },
+                                                        )
                                                     }
                                                 />
 
                                                 {returnSlot.line_uuid && (
                                                     <div className="rounded-xl border border-gold/20 bg-gold/[0.03] p-3.5">
-                                                        <span className="block text-[0.6875rem] font-bold text-kora dark:text-gold uppercase">
+                                                        <span className="block text-[0.6875rem] font-bold text-kora uppercase dark:text-gold">
                                                             Arrêts du retour
                                                         </span>
                                                         <ol className="mt-2 grid gap-1.5 text-xs text-foreground">
-                                                            {returnSlot.stops.map((stop, i) => {
-                                                                const stopRef = refs.lines
-                                                                    .find((l) => l.uuid === returnSlot.line_uuid)
-                                                                    ?.stops.find((s) => s.uuid === stop.stop_uuid);
+                                                            {returnSlot.stops.map(
+                                                                (stop, i) => {
+                                                                    const stopRef =
+                                                                        refs.lines
+                                                                            .find(
+                                                                                (
+                                                                                    l,
+                                                                                ) =>
+                                                                                    l.uuid ===
+                                                                                    returnSlot.line_uuid,
+                                                                            )
+                                                                            ?.stops.find(
+                                                                                (
+                                                                                    s,
+                                                                                ) =>
+                                                                                    s.uuid ===
+                                                                                    stop.stop_uuid,
+                                                                            );
 
-                                                                return (
-                                                                    <li
-                                                                        key={stop.stop_uuid}
-                                                                        className="flex items-center gap-2"
-                                                                    >
-                                                                        <span className="grid size-5 place-items-center rounded-full bg-gold/10 text-[0.625rem] font-bold text-kora dark:text-gold">
-                                                                            {i + 1}
-                                                                        </span>
-                                                                        <span className="font-semibold">{stopRef?.label ?? `Arrêt ${i + 1}`}</span>
-                                                                        {stopRef?.country && (
-                                                                            <span className="text-muted-foreground">({stopRef.country})</span>
-                                                                        )}
-                                                                    </li>
-                                                                );
-                                                            })}
+                                                                    return (
+                                                                        <li
+                                                                            key={
+                                                                                stop.stop_uuid
+                                                                            }
+                                                                            className="flex items-center gap-2"
+                                                                        >
+                                                                            <span className="grid size-5 place-items-center rounded-full bg-gold/10 text-[0.625rem] font-bold text-kora dark:text-gold">
+                                                                                {i +
+                                                                                    1}
+                                                                            </span>
+                                                                            <span className="font-semibold">
+                                                                                {stopRef?.label ??
+                                                                                    `Arrêt ${i + 1}`}
+                                                                            </span>
+                                                                            {stopRef?.country && (
+                                                                                <span className="text-muted-foreground">
+                                                                                    (
+                                                                                    {
+                                                                                        stopRef.country
+                                                                                    }
+
+                                                                                    )
+                                                                                </span>
+                                                                            )}
+                                                                        </li>
+                                                                    );
+                                                                },
+                                                            )}
                                                         </ol>
                                                     </div>
                                                 )}
@@ -575,10 +691,15 @@ export default function TemplateEditor({
                                         <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-dashed border-border bg-muted/20 p-5 sm:flex-row sm:items-center">
                                             <div>
                                                 <h3 className="text-xs font-extrabold text-foreground">
-                                                    Ajouter un sens retour coordonné ?
+                                                    Ajouter un sens retour
+                                                    coordonné ?
                                                 </h3>
                                                 <p className="mt-0.5 text-xs text-muted-foreground">
-                                                    Si le bus ou l'équipage effectue le trajet retour (ex: Lomé → Cotonou), vous pouvez le configurer ensemble.
+                                                    Si le bus ou l'équipage
+                                                    effectue le trajet retour
+                                                    (ex: Lomé → Cotonou), vous
+                                                    pouvez le configurer
+                                                    ensemble.
                                                 </p>
                                             </div>
                                             <Button
@@ -586,7 +707,10 @@ export default function TemplateEditor({
                                                 onClick={addReturnDirection}
                                                 className="shrink-0 gap-2 border-gold/40 hover:border-gold hover:bg-gold/10"
                                             >
-                                                <Plus size={16} className="text-gold" />
+                                                <Plus
+                                                    size={16}
+                                                    className="text-gold"
+                                                />
                                                 Ajouter le sens retour
                                             </Button>
                                         </div>
@@ -598,7 +722,8 @@ export default function TemplateEditor({
                                             target="_blank"
                                             className="inline-flex items-center gap-1.5 text-xs font-bold text-kora hover:underline dark:text-gold"
                                         >
-                                            <Route size={14} /> Gérer les lignes et arrêts dans le référentiel
+                                            <Route size={14} /> Gérer les lignes
+                                            et arrêts dans le référentiel
                                         </Link>
                                     </div>
                                 </div>
@@ -609,10 +734,13 @@ export default function TemplateEditor({
                                 <div className="grid gap-6">
                                     <div>
                                         <h3 className="text-sm font-extrabold text-foreground">
-                                            Créneaux de départs et jours de circulation
+                                            Créneaux de départs et jours de
+                                            circulation
                                         </h3>
                                         <p className="mt-1 text-xs text-muted-foreground">
-                                            Définissez les heures auxquelles les bus partent chaque semaine, ainsi que les jours actifs.
+                                            Définissez les heures auxquelles les
+                                            bus partent chaque semaine, ainsi
+                                            que les jours actifs.
                                         </p>
                                     </div>
 
@@ -626,27 +754,47 @@ export default function TemplateEditor({
                                                     : 'border-gold/25 bg-gold/[0.015]',
                                             )}
                                         >
-                                            <div className={cn(
-                                                'flex items-center justify-between gap-3 border-b pb-3',
-                                                slot.direction === 'outbound'
-                                                    ? 'border-digital/20'
-                                                    : 'border-gold/20',
-                                            )}>
+                                            <div
+                                                className={cn(
+                                                    'flex items-center justify-between gap-3 border-b pb-3',
+                                                    slot.direction ===
+                                                        'outbound'
+                                                        ? 'border-digital/20'
+                                                        : 'border-gold/20',
+                                                )}
+                                            >
                                                 <div className="flex items-center gap-2">
                                                     <span
-                                                        className={`grid size-6 place-items-center rounded-md text-xs font-extrabold ${slot.direction === 'outbound'
-                                                            ? 'bg-digital/15 text-digital'
-                                                            : 'bg-gold/20 text-kora dark:text-gold'
-                                                            }`}
+                                                        className={`grid size-6 place-items-center rounded-md text-xs font-extrabold ${
+                                                            slot.direction ===
+                                                            'outbound'
+                                                                ? 'bg-digital/15 text-digital'
+                                                                : 'bg-gold/20 text-kora dark:text-gold'
+                                                        }`}
                                                     >
-                                                        {slot.direction === 'outbound' ? (
-                                                            <ArrowRight size={13} strokeWidth={2.5} />
+                                                        {slot.direction ===
+                                                        'outbound' ? (
+                                                            <ArrowRight
+                                                                size={13}
+                                                                strokeWidth={
+                                                                    2.5
+                                                                }
+                                                            />
                                                         ) : (
-                                                            <ArrowLeft size={13} strokeWidth={2.5} />
+                                                            <ArrowLeft
+                                                                size={13}
+                                                                strokeWidth={
+                                                                    2.5
+                                                                }
+                                                            />
                                                         )}
                                                     </span>
                                                     <strong className="text-xs font-extrabold text-foreground">
-                                                        {slot.direction === 'outbound' ? 'Aller' : 'Retour'} · Départ {index + 1}
+                                                        {slot.direction ===
+                                                        'outbound'
+                                                            ? 'Aller'
+                                                            : 'Retour'}{' '}
+                                                        · Départ {index + 1}
                                                     </strong>
                                                     <span className="font-mono text-xs font-bold text-muted-foreground">
                                                         ({slot.time || '07:00'})
@@ -657,13 +805,19 @@ export default function TemplateEditor({
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
-                                                        onClick={() => duplicate(slot)}
+                                                        onClick={() =>
+                                                            duplicate(slot)
+                                                        }
                                                         title="Dupliquer cet horaire"
                                                         aria-label="Dupliquer cet horaire"
                                                     >
                                                         <Copy size={15} />
                                                     </Button>
-                                                    {slots.filter((s) => s.direction === slot.direction).length > 1 && (
+                                                    {slots.filter(
+                                                        (s) =>
+                                                            s.direction ===
+                                                            slot.direction,
+                                                    ).length > 1 && (
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
@@ -671,11 +825,25 @@ export default function TemplateEditor({
                                                                 form.setData(
                                                                     'slots',
                                                                     slots
-                                                                        .filter((s) => s.key !== slot.key)
-                                                                        .map((s) =>
-                                                                            s.return_key === slot.key
-                                                                                ? { ...s, return_key: null }
-                                                                                : s,
+                                                                        .filter(
+                                                                            (
+                                                                                s,
+                                                                            ) =>
+                                                                                s.key !==
+                                                                                slot.key,
+                                                                        )
+                                                                        .map(
+                                                                            (
+                                                                                s,
+                                                                            ) =>
+                                                                                s.return_key ===
+                                                                                slot.key
+                                                                                    ? {
+                                                                                          ...s,
+                                                                                          return_key:
+                                                                                              null,
+                                                                                      }
+                                                                                    : s,
                                                                         ),
                                                                 )
                                                             }
@@ -700,7 +868,10 @@ export default function TemplateEditor({
                                                         type="time"
                                                         value={slot.time}
                                                         onChange={(e) =>
-                                                            patch(slot.key, { time: e.target.value })
+                                                            patch(slot.key, {
+                                                                time: e.target
+                                                                    .value,
+                                                            })
                                                         }
                                                         className="h-11 font-mono text-sm font-bold"
                                                     />
@@ -713,18 +884,36 @@ export default function TemplateEditor({
                                                     hint="Choisissez la périodicité de ce créneau."
                                                 >
                                                     <select
-                                                        value={slot.interval_weeks}
+                                                        value={
+                                                            slot.interval_weeks
+                                                        }
                                                         onChange={(e) =>
                                                             patch(slot.key, {
-                                                                interval_weeks: Number(e.target.value),
+                                                                interval_weeks:
+                                                                    Number(
+                                                                        e.target
+                                                                            .value,
+                                                                    ),
                                                             })
                                                         }
                                                         className="h-11 w-full rounded-[10px] border border-border bg-background px-3 text-xs font-semibold text-foreground outline-none focus:border-gold focus:ring-2 focus:ring-gold/20"
                                                     >
-                                                        <option value={1}>Toutes les semaines (Standard)</option>
-                                                        <option value={2}>Toutes les 2 semaines (Quinzaine)</option>
-                                                        <option value={3}>Toutes les 3 semaines</option>
-                                                        <option value={4}>Toutes les 4 semaines (Mensuel)</option>
+                                                        <option value={1}>
+                                                            Toutes les semaines
+                                                            (Standard)
+                                                        </option>
+                                                        <option value={2}>
+                                                            Toutes les 2
+                                                            semaines (Quinzaine)
+                                                        </option>
+                                                        <option value={3}>
+                                                            Toutes les 3
+                                                            semaines
+                                                        </option>
+                                                        <option value={4}>
+                                                            Toutes les 4
+                                                            semaines (Mensuel)
+                                                        </option>
                                                     </select>
                                                 </Field>
                                             </div>
@@ -739,24 +928,44 @@ export default function TemplateEditor({
                                                     aria-label="Jours de circulation"
                                                 >
                                                     {days.map((d, i) => {
-                                                        const isSelected = slot.days.includes(i + 1);
+                                                        const isSelected =
+                                                            slot.days.includes(
+                                                                i + 1,
+                                                            );
 
                                                         return (
                                                             <button
                                                                 key={d}
                                                                 type="button"
-                                                                aria-pressed={isSelected}
-                                                                onClick={() =>
-                                                                    patch(slot.key, {
-                                                                        days: isSelected
-                                                                            ? slot.days.filter((v) => v !== i + 1)
-                                                                            : [...slot.days, i + 1].sort(),
-                                                                    })
+                                                                aria-pressed={
+                                                                    isSelected
                                                                 }
-                                                                className={`h-10 min-w-10 rounded-[10px] border px-3 text-xs font-black transition-all ${isSelected
-                                                                    ? 'border-gold bg-gold text-kora shadow-xs'
-                                                                    : 'border-border bg-card text-muted-foreground hover:border-gold/60 hover:text-foreground'
-                                                                    }`}
+                                                                onClick={() =>
+                                                                    patch(
+                                                                        slot.key,
+                                                                        {
+                                                                            days: isSelected
+                                                                                ? slot.days.filter(
+                                                                                      (
+                                                                                          v,
+                                                                                      ) =>
+                                                                                          v !==
+                                                                                          i +
+                                                                                              1,
+                                                                                  )
+                                                                                : [
+                                                                                      ...slot.days,
+                                                                                      i +
+                                                                                          1,
+                                                                                  ].sort(),
+                                                                        },
+                                                                    )
+                                                                }
+                                                                className={`h-10 min-w-10 rounded-[10px] border px-3 text-xs font-black transition-all ${
+                                                                    isSelected
+                                                                        ? 'border-gold bg-gold text-kora shadow-xs'
+                                                                        : 'border-border bg-card text-muted-foreground hover:border-gold/60 hover:text-foreground'
+                                                                }`}
                                                             >
                                                                 {d}
                                                             </button>
@@ -766,9 +975,21 @@ export default function TemplateEditor({
 
                                                 <div className="flex flex-wrap gap-3 pt-1 text-xs">
                                                     {[
-                                                        ['Tous les jours', [1, 2, 3, 4, 5, 6, 7]],
-                                                        ['Du lundi au vendredi', [1, 2, 3, 4, 5]],
-                                                        ['Week-end uniquement', [6, 7]],
+                                                        [
+                                                            'Tous les jours',
+                                                            [
+                                                                1, 2, 3, 4, 5,
+                                                                6, 7,
+                                                            ],
+                                                        ],
+                                                        [
+                                                            'Du lundi au vendredi',
+                                                            [1, 2, 3, 4, 5],
+                                                        ],
+                                                        [
+                                                            'Week-end uniquement',
+                                                            [6, 7],
+                                                        ],
                                                         ['Effacer', []],
                                                     ].map(([label, values]) => (
                                                         <button
@@ -776,9 +997,12 @@ export default function TemplateEditor({
                                                             type="button"
                                                             className="font-semibold text-kora underline-offset-4 hover:underline dark:text-gold"
                                                             onClick={() =>
-                                                                patch(slot.key, {
-                                                                    days: values as number[],
-                                                                })
+                                                                patch(
+                                                                    slot.key,
+                                                                    {
+                                                                        days: values as number[],
+                                                                    },
+                                                                )
                                                             }
                                                         >
                                                             {label}
@@ -790,23 +1014,35 @@ export default function TemplateEditor({
                                     ))}
 
                                     <div className="flex flex-wrap gap-3">
-                                        {(['outbound', 'return'] as const).map((dir) => {
-                                            const sample = slots.find((s) => s.direction === dir);
+                                        {(['outbound', 'return'] as const).map(
+                                            (dir) => {
+                                                const sample = slots.find(
+                                                    (s) => s.direction === dir,
+                                                );
 
-                                            return (
-                                                sample && (
-                                                    <Button
-                                                        key={dir}
-                                                        variant="outline"
-                                                        onClick={() => duplicate(sample)}
-                                                        className="gap-2"
-                                                    >
-                                                        <Plus size={15} />
-                                                        Ajouter un autre horaire {dir === 'outbound' ? 'aller' : 'retour'}
-                                                    </Button>
-                                                )
-                                            );
-                                        })}
+                                                return (
+                                                    sample && (
+                                                        <Button
+                                                            key={dir}
+                                                            variant="outline"
+                                                            onClick={() =>
+                                                                duplicate(
+                                                                    sample,
+                                                                )
+                                                            }
+                                                            className="gap-2"
+                                                        >
+                                                            <Plus size={15} />
+                                                            Ajouter un autre
+                                                            horaire{' '}
+                                                            {dir === 'outbound'
+                                                                ? 'aller'
+                                                                : 'retour'}
+                                                        </Button>
+                                                    )
+                                                );
+                                            },
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -816,15 +1052,20 @@ export default function TemplateEditor({
                                 <div className="grid gap-6">
                                     <div>
                                         <h3 className="text-sm font-extrabold text-foreground">
-                                            Horaires d'arrêt et ressources habituelles
+                                            Horaires d'arrêt et ressources
+                                            habituelles
                                         </h3>
                                         <p className="mt-1 text-xs text-muted-foreground">
-                                            Ajustez les heures d'arrivée à chaque ville et pré-assignez vos bus et équipages (optionnel).
+                                            Ajustez les heures d'arrivée à
+                                            chaque ville et pré-assignez vos bus
+                                            et équipages (optionnel).
                                         </p>
                                     </div>
 
                                     {slots.map((slot, index) => {
-                                        const line = refs.lines.find((l) => l.uuid === slot.line_uuid);
+                                        const line = refs.lines.find(
+                                            (l) => l.uuid === slot.line_uuid,
+                                        );
 
                                         return (
                                             <DirectionSection
@@ -833,15 +1074,24 @@ export default function TemplateEditor({
                                                 title={
                                                     <>
                                                         <span
-                                                            className={`grid size-5 place-items-center rounded-md text-[0.625rem] font-black ${slot.direction === 'outbound'
-                                                                ? 'bg-digital/15 text-digital'
-                                                                : 'bg-gold/20 text-kora dark:text-gold'
-                                                                }`}
+                                                            className={`grid size-5 place-items-center rounded-md text-[0.625rem] font-black ${
+                                                                slot.direction ===
+                                                                'outbound'
+                                                                    ? 'bg-digital/15 text-digital'
+                                                                    : 'bg-gold/20 text-kora dark:text-gold'
+                                                            }`}
                                                         >
-                                                            {slot.direction === 'outbound' ? 'A' : 'R'}
+                                                            {slot.direction ===
+                                                            'outbound'
+                                                                ? 'A'
+                                                                : 'R'}
                                                         </span>
-                                                        {line?.label ?? 'Ligne non sélectionnée'} · Départ à{' '}
-                                                        <span className="font-mono">{slot.time}</span>
+                                                        {line?.label ??
+                                                            'Ligne non sélectionnée'}{' '}
+                                                        · Départ à{' '}
+                                                        <span className="font-mono">
+                                                            {slot.time}
+                                                        </span>
                                                     </>
                                                 }
                                                 summary={`${slot.stops.length} arrêt(s) · Créneau ${index + 1}`}
@@ -850,23 +1100,44 @@ export default function TemplateEditor({
                                                     <StopTimetable
                                                         slot={slot}
                                                         references={refs}
-                                                        onChange={(changes) => patch(slot.key, changes)}
+                                                        onChange={(changes) =>
+                                                            patch(
+                                                                slot.key,
+                                                                changes,
+                                                            )
+                                                        }
                                                     />
 
                                                     <div className="rounded-xl border border-border bg-card p-5">
                                                         <div className="mb-4">
                                                             <h4 className="text-xs font-extrabold text-foreground">
-                                                                Ressources habituelles (Optionnel)
+                                                                Ressources
+                                                                habituelles
+                                                                (Optionnel)
                                                             </h4>
                                                             <p className="mt-0.5 text-xs text-muted-foreground">
-                                                                Vous pouvez affecter un bus et un équipage par défaut. Vous pourrez toujours les modifier plus tard sur le planning.
+                                                                Vous pouvez
+                                                                affecter un bus
+                                                                et un équipage
+                                                                par défaut. Vous
+                                                                pourrez toujours
+                                                                les modifier
+                                                                plus tard sur le
+                                                                planning.
                                                             </p>
                                                         </div>
 
                                                         <ResourceFields
                                                             slot={slot}
                                                             refs={refs}
-                                                            onChange={(values) => patch(slot.key, values)}
+                                                            onChange={(
+                                                                values,
+                                                            ) =>
+                                                                patch(
+                                                                    slot.key,
+                                                                    values,
+                                                                )
+                                                            }
                                                         />
                                                     </div>
 
@@ -880,35 +1151,66 @@ export default function TemplateEditor({
                                                                 type="number"
                                                                 min={0}
                                                                 max={1440}
-                                                                value={slot.preparation_minutes}
+                                                                value={
+                                                                    slot.preparation_minutes
+                                                                }
                                                                 onChange={(e) =>
-                                                                    patch(slot.key, {
-                                                                        preparation_minutes: Number(e.target.value),
-                                                                    })
+                                                                    patch(
+                                                                        slot.key,
+                                                                        {
+                                                                            preparation_minutes:
+                                                                                Number(
+                                                                                    e
+                                                                                        .target
+                                                                                        .value,
+                                                                                ),
+                                                                        },
+                                                                    )
                                                                 }
                                                             />
                                                         </Field>
 
-                                                        {slot.direction === 'outbound' && hasReturn && (
-                                                            <SelectField
-                                                                label="Rotation : lier avec un retour"
-                                                                icon={Route}
-                                                                hint="Associe le même bus pour le trajet retour."
-                                                                value={slot.return_key}
-                                                                empty="Trajets indépendants"
-                                                                options={slots
-                                                                    .filter((s) => s.direction === 'return')
-                                                                    .map((s) => ({
-                                                                        uuid: s.key,
-                                                                        label: `${s.time} · Retour`,
-                                                                    }))}
-                                                                onChange={(v) =>
-                                                                    patch(slot.key, {
-                                                                        return_key: v || null,
-                                                                    })
-                                                                }
-                                                            />
-                                                        )}
+                                                        {slot.direction ===
+                                                            'outbound' &&
+                                                            hasReturn && (
+                                                                <SelectField
+                                                                    label="Rotation : lier avec un retour"
+                                                                    icon={Route}
+                                                                    hint="Associe le même bus pour le trajet retour."
+                                                                    value={
+                                                                        slot.return_key
+                                                                    }
+                                                                    empty="Trajets indépendants"
+                                                                    options={slots
+                                                                        .filter(
+                                                                            (
+                                                                                s,
+                                                                            ) =>
+                                                                                s.direction ===
+                                                                                'return',
+                                                                        )
+                                                                        .map(
+                                                                            (
+                                                                                s,
+                                                                            ) => ({
+                                                                                uuid: s.key,
+                                                                                label: `${s.time} · Retour`,
+                                                                            }),
+                                                                        )}
+                                                                    onChange={(
+                                                                        v,
+                                                                    ) =>
+                                                                        patch(
+                                                                            slot.key,
+                                                                            {
+                                                                                return_key:
+                                                                                    v ||
+                                                                                    null,
+                                                                            },
+                                                                        )
+                                                                    }
+                                                                />
+                                                            )}
                                                     </div>
                                                 </div>
                                             </DirectionSection>
@@ -925,7 +1227,10 @@ export default function TemplateEditor({
                                             Récapitulatif de votre semaine type
                                         </h3>
                                         <p className="mt-1 text-xs text-muted-foreground">
-                                            Relisez attentivement la configuration. Une fois validé, ce modèle sera prêt à générer vos programmes.
+                                            Relisez attentivement la
+                                            configuration. Une fois validé, ce
+                                            modèle sera prêt à générer vos
+                                            programmes.
                                         </p>
                                     </div>
 
@@ -940,29 +1245,39 @@ export default function TemplateEditor({
 
                                     <div className="grid gap-3">
                                         {slots.map((slot) => {
-                                            const line = refs.lines.find((l) => l.uuid === slot.line_uuid);
+                                            const line = refs.lines.find(
+                                                (l) =>
+                                                    l.uuid === slot.line_uuid,
+                                            );
 
                                             return (
                                                 <div
                                                     key={slot.key}
                                                     className={cn(
                                                         'rounded-xl border bg-card p-4',
-                                                        slot.direction === 'outbound'
-                                                            ? 'border-l-4 border-l-digital/50 border-border'
-                                                            : 'border-l-4 border-l-gold/50 border-border',
+                                                        slot.direction ===
+                                                            'outbound'
+                                                            ? 'border-l-4 border-border border-l-digital/50'
+                                                            : 'border-l-4 border-border border-l-gold/50',
                                                     )}
                                                 >
                                                     <div className="flex flex-wrap items-center justify-between gap-2">
-                                                        <span className="flex items-center gap-2 font-extrabold text-xs">
+                                                        <span className="flex items-center gap-2 text-xs font-extrabold">
                                                             <span
-                                                                className={`grid size-5 place-items-center rounded-md text-[0.625rem] font-black ${slot.direction === 'outbound'
-                                                                    ? 'bg-digital/15 text-digital'
-                                                                    : 'bg-gold/20 text-kora dark:text-gold'
-                                                                    }`}
+                                                                className={`grid size-5 place-items-center rounded-md text-[0.625rem] font-black ${
+                                                                    slot.direction ===
+                                                                    'outbound'
+                                                                        ? 'bg-digital/15 text-digital'
+                                                                        : 'bg-gold/20 text-kora dark:text-gold'
+                                                                }`}
                                                             >
-                                                                {slot.direction === 'outbound' ? 'A' : 'R'}
+                                                                {slot.direction ===
+                                                                'outbound'
+                                                                    ? 'A'
+                                                                    : 'R'}
                                                             </span>
-                                                            {line?.label ?? 'Ligne non sélectionnée'}
+                                                            {line?.label ??
+                                                                'Ligne non sélectionnée'}
                                                         </span>
                                                         <strong className="font-mono text-sm font-extrabold text-foreground">
                                                             {slot.time}
@@ -973,19 +1288,39 @@ export default function TemplateEditor({
                                                         <span>
                                                             Jours :{' '}
                                                             <strong className="text-foreground">
-                                                                {slot.days.map((d) => days[d - 1]).join(', ')}
+                                                                {slot.days
+                                                                    .map(
+                                                                        (d) =>
+                                                                            days[
+                                                                                d -
+                                                                                    1
+                                                                            ],
+                                                                    )
+                                                                    .join(', ')}
                                                             </strong>
                                                         </span>
                                                         <span>·</span>
                                                         <span>
-                                                            Arrêts : <strong className="text-foreground">{slot.stops.length}</strong>
+                                                            Arrêts :{' '}
+                                                            <strong className="text-foreground">
+                                                                {
+                                                                    slot.stops
+                                                                        .length
+                                                                }
+                                                            </strong>
                                                         </span>
                                                         <span>·</span>
                                                         <span>
                                                             Durée :{' '}
                                                             <strong className="text-foreground">
-                                                                {Math.floor(slot.duration_minutes / 60)}h{' '}
-                                                                {slot.duration_minutes % 60}m
+                                                                {Math.floor(
+                                                                    slot.duration_minutes /
+                                                                        60,
+                                                                )}
+                                                                h{' '}
+                                                                {slot.duration_minutes %
+                                                                    60}
+                                                                m
                                                             </strong>
                                                         </span>
                                                     </div>
@@ -996,7 +1331,12 @@ export default function TemplateEditor({
 
                                     {template && (
                                         <div className="rounded-xl border border-gold/30 bg-gold/10 p-4 text-xs leading-relaxed text-foreground">
-                                            <strong>Note de révision :</strong> Les programmes existants continueront d'utiliser leur version actuelle jusqu'à ce que vous décidiez d'appliquer cette nouvelle version.
+                                            <strong>Note de révision :</strong>{' '}
+                                            Les programmes existants
+                                            continueront d'utiliser leur version
+                                            actuelle jusqu'à ce que vous
+                                            décidiez d'appliquer cette nouvelle
+                                            version.
                                         </div>
                                     )}
                                 </div>
@@ -1011,20 +1351,26 @@ export default function TemplateEditor({
                                 Aperçu de la semaine
                             </span>
                             <h3 className="mt-2 text-base font-extrabold text-foreground">
-                                {slots.reduce((n, s) => n + s.days.length, 0)} départ(s) / semaine
+                                {slots.reduce((n, s) => n + s.days.length, 0)}{' '}
+                                départ(s) / semaine
                             </h3>
                             <p className="mt-1 mb-4 text-xs text-muted-foreground">
-                                Nombre de départs automatiques prévus chaque semaine active.
+                                Nombre de départs automatiques prévus chaque
+                                semaine active.
                             </p>
 
                             <div className="grid gap-2.5">
                                 {slots.map((slot) => (
-                                    <SlotSummary key={slot.key} slot={slot} refs={refs} />
+                                    <SlotSummary
+                                        key={slot.key}
+                                        slot={slot}
+                                        refs={refs}
+                                    />
                                 ))}
                             </div>
                         </Surface>
                     </aside>
-                </div >
+                </div>
 
                 <footer className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card/95 p-4 shadow-[0_8px_30px_rgba(0,29,78,0.12)] backdrop-blur">
                     <span className="text-xs font-semibold text-muted-foreground">
@@ -1044,14 +1390,22 @@ export default function TemplateEditor({
                         </Button>
                         <Button
                             variant="outline"
-                            disabled={form.processing || template?.status === 'archived'}
+                            disabled={
+                                form.processing ||
+                                template?.status === 'archived'
+                            }
                             onClick={() => save(false)}
                         >
                             Enregistrer le brouillon
                         </Button>
                         <PrimaryButton
-                            disabled={form.processing || template?.status === 'archived'}
-                            onClick={() => (step < 3 ? setStep(step + 1) : save(true))}
+                            disabled={
+                                form.processing ||
+                                template?.status === 'archived'
+                            }
+                            onClick={() =>
+                                step < 3 ? setStep(step + 1) : save(true)
+                            }
                             className="gap-1.5"
                         >
                             {form.processing ? (
@@ -1068,7 +1422,7 @@ export default function TemplateEditor({
                         </PrimaryButton>
                     </div>
                 </footer>
-            </div >
+            </div>
         </>
     );
 }

@@ -102,7 +102,7 @@ export default function ProgrammeEditor({
     return (
         <>
             <Head title="Préparer une période de départs" />
-            <div className="w-full grid gap-6 pb-24">
+            <div className="grid w-full gap-6 pb-24">
                 <header className="grid gap-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                         <Link
@@ -122,7 +122,8 @@ export default function ProgrammeEditor({
                             Préparer une période de départs
                         </h1>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            Appliquez une semaine type sur un calendrier précis et personnalisez les exceptions (fêtes, renforts).
+                            Appliquez une semaine type sur un calendrier précis
+                            et personnalisez les exceptions (fêtes, renforts).
                         </p>
                     </div>
 
@@ -135,8 +136,11 @@ export default function ProgrammeEditor({
                                 Comment fonctionne la préparation de période ?
                             </p>
                             <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                                Les départs sont générés dans votre planning en état de préparation. Rien n'est mis en vente immédiatement :
-                                vous pourrez vérifier les affectations de bus et publier vos trajets en toute sécurité depuis la vue planning.
+                                Les départs sont générés dans votre planning en
+                                état de préparation. Rien n'est mis en vente
+                                immédiatement : vous pourrez vérifier les
+                                affectations de bus et publier vos trajets en
+                                toute sécurité depuis la vue planning.
                             </p>
                         </div>
                     </div>
@@ -157,7 +161,8 @@ export default function ProgrammeEditor({
                                         1. Modèle réutilisable et période
                                     </h2>
                                     <p className="mt-0.5 text-xs text-muted-foreground">
-                                        Sélectionnez la semaine type à instancier et la plage de dates.
+                                        Sélectionnez la semaine type à
+                                        instancier et la plage de dates.
                                     </p>
                                 </div>
 
@@ -176,8 +181,9 @@ export default function ProgrammeEditor({
                                             setChosen(v);
                                             form.setData(
                                                 'version_uuid',
-                                                templates.find((t) => t.uuid === v)
-                                                    ?.versions[0]?.uuid ?? '',
+                                                templates.find(
+                                                    (t) => t.uuid === v,
+                                                )?.versions[0]?.uuid ?? '',
                                             );
                                         }}
                                     />
@@ -227,7 +233,10 @@ export default function ProgrammeEditor({
                                             min={today()}
                                             value={form.data.starts_on}
                                             onChange={(e) =>
-                                                form.setData('starts_on', e.target.value)
+                                                form.setData(
+                                                    'starts_on',
+                                                    e.target.value,
+                                                )
                                             }
                                             className="h-11"
                                         />
@@ -243,7 +252,10 @@ export default function ProgrammeEditor({
                                             min={form.data.starts_on}
                                             value={form.data.ends_on}
                                             onChange={(e) =>
-                                                form.setData('ends_on', e.target.value)
+                                                form.setData(
+                                                    'ends_on',
+                                                    e.target.value,
+                                                )
                                             }
                                             className="h-11"
                                         />
@@ -264,7 +276,11 @@ export default function ProgrammeEditor({
                                         <button
                                             key={String(label)}
                                             type="button"
-                                            onClick={() => setPeriodDuration(Number(daysCount))}
+                                            onClick={() =>
+                                                setPeriodDuration(
+                                                    Number(daysCount),
+                                                )
+                                            }
                                             className="rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-semibold text-foreground transition-colors hover:border-gold hover:bg-gold/10"
                                         >
                                             {label}
@@ -283,10 +299,13 @@ export default function ProgrammeEditor({
                                             Étape 2
                                         </span>
                                         <h2 className="mt-1 text-lg font-extrabold tracking-[-0.03em] text-foreground">
-                                            2. Exceptions de calendrier (Optionnel)
+                                            2. Exceptions de calendrier
+                                            (Optionnel)
                                         </h2>
                                         <p className="mt-0.5 text-xs text-muted-foreground">
-                                            Ajustez ponctuellement certaines dates (jours fériés, horaires modifiés, bus de renfort).
+                                            Ajustez ponctuellement certaines
+                                            dates (jours fériés, horaires
+                                            modifiés, bus de renfort).
                                         </p>
                                     </div>
                                     <Button
@@ -299,7 +318,8 @@ export default function ProgrammeEditor({
                                                 {
                                                     date: form.data.starts_on,
                                                     slot_key:
-                                                        version?.slots[0]?.key ?? '',
+                                                        version?.slots[0]
+                                                            ?.key ?? '',
                                                     action: 'exclude',
                                                 },
                                             ])
@@ -313,147 +333,228 @@ export default function ProgrammeEditor({
 
                                 {form.data.exceptions.length === 0 ? (
                                     <div className="rounded-xl border border-dashed border-border bg-muted/20 p-5 text-center text-xs text-muted-foreground">
-                                        Aucune exception définie. La semaine type sera appliquée de manière identique sur toute la période.
+                                        Aucune exception définie. La semaine
+                                        type sera appliquée de manière identique
+                                        sur toute la période.
                                     </div>
                                 ) : (
                                     <div className="grid gap-3">
-                                        {form.data.exceptions.map((exception, i) => (
-                                            <div
-                                                key={i}
-                                                className="grid gap-3 rounded-xl border border-border bg-background p-4"
-                                            >
-                                                <div className="flex items-center justify-between gap-3 border-b border-border pb-2">
-                                                    <span className="text-xs font-extrabold text-foreground">
-                                                        Exception n°{i + 1}
-                                                    </span>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            form.setData(
-                                                                'exceptions',
-                                                                form.data.exceptions.filter(
-                                                                    (_, n) => n !== i,
-                                                                ),
-                                                            )
-                                                        }
-                                                        className="h-7 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                                    >
-                                                        <Trash2 size={13} className="mr-1" />
-                                                        Supprimer
-                                                    </Button>
-                                                </div>
-
-                                                <div className="grid gap-3 sm:grid-cols-3">
-                                                    <Field
-                                                        label="Date concernée"
-                                                        icon={CalendarDays}
-                                                        required
-                                                    >
-                                                        <Input
-                                                            type="date"
-                                                            value={exception.date}
-                                                            min={form.data.starts_on}
-                                                            max={form.data.ends_on}
-                                                            onChange={(e) =>
-                                                                updateException(i, {
-                                                                    date: e.target.value,
-                                                                })
+                                        {form.data.exceptions.map(
+                                            (exception, i) => (
+                                                <div
+                                                    key={i}
+                                                    className="grid gap-3 rounded-xl border border-border bg-background p-4"
+                                                >
+                                                    <div className="flex items-center justify-between gap-3 border-b border-border pb-2">
+                                                        <span className="text-xs font-extrabold text-foreground">
+                                                            Exception n°{i + 1}
+                                                        </span>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                form.setData(
+                                                                    'exceptions',
+                                                                    form.data.exceptions.filter(
+                                                                        (
+                                                                            _,
+                                                                            n,
+                                                                        ) =>
+                                                                            n !==
+                                                                            i,
+                                                                    ),
+                                                                )
                                                             }
-                                                        />
-                                                    </Field>
+                                                            className="h-7 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                        >
+                                                            <Trash2
+                                                                size={13}
+                                                                className="mr-1"
+                                                            />
+                                                            Supprimer
+                                                        </Button>
+                                                    </div>
 
-                                                    <SelectField
-                                                        label="Départ de la semaine type"
-                                                        icon={Clock3}
-                                                        required
-                                                        value={exception.slot_key}
-                                                        options={
-                                                            version?.slots.map((s) => ({
-                                                                uuid: s.key,
-                                                                label: `${s.direction === 'outbound' ? 'Aller' : 'Retour'} · ${s.time}`,
-                                                            })) ?? []
-                                                        }
-                                                        onChange={(v) =>
-                                                            updateException(i, {
-                                                                slot_key: v,
-                                                            })
-                                                        }
-                                                    />
-
-                                                    <SelectField
-                                                        label="Action"
-                                                        icon={SlidersHorizontal}
-                                                        required
-                                                        value={exception.action}
-                                                        options={[
-                                                            {
-                                                                uuid: 'exclude',
-                                                                label: 'Ne pas faire circuler ce jour',
-                                                            },
-                                                            {
-                                                                uuid: 'change',
-                                                                label: 'Modifier horaire / bus',
-                                                            },
-                                                            {
-                                                                uuid: 'add',
-                                                                label: 'Ajouter un départ spécial',
-                                                            },
-                                                        ]}
-                                                        onChange={(v) =>
-                                                            updateException(i, {
-                                                                action: v as Exception['action'],
-                                                            })
-                                                        }
-                                                    />
-                                                </div>
-
-                                                {exception.action !== 'exclude' && (
-                                                    <div className="grid gap-3 border-t border-border pt-3 sm:grid-cols-2">
+                                                    <div className="grid gap-3 sm:grid-cols-3">
                                                         <Field
-                                                            label="Heure exceptionnelle (optionnel)"
-                                                            icon={Clock3}
-                                                            hint="Laisser vide pour conserver l'heure standard."
+                                                            label="Date concernée"
+                                                            icon={CalendarDays}
+                                                            required
                                                         >
                                                             <Input
-                                                                type="time"
-                                                                value={exception.time ?? ''}
-                                                                onChange={(e) =>
-                                                                    updateException(i, {
-                                                                        time: e.target.value || undefined,
-                                                                    })
+                                                                type="date"
+                                                                value={
+                                                                    exception.date
                                                                 }
-                                                                className="font-mono"
+                                                                min={
+                                                                    form.data
+                                                                        .starts_on
+                                                                }
+                                                                max={
+                                                                    form.data
+                                                                        .ends_on
+                                                                }
+                                                                onChange={(e) =>
+                                                                    updateException(
+                                                                        i,
+                                                                        {
+                                                                            date: e
+                                                                                .target
+                                                                                .value,
+                                                                        },
+                                                                    )
+                                                                }
                                                             />
                                                         </Field>
 
                                                         <SelectField
-                                                            label="Bus de remplacement (optionnel)"
-                                                            icon={BusFront}
-                                                            hint="Laisser vide pour conserver le bus habituel."
-                                                            value={exception.bus_uuid}
-                                                            empty="Conserver le bus habituel"
-                                                            options={refs.buses.filter(
-                                                                (b) => b.status === 'active',
-                                                            )}
-                                                            onChange={(v) => {
-                                                                const exceptions = [...form.data.exceptions];
+                                                            label="Départ de la semaine type"
+                                                            icon={Clock3}
+                                                            required
+                                                            value={
+                                                                exception.slot_key
+                                                            }
+                                                            options={
+                                                                version?.slots.map(
+                                                                    (s) => ({
+                                                                        uuid: s.key,
+                                                                        label: `${s.direction === 'outbound' ? 'Aller' : 'Retour'} · ${s.time}`,
+                                                                    }),
+                                                                ) ?? []
+                                                            }
+                                                            onChange={(v) =>
+                                                                updateException(
+                                                                    i,
+                                                                    {
+                                                                        slot_key:
+                                                                            v,
+                                                                    },
+                                                                )
+                                                            }
+                                                        />
 
-                                                                if (v) {
-                                                                    exceptions[i] = { ...exception, bus_uuid: v };
-                                                                } else {
-                                                                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                                                                    const { bus_uuid: _busUuid, ...rest } = exception;
-                                                                    exceptions[i] = rest;
-                                                                }
-
-                                                                form.setData('exceptions', exceptions);
-                                                            }}
+                                                        <SelectField
+                                                            label="Action"
+                                                            icon={
+                                                                SlidersHorizontal
+                                                            }
+                                                            required
+                                                            value={
+                                                                exception.action
+                                                            }
+                                                            options={[
+                                                                {
+                                                                    uuid: 'exclude',
+                                                                    label: 'Ne pas faire circuler ce jour',
+                                                                },
+                                                                {
+                                                                    uuid: 'change',
+                                                                    label: 'Modifier horaire / bus',
+                                                                },
+                                                                {
+                                                                    uuid: 'add',
+                                                                    label: 'Ajouter un départ spécial',
+                                                                },
+                                                            ]}
+                                                            onChange={(v) =>
+                                                                updateException(
+                                                                    i,
+                                                                    {
+                                                                        action: v as Exception['action'],
+                                                                    },
+                                                                )
+                                                            }
                                                         />
                                                     </div>
-                                                )}
-                                            </div>
-                                        ))}
+
+                                                    {exception.action !==
+                                                        'exclude' && (
+                                                        <div className="grid gap-3 border-t border-border pt-3 sm:grid-cols-2">
+                                                            <Field
+                                                                label="Heure exceptionnelle (optionnel)"
+                                                                icon={Clock3}
+                                                                hint="Laisser vide pour conserver l'heure standard."
+                                                            >
+                                                                <Input
+                                                                    type="time"
+                                                                    value={
+                                                                        exception.time ??
+                                                                        ''
+                                                                    }
+                                                                    onChange={(
+                                                                        e,
+                                                                    ) =>
+                                                                        updateException(
+                                                                            i,
+                                                                            {
+                                                                                time:
+                                                                                    e
+                                                                                        .target
+                                                                                        .value ||
+                                                                                    undefined,
+                                                                            },
+                                                                        )
+                                                                    }
+                                                                    className="font-mono"
+                                                                />
+                                                            </Field>
+
+                                                            <SelectField
+                                                                label="Bus de remplacement (optionnel)"
+                                                                icon={BusFront}
+                                                                hint="Laisser vide pour conserver le bus habituel."
+                                                                value={
+                                                                    exception.bus_uuid
+                                                                }
+                                                                empty="Conserver le bus habituel"
+                                                                options={refs.buses.filter(
+                                                                    (b) =>
+                                                                        b.status ===
+                                                                        'active',
+                                                                )}
+                                                                onChange={(
+                                                                    v,
+                                                                ) => {
+                                                                    const exceptions =
+                                                                        [
+                                                                            ...form
+                                                                                .data
+                                                                                .exceptions,
+                                                                        ];
+
+                                                                    if (v) {
+                                                                        exceptions[
+                                                                            i
+                                                                        ] = {
+                                                                            ...exception,
+                                                                            bus_uuid:
+                                                                                v,
+                                                                        };
+                                                                    } else {
+                                                                        const {
+                                                                            bus_uuid:
+                                                                                _busUuid,
+                                                                            ...rest
+                                                                        } =
+                                                                            exception;
+                                                                        void _busUuid;
+                                                                        exceptions[
+                                                                            i
+                                                                        ] =
+                                                                            rest;
+                                                                    }
+
+                                                                    form.setData(
+                                                                        'exceptions',
+                                                                        exceptions,
+                                                                    );
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ),
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -467,10 +568,13 @@ export default function ProgrammeEditor({
                                         Étape 3
                                     </span>
                                     <h2 className="mt-1 text-lg font-extrabold tracking-[-0.03em] text-foreground">
-                                        3. Calcul et prévisualisation des départs
+                                        3. Calcul et prévisualisation des
+                                        départs
                                     </h2>
                                     <p className="mt-0.5 text-xs text-muted-foreground">
-                                        Lancez le calcul pour voir les départs exacts qui seront instanciés sur le planning.
+                                        Lancez le calcul pour voir les départs
+                                        exacts qui seront instanciés sur le
+                                        planning.
                                     </p>
                                 </div>
 
@@ -480,7 +584,9 @@ export default function ProgrammeEditor({
                                     onClick={examine}
                                 >
                                     <CalendarRange size={16} />
-                                    {api.busy ? 'Calcul des départs en cours…' : 'Calculer la prévisualisation'}
+                                    {api.busy
+                                        ? 'Calcul des départs en cours…'
+                                        : 'Calculer la prévisualisation'}
                                 </PrimaryButton>
 
                                 {preview && (
@@ -489,22 +595,40 @@ export default function ProgrammeEditor({
                                             <div className="flex items-center gap-2">
                                                 <span className="size-2.5 rounded-full bg-emerald-500" />
                                                 <span className="text-xs font-extrabold text-foreground">
-                                                    {preview.counts.create} départ(s) calculé(s)
+                                                    {preview.counts.create}{' '}
+                                                    départ(s) calculé(s)
                                                 </span>
                                             </div>
                                             {preview.counts.excluded > 0 && (
                                                 <div className="flex items-center gap-2 text-muted-foreground">
                                                     <span className="size-2.5 rounded-full bg-slate-400" />
                                                     <span className="text-xs font-semibold">
-                                                        {preview.counts.excluded} exception(s) exclue(s)
+                                                        {
+                                                            preview.counts
+                                                                .excluded
+                                                        }{' '}
+                                                        exception(s) exclue(s)
                                                     </span>
                                                 </div>
                                             )}
-                                            {preview.rows.filter((r) => r.state === 'blocked').length > 0 && (
+                                            {preview.rows.filter(
+                                                (r) => r.state === 'blocked',
+                                            ).length > 0 && (
                                                 <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-1.5">
-                                                    <AlertTriangle size={14} className="text-destructive" />
+                                                    <AlertTriangle
+                                                        size={14}
+                                                        className="text-destructive"
+                                                    />
                                                     <span className="text-xs font-extrabold text-destructive">
-                                                        {preview.rows.filter((r) => r.state === 'blocked').length} départ(s) bloqué(s) — ressource(s) en conflit
+                                                        {
+                                                            preview.rows.filter(
+                                                                (r) =>
+                                                                    r.state ===
+                                                                    'blocked',
+                                                            ).length
+                                                        }{' '}
+                                                        départ(s) bloqué(s) —
+                                                        ressource(s) en conflit
                                                     </span>
                                                 </div>
                                             )}
@@ -512,13 +636,17 @@ export default function ProgrammeEditor({
 
                                         {!previewCurrent && (
                                             <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs font-semibold text-destructive">
-                                                Les paramètres de dates ou d'exceptions ont été modifiés. Veuillez recalculer la prévisualisation.
+                                                Les paramètres de dates ou
+                                                d'exceptions ont été modifiés.
+                                                Veuillez recalculer la
+                                                prévisualisation.
                                             </div>
                                         )}
 
                                         <div className="max-h-96 space-y-2 overflow-y-auto rounded-xl border border-border bg-card p-3">
                                             {preview.rows.map((row) => {
-                                                const isBlocked = row.state === 'blocked';
+                                                const isBlocked =
+                                                    row.state === 'blocked';
 
                                                 return (
                                                     <div
@@ -538,28 +666,54 @@ export default function ProgrammeEditor({
                                                                     aria-label="Départ bloqué"
                                                                 />
                                                             )}
-                                                            <strong className={cn('font-semibold', isBlocked ? 'text-destructive' : 'text-foreground')}>
-                                                                {dateLabel(row.date)}
+                                                            <strong
+                                                                className={cn(
+                                                                    'font-semibold',
+                                                                    isBlocked
+                                                                        ? 'text-destructive'
+                                                                        : 'text-foreground',
+                                                                )}
+                                                            >
+                                                                {dateLabel(
+                                                                    row.date,
+                                                                )}
                                                             </strong>
-                                                            <span className={cn('font-mono font-bold', isBlocked ? 'text-destructive' : 'text-foreground')}>
+                                                            <span
+                                                                className={cn(
+                                                                    'font-mono font-bold',
+                                                                    isBlocked
+                                                                        ? 'text-destructive'
+                                                                        : 'text-foreground',
+                                                                )}
+                                                            >
                                                                 {row.time}
                                                             </span>
-                                                            <span className={cn(
-                                                                'rounded-md px-2 py-0.5 text-[0.6875rem] font-bold',
-                                                                isBlocked
-                                                                    ? 'bg-destructive/15 text-destructive'
-                                                                    : 'bg-muted text-muted-foreground',
-                                                            )}>
-                                                                {row.direction === 'outbound' ? 'Aller' : 'Retour'}
+                                                            <span
+                                                                className={cn(
+                                                                    'rounded-md px-2 py-0.5 text-[0.6875rem] font-bold',
+                                                                    isBlocked
+                                                                        ? 'bg-destructive/15 text-destructive'
+                                                                        : 'bg-muted text-muted-foreground',
+                                                                )}
+                                                            >
+                                                                {row.direction ===
+                                                                'outbound'
+                                                                    ? 'Aller'
+                                                                    : 'Retour'}
                                                             </span>
                                                         </div>
 
-                                                        <StateBadge state={row.state} />
+                                                        <StateBadge
+                                                            state={row.state}
+                                                        />
 
-                                                        {row.blockers.length > 0 && (
+                                                        {row.blockers.length >
+                                                            0 && (
                                                             <div className="w-full rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive">
                                                                 <span className="font-semibold">
-                                                                    {row.blockers.join(' · ')}
+                                                                    {row.blockers.join(
+                                                                        ' · ',
+                                                                    )}
                                                                 </span>
                                                             </div>
                                                         )}
@@ -583,17 +737,26 @@ export default function ProgrammeEditor({
                                 {template?.name ?? 'Sélectionnez un modèle'}
                             </h3>
                             <p className="mt-0.5 text-xs text-muted-foreground">
-                                {template ? `Version ${version?.number || 1}` : ''}
+                                {template
+                                    ? `Version ${version?.number || 1}`
+                                    : ''}
                             </p>
 
                             <div className="mt-4 grid gap-2.5">
                                 {version?.slots.map((s) => (
-                                    <SlotSummary key={s.key} slot={s} refs={refs} />
+                                    <SlotSummary
+                                        key={s.key}
+                                        slot={s}
+                                        refs={refs}
+                                    />
                                 ))}
                             </div>
 
                             <div className="mt-5 rounded-xl border border-border bg-muted/40 p-3.5 text-xs text-muted-foreground">
-                                Une fois ajoutés au planning, ces départs apparaîtront dans la grille opérationnelle pour l'affectation finale des bus et la publication pour la vente.
+                                Une fois ajoutés au planning, ces départs
+                                apparaîtront dans la grille opérationnelle pour
+                                l'affectation finale des bus et la publication
+                                pour la vente.
                             </div>
                         </Surface>
                     </aside>
@@ -608,7 +771,9 @@ export default function ProgrammeEditor({
                     </Button>
 
                     <PrimaryButton
-                        disabled={!previewCurrent || form.processing || api.busy}
+                        disabled={
+                            !previewCurrent || form.processing || api.busy
+                        }
                         onClick={() => form.post(programmes.store.url())}
                         className="gap-2"
                     >

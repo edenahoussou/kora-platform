@@ -14,22 +14,22 @@
  * et évite les erreurs de sélection.
  */
 export const WEST_AFRICAN_TIMEZONES: string[] = [
-    'Africa/Abidjan',   // Côte d'Ivoire (UTC+0)
-    'Africa/Accra',     // Ghana (UTC+0)
-    'Africa/Bamako',    // Mali (UTC+0)
-    'Africa/Banjul',    // Gambie (UTC+0)
-    'Africa/Bissau',    // Guinée-Bissau (UTC+0)
-    'Africa/Conakry',   // Guinée (UTC+0)
-    'Africa/Dakar',     // Sénégal (UTC+0)
-    'Africa/Freetown',  // Sierra Leone (UTC+0)
-    'Africa/Lome',      // Togo (UTC+0)
-    'Africa/Monrovia',  // Liberia (UTC+0)
-    'Africa/Nouakchott',// Mauritanie (UTC+0)
-    'Africa/Ouagadougou',// Burkina Faso (UTC+0)
-    'Africa/Porto-Novo',// Bénin (UTC+1)
-    'Africa/Lagos',     // Nigeria (UTC+1)
-    'Africa/Niamey',    // Niger (UTC+1)
-    'Africa/Ndjamena',  // Tchad (UTC+1)
+    'Africa/Abidjan', // Côte d'Ivoire (UTC+0)
+    'Africa/Accra', // Ghana (UTC+0)
+    'Africa/Bamako', // Mali (UTC+0)
+    'Africa/Banjul', // Gambie (UTC+0)
+    'Africa/Bissau', // Guinée-Bissau (UTC+0)
+    'Africa/Conakry', // Guinée (UTC+0)
+    'Africa/Dakar', // Sénégal (UTC+0)
+    'Africa/Freetown', // Sierra Leone (UTC+0)
+    'Africa/Lome', // Togo (UTC+0)
+    'Africa/Monrovia', // Liberia (UTC+0)
+    'Africa/Nouakchott', // Mauritanie (UTC+0)
+    'Africa/Ouagadougou', // Burkina Faso (UTC+0)
+    'Africa/Porto-Novo', // Bénin (UTC+1)
+    'Africa/Lagos', // Nigeria (UTC+1)
+    'Africa/Niamey', // Niger (UTC+1)
+    'Africa/Ndjamena', // Tchad (UTC+1)
 ];
 
 /** Mapping identifiant IANA → code pays ISO 3166-1 alpha-2. */

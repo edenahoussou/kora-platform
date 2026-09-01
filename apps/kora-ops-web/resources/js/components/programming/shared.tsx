@@ -48,13 +48,13 @@ export function ProgrammingButton({
             className={cn(
                 'h-10 rounded-[10px] px-4 text-xs font-extrabold shadow-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-gold/40 active:scale-[0.98]',
                 variant === 'default' &&
-                'bg-gold text-kora hover:bg-gold/90 shadow-[0_4px_14px_rgba(246,176,0,0.22)]',
+                    'bg-gold text-kora shadow-[0_4px_14px_rgba(246,176,0,0.22)] hover:bg-gold/90',
                 (variant === 'outline' || variant === 'secondary') &&
-                'border border-border bg-card text-foreground hover:border-gold/60 hover:bg-muted/40 hover:text-foreground dark:bg-card dark:hover:bg-muted/30',
+                    'border border-border bg-card text-foreground hover:border-gold/60 hover:bg-muted/40 hover:text-foreground dark:bg-card dark:hover:bg-muted/30',
                 variant === 'ghost' &&
-                'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+                    'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
                 variant === 'destructive' &&
-                'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+                    'bg-destructive text-destructive-foreground hover:bg-destructive/90',
                 size === 'icon' && 'size-10 shrink-0 p-0',
                 size === 'sm' && 'h-9 px-3 text-xs',
                 className,
@@ -340,11 +340,17 @@ export function Field({
         <label className="grid gap-1.5 text-xs font-extrabold text-foreground">
             <span className="flex items-center gap-1.5 text-foreground">
                 {Icon && (
-                    <Icon size={14} strokeWidth={2} className="text-kora dark:text-gold" />
+                    <Icon
+                        size={14}
+                        strokeWidth={2}
+                        className="text-kora dark:text-gold"
+                    />
                 )}
                 {label}
                 {required && (
-                    <span className="text-destructive" aria-hidden="true">*</span>
+                    <span className="text-destructive" aria-hidden="true">
+                        *
+                    </span>
                 )}
             </span>
             {children}
@@ -402,7 +408,9 @@ export function SelectField({
                     )}
                     {label}
                     {required && (
-                        <span className="text-destructive" aria-hidden="true">*</span>
+                        <span className="text-destructive" aria-hidden="true">
+                            *
+                        </span>
                     )}
                 </span>
                 <button
@@ -414,9 +422,14 @@ export function SelectField({
                         setQuery('');
                         setOpen(true);
                     }}
-                    className="group flex h-10 min-w-0 items-center justify-between gap-2 rounded-[10px] border border-border bg-background px-3 text-xs font-normal text-foreground outline-none transition-all duration-200 hover:border-gold/60 hover:shadow-[0_0_0_3px_rgba(218,165,32,0.08)] focus:border-gold focus:ring-2 focus:ring-gold/20 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="group flex h-10 min-w-0 items-center justify-between gap-2 rounded-[10px] border border-border bg-background px-3 text-xs font-normal text-foreground transition-all duration-200 outline-none hover:border-gold/60 hover:shadow-[0_0_0_3px_rgba(218,165,32,0.08)] focus:border-gold focus:ring-2 focus:ring-gold/20 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                    <span className={cn('truncate', !selectedLabel && 'text-muted-foreground')}>
+                    <span
+                        className={cn(
+                            'truncate',
+                            !selectedLabel && 'text-muted-foreground',
+                        )}
+                    >
                         {selectedLabel ?? empty}
                     </span>
                     <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-gold" />
@@ -442,7 +455,9 @@ export function SelectField({
                                     <DialogTitle className="text-[1.0625rem] font-extrabold tracking-[-0.02em] text-foreground">
                                         {label}
                                         {required && (
-                                            <span className="ml-0.5 text-destructive">*</span>
+                                            <span className="ml-0.5 text-destructive">
+                                                *
+                                            </span>
                                         )}
                                     </DialogTitle>
                                     <DialogDescription className="mt-0.5 text-xs text-muted-foreground">
@@ -463,7 +478,7 @@ export function SelectField({
                         {/* Barre de recherche */}
                         <div className="px-5 pt-4">
                             <div className="relative">
-                                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                                 <Input
                                     autoFocus
                                     aria-label={`Rechercher — ${label}`}
@@ -494,7 +509,9 @@ export function SelectField({
                                 {!value && (
                                     <Check className="size-4 shrink-0 text-gold" />
                                 )}
-                                <span className={cn(!value && 'ml-0')}>{empty}</span>
+                                <span className={cn(!value && 'ml-0')}>
+                                    {empty}
+                                </span>
                             </button>
                             {matches.map((o, idx) => {
                                 const isSelected = o.uuid === value;
@@ -504,28 +521,40 @@ export function SelectField({
                                         key={o.uuid}
                                         type="button"
                                         disabled={o.disabled}
-                                        style={{ animationDelay: `${Math.min(idx * 18, 200)}ms` }}
+                                        style={{
+                                            animationDelay: `${Math.min(idx * 18, 200)}ms`,
+                                        }}
                                         className={cn(
-                                            'flex min-h-11 animate-in fade-in slide-in-from-left-2 duration-300 items-center gap-2.5 rounded-[0.6rem] px-3 text-left text-xs font-medium transition-all duration-150 hover:bg-muted/60 hover:translate-x-0.5',
+                                            'flex min-h-11 animate-in items-center gap-2.5 rounded-[0.6rem] px-3 text-left text-xs font-medium transition-all duration-150 duration-300 fade-in slide-in-from-left-2 hover:translate-x-0.5 hover:bg-muted/60',
                                             isSelected
                                                 ? 'bg-gold/[0.08] text-foreground ring-1 ring-gold/20'
                                                 : 'text-foreground/90',
-                                            o.disabled && 'cursor-not-allowed opacity-40 hover:translate-x-0 hover:bg-transparent',
+                                            o.disabled &&
+                                                'cursor-not-allowed opacity-40 hover:translate-x-0 hover:bg-transparent',
                                         )}
                                         onClick={() => {
                                             onChange(o.uuid);
                                             setOpen(false);
                                         }}
                                     >
-                                        <span className={cn(
-                                            'grid size-5 shrink-0 place-items-center rounded-full transition-all duration-200',
-                                            isSelected
-                                                ? 'bg-gold text-[var(--kora)] scale-100'
-                                                : 'bg-muted/60 scale-90 opacity-0 group-hover:opacity-100',
-                                        )}>
-                                            {isSelected && <Check className="size-3.5" strokeWidth={3} />}
+                                        <span
+                                            className={cn(
+                                                'grid size-5 shrink-0 place-items-center rounded-full transition-all duration-200',
+                                                isSelected
+                                                    ? 'scale-100 bg-gold text-[var(--kora)]'
+                                                    : 'scale-90 bg-muted/60 opacity-0 group-hover:opacity-100',
+                                            )}
+                                        >
+                                            {isSelected && (
+                                                <Check
+                                                    className="size-3.5"
+                                                    strokeWidth={3}
+                                                />
+                                            )}
                                         </span>
-                                        <span className="whitespace-normal leading-relaxed">{o.label}</span>
+                                        <span className="leading-relaxed whitespace-normal">
+                                            {o.label}
+                                        </span>
                                     </button>
                                 );
                             })}
@@ -533,7 +562,11 @@ export function SelectField({
                                 <div className="flex flex-col items-center gap-2 py-8 text-center">
                                     <Search className="size-7 text-muted-foreground/40" />
                                     <p className="text-xs text-muted-foreground">
-                                        Aucun résultat pour « <strong className="text-foreground">{query}</strong> »
+                                        Aucun résultat pour «{' '}
+                                        <strong className="text-foreground">
+                                            {query}
+                                        </strong>{' '}
+                                        »
                                     </p>
                                 </div>
                             )}
@@ -555,7 +588,7 @@ export function SelectField({
                 disabled={disabled}
                 value={value ?? ''}
                 onChange={(e) => onChange(e.target.value)}
-                className="h-10 w-full min-w-0 rounded-[10px] border border-border bg-background px-3 text-xs text-foreground font-normal outline-none transition-colors focus:border-gold focus:ring-2 focus:ring-gold/20 disabled:opacity-50"
+                className="h-10 w-full min-w-0 rounded-[10px] border border-border bg-background px-3 text-xs font-normal text-foreground transition-colors outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 disabled:opacity-50"
             >
                 <option value="">{empty}</option>
                 {options.map((o) => (
@@ -786,7 +819,8 @@ export function ResourceFields({
     onChange: (patch: Partial<Slot>) => void;
 }) {
     const selectedBus = refs.buses.find((b) => b.uuid === slot.bus_uuid);
-    const busUnavailable = selectedBus !== undefined && selectedBus.status !== 'active';
+    const busUnavailable =
+        selectedBus !== undefined && selectedBus.status !== 'active';
 
     return (
         <div className="grid gap-4">
@@ -807,8 +841,9 @@ export function ResourceFields({
                 <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs font-semibold text-destructive">
                     <AlertTriangle size={14} className="mt-0.5 shrink-0" />
                     <span>
-                        Le bus sélectionné « {selectedBus?.label} » est actuellement indisponible.
-                        Il faudra réaffecter un bus disponible avant la publication.
+                        Le bus sélectionné « {selectedBus?.label} » est
+                        actuellement indisponible. Il faudra réaffecter un bus
+                        disponible avant la publication.
                     </span>
                 </div>
             )}
@@ -849,13 +884,19 @@ export function FillGauge({
     capacity,
     className,
 }: {
-    occupancy: { booked: number; capacity: number | null; ratio: number | null } | null;
+    occupancy: {
+        booked: number;
+        capacity: number | null;
+        ratio: number | null;
+    } | null;
     capacity?: number | null;
     className?: string;
 }) {
     const busCapacity = occupancy?.capacity ?? capacity ?? null;
     const booked = occupancy?.booked ?? 0;
-    const ratio = occupancy?.ratio ?? (busCapacity && busCapacity > 0 ? booked / busCapacity : null);
+    const ratio =
+        occupancy?.ratio ??
+        (busCapacity && busCapacity > 0 ? booked / busCapacity : null);
 
     if (occupancy === null) {
         if (busCapacity === null) {
@@ -864,7 +905,10 @@ export function FillGauge({
 
         return (
             <span
-                className={cn('text-[0.625rem] font-bold tabular-nums text-muted-foreground', className)}
+                className={cn(
+                    'text-[0.625rem] font-bold text-muted-foreground tabular-nums',
+                    className,
+                )}
                 aria-label={`Capacité du bus : ${busCapacity} places`}
             >
                 {busCapacity} pl.
@@ -873,8 +917,14 @@ export function FillGauge({
     }
 
     const pct = ratio !== null ? Math.min(100, Math.round(ratio * 100)) : 0;
-    const barColor = pct >= 70 ? 'bg-emerald-500' : pct >= 30 ? 'bg-gold' : 'bg-digital';
-    const textColor = pct >= 70 ? 'text-emerald-600 dark:text-emerald-400' : pct >= 30 ? 'text-gold' : 'text-digital';
+    const barColor =
+        pct >= 70 ? 'bg-emerald-500' : pct >= 30 ? 'bg-gold' : 'bg-digital';
+    const textColor =
+        pct >= 70
+            ? 'text-emerald-600 dark:text-emerald-400'
+            : pct >= 30
+              ? 'text-gold'
+              : 'text-digital';
 
     return (
         <div className={cn('flex items-center gap-2', className)}>
@@ -887,11 +937,19 @@ export function FillGauge({
                 aria-label={`${booked} sièges réservés sur ${busCapacity ?? '?'}`}
             >
                 <div
-                    className={cn('h-full rounded-full transition-all duration-700 ease-out', barColor)}
+                    className={cn(
+                        'h-full rounded-full transition-all duration-700 ease-out',
+                        barColor,
+                    )}
                     style={{ width: `${pct}%` }}
                 />
             </div>
-            <span className={cn('text-[0.625rem] font-bold tabular-nums whitespace-nowrap', textColor)}>
+            <span
+                className={cn(
+                    'text-[0.625rem] font-bold whitespace-nowrap tabular-nums',
+                    textColor,
+                )}
+            >
                 {booked}/{busCapacity ?? '?'}
             </span>
         </div>
@@ -913,8 +971,12 @@ export function PlanningCard({
     const DirectionIcon =
         item.snapshot.direction === 'outbound' ? ArrowRight : ArrowLeft;
     const isOutbound = item.snapshot.direction === 'outbound';
-    const driver = refs.people.find((p) => p.uuid === item.snapshot.driver_uuid);
-    const conductor = refs.people.find((p) => p.uuid === item.snapshot.conductor_uuid);
+    const driver = refs.people.find(
+        (p) => p.uuid === item.snapshot.driver_uuid,
+    );
+    const conductor = refs.people.find(
+        (p) => p.uuid === item.snapshot.conductor_uuid,
+    );
 
     return (
         <button
@@ -939,7 +1001,7 @@ export function PlanningCard({
                     >
                         <DirectionIcon size={12} strokeWidth={2.5} />
                     </span>
-                    <strong className="text-base tabular-nums text-foreground">
+                    <strong className="text-base text-foreground tabular-nums">
                         {item.snapshot.time}
                     </strong>
                 </span>
@@ -978,20 +1040,30 @@ export function PlanningCard({
                     />
                     {busLabel}
                     {bus && hasBus && (
-                        <span className="text-muted-foreground/60">· {bus.capacity} pl.</span>
+                        <span className="text-muted-foreground/60">
+                            · {bus.capacity} pl.
+                        </span>
                     )}
                 </span>
                 {(driver || conductor) && (
                     <div className="flex items-center gap-2.5 text-[0.625rem] text-muted-foreground">
                         {driver && (
                             <span className="flex items-center gap-1 truncate">
-                                <User size={10} strokeWidth={2} className="text-kora dark:text-gold" />
+                                <User
+                                    size={10}
+                                    strokeWidth={2}
+                                    className="text-kora dark:text-gold"
+                                />
                                 {driver.label}
                             </span>
                         )}
                         {conductor && (
                             <span className="flex items-center gap-1 truncate">
-                                <Users size={10} strokeWidth={2} className="text-kora dark:text-gold" />
+                                <Users
+                                    size={10}
+                                    strokeWidth={2}
+                                    className="text-kora dark:text-gold"
+                                />
                                 {conductor.label}
                             </span>
                         )}
@@ -1008,7 +1080,7 @@ export function PlanningCard({
             <span className="flex items-center justify-between gap-2">
                 <StateBadge state={item.state} />
                 {item.occupancy === null && bus && hasBus && (
-                    <span className="text-[0.625rem] font-bold tabular-nums text-muted-foreground">
+                    <span className="text-[0.625rem] font-bold text-muted-foreground tabular-nums">
                         {bus.capacity} pl.
                     </span>
                 )}

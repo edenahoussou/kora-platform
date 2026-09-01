@@ -148,10 +148,11 @@ export default function NetworkPage({
             header: 'Sens',
             render: (line) => (
                 <span
-                    className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-bold ${line.bidirectional
+                    className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-bold ${
+                        line.bidirectional
                             ? 'bg-digital/10 text-digital'
                             : 'bg-muted text-muted-foreground'
-                        }`}
+                    }`}
                 >
                     {line.bidirectional ? 'Aller-Retour' : 'Sens unique'}
                 </span>

@@ -217,8 +217,8 @@ export function BusFormDialog({
                                     {processing
                                         ? 'Enregistrement…'
                                         : editing
-                                            ? 'Enregistrer les changements'
-                                            : 'Créer le bus'}
+                                          ? 'Enregistrer les changements'
+                                          : 'Créer le bus'}
                                 </Button>
                             </div>
                         </>
