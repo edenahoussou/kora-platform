@@ -94,6 +94,7 @@ export type PlanningItem = {
     state: State;
     blockers: string[];
     warnings: string[];
+    occupancy: { booked: number; capacity: number | null; ratio: number | null } | null;
     history?: { event: string; at: string; actor: string | null }[];
 };
 export type Run = {

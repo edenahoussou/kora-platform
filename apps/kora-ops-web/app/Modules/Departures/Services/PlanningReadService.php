@@ -3,6 +3,8 @@
 namespace App\Modules\Departures\Services;
 
 use App\Models\User;
+use App\Modules\Booking\Data\ReservationSegmentStatus;
+use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\BusNetwork\Models\Stop;
@@ -95,9 +97,10 @@ class PlanningReadService
     }
 
     /** @param array<string, mixed>|null $assessment
+     * @param  array{booked: int, capacity: int|null, ratio: float|null}|null  $occupancy
      * @return array<string, mixed>
      */
-    public function item(PlannedDeparture $item, bool $history = false, ?array $assessment = null): array
+    public function item(PlannedDeparture $item, bool $history = false, ?array $assessment = null, ?array $occupancy = null): array
     {
         $item->loadMissing(['programme', 'departure']);
         $result = [
@@ -107,12 +110,89 @@ class PlanningReadService
             'programmeUuid' => $item->programme->uuid, 'programmeName' => $item->programme->name,
             'departureUuid' => $item->departure?->uuid, 'departureStatus' => $item->departure?->getRawOriginal('status'),
             'protected' => $this->planning->protected($item), 'manual' => false,
+            'occupancy' => $occupancy ?? $this->occupancyFor($item->departure?->id, $item->snapshot['bus_uuid'] ?? null),
         ] + ($assessment ?? $this->publication->assess($item));
         if ($history) {
             $result['history'] = Activity::query()->where('subject_type', $item->getMorphClass())->where('subject_id', $item->id)->with('causer')->latest()->limit(30)->get()->map(fn (Activity $entry): array => ['event' => $entry->description, 'at' => $entry->created_at?->toIso8601String(), 'actor' => $entry->causer?->getAttribute('name')])->all();
         }
 
         return $result;
+    }
+
+    /**
+     * Calcule l'occupation des sièges pour un départ publié.
+     *
+     * @return array{booked: int, capacity: int|null, ratio: float|null}|null
+     */
+    private function occupancyFor(?int $departureId, ?string $busUuid): ?array
+    {
+        if ($departureId === null) {
+            return null;
+        }
+
+        $booked = ReservationSegment::query()
+            ->where('departure_id', $departureId)
+            ->whereIn('status', ReservationSegmentStatus::occupyingValues())
+            ->distinct('seat_id')
+            ->count('seat_id');
+
+        $capacity = null;
+        if ($busUuid !== null) {
+            $capacity = Bus::query()->where('uuid', $busUuid)->value('seat_count');
+        }
+
+        $ratio = $capacity !== null && $capacity > 0 ? round($booked / $capacity, 2) : null;
+
+        return ['booked' => $booked, 'capacity' => $capacity, 'ratio' => $ratio];
+    }
+
+    /**
+     * Calcule l'occupation en lot pour éviter les requêtes N+1.
+     *
+     * @param  list<PlannedDeparture>  $occurrences
+     * @return array<int, array{booked: int, capacity: int|null, ratio: float|null}|null>
+     */
+    private function batchOccupancy(array $occurrences): array
+    {
+        $departureIds = [];
+        $busUuids = [];
+        foreach ($occurrences as $occ) {
+            if ($occ->departure_id !== null) {
+                $departureIds[] = $occ->departure_id;
+            }
+            if (! empty($occ->snapshot['bus_uuid'])) {
+                $busUuids[] = $occ->snapshot['bus_uuid'];
+            }
+        }
+
+        $bookedMap = [];
+        if ($departureIds !== []) {
+            $bookedMap = ReservationSegment::query()
+                ->whereIn('departure_id', $departureIds)
+                ->whereIn('status', ReservationSegmentStatus::occupyingValues())
+                ->selectRaw('departure_id, count(distinct seat_id) as booked')
+                ->groupBy('departure_id')
+                ->pluck('booked', 'departure_id')
+                ->all();
+        }
+
+        $capacityMap = [];
+        if ($busUuids !== []) {
+            $capacityMap = Bus::query()->whereIn('uuid', array_unique($busUuids))->pluck('seat_count', 'uuid')->all();
+        }
+
+        return array_map(function (PlannedDeparture $occ) use ($bookedMap, $capacityMap): ?array {
+            if ($occ->departure_id === null) {
+                return null;
+            }
+
+            $booked = $bookedMap[$occ->departure_id] ?? 0;
+            $busUuid = $occ->snapshot['bus_uuid'] ?? null;
+            $capacity = $busUuid !== null ? ($capacityMap[$busUuid] ?? null) : null;
+            $ratio = $capacity !== null && $capacity > 0 ? round($booked / $capacity, 2) : null;
+
+            return ['booked' => (int) $booked, 'capacity' => $capacity !== null ? (int) $capacity : null, 'ratio' => $ratio];
+        }, $occurrences);
     }
 
     /** @return array<string, mixed> */
@@ -155,6 +235,7 @@ class PlanningReadService
             'departureUuid' => $departure->uuid, 'departureStatus' => $departure->getRawOriginal('status'),
             'protected' => true, 'manual' => true, 'state' => $departure->getRawOriginal('status') === 'cancelled' ? 'excluded' : 'published',
             'blockers' => [], 'warnings' => [],
+            'occupancy' => $this->occupancyFor($departure->id, $slot['bus_uuid'] ?? null),
         ];
     }
 
@@ -179,7 +260,8 @@ class PlanningReadService
         }
         $occurrences = $query->get();
         $assessments = $this->publication->assessBatch(array_values($occurrences->all()));
-        $items = $occurrences->map(fn (PlannedDeparture $item, int $index): array => $this->item($item, false, $assessments[$index]));
+        $occupancies = $this->batchOccupancy(array_values($occurrences->all()));
+        $items = $occurrences->map(fn (PlannedDeparture $item, int $index): array => $this->item($item, false, $assessments[$index], $occupancies[$index]));
         if (empty($filters['programme'])) {
             $manual = Departure::query()->with(['line.stops', 'bus', 'driver', 'conductor'])->whereNotIn('id', PlannedDeparture::query()->whereNotNull('departure_id')->select('departure_id'))
                 ->whereDate('departure_date', '>=', $from->subDay()->toDateString())->whereDate('departure_date', '<=', $until->addDay()->toDateString())->get()

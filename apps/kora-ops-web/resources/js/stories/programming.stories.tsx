@@ -134,6 +134,7 @@ const items: PlanningItem[] = Array.from({ length: 28 }, (_, i) => {
         warnings: [
             'Équipage incomplet : affectation possible avant l’exploitation.',
         ],
+        occupancy: state === 'published' ? { booked: 38, capacity: 55, ratio: 0.69 } : null,
     };
 });
 function Workspace({

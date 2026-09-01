@@ -1,10 +1,11 @@
-import { ArrowLeft, ArrowRight, Bus, CalendarDays, CheckCircle2, ChevronRight, Info } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Bus, CalendarDays, CheckCircle2, ChevronRight, Info, User, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
     ProgrammingButton as Button,
     dateLabel,
     days,
     Empty,
+    FillGauge,
     PlanningCard,
     shiftDate,
     StateBadge,
@@ -59,11 +60,11 @@ export function PlanningCalendar({
     ).length;
 
     const list = (
-        <div className="grid gap-2">
+        <div className="grid gap-3">
             {(blockedCount > 0 || unassignedCount > 0) && (
                 <div
                     role="status"
-                    className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border border-border bg-muted/50 px-4 py-3 text-xs text-muted-foreground"
+                    className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border border-border bg-kora/[0.03] px-4 py-3 text-xs text-muted-foreground"
                 >
                     <span className="inline-flex items-center gap-1.5 font-bold text-foreground">
                         <Info size={15} strokeWidth={2} className="text-kora dark:text-gold" />
@@ -76,92 +77,160 @@ export function PlanningCalendar({
                         </span>
                     )}
                     {unassignedCount > 0 && (
-                        <span className="inline-flex items-center gap-1.5 font-bold text-sky-700 dark:text-sky-300">
-                            <span className="size-2 rounded-full bg-sky-500" />
+                        <span className="inline-flex items-center gap-1.5 font-bold text-digital dark:text-sky-300">
+                            <span className="size-2 rounded-full bg-digital dark:bg-sky-400" />
                             {unassignedCount} à affecter
                         </span>
                     )}
                 </div>
             )}
-            {items.map((item) => {
-                const DirectionIcon =
-                    item.snapshot.direction === 'outbound'
-                        ? ArrowRight
-                        : ArrowLeft;
-                const hasBus = item.snapshot.bus_uuid !== null;
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {items.map((item, idx) => {
+                    const DirectionIcon =
+                        item.snapshot.direction === 'outbound'
+                            ? ArrowRight
+                            : ArrowLeft;
+                    const isOutbound = item.snapshot.direction === 'outbound';
+                    const line = refs.lines.find(
+                        (l) => l.uuid === item.snapshot.line_uuid,
+                    );
+                    const bus = refs.buses.find(
+                        (b) => b.uuid === item.snapshot.bus_uuid,
+                    );
+                    const driver = refs.people.find(
+                        (p) => p.uuid === item.snapshot.driver_uuid,
+                    );
+                    const conductor = refs.people.find(
+                        (p) => p.uuid === item.snapshot.conductor_uuid,
+                    );
+                    const hasBus = item.snapshot.bus_uuid !== null;
+                    const dayName = days[new Date(item.date + 'T12:00:00').getUTCDay() === 0 ? 6 : new Date(item.date + 'T12:00:00').getUTCDay() - 1];
+                    const dayNum = new Date(item.date + 'T12:00:00').getUTCDate();
 
-                return (
-                    <div
-                        key={item.uuid}
-                        className={cn(
-                            'flex items-center gap-3 rounded-xl border border-border bg-card p-3.5 transition-all hover:border-gold hover:shadow-xs',
-                            item.state === 'blocked' &&
-                            'border-destructive/30 bg-destructive/[0.02]',
-                        )}
-                    >
-                        <input
-                            type="checkbox"
-                            className="size-4.5 rounded-sm accent-gold cursor-pointer"
-                            checked={selected.includes(item.uuid)}
-                            disabled={
-                                item.manual || item.state === 'excluded'
-                            }
-                            onChange={() => onSelect(item.uuid)}
-                            aria-label={`Sélectionner ${dateLabel(item.date)} à ${item.snapshot.time}`}
-                        />
-                        <button
-                            className="grid min-w-0 flex-1 cursor-pointer gap-2 text-left sm:grid-cols-[110px_1fr_160px_140px] sm:items-center"
-                            onClick={() => onOpen(item)}
+                    return (
+                        <div
+                            key={item.uuid}
+                            style={{ animationDelay: `${Math.min(idx * 30, 300)}ms` }}
+                            className={cn(
+                                'group relative animate-in fade-in slide-in-from-bottom-2 duration-400 rounded-2xl border bg-card p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(0,29,78,0.08)]',
+                                item.state === 'blocked'
+                                    ? 'border-destructive/30 hover:border-destructive/50 hover:shadow-[0_8px_30px_rgba(220,38,38,0.08)]'
+                                    : 'border-border hover:border-gold hover:ring-1 hover:ring-gold/20',
+                            )}
                         >
-                            <span className="flex items-center gap-2 text-xs">
-                                <span
-                                    className={`grid size-6 place-items-center rounded-md ${item.snapshot.direction === 'outbound'
-                                            ? 'bg-digital/15 text-digital'
-                                            : 'bg-gold/20 text-kora dark:text-gold'
-                                        }`}
-                                >
-                                    <DirectionIcon size={13} strokeWidth={2.5} />
-                                </span>
-                                <div>
-                                    <span className="text-[0.6875rem] font-semibold text-muted-foreground block">
-                                        {dateLabel(item.date)}
-                                    </span>
-                                    <strong className="font-mono text-xs font-bold text-foreground">
-                                        {item.snapshot.time}
-                                    </strong>
-                                </div>
-                            </span>
-                            <span className="truncate text-xs font-extrabold text-foreground">
-                                {refs.lines.find(
-                                    (l) =>
-                                        l.uuid === item.snapshot.line_uuid,
-                                )?.label ?? 'Ligne indisponible'}
-                                <small className="mt-0.5 block truncate font-normal text-muted-foreground">
-                                    {item.programmeName}
-                                    {item.isException ? ' · Exception' : ''}
-                                </small>
-                            </span>
-                            <span
-                                className={cn(
-                                    'flex items-center gap-1.5 truncate text-xs',
-                                    hasBus
-                                        ? 'text-muted-foreground'
-                                        : 'font-semibold text-sky-700 dark:text-sky-300',
-                                )}
+                            {/* Checkbox de sélection */}
+                            <input
+                                type="checkbox"
+                                className="absolute left-3 top-3 size-4 rounded-sm accent-gold cursor-pointer opacity-0 transition-opacity group-hover:opacity-100 [.touch_&]:opacity-100"
+                                checked={selected.includes(item.uuid)}
+                                disabled={item.manual || item.state === 'excluded'}
+                                onChange={() => onSelect(item.uuid)}
+                                aria-label={`Sélectionner ${dateLabel(item.date)} à ${item.snapshot.time}`}
+                            />
+
+                            <button
+                                className="grid w-full cursor-pointer gap-3 text-left"
+                                onClick={() => onOpen(item)}
                             >
-                                <Bus size={13} strokeWidth={1.75} />
-                                {refs.buses.find(
-                                    (b) =>
-                                        b.uuid === item.snapshot.bus_uuid,
-                                )?.label ?? 'Bus à affecter'}
-                            </span>
-                            <div className="flex items-center justify-end sm:justify-start">
-                                <StateBadge state={item.state} />
-                            </div>
-                        </button>
-                    </div>
-                );
-            })}
+                                {/* En-tête : badge date + direction + heure */}
+                                <div className="flex items-start gap-3">
+                                    <div className="flex shrink-0 flex-col items-center rounded-lg bg-kora/[0.06] px-2 py-1.5 dark:bg-gold/[0.08]">
+                                        <span className="text-[0.5625rem] font-bold uppercase tracking-wider text-muted-foreground">
+                                            {dayName}
+                                        </span>
+                                        <strong className="text-lg font-black tabular-nums leading-none text-foreground">
+                                            {dayNum}
+                                        </strong>
+                                    </div>
+                                    <div className="grid min-w-0 flex-1 gap-1">
+                                        <div className="flex items-center gap-2">
+                                            <span
+                                                className={cn(
+                                                    'grid size-5 place-items-center rounded-md transition-transform duration-200',
+                                                    isOutbound
+                                                        ? 'bg-digital/15 text-digital group-hover:translate-x-0.5'
+                                                        : 'bg-gold/20 text-kora group-hover:-translate-x-0.5 dark:text-gold',
+                                                )}
+                                            >
+                                                <DirectionIcon size={12} strokeWidth={2.5} />
+                                            </span>
+                                            <strong className="text-base tabular-nums text-foreground">
+                                                {item.snapshot.time}
+                                            </strong>
+                                            {item.isException && (
+                                                <span className="rounded bg-violet-500/15 px-1 py-0.5 text-[0.5625rem] font-bold text-violet-600 dark:text-violet-400">
+                                                    Exception
+                                                </span>
+                                            )}
+                                        </div>
+                                        <span className="truncate text-xs font-extrabold text-foreground">
+                                            {line?.label ?? 'Ligne indisponible'}
+                                        </span>
+                                        <span className="truncate text-[0.6875rem] text-muted-foreground">
+                                            {item.programmeName}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Ressources : bus + équipage */}
+                                <div className="grid gap-1.5 border-t border-border/60 pt-2.5">
+                                    <span
+                                        className={cn(
+                                            'flex items-center gap-1.5 truncate text-xs',
+                                            hasBus
+                                                ? 'text-muted-foreground'
+                                                : 'font-semibold text-sky-700 dark:text-sky-300',
+                                        )}
+                                    >
+                                        <Bus size={12} strokeWidth={1.75} className={hasBus ? '' : 'animate-pulse'} />
+                                        {bus?.label ?? 'Bus à affecter'}
+                                        {bus && hasBus && (
+                                            <span className="text-muted-foreground/60">· {bus.capacity} pl.</span>
+                                        )}
+                                    </span>
+                                    {(driver || conductor) && (
+                                        <div className="flex items-center gap-3 text-[0.625rem] text-muted-foreground">
+                                            {driver && (
+                                                <span className="flex items-center gap-1 truncate">
+                                                    <User size={10} strokeWidth={2} className="text-kora dark:text-gold" />
+                                                    {driver.label}
+                                                </span>
+                                            )}
+                                            {conductor && (
+                                                <span className="flex items-center gap-1 truncate">
+                                                    <Users size={10} strokeWidth={2} className="text-kora dark:text-gold" />
+                                                    {conductor.label}
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Jauge de remplissage */}
+                                {item.occupancy !== null && (
+                                    <FillGauge occupancy={item.occupancy} />
+                                )}
+
+                                {/* État + alertes */}
+                                <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-2.5">
+                                    <StateBadge state={item.state} />
+                                    {item.blockers.length > 0 && (
+                                        <span className="flex items-center gap-1 text-[0.625rem] font-semibold text-destructive">
+                                            <AlertTriangle size={11} />
+                                            {item.blockers.length} alerte(s)
+                                        </span>
+                                    )}
+                                </div>
+                                {item.blockers.length > 0 && (
+                                    <p className="line-clamp-2 text-[0.625rem] leading-4 text-destructive/90">
+                                        {item.blockers[0]}
+                                    </p>
+                                )}
+                            </button>
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     );
 
@@ -169,19 +238,27 @@ export function PlanningCalendar({
         <div className="@container">
             {view === 'week' && (
                 <div className="hidden @[1100px]:block">
-                    <div className="grid grid-cols-[180px_repeat(7,minmax(0,1fr))] gap-px overflow-hidden rounded-2xl border border-border bg-border">
-                        <div className="bg-muted/70 p-3.5 text-[0.6875rem] font-extrabold tracking-wider text-muted-foreground uppercase">
+                    <div className="grid grid-cols-[180px_repeat(7,minmax(0,1fr))] gap-px overflow-hidden rounded-2xl border border-kora/10 bg-kora/5">
+                        <div className="bg-kora/[0.04] p-3.5 text-[0.6875rem] font-extrabold tracking-wider text-muted-foreground uppercase">
                             Liaison / Sens
                         </div>
                         {dates.map((date, i) => (
                             <div
                                 key={date}
-                                className={`bg-muted/70 p-3 text-center ${date === today() ? 'bg-gold/15 text-foreground' : ''}`}
+                                className={cn(
+                                    'p-3 text-center transition-colors',
+                                    date === today()
+                                        ? 'bg-gold/15 ring-1 ring-inset ring-gold/30'
+                                        : 'bg-kora/[0.04]',
+                                )}
                             >
                                 <span className="text-[0.625rem] font-extrabold tracking-wider uppercase text-muted-foreground">
                                     {days[i]}
                                 </span>
-                                <strong className="mt-0.5 block text-xs font-extrabold tabular-nums text-foreground">
+                                <strong className={cn(
+                                    'mt-0.5 block text-xs font-extrabold tabular-nums',
+                                    date === today() ? 'text-gold' : 'text-foreground',
+                                )}>
                                     {dateLabel(date)}
                                 </strong>
                             </div>
@@ -196,7 +273,7 @@ export function PlanningCalendar({
 
                             return (
                                 <div key={key} className="contents">
-                                    <div className="bg-card p-4">
+                                    <div className="border-l-2 border-gold/30 bg-card p-4">
                                         <p className="text-xs font-extrabold text-foreground">
                                             {
                                                 refs.lines.find(
@@ -210,8 +287,8 @@ export function PlanningCalendar({
                                         <div className="mt-2 flex items-center gap-1.5">
                                             <span
                                                 className={`rounded px-1.5 py-0.5 text-[0.625rem] font-bold ${sample.snapshot.direction === 'outbound'
-                                                        ? 'bg-digital/15 text-digital'
-                                                        : 'bg-gold/20 text-kora dark:text-gold'
+                                                    ? 'bg-digital/15 text-digital'
+                                                    : 'bg-gold/20 text-kora dark:text-gold'
                                                     }`}
                                             >
                                                 {sample.snapshot.direction === 'outbound'
@@ -231,7 +308,12 @@ export function PlanningCalendar({
                                         return (
                                             <div
                                                 key={date}
-                                                className={`grid content-start gap-2 p-2 ${date === today() ? 'bg-gold/[0.04]' : 'bg-card'}`}
+                                                className={cn(
+                                                    'grid content-start gap-2 p-2 transition-colors',
+                                                    date === today()
+                                                        ? 'bg-gold/[0.05]'
+                                                        : 'bg-card hover:bg-gold/[0.02]',
+                                                )}
                                             >
                                                 {daily
                                                     .slice(0, 3)
@@ -247,7 +329,7 @@ export function PlanningCalendar({
                                                     ))}
                                                 {daily.length > 3 && (
                                                     <button
-                                                        className="p-1.5 text-center text-xs font-semibold text-kora hover:underline dark:text-gold"
+                                                        className="p-1.5 text-center text-xs font-semibold text-kora hover:underline dark:text-gold animate-pulse"
                                                         onClick={() =>
                                                             onDay(date)
                                                         }
@@ -287,14 +369,22 @@ export function PlanningCalendar({
                                 key={date}
                                 onClick={() => onDay(date)}
                                 className={cn(
-                                    'grid min-h-28 content-start gap-1.5 rounded-xl border border-border bg-card p-3 text-left transition-all hover:border-gold hover:shadow-xs',
-                                    date === today() && 'border-gold bg-gold/[0.04] ring-1 ring-gold/40',
+                                    'grid min-h-28 content-start gap-1.5 rounded-xl border p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(0,29,78,0.08)]',
+                                    date === today()
+                                        ? 'border-gold bg-gold/[0.08] ring-1 ring-gold/40'
+                                        : 'border-border bg-gradient-to-br from-card to-kora/[0.02] hover:border-gold',
                                 )}
                             >
-                                <span className="text-xs font-extrabold tabular-nums text-foreground">
+                                <span className={cn(
+                                    'text-xs font-extrabold tabular-nums',
+                                    date === today() ? 'text-gold' : 'text-foreground',
+                                )}>
                                     {dateLabel(date)}
                                 </span>
-                                <span className="text-xs font-semibold text-muted-foreground">
+                                <span className={cn(
+                                    'text-xs font-semibold',
+                                    daily.length === 0 ? 'text-muted-foreground/50' : 'text-muted-foreground',
+                                )}>
                                     {daily.length} départ(s)
                                 </span>
                                 {statesPresent.length > 0 && (
@@ -302,7 +392,10 @@ export function PlanningCalendar({
                                         {statesPresent.map((s) => (
                                             <span
                                                 key={s}
-                                                className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[0.625rem] font-bold text-foreground"
+                                                className={cn(
+                                                    'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[0.625rem] font-bold transition-transform hover:scale-105',
+                                                    stateTheme[s].badge,
+                                                )}
                                                 title={`${stateCounts[s]} ${states[s].toLowerCase()}`}
                                             >
                                                 <span

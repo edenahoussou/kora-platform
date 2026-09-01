@@ -28,6 +28,8 @@ npm run build
 
 This repository has no established Git history yet. Use concise conventional-style commits, for example `feat: scaffold bus booking module` or `fix: correct pgsql health check`. Pull requests should include scope, linked client requirement or ticket, migration notes, test results, and screenshots for UI changes.
 
+**NEVER sign commits.** Do not add `Generated with [Devin](https://devin.ai)`, `Co-Authored-By: Devin`, or any other AI tool signature / co-author line to commit messages. Keep commit messages simple and clean — no co-authors, no tool mentions.
+
 Before pushing a branch or merging a pull request, run the relevant local gate and confirm the equivalent GitHub Actions checks are green. For KORA OPS Web changes, run at minimum `composer test`, `npm run build`, and when the production image or deploy pipeline may be affected, `docker build -f infra/docker/kora-ops-web/Dockerfile.prod -t kora-ops-web:local-check .` from the repository root. Do not merge based only on a PR check if the post-merge `main` deployment workflow is failing.
 
 **Merge strategy**: Always use merge commits (`gh pr merge --merge`), never squash. The repository is configured for merge commits by default — squashing destroys individual commit history and should not be used.

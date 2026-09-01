@@ -12,6 +12,7 @@ import {
     GitBranch,
     Search,
     Sparkles,
+    User,
     Users,
     Wrench,
     X,
@@ -811,24 +812,89 @@ export function ResourceFields({
                 </div>
             )}
             <div className="grid gap-4 sm:grid-cols-2">
-                {crewFields.map((c) => (
-                    <SelectField
-                        key={c.key}
-                        label={c.label}
-                        icon={c.role === 'mechanic' ? Wrench : Users}
-                        hint="Facultatif : cette ressource pourra être ajustée avant publication."
-                        value={slot[c.key]}
-                        empty="À affecter plus tard"
-                        options={refs.people.filter((p) =>
-                            p.roles.includes(c.role),
-                        )}
-                        onChange={(v) => onChange({ [c.key]: v || null })}
-                    />
-                ))}
+                {crewFields.map((c) => {
+                    const usedElsewhere = crewFields
+                        .filter((other) => other.key !== c.key)
+                        .map((other) => slot[other.key])
+                        .filter(Boolean);
+                    return (
+                        <SelectField
+                            key={c.key}
+                            label={c.label}
+                            icon={c.role === 'mechanic' ? Wrench : Users}
+                            hint="Facultatif : cette ressource pourra être ajustée avant publication."
+                            value={slot[c.key]}
+                            empty="À affecter plus tard"
+                            options={refs.people
+                                .filter((p) => p.roles.includes(c.role))
+                                .map((p) => ({
+                                    ...p,
+                                    disabled: usedElsewhere.includes(p.uuid),
+                                    label: usedElsewhere.includes(p.uuid)
+                                        ? `${p.label} · déjà assigné`
+                                        : p.label,
+                                }))}
+                            onChange={(v) => onChange({ [c.key]: v || null })}
+                        />
+                    );
+                })}
             </div>
         </div>
     );
 }
+export function FillGauge({
+    occupancy,
+    capacity,
+    className,
+}: {
+    occupancy: { booked: number; capacity: number | null; ratio: number | null } | null;
+    capacity?: number | null;
+    className?: string;
+}) {
+    const busCapacity = occupancy?.capacity ?? capacity ?? null;
+    const booked = occupancy?.booked ?? 0;
+    const ratio = occupancy?.ratio ?? (busCapacity && busCapacity > 0 ? booked / busCapacity : null);
+
+    if (occupancy === null) {
+        if (busCapacity === null) {
+            return null;
+        }
+        return (
+            <span
+                className={cn('text-[0.625rem] font-bold tabular-nums text-muted-foreground', className)}
+                aria-label={`Capacité du bus : ${busCapacity} places`}
+            >
+                {busCapacity} pl.
+            </span>
+        );
+    }
+
+    const pct = ratio !== null ? Math.min(100, Math.round(ratio * 100)) : 0;
+    const barColor = pct >= 70 ? 'bg-emerald-500' : pct >= 30 ? 'bg-gold' : 'bg-digital';
+    const textColor = pct >= 70 ? 'text-emerald-600 dark:text-emerald-400' : pct >= 30 ? 'text-gold' : 'text-digital';
+
+    return (
+        <div className={cn('flex items-center gap-2', className)}>
+            <div
+                className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-muted"
+                role="progressbar"
+                aria-valuenow={booked}
+                aria-valuemin={0}
+                aria-valuemax={busCapacity ?? 0}
+                aria-label={`${booked} sièges réservés sur ${busCapacity ?? '?'}`}
+            >
+                <div
+                    className={cn('h-full rounded-full transition-all duration-700 ease-out', barColor)}
+                    style={{ width: `${pct}%` }}
+                />
+            </div>
+            <span className={cn('text-[0.625rem] font-bold tabular-nums whitespace-nowrap', textColor)}>
+                {booked}/{busCapacity ?? '?'}
+            </span>
+        </div>
+    );
+}
+
 export function PlanningCard({
     item,
     refs,
@@ -838,74 +904,110 @@ export function PlanningCard({
     refs: References;
     onOpen: () => void;
 }) {
-    const busLabel =
-        refs.buses.find((b) => b.uuid === item.snapshot.bus_uuid)?.label ??
-        'Bus à affecter';
+    const bus = refs.buses.find((b) => b.uuid === item.snapshot.bus_uuid);
+    const busLabel = bus?.label ?? 'Bus à affecter';
     const hasBus = item.snapshot.bus_uuid !== null;
     const DirectionIcon =
         item.snapshot.direction === 'outbound' ? ArrowRight : ArrowLeft;
+    const isOutbound = item.snapshot.direction === 'outbound';
+    const driver = refs.people.find((p) => p.uuid === item.snapshot.driver_uuid);
+    const conductor = refs.people.find((p) => p.uuid === item.snapshot.conductor_uuid);
 
     return (
         <button
             onClick={onOpen}
             className={cn(
-                'group grid w-full gap-2 rounded-[10px] border bg-card p-3 text-left transition-colors focus-visible:outline-2 focus-visible:outline-ring',
+                'group grid w-full gap-2.5 rounded-[10px] border bg-card p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(0,29,78,0.08)] focus-visible:outline-2 focus-visible:outline-ring',
                 item.state === 'blocked'
-                    ? 'border-destructive/40 hover:border-destructive/60'
-                    : 'border-border hover:border-gold',
+                    ? 'border-destructive/40 hover:border-destructive/60 hover:shadow-[0_8px_30px_rgba(220,38,38,0.08)]'
+                    : 'border-border hover:border-gold hover:ring-1 hover:ring-gold/20',
             )}
         >
+            {/* En-tête : direction + heure + exception */}
             <div className="flex items-center justify-between gap-2">
                 <span className="flex items-center gap-1.5">
-                    <DirectionIcon
-                        size={13}
-                        strokeWidth={2}
-                        className={
-                            item.snapshot.direction === 'outbound'
-                                ? 'text-digital'
-                                : 'text-gold'
-                        }
-                        aria-label={
-                            item.snapshot.direction === 'outbound'
-                                ? 'Aller'
-                                : 'Retour'
-                        }
-                    />
-                    <strong className="text-base tabular-nums">
+                    <span
+                        className={cn(
+                            'grid size-5 place-items-center rounded-md transition-transform duration-200',
+                            isOutbound
+                                ? 'bg-digital/15 text-digital group-hover:translate-x-0.5'
+                                : 'bg-gold/20 text-kora group-hover:-translate-x-0.5 dark:text-gold',
+                        )}
+                    >
+                        <DirectionIcon size={12} strokeWidth={2.5} />
+                    </span>
+                    <strong className="text-base tabular-nums text-foreground">
                         {item.snapshot.time}
                     </strong>
                 </span>
-                {item.isException && (
-                    <GitBranch
-                        size={13}
-                        className="text-violet-500"
-                        aria-label="Exception"
+                <div className="flex items-center gap-1.5">
+                    {item.isException && (
+                        <GitBranch
+                            size={13}
+                            className="text-violet-500"
+                            aria-label="Exception"
+                        />
+                    )}
+                    {item.blockers.length > 0 && (
+                        <AlertTriangle
+                            size={12}
+                            className="text-destructive"
+                            aria-label={`${item.blockers.length} alerte(s)`}
+                        />
+                    )}
+                </div>
+            </div>
+
+            {/* Bus + équipage compact */}
+            <div className="grid gap-1">
+                <span
+                    className={cn(
+                        'flex items-center gap-1.5 truncate text-xs',
+                        hasBus
+                            ? 'text-muted-foreground'
+                            : 'font-semibold text-sky-700 dark:text-sky-300',
+                    )}
+                >
+                    <Bus
+                        size={12}
+                        strokeWidth={1.75}
+                        className={hasBus ? '' : 'animate-pulse'}
                     />
+                    {busLabel}
+                    {bus && hasBus && (
+                        <span className="text-muted-foreground/60">· {bus.capacity} pl.</span>
+                    )}
+                </span>
+                {(driver || conductor) && (
+                    <div className="flex items-center gap-2.5 text-[0.625rem] text-muted-foreground">
+                        {driver && (
+                            <span className="flex items-center gap-1 truncate">
+                                <User size={10} strokeWidth={2} className="text-kora dark:text-gold" />
+                                {driver.label}
+                            </span>
+                        )}
+                        {conductor && (
+                            <span className="flex items-center gap-1 truncate">
+                                <Users size={10} strokeWidth={2} className="text-kora dark:text-gold" />
+                                {conductor.label}
+                            </span>
+                        )}
+                    </div>
                 )}
             </div>
-            <span
-                className={cn(
-                    'flex items-center gap-1.5 truncate text-xs',
-                    hasBus
-                        ? 'text-muted-foreground'
-                        : 'font-semibold text-sky-700 dark:text-sky-300',
-                )}
-            >
-                <Bus
-                    size={12}
-                    strokeWidth={1.75}
-                    className={hasBus ? '' : 'animate-pulse'}
-                />
-                {busLabel}
-            </span>
+
+            {/* Jauge de remplissage */}
+            {item.occupancy !== null && (
+                <FillGauge occupancy={item.occupancy} />
+            )}
+
+            {/* État + premier blocage */}
             <span className="flex items-center justify-between gap-2">
                 <StateBadge state={item.state} />
-                {item.blockers.length > 0 && (
-                    <AlertTriangle
-                        size={12}
-                        className="text-destructive"
-                        aria-label={`${item.blockers.length} alerte(s)`}
-                    />
+                {item.occupancy === null && bus && hasBus && (
+                    <span className="text-[0.625rem] font-bold tabular-nums text-muted-foreground">
+                        {bus.capacity} pl.
+                    </span>
                 )}
             </span>
             {item.blockers.length > 0 && (
