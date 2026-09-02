@@ -352,7 +352,7 @@ endpoints:
         name: role
         description: ''
         required: true
-        example: referent
+        example: member
         type: string
         enumValues:
           - referent
@@ -362,7 +362,7 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       user_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-      role: referent
+      role: member
     fileParameters: []
     responses: []
     responseFields: []
@@ -429,7 +429,7 @@ endpoints:
         name: status
         description: ''
         required: true
-        example: inactive
+        example: active
         type: string
         enumValues:
           - active
@@ -464,7 +464,7 @@ endpoints:
         name: starts_at
         description: 'Le champ value doit être une date valide.'
         required: false
-        example: '2026-09-02T09:35:13'
+        example: '2026-09-02T10:44:11'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -482,10 +482,10 @@ endpoints:
         nullable: true
         deprecated: false
     cleanBodyParameters:
-      status: inactive
+      status: active
       passenger_threshold: 16
       percentage: 22
-      starts_at: '2026-09-02T09:35:13'
+      starts_at: '2026-09-02T10:44:11'
       ends_at: '2052-09-25'
     fileParameters: []
     responses: []
@@ -569,7 +569,7 @@ endpoints:
         name: starts_at
         description: 'Le champ value doit être une date valide.'
         required: false
-        example: '2026-09-02T09:35:13'
+        example: '2026-09-02T10:44:11'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -590,7 +590,7 @@ endpoints:
       status: inactive
       passenger_threshold: 16
       percentage: 22
-      starts_at: '2026-09-02T09:35:13'
+      starts_at: '2026-09-02T10:44:11'
       ends_at: '2052-09-25'
     fileParameters: []
     responses: []

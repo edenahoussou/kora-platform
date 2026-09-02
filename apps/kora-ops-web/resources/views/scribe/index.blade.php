@@ -111,10 +111,10 @@
                                 <a href="#bus-POSTapi-v1-bookings--reservation_uuid--passengers">Store passenger details for a reservation.</a>
                             </li>
                                                                                 <li class="tocify-item level-2" data-unique="bus-POSTapi-v1-bookings--reservation_uuid--cancel">
-                                <a href="#bus-POSTapi-v1-bookings--reservation_uuid--cancel">POST api/v1/bookings/{reservation_uuid}/cancel</a>
+                                <a href="#bus-POSTapi-v1-bookings--reservation_uuid--cancel">Cancel a reservation and release its held seats.</a>
                             </li>
                                                                                 <li class="tocify-item level-2" data-unique="bus-POSTapi-v1-bookings--reservation_uuid--passengers--passenger_uuid--cancel">
-                                <a href="#bus-POSTapi-v1-bookings--reservation_uuid--passengers--passenger_uuid--cancel">POST api/v1/bookings/{reservation_uuid}/passengers/{passenger_uuid}/cancel</a>
+                                <a href="#bus-POSTapi-v1-bookings--reservation_uuid--passengers--passenger_uuid--cancel">Cancel a single passenger within a group reservation.</a>
                             </li>
                                                                         </ul>
                             </ul>
@@ -2369,7 +2369,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     ],
     \"idempotency_key\": \"b\",
     \"payer\": {
-        \"type\": \"personal\",
+        \"type\": \"company\",
         \"user_uuid\": \"a4855dc5-0acb-33c3-b921-f4291f719ca0\",
         \"company_account_uuid\": \"c90237e9-ced5-3af6-88ea-84aeaa148878\"
     }
@@ -2401,7 +2401,7 @@ let body = {
     ],
     "idempotency_key": "b",
     "payer": {
-        "type": "personal",
+        "type": "company",
         "user_uuid": "a4855dc5-0acb-33c3-b921-f4291f719ca0",
         "company_account_uuid": "c90237e9-ced5-3af6-88ea-84aeaa148878"
     }
@@ -2652,10 +2652,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="payer.type"                data-endpoint="POSTapi-v1-bus-holds"
-               value="personal"
+               value="company"
                data-component="body">
     <br>
-<p>This field is required when <code>payer</code> is present. Example: <code>personal</code></p>
+<p>This field is required when <code>payer</code> is present. Example: <code>company</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>personal</code></li> <li><code>company</code></li></ul>
                     </div>
@@ -3129,7 +3129,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"itinerary_quote_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
     \"idempotency_key\": \"g\",
     \"payer\": {
-        \"type\": \"personal\",
+        \"type\": \"company\",
         \"user_uuid\": \"c90237e9-ced5-3af6-88ea-84aeaa148878\",
         \"company_account_uuid\": \"a1a0a47d-e8c3-3cf0-8e6e-c1ff9dca5d1f\"
     },
@@ -3163,7 +3163,7 @@ let body = {
     "itinerary_quote_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
     "idempotency_key": "g",
     "payer": {
-        "type": "personal",
+        "type": "company",
         "user_uuid": "c90237e9-ced5-3af6-88ea-84aeaa148878",
         "company_account_uuid": "a1a0a47d-e8c3-3cf0-8e6e-c1ff9dca5d1f"
     },
@@ -3327,10 +3327,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="payer.type"                data-endpoint="POSTapi-v1-bus-itinerary-holds"
-               value="personal"
+               value="company"
                data-component="body">
     <br>
-<p>This field is required when <code>payer</code> is present. Example: <code>personal</code></p>
+<p>This field is required when <code>payer</code> is present. Example: <code>company</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>personal</code></li> <li><code>company</code></li></ul>
                     </div>
@@ -3445,7 +3445,7 @@ Must be one of:
             \"last_name\": \"n\",
             \"phone\": \"g\",
             \"email\": \"rowan.gulgowski@example.com\",
-            \"document_type\": \"consular_card\",
+            \"document_type\": \"national_id\",
             \"document_number\": \"d\",
             \"nationality\": \"lj\",
             \"birth_date\": \"2026-09-02\",
@@ -3474,7 +3474,7 @@ let body = {
             "last_name": "n",
             "phone": "g",
             "email": "rowan.gulgowski@example.com",
-            "document_type": "consular_card",
+            "document_type": "national_id",
             "document_number": "d",
             "nationality": "lj",
             "birth_date": "2026-09-02",
@@ -3674,10 +3674,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="passengers.0.document_type"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
-               value="consular_card"
+               value="national_id"
                data-component="body">
     <br>
-<p>Example: <code>consular_card</code></p>
+<p>Example: <code>national_id</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>national_id</code></li> <li><code>biometric_card</code></li> <li><code>passport</code></li> <li><code>consular_card</code></li></ul>
                     </div>
@@ -3745,12 +3745,14 @@ Must be one of:
         </div>
         </form>
 
-                    <h2 id="bus-POSTapi-v1-bookings--reservation_uuid--cancel">POST api/v1/bookings/{reservation_uuid}/cancel</h2>
+                    <h2 id="bus-POSTapi-v1-bookings--reservation_uuid--cancel">Cancel a reservation and release its held seats.</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
-
+<p>Only reservations that are still held (not paid or ticketed) can be cancelled.
+The operation is idempotent — cancelling an already-cancelled reservation is a no-op.</p>
 
 <span id="example-requests-POSTapi-v1-bookings--reservation_uuid--cancel">
 <blockquote>Example request:</blockquote>
@@ -3759,6 +3761,7 @@ Must be one of:
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
     "http://kora-ops-web.local/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed/cancel" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
@@ -3769,6 +3772,7 @@ Must be one of:
 );
 
 const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -3782,7 +3786,41 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTapi-v1-bookings--reservation_uuid--cancel">
-</span>
+            <blockquote>
+            <p>Example response (200, Reservation cancelled):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70&quot;,
+        &quot;status&quot;: &quot;cancelled&quot;,
+        &quot;total_amount&quot;: 25000,
+        &quot;currency&quot;: &quot;XOF&quot;,
+        &quot;segments&quot;: [],
+        &quot;passengers&quot;: []
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403, Forbidden):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;This action is unauthorized.&quot;
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-POSTapi-v1-bookings--reservation_uuid--cancel" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-POSTapi-v1-bookings--reservation_uuid--cancel"></span>:
@@ -3800,7 +3838,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-POSTapi-v1-bookings--reservation_uuid--cancel" data-method="POST"
       data-path="api/v1/bookings/{reservation_uuid}/cancel"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -3830,6 +3868,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <b><code>api/v1/bookings/{reservation_uuid}/cancel</code></b>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="POSTapi-v1-bookings--reservation_uuid--cancel"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
                                 <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
@@ -3869,12 +3919,14 @@ You can check the Dev Tools console for debugging information.</code></pre>
             </div>
                     </form>
 
-                    <h2 id="bus-POSTapi-v1-bookings--reservation_uuid--passengers--passenger_uuid--cancel">POST api/v1/bookings/{reservation_uuid}/passengers/{passenger_uuid}/cancel</h2>
+                    <h2 id="bus-POSTapi-v1-bookings--reservation_uuid--passengers--passenger_uuid--cancel">Cancel a single passenger within a group reservation.</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
-
+<p>Releases only the segments associated with the specified passenger, keeping the
+rest of the reservation intact. The passenger must belong to the reservation.</p>
 
 <span id="example-requests-POSTapi-v1-bookings--reservation_uuid--passengers--passenger_uuid--cancel">
 <blockquote>Example request:</blockquote>
@@ -3883,6 +3935,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
     "http://kora-ops-web.local/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed/passengers/6ff8f7f6-1eb3-3525-be4a-3932c805afed/cancel" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
@@ -3893,6 +3946,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -3906,7 +3960,50 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTapi-v1-bookings--reservation_uuid--passengers--passenger_uuid--cancel">
-</span>
+            <blockquote>
+            <p>Example response (200, Passenger cancelled):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70&quot;,
+        &quot;status&quot;: &quot;held&quot;,
+        &quot;total_amount&quot;: 12500,
+        &quot;currency&quot;: &quot;XOF&quot;,
+        &quot;segments&quot;: [],
+        &quot;passengers&quot;: []
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403, Forbidden):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;This action is unauthorized.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (404, Passenger not found):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;No query results for model [App\\Modules\\Booking\\Models\\ReservationPassenger].&quot;
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-POSTapi-v1-bookings--reservation_uuid--passengers--passenger_uuid--cancel" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-POSTapi-v1-bookings--reservation_uuid--passengers--passenger_uuid--cancel"></span>:
@@ -3924,7 +4021,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-POSTapi-v1-bookings--reservation_uuid--passengers--passenger_uuid--cancel" data-method="POST"
       data-path="api/v1/bookings/{reservation_uuid}/passengers/{passenger_uuid}/cancel"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -3954,6 +4051,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <b><code>api/v1/bookings/{reservation_uuid}/passengers/{passenger_uuid}/cancel</code></b>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers--passenger_uuid--cancel"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
                                 <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
@@ -4175,7 +4284,7 @@ Must be one of:
     --header "Accept: application/json" \
     --data "{
     \"otp_challenge_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
-    \"purpose\": \"registration\",
+    \"purpose\": \"login_new_device\",
     \"code\": \"569775\"
 }"
 </code></pre></div>
@@ -4193,7 +4302,7 @@ const headers = {
 
 let body = {
     "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-    "purpose": "registration",
+    "purpose": "login_new_device",
     "code": "569775"
 };
 
@@ -4298,10 +4407,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="purpose"                data-endpoint="POSTapi-v1-auth-otp-verify"
-               value="registration"
+               value="login_new_device"
                data-component="body">
     <br>
-<p>Example: <code>registration</code></p>
+<p>Example: <code>login_new_device</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>registration</code></li> <li><code>login_new_device</code></li> <li><code>pin_reset</code></li> <li><code>account_unlock</code></li></ul>
         </div>
@@ -4646,7 +4755,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"verification_token\": \"gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn\",
     \"pin\": \"9775\",
     \"device_name\": \"n\",
-    \"platform\": \"unknown\",
+    \"platform\": \"ios\",
     \"device_fingerprint\": \"g\",
     \"push_token\": \"z\"
 }"
@@ -4668,7 +4777,7 @@ let body = {
     "verification_token": "gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn",
     "pin": "9775",
     "device_name": "n",
-    "platform": "unknown",
+    "platform": "ios",
     "device_fingerprint": "g",
     "push_token": "z"
 };
@@ -4810,10 +4919,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="platform"                data-endpoint="POSTapi-v1-auth-register-complete"
-               value="unknown"
+               value="ios"
                data-component="body">
     <br>
-<p>Example: <code>unknown</code></p>
+<p>Example: <code>ios</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>android</code></li> <li><code>ios</code></li> <li><code>web</code></li> <li><code>unknown</code></li></ul>
         </div>
@@ -4863,7 +4972,7 @@ Must be one of:
     \"email\": \"gbailey@example.net\",
     \"pin\": \"9775\",
     \"device_name\": \"n\",
-    \"platform\": \"web\",
+    \"platform\": \"ios\",
     \"device_fingerprint\": \"g\",
     \"push_token\": \"z\",
     \"otp_challenge_uuid\": \"977e5426-8d13-3824-86aa-b092f8ae52c5\",
@@ -4886,7 +4995,7 @@ let body = {
     "email": "gbailey@example.net",
     "pin": "9775",
     "device_name": "n",
-    "platform": "web",
+    "platform": "ios",
     "device_fingerprint": "g",
     "push_token": "z",
     "otp_challenge_uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
@@ -5018,10 +5127,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="platform"                data-endpoint="POSTapi-v1-auth-login"
-               value="web"
+               value="ios"
                data-component="body">
     <br>
-<p>Example: <code>web</code></p>
+<p>Example: <code>ios</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>android</code></li> <li><code>ios</code></li> <li><code>web</code></li> <li><code>unknown</code></li></ul>
         </div>
@@ -5971,7 +6080,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"whatsapp_notifications\": true,
     \"email_notifications\": false,
     \"locale\": \"en\",
-    \"theme\": \"dark\"
+    \"theme\": \"light\"
 }"
 </code></pre></div>
 
@@ -5991,7 +6100,7 @@ let body = {
     "whatsapp_notifications": true,
     "email_notifications": false,
     "locale": "en",
-    "theme": "dark"
+    "theme": "light"
 };
 
 fetch(url, {
@@ -6163,10 +6272,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="theme"                data-endpoint="PUTapi-v1-auth-preferences"
-               value="dark"
+               value="light"
                data-component="body">
     <br>
-<p>Example: <code>dark</code></p>
+<p>Example: <code>light</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>light</code></li> <li><code>dark</code></li> <li><code>system</code></li></ul>
         </div>
@@ -7196,7 +7305,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Accept: application/json" \
     --data "{
     \"user_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
-    \"role\": \"referent\"
+    \"role\": \"member\"
 }"
 </code></pre></div>
 
@@ -7213,7 +7322,7 @@ const headers = {
 
 let body = {
     "user_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-    "role": "referent"
+    "role": "member"
 };
 
 fetch(url, {
@@ -7330,10 +7439,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="role"                data-endpoint="POSTapi-v1-company-accounts--companyAccount_uuid--members"
-               value="referent"
+               value="member"
                data-component="body">
     <br>
-<p>Example: <code>referent</code></p>
+<p>Example: <code>member</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>referent</code></li> <li><code>member</code></li></ul>
         </div>
@@ -7467,10 +7576,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
-    \"status\": \"inactive\",
+    \"status\": \"active\",
     \"passenger_threshold\": 16,
     \"percentage\": 22,
-    \"starts_at\": \"2026-09-02T09:35:13\",
+    \"starts_at\": \"2026-09-02T10:44:11\",
     \"ends_at\": \"2052-09-25\"
 }"
 </code></pre></div>
@@ -7487,10 +7596,10 @@ const headers = {
 };
 
 let body = {
-    "status": "inactive",
+    "status": "active",
     "passenger_threshold": 16,
     "percentage": 22,
-    "starts_at": "2026-09-02T09:35:13",
+    "starts_at": "2026-09-02T10:44:11",
     "ends_at": "2052-09-25"
 };
 
@@ -7583,10 +7692,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="POSTapi-v1-group-discounts"
-               value="inactive"
+               value="active"
                data-component="body">
     <br>
-<p>Example: <code>inactive</code></p>
+<p>Example: <code>active</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>active</code></li> <li><code>inactive</code></li></ul>
         </div>
@@ -7621,10 +7730,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="starts_at"                data-endpoint="POSTapi-v1-group-discounts"
-               value="2026-09-02T09:35:13"
+               value="2026-09-02T10:44:11"
                data-component="body">
     <br>
-<p>Le champ value doit être une date valide. Example: <code>2026-09-02T09:35:13</code></p>
+<p>Le champ value doit être une date valide. Example: <code>2026-09-02T10:44:11</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>ends_at</code></b>&nbsp;&nbsp;
@@ -7660,7 +7769,7 @@ Must be one of:
     \"status\": \"inactive\",
     \"passenger_threshold\": 16,
     \"percentage\": 22,
-    \"starts_at\": \"2026-09-02T09:35:13\",
+    \"starts_at\": \"2026-09-02T10:44:11\",
     \"ends_at\": \"2052-09-25\"
 }"
 </code></pre></div>
@@ -7680,7 +7789,7 @@ let body = {
     "status": "inactive",
     "passenger_threshold": 16,
     "percentage": 22,
-    "starts_at": "2026-09-02T09:35:13",
+    "starts_at": "2026-09-02T10:44:11",
     "ends_at": "2052-09-25"
 };
 
@@ -7824,10 +7933,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="starts_at"                data-endpoint="PUTapi-v1-group-discounts--groupDiscountRule_uuid-"
-               value="2026-09-02T09:35:13"
+               value="2026-09-02T10:44:11"
                data-component="body">
     <br>
-<p>Le champ value doit être une date valide. Example: <code>2026-09-02T09:35:13</code></p>
+<p>Le champ value doit être une date valide. Example: <code>2026-09-02T10:44:11</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>ends_at</code></b>&nbsp;&nbsp;
@@ -8709,11 +8818,11 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Accept: application/json" \
     --data "{
     \"reservation_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
-    \"method\": \"mobile_money\",
+    \"method\": \"company_credit\",
     \"provider\": \"g\",
     \"idempotency_key\": \"z\",
     \"phone\": \"m\",
-    \"mobile_money_network\": \"mtn_momo\"
+    \"mobile_money_network\": \"celtiis_cash\"
 }"
 </code></pre></div>
 
@@ -8730,11 +8839,11 @@ const headers = {
 
 let body = {
     "reservation_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-    "method": "mobile_money",
+    "method": "company_credit",
     "provider": "g",
     "idempotency_key": "z",
     "phone": "m",
-    "mobile_money_network": "mtn_momo"
+    "mobile_money_network": "celtiis_cash"
 };
 
 fetch(url, {
@@ -8856,10 +8965,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="method"                data-endpoint="POSTapi-v1-payments-initiate"
-               value="mobile_money"
+               value="company_credit"
                data-component="body">
     <br>
-<p>Example: <code>mobile_money</code></p>
+<p>Example: <code>company_credit</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>mobile_money</code></li> <li><code>company_credit</code></li></ul>
         </div>
@@ -8906,10 +9015,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="mobile_money_network"                data-endpoint="POSTapi-v1-payments-initiate"
-               value="mtn_momo"
+               value="celtiis_cash"
                data-component="body">
     <br>
-<p>Example: <code>mtn_momo</code></p>
+<p>Example: <code>celtiis_cash</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>mtn_momo</code></li> <li><code>moov_flooz</code></li> <li><code>celtiis_cash</code></li></ul>
         </div>
@@ -9326,7 +9435,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
-    \"status\": \"success\",
+    \"status\": \"failed\",
     \"provider_reference\": \"b\"
 }"
 </code></pre></div>
@@ -9343,7 +9452,7 @@ const headers = {
 };
 
 let body = {
-    "status": "success",
+    "status": "failed",
     "provider_reference": "b"
 };
 
@@ -9449,10 +9558,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="POSTapi-v1-payments--payment_uuid--confirm"
-               value="success"
+               value="failed"
                data-component="body">
     <br>
-<p>Example: <code>success</code></p>
+<p>Example: <code>failed</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>success</code></li> <li><code>confirmed</code></li> <li><code>failed</code></li></ul>
         </div>

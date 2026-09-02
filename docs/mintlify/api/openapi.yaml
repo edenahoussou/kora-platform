@@ -1946,7 +1946,7 @@ paths:
                     type:
                       type: string
                       description: 'This field is required when <code>payer</code> is present.'
-                      example: personal
+                      example: company
                       enum:
                         - personal
                         - company
@@ -2169,7 +2169,7 @@ paths:
                     type:
                       type: string
                       description: 'This field is required when <code>payer</code> is present.'
-                      example: personal
+                      example: company
                       enum:
                         - personal
                         - company
@@ -2359,7 +2359,7 @@ paths:
                       document_type:
                         type: string
                         description: ''
-                        example: consular_card
+                        example: national_id
                         enum:
                           - national_id
                           - biometric_card
@@ -2408,14 +2408,73 @@ paths:
           type: string
   '/api/v1/bookings/{reservation_uuid}/cancel':
     post:
-      summary: ''
-      operationId: postApiV1BookingsReservation_uuidCancel
-      description: ''
+      summary: 'Cancel a reservation and release its held seats.'
+      operationId: cancelAReservationAndReleaseItsHeldSeats
+      description: "Only reservations that are still held (not paid or ticketed) can be cancelled.\nThe operation is idempotent — cancelling an already-cancelled reservation is a no-op."
       parameters: []
-      responses: {}
+      responses:
+        200:
+          description: 'Reservation cancelled'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
+                    status: cancelled
+                    total_amount: 25000
+                    currency: XOF
+                    segments: []
+                    passengers: []
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
+                      status:
+                        type: string
+                        example: cancelled
+                      total_amount:
+                        type: integer
+                        example: 25000
+                      currency:
+                        type: string
+                        example: XOF
+                      segments:
+                        type: array
+                        example: []
+                      passengers:
+                        type: array
+                        example: []
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'This action is unauthorized.'
+                properties:
+                  message:
+                    type: string
+                    example: 'This action is unauthorized.'
       tags:
         - Bus
-      security: []
     parameters:
       -
         in: path
@@ -2427,14 +2486,85 @@ paths:
           type: string
   '/api/v1/bookings/{reservation_uuid}/passengers/{passenger_uuid}/cancel':
     post:
-      summary: ''
-      operationId: postApiV1BookingsReservation_uuidPassengersPassenger_uuidCancel
-      description: ''
+      summary: 'Cancel a single passenger within a group reservation.'
+      operationId: cancelASinglePassengerWithinAGroupReservation
+      description: "Releases only the segments associated with the specified passenger, keeping the\nrest of the reservation intact. The passenger must belong to the reservation."
       parameters: []
-      responses: {}
+      responses:
+        200:
+          description: 'Passenger cancelled'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
+                    status: held
+                    total_amount: 12500
+                    currency: XOF
+                    segments: []
+                    passengers: []
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
+                      status:
+                        type: string
+                        example: held
+                      total_amount:
+                        type: integer
+                        example: 12500
+                      currency:
+                        type: string
+                        example: XOF
+                      segments:
+                        type: array
+                        example: []
+                      passengers:
+                        type: array
+                        example: []
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'This action is unauthorized.'
+                properties:
+                  message:
+                    type: string
+                    example: 'This action is unauthorized.'
+        404:
+          description: 'Passenger not found'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'No query results for model [App\Modules\Booking\Models\ReservationPassenger].'
+                properties:
+                  message:
+                    type: string
+                    example: 'No query results for model [App\Modules\Booking\Models\ReservationPassenger].'
       tags:
         - Bus
-      security: []
     parameters:
       -
         in: path
@@ -2508,7 +2638,7 @@ paths:
                 purpose:
                   type: string
                   description: ''
-                  example: registration
+                  example: login_new_device
                   enum:
                     - registration
                     - login_new_device
@@ -2619,7 +2749,7 @@ paths:
                 platform:
                   type: string
                   description: ''
-                  example: unknown
+                  example: ios
                   enum:
                     - android
                     - ios
@@ -2673,7 +2803,7 @@ paths:
                 platform:
                   type: string
                   description: ''
-                  example: web
+                  example: ios
                   enum:
                     - android
                     - ios
@@ -3159,7 +3289,7 @@ paths:
                 theme:
                   type: string
                   description: ''
-                  example: dark
+                  example: light
                   enum:
                     - light
                     - dark
@@ -3369,7 +3499,7 @@ paths:
                 role:
                   type: string
                   description: ''
-                  example: referent
+                  example: member
                   enum:
                     - referent
                     - member
@@ -3414,7 +3544,7 @@ paths:
                 status:
                   type: string
                   description: ''
-                  example: inactive
+                  example: active
                   enum:
                     - active
                     - inactive
@@ -3429,7 +3559,7 @@ paths:
                 starts_at:
                   type: string
                   description: 'Le champ value doit être une date valide.'
-                  example: '2026-09-02T09:35:13'
+                  example: '2026-09-02T10:44:11'
                   nullable: true
                 ends_at:
                   type: string
@@ -3475,7 +3605,7 @@ paths:
                 starts_at:
                   type: string
                   description: 'Le champ value doit être une date valide.'
-                  example: '2026-09-02T09:35:13'
+                  example: '2026-09-02T10:44:11'
                   nullable: true
                 ends_at:
                   type: string
@@ -3668,7 +3798,7 @@ paths:
                 method:
                   type: string
                   description: ''
-                  example: mobile_money
+                  example: company_credit
                   enum:
                     - mobile_money
                     - company_credit
@@ -3688,7 +3818,7 @@ paths:
                 mobile_money_network:
                   type: string
                   description: ''
-                  example: mtn_momo
+                  example: celtiis_cash
                   enum:
                     - mtn_momo
                     - moov_flooz
@@ -3832,7 +3962,7 @@ paths:
                 status:
                   type: string
                   description: ''
-                  example: success
+                  example: failed
                   enum:
                     - success
                     - confirmed

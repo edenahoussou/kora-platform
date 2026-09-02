@@ -79,7 +79,7 @@ endpoints:
         name: method
         description: ''
         required: true
-        example: mobile_money
+        example: company_credit
         type: string
         enumValues:
           - mobile_money
@@ -125,7 +125,7 @@ endpoints:
         name: mobile_money_network
         description: ''
         required: false
-        example: mtn_momo
+        example: celtiis_cash
         type: string
         enumValues:
           - mtn_momo
@@ -136,11 +136,11 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       reservation_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-      method: mobile_money
+      method: company_credit
       provider: g
       idempotency_key: z
       phone: m
-      mobile_money_network: mtn_momo
+      mobile_money_network: celtiis_cash
     fileParameters: []
     responses:
       -
@@ -365,7 +365,7 @@ endpoints:
         name: status
         description: ''
         required: true
-        example: success
+        example: failed
         type: string
         enumValues:
           - success
@@ -397,7 +397,7 @@ endpoints:
         nullable: true
         deprecated: false
     cleanBodyParameters:
-      status: success
+      status: failed
       provider_reference: b
     fileParameters: []
     responses: []

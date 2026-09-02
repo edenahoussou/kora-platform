@@ -95,6 +95,31 @@ class ReservationController extends Controller
         return response()->noContent();
     }
 
+    /**
+     * Cancel a reservation and release its held seats.
+     *
+     * Only reservations that are still held (not paid or ticketed) can be cancelled.
+     * The operation is idempotent — cancelling an already-cancelled reservation is a no-op.
+     *
+     * @authenticated
+     *
+     * @response 200 scenario="Reservation cancelled" {
+     *   "data": {
+     *     "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+     *     "status": "cancelled",
+     *     "total_amount": 25000,
+     *     "currency": "XOF",
+     *     "segments": [],
+     *     "passengers": []
+     *   }
+     * }
+     * @response 401 scenario="Unauthenticated" {
+     *   "message": "Unauthenticated."
+     * }
+     * @response 403 scenario="Forbidden" {
+     *   "message": "This action is unauthorized."
+     * }
+     */
     public function cancel(Request $request, Reservation $reservation, CancelReservationAction $cancelReservation): JsonResponse
     {
         Gate::forUser($request->user())->authorize('cancel', $reservation);
@@ -104,6 +129,34 @@ class ReservationController extends Controller
             ->setStatusCode(200);
     }
 
+    /**
+     * Cancel a single passenger within a group reservation.
+     *
+     * Releases only the segments associated with the specified passenger, keeping the
+     * rest of the reservation intact. The passenger must belong to the reservation.
+     *
+     * @authenticated
+     *
+     * @response 200 scenario="Passenger cancelled" {
+     *   "data": {
+     *     "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+     *     "status": "held",
+     *     "total_amount": 12500,
+     *     "currency": "XOF",
+     *     "segments": [],
+     *     "passengers": []
+     *   }
+     * }
+     * @response 401 scenario="Unauthenticated" {
+     *   "message": "Unauthenticated."
+     * }
+     * @response 403 scenario="Forbidden" {
+     *   "message": "This action is unauthorized."
+     * }
+     * @response 404 scenario="Passenger not found" {
+     *   "message": "No query results for model [App\\Modules\\Booking\\Models\\ReservationPassenger]."
+     * }
+     */
     public function cancelPassenger(
         Request $request,
         Reservation $reservation,
