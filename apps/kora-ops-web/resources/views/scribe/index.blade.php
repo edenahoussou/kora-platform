@@ -124,92 +124,93 @@
                 </li>
                                     <ul id="tocify-subheader-auth" class="tocify-subheader">
                                                     <li class="tocify-item level-2" data-unique="auth-POSTapi-v1-auth-otp-request">
-                                <a href="#auth-POSTapi-v1-auth-otp-request">POST api/v1/auth/otp/request</a>
+                                <a href="#auth-POSTapi-v1-auth-otp-request">Request an OTP challenge for registration, login, PIN reset or account unlock.</a>
                             </li>
                                                                                 <li class="tocify-item level-2" data-unique="auth-POSTapi-v1-auth-otp-verify">
-                                <a href="#auth-POSTapi-v1-auth-otp-verify">POST api/v1/auth/otp/verify</a>
+                                <a href="#auth-POSTapi-v1-auth-otp-verify">Verify an OTP code and obtain a verification token.</a>
                             </li>
                                                                                 <li class="tocify-item level-2" data-unique="auth-POSTapi-v1-auth-pin-reset">
-                                <a href="#auth-POSTapi-v1-auth-pin-reset">POST api/v1/auth/pin/reset</a>
+                                <a href="#auth-POSTapi-v1-auth-pin-reset">Reset the user's PIN after OTP verification.</a>
                             </li>
                                                                                 <li class="tocify-item level-2" data-unique="auth-POSTapi-v1-auth-unlock">
-                                <a href="#auth-POSTapi-v1-auth-unlock">POST api/v1/auth/unlock</a>
+                                <a href="#auth-POSTapi-v1-auth-unlock">Unlock a locked account after OTP verification.</a>
                             </li>
                                                                                 <li class="tocify-item level-2" data-unique="auth-POSTapi-v1-auth-register-complete">
-                                <a href="#auth-POSTapi-v1-auth-register-complete">POST api/v1/auth/register/complete</a>
+                                <a href="#auth-POSTapi-v1-auth-register-complete">Complete a registration started via OTP verification.</a>
                             </li>
                                                                                 <li class="tocify-item level-2" data-unique="auth-POSTapi-v1-auth-login">
-                                <a href="#auth-POSTapi-v1-auth-login">POST api/v1/auth/login</a>
+                                <a href="#auth-POSTapi-v1-auth-login">Authenticate a user with email/phone and PIN.</a>
                             </li>
                                                                                 <li class="tocify-item level-2" data-unique="auth-POSTapi-v1-auth-oauth-token">
                                 <a href="#auth-POSTapi-v1-auth-oauth-token">Échange un jeton OAuth provider contre une session KORA.</a>
                             </li>
                                                                                 <li class="tocify-item level-2" data-unique="auth-GETapi-v1-auth-me">
-                                <a href="#auth-GETapi-v1-auth-me">GET api/v1/auth/me</a>
+                                <a href="#auth-GETapi-v1-auth-me">Get the authenticated user's profile.</a>
                             </li>
                                                                                 <li class="tocify-item level-2" data-unique="auth-PUTapi-v1-auth-me">
-                                <a href="#auth-PUTapi-v1-auth-me">PUT api/v1/auth/me</a>
+                                <a href="#auth-PUTapi-v1-auth-me">Update the authenticated user's profile.</a>
                             </li>
                                                                                 <li class="tocify-item level-2" data-unique="auth-POSTapi-v1-auth-pin-change">
-                                <a href="#auth-POSTapi-v1-auth-pin-change">POST api/v1/auth/pin/change</a>
+                                <a href="#auth-POSTapi-v1-auth-pin-change">Change the authenticated user's PIN.</a>
                             </li>
                                                                                 <li class="tocify-item level-2" data-unique="auth-GETapi-v1-auth-preferences">
-                                <a href="#auth-GETapi-v1-auth-preferences">GET api/v1/auth/preferences</a>
+                                <a href="#auth-GETapi-v1-auth-preferences">Get the authenticated user's notification and display preferences.</a>
                             </li>
                                                                                 <li class="tocify-item level-2" data-unique="auth-PUTapi-v1-auth-preferences">
-                                <a href="#auth-PUTapi-v1-auth-preferences">PUT api/v1/auth/preferences</a>
+                                <a href="#auth-PUTapi-v1-auth-preferences">Update the authenticated user's notification and display preferences.</a>
                             </li>
                                                                                 <li class="tocify-item level-2" data-unique="auth-GETapi-v1-auth-devices">
-                                <a href="#auth-GETapi-v1-auth-devices">GET api/v1/auth/devices</a>
+                                <a href="#auth-GETapi-v1-auth-devices">List the authenticated user's trusted devices.</a>
                             </li>
                                                                                 <li class="tocify-item level-2" data-unique="auth-DELETEapi-v1-auth-devices--uuid-">
-                                <a href="#auth-DELETEapi-v1-auth-devices--uuid-">DELETE api/v1/auth/devices/{uuid}</a>
+                                <a href="#auth-DELETEapi-v1-auth-devices--uuid-">Revoke a trusted device.</a>
                             </li>
                                                                                 <li class="tocify-item level-2" data-unique="auth-POSTapi-v1-auth-logout">
-                                <a href="#auth-POSTapi-v1-auth-logout">POST api/v1/auth/logout</a>
+                                <a href="#auth-POSTapi-v1-auth-logout">Revoke the current access token.</a>
                             </li>
                                                                         </ul>
                             </ul>
-                    <ul id="tocify-header-endpoints" class="tocify-header">
-                <li class="tocify-item level-1" data-unique="endpoints">
-                    <a href="#endpoints">Endpoints</a>
+                    <ul id="tocify-header-company-accounts" class="tocify-header">
+                <li class="tocify-item level-1" data-unique="company-accounts">
+                    <a href="#company-accounts">Company Accounts</a>
                 </li>
-                                    <ul id="tocify-subheader-endpoints" class="tocify-subheader">
-                                                    <li class="tocify-item level-2" data-unique="endpoints-GETapi-v1-company-accounts">
-                                <a href="#endpoints-GETapi-v1-company-accounts">GET api/v1/company-accounts</a>
+                                    <ul id="tocify-subheader-company-accounts" class="tocify-subheader">
+                                                    <li class="tocify-item level-2" data-unique="company-accounts-GETapi-v1-company-accounts">
+                                <a href="#company-accounts-GETapi-v1-company-accounts">List active company accounts visible to the authenticated user.</a>
                             </li>
-                                                                                <li class="tocify-item level-2" data-unique="endpoints-POSTapi-v1-company-accounts">
-                                <a href="#endpoints-POSTapi-v1-company-accounts">POST api/v1/company-accounts</a>
+                                                                                <li class="tocify-item level-2" data-unique="company-accounts-POSTapi-v1-company-accounts">
+                                <a href="#company-accounts-POSTapi-v1-company-accounts">Create a new company account.</a>
                             </li>
-                                                                                <li class="tocify-item level-2" data-unique="endpoints-PUTapi-v1-company-accounts--companyAccount_uuid-">
-                                <a href="#endpoints-PUTapi-v1-company-accounts--companyAccount_uuid-">PUT api/v1/company-accounts/{companyAccount_uuid}</a>
+                                                                                <li class="tocify-item level-2" data-unique="company-accounts-PUTapi-v1-company-accounts--companyAccount_uuid-">
+                                <a href="#company-accounts-PUTapi-v1-company-accounts--companyAccount_uuid-">Update a company account's details.</a>
                             </li>
-                                                                                <li class="tocify-item level-2" data-unique="endpoints-POSTapi-v1-company-accounts--companyAccount_uuid--deactivate">
-                                <a href="#endpoints-POSTapi-v1-company-accounts--companyAccount_uuid--deactivate">POST api/v1/company-accounts/{companyAccount_uuid}/deactivate</a>
+                                                                                <li class="tocify-item level-2" data-unique="company-accounts-POSTapi-v1-company-accounts--companyAccount_uuid--deactivate">
+                                <a href="#company-accounts-POSTapi-v1-company-accounts--companyAccount_uuid--deactivate">Deactivate a company account.</a>
                             </li>
-                                                                                <li class="tocify-item level-2" data-unique="endpoints-POSTapi-v1-company-accounts--companyAccount_uuid--members">
-                                <a href="#endpoints-POSTapi-v1-company-accounts--companyAccount_uuid--members">POST api/v1/company-accounts/{companyAccount_uuid}/members</a>
+                                                                                <li class="tocify-item level-2" data-unique="company-accounts-POSTapi-v1-company-accounts--companyAccount_uuid--members">
+                                <a href="#company-accounts-POSTapi-v1-company-accounts--companyAccount_uuid--members">Add or update a member on a company account.</a>
                             </li>
-                                                                                <li class="tocify-item level-2" data-unique="endpoints-GETapi-v1-group-discounts">
-                                <a href="#endpoints-GETapi-v1-group-discounts">GET api/v1/group-discounts</a>
+                                                                        </ul>
+                            </ul>
+                    <ul id="tocify-header-group-discounts" class="tocify-header">
+                <li class="tocify-item level-1" data-unique="group-discounts">
+                    <a href="#group-discounts">Group Discounts</a>
+                </li>
+                                    <ul id="tocify-subheader-group-discounts" class="tocify-subheader">
+                                                    <li class="tocify-item level-2" data-unique="group-discounts-GETapi-v1-group-discounts">
+                                <a href="#group-discounts-GETapi-v1-group-discounts">List all group discount rules ordered by start date.</a>
                             </li>
-                                                                                <li class="tocify-item level-2" data-unique="endpoints-POSTapi-v1-group-discounts">
-                                <a href="#endpoints-POSTapi-v1-group-discounts">POST api/v1/group-discounts</a>
+                                                                                <li class="tocify-item level-2" data-unique="group-discounts-POSTapi-v1-group-discounts">
+                                <a href="#group-discounts-POSTapi-v1-group-discounts">Create a new group discount rule.</a>
                             </li>
-                                                                                <li class="tocify-item level-2" data-unique="endpoints-PUTapi-v1-group-discounts--groupDiscountRule_uuid-">
-                                <a href="#endpoints-PUTapi-v1-group-discounts--groupDiscountRule_uuid-">PUT api/v1/group-discounts/{groupDiscountRule_uuid}</a>
+                                                                                <li class="tocify-item level-2" data-unique="group-discounts-PUTapi-v1-group-discounts--groupDiscountRule_uuid-">
+                                <a href="#group-discounts-PUTapi-v1-group-discounts--groupDiscountRule_uuid-">Update an existing group discount rule.</a>
                             </li>
-                                                                                <li class="tocify-item level-2" data-unique="endpoints-GETapi-v1-group-booking-settings">
-                                <a href="#endpoints-GETapi-v1-group-booking-settings">GET api/v1/group-booking-settings</a>
+                                                                                <li class="tocify-item level-2" data-unique="group-discounts-GETapi-v1-group-booking-settings">
+                                <a href="#group-discounts-GETapi-v1-group-booking-settings">Get the current group booking settings (min/max passengers).</a>
                             </li>
-                                                                                <li class="tocify-item level-2" data-unique="endpoints-PUTapi-v1-group-booking-settings">
-                                <a href="#endpoints-PUTapi-v1-group-booking-settings">PUT api/v1/group-booking-settings</a>
-                            </li>
-                                                                                <li class="tocify-item level-2" data-unique="endpoints-GETapi-v1-bookings--reservation_uuid--tickets">
-                                <a href="#endpoints-GETapi-v1-bookings--reservation_uuid--tickets">GET api/v1/bookings/{reservation_uuid}/tickets</a>
-                            </li>
-                                                                                <li class="tocify-item level-2" data-unique="endpoints-GETapi-v1-tickets--uuid-">
-                                <a href="#endpoints-GETapi-v1-tickets--uuid-">GET api/v1/tickets/{uuid}</a>
+                                                                                <li class="tocify-item level-2" data-unique="group-discounts-PUTapi-v1-group-booking-settings">
+                                <a href="#group-discounts-PUTapi-v1-group-booking-settings">Update the group booking settings (min/max passengers).</a>
                             </li>
                                                                         </ul>
                             </ul>
@@ -233,7 +234,7 @@ process can answer, with no dependency checks.</a>
                 </li>
                                     <ul id="tocify-subheader-payments" class="tocify-subheader">
                                                     <li class="tocify-item level-2" data-unique="payments-GETapi-v1-payments-methods">
-                                <a href="#payments-GETapi-v1-payments-methods">Return the active payment methods and providers configured for the mobile app.</a>
+                                <a href="#payments-GETapi-v1-payments-methods">List available payment methods and providers.</a>
                             </li>
                                                                                 <li class="tocify-item level-2" data-unique="payments-POSTapi-v1-payments-initiate">
                                 <a href="#payments-POSTapi-v1-payments-initiate">Initiate a payment for a held reservation.</a>
@@ -245,7 +246,7 @@ process can answer, with no dependency checks.</a>
                                 <a href="#payments-POSTapi-v1-payments--payment_uuid--verify">Explicitly verify a pending payment with its provider.</a>
                             </li>
                                                                                 <li class="tocify-item level-2" data-unique="payments-POSTapi-v1-payments--payment_uuid--cancel">
-                                <a href="#payments-POSTapi-v1-payments--payment_uuid--cancel">POST api/v1/payments/{payment_uuid}/cancel</a>
+                                <a href="#payments-POSTapi-v1-payments--payment_uuid--cancel">Cancel a pending payment.</a>
                             </li>
                                                                                 <li class="tocify-item level-2" data-unique="payments-POSTapi-v1-payments--payment_uuid--confirm">
                                 <a href="#payments-POSTapi-v1-payments--payment_uuid--confirm">Provider webhook / callback to confirm or fail a payment.</a>
@@ -255,6 +256,19 @@ process can answer, with no dependency checks.</a>
                             </li>
                                                                                 <li class="tocify-item level-2" data-unique="payments-POSTapi-v1-payments-webhook-mtn-momo">
                                 <a href="#payments-POSTapi-v1-payments-webhook-mtn-momo">MTN MoMo webhook endpoint.</a>
+                            </li>
+                                                                        </ul>
+                            </ul>
+                    <ul id="tocify-header-tickets" class="tocify-header">
+                <li class="tocify-item level-1" data-unique="tickets">
+                    <a href="#tickets">Tickets</a>
+                </li>
+                                    <ul id="tocify-subheader-tickets" class="tocify-subheader">
+                                                    <li class="tocify-item level-2" data-unique="tickets-GETapi-v1-bookings--reservation_uuid--tickets">
+                                <a href="#tickets-GETapi-v1-bookings--reservation_uuid--tickets">List all tickets for a reservation.</a>
+                            </li>
+                                                                                <li class="tocify-item level-2" data-unique="tickets-GETapi-v1-tickets--uuid-">
+                                <a href="#tickets-GETapi-v1-tickets--uuid-">Retrieve a single ticket by UUID.</a>
                             </li>
                                                                         </ul>
                             </ul>
@@ -3129,7 +3143,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"itinerary_quote_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
     \"idempotency_key\": \"g\",
     \"payer\": {
-        \"type\": \"company\",
+        \"type\": \"personal\",
         \"user_uuid\": \"c90237e9-ced5-3af6-88ea-84aeaa148878\",
         \"company_account_uuid\": \"a1a0a47d-e8c3-3cf0-8e6e-c1ff9dca5d1f\"
     },
@@ -3163,7 +3177,7 @@ let body = {
     "itinerary_quote_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
     "idempotency_key": "g",
     "payer": {
-        "type": "company",
+        "type": "personal",
         "user_uuid": "c90237e9-ced5-3af6-88ea-84aeaa148878",
         "company_account_uuid": "a1a0a47d-e8c3-3cf0-8e6e-c1ff9dca5d1f"
     },
@@ -3327,10 +3341,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="payer.type"                data-endpoint="POSTapi-v1-bus-itinerary-holds"
-               value="company"
+               value="personal"
                data-component="body">
     <br>
-<p>This field is required when <code>payer</code> is present. Example: <code>company</code></p>
+<p>This field is required when <code>payer</code> is present. Example: <code>personal</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>personal</code></li> <li><code>company</code></li></ul>
                     </div>
@@ -4118,12 +4132,13 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
     <p>OTP challenge request and verification for registration, login, PIN reset and account unlock.</p>
 
-                                <h2 id="auth-POSTapi-v1-auth-otp-request">POST api/v1/auth/otp/request</h2>
+                                <h2 id="auth-POSTapi-v1-auth-otp-request">Request an OTP challenge for registration, login, PIN reset or account unlock.</h2>
 
 <p>
 </p>
 
-
+<p>Sends a one-time code to the user's email. The returned <code>otp_challenge_uuid</code> must
+be submitted to the verify endpoint.</p>
 
 <span id="example-requests-POSTapi-v1-auth-otp-request">
 <blockquote>Example request:</blockquote>
@@ -4165,7 +4180,44 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTapi-v1-auth-otp-request">
-</span>
+            <blockquote>
+            <p>Example response (202, OTP sent):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;otp_challenge_uuid&quot;: &quot;b1234567-89ab-cdef-0123-456789abcdef&quot;,
+        &quot;purpose&quot;: &quot;registration&quot;,
+        &quot;email&quot;: &quot;aicha.hounkpe@gmail.com&quot;,
+        &quot;expires_at&quot;: &quot;2026-08-20T13:10:00.000Z&quot;
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (422, Validation error):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;The given data was invalid.&quot;,
+    &quot;errors&quot;: {
+        &quot;email&quot;: [
+            &quot;The email field is required.&quot;
+        ]
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (429, Too many requests):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Too many requests. Please try again later.&quot;
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-POSTapi-v1-auth-otp-request" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-POSTapi-v1-auth-otp-request"></span>:
@@ -4266,12 +4318,13 @@ Must be one of:
         </div>
         </form>
 
-                    <h2 id="auth-POSTapi-v1-auth-otp-verify">POST api/v1/auth/otp/verify</h2>
+                    <h2 id="auth-POSTapi-v1-auth-otp-verify">Verify an OTP code and obtain a verification token.</h2>
 
 <p>
 </p>
 
-
+<p>The <code>verification_token</code> is used to complete registration, reset PIN, or unlock
+an account via the corresponding endpoints.</p>
 
 <span id="example-requests-POSTapi-v1-auth-otp-verify">
 <blockquote>Example request:</blockquote>
@@ -4284,7 +4337,7 @@ Must be one of:
     --header "Accept: application/json" \
     --data "{
     \"otp_challenge_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
-    \"purpose\": \"registration\",
+    \"purpose\": \"account_unlock\",
     \"code\": \"569775\"
 }"
 </code></pre></div>
@@ -4302,7 +4355,7 @@ const headers = {
 
 let body = {
     "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-    "purpose": "registration",
+    "purpose": "account_unlock",
     "code": "569775"
 };
 
@@ -4315,7 +4368,35 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTapi-v1-auth-otp-verify">
-</span>
+            <blockquote>
+            <p>Example response (200, OTP verified):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;otp_challenge_uuid&quot;: &quot;b1234567-89ab-cdef-0123-456789abcdef&quot;,
+        &quot;purpose&quot;: &quot;registration&quot;,
+        &quot;verification_token&quot;: &quot;vrf_aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789&quot;,
+        &quot;verified_at&quot;: &quot;2026-08-20T13:07:00.000Z&quot;
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (422, Invalid code):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;The given data was invalid.&quot;,
+    &quot;errors&quot;: {
+        &quot;code&quot;: [
+            &quot;The OTP code is invalid or expired.&quot;
+        ]
+    }
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-POSTapi-v1-auth-otp-verify" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-POSTapi-v1-auth-otp-verify"></span>:
@@ -4407,10 +4488,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="purpose"                data-endpoint="POSTapi-v1-auth-otp-verify"
-               value="registration"
+               value="account_unlock"
                data-component="body">
     <br>
-<p>Example: <code>registration</code></p>
+<p>Example: <code>account_unlock</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>registration</code></li> <li><code>login_new_device</code></li> <li><code>pin_reset</code></li> <li><code>account_unlock</code></li></ul>
         </div>
@@ -4428,7 +4509,7 @@ Must be one of:
         </div>
         </form>
 
-                    <h2 id="auth-POSTapi-v1-auth-pin-reset">POST api/v1/auth/pin/reset</h2>
+                    <h2 id="auth-POSTapi-v1-auth-pin-reset">Reset the user&#039;s PIN after OTP verification.</h2>
 
 <p>
 </p>
@@ -4477,7 +4558,46 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTapi-v1-auth-pin-reset">
-</span>
+            <blockquote>
+            <p>Example response (200, PIN reset):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;user&quot;: {
+            &quot;uuid&quot;: &quot;977e5426-8d13-3824-86aa-b092f8ae52c5&quot;,
+            &quot;name&quot;: &quot;A&iuml;cha Hounkp&egrave;&quot;,
+            &quot;email&quot;: &quot;aicha.hounkpe@gmail.com&quot;,
+            &quot;phone&quot;: &quot;+22901000000&quot;,
+            &quot;country_code&quot;: &quot;BJ&quot;,
+            &quot;birth_date&quot;: &quot;1990-05-15&quot;,
+            &quot;avatar_url&quot;: null,
+            &quot;status&quot;: &quot;active&quot;,
+            &quot;permissions&quot;: [
+                &quot;bookings.create&quot;,
+                &quot;bookings.view-own&quot;,
+                &quot;tickets.view&quot;
+            ]
+        }
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (422, Validation error):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;The given data was invalid.&quot;,
+    &quot;errors&quot;: {
+        &quot;verification_token&quot;: [
+            &quot;The verification token is invalid or expired.&quot;
+        ]
+    }
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-POSTapi-v1-auth-pin-reset" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-POSTapi-v1-auth-pin-reset"></span>:
@@ -4588,7 +4708,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
         </div>
         </form>
 
-                    <h2 id="auth-POSTapi-v1-auth-unlock">POST api/v1/auth/unlock</h2>
+                    <h2 id="auth-POSTapi-v1-auth-unlock">Unlock a locked account after OTP verification.</h2>
 
 <p>
 </p>
@@ -4635,7 +4755,46 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTapi-v1-auth-unlock">
-</span>
+            <blockquote>
+            <p>Example response (200, Account unlocked):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;user&quot;: {
+            &quot;uuid&quot;: &quot;977e5426-8d13-3824-86aa-b092f8ae52c5&quot;,
+            &quot;name&quot;: &quot;A&iuml;cha Hounkp&egrave;&quot;,
+            &quot;email&quot;: &quot;aicha.hounkpe@gmail.com&quot;,
+            &quot;phone&quot;: &quot;+22901000000&quot;,
+            &quot;country_code&quot;: &quot;BJ&quot;,
+            &quot;birth_date&quot;: &quot;1990-05-15&quot;,
+            &quot;avatar_url&quot;: null,
+            &quot;status&quot;: &quot;active&quot;,
+            &quot;permissions&quot;: [
+                &quot;bookings.create&quot;,
+                &quot;bookings.view-own&quot;,
+                &quot;tickets.view&quot;
+            ]
+        }
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (422, Validation error):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;The given data was invalid.&quot;,
+    &quot;errors&quot;: {
+        &quot;verification_token&quot;: [
+            &quot;The verification token is invalid or expired.&quot;
+        ]
+    }
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-POSTapi-v1-auth-unlock" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-POSTapi-v1-auth-unlock"></span>:
@@ -4734,12 +4893,12 @@ You can check the Dev Tools console for debugging information.</code></pre>
         </div>
         </form>
 
-                    <h2 id="auth-POSTapi-v1-auth-register-complete">POST api/v1/auth/register/complete</h2>
+                    <h2 id="auth-POSTapi-v1-auth-register-complete">Complete a registration started via OTP verification.</h2>
 
 <p>
 </p>
 
-
+<p>Creates the user account from a verified OTP challenge and returns a Sanctum session token.</p>
 
 <span id="example-requests-POSTapi-v1-auth-register-complete">
 <blockquote>Example request:</blockquote>
@@ -4755,7 +4914,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"verification_token\": \"gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn\",
     \"pin\": \"9775\",
     \"device_name\": \"n\",
-    \"platform\": \"web\",
+    \"platform\": \"unknown\",
     \"device_fingerprint\": \"g\",
     \"push_token\": \"z\"
 }"
@@ -4777,7 +4936,7 @@ let body = {
     "verification_token": "gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn",
     "pin": "9775",
     "device_name": "n",
-    "platform": "web",
+    "platform": "unknown",
     "device_fingerprint": "g",
     "push_token": "z"
 };
@@ -4791,7 +4950,57 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTapi-v1-auth-register-complete">
-</span>
+            <blockquote>
+            <p>Example response (201, Registration completed):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;token&quot;: &quot;3|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef&quot;,
+        &quot;token_type&quot;: &quot;Bearer&quot;,
+        &quot;expires_at&quot;: &quot;2026-08-27T13:05:00.000Z&quot;,
+        &quot;user&quot;: {
+            &quot;uuid&quot;: &quot;977e5426-8d13-3824-86aa-b092f8ae52c5&quot;,
+            &quot;name&quot;: &quot;A&iuml;cha Hounkp&egrave;&quot;,
+            &quot;email&quot;: &quot;aicha.hounkpe@gmail.com&quot;,
+            &quot;phone&quot;: &quot;+22901000000&quot;,
+            &quot;country_code&quot;: &quot;BJ&quot;,
+            &quot;birth_date&quot;: &quot;1990-05-15&quot;,
+            &quot;avatar_url&quot;: null,
+            &quot;status&quot;: &quot;active&quot;,
+            &quot;permissions&quot;: [
+                &quot;bookings.create&quot;,
+                &quot;bookings.view-own&quot;,
+                &quot;tickets.view&quot;
+            ]
+        },
+        &quot;device&quot;: {
+            &quot;uuid&quot;: &quot;a3091549-9179-454e-8440-58179f2208df&quot;,
+            &quot;name&quot;: &quot;iPhone 15 Pro&quot;,
+            &quot;platform&quot;: &quot;ios&quot;,
+            &quot;trusted_at&quot;: &quot;2026-08-20T13:05:00.000Z&quot;,
+            &quot;last_seen_at&quot;: &quot;2026-08-20T13:05:00.000Z&quot;,
+            &quot;status&quot;: &quot;trusted&quot;
+        }
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (422, Validation error):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;The given data was invalid.&quot;,
+    &quot;errors&quot;: {
+        &quot;verification_token&quot;: [
+            &quot;The verification token is invalid or expired.&quot;
+        ]
+    }
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-POSTapi-v1-auth-register-complete" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-POSTapi-v1-auth-register-complete"></span>:
@@ -4919,10 +5128,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="platform"                data-endpoint="POSTapi-v1-auth-register-complete"
-               value="web"
+               value="unknown"
                data-component="body">
     <br>
-<p>Example: <code>web</code></p>
+<p>Example: <code>unknown</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>android</code></li> <li><code>ios</code></li> <li><code>web</code></li> <li><code>unknown</code></li></ul>
         </div>
@@ -4952,12 +5161,13 @@ Must be one of:
         </div>
         </form>
 
-                    <h2 id="auth-POSTapi-v1-auth-login">POST api/v1/auth/login</h2>
+                    <h2 id="auth-POSTapi-v1-auth-login">Authenticate a user with email/phone and PIN.</h2>
 
 <p>
 </p>
 
-
+<p>Returns a Sanctum session token. If OTP is required, returns a 202 with an OTP challenge
+instead of a token.</p>
 
 <span id="example-requests-POSTapi-v1-auth-login">
 <blockquote>Example request:</blockquote>
@@ -5011,7 +5221,94 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTapi-v1-auth-login">
-</span>
+            <blockquote>
+            <p>Example response (200, Login successful):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;token&quot;: &quot;3|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef&quot;,
+        &quot;token_type&quot;: &quot;Bearer&quot;,
+        &quot;expires_at&quot;: &quot;2026-08-27T13:05:00.000Z&quot;,
+        &quot;user&quot;: {
+            &quot;uuid&quot;: &quot;977e5426-8d13-3824-86aa-b092f8ae52c5&quot;,
+            &quot;name&quot;: &quot;A&iuml;cha Hounkp&egrave;&quot;,
+            &quot;email&quot;: &quot;aicha.hounkpe@gmail.com&quot;,
+            &quot;phone&quot;: &quot;+22901000000&quot;,
+            &quot;country_code&quot;: &quot;BJ&quot;,
+            &quot;birth_date&quot;: &quot;1990-05-15&quot;,
+            &quot;avatar_url&quot;: null,
+            &quot;status&quot;: &quot;active&quot;,
+            &quot;permissions&quot;: [
+                &quot;bookings.create&quot;,
+                &quot;bookings.view-own&quot;,
+                &quot;tickets.view&quot;
+            ]
+        },
+        &quot;device&quot;: {
+            &quot;uuid&quot;: &quot;a3091549-9179-454e-8440-58179f2208df&quot;,
+            &quot;name&quot;: &quot;iPhone 15 Pro&quot;,
+            &quot;platform&quot;: &quot;ios&quot;,
+            &quot;trusted_at&quot;: &quot;2026-08-20T13:05:00.000Z&quot;,
+            &quot;last_seen_at&quot;: &quot;2026-08-20T13:05:00.000Z&quot;,
+            &quot;status&quot;: &quot;trusted&quot;
+        }
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (202, OTP required):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;requires_otp&quot;: true,
+        &quot;otp_challenge_uuid&quot;: &quot;b1234567-89ab-cdef-0123-456789abcdef&quot;,
+        &quot;purpose&quot;: &quot;login&quot;,
+        &quot;expires_at&quot;: &quot;2026-08-20T13:10:00.000Z&quot;
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403, Account suspended):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;error&quot;: {
+        &quot;code&quot;: &quot;account_suspended&quot;,
+        &quot;message&quot;: &quot;Le compte est suspendu. Contactez le support.&quot;
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (422, Invalid credentials):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;error&quot;: {
+        &quot;code&quot;: &quot;invalid_credentials&quot;,
+        &quot;message&quot;: &quot;Identifiants invalides.&quot;
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (423, Account locked):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;error&quot;: {
+        &quot;code&quot;: &quot;account_locked&quot;,
+        &quot;message&quot;: &quot;Le compte est temporairement bloqu&eacute; apr&egrave;s plusieurs tentatives incorrectes.&quot;,
+        &quot;locked_until&quot;: &quot;2026-08-20T13:15:00.000Z&quot;
+    }
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-POSTapi-v1-auth-login" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-POSTapi-v1-auth-login"></span>:
@@ -5206,7 +5503,7 @@ compte social, télécharge l'avatar via Spatie Media Library et
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
-    \"provider\": \"google\",
+    \"provider\": \"tiktok\",
     \"provider_token\": \"b\",
     \"device_name\": \"n\",
     \"platform\": \"android\",
@@ -5227,7 +5524,7 @@ const headers = {
 };
 
 let body = {
-    "provider": "google",
+    "provider": "tiktok",
     "provider_token": "b",
     "device_name": "n",
     "platform": "android",
@@ -5432,10 +5729,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="provider"                data-endpoint="POSTapi-v1-auth-oauth-token"
-               value="google"
+               value="tiktok"
                data-component="body">
     <br>
-<p>Example: <code>google</code></p>
+<p>Example: <code>tiktok</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>google</code></li> <li><code>facebook</code></li> <li><code>tiktok</code></li></ul>
         </div>
@@ -5503,9 +5800,10 @@ Must be one of:
         </div>
         </form>
 
-                    <h2 id="auth-GETapi-v1-auth-me">GET api/v1/auth/me</h2>
+                    <h2 id="auth-GETapi-v1-auth-me">Get the authenticated user&#039;s profile.</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
 
@@ -5517,6 +5815,7 @@ Must be one of:
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
     --get "http://kora-ops-web.local/api/v1/auth/me" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
@@ -5527,6 +5826,7 @@ Must be one of:
 );
 
 const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -5540,6 +5840,40 @@ fetch(url, {
 </span>
 
 <span id="example-responses-GETapi-v1-auth-me">
+            <blockquote>
+            <p>Example response (200, Current user):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;user&quot;: {
+            &quot;uuid&quot;: &quot;977e5426-8d13-3824-86aa-b092f8ae52c5&quot;,
+            &quot;name&quot;: &quot;A&iuml;cha Hounkp&egrave;&quot;,
+            &quot;email&quot;: &quot;aicha.hounkpe@gmail.com&quot;,
+            &quot;phone&quot;: &quot;+22901000000&quot;,
+            &quot;country_code&quot;: &quot;BJ&quot;,
+            &quot;birth_date&quot;: &quot;1990-05-15&quot;,
+            &quot;avatar_url&quot;: null,
+            &quot;status&quot;: &quot;active&quot;,
+            &quot;permissions&quot;: [
+                &quot;bookings.create&quot;,
+                &quot;bookings.view-own&quot;,
+                &quot;tickets.view&quot;
+            ]
+        }
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
     </span>
 <span id="execution-results-GETapi-v1-auth-me" hidden>
     <blockquote>Received response<span
@@ -5558,7 +5892,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-GETapi-v1-auth-me" data-method="GET"
       data-path="api/v1/auth/me"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -5589,6 +5923,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
                                 <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="GETapi-v1-auth-me"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
  &nbsp;
@@ -5614,9 +5960,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
             </div>
                         </form>
 
-                    <h2 id="auth-PUTapi-v1-auth-me">PUT api/v1/auth/me</h2>
+                    <h2 id="auth-PUTapi-v1-auth-me">Update the authenticated user&#039;s profile.</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
 
@@ -5628,6 +5975,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <div class="bash-example">
     <pre><code class="language-bash">curl --request PUT \
     "http://kora-ops-web.local/api/v1/auth/me" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -5635,7 +5983,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"email\": \"zbailey@example.net\",
     \"phone\": \"iyvdljnikhwaykcm\",
     \"country_code\": \"yuwp\",
-    \"birth_date\": \"2022-09-26\"
+    \"birth_date\": \"2022-09-27\"
 }"
 </code></pre></div>
 
@@ -5646,6 +5994,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -5655,7 +6004,7 @@ let body = {
     "email": "zbailey@example.net",
     "phone": "iyvdljnikhwaykcm",
     "country_code": "yuwp",
-    "birth_date": "2022-09-26"
+    "birth_date": "2022-09-27"
 };
 
 fetch(url, {
@@ -5667,7 +6016,55 @@ fetch(url, {
 </span>
 
 <span id="example-responses-PUTapi-v1-auth-me">
-</span>
+            <blockquote>
+            <p>Example response (200, Profile updated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;user&quot;: {
+            &quot;uuid&quot;: &quot;977e5426-8d13-3824-86aa-b092f8ae52c5&quot;,
+            &quot;name&quot;: &quot;A&iuml;cha Hounkp&egrave;&quot;,
+            &quot;email&quot;: &quot;aicha.hounkpe@gmail.com&quot;,
+            &quot;phone&quot;: &quot;+22901000000&quot;,
+            &quot;country_code&quot;: &quot;BJ&quot;,
+            &quot;birth_date&quot;: &quot;1990-05-15&quot;,
+            &quot;avatar_url&quot;: null,
+            &quot;status&quot;: &quot;active&quot;,
+            &quot;permissions&quot;: [
+                &quot;bookings.create&quot;,
+                &quot;bookings.view-own&quot;,
+                &quot;tickets.view&quot;
+            ]
+        }
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (422, Validation error):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;The given data was invalid.&quot;,
+    &quot;errors&quot;: {
+        &quot;email&quot;: [
+            &quot;The email has already been taken.&quot;
+        ]
+    }
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-PUTapi-v1-auth-me" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-PUTapi-v1-auth-me"></span>:
@@ -5685,7 +6082,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-PUTapi-v1-auth-me" data-method="PUT"
       data-path="api/v1/auth/me"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -5715,6 +6112,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <b><code>api/v1/auth/me</code></b>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="PUTapi-v1-auth-me"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
                                 <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
@@ -5795,16 +6204,17 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="birth_date"                data-endpoint="PUTapi-v1-auth-me"
-               value="2022-09-26"
+               value="2022-09-27"
                data-component="body">
     <br>
-<p>Le champ value doit être une date valide. Le champ value doit être une date antérieure à <code>today</code>. Example: <code>2022-09-26</code></p>
+<p>Le champ value doit être une date valide. Le champ value doit être une date antérieure à <code>today</code>. Example: <code>2022-09-27</code></p>
         </div>
         </form>
 
-                    <h2 id="auth-POSTapi-v1-auth-pin-change">POST api/v1/auth/pin/change</h2>
+                    <h2 id="auth-POSTapi-v1-auth-pin-change">Change the authenticated user&#039;s PIN.</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
 
@@ -5816,6 +6226,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
     "http://kora-ops-web.local/api/v1/auth/pin/change" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -5831,6 +6242,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -5849,7 +6261,55 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTapi-v1-auth-pin-change">
-</span>
+            <blockquote>
+            <p>Example response (200, PIN changed):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;user&quot;: {
+            &quot;uuid&quot;: &quot;977e5426-8d13-3824-86aa-b092f8ae52c5&quot;,
+            &quot;name&quot;: &quot;A&iuml;cha Hounkp&egrave;&quot;,
+            &quot;email&quot;: &quot;aicha.hounkpe@gmail.com&quot;,
+            &quot;phone&quot;: &quot;+22901000000&quot;,
+            &quot;country_code&quot;: &quot;BJ&quot;,
+            &quot;birth_date&quot;: &quot;1990-05-15&quot;,
+            &quot;avatar_url&quot;: null,
+            &quot;status&quot;: &quot;active&quot;,
+            &quot;permissions&quot;: [
+                &quot;bookings.create&quot;,
+                &quot;bookings.view-own&quot;,
+                &quot;tickets.view&quot;
+            ]
+        }
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (422, Validation error):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;The given data was invalid.&quot;,
+    &quot;errors&quot;: {
+        &quot;current_pin&quot;: [
+            &quot;The current PIN is incorrect.&quot;
+        ]
+    }
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-POSTapi-v1-auth-pin-change" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-POSTapi-v1-auth-pin-change"></span>:
@@ -5867,7 +6327,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-POSTapi-v1-auth-pin-change" data-method="POST"
       data-path="api/v1/auth/pin/change"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -5897,6 +6357,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <b><code>api/v1/auth/pin/change</code></b>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="POSTapi-v1-auth-pin-change"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
                                 <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
@@ -5948,9 +6420,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
         </div>
         </form>
 
-                    <h2 id="auth-GETapi-v1-auth-preferences">GET api/v1/auth/preferences</h2>
+                    <h2 id="auth-GETapi-v1-auth-preferences">Get the authenticated user&#039;s notification and display preferences.</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
 
@@ -5962,6 +6435,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
     --get "http://kora-ops-web.local/api/v1/auth/preferences" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
@@ -5972,6 +6446,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -5985,6 +6460,30 @@ fetch(url, {
 </span>
 
 <span id="example-responses-GETapi-v1-auth-preferences">
+            <blockquote>
+            <p>Example response (200, User preferences):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;push_notifications&quot;: true,
+        &quot;whatsapp_notifications&quot;: true,
+        &quot;email_notifications&quot;: true,
+        &quot;locale&quot;: &quot;fr&quot;,
+        &quot;theme&quot;: &quot;light&quot;
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
     </span>
 <span id="execution-results-GETapi-v1-auth-preferences" hidden>
     <blockquote>Received response<span
@@ -6003,7 +6502,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-GETapi-v1-auth-preferences" data-method="GET"
       data-path="api/v1/auth/preferences"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -6034,6 +6533,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
                                 <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="GETapi-v1-auth-preferences"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
  &nbsp;
@@ -6059,9 +6570,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
             </div>
                         </form>
 
-                    <h2 id="auth-PUTapi-v1-auth-preferences">PUT api/v1/auth/preferences</h2>
+                    <h2 id="auth-PUTapi-v1-auth-preferences">Update the authenticated user&#039;s notification and display preferences.</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
 
@@ -6073,14 +6585,15 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <div class="bash-example">
     <pre><code class="language-bash">curl --request PUT \
     "http://kora-ops-web.local/api/v1/auth/preferences" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
     \"push_notifications\": true,
     \"whatsapp_notifications\": false,
     \"email_notifications\": false,
-    \"locale\": \"en\",
-    \"theme\": \"system\"
+    \"locale\": \"fr\",
+    \"theme\": \"dark\"
 }"
 </code></pre></div>
 
@@ -6091,6 +6604,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -6099,8 +6613,8 @@ let body = {
     "push_notifications": true,
     "whatsapp_notifications": false,
     "email_notifications": false,
-    "locale": "en",
-    "theme": "system"
+    "locale": "fr",
+    "theme": "dark"
 };
 
 fetch(url, {
@@ -6112,7 +6626,45 @@ fetch(url, {
 </span>
 
 <span id="example-responses-PUTapi-v1-auth-preferences">
-</span>
+            <blockquote>
+            <p>Example response (200, Preferences updated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;push_notifications&quot;: false,
+        &quot;whatsapp_notifications&quot;: true,
+        &quot;email_notifications&quot;: true,
+        &quot;locale&quot;: &quot;en&quot;,
+        &quot;theme&quot;: &quot;dark&quot;
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (422, Validation error):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;The given data was invalid.&quot;,
+    &quot;errors&quot;: {
+        &quot;locale&quot;: [
+            &quot;The selected locale is invalid.&quot;
+        ]
+    }
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-PUTapi-v1-auth-preferences" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-PUTapi-v1-auth-preferences"></span>:
@@ -6130,7 +6682,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-PUTapi-v1-auth-preferences" data-method="PUT"
       data-path="api/v1/auth/preferences"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -6160,6 +6712,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <b><code>api/v1/auth/preferences</code></b>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="PUTapi-v1-auth-preferences"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
                                 <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
@@ -6258,10 +6822,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="locale"                data-endpoint="PUTapi-v1-auth-preferences"
-               value="en"
+               value="fr"
                data-component="body">
     <br>
-<p>Example: <code>en</code></p>
+<p>Example: <code>fr</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>fr</code></li> <li><code>en</code></li></ul>
         </div>
@@ -6272,18 +6836,19 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="theme"                data-endpoint="PUTapi-v1-auth-preferences"
-               value="system"
+               value="dark"
                data-component="body">
     <br>
-<p>Example: <code>system</code></p>
+<p>Example: <code>dark</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>light</code></li> <li><code>dark</code></li> <li><code>system</code></li></ul>
         </div>
         </form>
 
-                    <h2 id="auth-GETapi-v1-auth-devices">GET api/v1/auth/devices</h2>
+                    <h2 id="auth-GETapi-v1-auth-devices">List the authenticated user&#039;s trusted devices.</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
 
@@ -6295,6 +6860,7 @@ Must be one of:
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
     --get "http://kora-ops-web.local/api/v1/auth/devices" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
@@ -6305,6 +6871,7 @@ Must be one of:
 );
 
 const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -6318,6 +6885,33 @@ fetch(url, {
 </span>
 
 <span id="example-responses-GETapi-v1-auth-devices">
+            <blockquote>
+            <p>Example response (200, Device list):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: [
+        {
+            &quot;uuid&quot;: &quot;a3091549-9179-454e-8440-58179f2208df&quot;,
+            &quot;name&quot;: &quot;iPhone 15 Pro&quot;,
+            &quot;platform&quot;: &quot;ios&quot;,
+            &quot;trusted_at&quot;: &quot;2026-08-20T13:05:00.000Z&quot;,
+            &quot;last_seen_at&quot;: &quot;2026-08-20T13:05:00.000Z&quot;,
+            &quot;status&quot;: &quot;trusted&quot;
+        }
+    ]
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
     </span>
 <span id="execution-results-GETapi-v1-auth-devices" hidden>
     <blockquote>Received response<span
@@ -6336,7 +6930,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-GETapi-v1-auth-devices" data-method="GET"
       data-path="api/v1/auth/devices"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -6367,6 +6961,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
                                 <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="GETapi-v1-auth-devices"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
  &nbsp;
@@ -6392,9 +6998,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
             </div>
                         </form>
 
-                    <h2 id="auth-DELETEapi-v1-auth-devices--uuid-">DELETE api/v1/auth/devices/{uuid}</h2>
+                    <h2 id="auth-DELETEapi-v1-auth-devices--uuid-">Revoke a trusted device.</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
 
@@ -6406,6 +7013,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <div class="bash-example">
     <pre><code class="language-bash">curl --request DELETE \
     "http://kora-ops-web.local/api/v1/auth/devices/6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
@@ -6416,6 +7024,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -6429,7 +7038,31 @@ fetch(url, {
 </span>
 
 <span id="example-responses-DELETEapi-v1-auth-devices--uuid-">
-</span>
+            <blockquote>
+            <p>Example response (204, Device revoked):</p>
+        </blockquote>
+                <pre>
+<code>Empty response</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (404, Device not found):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;No query results for model [App\\Modules\\IdentityAccess\\Models\\UserDevice].&quot;
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-DELETEapi-v1-auth-devices--uuid-" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-DELETEapi-v1-auth-devices--uuid-"></span>:
@@ -6447,7 +7080,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-DELETEapi-v1-auth-devices--uuid-" data-method="DELETE"
       data-path="api/v1/auth/devices/{uuid}"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -6477,6 +7110,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <b><code>api/v1/auth/devices/{uuid}</code></b>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="DELETEapi-v1-auth-devices--uuid-"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
                                 <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
@@ -6516,9 +7161,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
             </div>
                     </form>
 
-                    <h2 id="auth-POSTapi-v1-auth-logout">POST api/v1/auth/logout</h2>
+                    <h2 id="auth-POSTapi-v1-auth-logout">Revoke the current access token.</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
 
@@ -6530,6 +7176,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
     "http://kora-ops-web.local/api/v1/auth/logout" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
@@ -6540,6 +7187,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -6553,7 +7201,22 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTapi-v1-auth-logout">
-</span>
+            <blockquote>
+            <p>Example response (204, Logged out):</p>
+        </blockquote>
+                <pre>
+<code>Empty response</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-POSTapi-v1-auth-logout" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-POSTapi-v1-auth-logout"></span>:
@@ -6571,7 +7234,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-POSTapi-v1-auth-logout" data-method="POST"
       data-path="api/v1/auth/logout"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -6602,6 +7265,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
                                 <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="POSTapi-v1-auth-logout"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
  &nbsp;
@@ -6627,16 +7302,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
             </div>
                         </form>
 
-                <h1 id="endpoints">Endpoints</h1>
+                <h1 id="company-accounts">Company Accounts</h1>
 
-    
+    <p>Company account management for group purchases and credit-based billing.</p>
 
-                                <h2 id="endpoints-GETapi-v1-company-accounts">GET api/v1/company-accounts</h2>
+                                <h2 id="company-accounts-GETapi-v1-company-accounts">List active company accounts visible to the authenticated user.</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
-
+<p>Users with the <code>company-credit.view</code> permission see all active accounts.
+Others see only accounts where they are an active member.</p>
 
 <span id="example-requests-GETapi-v1-company-accounts">
 <blockquote>Example request:</blockquote>
@@ -6645,6 +7322,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
     --get "http://kora-ops-web.local/api/v1/company-accounts" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
@@ -6655,6 +7333,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -6668,6 +7347,36 @@ fetch(url, {
 </span>
 
 <span id="example-responses-GETapi-v1-company-accounts">
+            <blockquote>
+            <p>Example response (200, Company account list):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: [
+        {
+            &quot;uuid&quot;: &quot;c1234567-89ab-cdef-0123-456789abcdef&quot;,
+            &quot;name&quot;: &quot;Soci&eacute;t&eacute; de Transport B&eacute;nin SARL&quot;,
+            &quot;type&quot;: &quot;company&quot;,
+            &quot;reference&quot;: &quot;STB-2026-001&quot;,
+            &quot;phone&quot;: &quot;+22901000001&quot;,
+            &quot;email&quot;: &quot;contact@stb.bj&quot;,
+            &quot;status&quot;: &quot;active&quot;,
+            &quot;monthly_credit_limit&quot;: 5000000,
+            &quot;available_credit&quot;: 3250000
+        }
+    ]
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
     </span>
 <span id="execution-results-GETapi-v1-company-accounts" hidden>
     <blockquote>Received response<span
@@ -6686,7 +7395,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-GETapi-v1-company-accounts" data-method="GET"
       data-path="api/v1/company-accounts"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -6717,6 +7426,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
                                 <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="GETapi-v1-company-accounts"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
  &nbsp;
@@ -6742,9 +7463,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
             </div>
                         </form>
 
-                    <h2 id="endpoints-POSTapi-v1-company-accounts">POST api/v1/company-accounts</h2>
+                    <h2 id="company-accounts-POSTapi-v1-company-accounts">Create a new company account.</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
 
@@ -6756,6 +7478,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
     "http://kora-ops-web.local/api/v1/company-accounts" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -6775,6 +7498,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -6797,7 +7521,58 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTapi-v1-company-accounts">
-</span>
+            <blockquote>
+            <p>Example response (201, Company account created):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;c1234567-89ab-cdef-0123-456789abcdef&quot;,
+        &quot;name&quot;: &quot;Soci&eacute;t&eacute; de Transport B&eacute;nin SARL&quot;,
+        &quot;type&quot;: &quot;company&quot;,
+        &quot;reference&quot;: &quot;STB-2026-001&quot;,
+        &quot;phone&quot;: &quot;+22901000001&quot;,
+        &quot;email&quot;: &quot;contact@stb.bj&quot;,
+        &quot;status&quot;: &quot;active&quot;,
+        &quot;monthly_credit_limit&quot;: 5000000,
+        &quot;available_credit&quot;: 5000000
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403, Forbidden):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;This action is unauthorized.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (422, Validation error):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;The given data was invalid.&quot;,
+    &quot;errors&quot;: {
+        &quot;name&quot;: [
+            &quot;The name has already been taken.&quot;
+        ]
+    }
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-POSTapi-v1-company-accounts" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-POSTapi-v1-company-accounts"></span>:
@@ -6815,7 +7590,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-POSTapi-v1-company-accounts" data-method="POST"
       data-path="api/v1/company-accounts"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -6845,6 +7620,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <b><code>api/v1/company-accounts</code></b>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="POSTapi-v1-company-accounts"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
                                 <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
@@ -6946,9 +7733,10 @@ Must be one of:
         </div>
         </form>
 
-                    <h2 id="endpoints-PUTapi-v1-company-accounts--companyAccount_uuid-">PUT api/v1/company-accounts/{companyAccount_uuid}</h2>
+                    <h2 id="company-accounts-PUTapi-v1-company-accounts--companyAccount_uuid-">Update a company account&#039;s details.</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
 
@@ -6960,11 +7748,12 @@ Must be one of:
 <div class="bash-example">
     <pre><code class="language-bash">curl --request PUT \
     "http://kora-ops-web.local/api/v1/company-accounts/6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
     \"name\": \"b\",
-    \"type\": \"ngo\",
+    \"type\": \"embassy\",
     \"reference\": \"n\",
     \"phone\": \"g\",
     \"email\": \"rowan.gulgowski@example.com\",
@@ -6979,13 +7768,14 @@ Must be one of:
 );
 
 const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
 
 let body = {
     "name": "b",
-    "type": "ngo",
+    "type": "embassy",
     "reference": "n",
     "phone": "g",
     "email": "rowan.gulgowski@example.com",
@@ -7001,7 +7791,58 @@ fetch(url, {
 </span>
 
 <span id="example-responses-PUTapi-v1-company-accounts--companyAccount_uuid-">
-</span>
+            <blockquote>
+            <p>Example response (200, Company account updated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;c1234567-89ab-cdef-0123-456789abcdef&quot;,
+        &quot;name&quot;: &quot;Soci&eacute;t&eacute; de Transport B&eacute;nin SARL&quot;,
+        &quot;type&quot;: &quot;company&quot;,
+        &quot;reference&quot;: &quot;STB-2026-001&quot;,
+        &quot;phone&quot;: &quot;+22901000002&quot;,
+        &quot;email&quot;: &quot;contact@stb.bj&quot;,
+        &quot;status&quot;: &quot;active&quot;,
+        &quot;monthly_credit_limit&quot;: 5000000,
+        &quot;available_credit&quot;: 3250000
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403, Forbidden):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;This action is unauthorized.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (422, Validation error):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;The given data was invalid.&quot;,
+    &quot;errors&quot;: {
+        &quot;email&quot;: [
+            &quot;The email has already been taken.&quot;
+        ]
+    }
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-PUTapi-v1-company-accounts--companyAccount_uuid-" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-PUTapi-v1-company-accounts--companyAccount_uuid-"></span>:
@@ -7019,7 +7860,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-PUTapi-v1-company-accounts--companyAccount_uuid-" data-method="PUT"
       data-path="api/v1/company-accounts/{companyAccount_uuid}"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -7049,6 +7890,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <b><code>api/v1/company-accounts/{companyAccount_uuid}</code></b>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="PUTapi-v1-company-accounts--companyAccount_uuid-"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
                                 <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
@@ -7106,10 +7959,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="type"                data-endpoint="PUTapi-v1-company-accounts--companyAccount_uuid-"
-               value="ngo"
+               value="embassy"
                data-component="body">
     <br>
-<p>Example: <code>ngo</code></p>
+<p>Example: <code>embassy</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>company</code></li> <li><code>ngo</code></li> <li><code>embassy</code></li></ul>
         </div>
@@ -7163,12 +8016,14 @@ Must be one of:
         </div>
         </form>
 
-                    <h2 id="endpoints-POSTapi-v1-company-accounts--companyAccount_uuid--deactivate">POST api/v1/company-accounts/{companyAccount_uuid}/deactivate</h2>
+                    <h2 id="company-accounts-POSTapi-v1-company-accounts--companyAccount_uuid--deactivate">Deactivate a company account.</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
-
+<p>Sets the account status to <code>inactive</code>. Existing credit balances remain but no new
+purchases are allowed.</p>
 
 <span id="example-requests-POSTapi-v1-company-accounts--companyAccount_uuid--deactivate">
 <blockquote>Example request:</blockquote>
@@ -7177,6 +8032,7 @@ Must be one of:
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
     "http://kora-ops-web.local/api/v1/company-accounts/6ff8f7f6-1eb3-3525-be4a-3932c805afed/deactivate" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
@@ -7187,6 +8043,7 @@ Must be one of:
 );
 
 const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -7200,7 +8057,44 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTapi-v1-company-accounts--companyAccount_uuid--deactivate">
-</span>
+            <blockquote>
+            <p>Example response (200, Company account deactivated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;c1234567-89ab-cdef-0123-456789abcdef&quot;,
+        &quot;name&quot;: &quot;Soci&eacute;t&eacute; de Transport B&eacute;nin SARL&quot;,
+        &quot;type&quot;: &quot;company&quot;,
+        &quot;reference&quot;: &quot;STB-2026-001&quot;,
+        &quot;phone&quot;: &quot;+22901000001&quot;,
+        &quot;email&quot;: &quot;contact@stb.bj&quot;,
+        &quot;status&quot;: &quot;inactive&quot;,
+        &quot;monthly_credit_limit&quot;: 5000000,
+        &quot;available_credit&quot;: 3250000
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403, Forbidden):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;This action is unauthorized.&quot;
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-POSTapi-v1-company-accounts--companyAccount_uuid--deactivate" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-POSTapi-v1-company-accounts--companyAccount_uuid--deactivate"></span>:
@@ -7218,7 +8112,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-POSTapi-v1-company-accounts--companyAccount_uuid--deactivate" data-method="POST"
       data-path="api/v1/company-accounts/{companyAccount_uuid}/deactivate"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -7248,6 +8142,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <b><code>api/v1/company-accounts/{companyAccount_uuid}/deactivate</code></b>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="POSTapi-v1-company-accounts--companyAccount_uuid--deactivate"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
                                 <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
@@ -7287,12 +8193,14 @@ You can check the Dev Tools console for debugging information.</code></pre>
             </div>
                     </form>
 
-                    <h2 id="endpoints-POSTapi-v1-company-accounts--companyAccount_uuid--members">POST api/v1/company-accounts/{companyAccount_uuid}/members</h2>
+                    <h2 id="company-accounts-POSTapi-v1-company-accounts--companyAccount_uuid--members">Add or update a member on a company account.</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
-
+<p>Only one active <code>referent</code> role is allowed per account. If the user is already
+a member, their role and status are updated.</p>
 
 <span id="example-requests-POSTapi-v1-company-accounts--companyAccount_uuid--members">
 <blockquote>Example request:</blockquote>
@@ -7301,6 +8209,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
     "http://kora-ops-web.local/api/v1/company-accounts/6ff8f7f6-1eb3-3525-be4a-3932c805afed/members" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -7316,6 +8225,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -7334,7 +8244,62 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTapi-v1-company-accounts--companyAccount_uuid--members">
-</span>
+            <blockquote>
+            <p>Example response (201, Member added):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;m1234567-89ab-cdef-0123-456789abcdef&quot;,
+        &quot;user_uuid&quot;: &quot;977e5426-8d13-3824-86aa-b092f8ae52c5&quot;,
+        &quot;role&quot;: &quot;buyer&quot;,
+        &quot;status&quot;: &quot;active&quot;
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403, Forbidden):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;This action is unauthorized.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (404, User not found):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;No query results for model [App\\Models\\User].&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (422, Duplicate referent):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;The given data was invalid.&quot;,
+    &quot;errors&quot;: {
+        &quot;role&quot;: [
+            &quot;Un seul r&eacute;f&eacute;rent actif est autoris&eacute; par compte entreprise.&quot;
+        ]
+    }
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-POSTapi-v1-company-accounts--companyAccount_uuid--members" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-POSTapi-v1-company-accounts--companyAccount_uuid--members"></span>:
@@ -7352,7 +8317,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-POSTapi-v1-company-accounts--companyAccount_uuid--members" data-method="POST"
       data-path="api/v1/company-accounts/{companyAccount_uuid}/members"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -7382,6 +8347,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <b><code>api/v1/company-accounts/{companyAccount_uuid}/members</code></b>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="POSTapi-v1-company-accounts--companyAccount_uuid--members"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
                                 <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
@@ -7448,9 +8425,14 @@ Must be one of:
         </div>
         </form>
 
-                    <h2 id="endpoints-GETapi-v1-group-discounts">GET api/v1/group-discounts</h2>
+                <h1 id="group-discounts">Group Discounts</h1>
+
+    <p>Group discount rule management and group booking settings.</p>
+
+                                <h2 id="group-discounts-GETapi-v1-group-discounts">List all group discount rules ordered by start date.</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
 
@@ -7462,6 +8444,7 @@ Must be one of:
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
     --get "http://kora-ops-web.local/api/v1/group-discounts" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
@@ -7472,6 +8455,7 @@ Must be one of:
 );
 
 const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -7485,6 +8469,42 @@ fetch(url, {
 </span>
 
 <span id="example-responses-GETapi-v1-group-discounts">
+            <blockquote>
+            <p>Example response (200, Discount rule list):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: [
+        {
+            &quot;uuid&quot;: &quot;d1234567-89ab-cdef-0123-456789abcdef&quot;,
+            &quot;status&quot;: &quot;active&quot;,
+            &quot;passenger_threshold&quot;: 5,
+            &quot;percentage&quot;: 10,
+            &quot;starts_at&quot;: &quot;2026-09-01T00:00:00+00:00&quot;,
+            &quot;ends_at&quot;: null
+        }
+    ]
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403, Forbidden):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;This action is unauthorized.&quot;
+}</code>
+ </pre>
     </span>
 <span id="execution-results-GETapi-v1-group-discounts" hidden>
     <blockquote>Received response<span
@@ -7503,7 +8523,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-GETapi-v1-group-discounts" data-method="GET"
       data-path="api/v1/group-discounts"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -7534,6 +8554,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
                                 <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="GETapi-v1-group-discounts"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
  &nbsp;
@@ -7559,12 +8591,14 @@ You can check the Dev Tools console for debugging information.</code></pre>
             </div>
                         </form>
 
-                    <h2 id="endpoints-POSTapi-v1-group-discounts">POST api/v1/group-discounts</h2>
+                    <h2 id="group-discounts-POSTapi-v1-group-discounts">Create a new group discount rule.</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
-
+<p>The passenger threshold must be &gt;= the configured minimum group size.
+Only one active rule can cover a given period.</p>
 
 <span id="example-requests-POSTapi-v1-group-discounts">
 <blockquote>Example request:</blockquote>
@@ -7573,13 +8607,14 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
     "http://kora-ops-web.local/api/v1/group-discounts" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
     \"status\": \"inactive\",
     \"passenger_threshold\": 16,
     \"percentage\": 22,
-    \"starts_at\": \"2026-09-02T10:55:44\",
+    \"starts_at\": \"2026-09-02T15:34:20\",
     \"ends_at\": \"2052-09-25\"
 }"
 </code></pre></div>
@@ -7591,6 +8626,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -7599,7 +8635,7 @@ let body = {
     "status": "inactive",
     "passenger_threshold": 16,
     "percentage": 22,
-    "starts_at": "2026-09-02T10:55:44",
+    "starts_at": "2026-09-02T15:34:20",
     "ends_at": "2052-09-25"
 };
 
@@ -7612,7 +8648,69 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTapi-v1-group-discounts">
-</span>
+            <blockquote>
+            <p>Example response (201, Discount rule created):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;d1234567-89ab-cdef-0123-456789abcdef&quot;,
+        &quot;status&quot;: &quot;active&quot;,
+        &quot;passenger_threshold&quot;: 5,
+        &quot;percentage&quot;: 10,
+        &quot;starts_at&quot;: &quot;2026-09-01T00:00:00+00:00&quot;,
+        &quot;ends_at&quot;: null
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403, Forbidden):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;This action is unauthorized.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (422, Threshold below minimum):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;The given data was invalid.&quot;,
+    &quot;errors&quot;: {
+        &quot;passenger_threshold&quot;: [
+            &quot;Le seuil de remise doit &ecirc;tre sup&eacute;rieur ou &eacute;gal au minimum groupe configur&eacute;.&quot;
+        ]
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (422, Overlapping active rule):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;The given data was invalid.&quot;,
+    &quot;errors&quot;: {
+        &quot;starts_at&quot;: [
+            &quot;Une r&egrave;gle groupe active couvre d&eacute;j&agrave; cette p&eacute;riode.&quot;
+        ]
+    }
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-POSTapi-v1-group-discounts" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-POSTapi-v1-group-discounts"></span>:
@@ -7630,7 +8728,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-POSTapi-v1-group-discounts" data-method="POST"
       data-path="api/v1/group-discounts"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -7660,6 +8758,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <b><code>api/v1/group-discounts</code></b>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="POSTapi-v1-group-discounts"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
                                 <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
@@ -7730,10 +8840,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="starts_at"                data-endpoint="POSTapi-v1-group-discounts"
-               value="2026-09-02T10:55:44"
+               value="2026-09-02T15:34:20"
                data-component="body">
     <br>
-<p>Le champ value doit être une date valide. Example: <code>2026-09-02T10:55:44</code></p>
+<p>Le champ value doit être une date valide. Example: <code>2026-09-02T15:34:20</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>ends_at</code></b>&nbsp;&nbsp;
@@ -7749,9 +8859,10 @@ Must be one of:
         </div>
         </form>
 
-                    <h2 id="endpoints-PUTapi-v1-group-discounts--groupDiscountRule_uuid-">PUT api/v1/group-discounts/{groupDiscountRule_uuid}</h2>
+                    <h2 id="group-discounts-PUTapi-v1-group-discounts--groupDiscountRule_uuid-">Update an existing group discount rule.</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
 
@@ -7763,13 +8874,14 @@ Must be one of:
 <div class="bash-example">
     <pre><code class="language-bash">curl --request PUT \
     "http://kora-ops-web.local/api/v1/group-discounts/6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
-    \"status\": \"inactive\",
+    \"status\": \"active\",
     \"passenger_threshold\": 16,
     \"percentage\": 22,
-    \"starts_at\": \"2026-09-02T10:55:44\",
+    \"starts_at\": \"2026-09-02T15:34:20\",
     \"ends_at\": \"2052-09-25\"
 }"
 </code></pre></div>
@@ -7781,15 +8893,16 @@ Must be one of:
 );
 
 const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
 
 let body = {
-    "status": "inactive",
+    "status": "active",
     "passenger_threshold": 16,
     "percentage": 22,
-    "starts_at": "2026-09-02T10:55:44",
+    "starts_at": "2026-09-02T15:34:20",
     "ends_at": "2052-09-25"
 };
 
@@ -7802,7 +8915,55 @@ fetch(url, {
 </span>
 
 <span id="example-responses-PUTapi-v1-group-discounts--groupDiscountRule_uuid-">
-</span>
+            <blockquote>
+            <p>Example response (200, Discount rule updated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;d1234567-89ab-cdef-0123-456789abcdef&quot;,
+        &quot;status&quot;: &quot;active&quot;,
+        &quot;passenger_threshold&quot;: 8,
+        &quot;percentage&quot;: 15,
+        &quot;starts_at&quot;: &quot;2026-09-01T00:00:00+00:00&quot;,
+        &quot;ends_at&quot;: &quot;2026-12-31T00:00:00+00:00&quot;
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403, Forbidden):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;This action is unauthorized.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (422, Overlapping active rule):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;The given data was invalid.&quot;,
+    &quot;errors&quot;: {
+        &quot;starts_at&quot;: [
+            &quot;Une r&egrave;gle groupe active couvre d&eacute;j&agrave; cette p&eacute;riode.&quot;
+        ]
+    }
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-PUTapi-v1-group-discounts--groupDiscountRule_uuid-" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-PUTapi-v1-group-discounts--groupDiscountRule_uuid-"></span>:
@@ -7820,7 +8981,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-PUTapi-v1-group-discounts--groupDiscountRule_uuid-" data-method="PUT"
       data-path="api/v1/group-discounts/{groupDiscountRule_uuid}"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -7850,6 +9011,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <b><code>api/v1/group-discounts/{groupDiscountRule_uuid}</code></b>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="PUTapi-v1-group-discounts--groupDiscountRule_uuid-"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
                                 <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
@@ -7895,10 +9068,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="PUTapi-v1-group-discounts--groupDiscountRule_uuid-"
-               value="inactive"
+               value="active"
                data-component="body">
     <br>
-<p>Example: <code>inactive</code></p>
+<p>Example: <code>active</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>active</code></li> <li><code>inactive</code></li></ul>
         </div>
@@ -7933,10 +9106,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="starts_at"                data-endpoint="PUTapi-v1-group-discounts--groupDiscountRule_uuid-"
-               value="2026-09-02T10:55:44"
+               value="2026-09-02T15:34:20"
                data-component="body">
     <br>
-<p>Le champ value doit être une date valide. Example: <code>2026-09-02T10:55:44</code></p>
+<p>Le champ value doit être une date valide. Example: <code>2026-09-02T15:34:20</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>ends_at</code></b>&nbsp;&nbsp;
@@ -7952,9 +9125,10 @@ Must be one of:
         </div>
         </form>
 
-                    <h2 id="endpoints-GETapi-v1-group-booking-settings">GET api/v1/group-booking-settings</h2>
+                    <h2 id="group-discounts-GETapi-v1-group-booking-settings">Get the current group booking settings (min/max passengers).</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
 
@@ -7966,6 +9140,7 @@ Must be one of:
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
     --get "http://kora-ops-web.local/api/v1/group-booking-settings" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
@@ -7976,6 +9151,7 @@ Must be one of:
 );
 
 const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -7989,6 +9165,36 @@ fetch(url, {
 </span>
 
 <span id="example-responses-GETapi-v1-group-booking-settings">
+            <blockquote>
+            <p>Example response (200, Group booking settings):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;minimum_passengers&quot;: 5,
+        &quot;maximum_passengers&quot;: 10
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403, Forbidden):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;This action is unauthorized.&quot;
+}</code>
+ </pre>
     </span>
 <span id="execution-results-GETapi-v1-group-booking-settings" hidden>
     <blockquote>Received response<span
@@ -8007,7 +9213,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-GETapi-v1-group-booking-settings" data-method="GET"
       data-path="api/v1/group-booking-settings"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -8038,6 +9244,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
                                 <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="GETapi-v1-group-booking-settings"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
  &nbsp;
@@ -8063,9 +9281,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
             </div>
                         </form>
 
-                    <h2 id="endpoints-PUTapi-v1-group-booking-settings">PUT api/v1/group-booking-settings</h2>
+                    <h2 id="group-discounts-PUTapi-v1-group-booking-settings">Update the group booking settings (min/max passengers).</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
 
@@ -8077,6 +9296,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <div class="bash-example">
     <pre><code class="language-bash">curl --request PUT \
     "http://kora-ops-web.local/api/v1/group-booking-settings" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -8092,6 +9312,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -8110,7 +9331,42 @@ fetch(url, {
 </span>
 
 <span id="example-responses-PUTapi-v1-group-booking-settings">
-</span>
+            <blockquote>
+            <p>Example response (200, Settings updated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;minimum_passengers&quot;: 3,
+        &quot;maximum_passengers&quot;: 15
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (422, Validation error):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;The given data was invalid.&quot;,
+    &quot;errors&quot;: {
+        &quot;maximum_passengers&quot;: [
+            &quot;The maximum passengers must be greater than or equal to 3.&quot;
+        ]
+    }
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-PUTapi-v1-group-booking-settings" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-PUTapi-v1-group-booking-settings"></span>:
@@ -8128,7 +9384,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-PUTapi-v1-group-booking-settings" data-method="PUT"
       data-path="api/v1/group-booking-settings"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -8158,6 +9414,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <b><code>api/v1/group-booking-settings</code></b>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="PUTapi-v1-group-booking-settings"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
                                 <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
@@ -8209,254 +9477,6 @@ You can check the Dev Tools console for debugging information.</code></pre>
         </div>
         </form>
 
-                    <h2 id="endpoints-GETapi-v1-bookings--reservation_uuid--tickets">GET api/v1/bookings/{reservation_uuid}/tickets</h2>
-
-<p>
-</p>
-
-
-
-<span id="example-requests-GETapi-v1-bookings--reservation_uuid--tickets">
-<blockquote>Example request:</blockquote>
-
-
-<div class="bash-example">
-    <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed/tickets" \
-    --header "Content-Type: application/json" \
-    --header "Accept: application/json"</code></pre></div>
-
-
-<div class="javascript-example">
-    <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed/tickets"
-);
-
-const headers = {
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-};
-
-
-fetch(url, {
-    method: "GET",
-    headers,
-}).then(response =&gt; response.json());</code></pre></div>
-
-</span>
-
-<span id="example-responses-GETapi-v1-bookings--reservation_uuid--tickets">
-    </span>
-<span id="execution-results-GETapi-v1-bookings--reservation_uuid--tickets" hidden>
-    <blockquote>Received response<span
-                id="execution-response-status-GETapi-v1-bookings--reservation_uuid--tickets"></span>:
-    </blockquote>
-    <pre class="json"><code id="execution-response-content-GETapi-v1-bookings--reservation_uuid--tickets"
-      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
-</span>
-<span id="execution-error-GETapi-v1-bookings--reservation_uuid--tickets" hidden>
-    <blockquote>Request failed with error:</blockquote>
-    <pre><code id="execution-error-message-GETapi-v1-bookings--reservation_uuid--tickets">
-
-Tip: Check that you&#039;re properly connected to the network.
-If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
-You can check the Dev Tools console for debugging information.</code></pre>
-</span>
-<form id="form-GETapi-v1-bookings--reservation_uuid--tickets" data-method="GET"
-      data-path="api/v1/bookings/{reservation_uuid}/tickets"
-      data-authed="0"
-      data-hasfiles="0"
-      data-isarraybody="0"
-      autocomplete="off"
-      onsubmit="event.preventDefault(); executeTryOut('GETapi-v1-bookings--reservation_uuid--tickets', this);">
-    <h3>
-        Request&nbsp;&nbsp;&nbsp;
-                    <button type="button"
-                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
-                    id="btn-tryout-GETapi-v1-bookings--reservation_uuid--tickets"
-                    onclick="tryItOut('GETapi-v1-bookings--reservation_uuid--tickets');">Try it out ⚡
-            </button>
-            <button type="button"
-                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
-                    id="btn-canceltryout-GETapi-v1-bookings--reservation_uuid--tickets"
-                    onclick="cancelTryOut('GETapi-v1-bookings--reservation_uuid--tickets');" hidden>Cancel 🛑
-            </button>&nbsp;&nbsp;
-            <button type="submit"
-                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
-                    id="btn-executetryout-GETapi-v1-bookings--reservation_uuid--tickets"
-                    data-initial-text="Send Request 💥"
-                    data-loading-text="⏱ Sending..."
-                    hidden>Send Request 💥
-            </button>
-            </h3>
-            <p>
-            <small class="badge badge-green">GET</small>
-            <b><code>api/v1/bookings/{reservation_uuid}/tickets</code></b>
-        </p>
-                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
-                                <div style="padding-left: 28px; clear: unset;">
-                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
-&nbsp;
- &nbsp;
- &nbsp;
-                <input type="text" style="display: none"
-                              name="Content-Type"                data-endpoint="GETapi-v1-bookings--reservation_uuid--tickets"
-               value="application/json"
-               data-component="header">
-    <br>
-<p>Example: <code>application/json</code></p>
-            </div>
-                                <div style="padding-left: 28px; clear: unset;">
-                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
-&nbsp;
- &nbsp;
- &nbsp;
-                <input type="text" style="display: none"
-                              name="Accept"                data-endpoint="GETapi-v1-bookings--reservation_uuid--tickets"
-               value="application/json"
-               data-component="header">
-    <br>
-<p>Example: <code>application/json</code></p>
-            </div>
-                        <h4 class="fancy-heading-panel"><b>URL Parameters</b></h4>
-                    <div style="padding-left: 28px; clear: unset;">
-                <b style="line-height: 2;"><code>reservation_uuid</code></b>&nbsp;&nbsp;
-<small>string</small>&nbsp;
- &nbsp;
- &nbsp;
-                <input type="text" style="display: none"
-                              name="reservation_uuid"                data-endpoint="GETapi-v1-bookings--reservation_uuid--tickets"
-               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
-               data-component="url">
-    <br>
-<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
-            </div>
-                    </form>
-
-                    <h2 id="endpoints-GETapi-v1-tickets--uuid-">GET api/v1/tickets/{uuid}</h2>
-
-<p>
-</p>
-
-
-
-<span id="example-requests-GETapi-v1-tickets--uuid-">
-<blockquote>Example request:</blockquote>
-
-
-<div class="bash-example">
-    <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/tickets/6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
-    --header "Content-Type: application/json" \
-    --header "Accept: application/json"</code></pre></div>
-
-
-<div class="javascript-example">
-    <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/tickets/6ff8f7f6-1eb3-3525-be4a-3932c805afed"
-);
-
-const headers = {
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-};
-
-
-fetch(url, {
-    method: "GET",
-    headers,
-}).then(response =&gt; response.json());</code></pre></div>
-
-</span>
-
-<span id="example-responses-GETapi-v1-tickets--uuid-">
-    </span>
-<span id="execution-results-GETapi-v1-tickets--uuid-" hidden>
-    <blockquote>Received response<span
-                id="execution-response-status-GETapi-v1-tickets--uuid-"></span>:
-    </blockquote>
-    <pre class="json"><code id="execution-response-content-GETapi-v1-tickets--uuid-"
-      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
-</span>
-<span id="execution-error-GETapi-v1-tickets--uuid-" hidden>
-    <blockquote>Request failed with error:</blockquote>
-    <pre><code id="execution-error-message-GETapi-v1-tickets--uuid-">
-
-Tip: Check that you&#039;re properly connected to the network.
-If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
-You can check the Dev Tools console for debugging information.</code></pre>
-</span>
-<form id="form-GETapi-v1-tickets--uuid-" data-method="GET"
-      data-path="api/v1/tickets/{uuid}"
-      data-authed="0"
-      data-hasfiles="0"
-      data-isarraybody="0"
-      autocomplete="off"
-      onsubmit="event.preventDefault(); executeTryOut('GETapi-v1-tickets--uuid-', this);">
-    <h3>
-        Request&nbsp;&nbsp;&nbsp;
-                    <button type="button"
-                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
-                    id="btn-tryout-GETapi-v1-tickets--uuid-"
-                    onclick="tryItOut('GETapi-v1-tickets--uuid-');">Try it out ⚡
-            </button>
-            <button type="button"
-                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
-                    id="btn-canceltryout-GETapi-v1-tickets--uuid-"
-                    onclick="cancelTryOut('GETapi-v1-tickets--uuid-');" hidden>Cancel 🛑
-            </button>&nbsp;&nbsp;
-            <button type="submit"
-                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
-                    id="btn-executetryout-GETapi-v1-tickets--uuid-"
-                    data-initial-text="Send Request 💥"
-                    data-loading-text="⏱ Sending..."
-                    hidden>Send Request 💥
-            </button>
-            </h3>
-            <p>
-            <small class="badge badge-green">GET</small>
-            <b><code>api/v1/tickets/{uuid}</code></b>
-        </p>
-                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
-                                <div style="padding-left: 28px; clear: unset;">
-                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
-&nbsp;
- &nbsp;
- &nbsp;
-                <input type="text" style="display: none"
-                              name="Content-Type"                data-endpoint="GETapi-v1-tickets--uuid-"
-               value="application/json"
-               data-component="header">
-    <br>
-<p>Example: <code>application/json</code></p>
-            </div>
-                                <div style="padding-left: 28px; clear: unset;">
-                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
-&nbsp;
- &nbsp;
- &nbsp;
-                <input type="text" style="display: none"
-                              name="Accept"                data-endpoint="GETapi-v1-tickets--uuid-"
-               value="application/json"
-               data-component="header">
-    <br>
-<p>Example: <code>application/json</code></p>
-            </div>
-                        <h4 class="fancy-heading-panel"><b>URL Parameters</b></h4>
-                    <div style="padding-left: 28px; clear: unset;">
-                <b style="line-height: 2;"><code>uuid</code></b>&nbsp;&nbsp;
-<small>string</small>&nbsp;
- &nbsp;
- &nbsp;
-                <input type="text" style="display: none"
-                              name="uuid"                data-endpoint="GETapi-v1-tickets--uuid-"
-               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
-               data-component="url">
-    <br>
-<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
-            </div>
-                    </form>
-
                 <h1 id="health">Health</h1>
 
     <p>Application health and liveness probes for load balancers and monitoring.</p>
@@ -8499,6 +9519,52 @@ fetch(url, {
 </span>
 
 <span id="example-responses-GETapi-v1-health">
+            <blockquote>
+            <p>Example response (200, Healthy):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;status&quot;: &quot;ok&quot;,
+    &quot;service&quot;: &quot;kora-ops-web&quot;,
+    &quot;scope&quot;: &quot;bus&quot;,
+    &quot;version&quot;: &quot;v1&quot;,
+    &quot;timestamp&quot;: &quot;2026-09-02T10:00:00.000Z&quot;,
+    &quot;checks&quot;: {
+        &quot;database&quot;: {
+            &quot;status&quot;: &quot;ok&quot;,
+            &quot;latency_ms&quot;: 3
+        },
+        &quot;cache&quot;: {
+            &quot;status&quot;: &quot;ok&quot;,
+            &quot;latency_ms&quot;: 1
+        }
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (503, Degraded):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;status&quot;: &quot;degraded&quot;,
+    &quot;service&quot;: &quot;kora-ops-web&quot;,
+    &quot;scope&quot;: &quot;bus&quot;,
+    &quot;version&quot;: &quot;v1&quot;,
+    &quot;timestamp&quot;: &quot;2026-09-02T10:00:00.000Z&quot;,
+    &quot;checks&quot;: {
+        &quot;database&quot;: {
+            &quot;status&quot;: &quot;error&quot;,
+            &quot;latency_ms&quot;: null
+        },
+        &quot;cache&quot;: {
+            &quot;status&quot;: &quot;ok&quot;,
+            &quot;latency_ms&quot;: 1
+        }
+    }
+}</code>
+ </pre>
     </span>
 <span id="execution-results-GETapi-v1-health" hidden>
     <blockquote>Received response<span
@@ -8611,6 +9677,12 @@ fetch(url, {
 </span>
 
 <span id="example-responses-GETapi-v1-health-ping">
+            <blockquote>
+            <p>Example response (204, Pong):</p>
+        </blockquote>
+                <pre>
+<code>Empty response</code>
+ </pre>
     </span>
 <span id="execution-results-GETapi-v1-health-ping" hidden>
     <blockquote>Received response<span
@@ -8689,12 +9761,14 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
     <p>Payment lifecycle endpoints: initiation, polling status, and provider webhook confirmation.</p>
 
-                                <h2 id="payments-GETapi-v1-payments-methods">Return the active payment methods and providers configured for the mobile app.</h2>
+                                <h2 id="payments-GETapi-v1-payments-methods">List available payment methods and providers.</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
-
+<p>Returns the catalog of payment methods configured for the mobile app
+(MTN MoMo, FedaPay, cash, etc.).</p>
 
 <span id="example-requests-GETapi-v1-payments-methods">
 <blockquote>Example request:</blockquote>
@@ -8703,6 +9777,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
     --get "http://kora-ops-web.local/api/v1/payments/methods" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
@@ -8713,6 +9788,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -8726,6 +9802,37 @@ fetch(url, {
 </span>
 
 <span id="example-responses-GETapi-v1-payments-methods">
+            <blockquote>
+            <p>Example response (200, Payment methods):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: [
+        {
+            &quot;method&quot;: &quot;mobile_money&quot;,
+            &quot;provider&quot;: &quot;mtn_momo&quot;,
+            &quot;label&quot;: &quot;MTN Mobile Money&quot;,
+            &quot;enabled&quot;: true
+        },
+        {
+            &quot;method&quot;: &quot;card&quot;,
+            &quot;provider&quot;: &quot;fedapay&quot;,
+            &quot;label&quot;: &quot;Carte bancaire (FedaPay)&quot;,
+            &quot;enabled&quot;: true
+        }
+    ]
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
     </span>
 <span id="execution-results-GETapi-v1-payments-methods" hidden>
     <blockquote>Received response<span
@@ -8744,7 +9851,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-GETapi-v1-payments-methods" data-method="GET"
       data-path="api/v1/payments/methods"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -8774,6 +9881,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <b><code>api/v1/payments/methods</code></b>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="GETapi-v1-payments-methods"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
                                 <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
@@ -9173,9 +10292,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
                     <h2 id="payments-POSTapi-v1-payments--payment_uuid--verify">Explicitly verify a pending payment with its provider.</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
-
+<p>Polls the payment provider for the current status and updates the payment record.</p>
 
 <span id="example-requests-POSTapi-v1-payments--payment_uuid--verify">
 <blockquote>Example request:</blockquote>
@@ -9184,6 +10304,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
     "http://kora-ops-web.local/api/v1/payments/6ff8f7f6-1eb3-3525-be4a-3932c805afed/verify" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
@@ -9194,6 +10315,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -9207,7 +10329,61 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTapi-v1-payments--payment_uuid--verify">
-</span>
+            <blockquote>
+            <p>Example response (200, Payment verified):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80&quot;,
+        &quot;status&quot;: &quot;confirmed&quot;,
+        &quot;amount&quot;: 12500,
+        &quot;currency&quot;: &quot;XOF&quot;,
+        &quot;method&quot;: &quot;mobile_money&quot;,
+        &quot;provider&quot;: &quot;mtn_momo&quot;,
+        &quot;provider_reference&quot;: &quot;MM-98270341&quot;,
+        &quot;provider_transaction_id&quot;: null,
+        &quot;provider_currency&quot;: null,
+        &quot;provider_amount&quot;: null,
+        &quot;mobile_money_network&quot;: &quot;mtn&quot;,
+        &quot;payer_phone&quot;: &quot;+22901000000&quot;,
+        &quot;confirmed_at&quot;: &quot;2026-08-20T08:05:00+00:00&quot;,
+        &quot;last_verified_at&quot;: &quot;2026-08-20T08:06:00+00:00&quot;,
+        &quot;next_action&quot;: &quot;wait_for_tickets&quot;,
+        &quot;expires_at&quot;: &quot;2026-08-20T08:15:00+00:00&quot;,
+        &quot;polling_interval_seconds&quot;: 10
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (404, Payment not found):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;No query results for model [App\\Modules\\Payments\\Models\\Payment].&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (429, Too many verification attempts):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Too many requests. Please try again later.&quot;
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-POSTapi-v1-payments--payment_uuid--verify" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-POSTapi-v1-payments--payment_uuid--verify"></span>:
@@ -9225,7 +10401,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-POSTapi-v1-payments--payment_uuid--verify" data-method="POST"
       data-path="api/v1/payments/{payment_uuid}/verify"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -9255,6 +10431,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <b><code>api/v1/payments/{payment_uuid}/verify</code></b>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="POSTapi-v1-payments--payment_uuid--verify"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
                                 <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
@@ -9294,9 +10482,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
             </div>
                     </form>
 
-                    <h2 id="payments-POSTapi-v1-payments--payment_uuid--cancel">POST api/v1/payments/{payment_uuid}/cancel</h2>
+                    <h2 id="payments-POSTapi-v1-payments--payment_uuid--cancel">Cancel a pending payment.</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
 
@@ -9308,6 +10497,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
     "http://kora-ops-web.local/api/v1/payments/6ff8f7f6-1eb3-3525-be4a-3932c805afed/cancel" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
@@ -9318,6 +10508,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -9331,7 +10522,52 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTapi-v1-payments--payment_uuid--cancel">
-</span>
+            <blockquote>
+            <p>Example response (200, Payment cancelled):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80&quot;,
+        &quot;status&quot;: &quot;cancelled&quot;,
+        &quot;amount&quot;: 12500,
+        &quot;currency&quot;: &quot;XOF&quot;,
+        &quot;method&quot;: &quot;mobile_money&quot;,
+        &quot;provider&quot;: &quot;mtn_momo&quot;,
+        &quot;provider_reference&quot;: &quot;MM-98270341&quot;,
+        &quot;provider_transaction_id&quot;: null,
+        &quot;provider_currency&quot;: null,
+        &quot;provider_amount&quot;: null,
+        &quot;mobile_money_network&quot;: &quot;mtn&quot;,
+        &quot;payer_phone&quot;: &quot;+22901000000&quot;,
+        &quot;confirmed_at&quot;: null,
+        &quot;last_verified_at&quot;: null,
+        &quot;next_action&quot;: &quot;retry&quot;,
+        &quot;expires_at&quot;: &quot;2026-08-20T08:15:00+00:00&quot;,
+        &quot;polling_interval_seconds&quot;: 10
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (404, Payment not found):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;No query results for model [App\\Modules\\Payments\\Models\\Payment].&quot;
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-POSTapi-v1-payments--payment_uuid--cancel" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-POSTapi-v1-payments--payment_uuid--cancel"></span>:
@@ -9349,7 +10585,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-POSTapi-v1-payments--payment_uuid--cancel" data-method="POST"
       data-path="api/v1/payments/{payment_uuid}/cancel"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -9379,6 +10615,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <b><code>api/v1/payments/{payment_uuid}/cancel</code></b>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="POSTapi-v1-payments--payment_uuid--cancel"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
                                 <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
@@ -9423,7 +10671,9 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <p>
 </p>
 
-
+<p>Verifies the webhook signature via the provider adapter, then updates the payment
+and reservation status. In local/testing environments, manual confirmation is
+allowed without a real provider.</p>
 
 <span id="example-requests-POSTapi-v1-payments--payment_uuid--confirm">
 <blockquote>Example request:</blockquote>
@@ -9465,7 +10715,37 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTapi-v1-payments--payment_uuid--confirm">
-</span>
+            <blockquote>
+            <p>Example response (200, Payment confirmed):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;status&quot;: &quot;confirmed&quot;,
+    &quot;payment_uuid&quot;: &quot;9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80&quot;,
+    &quot;reservation_uuid&quot;: &quot;9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70&quot;,
+    &quot;reservation_status&quot;: &quot;paid&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403, Invalid webhook signature):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;error&quot;: &quot;Invalid webhook signature.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (404, Payment not found):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;No query results for model [App\\Modules\\Payments\\Models\\Payment].&quot;
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-POSTapi-v1-payments--payment_uuid--confirm" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-POSTapi-v1-payments--payment_uuid--confirm"></span>:
@@ -9596,7 +10876,8 @@ Must be one of:
 <p>
 </p>
 
-
+<p>Receives payment status notifications from FedaPay. Verifies the webhook
+signature and confirms or fails the corresponding payment.</p>
 
 <span id="example-requests-POSTapi-v1-payments-webhook-fedapay">
 <blockquote>Example request:</blockquote>
@@ -9628,7 +10909,46 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTapi-v1-payments-webhook-fedapay">
-</span>
+            <blockquote>
+            <p>Example response (200, Webhook processed):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;status&quot;: &quot;confirmed&quot;,
+    &quot;payment_uuid&quot;: &quot;9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80&quot;,
+    &quot;reservation_uuid&quot;: &quot;9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70&quot;,
+    &quot;reservation_status&quot;: &quot;paid&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (400, Payment reference not found):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;error&quot;: &quot;Payment reference not found in webhook.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403, Invalid webhook signature):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;error&quot;: &quot;Invalid webhook signature.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (404, Payment not found):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;error&quot;: &quot;Payment not found.&quot;
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-POSTapi-v1-payments-webhook-fedapay" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-POSTapi-v1-payments-webhook-fedapay"></span>:
@@ -9707,7 +11027,8 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <p>
 </p>
 
-
+<p>Receives payment status notifications from MTN Mobile Money. Verifies the
+webhook signature and confirms or fails the corresponding payment.</p>
 
 <span id="example-requests-POSTapi-v1-payments-webhook-mtn-momo">
 <blockquote>Example request:</blockquote>
@@ -9739,7 +11060,46 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTapi-v1-payments-webhook-mtn-momo">
-</span>
+            <blockquote>
+            <p>Example response (200, Webhook processed):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;status&quot;: &quot;confirmed&quot;,
+    &quot;payment_uuid&quot;: &quot;9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80&quot;,
+    &quot;reservation_uuid&quot;: &quot;9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70&quot;,
+    &quot;reservation_status&quot;: &quot;paid&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (400, Payment reference not found):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;error&quot;: &quot;Payment reference not found in webhook.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403, Invalid webhook signature):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;error&quot;: &quot;Invalid webhook signature.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (404, Payment not found):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;error&quot;: &quot;Payment not found.&quot;
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-POSTapi-v1-payments-webhook-mtn-momo" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-POSTapi-v1-payments-webhook-mtn-momo"></span>:
@@ -9812,6 +11172,399 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <p>Example: <code>application/json</code></p>
             </div>
                         </form>
+
+                <h1 id="tickets">Tickets</h1>
+
+    <p>Ticket retrieval endpoints for issued boarding passes.</p>
+
+                                <h2 id="tickets-GETapi-v1-bookings--reservation_uuid--tickets">List all tickets for a reservation.</h2>
+
+<p>
+<small class="badge badge-darkred">requires authentication</small>
+</p>
+
+
+
+<span id="example-requests-GETapi-v1-bookings--reservation_uuid--tickets">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request GET \
+    --get "http://kora-ops-web.local/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed/tickets" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
+    --header "Content-Type: application/json" \
+    --header "Accept: application/json"</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "http://kora-ops-web.local/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed/tickets"
+);
+
+const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+};
+
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-GETapi-v1-bookings--reservation_uuid--tickets">
+            <blockquote>
+            <p>Example response (200, Ticket list):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: [
+        {
+            &quot;uuid&quot;: &quot;t1234567-89ab-cdef-0123-456789abcdef&quot;,
+            &quot;short_code&quot;: &quot;KORA-AB12CD&quot;,
+            &quot;qr_code&quot;: &quot;data:image/png;base64,iVBORw0KGgo...&quot;,
+            &quot;status&quot;: &quot;issued&quot;,
+            &quot;issued_at&quot;: &quot;2026-08-20T08:10:00+00:00&quot;,
+            &quot;reservation_uuid&quot;: &quot;9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70&quot;,
+            &quot;passenger&quot;: {
+                &quot;uuid&quot;: &quot;p1234567-89ab-cdef-0123-456789abcdef&quot;,
+                &quot;first_name&quot;: &quot;A&iuml;cha&quot;,
+                &quot;last_name&quot;: &quot;Hounkp&egrave;&quot;
+            },
+            &quot;segments&quot;: [
+                {
+                    &quot;leg_order&quot;: 0,
+                    &quot;departure_uuid&quot;: &quot;dep12345-6789-abcd-ef01-23456789abcd&quot;,
+                    &quot;origin_stop_uuid&quot;: &quot;stp12345-6789-abcd-ef01-23456789abcd&quot;,
+                    &quot;destination_stop_uuid&quot;: &quot;stp23456-6789-abcd-ef01-23456789abcd&quot;,
+                    &quot;seat_uuid&quot;: &quot;seat123-4567-89ab-cdef-0123456789ab&quot;,
+                    &quot;seat_code&quot;: &quot;12A&quot;,
+                    &quot;status&quot;: &quot;active&quot;
+                }
+            ]
+        }
+    ]
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403, Forbidden):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Vous n&#039;avez pas acc&egrave;s &agrave; ce billet.&quot;
+}</code>
+ </pre>
+    </span>
+<span id="execution-results-GETapi-v1-bookings--reservation_uuid--tickets" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-GETapi-v1-bookings--reservation_uuid--tickets"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-GETapi-v1-bookings--reservation_uuid--tickets"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-GETapi-v1-bookings--reservation_uuid--tickets" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-GETapi-v1-bookings--reservation_uuid--tickets">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-GETapi-v1-bookings--reservation_uuid--tickets" data-method="GET"
+      data-path="api/v1/bookings/{reservation_uuid}/tickets"
+      data-authed="1"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('GETapi-v1-bookings--reservation_uuid--tickets', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+                    <button type="button"
+                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-tryout-GETapi-v1-bookings--reservation_uuid--tickets"
+                    onclick="tryItOut('GETapi-v1-bookings--reservation_uuid--tickets');">Try it out ⚡
+            </button>
+            <button type="button"
+                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-canceltryout-GETapi-v1-bookings--reservation_uuid--tickets"
+                    onclick="cancelTryOut('GETapi-v1-bookings--reservation_uuid--tickets');" hidden>Cancel 🛑
+            </button>&nbsp;&nbsp;
+            <button type="submit"
+                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-executetryout-GETapi-v1-bookings--reservation_uuid--tickets"
+                    data-initial-text="Send Request 💥"
+                    data-loading-text="⏱ Sending..."
+                    hidden>Send Request 💥
+            </button>
+            </h3>
+            <p>
+            <small class="badge badge-green">GET</small>
+            <b><code>api/v1/bookings/{reservation_uuid}/tickets</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="GETapi-v1-bookings--reservation_uuid--tickets"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="GETapi-v1-bookings--reservation_uuid--tickets"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="GETapi-v1-bookings--reservation_uuid--tickets"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                        <h4 class="fancy-heading-panel"><b>URL Parameters</b></h4>
+                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>reservation_uuid</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="reservation_uuid"                data-endpoint="GETapi-v1-bookings--reservation_uuid--tickets"
+               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               data-component="url">
+    <br>
+<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+            </div>
+                    </form>
+
+                    <h2 id="tickets-GETapi-v1-tickets--uuid-">Retrieve a single ticket by UUID.</h2>
+
+<p>
+<small class="badge badge-darkred">requires authentication</small>
+</p>
+
+
+
+<span id="example-requests-GETapi-v1-tickets--uuid-">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request GET \
+    --get "http://kora-ops-web.local/api/v1/tickets/6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
+    --header "Content-Type: application/json" \
+    --header "Accept: application/json"</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "http://kora-ops-web.local/api/v1/tickets/6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+);
+
+const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+};
+
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-GETapi-v1-tickets--uuid-">
+            <blockquote>
+            <p>Example response (200, Ticket details):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;t1234567-89ab-cdef-0123-456789abcdef&quot;,
+        &quot;short_code&quot;: &quot;KORA-AB12CD&quot;,
+        &quot;qr_code&quot;: &quot;data:image/png;base64,iVBORw0KGgo...&quot;,
+        &quot;status&quot;: &quot;issued&quot;,
+        &quot;issued_at&quot;: &quot;2026-08-20T08:10:00+00:00&quot;,
+        &quot;reservation_uuid&quot;: &quot;9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70&quot;,
+        &quot;passenger&quot;: {
+            &quot;uuid&quot;: &quot;p1234567-89ab-cdef-0123-456789abcdef&quot;,
+            &quot;first_name&quot;: &quot;A&iuml;cha&quot;,
+            &quot;last_name&quot;: &quot;Hounkp&egrave;&quot;
+        },
+        &quot;segments&quot;: [
+            {
+                &quot;leg_order&quot;: 0,
+                &quot;departure_uuid&quot;: &quot;dep12345-6789-abcd-ef01-23456789abcd&quot;,
+                &quot;origin_stop_uuid&quot;: &quot;stp12345-6789-abcd-ef01-23456789abcd&quot;,
+                &quot;destination_stop_uuid&quot;: &quot;stp23456-6789-abcd-ef01-23456789abcd&quot;,
+                &quot;seat_uuid&quot;: &quot;seat123-4567-89ab-cdef-0123456789ab&quot;,
+                &quot;seat_code&quot;: &quot;12A&quot;,
+                &quot;status&quot;: &quot;active&quot;
+            }
+        ]
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Unauthenticated.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403, Forbidden):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Vous n&#039;avez pas acc&egrave;s &agrave; ce billet.&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (404, Ticket not found):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;No query results for model [App\\Modules\\Ticketing\\Models\\Ticket].&quot;
+}</code>
+ </pre>
+    </span>
+<span id="execution-results-GETapi-v1-tickets--uuid-" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-GETapi-v1-tickets--uuid-"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-GETapi-v1-tickets--uuid-"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-GETapi-v1-tickets--uuid-" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-GETapi-v1-tickets--uuid-">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-GETapi-v1-tickets--uuid-" data-method="GET"
+      data-path="api/v1/tickets/{uuid}"
+      data-authed="1"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('GETapi-v1-tickets--uuid-', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+                    <button type="button"
+                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-tryout-GETapi-v1-tickets--uuid-"
+                    onclick="tryItOut('GETapi-v1-tickets--uuid-');">Try it out ⚡
+            </button>
+            <button type="button"
+                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-canceltryout-GETapi-v1-tickets--uuid-"
+                    onclick="cancelTryOut('GETapi-v1-tickets--uuid-');" hidden>Cancel 🛑
+            </button>&nbsp;&nbsp;
+            <button type="submit"
+                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-executetryout-GETapi-v1-tickets--uuid-"
+                    data-initial-text="Send Request 💥"
+                    data-loading-text="⏱ Sending..."
+                    hidden>Send Request 💥
+            </button>
+            </h3>
+            <p>
+            <small class="badge badge-green">GET</small>
+            <b><code>api/v1/tickets/{uuid}</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="GETapi-v1-tickets--uuid-"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="GETapi-v1-tickets--uuid-"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="GETapi-v1-tickets--uuid-"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                        <h4 class="fancy-heading-panel"><b>URL Parameters</b></h4>
+                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>uuid</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="uuid"                data-endpoint="GETapi-v1-tickets--uuid-"
+               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               data-component="url">
+    <br>
+<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+            </div>
+                    </form>
 
             
 

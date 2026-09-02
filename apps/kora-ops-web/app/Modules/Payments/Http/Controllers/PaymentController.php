@@ -65,7 +65,32 @@ class PaymentController extends Controller
     }
 
     /**
-     * Return the active payment methods and providers configured for the mobile app.
+     * List available payment methods and providers.
+     *
+     * Returns the catalog of payment methods configured for the mobile app
+     * (MTN MoMo, FedaPay, cash, etc.).
+     *
+     * @authenticated
+     *
+     * @response 200 scenario="Payment methods" {
+     *   "data": [
+     *     {
+     *       "method": "mobile_money",
+     *       "provider": "mtn_momo",
+     *       "label": "MTN Mobile Money",
+     *       "enabled": true
+     *     },
+     *     {
+     *       "method": "card",
+     *       "provider": "fedapay",
+     *       "label": "Carte bancaire (FedaPay)",
+     *       "enabled": true
+     *     }
+     *   ]
+     * }
+     * @response 401 scenario="Unauthenticated" {
+     *   "message": "Unauthenticated."
+     * }
      */
     public function methods(PaymentManager $manager): JsonResponse
     {
@@ -74,6 +99,41 @@ class PaymentController extends Controller
 
     /**
      * Explicitly verify a pending payment with its provider.
+     *
+     * Polls the payment provider for the current status and updates the payment record.
+     *
+     * @authenticated
+     *
+     * @response 200 scenario="Payment verified" {
+     *   "data": {
+     *     "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80",
+     *     "status": "confirmed",
+     *     "amount": 12500,
+     *     "currency": "XOF",
+     *     "method": "mobile_money",
+     *     "provider": "mtn_momo",
+     *     "provider_reference": "MM-98270341",
+     *     "provider_transaction_id": null,
+     *     "provider_currency": null,
+     *     "provider_amount": null,
+     *     "mobile_money_network": "mtn",
+     *     "payer_phone": "+22901000000",
+     *     "confirmed_at": "2026-08-20T08:05:00+00:00",
+     *     "last_verified_at": "2026-08-20T08:06:00+00:00",
+     *     "next_action": "wait_for_tickets",
+     *     "expires_at": "2026-08-20T08:15:00+00:00",
+     *     "polling_interval_seconds": 10
+     *   }
+     * }
+     * @response 401 scenario="Unauthenticated" {
+     *   "message": "Unauthenticated."
+     * }
+     * @response 404 scenario="Payment not found" {
+     *   "message": "No query results for model [App\\Modules\\Payments\\Models\\Payment]."
+     * }
+     * @response 429 scenario="Too many verification attempts" {
+     *   "message": "Too many requests. Please try again later."
+     * }
      */
     public function verify(Payment $payment, Request $request, VerifyPaymentAction $verifyPayment): JsonResponse
     {
@@ -84,6 +144,39 @@ class PaymentController extends Controller
             ->setStatusCode(200);
     }
 
+    /**
+     * Cancel a pending payment.
+     *
+     * @authenticated
+     *
+     * @response 200 scenario="Payment cancelled" {
+     *   "data": {
+     *     "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80",
+     *     "status": "cancelled",
+     *     "amount": 12500,
+     *     "currency": "XOF",
+     *     "method": "mobile_money",
+     *     "provider": "mtn_momo",
+     *     "provider_reference": "MM-98270341",
+     *     "provider_transaction_id": null,
+     *     "provider_currency": null,
+     *     "provider_amount": null,
+     *     "mobile_money_network": "mtn",
+     *     "payer_phone": "+22901000000",
+     *     "confirmed_at": null,
+     *     "last_verified_at": null,
+     *     "next_action": "retry",
+     *     "expires_at": "2026-08-20T08:15:00+00:00",
+     *     "polling_interval_seconds": 10
+     *   }
+     * }
+     * @response 401 scenario="Unauthenticated" {
+     *   "message": "Unauthenticated."
+     * }
+     * @response 404 scenario="Payment not found" {
+     *   "message": "No query results for model [App\\Modules\\Payments\\Models\\Payment]."
+     * }
+     */
     public function cancel(Payment $payment, Request $request, CancelPaymentAction $cancelPayment): JsonResponse
     {
         $updatedPayment = $cancelPayment->handle($payment, $request->user());
@@ -130,7 +223,24 @@ class PaymentController extends Controller
     /**
      * Provider webhook / callback to confirm or fail a payment.
      *
+     * Verifies the webhook signature via the provider adapter, then updates the payment
+     * and reservation status. In local/testing environments, manual confirmation is
+     * allowed without a real provider.
+     *
      * @unauthenticated
+     *
+     * @response 200 scenario="Payment confirmed" {
+     *   "status": "confirmed",
+     *   "payment_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80",
+     *   "reservation_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+     *   "reservation_status": "paid"
+     * }
+     * @response 403 scenario="Invalid webhook signature" {
+     *   "error": "Invalid webhook signature."
+     * }
+     * @response 404 scenario="Payment not found" {
+     *   "message": "No query results for model [App\\Modules\\Payments\\Models\\Payment]."
+     * }
      */
     public function confirm(
         Request $request,
@@ -194,7 +304,26 @@ class PaymentController extends Controller
     /**
      * FedaPay webhook endpoint.
      *
+     * Receives payment status notifications from FedaPay. Verifies the webhook
+     * signature and confirms or fails the corresponding payment.
+     *
      * @unauthenticated
+     *
+     * @response 200 scenario="Webhook processed" {
+     *   "status": "confirmed",
+     *   "payment_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80",
+     *   "reservation_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+     *   "reservation_status": "paid"
+     * }
+     * @response 400 scenario="Payment reference not found" {
+     *   "error": "Payment reference not found in webhook."
+     * }
+     * @response 403 scenario="Invalid webhook signature" {
+     *   "error": "Invalid webhook signature."
+     * }
+     * @response 404 scenario="Payment not found" {
+     *   "error": "Payment not found."
+     * }
      */
     public function webhookFedaPay(
         Request $request,
@@ -207,7 +336,26 @@ class PaymentController extends Controller
     /**
      * MTN MoMo webhook endpoint.
      *
+     * Receives payment status notifications from MTN Mobile Money. Verifies the
+     * webhook signature and confirms or fails the corresponding payment.
+     *
      * @unauthenticated
+     *
+     * @response 200 scenario="Webhook processed" {
+     *   "status": "confirmed",
+     *   "payment_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80",
+     *   "reservation_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+     *   "reservation_status": "paid"
+     * }
+     * @response 400 scenario="Payment reference not found" {
+     *   "error": "Payment reference not found in webhook."
+     * }
+     * @response 403 scenario="Invalid webhook signature" {
+     *   "error": "Invalid webhook signature."
+     * }
+     * @response 404 scenario="Payment not found" {
+     *   "error": "Payment not found."
+     * }
      */
     public function webhookMtnMomo(
         Request $request,

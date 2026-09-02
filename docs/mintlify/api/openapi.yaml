@@ -14,14 +14,20 @@ tags:
     name: Auth
     description: "\nOTP challenge request and verification for registration, login, PIN reset and account unlock."
   -
-    name: Endpoints
-    description: ''
+    name: 'Company Accounts'
+    description: "\nCompany account management for group purchases and credit-based billing."
+  -
+    name: 'Group Discounts'
+    description: "\nGroup discount rule management and group booking settings."
   -
     name: Health
     description: "\nApplication health and liveness probes for load balancers and monitoring."
   -
     name: Payments
     description: "\nPayment lifecycle endpoints: initiation, polling status, and provider webhook confirmation."
+  -
+    name: Tickets
+    description: "\nTicket retrieval endpoints for issued boarding passes."
 components:
   securitySchemes:
     default:
@@ -2588,13 +2594,75 @@ paths:
           type: string
   /api/v1/auth/otp/request:
     post:
-      summary: ''
-      operationId: postApiV1AuthOtpRequest
-      description: ''
+      summary: 'Request an OTP challenge for registration, login, PIN reset or account unlock.'
+      operationId: requestAnOTPChallengeForRegistrationLoginPINResetOrAccountUnlock
+      description: "Sends a one-time code to the user's email. The returned `otp_challenge_uuid` must\nbe submitted to the verify endpoint."
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        202:
+          description: 'OTP sent'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    otp_challenge_uuid: b1234567-89ab-cdef-0123-456789abcdef
+                    purpose: registration
+                    email: aicha.hounkpe@gmail.com
+                    expires_at: '2026-08-20T13:10:00.000Z'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      otp_challenge_uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      purpose:
+                        type: string
+                        example: registration
+                      email:
+                        type: string
+                        example: aicha.hounkpe@gmail.com
+                      expires_at:
+                        type: string
+                        example: '2026-08-20T13:10:00.000Z'
+        422:
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'The given data was invalid.'
+                  errors:
+                    email:
+                      - 'The email field is required.'
+                properties:
+                  message:
+                    type: string
+                    example: 'The given data was invalid.'
+                  errors:
+                    type: object
+                    properties:
+                      email:
+                        type: array
+                        example:
+                          - 'The email field is required.'
+                        items:
+                          type: string
+        429:
+          description: 'Too many requests'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Too many requests. Please try again later.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Too many requests. Please try again later.'
       tags:
         - Auth
       requestBody:
@@ -2623,13 +2691,63 @@ paths:
       security: []
   /api/v1/auth/otp/verify:
     post:
-      summary: ''
-      operationId: postApiV1AuthOtpVerify
-      description: ''
+      summary: 'Verify an OTP code and obtain a verification token.'
+      operationId: verifyAnOTPCodeAndObtainAVerificationToken
+      description: "The `verification_token` is used to complete registration, reset PIN, or unlock\nan account via the corresponding endpoints."
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        200:
+          description: 'OTP verified'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    otp_challenge_uuid: b1234567-89ab-cdef-0123-456789abcdef
+                    purpose: registration
+                    verification_token: vrf_aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789
+                    verified_at: '2026-08-20T13:07:00.000Z'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      otp_challenge_uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      purpose:
+                        type: string
+                        example: registration
+                      verification_token:
+                        type: string
+                        example: vrf_aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789
+                      verified_at:
+                        type: string
+                        example: '2026-08-20T13:07:00.000Z'
+        422:
+          description: 'Invalid code'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'The given data was invalid.'
+                  errors:
+                    code:
+                      - 'The OTP code is invalid or expired.'
+                properties:
+                  message:
+                    type: string
+                    example: 'The given data was invalid.'
+                  errors:
+                    type: object
+                    properties:
+                      code:
+                        type: array
+                        example:
+                          - 'The OTP code is invalid or expired.'
+                        items:
+                          type: string
       tags:
         - Auth
       requestBody:
@@ -2663,13 +2781,96 @@ paths:
       security: []
   /api/v1/auth/pin/reset:
     post:
-      summary: ''
-      operationId: postApiV1AuthPinReset
+      summary: "Reset the user's PIN after OTP verification."
+      operationId: resetTheUsersPINAfterOTPVerification
       description: ''
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        200:
+          description: 'PIN reset'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    user:
+                      uuid: 977e5426-8d13-3824-86aa-b092f8ae52c5
+                      name: 'Aïcha Hounkpè'
+                      email: aicha.hounkpe@gmail.com
+                      phone: '+22901000000'
+                      country_code: BJ
+                      birth_date: '1990-05-15'
+                      avatar_url: null
+                      status: active
+                      permissions:
+                        - bookings.create
+                        - bookings.view-own
+                        - tickets.view
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          name:
+                            type: string
+                            example: 'Aïcha Hounkpè'
+                          email:
+                            type: string
+                            example: aicha.hounkpe@gmail.com
+                          phone:
+                            type: string
+                            example: '+22901000000'
+                          country_code:
+                            type: string
+                            example: BJ
+                          birth_date:
+                            type: string
+                            example: '1990-05-15'
+                          avatar_url:
+                            type: string
+                            example: null
+                            nullable: true
+                          status:
+                            type: string
+                            example: active
+                          permissions:
+                            type: array
+                            example:
+                              - bookings.create
+                              - bookings.view-own
+                              - tickets.view
+                            items:
+                              type: string
+        422:
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'The given data was invalid.'
+                  errors:
+                    verification_token:
+                      - 'The verification token is invalid or expired.'
+                properties:
+                  message:
+                    type: string
+                    example: 'The given data was invalid.'
+                  errors:
+                    type: object
+                    properties:
+                      verification_token:
+                        type: array
+                        example:
+                          - 'The verification token is invalid or expired.'
+                        items:
+                          type: string
       tags:
         - Auth
       requestBody:
@@ -2698,13 +2899,96 @@ paths:
       security: []
   /api/v1/auth/unlock:
     post:
-      summary: ''
-      operationId: postApiV1AuthUnlock
+      summary: 'Unlock a locked account after OTP verification.'
+      operationId: unlockALockedAccountAfterOTPVerification
       description: ''
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        200:
+          description: 'Account unlocked'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    user:
+                      uuid: 977e5426-8d13-3824-86aa-b092f8ae52c5
+                      name: 'Aïcha Hounkpè'
+                      email: aicha.hounkpe@gmail.com
+                      phone: '+22901000000'
+                      country_code: BJ
+                      birth_date: '1990-05-15'
+                      avatar_url: null
+                      status: active
+                      permissions:
+                        - bookings.create
+                        - bookings.view-own
+                        - tickets.view
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          name:
+                            type: string
+                            example: 'Aïcha Hounkpè'
+                          email:
+                            type: string
+                            example: aicha.hounkpe@gmail.com
+                          phone:
+                            type: string
+                            example: '+22901000000'
+                          country_code:
+                            type: string
+                            example: BJ
+                          birth_date:
+                            type: string
+                            example: '1990-05-15'
+                          avatar_url:
+                            type: string
+                            example: null
+                            nullable: true
+                          status:
+                            type: string
+                            example: active
+                          permissions:
+                            type: array
+                            example:
+                              - bookings.create
+                              - bookings.view-own
+                              - tickets.view
+                            items:
+                              type: string
+        422:
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'The given data was invalid.'
+                  errors:
+                    verification_token:
+                      - 'The verification token is invalid or expired.'
+                properties:
+                  message:
+                    type: string
+                    example: 'The given data was invalid.'
+                  errors:
+                    type: object
+                    properties:
+                      verification_token:
+                        type: array
+                        example:
+                          - 'The verification token is invalid or expired.'
+                        items:
+                          type: string
       tags:
         - Auth
       requestBody:
@@ -2728,13 +3012,136 @@ paths:
       security: []
   /api/v1/auth/register/complete:
     post:
-      summary: ''
-      operationId: postApiV1AuthRegisterComplete
-      description: ''
+      summary: 'Complete a registration started via OTP verification.'
+      operationId: completeARegistrationStartedViaOTPVerification
+      description: 'Creates the user account from a verified OTP challenge and returns a Sanctum session token.'
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        201:
+          description: 'Registration completed'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    token: 3|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef
+                    token_type: Bearer
+                    expires_at: '2026-08-27T13:05:00.000Z'
+                    user:
+                      uuid: 977e5426-8d13-3824-86aa-b092f8ae52c5
+                      name: 'Aïcha Hounkpè'
+                      email: aicha.hounkpe@gmail.com
+                      phone: '+22901000000'
+                      country_code: BJ
+                      birth_date: '1990-05-15'
+                      avatar_url: null
+                      status: active
+                      permissions:
+                        - bookings.create
+                        - bookings.view-own
+                        - tickets.view
+                    device:
+                      uuid: a3091549-9179-454e-8440-58179f2208df
+                      name: 'iPhone 15 Pro'
+                      platform: ios
+                      trusted_at: '2026-08-20T13:05:00.000Z'
+                      last_seen_at: '2026-08-20T13:05:00.000Z'
+                      status: trusted
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                        example: 3|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef
+                      token_type:
+                        type: string
+                        example: Bearer
+                      expires_at:
+                        type: string
+                        example: '2026-08-27T13:05:00.000Z'
+                      user:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          name:
+                            type: string
+                            example: 'Aïcha Hounkpè'
+                          email:
+                            type: string
+                            example: aicha.hounkpe@gmail.com
+                          phone:
+                            type: string
+                            example: '+22901000000'
+                          country_code:
+                            type: string
+                            example: BJ
+                          birth_date:
+                            type: string
+                            example: '1990-05-15'
+                          avatar_url:
+                            type: string
+                            example: null
+                            nullable: true
+                          status:
+                            type: string
+                            example: active
+                          permissions:
+                            type: array
+                            example:
+                              - bookings.create
+                              - bookings.view-own
+                              - tickets.view
+                            items:
+                              type: string
+                      device:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          name:
+                            type: string
+                            example: 'iPhone 15 Pro'
+                          platform:
+                            type: string
+                            example: ios
+                          trusted_at:
+                            type: string
+                            example: '2026-08-20T13:05:00.000Z'
+                          last_seen_at:
+                            type: string
+                            example: '2026-08-20T13:05:00.000Z'
+                          status:
+                            type: string
+                            example: trusted
+        422:
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'The given data was invalid.'
+                  errors:
+                    verification_token:
+                      - 'The verification token is invalid or expired.'
+                properties:
+                  message:
+                    type: string
+                    example: 'The given data was invalid.'
+                  errors:
+                    type: object
+                    properties:
+                      verification_token:
+                        type: array
+                        example:
+                          - 'The verification token is invalid or expired.'
+                        items:
+                          type: string
       tags:
         - Auth
       requestBody:
@@ -2788,13 +3195,204 @@ paths:
       security: []
   /api/v1/auth/login:
     post:
-      summary: ''
-      operationId: postApiV1AuthLogin
-      description: ''
+      summary: 'Authenticate a user with email/phone and PIN.'
+      operationId: authenticateAUserWithEmailphoneAndPIN
+      description: "Returns a Sanctum session token. If OTP is required, returns a 202 with an OTP challenge\ninstead of a token."
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        200:
+          description: 'Login successful'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    token: 3|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef
+                    token_type: Bearer
+                    expires_at: '2026-08-27T13:05:00.000Z'
+                    user:
+                      uuid: 977e5426-8d13-3824-86aa-b092f8ae52c5
+                      name: 'Aïcha Hounkpè'
+                      email: aicha.hounkpe@gmail.com
+                      phone: '+22901000000'
+                      country_code: BJ
+                      birth_date: '1990-05-15'
+                      avatar_url: null
+                      status: active
+                      permissions:
+                        - bookings.create
+                        - bookings.view-own
+                        - tickets.view
+                    device:
+                      uuid: a3091549-9179-454e-8440-58179f2208df
+                      name: 'iPhone 15 Pro'
+                      platform: ios
+                      trusted_at: '2026-08-20T13:05:00.000Z'
+                      last_seen_at: '2026-08-20T13:05:00.000Z'
+                      status: trusted
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                        example: 3|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef
+                      token_type:
+                        type: string
+                        example: Bearer
+                      expires_at:
+                        type: string
+                        example: '2026-08-27T13:05:00.000Z'
+                      user:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          name:
+                            type: string
+                            example: 'Aïcha Hounkpè'
+                          email:
+                            type: string
+                            example: aicha.hounkpe@gmail.com
+                          phone:
+                            type: string
+                            example: '+22901000000'
+                          country_code:
+                            type: string
+                            example: BJ
+                          birth_date:
+                            type: string
+                            example: '1990-05-15'
+                          avatar_url:
+                            type: string
+                            example: null
+                            nullable: true
+                          status:
+                            type: string
+                            example: active
+                          permissions:
+                            type: array
+                            example:
+                              - bookings.create
+                              - bookings.view-own
+                              - tickets.view
+                            items:
+                              type: string
+                      device:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          name:
+                            type: string
+                            example: 'iPhone 15 Pro'
+                          platform:
+                            type: string
+                            example: ios
+                          trusted_at:
+                            type: string
+                            example: '2026-08-20T13:05:00.000Z'
+                          last_seen_at:
+                            type: string
+                            example: '2026-08-20T13:05:00.000Z'
+                          status:
+                            type: string
+                            example: trusted
+        202:
+          description: 'OTP required'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    requires_otp: true
+                    otp_challenge_uuid: b1234567-89ab-cdef-0123-456789abcdef
+                    purpose: login
+                    expires_at: '2026-08-20T13:10:00.000Z'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      requires_otp:
+                        type: boolean
+                        example: false
+                      otp_challenge_uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      purpose:
+                        type: string
+                        example: login
+                      expires_at:
+                        type: string
+                        example: '2026-08-20T13:10:00.000Z'
+        403:
+          description: 'Account suspended'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: account_suspended
+                    message: 'Le compte est suspendu. Contactez le support.'
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: account_suspended
+                      message:
+                        type: string
+                        example: 'Le compte est suspendu. Contactez le support.'
+        422:
+          description: 'Invalid credentials'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: invalid_credentials
+                    message: 'Identifiants invalides.'
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: invalid_credentials
+                      message:
+                        type: string
+                        example: 'Identifiants invalides.'
+        423:
+          description: 'Account locked'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: account_locked
+                    message: 'Le compte est temporairement bloqué après plusieurs tentatives incorrectes.'
+                    locked_until: '2026-08-20T13:15:00.000Z'
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: account_locked
+                      message:
+                        type: string
+                        example: 'Le compte est temporairement bloqué après plusieurs tentatives incorrectes.'
+                      locked_until:
+                        type: string
+                        example: '2026-08-20T13:15:00.000Z'
       tags:
         - Auth
       requestBody:
@@ -3176,24 +3774,189 @@ paths:
       security: []
   /api/v1/auth/me:
     get:
-      summary: ''
-      operationId: getApiV1AuthMe
+      summary: "Get the authenticated user's profile."
+      operationId: getTheAuthenticatedUsersProfile
       description: ''
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        200:
+          description: 'Current user'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    user:
+                      uuid: 977e5426-8d13-3824-86aa-b092f8ae52c5
+                      name: 'Aïcha Hounkpè'
+                      email: aicha.hounkpe@gmail.com
+                      phone: '+22901000000'
+                      country_code: BJ
+                      birth_date: '1990-05-15'
+                      avatar_url: null
+                      status: active
+                      permissions:
+                        - bookings.create
+                        - bookings.view-own
+                        - tickets.view
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          name:
+                            type: string
+                            example: 'Aïcha Hounkpè'
+                          email:
+                            type: string
+                            example: aicha.hounkpe@gmail.com
+                          phone:
+                            type: string
+                            example: '+22901000000'
+                          country_code:
+                            type: string
+                            example: BJ
+                          birth_date:
+                            type: string
+                            example: '1990-05-15'
+                          avatar_url:
+                            type: string
+                            example: null
+                            nullable: true
+                          status:
+                            type: string
+                            example: active
+                          permissions:
+                            type: array
+                            example:
+                              - bookings.create
+                              - bookings.view-own
+                              - tickets.view
+                            items:
+                              type: string
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
       tags:
         - Auth
-      security: []
     put:
-      summary: ''
-      operationId: putApiV1AuthMe
+      summary: "Update the authenticated user's profile."
+      operationId: updateTheAuthenticatedUsersProfile
       description: ''
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        200:
+          description: 'Profile updated'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    user:
+                      uuid: 977e5426-8d13-3824-86aa-b092f8ae52c5
+                      name: 'Aïcha Hounkpè'
+                      email: aicha.hounkpe@gmail.com
+                      phone: '+22901000000'
+                      country_code: BJ
+                      birth_date: '1990-05-15'
+                      avatar_url: null
+                      status: active
+                      permissions:
+                        - bookings.create
+                        - bookings.view-own
+                        - tickets.view
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          name:
+                            type: string
+                            example: 'Aïcha Hounkpè'
+                          email:
+                            type: string
+                            example: aicha.hounkpe@gmail.com
+                          phone:
+                            type: string
+                            example: '+22901000000'
+                          country_code:
+                            type: string
+                            example: BJ
+                          birth_date:
+                            type: string
+                            example: '1990-05-15'
+                          avatar_url:
+                            type: string
+                            example: null
+                            nullable: true
+                          status:
+                            type: string
+                            example: active
+                          permissions:
+                            type: array
+                            example:
+                              - bookings.create
+                              - bookings.view-own
+                              - tickets.view
+                            items:
+                              type: string
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        422:
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'The given data was invalid.'
+                  errors:
+                    email:
+                      - 'The email has already been taken.'
+                properties:
+                  message:
+                    type: string
+                    example: 'The given data was invalid.'
+                  errors:
+                    type: object
+                    properties:
+                      email:
+                        type: array
+                        example:
+                          - 'The email has already been taken.'
+                        items:
+                          type: string
       tags:
         - Auth
       requestBody:
@@ -3224,21 +3987,115 @@ paths:
                 birth_date:
                   type: string
                   description: 'Le champ value doit être une date valide. Le champ value doit être une date antérieure à <code>today</code>.'
-                  example: '2022-09-26'
+                  example: '2022-09-27'
                   nullable: true
               required:
                 - name
                 - email
-      security: []
   /api/v1/auth/pin/change:
     post:
-      summary: ''
-      operationId: postApiV1AuthPinChange
+      summary: "Change the authenticated user's PIN."
+      operationId: changeTheAuthenticatedUsersPIN
       description: ''
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        200:
+          description: 'PIN changed'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    user:
+                      uuid: 977e5426-8d13-3824-86aa-b092f8ae52c5
+                      name: 'Aïcha Hounkpè'
+                      email: aicha.hounkpe@gmail.com
+                      phone: '+22901000000'
+                      country_code: BJ
+                      birth_date: '1990-05-15'
+                      avatar_url: null
+                      status: active
+                      permissions:
+                        - bookings.create
+                        - bookings.view-own
+                        - tickets.view
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          name:
+                            type: string
+                            example: 'Aïcha Hounkpè'
+                          email:
+                            type: string
+                            example: aicha.hounkpe@gmail.com
+                          phone:
+                            type: string
+                            example: '+22901000000'
+                          country_code:
+                            type: string
+                            example: BJ
+                          birth_date:
+                            type: string
+                            example: '1990-05-15'
+                          avatar_url:
+                            type: string
+                            example: null
+                            nullable: true
+                          status:
+                            type: string
+                            example: active
+                          permissions:
+                            type: array
+                            example:
+                              - bookings.create
+                              - bookings.view-own
+                              - tickets.view
+                            items:
+                              type: string
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        422:
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'The given data was invalid.'
+                  errors:
+                    current_pin:
+                      - 'The current PIN is incorrect.'
+                properties:
+                  message:
+                    type: string
+                    example: 'The given data was invalid.'
+                  errors:
+                    type: object
+                    properties:
+                      current_pin:
+                        type: array
+                        example:
+                          - 'The current PIN is incorrect.'
+                        items:
+                          type: string
       tags:
         - Auth
       requestBody:
@@ -3259,27 +4116,133 @@ paths:
               required:
                 - current_pin
                 - new_pin
-      security: []
   /api/v1/auth/preferences:
     get:
-      summary: ''
-      operationId: getApiV1AuthPreferences
+      summary: "Get the authenticated user's notification and display preferences."
+      operationId: getTheAuthenticatedUsersNotificationAndDisplayPreferences
       description: ''
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        200:
+          description: 'User preferences'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    push_notifications: true
+                    whatsapp_notifications: true
+                    email_notifications: true
+                    locale: fr
+                    theme: light
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      push_notifications:
+                        type: boolean
+                        example: false
+                      whatsapp_notifications:
+                        type: boolean
+                        example: false
+                      email_notifications:
+                        type: boolean
+                        example: false
+                      locale:
+                        type: string
+                        example: fr
+                      theme:
+                        type: string
+                        example: light
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
       tags:
         - Auth
-      security: []
     put:
-      summary: ''
-      operationId: putApiV1AuthPreferences
+      summary: "Update the authenticated user's notification and display preferences."
+      operationId: updateTheAuthenticatedUsersNotificationAndDisplayPreferences
       description: ''
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        200:
+          description: 'Preferences updated'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    push_notifications: false
+                    whatsapp_notifications: true
+                    email_notifications: true
+                    locale: en
+                    theme: dark
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      push_notifications:
+                        type: boolean
+                        example: false
+                      whatsapp_notifications:
+                        type: boolean
+                        example: false
+                      email_notifications:
+                        type: boolean
+                        example: false
+                      locale:
+                        type: string
+                        example: en
+                      theme:
+                        type: string
+                        example: dark
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        422:
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'The given data was invalid.'
+                  errors:
+                    locale:
+                      - 'The selected locale is invalid.'
+                properties:
+                  message:
+                    type: string
+                    example: 'The given data was invalid.'
+                  errors:
+                    type: object
+                    properties:
+                      locale:
+                        type: array
+                        example:
+                          - 'The selected locale is invalid.'
+                        items:
+                          type: string
       tags:
         - Auth
       requestBody:
@@ -3321,31 +4284,114 @@ paths:
                     - dark
                     - system
                   nullable: true
-      security: []
   /api/v1/auth/devices:
     get:
-      summary: ''
-      operationId: getApiV1AuthDevices
+      summary: "List the authenticated user's trusted devices."
+      operationId: listTheAuthenticatedUsersTrustedDevices
       description: ''
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        200:
+          description: 'Device list'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    -
+                      uuid: a3091549-9179-454e-8440-58179f2208df
+                      name: 'iPhone 15 Pro'
+                      platform: ios
+                      trusted_at: '2026-08-20T13:05:00.000Z'
+                      last_seen_at: '2026-08-20T13:05:00.000Z'
+                      status: trusted
+                properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        uuid: a3091549-9179-454e-8440-58179f2208df
+                        name: 'iPhone 15 Pro'
+                        platform: ios
+                        trusted_at: '2026-08-20T13:05:00.000Z'
+                        last_seen_at: '2026-08-20T13:05:00.000Z'
+                        status: trusted
+                    items:
+                      type: object
+                      properties:
+                        uuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        name:
+                          type: string
+                          example: 'iPhone 15 Pro'
+                        platform:
+                          type: string
+                          example: ios
+                        trusted_at:
+                          type: string
+                          example: '2026-08-20T13:05:00.000Z'
+                        last_seen_at:
+                          type: string
+                          example: '2026-08-20T13:05:00.000Z'
+                        status:
+                          type: string
+                          example: trusted
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
       tags:
         - Auth
-      security: []
   '/api/v1/auth/devices/{uuid}':
     delete:
-      summary: ''
-      operationId: deleteApiV1AuthDevicesUuid
+      summary: 'Revoke a trusted device.'
+      operationId: revokeATrustedDevice
       description: ''
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        204:
+          description: 'Device revoked'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ''
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        404:
+          description: 'Device not found'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'No query results for model [App\Modules\IdentityAccess\Models\UserDevice].'
+                properties:
+                  message:
+                    type: string
+                    example: 'No query results for model [App\Modules\IdentityAccess\Models\UserDevice].'
       tags:
         - Auth
-      security: []
     parameters:
       -
         in: path
@@ -3357,38 +4403,219 @@ paths:
           type: string
   /api/v1/auth/logout:
     post:
-      summary: ''
-      operationId: postApiV1AuthLogout
+      summary: 'Revoke the current access token.'
+      operationId: revokeTheCurrentAccessToken
       description: ''
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        204:
+          description: 'Logged out'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ''
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
       tags:
         - Auth
-      security: []
   /api/v1/company-accounts:
     get:
-      summary: ''
-      operationId: getApiV1CompanyAccounts
-      description: ''
+      summary: 'List active company accounts visible to the authenticated user.'
+      operationId: listActiveCompanyAccountsVisibleToTheAuthenticatedUser
+      description: "Users with the `company-credit.view` permission see all active accounts.\nOthers see only accounts where they are an active member."
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        200:
+          description: 'Company account list'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    -
+                      uuid: c1234567-89ab-cdef-0123-456789abcdef
+                      name: 'Société de Transport Bénin SARL'
+                      type: company
+                      reference: STB-2026-001
+                      phone: '+22901000001'
+                      email: contact@stb.bj
+                      status: active
+                      monthly_credit_limit: 5000000
+                      available_credit: 3250000
+                properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        uuid: c1234567-89ab-cdef-0123-456789abcdef
+                        name: 'Société de Transport Bénin SARL'
+                        type: company
+                        reference: STB-2026-001
+                        phone: '+22901000001'
+                        email: contact@stb.bj
+                        status: active
+                        monthly_credit_limit: 5000000
+                        available_credit: 3250000
+                    items:
+                      type: object
+                      properties:
+                        uuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        name:
+                          type: string
+                          example: 'Société de Transport Bénin SARL'
+                        type:
+                          type: string
+                          example: company
+                        reference:
+                          type: string
+                          example: STB-2026-001
+                        phone:
+                          type: string
+                          example: '+22901000001'
+                        email:
+                          type: string
+                          example: contact@stb.bj
+                        status:
+                          type: string
+                          example: active
+                        monthly_credit_limit:
+                          type: integer
+                          example: 5000000
+                        available_credit:
+                          type: integer
+                          example: 3250000
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
       tags:
-        - Endpoints
-      security: []
+        - 'Company Accounts'
     post:
-      summary: ''
-      operationId: postApiV1CompanyAccounts
+      summary: 'Create a new company account.'
+      operationId: createANewCompanyAccount
       description: ''
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        201:
+          description: 'Company account created'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: c1234567-89ab-cdef-0123-456789abcdef
+                    name: 'Société de Transport Bénin SARL'
+                    type: company
+                    reference: STB-2026-001
+                    phone: '+22901000001'
+                    email: contact@stb.bj
+                    status: active
+                    monthly_credit_limit: 5000000
+                    available_credit: 5000000
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      name:
+                        type: string
+                        example: 'Société de Transport Bénin SARL'
+                      type:
+                        type: string
+                        example: company
+                      reference:
+                        type: string
+                        example: STB-2026-001
+                      phone:
+                        type: string
+                        example: '+22901000001'
+                      email:
+                        type: string
+                        example: contact@stb.bj
+                      status:
+                        type: string
+                        example: active
+                      monthly_credit_limit:
+                        type: integer
+                        example: 5000000
+                      available_credit:
+                        type: integer
+                        example: 5000000
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'This action is unauthorized.'
+                properties:
+                  message:
+                    type: string
+                    example: 'This action is unauthorized.'
+        422:
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'The given data was invalid.'
+                  errors:
+                    name:
+                      - 'The name has already been taken.'
+                properties:
+                  message:
+                    type: string
+                    example: 'The given data was invalid.'
+                  errors:
+                    type: object
+                    properties:
+                      name:
+                        type: array
+                        example:
+                          - 'The name has already been taken.'
+                        items:
+                          type: string
       tags:
-        - Endpoints
+        - 'Company Accounts'
       requestBody:
         required: true
         content:
@@ -3431,18 +4658,111 @@ paths:
                 - type
                 - reference
                 - monthly_credit_limit
-      security: []
   '/api/v1/company-accounts/{companyAccount_uuid}':
     put:
-      summary: ''
-      operationId: putApiV1CompanyAccountsCompanyAccount_uuid
+      summary: "Update a company account's details."
+      operationId: updateACompanyAccountsDetails
       description: ''
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        200:
+          description: 'Company account updated'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: c1234567-89ab-cdef-0123-456789abcdef
+                    name: 'Société de Transport Bénin SARL'
+                    type: company
+                    reference: STB-2026-001
+                    phone: '+22901000002'
+                    email: contact@stb.bj
+                    status: active
+                    monthly_credit_limit: 5000000
+                    available_credit: 3250000
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      name:
+                        type: string
+                        example: 'Société de Transport Bénin SARL'
+                      type:
+                        type: string
+                        example: company
+                      reference:
+                        type: string
+                        example: STB-2026-001
+                      phone:
+                        type: string
+                        example: '+22901000002'
+                      email:
+                        type: string
+                        example: contact@stb.bj
+                      status:
+                        type: string
+                        example: active
+                      monthly_credit_limit:
+                        type: integer
+                        example: 5000000
+                      available_credit:
+                        type: integer
+                        example: 3250000
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'This action is unauthorized.'
+                properties:
+                  message:
+                    type: string
+                    example: 'This action is unauthorized.'
+        422:
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'The given data was invalid.'
+                  errors:
+                    email:
+                      - 'The email has already been taken.'
+                properties:
+                  message:
+                    type: string
+                    example: 'The given data was invalid.'
+                  errors:
+                    type: object
+                    properties:
+                      email:
+                        type: array
+                        example:
+                          - 'The email has already been taken.'
+                        items:
+                          type: string
       tags:
-        - Endpoints
+        - 'Company Accounts'
       requestBody:
         required: true
         content:
@@ -3485,7 +4805,6 @@ paths:
                 - type
                 - reference
                 - monthly_credit_limit
-      security: []
     parameters:
       -
         in: path
@@ -3497,16 +4816,85 @@ paths:
           type: string
   '/api/v1/company-accounts/{companyAccount_uuid}/deactivate':
     post:
-      summary: ''
-      operationId: postApiV1CompanyAccountsCompanyAccount_uuidDeactivate
-      description: ''
+      summary: 'Deactivate a company account.'
+      operationId: deactivateACompanyAccount
+      description: "Sets the account status to `inactive`. Existing credit balances remain but no new\npurchases are allowed."
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        200:
+          description: 'Company account deactivated'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: c1234567-89ab-cdef-0123-456789abcdef
+                    name: 'Société de Transport Bénin SARL'
+                    type: company
+                    reference: STB-2026-001
+                    phone: '+22901000001'
+                    email: contact@stb.bj
+                    status: inactive
+                    monthly_credit_limit: 5000000
+                    available_credit: 3250000
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      name:
+                        type: string
+                        example: 'Société de Transport Bénin SARL'
+                      type:
+                        type: string
+                        example: company
+                      reference:
+                        type: string
+                        example: STB-2026-001
+                      phone:
+                        type: string
+                        example: '+22901000001'
+                      email:
+                        type: string
+                        example: contact@stb.bj
+                      status:
+                        type: string
+                        example: inactive
+                      monthly_credit_limit:
+                        type: integer
+                        example: 5000000
+                      available_credit:
+                        type: integer
+                        example: 3250000
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'This action is unauthorized.'
+                properties:
+                  message:
+                    type: string
+                    example: 'This action is unauthorized.'
       tags:
-        - Endpoints
-      security: []
+        - 'Company Accounts'
     parameters:
       -
         in: path
@@ -3518,15 +4906,101 @@ paths:
           type: string
   '/api/v1/company-accounts/{companyAccount_uuid}/members':
     post:
-      summary: ''
-      operationId: postApiV1CompanyAccountsCompanyAccount_uuidMembers
-      description: ''
+      summary: 'Add or update a member on a company account.'
+      operationId: addOrUpdateAMemberOnACompanyAccount
+      description: "Only one active `referent` role is allowed per account. If the user is already\na member, their role and status are updated."
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        201:
+          description: 'Member added'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: m1234567-89ab-cdef-0123-456789abcdef
+                    user_uuid: 977e5426-8d13-3824-86aa-b092f8ae52c5
+                    role: buyer
+                    status: active
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: m1234567-89ab-cdef-0123-456789abcdef
+                      user_uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      role:
+                        type: string
+                        example: buyer
+                      status:
+                        type: string
+                        example: active
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'This action is unauthorized.'
+                properties:
+                  message:
+                    type: string
+                    example: 'This action is unauthorized.'
+        404:
+          description: 'User not found'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'No query results for model [App\Models\User].'
+                properties:
+                  message:
+                    type: string
+                    example: 'No query results for model [App\Models\User].'
+        422:
+          description: 'Duplicate referent'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'The given data was invalid.'
+                  errors:
+                    role:
+                      - 'Un seul référent actif est autorisé par compte entreprise.'
+                properties:
+                  message:
+                    type: string
+                    example: 'The given data was invalid.'
+                  errors:
+                    type: object
+                    properties:
+                      role:
+                        type: array
+                        example:
+                          - 'Un seul référent actif est autorisé par compte entreprise.'
+                        items:
+                          type: string
       tags:
-        - Endpoints
+        - 'Company Accounts'
       requestBody:
         required: true
         content:
@@ -3548,7 +5022,6 @@ paths:
               required:
                 - user_uuid
                 - role
-      security: []
     parameters:
       -
         in: path
@@ -3560,26 +5033,202 @@ paths:
           type: string
   /api/v1/group-discounts:
     get:
-      summary: ''
-      operationId: getApiV1GroupDiscounts
+      summary: 'List all group discount rules ordered by start date.'
+      operationId: listAllGroupDiscountRulesOrderedByStartDate
       description: ''
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        200:
+          description: 'Discount rule list'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    -
+                      uuid: d1234567-89ab-cdef-0123-456789abcdef
+                      status: active
+                      passenger_threshold: 5
+                      percentage: 10.0
+                      starts_at: '2026-09-01T00:00:00+00:00'
+                      ends_at: null
+                properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        uuid: d1234567-89ab-cdef-0123-456789abcdef
+                        status: active
+                        passenger_threshold: 5
+                        percentage: 10
+                        starts_at: '2026-09-01T00:00:00+00:00'
+                        ends_at: null
+                    items:
+                      type: object
+                      properties:
+                        uuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        status:
+                          type: string
+                          example: active
+                        passenger_threshold:
+                          type: integer
+                          example: 5
+                        percentage:
+                          type: number
+                          example: 10.0
+                        starts_at:
+                          type: string
+                          example: '2026-09-01T00:00:00+00:00'
+                        ends_at:
+                          type: string
+                          example: null
+                          nullable: true
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'This action is unauthorized.'
+                properties:
+                  message:
+                    type: string
+                    example: 'This action is unauthorized.'
       tags:
-        - Endpoints
-      security: []
+        - 'Group Discounts'
     post:
-      summary: ''
-      operationId: postApiV1GroupDiscounts
-      description: ''
+      summary: 'Create a new group discount rule.'
+      operationId: createANewGroupDiscountRule
+      description: "The passenger threshold must be >= the configured minimum group size.\nOnly one active rule can cover a given period."
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        201:
+          description: 'Discount rule created'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: d1234567-89ab-cdef-0123-456789abcdef
+                    status: active
+                    passenger_threshold: 5
+                    percentage: 10.0
+                    starts_at: '2026-09-01T00:00:00+00:00'
+                    ends_at: null
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      status:
+                        type: string
+                        example: active
+                      passenger_threshold:
+                        type: integer
+                        example: 5
+                      percentage:
+                        type: number
+                        example: 10.0
+                      starts_at:
+                        type: string
+                        example: '2026-09-01T00:00:00+00:00'
+                      ends_at:
+                        type: string
+                        example: null
+                        nullable: true
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'This action is unauthorized.'
+                properties:
+                  message:
+                    type: string
+                    example: 'This action is unauthorized.'
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  -
+                    description: 'Threshold below minimum'
+                    type: object
+                    example:
+                      message: 'The given data was invalid.'
+                      errors:
+                        passenger_threshold:
+                          - 'Le seuil de remise doit être supérieur ou égal au minimum groupe configuré.'
+                    properties:
+                      message:
+                        type: string
+                        example: 'The given data was invalid.'
+                      errors:
+                        type: object
+                        properties:
+                          passenger_threshold:
+                            type: array
+                            example:
+                              - 'Le seuil de remise doit être supérieur ou égal au minimum groupe configuré.'
+                            items:
+                              type: string
+                  -
+                    description: 'Overlapping active rule'
+                    type: object
+                    example:
+                      message: 'The given data was invalid.'
+                      errors:
+                        starts_at:
+                          - 'Une règle groupe active couvre déjà cette période.'
+                    properties:
+                      message:
+                        type: string
+                        example: 'The given data was invalid.'
+                      errors:
+                        type: object
+                        properties:
+                          starts_at:
+                            type: array
+                            example:
+                              - 'Une règle groupe active couvre déjà cette période.'
+                            items:
+                              type: string
       tags:
-        - Endpoints
+        - 'Group Discounts'
       requestBody:
         required: true
         content:
@@ -3605,7 +5254,7 @@ paths:
                 starts_at:
                   type: string
                   description: 'Le champ value doit être une date valide.'
-                  example: '2026-09-02T10:55:44'
+                  example: '2026-09-02T15:34:20'
                   nullable: true
                 ends_at:
                   type: string
@@ -3616,18 +5265,99 @@ paths:
                 - status
                 - passenger_threshold
                 - percentage
-      security: []
   '/api/v1/group-discounts/{groupDiscountRule_uuid}':
     put:
-      summary: ''
-      operationId: putApiV1GroupDiscountsGroupDiscountRule_uuid
+      summary: 'Update an existing group discount rule.'
+      operationId: updateAnExistingGroupDiscountRule
       description: ''
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        200:
+          description: 'Discount rule updated'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: d1234567-89ab-cdef-0123-456789abcdef
+                    status: active
+                    passenger_threshold: 8
+                    percentage: 15.0
+                    starts_at: '2026-09-01T00:00:00+00:00'
+                    ends_at: '2026-12-31T00:00:00+00:00'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      status:
+                        type: string
+                        example: active
+                      passenger_threshold:
+                        type: integer
+                        example: 8
+                      percentage:
+                        type: number
+                        example: 15.0
+                      starts_at:
+                        type: string
+                        example: '2026-09-01T00:00:00+00:00'
+                      ends_at:
+                        type: string
+                        example: '2026-12-31T00:00:00+00:00'
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'This action is unauthorized.'
+                properties:
+                  message:
+                    type: string
+                    example: 'This action is unauthorized.'
+        422:
+          description: 'Overlapping active rule'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'The given data was invalid.'
+                  errors:
+                    starts_at:
+                      - 'Une règle groupe active couvre déjà cette période.'
+                properties:
+                  message:
+                    type: string
+                    example: 'The given data was invalid.'
+                  errors:
+                    type: object
+                    properties:
+                      starts_at:
+                        type: array
+                        example:
+                          - 'Une règle groupe active couvre déjà cette période.'
+                        items:
+                          type: string
       tags:
-        - Endpoints
+        - 'Group Discounts'
       requestBody:
         required: true
         content:
@@ -3653,7 +5383,7 @@ paths:
                 starts_at:
                   type: string
                   description: 'Le champ value doit être une date valide.'
-                  example: '2026-09-02T10:55:44'
+                  example: '2026-09-02T15:34:20'
                   nullable: true
                 ends_at:
                   type: string
@@ -3664,7 +5394,6 @@ paths:
                 - status
                 - passenger_threshold
                 - percentage
-      security: []
     parameters:
       -
         in: path
@@ -3676,26 +5405,121 @@ paths:
           type: string
   /api/v1/group-booking-settings:
     get:
-      summary: ''
-      operationId: getApiV1GroupBookingSettings
+      summary: 'Get the current group booking settings (min/max passengers).'
+      operationId: getTheCurrentGroupBookingSettingsminmaxPassengers
       description: ''
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        200:
+          description: 'Group booking settings'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    minimum_passengers: 5
+                    maximum_passengers: 10
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      minimum_passengers:
+                        type: integer
+                        example: 5
+                      maximum_passengers:
+                        type: integer
+                        example: 10
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'This action is unauthorized.'
+                properties:
+                  message:
+                    type: string
+                    example: 'This action is unauthorized.'
       tags:
-        - Endpoints
-      security: []
+        - 'Group Discounts'
     put:
-      summary: ''
-      operationId: putApiV1GroupBookingSettings
+      summary: 'Update the group booking settings (min/max passengers).'
+      operationId: updateTheGroupBookingSettingsminmaxPassengers
       description: ''
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        200:
+          description: 'Settings updated'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    minimum_passengers: 3
+                    maximum_passengers: 15
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      minimum_passengers:
+                        type: integer
+                        example: 3
+                      maximum_passengers:
+                        type: integer
+                        example: 15
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        422:
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'The given data was invalid.'
+                  errors:
+                    maximum_passengers:
+                      - 'The maximum passengers must be greater than or equal to 3.'
+                properties:
+                  message:
+                    type: string
+                    example: 'The given data was invalid.'
+                  errors:
+                    type: object
+                    properties:
+                      maximum_passengers:
+                        type: array
+                        example:
+                          - 'The maximum passengers must be greater than or equal to 3.'
+                        items:
+                          type: string
       tags:
-        - Endpoints
+        - 'Group Discounts'
       requestBody:
         required: true
         content:
@@ -3714,49 +5538,6 @@ paths:
               required:
                 - minimum_passengers
                 - maximum_passengers
-      security: []
-  '/api/v1/bookings/{reservation_uuid}/tickets':
-    get:
-      summary: ''
-      operationId: getApiV1BookingsReservation_uuidTickets
-      description: ''
-      parameters: []
-      responses:
-        default:
-          description: Response documented by the endpoint annotations.
-      tags:
-        - Endpoints
-      security: []
-    parameters:
-      -
-        in: path
-        name: reservation_uuid
-        description: ''
-        example: 00000000-0000-4000-8000-000000000000
-        required: true
-        schema:
-          type: string
-  '/api/v1/tickets/{uuid}':
-    get:
-      summary: ''
-      operationId: getApiV1TicketsUuid
-      description: ''
-      parameters: []
-      responses:
-        default:
-          description: Response documented by the endpoint annotations.
-      tags:
-        - Endpoints
-      security: []
-    parameters:
-      -
-        in: path
-        name: uuid
-        description: ''
-        example: 00000000-0000-4000-8000-000000000000
-        required: true
-        schema:
-          type: string
   /api/v1/health:
     get:
       summary: 'Full application health: database, cache (Redis), and API version.'
@@ -3764,8 +5545,119 @@ paths:
       description: "Returns 200 when every dependency is reachable, 503 otherwise so load\nbalancers and monitoring can drain traffic from an unhealthy instance."
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        200:
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: ok
+                  service: kora-ops-web
+                  scope: bus
+                  version: v1
+                  timestamp: '2026-09-02T10:00:00.000Z'
+                  checks:
+                    database:
+                      status: ok
+                      latency_ms: 3
+                    cache:
+                      status: ok
+                      latency_ms: 1
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  service:
+                    type: string
+                    example: kora-ops-web
+                  scope:
+                    type: string
+                    example: bus
+                  version:
+                    type: string
+                    example: v1
+                  timestamp:
+                    type: string
+                    example: '2026-09-02T10:00:00.000Z'
+                  checks:
+                    type: object
+                    properties:
+                      database:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                            example: ok
+                          latency_ms:
+                            type: integer
+                            example: 3
+                      cache:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                            example: ok
+                          latency_ms:
+                            type: integer
+                            example: 1
+        503:
+          description: Degraded
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: degraded
+                  service: kora-ops-web
+                  scope: bus
+                  version: v1
+                  timestamp: '2026-09-02T10:00:00.000Z'
+                  checks:
+                    database:
+                      status: error
+                      latency_ms: null
+                    cache:
+                      status: ok
+                      latency_ms: 1
+                properties:
+                  status:
+                    type: string
+                    example: degraded
+                  service:
+                    type: string
+                    example: kora-ops-web
+                  scope:
+                    type: string
+                    example: bus
+                  version:
+                    type: string
+                    example: v1
+                  timestamp:
+                    type: string
+                    example: '2026-09-02T10:00:00.000Z'
+                  checks:
+                    type: object
+                    properties:
+                      database:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                            example: error
+                          latency_ms:
+                            type: string
+                            example: null
+                            nullable: true
+                      cache:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                            example: ok
+                          latency_ms:
+                            type: integer
+                            example: 1
       tags:
         - Health
       security: []
@@ -3776,23 +5668,84 @@ paths:
       description: ''
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        204:
+          description: Pong
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ''
       tags:
         - Health
       security: []
   /api/v1/payments/methods:
     get:
-      summary: 'Return the active payment methods and providers configured for the mobile app.'
-      operationId: returnTheActivePaymentMethodsAndProvidersConfiguredForTheMobileApp
-      description: ''
+      summary: 'List available payment methods and providers.'
+      operationId: listAvailablePaymentMethodsAndProviders
+      description: "Returns the catalog of payment methods configured for the mobile app\n(MTN MoMo, FedaPay, cash, etc.)."
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        200:
+          description: 'Payment methods'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    -
+                      method: mobile_money
+                      provider: mtn_momo
+                      label: 'MTN Mobile Money'
+                      enabled: true
+                    -
+                      method: card
+                      provider: fedapay
+                      label: 'Carte bancaire (FedaPay)'
+                      enabled: true
+                properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        method: mobile_money
+                        provider: mtn_momo
+                        label: 'MTN Mobile Money'
+                        enabled: true
+                      -
+                        method: card
+                        provider: fedapay
+                        label: 'Carte bancaire (FedaPay)'
+                        enabled: true
+                    items:
+                      type: object
+                      properties:
+                        method:
+                          type: string
+                          example: mobile_money
+                        provider:
+                          type: string
+                          example: mtn_momo
+                        label:
+                          type: string
+                          example: 'MTN Mobile Money'
+                        enabled:
+                          type: boolean
+                          example: false
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
       tags:
         - Payments
-      security: []
   /api/v1/payments/initiate:
     post:
       summary: 'Initiate a payment for a held reservation.'
@@ -3971,14 +5924,130 @@ paths:
     post:
       summary: 'Explicitly verify a pending payment with its provider.'
       operationId: explicitlyVerifyAPendingPaymentWithItsProvider
-      description: ''
+      description: 'Polls the payment provider for the current status and updates the payment record.'
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        200:
+          description: 'Payment verified'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80
+                    status: confirmed
+                    amount: 12500
+                    currency: XOF
+                    method: mobile_money
+                    provider: mtn_momo
+                    provider_reference: MM-98270341
+                    provider_transaction_id: null
+                    provider_currency: null
+                    provider_amount: null
+                    mobile_money_network: mtn
+                    payer_phone: '+22901000000'
+                    confirmed_at: '2026-08-20T08:05:00+00:00'
+                    last_verified_at: '2026-08-20T08:06:00+00:00'
+                    next_action: wait_for_tickets
+                    expires_at: '2026-08-20T08:15:00+00:00'
+                    polling_interval_seconds: 10
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      status:
+                        type: string
+                        example: confirmed
+                      amount:
+                        type: integer
+                        example: 12500
+                      currency:
+                        type: string
+                        example: XOF
+                      method:
+                        type: string
+                        example: mobile_money
+                      provider:
+                        type: string
+                        example: mtn_momo
+                      provider_reference:
+                        type: string
+                        example: MM-98270341
+                      provider_transaction_id:
+                        type: string
+                        example: null
+                        nullable: true
+                      provider_currency:
+                        type: string
+                        example: null
+                        nullable: true
+                      provider_amount:
+                        type: string
+                        example: null
+                        nullable: true
+                      mobile_money_network:
+                        type: string
+                        example: mtn
+                      payer_phone:
+                        type: string
+                        example: '+22901000000'
+                      confirmed_at:
+                        type: string
+                        example: '2026-08-20T08:05:00+00:00'
+                      last_verified_at:
+                        type: string
+                        example: '2026-08-20T08:06:00+00:00'
+                      next_action:
+                        type: string
+                        example: wait_for_tickets
+                      expires_at:
+                        type: string
+                        example: '2026-08-20T08:15:00+00:00'
+                      polling_interval_seconds:
+                        type: integer
+                        example: 10
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        404:
+          description: 'Payment not found'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'No query results for model [App\Modules\Payments\Models\Payment].'
+                properties:
+                  message:
+                    type: string
+                    example: 'No query results for model [App\Modules\Payments\Models\Payment].'
+        429:
+          description: 'Too many verification attempts'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Too many requests. Please try again later.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Too many requests. Please try again later.'
       tags:
         - Payments
-      security: []
     parameters:
       -
         in: path
@@ -3990,16 +6059,122 @@ paths:
           type: string
   '/api/v1/payments/{payment_uuid}/cancel':
     post:
-      summary: ''
-      operationId: postApiV1PaymentsPayment_uuidCancel
+      summary: 'Cancel a pending payment.'
+      operationId: cancelAPendingPayment
       description: ''
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        200:
+          description: 'Payment cancelled'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80
+                    status: cancelled
+                    amount: 12500
+                    currency: XOF
+                    method: mobile_money
+                    provider: mtn_momo
+                    provider_reference: MM-98270341
+                    provider_transaction_id: null
+                    provider_currency: null
+                    provider_amount: null
+                    mobile_money_network: mtn
+                    payer_phone: '+22901000000'
+                    confirmed_at: null
+                    last_verified_at: null
+                    next_action: retry
+                    expires_at: '2026-08-20T08:15:00+00:00'
+                    polling_interval_seconds: 10
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      status:
+                        type: string
+                        example: cancelled
+                      amount:
+                        type: integer
+                        example: 12500
+                      currency:
+                        type: string
+                        example: XOF
+                      method:
+                        type: string
+                        example: mobile_money
+                      provider:
+                        type: string
+                        example: mtn_momo
+                      provider_reference:
+                        type: string
+                        example: MM-98270341
+                      provider_transaction_id:
+                        type: string
+                        example: null
+                        nullable: true
+                      provider_currency:
+                        type: string
+                        example: null
+                        nullable: true
+                      provider_amount:
+                        type: string
+                        example: null
+                        nullable: true
+                      mobile_money_network:
+                        type: string
+                        example: mtn
+                      payer_phone:
+                        type: string
+                        example: '+22901000000'
+                      confirmed_at:
+                        type: string
+                        example: null
+                        nullable: true
+                      last_verified_at:
+                        type: string
+                        example: null
+                        nullable: true
+                      next_action:
+                        type: string
+                        example: retry
+                      expires_at:
+                        type: string
+                        example: '2026-08-20T08:15:00+00:00'
+                      polling_interval_seconds:
+                        type: integer
+                        example: 10
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        404:
+          description: 'Payment not found'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'No query results for model [App\Modules\Payments\Models\Payment].'
+                properties:
+                  message:
+                    type: string
+                    example: 'No query results for model [App\Modules\Payments\Models\Payment].'
       tags:
         - Payments
-      security: []
     parameters:
       -
         in: path
@@ -4013,11 +6188,57 @@ paths:
     post:
       summary: 'Provider webhook / callback to confirm or fail a payment.'
       operationId: providerWebhookCallbackToConfirmOrFailAPayment
-      description: ''
+      description: "Verifies the webhook signature via the provider adapter, then updates the payment\nand reservation status. In local/testing environments, manual confirmation is\nallowed without a real provider."
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        200:
+          description: 'Payment confirmed'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: confirmed
+                  payment_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80
+                  reservation_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
+                  reservation_status: paid
+                properties:
+                  status:
+                    type: string
+                    example: confirmed
+                  payment_uuid:
+                    type: string
+                    example: 00000000-0000-4000-8000-000000000000
+                  reservation_uuid:
+                    type: string
+                    example: 00000000-0000-4000-8000-000000000000
+                  reservation_status:
+                    type: string
+                    example: paid
+        403:
+          description: 'Invalid webhook signature'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error: 'Invalid webhook signature.'
+                properties:
+                  error:
+                    type: string
+                    example: 'Invalid webhook signature.'
+        404:
+          description: 'Payment not found'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'No query results for model [App\Modules\Payments\Models\Payment].'
+                properties:
+                  message:
+                    type: string
+                    example: 'No query results for model [App\Modules\Payments\Models\Payment].'
       tags:
         - Payments
       requestBody:
@@ -4062,11 +6283,69 @@ paths:
     post:
       summary: 'FedaPay webhook endpoint.'
       operationId: fedaPayWebhookEndpoint
-      description: ''
+      description: "Receives payment status notifications from FedaPay. Verifies the webhook\nsignature and confirms or fails the corresponding payment."
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        200:
+          description: 'Webhook processed'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: confirmed
+                  payment_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80
+                  reservation_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
+                  reservation_status: paid
+                properties:
+                  status:
+                    type: string
+                    example: confirmed
+                  payment_uuid:
+                    type: string
+                    example: 00000000-0000-4000-8000-000000000000
+                  reservation_uuid:
+                    type: string
+                    example: 00000000-0000-4000-8000-000000000000
+                  reservation_status:
+                    type: string
+                    example: paid
+        400:
+          description: 'Payment reference not found'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error: 'Payment reference not found in webhook.'
+                properties:
+                  error:
+                    type: string
+                    example: 'Payment reference not found in webhook.'
+        403:
+          description: 'Invalid webhook signature'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error: 'Invalid webhook signature.'
+                properties:
+                  error:
+                    type: string
+                    example: 'Invalid webhook signature.'
+        404:
+          description: 'Payment not found'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error: 'Payment not found.'
+                properties:
+                  error:
+                    type: string
+                    example: 'Payment not found.'
       tags:
         - Payments
       security: []
@@ -4074,11 +6353,381 @@ paths:
     post:
       summary: 'MTN MoMo webhook endpoint.'
       operationId: mTNMoMoWebhookEndpoint
-      description: ''
+      description: "Receives payment status notifications from MTN Mobile Money. Verifies the\nwebhook signature and confirms or fails the corresponding payment."
       parameters: []
       responses:
-        default:
-          description: Response documented by the endpoint annotations.
+        200:
+          description: 'Webhook processed'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: confirmed
+                  payment_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80
+                  reservation_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
+                  reservation_status: paid
+                properties:
+                  status:
+                    type: string
+                    example: confirmed
+                  payment_uuid:
+                    type: string
+                    example: 00000000-0000-4000-8000-000000000000
+                  reservation_uuid:
+                    type: string
+                    example: 00000000-0000-4000-8000-000000000000
+                  reservation_status:
+                    type: string
+                    example: paid
+        400:
+          description: 'Payment reference not found'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error: 'Payment reference not found in webhook.'
+                properties:
+                  error:
+                    type: string
+                    example: 'Payment reference not found in webhook.'
+        403:
+          description: 'Invalid webhook signature'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error: 'Invalid webhook signature.'
+                properties:
+                  error:
+                    type: string
+                    example: 'Invalid webhook signature.'
+        404:
+          description: 'Payment not found'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error: 'Payment not found.'
+                properties:
+                  error:
+                    type: string
+                    example: 'Payment not found.'
       tags:
         - Payments
       security: []
+  '/api/v1/bookings/{reservation_uuid}/tickets':
+    get:
+      summary: 'List all tickets for a reservation.'
+      operationId: listAllTicketsForAReservation
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: 'Ticket list'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    -
+                      uuid: t1234567-89ab-cdef-0123-456789abcdef
+                      short_code: KORA-AB12CD
+                      qr_code: 'data:image/png;base64,iVBORw0KGgo...'
+                      status: issued
+                      issued_at: '2026-08-20T08:10:00+00:00'
+                      reservation_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
+                      passenger:
+                        uuid: p1234567-89ab-cdef-0123-456789abcdef
+                        first_name: Aïcha
+                        last_name: Hounkpè
+                      segments:
+                        -
+                          leg_order: 0
+                          departure_uuid: dep12345-6789-abcd-ef01-23456789abcd
+                          origin_stop_uuid: stp12345-6789-abcd-ef01-23456789abcd
+                          destination_stop_uuid: stp23456-6789-abcd-ef01-23456789abcd
+                          seat_uuid: seat123-4567-89ab-cdef-0123456789ab
+                          seat_code: 12A
+                          status: active
+                properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        uuid: t1234567-89ab-cdef-0123-456789abcdef
+                        short_code: KORA-AB12CD
+                        qr_code: 'data:image/png;base64,iVBORw0KGgo...'
+                        status: issued
+                        issued_at: '2026-08-20T08:10:00+00:00'
+                        reservation_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
+                        passenger:
+                          uuid: p1234567-89ab-cdef-0123-456789abcdef
+                          first_name: Aïcha
+                          last_name: Hounkpè
+                        segments:
+                          -
+                            leg_order: 0
+                            departure_uuid: dep12345-6789-abcd-ef01-23456789abcd
+                            origin_stop_uuid: stp12345-6789-abcd-ef01-23456789abcd
+                            destination_stop_uuid: stp23456-6789-abcd-ef01-23456789abcd
+                            seat_uuid: seat123-4567-89ab-cdef-0123456789ab
+                            seat_code: 12A
+                            status: active
+                    items:
+                      type: object
+                      properties:
+                        uuid:
+                          type: string
+                          example: t1234567-89ab-cdef-0123-456789abcdef
+                        short_code:
+                          type: string
+                          example: KORA-AB12CD
+                        qr_code:
+                          type: string
+                          example: 'data:image/png;base64,iVBORw0KGgo...'
+                        status:
+                          type: string
+                          example: issued
+                        issued_at:
+                          type: string
+                          example: '2026-08-20T08:10:00+00:00'
+                        reservation_uuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        passenger:
+                          type: object
+                          properties:
+                            uuid:
+                              type: string
+                              example: p1234567-89ab-cdef-0123-456789abcdef
+                            first_name:
+                              type: string
+                              example: Aïcha
+                            last_name:
+                              type: string
+                              example: Hounkpè
+                        segments:
+                          type: array
+                          example:
+                            -
+                              leg_order: 0
+                              departure_uuid: dep12345-6789-abcd-ef01-23456789abcd
+                              origin_stop_uuid: stp12345-6789-abcd-ef01-23456789abcd
+                              destination_stop_uuid: stp23456-6789-abcd-ef01-23456789abcd
+                              seat_uuid: seat123-4567-89ab-cdef-0123456789ab
+                              seat_code: 12A
+                              status: active
+                          items:
+                            type: object
+                            properties:
+                              leg_order:
+                                type: integer
+                                example: 0
+                              departure_uuid:
+                                type: string
+                                example: dep12345-6789-abcd-ef01-23456789abcd
+                              origin_stop_uuid:
+                                type: string
+                                example: stp12345-6789-abcd-ef01-23456789abcd
+                              destination_stop_uuid:
+                                type: string
+                                example: stp23456-6789-abcd-ef01-23456789abcd
+                              seat_uuid:
+                                type: string
+                                example: seat123-4567-89ab-cdef-0123456789ab
+                              seat_code:
+                                type: string
+                                example: 12A
+                              status:
+                                type: string
+                                example: active
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: "Vous n'avez pas accès à ce billet."
+                properties:
+                  message:
+                    type: string
+                    example: "Vous n'avez pas accès à ce billet."
+      tags:
+        - Tickets
+    parameters:
+      -
+        in: path
+        name: reservation_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/tickets/{uuid}':
+    get:
+      summary: 'Retrieve a single ticket by UUID.'
+      operationId: retrieveASingleTicketByUUID
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: 'Ticket details'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: t1234567-89ab-cdef-0123-456789abcdef
+                    short_code: KORA-AB12CD
+                    qr_code: 'data:image/png;base64,iVBORw0KGgo...'
+                    status: issued
+                    issued_at: '2026-08-20T08:10:00+00:00'
+                    reservation_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
+                    passenger:
+                      uuid: p1234567-89ab-cdef-0123-456789abcdef
+                      first_name: Aïcha
+                      last_name: Hounkpè
+                    segments:
+                      -
+                        leg_order: 0
+                        departure_uuid: dep12345-6789-abcd-ef01-23456789abcd
+                        origin_stop_uuid: stp12345-6789-abcd-ef01-23456789abcd
+                        destination_stop_uuid: stp23456-6789-abcd-ef01-23456789abcd
+                        seat_uuid: seat123-4567-89ab-cdef-0123456789ab
+                        seat_code: 12A
+                        status: active
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: t1234567-89ab-cdef-0123-456789abcdef
+                      short_code:
+                        type: string
+                        example: KORA-AB12CD
+                      qr_code:
+                        type: string
+                        example: 'data:image/png;base64,iVBORw0KGgo...'
+                      status:
+                        type: string
+                        example: issued
+                      issued_at:
+                        type: string
+                        example: '2026-08-20T08:10:00+00:00'
+                      reservation_uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      passenger:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: p1234567-89ab-cdef-0123-456789abcdef
+                          first_name:
+                            type: string
+                            example: Aïcha
+                          last_name:
+                            type: string
+                            example: Hounkpè
+                      segments:
+                        type: array
+                        example:
+                          -
+                            leg_order: 0
+                            departure_uuid: dep12345-6789-abcd-ef01-23456789abcd
+                            origin_stop_uuid: stp12345-6789-abcd-ef01-23456789abcd
+                            destination_stop_uuid: stp23456-6789-abcd-ef01-23456789abcd
+                            seat_uuid: seat123-4567-89ab-cdef-0123456789ab
+                            seat_code: 12A
+                            status: active
+                        items:
+                          type: object
+                          properties:
+                            leg_order:
+                              type: integer
+                              example: 0
+                            departure_uuid:
+                              type: string
+                              example: dep12345-6789-abcd-ef01-23456789abcd
+                            origin_stop_uuid:
+                              type: string
+                              example: stp12345-6789-abcd-ef01-23456789abcd
+                            destination_stop_uuid:
+                              type: string
+                              example: stp23456-6789-abcd-ef01-23456789abcd
+                            seat_uuid:
+                              type: string
+                              example: seat123-4567-89ab-cdef-0123456789ab
+                            seat_code:
+                              type: string
+                              example: 12A
+                            status:
+                              type: string
+                              example: active
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: "Vous n'avez pas accès à ce billet."
+                properties:
+                  message:
+                    type: string
+                    example: "Vous n'avez pas accès à ce billet."
+        404:
+          description: 'Ticket not found'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'No query results for model [App\Modules\Ticketing\Models\Ticket].'
+                properties:
+                  message:
+                    type: string
+                    example: 'No query results for model [App\Modules\Ticketing\Models\Ticket].'
+      tags:
+        - Tickets
+    parameters:
+      -
+        in: path
+        name: uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string

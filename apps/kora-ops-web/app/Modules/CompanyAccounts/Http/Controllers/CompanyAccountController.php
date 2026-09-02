@@ -16,8 +16,40 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * @group Company Accounts
+ *
+ * Company account management for group purchases and credit-based billing.
+ */
 class CompanyAccountController extends Controller
 {
+    /**
+     * List active company accounts visible to the authenticated user.
+     *
+     * Users with the `company-credit.view` permission see all active accounts.
+     * Others see only accounts where they are an active member.
+     *
+     * @authenticated
+     *
+     * @response 200 scenario="Company account list" {
+     *   "data": [
+     *     {
+     *       "uuid": "c1234567-89ab-cdef-0123-456789abcdef",
+     *       "name": "Société de Transport Bénin SARL",
+     *       "type": "company",
+     *       "reference": "STB-2026-001",
+     *       "phone": "+22901000001",
+     *       "email": "contact@stb.bj",
+     *       "status": "active",
+     *       "monthly_credit_limit": 5000000,
+     *       "available_credit": 3250000
+     *     }
+     *   ]
+     * }
+     * @response 401 scenario="Unauthenticated" {
+     *   "message": "Unauthenticated."
+     * }
+     */
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -29,6 +61,35 @@ class CompanyAccountController extends Controller
         return response()->json(['data' => $query->orderBy('name')->get()->map(fn (CompanyAccount $account): array => $this->serialize($account, $user))]);
     }
 
+    /**
+     * Create a new company account.
+     *
+     * @authenticated
+     *
+     * @response 201 scenario="Company account created" {
+     *   "data": {
+     *     "uuid": "c1234567-89ab-cdef-0123-456789abcdef",
+     *     "name": "Société de Transport Bénin SARL",
+     *     "type": "company",
+     *     "reference": "STB-2026-001",
+     *     "phone": "+22901000001",
+     *     "email": "contact@stb.bj",
+     *     "status": "active",
+     *     "monthly_credit_limit": 5000000,
+     *     "available_credit": 5000000
+     *   }
+     * }
+     * @response 401 scenario="Unauthenticated" {
+     *   "message": "Unauthenticated."
+     * }
+     * @response 403 scenario="Forbidden" {
+     *   "message": "This action is unauthorized."
+     * }
+     * @response 422 scenario="Validation error" {
+     *   "message": "The given data was invalid.",
+     *   "errors": {"name": ["The name has already been taken."]}
+     * }
+     */
     public function store(StoreCompanyAccountRequest $request): JsonResponse
     {
         $account = CompanyAccount::query()->create($request->validated() + ['created_by' => $request->user()->getKey(), 'updated_by' => $request->user()->getKey()]);
@@ -37,6 +98,35 @@ class CompanyAccountController extends Controller
         return response()->json(['data' => $this->serialize($account, $request->user())], 201);
     }
 
+    /**
+     * Update a company account's details.
+     *
+     * @authenticated
+     *
+     * @response 200 scenario="Company account updated" {
+     *   "data": {
+     *     "uuid": "c1234567-89ab-cdef-0123-456789abcdef",
+     *     "name": "Société de Transport Bénin SARL",
+     *     "type": "company",
+     *     "reference": "STB-2026-001",
+     *     "phone": "+22901000002",
+     *     "email": "contact@stb.bj",
+     *     "status": "active",
+     *     "monthly_credit_limit": 5000000,
+     *     "available_credit": 3250000
+     *   }
+     * }
+     * @response 401 scenario="Unauthenticated" {
+     *   "message": "Unauthenticated."
+     * }
+     * @response 403 scenario="Forbidden" {
+     *   "message": "This action is unauthorized."
+     * }
+     * @response 422 scenario="Validation error" {
+     *   "message": "The given data was invalid.",
+     *   "errors": {"email": ["The email has already been taken."]}
+     * }
+     */
     public function update(StoreCompanyAccountRequest $request, CompanyAccount $companyAccount): JsonResponse
     {
         Gate::forUser($request->user())->authorize('manage', CompanyAccount::class);
@@ -46,6 +136,34 @@ class CompanyAccountController extends Controller
         return response()->json(['data' => $this->serialize($companyAccount->fresh(), $request->user())]);
     }
 
+    /**
+     * Deactivate a company account.
+     *
+     * Sets the account status to `inactive`. Existing credit balances remain but no new
+     * purchases are allowed.
+     *
+     * @authenticated
+     *
+     * @response 200 scenario="Company account deactivated" {
+     *   "data": {
+     *     "uuid": "c1234567-89ab-cdef-0123-456789abcdef",
+     *     "name": "Société de Transport Bénin SARL",
+     *     "type": "company",
+     *     "reference": "STB-2026-001",
+     *     "phone": "+22901000001",
+     *     "email": "contact@stb.bj",
+     *     "status": "inactive",
+     *     "monthly_credit_limit": 5000000,
+     *     "available_credit": 3250000
+     *   }
+     * }
+     * @response 401 scenario="Unauthenticated" {
+     *   "message": "Unauthenticated."
+     * }
+     * @response 403 scenario="Forbidden" {
+     *   "message": "This action is unauthorized."
+     * }
+     */
     public function deactivate(Request $request, CompanyAccount $companyAccount): JsonResponse
     {
         Gate::forUser($request->user())->authorize('manage', CompanyAccount::class);
@@ -55,6 +173,36 @@ class CompanyAccountController extends Controller
         return response()->json(['data' => $this->serialize($companyAccount->fresh(), $request->user())]);
     }
 
+    /**
+     * Add or update a member on a company account.
+     *
+     * Only one active `referent` role is allowed per account. If the user is already
+     * a member, their role and status are updated.
+     *
+     * @authenticated
+     *
+     * @response 201 scenario="Member added" {
+     *   "data": {
+     *     "uuid": "m1234567-89ab-cdef-0123-456789abcdef",
+     *     "user_uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
+     *     "role": "buyer",
+     *     "status": "active"
+     *   }
+     * }
+     * @response 401 scenario="Unauthenticated" {
+     *   "message": "Unauthenticated."
+     * }
+     * @response 403 scenario="Forbidden" {
+     *   "message": "This action is unauthorized."
+     * }
+     * @response 422 scenario="Duplicate referent" {
+     *   "message": "The given data was invalid.",
+     *   "errors": {"role": ["Un seul référent actif est autorisé par compte entreprise."]}
+     * }
+     * @response 404 scenario="User not found" {
+     *   "message": "No query results for model [App\\Models\\User]."
+     * }
+     */
     public function addMember(StoreCompanyMemberRequest $request, CompanyAccount $companyAccount): JsonResponse
     {
         Gate::forUser($request->user())->authorize('manage', CompanyAccount::class);

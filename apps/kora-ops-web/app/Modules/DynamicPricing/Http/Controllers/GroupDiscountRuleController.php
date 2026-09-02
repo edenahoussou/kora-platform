@@ -11,8 +11,37 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * @group Group Discounts
+ *
+ * Group discount rule management and group booking settings.
+ */
 class GroupDiscountRuleController extends Controller
 {
+    /**
+     * List all group discount rules ordered by start date.
+     *
+     * @authenticated
+     *
+     * @response 200 scenario="Discount rule list" {
+     *   "data": [
+     *     {
+     *       "uuid": "d1234567-89ab-cdef-0123-456789abcdef",
+     *       "status": "active",
+     *       "passenger_threshold": 5,
+     *       "percentage": 10.0,
+     *       "starts_at": "2026-09-01T00:00:00+00:00",
+     *       "ends_at": null
+     *     }
+     *   ]
+     * }
+     * @response 401 scenario="Unauthenticated" {
+     *   "message": "Unauthenticated."
+     * }
+     * @response 403 scenario="Forbidden" {
+     *   "message": "This action is unauthorized."
+     * }
+     */
     public function index(Request $request): JsonResponse
     {
         abort_unless($request->user()?->can('group-discounts.view'), 403);
@@ -20,6 +49,39 @@ class GroupDiscountRuleController extends Controller
         return response()->json(['data' => GroupDiscountRule::query()->latest('starts_at')->latest('id')->get()->map(fn (GroupDiscountRule $rule): array => $this->serialize($rule))]);
     }
 
+    /**
+     * Create a new group discount rule.
+     *
+     * The passenger threshold must be >= the configured minimum group size.
+     * Only one active rule can cover a given period.
+     *
+     * @authenticated
+     *
+     * @response 201 scenario="Discount rule created" {
+     *   "data": {
+     *     "uuid": "d1234567-89ab-cdef-0123-456789abcdef",
+     *     "status": "active",
+     *     "passenger_threshold": 5,
+     *     "percentage": 10.0,
+     *     "starts_at": "2026-09-01T00:00:00+00:00",
+     *     "ends_at": null
+     *   }
+     * }
+     * @response 401 scenario="Unauthenticated" {
+     *   "message": "Unauthenticated."
+     * }
+     * @response 403 scenario="Forbidden" {
+     *   "message": "This action is unauthorized."
+     * }
+     * @response 422 scenario="Threshold below minimum" {
+     *   "message": "The given data was invalid.",
+     *   "errors": {"passenger_threshold": ["Le seuil de remise doit être supérieur ou égal au minimum groupe configuré."]}
+     * }
+     * @response 422 scenario="Overlapping active rule" {
+     *   "message": "The given data was invalid.",
+     *   "errors": {"starts_at": ["Une règle groupe active couvre déjà cette période."]}
+     * }
+     */
     public function store(StoreGroupDiscountRuleRequest $request): JsonResponse
     {
         $this->validateThreshold((int) $request->integer('passenger_threshold'));
@@ -30,6 +92,32 @@ class GroupDiscountRuleController extends Controller
         return response()->json(['data' => $this->serialize($rule)], 201);
     }
 
+    /**
+     * Update an existing group discount rule.
+     *
+     * @authenticated
+     *
+     * @response 200 scenario="Discount rule updated" {
+     *   "data": {
+     *     "uuid": "d1234567-89ab-cdef-0123-456789abcdef",
+     *     "status": "active",
+     *     "passenger_threshold": 8,
+     *     "percentage": 15.0,
+     *     "starts_at": "2026-09-01T00:00:00+00:00",
+     *     "ends_at": "2026-12-31T00:00:00+00:00"
+     *   }
+     * }
+     * @response 401 scenario="Unauthenticated" {
+     *   "message": "Unauthenticated."
+     * }
+     * @response 403 scenario="Forbidden" {
+     *   "message": "This action is unauthorized."
+     * }
+     * @response 422 scenario="Overlapping active rule" {
+     *   "message": "The given data was invalid.",
+     *   "errors": {"starts_at": ["Une règle groupe active couvre déjà cette période."]}
+     * }
+     */
     public function update(StoreGroupDiscountRuleRequest $request, GroupDiscountRule $groupDiscountRule): JsonResponse
     {
         $this->validateThreshold((int) $request->integer('passenger_threshold'));
@@ -40,6 +128,24 @@ class GroupDiscountRuleController extends Controller
         return response()->json(['data' => $this->serialize($groupDiscountRule->fresh())]);
     }
 
+    /**
+     * Get the current group booking settings (min/max passengers).
+     *
+     * @authenticated
+     *
+     * @response 200 scenario="Group booking settings" {
+     *   "data": {
+     *     "minimum_passengers": 5,
+     *     "maximum_passengers": 10
+     *   }
+     * }
+     * @response 401 scenario="Unauthenticated" {
+     *   "message": "Unauthenticated."
+     * }
+     * @response 403 scenario="Forbidden" {
+     *   "message": "This action is unauthorized."
+     * }
+     */
     public function settings(Request $request): JsonResponse
     {
         abort_unless($request->user()?->can('group-discounts.view'), 403);
@@ -48,6 +154,25 @@ class GroupDiscountRuleController extends Controller
         return response()->json(['data' => $settings->only(['minimum_passengers', 'maximum_passengers'])]);
     }
 
+    /**
+     * Update the group booking settings (min/max passengers).
+     *
+     * @authenticated
+     *
+     * @response 200 scenario="Settings updated" {
+     *   "data": {
+     *     "minimum_passengers": 3,
+     *     "maximum_passengers": 15
+     *   }
+     * }
+     * @response 401 scenario="Unauthenticated" {
+     *   "message": "Unauthenticated."
+     * }
+     * @response 422 scenario="Validation error" {
+     *   "message": "The given data was invalid.",
+     *   "errors": {"maximum_passengers": ["The maximum passengers must be greater than or equal to 3."]}
+     * }
+     */
     public function updateSettings(UpdateGroupBookingSettingRequest $request): JsonResponse
     {
         $settings = GroupBookingSetting::current();

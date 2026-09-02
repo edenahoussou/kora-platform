@@ -22,6 +22,31 @@ class HealthController extends Controller
      *
      * Returns 200 when every dependency is reachable, 503 otherwise so load
      * balancers and monitoring can drain traffic from an unhealthy instance.
+     *
+     * @unauthenticated
+     *
+     * @response 200 scenario="Healthy" {
+     *   "status": "ok",
+     *   "service": "kora-ops-web",
+     *   "scope": "bus",
+     *   "version": "v1",
+     *   "timestamp": "2026-09-02T10:00:00.000Z",
+     *   "checks": {
+     *     "database": {"status": "ok", "latency_ms": 3},
+     *     "cache": {"status": "ok", "latency_ms": 1}
+     *   }
+     * }
+     * @response 503 scenario="Degraded" {
+     *   "status": "degraded",
+     *   "service": "kora-ops-web",
+     *   "scope": "bus",
+     *   "version": "v1",
+     *   "timestamp": "2026-09-02T10:00:00.000Z",
+     *   "checks": {
+     *     "database": {"status": "error", "latency_ms": null},
+     *     "cache": {"status": "ok", "latency_ms": 1}
+     *   }
+     * }
      */
     public function index(): JsonResponse
     {
@@ -45,6 +70,10 @@ class HealthController extends Controller
     /**
      * Lightweight liveness probe for load balancers: always 200 when the
      * process can answer, with no dependency checks.
+     *
+     * @unauthenticated
+     *
+     * @response 204 scenario="Pong"
      */
     public function ping(): Response
     {

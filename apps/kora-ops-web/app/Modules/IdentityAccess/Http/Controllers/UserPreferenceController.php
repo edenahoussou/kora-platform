@@ -16,6 +16,24 @@ use Illuminate\Http\Request;
  */
 class UserPreferenceController extends Controller
 {
+    /**
+     * Get the authenticated user's notification and display preferences.
+     *
+     * @authenticated
+     *
+     * @response 200 scenario="User preferences" {
+     *   "data": {
+     *     "push_notifications": true,
+     *     "whatsapp_notifications": true,
+     *     "email_notifications": true,
+     *     "locale": "fr",
+     *     "theme": "light"
+     *   }
+     * }
+     * @response 401 scenario="Unauthenticated" {
+     *   "message": "Unauthenticated."
+     * }
+     */
     public function index(Request $request): JsonResponse
     {
         $preference = $this->getOrCreate($request);
@@ -23,6 +41,28 @@ class UserPreferenceController extends Controller
         return response()->json(['data' => new UserPreferenceResource($preference)]);
     }
 
+    /**
+     * Update the authenticated user's notification and display preferences.
+     *
+     * @authenticated
+     *
+     * @response 200 scenario="Preferences updated" {
+     *   "data": {
+     *     "push_notifications": false,
+     *     "whatsapp_notifications": true,
+     *     "email_notifications": true,
+     *     "locale": "en",
+     *     "theme": "dark"
+     *   }
+     * }
+     * @response 401 scenario="Unauthenticated" {
+     *   "message": "Unauthenticated."
+     * }
+     * @response 422 scenario="Validation error" {
+     *   "message": "The given data was invalid.",
+     *   "errors": {"locale": ["The selected locale is invalid."]}
+     * }
+     */
     public function update(UpdatePreferencesRequest $request): JsonResponse
     {
         $preference = $this->getOrCreate($request);
