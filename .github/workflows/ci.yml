@@ -121,13 +121,15 @@ jobs:
           cp .env.example .env
           php artisan key:generate
           # Scribe exécute les routes pour générer les exemples de réponse.
-          # Le job docs n'a pas de service PostgreSQL : on bascule sur SQLite
-          # (fichier) et on migre pour que les contrôleurs qui requêtent la
-          # base (ex. GroupBookingSetting::current()) ne plantent pas.
-          # On ne peut pas utiliser :memory: car Scribe tourne dans un
-          # processus séparé de migrate.
+          # Le job docs n'a ni PostgreSQL ni Redis : on bascule sur SQLite
+          # (fichier) et le cache array, puis on migre pour que les
+          # contrôleurs qui requêtent la base (ex. GroupBookingSetting::current())
+          # ne plantent pas. On ne peut pas utiliser :memory: car Scribe tourne
+          # dans un processus séparé de migrate.
           sed -i 's/DB_CONNECTION=pgsql/DB_CONNECTION=sqlite/' .env
           sed -i 's|DB_DATABASE=kora|DB_DATABASE=database/scribe.sqlite|' .env
+          sed -i 's/CACHE_STORE=redis/CACHE_STORE=array/' .env
+          sed -i 's/SESSION_DRIVER=database/SESSION_DRIVER=file/' .env
           touch database/scribe.sqlite
           php artisan migrate --force
         working-directory: apps/kora-ops-web

@@ -79,7 +79,7 @@ endpoints:
         name: method
         description: ''
         required: true
-        example: company_credit
+        example: mobile_money
         type: string
         enumValues:
           - mobile_money
@@ -125,7 +125,7 @@ endpoints:
         name: mobile_money_network
         description: ''
         required: false
-        example: moov_flooz
+        example: mtn_momo
         type: string
         enumValues:
           - mtn_momo
@@ -136,11 +136,11 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       reservation_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-      method: company_credit
+      method: mobile_money
       provider: g
       idempotency_key: z
       phone: m
-      mobile_money_network: moov_flooz
+      mobile_money_network: mtn_momo
     fileParameters: []
     responses:
       -

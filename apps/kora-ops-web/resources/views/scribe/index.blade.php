@@ -2369,7 +2369,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     ],
     \"idempotency_key\": \"b\",
     \"payer\": {
-        \"type\": \"company\",
+        \"type\": \"personal\",
         \"user_uuid\": \"a4855dc5-0acb-33c3-b921-f4291f719ca0\",
         \"company_account_uuid\": \"c90237e9-ced5-3af6-88ea-84aeaa148878\"
     }
@@ -2401,7 +2401,7 @@ let body = {
     ],
     "idempotency_key": "b",
     "payer": {
-        "type": "company",
+        "type": "personal",
         "user_uuid": "a4855dc5-0acb-33c3-b921-f4291f719ca0",
         "company_account_uuid": "c90237e9-ced5-3af6-88ea-84aeaa148878"
     }
@@ -2652,10 +2652,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="payer.type"                data-endpoint="POSTapi-v1-bus-holds"
-               value="company"
+               value="personal"
                data-component="body">
     <br>
-<p>This field is required when <code>payer</code> is present. Example: <code>company</code></p>
+<p>This field is required when <code>payer</code> is present. Example: <code>personal</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>personal</code></li> <li><code>company</code></li></ul>
                     </div>
@@ -3129,7 +3129,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"itinerary_quote_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
     \"idempotency_key\": \"g\",
     \"payer\": {
-        \"type\": \"company\",
+        \"type\": \"personal\",
         \"user_uuid\": \"c90237e9-ced5-3af6-88ea-84aeaa148878\",
         \"company_account_uuid\": \"a1a0a47d-e8c3-3cf0-8e6e-c1ff9dca5d1f\"
     },
@@ -3163,7 +3163,7 @@ let body = {
     "itinerary_quote_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
     "idempotency_key": "g",
     "payer": {
-        "type": "company",
+        "type": "personal",
         "user_uuid": "c90237e9-ced5-3af6-88ea-84aeaa148878",
         "company_account_uuid": "a1a0a47d-e8c3-3cf0-8e6e-c1ff9dca5d1f"
     },
@@ -3327,10 +3327,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="payer.type"                data-endpoint="POSTapi-v1-bus-itinerary-holds"
-               value="company"
+               value="personal"
                data-component="body">
     <br>
-<p>This field is required when <code>payer</code> is present. Example: <code>company</code></p>
+<p>This field is required when <code>payer</code> is present. Example: <code>personal</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>personal</code></li> <li><code>company</code></li></ul>
                     </div>
@@ -3445,7 +3445,7 @@ Must be one of:
             \"last_name\": \"n\",
             \"phone\": \"g\",
             \"email\": \"rowan.gulgowski@example.com\",
-            \"document_type\": \"national_id\",
+            \"document_type\": \"consular_card\",
             \"document_number\": \"d\",
             \"nationality\": \"lj\",
             \"birth_date\": \"2026-09-02\",
@@ -3474,7 +3474,7 @@ let body = {
             "last_name": "n",
             "phone": "g",
             "email": "rowan.gulgowski@example.com",
-            "document_type": "national_id",
+            "document_type": "consular_card",
             "document_number": "d",
             "nationality": "lj",
             "birth_date": "2026-09-02",
@@ -3674,10 +3674,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="passengers.0.document_type"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
-               value="national_id"
+               value="consular_card"
                data-component="body">
     <br>
-<p>Example: <code>national_id</code></p>
+<p>Example: <code>consular_card</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>national_id</code></li> <li><code>biometric_card</code></li> <li><code>passport</code></li> <li><code>consular_card</code></li></ul>
                     </div>
@@ -4027,7 +4027,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Accept: application/json" \
     --data "{
     \"email\": \"gbailey@example.net\",
-    \"purpose\": \"pin_reset\"
+    \"purpose\": \"account_unlock\"
 }"
 </code></pre></div>
 
@@ -4044,7 +4044,7 @@ const headers = {
 
 let body = {
     "email": "gbailey@example.net",
-    "purpose": "pin_reset"
+    "purpose": "account_unlock"
 };
 
 fetch(url, {
@@ -4148,10 +4148,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="purpose"                data-endpoint="POSTapi-v1-auth-otp-request"
-               value="pin_reset"
+               value="account_unlock"
                data-component="body">
     <br>
-<p>Example: <code>pin_reset</code></p>
+<p>Example: <code>account_unlock</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>registration</code></li> <li><code>login_new_device</code></li> <li><code>pin_reset</code></li> <li><code>account_unlock</code></li></ul>
         </div>
@@ -4175,7 +4175,7 @@ Must be one of:
     --header "Accept: application/json" \
     --data "{
     \"otp_challenge_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
-    \"purpose\": \"login_new_device\",
+    \"purpose\": \"registration\",
     \"code\": \"569775\"
 }"
 </code></pre></div>
@@ -4193,7 +4193,7 @@ const headers = {
 
 let body = {
     "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-    "purpose": "login_new_device",
+    "purpose": "registration",
     "code": "569775"
 };
 
@@ -4298,10 +4298,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="purpose"                data-endpoint="POSTapi-v1-auth-otp-verify"
-               value="login_new_device"
+               value="registration"
                data-component="body">
     <br>
-<p>Example: <code>login_new_device</code></p>
+<p>Example: <code>registration</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>registration</code></li> <li><code>login_new_device</code></li> <li><code>pin_reset</code></li> <li><code>account_unlock</code></li></ul>
         </div>
@@ -4646,7 +4646,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"verification_token\": \"gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn\",
     \"pin\": \"9775\",
     \"device_name\": \"n\",
-    \"platform\": \"web\",
+    \"platform\": \"unknown\",
     \"device_fingerprint\": \"g\",
     \"push_token\": \"z\"
 }"
@@ -4668,7 +4668,7 @@ let body = {
     "verification_token": "gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn",
     "pin": "9775",
     "device_name": "n",
-    "platform": "web",
+    "platform": "unknown",
     "device_fingerprint": "g",
     "push_token": "z"
 };
@@ -4810,10 +4810,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="platform"                data-endpoint="POSTapi-v1-auth-register-complete"
-               value="web"
+               value="unknown"
                data-component="body">
     <br>
-<p>Example: <code>web</code></p>
+<p>Example: <code>unknown</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>android</code></li> <li><code>ios</code></li> <li><code>web</code></li> <li><code>unknown</code></li></ul>
         </div>
@@ -5097,7 +5097,7 @@ compte social, télécharge l'avatar via Spatie Media Library et
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
-    \"provider\": \"google\",
+    \"provider\": \"tiktok\",
     \"provider_token\": \"b\",
     \"device_name\": \"n\",
     \"platform\": \"web\",
@@ -5118,7 +5118,7 @@ const headers = {
 };
 
 let body = {
-    "provider": "google",
+    "provider": "tiktok",
     "provider_token": "b",
     "device_name": "n",
     "platform": "web",
@@ -5323,10 +5323,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="provider"                data-endpoint="POSTapi-v1-auth-oauth-token"
-               value="google"
+               value="tiktok"
                data-component="body">
     <br>
-<p>Example: <code>google</code></p>
+<p>Example: <code>tiktok</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>google</code></li> <li><code>facebook</code></li> <li><code>tiktok</code></li></ul>
         </div>
@@ -5967,11 +5967,11 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
-    \"push_notifications\": true,
+    \"push_notifications\": false,
     \"whatsapp_notifications\": true,
     \"email_notifications\": false,
-    \"locale\": \"fr\",
-    \"theme\": \"system\"
+    \"locale\": \"en\",
+    \"theme\": \"dark\"
 }"
 </code></pre></div>
 
@@ -5987,11 +5987,11 @@ const headers = {
 };
 
 let body = {
-    "push_notifications": true,
+    "push_notifications": false,
     "whatsapp_notifications": true,
     "email_notifications": false,
-    "locale": "fr",
-    "theme": "system"
+    "locale": "en",
+    "theme": "dark"
 };
 
 fetch(url, {
@@ -6096,7 +6096,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>true</code></p>
+<p>Example: <code>false</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>whatsapp_notifications</code></b>&nbsp;&nbsp;
@@ -6149,10 +6149,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="locale"                data-endpoint="PUTapi-v1-auth-preferences"
-               value="fr"
+               value="en"
                data-component="body">
     <br>
-<p>Example: <code>fr</code></p>
+<p>Example: <code>en</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>fr</code></li> <li><code>en</code></li></ul>
         </div>
@@ -6163,10 +6163,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="theme"                data-endpoint="PUTapi-v1-auth-preferences"
-               value="system"
+               value="dark"
                data-component="body">
     <br>
-<p>Example: <code>system</code></p>
+<p>Example: <code>dark</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>light</code></li> <li><code>dark</code></li> <li><code>system</code></li></ul>
         </div>
@@ -6651,7 +6651,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Accept: application/json" \
     --data "{
     \"name\": \"b\",
-    \"type\": \"embassy\",
+    \"type\": \"ngo\",
     \"reference\": \"n\",
     \"phone\": \"g\",
     \"email\": \"rowan.gulgowski@example.com\",
@@ -6672,7 +6672,7 @@ const headers = {
 
 let body = {
     "name": "b",
-    "type": "embassy",
+    "type": "ngo",
     "reference": "n",
     "phone": "g",
     "email": "rowan.gulgowski@example.com",
@@ -6780,10 +6780,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="type"                data-endpoint="POSTapi-v1-company-accounts"
-               value="embassy"
+               value="ngo"
                data-component="body">
     <br>
-<p>Example: <code>embassy</code></p>
+<p>Example: <code>ngo</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>company</code></li> <li><code>ngo</code></li> <li><code>embassy</code></li></ul>
         </div>
@@ -7196,7 +7196,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Accept: application/json" \
     --data "{
     \"user_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
-    \"role\": \"member\"
+    \"role\": \"referent\"
 }"
 </code></pre></div>
 
@@ -7213,7 +7213,7 @@ const headers = {
 
 let body = {
     "user_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-    "role": "member"
+    "role": "referent"
 };
 
 fetch(url, {
@@ -7330,10 +7330,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="role"                data-endpoint="POSTapi-v1-company-accounts--companyAccount_uuid--members"
-               value="member"
+               value="referent"
                data-component="body">
     <br>
-<p>Example: <code>member</code></p>
+<p>Example: <code>referent</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>referent</code></li> <li><code>member</code></li></ul>
         </div>
@@ -7470,7 +7470,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"status\": \"inactive\",
     \"passenger_threshold\": 16,
     \"percentage\": 22,
-    \"starts_at\": \"2026-09-02T09:25:49\",
+    \"starts_at\": \"2026-09-02T09:35:13\",
     \"ends_at\": \"2052-09-25\"
 }"
 </code></pre></div>
@@ -7490,7 +7490,7 @@ let body = {
     "status": "inactive",
     "passenger_threshold": 16,
     "percentage": 22,
-    "starts_at": "2026-09-02T09:25:49",
+    "starts_at": "2026-09-02T09:35:13",
     "ends_at": "2052-09-25"
 };
 
@@ -7621,10 +7621,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="starts_at"                data-endpoint="POSTapi-v1-group-discounts"
-               value="2026-09-02T09:25:49"
+               value="2026-09-02T09:35:13"
                data-component="body">
     <br>
-<p>Le champ value doit être une date valide. Example: <code>2026-09-02T09:25:49</code></p>
+<p>Le champ value doit être une date valide. Example: <code>2026-09-02T09:35:13</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>ends_at</code></b>&nbsp;&nbsp;
@@ -7660,7 +7660,7 @@ Must be one of:
     \"status\": \"inactive\",
     \"passenger_threshold\": 16,
     \"percentage\": 22,
-    \"starts_at\": \"2026-09-02T09:25:49\",
+    \"starts_at\": \"2026-09-02T09:35:13\",
     \"ends_at\": \"2052-09-25\"
 }"
 </code></pre></div>
@@ -7680,7 +7680,7 @@ let body = {
     "status": "inactive",
     "passenger_threshold": 16,
     "percentage": 22,
-    "starts_at": "2026-09-02T09:25:49",
+    "starts_at": "2026-09-02T09:35:13",
     "ends_at": "2052-09-25"
 };
 
@@ -7824,10 +7824,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="starts_at"                data-endpoint="PUTapi-v1-group-discounts--groupDiscountRule_uuid-"
-               value="2026-09-02T09:25:49"
+               value="2026-09-02T09:35:13"
                data-component="body">
     <br>
-<p>Le champ value doit être une date valide. Example: <code>2026-09-02T09:25:49</code></p>
+<p>Le champ value doit être une date valide. Example: <code>2026-09-02T09:35:13</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>ends_at</code></b>&nbsp;&nbsp;
@@ -8709,11 +8709,11 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Accept: application/json" \
     --data "{
     \"reservation_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
-    \"method\": \"company_credit\",
+    \"method\": \"mobile_money\",
     \"provider\": \"g\",
     \"idempotency_key\": \"z\",
     \"phone\": \"m\",
-    \"mobile_money_network\": \"moov_flooz\"
+    \"mobile_money_network\": \"mtn_momo\"
 }"
 </code></pre></div>
 
@@ -8730,11 +8730,11 @@ const headers = {
 
 let body = {
     "reservation_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-    "method": "company_credit",
+    "method": "mobile_money",
     "provider": "g",
     "idempotency_key": "z",
     "phone": "m",
-    "mobile_money_network": "moov_flooz"
+    "mobile_money_network": "mtn_momo"
 };
 
 fetch(url, {
@@ -8856,10 +8856,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="method"                data-endpoint="POSTapi-v1-payments-initiate"
-               value="company_credit"
+               value="mobile_money"
                data-component="body">
     <br>
-<p>Example: <code>company_credit</code></p>
+<p>Example: <code>mobile_money</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>mobile_money</code></li> <li><code>company_credit</code></li></ul>
         </div>
@@ -8906,10 +8906,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="mobile_money_network"                data-endpoint="POSTapi-v1-payments-initiate"
-               value="moov_flooz"
+               value="mtn_momo"
                data-component="body">
     <br>
-<p>Example: <code>moov_flooz</code></p>
+<p>Example: <code>mtn_momo</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>mtn_momo</code></li> <li><code>moov_flooz</code></li> <li><code>celtiis_cash</code></li></ul>
         </div>

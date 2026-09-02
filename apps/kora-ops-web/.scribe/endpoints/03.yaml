@@ -71,7 +71,7 @@ endpoints:
         name: type
         description: ''
         required: true
-        example: embassy
+        example: ngo
         type: string
         enumValues:
           - company
@@ -126,7 +126,7 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       name: b
-      type: embassy
+      type: ngo
       reference: 'n'
       phone: g
       email: rowan.gulgowski@example.com
@@ -350,7 +350,7 @@ endpoints:
         name: role
         description: ''
         required: true
-        example: member
+        example: referent
         type: string
         enumValues:
           - referent
@@ -360,7 +360,7 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       user_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-      role: member
+      role: referent
     fileParameters: []
     responses: []
     responseFields: []
@@ -462,7 +462,7 @@ endpoints:
         name: starts_at
         description: 'Le champ value doit être une date valide.'
         required: false
-        example: '2026-09-02T09:25:49'
+        example: '2026-09-02T09:35:13'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -483,7 +483,7 @@ endpoints:
       status: inactive
       passenger_threshold: 16
       percentage: 22
-      starts_at: '2026-09-02T09:25:49'
+      starts_at: '2026-09-02T09:35:13'
       ends_at: '2052-09-25'
     fileParameters: []
     responses: []
@@ -567,7 +567,7 @@ endpoints:
         name: starts_at
         description: 'Le champ value doit être une date valide.'
         required: false
-        example: '2026-09-02T09:25:49'
+        example: '2026-09-02T09:35:13'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -588,7 +588,7 @@ endpoints:
       status: inactive
       passenger_threshold: 16
       percentage: 22
-      starts_at: '2026-09-02T09:25:49'
+      starts_at: '2026-09-02T09:35:13'
       ends_at: '2052-09-25'
     fileParameters: []
     responses: []
