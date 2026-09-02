@@ -8,6 +8,8 @@ use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Models\Departure;
+use App\Modules\SeatInventory\Actions\BuildSeatAvailabilityAction;
+use App\Modules\SeatInventory\Data\SeatAvailabilityStatus;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
@@ -62,6 +64,11 @@ final class ItineraryData
  */
 class ItinerarySearchService
 {
+    public function __construct(
+        private DepartureStopTimeResolver $stopTimeResolver,
+        private BuildSeatAvailabilityAction $buildSeatAvailability,
+    ) {}
+
     /**
      * @return list<ItineraryData>
      */
@@ -69,11 +76,16 @@ class ItinerarySearchService
         string $originPhysicalStopUuid,
         string $destinationPhysicalStopUuid,
         CarbonImmutable $date,
+        int $passengerCount = 1,
     ): array {
+        if ($passengerCount < 1 || $passengerCount > 10) {
+            return [];
+        }
+
         $originPhysical = PhysicalStop::query()->where('uuid', $originPhysicalStopUuid)->first();
         $destinationPhysical = PhysicalStop::query()->where('uuid', $destinationPhysicalStopUuid)->first();
 
-        if (! $originPhysical || ! $destinationPhysical || $originPhysical->id === $destinationPhysical->id) {
+        if (! $originPhysical || ! $destinationPhysical || $originPhysical->getRawOriginal('status') !== 'active' || $destinationPhysical->getRawOriginal('status') !== 'active' || $originPhysical->id === $destinationPhysical->id) {
             return [];
         }
 
@@ -86,6 +98,7 @@ class ItinerarySearchService
             date: $date,
             maxLegs: $maxLegs,
             marginMinutes: $marginMinutes,
+            passengerCount: $passengerCount,
         );
 
         return $this->sortItineraries($itineraries);
@@ -100,6 +113,7 @@ class ItinerarySearchService
         CarbonImmutable $date,
         int $maxLegs,
         int $marginMinutes,
+        int $passengerCount,
     ): array {
         $itineraries = [];
         $this->searchRecursive(
@@ -111,6 +125,7 @@ class ItinerarySearchService
             maxLegs: $maxLegs,
             marginMinutes: $marginMinutes,
             earliestNextDeparture: $date->startOfDay(),
+            passengerCount: $passengerCount,
             results: $itineraries,
         );
 
@@ -133,9 +148,10 @@ class ItinerarySearchService
         int $maxLegs,
         int $marginMinutes,
         CarbonImmutable $earliestNextDeparture,
+        int $passengerCount,
         array &$results,
     ): void {
-        if (count($legs) >= $maxLegs) {
+        if (count($legs) >= $maxLegs || count($results) >= (int) config('kora.itineraries.max_results', 25)) {
             return;
         }
 
@@ -179,9 +195,9 @@ class ItinerarySearchService
 
                 $legArrivalAt = $this->getStopArrivalTime($departure, $stop);
                 $legDepartureAt = $this->getStopDepartureTime($departure, $originStop);
-                $legAmount = $this->getFareAmount($line, $originStop, $stop);
+                $legAmount = $this->getFareAmount($departure, $originStop, $stop);
 
-                if ($legAmount === null) {
+                if ($legAmount === null || $legDepartureAt === null || $legArrivalAt === null || ! $this->hasAvailableSeats($departure, $originStop, $stop, $passengerCount)) {
                     continue;
                 }
 
@@ -203,7 +219,7 @@ class ItinerarySearchService
                     // Intermediate stop — search for connecting legs
                     $nextEarliest = $legArrivalAt->addMinutes($marginMinutes);
                     // Same-day constraint: next departure must be on the same calendar day
-                    if (! $nextEarliest->isSameDay($date)) {
+                    if ($nextEarliest->setTimezone($date->getTimezone())->toDateString() !== $date->toDateString()) {
                         continue;
                     }
 
@@ -216,6 +232,7 @@ class ItinerarySearchService
                         maxLegs: $maxLegs,
                         marginMinutes: $marginMinutes,
                         earliestNextDeparture: $nextEarliest,
+                        passengerCount: $passengerCount,
                         results: $results,
                     );
                 }
@@ -255,72 +272,48 @@ class ItinerarySearchService
             ->whereIn('line_id', $lineIds)
             ->with(['line.stops' => fn ($q) => $q->where('status', StopStatus::Active->value)->orderBy('stop_order')])
             ->get()
-            ->filter(function (Departure $departure) use ($earliestDeparture): bool {
-                $scheduledAt = $departure->scheduledDepartureAt();
+            ->filter(function (Departure $departure) use ($stops, $earliestDeparture): bool {
+                return $stops
+                    ->where('line_id', $departure->line_id)
+                    ->contains(function (Stop $stop) use ($departure, $earliestDeparture): bool {
+                        $stopDepartureAt = $this->getStopDepartureTime($departure, $stop);
 
-                return $scheduledAt->greaterThanOrEqualTo($earliestDeparture);
+                        return $stopDepartureAt !== null && $stopDepartureAt->greaterThanOrEqualTo($earliestDeparture);
+                    });
             })
             ->values();
     }
 
-    private function getStopDepartureTime(Departure $departure, Stop $stop): CarbonImmutable
+    private function getStopDepartureTime(Departure $departure, Stop $stop): ?CarbonImmutable
     {
-        $stopTimes = $departure->stop_times;
-        if (is_array($stopTimes)) {
-            foreach ($stopTimes as $st) {
-                if (($st['stop_id'] ?? null) === $stop->id && isset($st['departure_time'])) {
-                    return CarbonImmutable::parse($st['departure_time']);
-                }
-            }
-        }
-
-        // Fallback: if this is the first stop, use the departure's scheduled time
-        if ($stop->stop_order === 1) {
-            return $departure->scheduledDepartureAt();
-        }
-
-        // Fallback: use the departure's scheduled time (approximate)
-        return $departure->scheduledDepartureAt();
+        return $this->stopTimeResolver->departureAt($departure, $stop);
     }
 
-    private function getStopArrivalTime(Departure $departure, Stop $stop): CarbonImmutable
+    private function getStopArrivalTime(Departure $departure, Stop $stop): ?CarbonImmutable
     {
-        $stopTimes = $departure->stop_times;
-        if (is_array($stopTimes)) {
-            foreach ($stopTimes as $st) {
-                if (($st['stop_id'] ?? null) === $stop->id && isset($st['arrival_time'])) {
-                    return CarbonImmutable::parse($st['arrival_time']);
-                }
-            }
-        }
-
-        // Fallback: if this is the last stop, use estimated_arrival_at
-        $stops = $departure->line->getRelation('stops');
-        if ($stops instanceof EloquentCollection) {
-            /** @var Stop|null $lastStop */
-            $lastStop = $stops->last();
-            if ($lastStop && $stop->id === $lastStop->id) {
-                return $departure->estimated_arrival_at
-                    ? CarbonImmutable::instance($departure->estimated_arrival_at)
-                    : $departure->scheduledDepartureAt();
-            }
-        }
-
-        // Fallback: use estimated_arrival_at (approximate)
-        return $departure->estimated_arrival_at
-            ? CarbonImmutable::instance($departure->estimated_arrival_at)
-            : $departure->scheduledDepartureAt();
+        return $this->stopTimeResolver->arrivalAt($departure, $stop);
     }
 
-    private function getFareAmount(Line $line, Stop $origin, Stop $destination): ?int
+    private function getFareAmount(Departure $departure, Stop $origin, Stop $destination): ?int
     {
-        $fare = $line->fares()
+        $fare = $departure->line->fares()
             ->where('origin_stop_id', $origin->id)
             ->where('destination_stop_id', $destination->id)
             ->where('status', 'active')
+            ->whereDate('effective_from', '<=', $departure->departure_date ?? now())
+            ->where(fn ($query) => $query->whereNull('effective_until')->orWhereDate('effective_until', '>=', $departure->departure_date ?? now()))
+            ->orderByDesc('effective_from')
             ->first();
 
         return $fare?->base_amount;
+    }
+
+    private function hasAvailableSeats(Departure $departure, Stop $origin, Stop $destination, int $passengerCount): bool
+    {
+        return $this->buildSeatAvailability
+            ->handle($departure, $origin, $destination)
+            ->where('availabilityStatus', SeatAvailabilityStatus::Available)
+            ->count() >= $passengerCount;
     }
 
     /**

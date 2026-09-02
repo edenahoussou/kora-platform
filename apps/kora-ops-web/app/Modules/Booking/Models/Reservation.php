@@ -35,6 +35,7 @@ class Reservation extends KoraModel
         'uuid',
         'user_id',
         'price_quote_id',
+        'itinerary_quote_id',
         'status',
         'ticket_issuance_status',
         'ticket_issuance_error',
@@ -43,6 +44,7 @@ class Reservation extends KoraModel
         'total_amount',
         'currency',
         'channel',
+        'idempotency_key',
         'expires_at',
         'total_snapshot',
         'draft_data',
@@ -56,9 +58,13 @@ class Reservation extends KoraModel
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * @return BelongsTo<PriceQuote, $this>
-     */
+    /** @return BelongsTo<ItineraryQuote, $this> */
+    public function itineraryQuote(): BelongsTo
+    {
+        return $this->belongsTo(ItineraryQuote::class);
+    }
+
+    /** @return BelongsTo<PriceQuote, $this> */
     public function priceQuote(): BelongsTo
     {
         return $this->belongsTo(PriceQuote::class);

@@ -6,19 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Modules\Booking\Actions\CalculateItineraryQuoteAction;
 use App\Modules\Booking\Actions\CreateItineraryHoldAction;
 use App\Modules\Booking\Actions\ItineraryLegQuoteRequest;
-use App\Modules\Booking\Actions\ItineraryLegRequest;
 use App\Modules\Booking\Data\ReservationChannel;
 use App\Modules\Booking\Http\Requests\ItineraryHoldRequest;
 use App\Modules\Booking\Http\Requests\ItineraryQuoteRequest;
 use App\Modules\Booking\Http\Requests\ItinerarySearchRequest;
 use App\Modules\Booking\Http\Resources\ReservationResource;
+use App\Modules\Booking\Models\ItineraryQuote;
 use App\Modules\Booking\Services\ItineraryData;
 use App\Modules\Booking\Services\ItinerarySearchService;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Gate;
 
 /**
  * @group Bus
@@ -33,8 +32,6 @@ class ItineraryController extends Controller
 
     /**
      * Search for multi-line itineraries (direct and with connections).
-     *
-     * @authenticated
      *
      * @queryParam from_physical_stop_uuid string required UUID of the origin physical stop.
      * @queryParam to_physical_stop_uuid string required UUID of the destination physical stop.
@@ -67,12 +64,11 @@ class ItineraryController extends Controller
      */
     public function index(ItinerarySearchRequest $request): JsonResponse
     {
-        Gate::authorize('viewAny', Departure::class);
-
         $itineraries = $this->itinerarySearch->search(
             originPhysicalStopUuid: $request->string('from_physical_stop_uuid')->toString(),
             destinationPhysicalStopUuid: $request->string('to_physical_stop_uuid')->toString(),
             date: CarbonImmutable::parse($request->string('date')),
+            passengerCount: (int) $request->integer('passenger_count', 1),
         );
 
         return response()->json([
@@ -103,11 +99,12 @@ class ItineraryController extends Controller
         $legs = $this->buildLegQuoteRequests($request);
         $passengerCount = (int) $request->integer('passenger_count', 1);
 
-        $result = $calculateQuote->handle($legs, $passengerCount);
+        $result = $calculateQuote->handle($legs, $passengerCount, $request->user());
 
         return response()->json([
             'total_amount' => $result->totalAmount,
             'currency' => $result->currency,
+            'itinerary_quote_uuid' => $result->itineraryQuote->uuid,
             'expires_at' => $result->expiresAt?->toIso8601String(),
             'legs' => array_map(fn ($legQuote): array => [
                 'leg_order' => array_search($legQuote, $result->legQuotes, true) + 1,
@@ -132,15 +129,16 @@ class ItineraryController extends Controller
      */
     public function hold(ItineraryHoldRequest $request, CreateItineraryHoldAction $createHold): JsonResponse
     {
-        $legs = $this->buildLegRequests($request);
+        $quote = ItineraryQuote::query()
+            ->where('uuid', $request->string('itinerary_quote_uuid')->toString())
+            ->firstOrFail();
 
         $reservation = $createHold->handle(
             user: $request->user(),
-            legs: $legs,
-            totalAmount: (int) $request->integer('total_amount'),
-            currency: $request->string('currency', 'XOF')->toString(),
+            itineraryQuote: $quote,
+            seatAssignments: $request->seatAssignments(),
             channel: ReservationChannel::Mobile,
-            totalSnapshot: $request->input('snapshot'),
+            idempotencyKey: $request->string('idempotency_key')->toString(),
         );
 
         return (new ReservationResource($reservation))
@@ -184,26 +182,6 @@ class ItineraryController extends Controller
                 departure: Departure::query()->where('uuid', $legData['departure_uuid'])->firstOrFail(),
                 originStop: Stop::query()->where('uuid', $legData['origin_stop_uuid'])->firstOrFail(),
                 destinationStop: Stop::query()->where('uuid', $legData['destination_stop_uuid'])->firstOrFail(),
-            );
-        }
-
-        return $legs;
-    }
-
-    /**
-     * @return list<ItineraryLegRequest>
-     */
-    private function buildLegRequests(ItineraryHoldRequest $request): array
-    {
-        $legsData = $request->input('legs', []);
-        $legs = [];
-
-        foreach ($legsData as $legData) {
-            $legs[] = new ItineraryLegRequest(
-                departure: Departure::query()->where('uuid', $legData['departure_uuid'])->firstOrFail(),
-                originStop: Stop::query()->where('uuid', $legData['origin_stop_uuid'])->firstOrFail(),
-                destinationStop: Stop::query()->where('uuid', $legData['destination_stop_uuid'])->firstOrFail(),
-                seatUuid: $legData['seat_uuid'],
             );
         }
 

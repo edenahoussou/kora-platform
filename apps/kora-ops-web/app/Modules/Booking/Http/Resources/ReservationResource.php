@@ -30,6 +30,7 @@ class ReservationResource extends JsonResource
             'currency' => $this->currency,
             'channel' => $this->channel?->value,
             'departure_uuid' => $this->segments->first()?->departure?->uuid,
+            'itinerary_quote_uuid' => $this->itineraryQuote?->uuid,
             'segments' => ReservationSegmentResource::collection($this->whenLoaded('segments')),
             'passengers' => ReservationPassengerResource::collection($this->whenLoaded('passengers')),
         ];

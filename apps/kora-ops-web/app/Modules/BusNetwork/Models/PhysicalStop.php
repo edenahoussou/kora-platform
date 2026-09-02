@@ -13,6 +13,7 @@ class PhysicalStop extends KoraModel
 
     protected $fillable = [
         'uuid',
+        'code',
         'name',
         'city',
         'country',

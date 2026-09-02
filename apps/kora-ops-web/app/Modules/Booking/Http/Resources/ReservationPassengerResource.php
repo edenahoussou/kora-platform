@@ -16,7 +16,7 @@ class ReservationPassengerResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        $segment = $this->segments->first();
+        $firstSegment = $this->segments->first();
 
         return [
             'uuid' => $this->uuid,
@@ -27,7 +27,14 @@ class ReservationPassengerResource extends JsonResource
             'document_number' => $this->document_number,
             'nationality' => $this->nationality,
             'birth_date' => $this->birth_date?->toDateString(),
-            'seat_code' => $segment?->seat?->code,
+            'seat_code' => $firstSegment?->seat?->code,
+            'segments' => $this->segments->map(fn ($segment): array => [
+                'leg_order' => $segment->leg_order,
+                'departure_uuid' => $segment->departure?->uuid,
+                'seat_uuid' => $segment->seat?->uuid,
+                'seat_code' => $segment->seat?->code,
+                'status' => $segment->status->value,
+            ])->values(),
         ];
     }
 }

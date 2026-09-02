@@ -26,6 +26,7 @@ class StorePassengersRequest extends FormRequest
             'passengers.*.document_number' => ['nullable', 'string', 'max:64'],
             'passengers.*.nationality' => ['nullable', 'string', 'size:2'],
             'passengers.*.birth_date' => ['nullable', 'date_format:Y-m-d'],
+            'passengers.*.passenger_index' => ['nullable', 'integer', 'min:0', 'max:9'],
             'passengers.*.seat_uuid' => ['nullable', 'uuid'],
         ];
     }
@@ -40,6 +41,7 @@ class StorePassengersRequest extends FormRequest
      *     document_number?: string|null,
      *     nationality?: string|null,
      *     birth_date?: string|null,
+     *     passenger_index?: int|null,
      *     seat_uuid?: string|null
      * }>
      */
@@ -58,6 +60,7 @@ class StorePassengersRequest extends FormRequest
                 'document_number' => isset($p['document_number']) ? (string) $p['document_number'] : null,
                 'nationality' => isset($p['nationality']) ? (string) $p['nationality'] : null,
                 'birth_date' => isset($p['birth_date']) ? (string) $p['birth_date'] : null,
+                'passenger_index' => isset($p['passenger_index']) ? (int) $p['passenger_index'] : null,
                 'seat_uuid' => isset($p['seat_uuid']) ? (string) $p['seat_uuid'] : null,
             ];
         }, $passengers);

@@ -13,6 +13,7 @@ return new class extends Migration
         Schema::create('physical_stops', function (Blueprint $table): void {
             $table->id();
             $table->uuid('uuid')->unique();
+            $table->string('code')->nullable()->unique();
             $table->string('name');
             $table->string('city');
             $table->string('country', 2)->default('BJ');
@@ -22,11 +23,6 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            // Un même nom d'arrêt physique peut exister dans plusieurs villes
-            // (ex. « Gare Routière » à Cotonou et à Lomé), mais le couple
-            // (name, city) identifie de façon unique un point d'arrêt physique.
-            // Les seeders s'appuient sur cet invariant via firstOrCreate(['name' => …]).
-            $table->unique(['name', 'city']);
         });
 
         // Étape 1 — ajouter la colonne nullable pour permettre le backfill
@@ -39,32 +35,27 @@ return new class extends Migration
                 ->nullable()
                 ->constrained('physical_stops')
                 ->restrictOnDelete();
+            $table->index('physical_stop_id');
         });
 
-        // Étape 2 — backfill : créer un PhysicalStop par (name, city) existant
-        // et lier chaque stop à son point physique. Idempotent grâce au
-        // unique(name, city) : un même point physique partagé par plusieurs
-        // lignes n'est créé qu'une fois.
+        // Étape 2 — backfill conservateur : un arrêt historique reçoit son
+        // propre point physique. Les correspondances doivent être rattachées
+        // explicitement ; un nom ou une ville ne suffit pas à prouver qu’il
+        // s’agit de la même gare.
         $now = now();
         foreach (DB::table('stops')->get() as $stop) {
-            $physicalId = DB::table('physical_stops')
-                ->where('name', $stop->name)
-                ->where('city', $stop->city)
-                ->value('id');
-
-            if ($physicalId === null) {
-                $physicalId = DB::table('physical_stops')->insertGetId([
-                    'uuid' => (string) Str::uuid(),
-                    'name' => $stop->name,
-                    'city' => $stop->city,
-                    'country' => $stop->country,
-                    'latitude' => $stop->latitude,
-                    'longitude' => $stop->longitude,
-                    'status' => $stop->status,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]);
-            }
+            $physicalId = DB::table('physical_stops')->insertGetId([
+                'uuid' => (string) Str::uuid(),
+                'code' => 'LEGACY-STOP-'.$stop->id,
+                'name' => $stop->name,
+                'city' => $stop->city,
+                'country' => $stop->country,
+                'latitude' => $stop->latitude,
+                'longitude' => $stop->longitude,
+                'status' => $stop->status,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
 
             DB::table('stops')
                 ->where('id', $stop->id)

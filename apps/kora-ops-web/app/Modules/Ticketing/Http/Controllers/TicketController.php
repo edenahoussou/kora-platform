@@ -17,7 +17,7 @@ class TicketController extends Controller
         $this->ensureOwner($reservation, $request);
 
         $tickets = $reservation->tickets()
-            ->with(['reservation', 'reservationPassenger.segments.seat'])
+            ->with(['reservation', 'reservationPassenger.segments.departure', 'reservationPassenger.segments.seat', 'reservationPassenger.segments.originStop', 'reservationPassenger.segments.destinationStop'])
             ->orderBy('id')
             ->get();
 
@@ -26,7 +26,7 @@ class TicketController extends Controller
 
     public function show(Ticket $ticket, Request $request): JsonResponse
     {
-        $ticket->loadMissing(['reservation', 'reservationPassenger.segments.seat']);
+        $ticket->loadMissing(['reservation', 'reservationPassenger.segments.departure', 'reservationPassenger.segments.seat', 'reservationPassenger.segments.originStop', 'reservationPassenger.segments.destinationStop']);
         $this->ensureOwner($ticket->reservation, $request);
 
         return (new TicketResource($ticket))->response()->setStatusCode(200);
