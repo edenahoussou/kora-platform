@@ -3,9 +3,11 @@
 namespace App\Modules\Booking\Actions;
 
 use App\Models\User;
+use App\Modules\Booking\Models\GroupBookingSetting;
 use App\Modules\Booking\Models\ItineraryQuote;
 use App\Modules\Booking\Models\ItineraryQuoteLeg;
 use App\Modules\Booking\Services\DepartureStopTimeResolver;
+use App\Modules\Booking\Services\GroupPricingService;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Actions\CalculateQuoteAction;
@@ -57,6 +59,7 @@ class CalculateItineraryQuoteAction
     public function __construct(
         private CalculateQuoteAction $calculateQuote,
         private DepartureStopTimeResolver $stopTimeResolver,
+        private GroupPricingService $groupPricing,
     ) {}
 
     /**
@@ -75,7 +78,7 @@ class CalculateItineraryQuoteAction
             ]);
         }
 
-        if ($passengerCount < 1 || $passengerCount > 10) {
+        if ($passengerCount < 1 || $passengerCount > GroupBookingSetting::current()->maximum_passengers) {
             throw ValidationException::withMessages([
                 'passenger_count' => 'Le nombre de passagers doit être compris entre 1 et 10.',
             ]);
@@ -101,7 +104,7 @@ class CalculateItineraryQuoteAction
                     departure: $leg->departure,
                     originStop: $leg->originStop,
                     destinationStop: $leg->destinationStop,
-                    passengerCount: $passengerCount,
+                    passengerCount: 1,
                 );
 
                 $legQuotes[] = $quote;
@@ -137,17 +140,34 @@ class CalculateItineraryQuoteAction
                 }
             }
 
+            $pricing = $this->groupPricing->calculate(
+                unitAmounts: array_map(fn (PriceQuote $quote): int => (int) $quote->final_amount, $legQuotes),
+                passengerCount: $passengerCount,
+                currency: $currency,
+                dynamicAdjustments: array_map(fn (PriceQuote $quote): int => (int) $quote->final_amount - (int) $quote->base_amount, $legQuotes),
+                expiresAt: $earliestExpiry,
+            );
+
+            $totalAmount = $pricing['total_amount'];
             $snapshot = [
                 'type' => 'itinerary',
                 'legs_count' => count($legs),
                 'passenger_count' => $passengerCount,
                 'total_amount' => $totalAmount,
+                'subtotal_amount' => $pricing['subtotal_amount'],
+                'dynamic_adjustment_amount' => $pricing['dynamic_adjustment_amount'],
+                'group' => $pricing['group'],
+                'group_discount' => $pricing['group_discount'],
+                'passenger_allocations' => $pricing['passenger_allocations'],
                 'legs' => $legSnapshots,
             ];
 
             $itineraryQuote = ItineraryQuote::create([
                 'user_id' => $user?->id,
                 'passenger_count' => $passengerCount,
+                'subtotal_amount' => $pricing['subtotal_amount'],
+                'dynamic_adjustment_amount' => $pricing['dynamic_adjustment_amount'],
+                'group_discount_amount' => $pricing['group_discount']['amount'],
                 'total_amount' => $totalAmount,
                 'currency' => $currency,
                 'snapshot' => $snapshot,

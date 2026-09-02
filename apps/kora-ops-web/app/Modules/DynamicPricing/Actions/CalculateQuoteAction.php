@@ -2,6 +2,7 @@
 
 namespace App\Modules\DynamicPricing\Actions;
 
+use App\Modules\Booking\Services\GroupPricingService;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Actions\ResolveDepartureSellabilityAction;
 use App\Modules\Departures\Models\Departure;
@@ -23,6 +24,7 @@ class CalculateQuoteAction
     public function __construct(
         private ResolveDepartureSellabilityAction $resolveSellability,
         private BuildSeatAvailabilityAction $buildSeatAvailability,
+        private GroupPricingService $groupPricing,
     ) {}
 
     /**
@@ -97,7 +99,12 @@ class CalculateQuoteAction
 
         $baseAmount = (int) $fare->base_amount;
         $finalAmount = (int) round($baseAmount * $coefficient);
-        $totalAmount = $finalAmount * $passengerCount;
+        $pricing = $this->groupPricing->calculate(
+            unitAmounts: [$finalAmount],
+            passengerCount: $passengerCount,
+            currency: $fare->currency,
+            dynamicAdjustments: [$finalAmount - $baseAmount],
+        );
 
         $snapshot = [
             'fare_uuid' => $fare->uuid,
@@ -106,7 +113,12 @@ class CalculateQuoteAction
             'destination_stop' => $destinationStop->name,
             'service_class' => $fare->serviceClass->name ?? 'Standard',
             'passenger_count' => $passengerCount,
-            'total_amount' => $totalAmount,
+            'subtotal_amount' => $pricing['subtotal_amount'],
+            'dynamic_adjustment_amount' => $pricing['dynamic_adjustment_amount'],
+            'group' => $pricing['group'],
+            'group_discount' => $pricing['group_discount'],
+            'passenger_allocations' => $pricing['passenger_allocations'],
+            'total_amount' => $pricing['total_amount'],
             // Traçabilité de la décision de tarification dynamique — utile en support/litige,
             // même si ces champs ne sont pas exposés tels quels sur le contrat public de devis.
             'pricing_rule_uuid' => $rule?->uuid,
@@ -123,6 +135,10 @@ class CalculateQuoteAction
             'base_amount' => $baseAmount,
             'coefficient' => $coefficient,
             'final_amount' => $finalAmount,
+            'passenger_count' => $passengerCount,
+            'subtotal_amount' => $pricing['subtotal_amount'],
+            'group_discount_amount' => $pricing['group_discount']['amount'],
+            'total_amount' => $pricing['total_amount'],
             'currency' => $fare->currency,
             'snapshot' => $snapshot,
             'expires_at' => now()->addMinutes(10),

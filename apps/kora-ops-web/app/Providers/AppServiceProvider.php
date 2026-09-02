@@ -9,11 +9,14 @@ use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Cash\Models\CashSession;
+use App\Modules\CompanyAccounts\Models\CompanyAccount;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Models\Fare;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
+use App\Modules\IdentityAccess\Contracts\PassengerIdentityResolver;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\IdentityAccess\Models\TerminalP501;
+use App\Modules\IdentityAccess\Services\PhonePassengerIdentityResolver;
 use App\Modules\Payments\Providers\FedaPayAdapter;
 use App\Modules\Payments\Providers\MtnMomoAdapter;
 use App\Modules\Ticketing\Models\Ticket;
@@ -21,6 +24,7 @@ use App\Policies\AgencyPolicy;
 use App\Policies\BoardingEventPolicy;
 use App\Policies\BusPolicy;
 use App\Policies\CashSessionPolicy;
+use App\Policies\CompanyAccountPolicy;
 use App\Policies\DeparturePolicy;
 use App\Policies\FarePolicy;
 use App\Policies\FiscalInvoicePolicy;
@@ -51,6 +55,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->registerPaymentProviders();
+        $this->app->bind(PassengerIdentityResolver::class, PhonePassengerIdentityResolver::class);
     }
 
     /**
@@ -122,6 +127,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(FiscalInvoice::class, FiscalInvoicePolicy::class);
         Gate::policy(Line::class, LinePolicy::class);
         Gate::policy(Reservation::class, ReservationPolicy::class);
+        Gate::policy(CompanyAccount::class, CompanyAccountPolicy::class);
         Gate::policy(SeatReleaseEvent::class, SeatReleaseEventPolicy::class);
         Gate::policy(Stop::class, StopPolicy::class);
         Gate::policy(TerminalP501::class, TerminalP501Policy::class);

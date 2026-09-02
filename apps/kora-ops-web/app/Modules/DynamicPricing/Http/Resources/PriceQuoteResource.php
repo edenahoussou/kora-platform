@@ -17,7 +17,7 @@ class PriceQuoteResource extends JsonResource
     public function toArray(Request $request): array
     {
         $passengerCount = $this->snapshot['passenger_count'] ?? 1;
-        $totalAmount = $this->snapshot['total_amount'] ?? ($this->final_amount * $passengerCount);
+        $totalAmount = $this->total_amount ?: ($this->snapshot['total_amount'] ?? ($this->final_amount * $passengerCount));
 
         return [
             'uuid' => $this->uuid,
@@ -28,6 +28,18 @@ class PriceQuoteResource extends JsonResource
             'currency' => $this->currency,
             'passenger_count' => $passengerCount,
             'total_amount' => $totalAmount,
+            'pricing' => [
+                'subtotal_amount' => $this->subtotal_amount ?: ($this->snapshot['subtotal_amount'] ?? $totalAmount),
+                'dynamic_adjustment_amount' => $this->snapshot['dynamic_adjustment_amount'] ?? (($this->final_amount - $this->base_amount) * $passengerCount),
+                'group_discount' => $this->snapshot['group_discount'] ?? [
+                    'applied' => false,
+                    'threshold' => null,
+                    'percentage' => 0,
+                    'amount' => $this->group_discount_amount,
+                    'rule_uuid' => null,
+                ],
+                'passenger_allocations' => $this->snapshot['passenger_allocations'] ?? [$totalAmount],
+            ],
             'expires_at' => $this->expires_at?->toIso8601String(),
             'snapshot' => $this->snapshot,
         ];

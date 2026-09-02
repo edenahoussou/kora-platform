@@ -2,7 +2,9 @@
 
 namespace App\Modules\Booking\Http\Requests;
 
+use App\Modules\Booking\Models\Reservation;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StorePassengersRequest extends FormRequest
 {
@@ -20,9 +22,15 @@ class StorePassengersRequest extends FormRequest
             'passengers' => ['required', 'array', 'min:1'],
             'passengers.*.first_name' => ['required', 'string', 'max:120'],
             'passengers.*.last_name' => ['required', 'string', 'max:120'],
-            'passengers.*.phone' => ['nullable', 'string', 'max:32'],
+            'passengers.*.phone' => [Rule::requiredIf(function (): bool {
+                $reservation = $this->route('reservation');
+
+                return $reservation instanceof Reservation
+                    && ($reservation->getRawOriginal('purchase_type') === 'group'
+                        || $reservation->getRawOriginal('payer_type') === 'company');
+            }), 'nullable', 'string', 'max:32'],
             'passengers.*.email' => ['nullable', 'email', 'max:255'],
-            'passengers.*.document_type' => ['nullable', 'string', 'in:national_id,biometric_card,passport,consular_card,cip'],
+            'passengers.*.document_type' => ['nullable', 'string', 'in:national_id,biometric_card,passport,consular_card'],
             'passengers.*.document_number' => ['nullable', 'string', 'max:64'],
             'passengers.*.nationality' => ['nullable', 'string', 'size:2'],
             'passengers.*.birth_date' => ['nullable', 'date_format:Y-m-d'],

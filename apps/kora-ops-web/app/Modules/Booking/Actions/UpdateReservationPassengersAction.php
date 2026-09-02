@@ -8,12 +8,15 @@ use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationPassenger;
 use App\Modules\Booking\Models\ReservationSegment;
+use App\Modules\IdentityAccess\Contracts\PassengerIdentityResolver;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class UpdateReservationPassengersAction
 {
+    public function __construct(private readonly PassengerIdentityResolver $identityResolver) {}
+
     /**
      * @param  list<array{
      *     first_name: string,
@@ -33,7 +36,7 @@ class UpdateReservationPassengersAction
      */
     public function handle(Reservation $reservation, ?User $user, array $passengersData): Reservation
     {
-        if ($user && $reservation->user_id && $reservation->user_id !== $user->id) {
+        if ($user && $reservation->created_by_user_id && $reservation->created_by_user_id !== $user->id) {
             throw new AuthorizationException('Vous n\'êtes pas autorisé à modifier cette réservation.');
         }
 
@@ -121,15 +124,19 @@ class UpdateReservationPassengersAction
             $unassignedSegments = $segments->values();
 
             foreach ($passengersData as $index => $pData) {
+                $normalizedPhone = $this->normalizePhone($pData['phone'] ?? null);
                 $docType = ! empty($pData['document_type'])
                     ? PassengerDocumentType::tryFrom($pData['document_type'])
                     : null;
 
                 $passenger = ReservationPassenger::create([
                     'reservation_id' => $reservation->id,
+                    'user_id' => $normalizedPhone === null
+                        ? null
+                        : $this->identityResolver->resolveByPhone($normalizedPhone)?->getKey(),
                     'first_name' => $pData['first_name'],
                     'last_name' => $pData['last_name'],
-                    'phone' => $pData['phone'] ?? null,
+                    'phone' => $normalizedPhone,
                     'email' => $pData['email'] ?? null,
                     'document_type' => $docType,
                     'document_number' => $pData['document_number'] ?? null,
@@ -166,5 +173,12 @@ class UpdateReservationPassengersAction
                 'passengers.segments.departure',
             ]);
         });
+    }
+
+    private function normalizePhone(?string $phone): ?string
+    {
+        $normalized = preg_replace('/[^0-9+]/', '', trim((string) $phone));
+
+        return $normalized !== '' ? $normalized : null;
     }
 }
