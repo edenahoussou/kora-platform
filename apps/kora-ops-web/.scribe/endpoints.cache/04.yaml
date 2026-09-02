@@ -125,7 +125,7 @@ endpoints:
         name: mobile_money_network
         description: ''
         required: false
-        example: celtiis_cash
+        example: moov_flooz
         type: string
         enumValues:
           - mtn_momo
@@ -140,7 +140,7 @@ endpoints:
       provider: g
       idempotency_key: z
       phone: m
-      mobile_money_network: celtiis_cash
+      mobile_money_network: moov_flooz
     fileParameters: []
     responses:
       -

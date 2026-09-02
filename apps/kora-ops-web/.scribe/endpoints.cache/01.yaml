@@ -46,7 +46,7 @@ endpoints:
         name: purpose
         description: ''
         required: true
-        example: account_unlock
+        example: pin_reset
         type: string
         enumValues:
           - registration
@@ -58,7 +58,7 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       email: gbailey@example.net
-      purpose: account_unlock
+      purpose: pin_reset
     fileParameters: []
     responses: []
     responseFields: []
@@ -107,7 +107,7 @@ endpoints:
         name: purpose
         description: ''
         required: true
-        example: login_new_device
+        example: registration
         type: string
         enumValues:
           - registration
@@ -130,7 +130,7 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       otp_challenge_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-      purpose: login_new_device
+      purpose: registration
       code: '569775'
     fileParameters: []
     responses: []
@@ -339,7 +339,7 @@ endpoints:
         name: platform
         description: ''
         required: true
-        example: ios
+        example: web
         type: string
         enumValues:
           - android
@@ -376,7 +376,7 @@ endpoints:
       verification_token: gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn
       pin: '9775'
       device_name: 'n'
-      platform: ios
+      platform: web
       device_fingerprint: g
       push_token: z
     fileParameters: []
@@ -558,7 +558,7 @@ endpoints:
         name: provider
         description: ''
         required: true
-        example: tiktok
+        example: google
         type: string
         enumValues:
           - google
@@ -594,7 +594,7 @@ endpoints:
         name: platform
         description: ''
         required: true
-        example: web
+        example: android
         type: string
         enumValues:
           - android
@@ -627,10 +627,10 @@ endpoints:
         nullable: true
         deprecated: false
     cleanBodyParameters:
-      provider: tiktok
+      provider: google
       provider_token: b
       device_name: 'n'
-      platform: web
+      platform: android
       device_fingerprint: g
       push_token: z
     fileParameters: []
@@ -968,7 +968,7 @@ endpoints:
         name: push_notifications
         description: ''
         required: false
-        example: false
+        example: true
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -979,7 +979,7 @@ endpoints:
         name: whatsapp_notifications
         description: ''
         required: false
-        example: true
+        example: false
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -1014,7 +1014,7 @@ endpoints:
         name: theme
         description: ''
         required: false
-        example: light
+        example: system
         type: string
         enumValues:
           - light
@@ -1024,11 +1024,11 @@ endpoints:
         nullable: true
         deprecated: false
     cleanBodyParameters:
-      push_notifications: false
-      whatsapp_notifications: true
+      push_notifications: true
+      whatsapp_notifications: false
       email_notifications: false
       locale: en
-      theme: light
+      theme: system
     fileParameters: []
     responses: []
     responseFields: []

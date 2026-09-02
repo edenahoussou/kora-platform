@@ -1921,7 +1921,7 @@ endpoints:
         name: 'passengers[].document_type'
         description: ''
         required: false
-        example: national_id
+        example: consular_card
         type: string
         enumValues:
           - national_id
@@ -1993,7 +1993,7 @@ endpoints:
           last_name: 'n'
           phone: g
           email: rowan.gulgowski@example.com
-          document_type: national_id
+          document_type: consular_card
           document_number: d
           nationality: lj
           birth_date: '2026-09-02'
