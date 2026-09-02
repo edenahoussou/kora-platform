@@ -138,6 +138,12 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('bus-search', fn (Request $request): Limit => Limit::perMinute(120)
             ->by($request->ip()));
 
+        RateLimiter::for('bus-itinerary-search', fn (Request $request): Limit => Limit::perMinute(30)
+            ->by($request->ip()));
+
+        RateLimiter::for('bus-itinerary-actions', fn (Request $request): Limit => Limit::perMinute(20)
+            ->by($request->user()?->getAuthIdentifier().'|'.$request->ip()));
+
         RateLimiter::for('payment-verify', fn (Request $request): Limit => Limit::perMinute(6)
             ->by($request->user()?->getAuthIdentifier().'|'.$request->route('payment')));
 

@@ -5,6 +5,7 @@ use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\BusComposition;
 use App\Modules\BusNetwork\Models\BusModel;
 use App\Modules\BusNetwork\Models\Line;
+use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Models\Departure;
@@ -66,7 +67,14 @@ function departuresReferences(): array
         ['name' => 'Porto-Novo', 'city' => 'Porto-Novo', 'country' => 'BJ', 'stop_order' => 2, 'km_from_origin' => 35],
         ['name' => 'Abidjan', 'city' => 'Abidjan', 'country' => 'CI', 'stop_order' => 3, 'km_from_origin' => 1020],
     ] as $stop) {
-        Stop::query()->create($stop + ['uuid' => (string) Str::uuid(), 'line_id' => $line->id, 'status' => 'active']);
+        $physical = PhysicalStop::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'name' => $stop['name'].' DM',
+            'city' => $stop['city'],
+            'country' => $stop['country'],
+            'status' => 'active',
+        ]);
+        Stop::query()->create($stop + ['uuid' => (string) Str::uuid(), 'line_id' => $line->id, 'physical_stop_id' => $physical->id, 'status' => 'active']);
     }
 
     $model = BusModel::query()->create([
@@ -497,7 +505,14 @@ it('exposes a non-paginated collection via searchSellable for internal consumers
         ['name' => 'Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0],
         ['name' => 'Abidjan', 'city' => 'Abidjan', 'country' => 'CI', 'stop_order' => 2, 'km_from_origin' => 1020],
     ] as $stop) {
-        Stop::query()->create($stop + ['uuid' => (string) Str::uuid(), 'line_id' => $line->id, 'status' => 'active']);
+        $physical = PhysicalStop::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'name' => $stop['name'].' DM2',
+            'city' => $stop['city'],
+            'country' => $stop['country'],
+            'status' => 'active',
+        ]);
+        Stop::query()->create($stop + ['uuid' => (string) Str::uuid(), 'line_id' => $line->id, 'physical_stop_id' => $physical->id, 'status' => 'active']);
     }
 
     $model = BusModel::query()->create([

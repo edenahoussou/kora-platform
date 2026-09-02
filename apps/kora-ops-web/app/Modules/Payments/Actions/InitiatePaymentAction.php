@@ -41,7 +41,7 @@ class InitiatePaymentAction
 
         if ($existingPayment) {
             return [
-                'payment' => $existingPayment->loadMissing(['reservation.departure']),
+                'payment' => $existingPayment->loadMissing(['reservation.segments.departure']),
                 'is_replay' => true,
             ];
         }
@@ -86,7 +86,7 @@ class InitiatePaymentAction
         ]);
 
         return [
-            'payment' => $payment->loadMissing(['reservation.departure']),
+            'payment' => $payment->loadMissing(['reservation.segments.departure']),
             'is_replay' => false,
         ];
     }

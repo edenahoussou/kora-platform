@@ -14,6 +14,7 @@ use Illuminate\Support\Carbon;
 /**
  * @property ReservationSegmentStatus $status
  * @property Carbon|null $released_at
+ * @property int|null $passenger_index
  */
 class ReservationSegment extends KoraModel
 {
@@ -22,6 +23,8 @@ class ReservationSegment extends KoraModel
     protected $fillable = [
         'uuid',
         'reservation_id',
+        'leg_order',
+        'passenger_index',
         'reservation_passenger_id',
         'departure_id',
         'seat_id',
@@ -86,6 +89,8 @@ class ReservationSegment extends KoraModel
     {
         return [
             'status' => ReservationSegmentStatus::class,
+            'leg_order' => 'integer',
+            'passenger_index' => 'integer',
             'released_at' => 'datetime',
         ];
     }

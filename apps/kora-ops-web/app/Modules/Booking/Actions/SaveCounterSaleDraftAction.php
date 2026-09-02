@@ -96,7 +96,7 @@ class SaveCounterSaleDraftAction
         ]);
 
         return $reservation->fresh([
-            'departure',
+            'segments.departure',
             'segments.seat',
             'segments.originStop',
             'segments.destinationStop',

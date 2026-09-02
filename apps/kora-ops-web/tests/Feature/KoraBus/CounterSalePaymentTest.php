@@ -5,6 +5,7 @@ use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
+use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Cash\Models\CashLedger;
@@ -266,11 +267,17 @@ function paymentSaleScenario(): array
         'code' => 'PAY-L1', 'name' => 'Cotonou - Abidjan', 'countries_crossed' => ['BJ', 'CI'],
         'distance_km' => 700, 'estimated_duration_minutes' => 600, 'status' => 'active',
     ]);
+    $originPhysical = PhysicalStop::query()->create([
+        'uuid' => (string) Str::uuid(), 'name' => 'Cotonou PAY Physical', 'city' => 'Cotonou', 'country' => 'BJ', 'status' => 'active',
+    ]);
     $origin = Stop::query()->create([
-        'line_id' => $line->id, 'name' => 'Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0, 'status' => 'active',
+        'line_id' => $line->id, 'physical_stop_id' => $originPhysical->id, 'name' => 'Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0, 'status' => 'active',
+    ]);
+    $destinationPhysical = PhysicalStop::query()->create([
+        'uuid' => (string) Str::uuid(), 'name' => 'Abidjan PAY Physical', 'city' => 'Abidjan', 'country' => 'CI', 'status' => 'active',
     ]);
     $destination = Stop::query()->create([
-        'line_id' => $line->id, 'name' => 'Abidjan', 'city' => 'Abidjan', 'country' => 'CI', 'stop_order' => 2, 'km_from_origin' => 700, 'status' => 'active',
+        'line_id' => $line->id, 'physical_stop_id' => $destinationPhysical->id, 'name' => 'Abidjan', 'city' => 'Abidjan', 'country' => 'CI', 'stop_order' => 2, 'km_from_origin' => 700, 'status' => 'active',
     ]);
     $bus = Bus::query()->create([
         'registration_number' => 'PAY-BUS', 'brand' => 'KORA', 'model' => 'Coach', 'seat_count' => 2, 'status' => 'active',

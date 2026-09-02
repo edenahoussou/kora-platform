@@ -54,7 +54,7 @@ class ReservationController extends Controller
         Gate::forUser($request->user())->authorize('view', $reservation);
 
         $reservation->load([
-            'departure.line',
+            'segments.departure.line',
             'priceQuote',
             'segments.seat',
             'segments.originStop',

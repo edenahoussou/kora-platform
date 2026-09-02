@@ -5,6 +5,7 @@ namespace App\Modules\BusNetwork\Http\Requests;
 use App\Modules\BusNetwork\Data\LineStatus;
 use App\Modules\BusNetwork\Data\LineType;
 use App\Modules\BusNetwork\Models\Line;
+use App\Modules\BusNetwork\Models\PhysicalStop;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -33,6 +34,7 @@ class StoreLineRequest extends FormRequest
             'stops.*.city' => ['required_with:stops', 'string', 'max:255'],
             'stops.*.country' => ['required_with:stops', 'string', 'max:2'],
             'stops.*.stop_order' => ['required_with:stops', 'integer', 'min:1'],
+            'stops.*.physical_stop_uuid' => ['required_with:stops', 'string', 'exists:physical_stops,uuid'],
             'stops.*.km_from_origin' => ['nullable', 'numeric', 'min:0'],
             'stops.*.latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'stops.*.longitude' => ['nullable', 'numeric', 'between:-180,180'],
@@ -57,20 +59,25 @@ class StoreLineRequest extends FormRequest
     }
 
     /**
-     * @return array<int, array{name: string, city: string, country: string, stop_order: int, km_from_origin: float, latitude: float|null, longitude: float|null}>
+     * @return array<int, array{name: string, city: string, country: string, stop_order: int, physical_stop_id: int, km_from_origin: float, latitude: float|null, longitude: float|null}>
      */
     public function stops(): array
     {
         $stops = $this->array('stops');
 
-        return collect($stops)->map(fn (array $stop): array => [
-            'name' => trim((string) $stop['name']),
-            'city' => trim((string) $stop['city']),
-            'country' => strtoupper(trim((string) $stop['country'])),
-            'stop_order' => (int) $stop['stop_order'],
-            'km_from_origin' => isset($stop['km_from_origin']) ? (float) $stop['km_from_origin'] : 0.0,
-            'latitude' => isset($stop['latitude']) ? (float) $stop['latitude'] : null,
-            'longitude' => isset($stop['longitude']) ? (float) $stop['longitude'] : null,
-        ])->values()->all();
+        return collect($stops)->map(function (array $stop): array {
+            $physicalStop = PhysicalStop::query()->where('uuid', $stop['physical_stop_uuid'])->firstOrFail();
+
+            return [
+                'name' => trim((string) $stop['name']),
+                'city' => trim((string) $stop['city']),
+                'country' => strtoupper(trim((string) $stop['country'])),
+                'stop_order' => (int) $stop['stop_order'],
+                'physical_stop_id' => $physicalStop->id,
+                'km_from_origin' => isset($stop['km_from_origin']) ? (float) $stop['km_from_origin'] : 0.0,
+                'latitude' => isset($stop['latitude']) ? (float) $stop['latitude'] : null,
+                'longitude' => isset($stop['longitude']) ? (float) $stop['longitude'] : null,
+            ];
+        })->values()->all();
     }
 }

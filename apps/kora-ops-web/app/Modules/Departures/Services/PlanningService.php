@@ -99,8 +99,8 @@ class PlanningService
         }
         $departure = $item->departure;
 
-        return $departure === null || $departure->getRawOriginal('status') !== 'scheduled' || $departure->reservations()->whereNotIn('status', ['expired', 'cancelled'])->exists()
-            || $departure->reservations()->whereHas('tickets')->exists() || $departure->reservations()->whereHas('payments', fn ($query) => $query->whereIn('status', ['pending', 'confirmed', 'refunded']))->exists();
+        return $departure === null || $departure->getRawOriginal('status') !== 'scheduled' || $departure->reservationSegments()->whereNotIn('status', ['expired', 'cancelled'])->exists()
+            || $departure->reservationSegments()->whereHas('reservation', fn ($query) => $query->whereHas('tickets'))->exists() || $departure->reservationSegments()->whereHas('reservation', fn ($query) => $query->whereHas('payments', fn ($q) => $q->whereIn('status', ['pending', 'confirmed', 'refunded'])))->exists();
     }
 
     /**

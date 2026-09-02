@@ -4,6 +4,7 @@ namespace App\Modules\BusNetwork\Actions;
 
 use App\Modules\BusNetwork\Data\StopStatus;
 use App\Modules\BusNetwork\Models\Line;
+use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Stop;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Str;
@@ -20,6 +21,8 @@ class ResolveLineSegmentStopsAction
         ?string $to = null,
         ?string $originStopUuid = null,
         ?string $destinationStopUuid = null,
+        ?string $originPhysicalStopUuid = null,
+        ?string $destinationPhysicalStopUuid = null,
     ): array {
         $line->loadMissing(['stops' => fn ($query) => $query
             ->where('status', StopStatus::Active->value)
@@ -28,8 +31,8 @@ class ResolveLineSegmentStopsAction
         /** @var EloquentCollection<int, Stop> $stops */
         $stops = $line->getRelation('stops');
 
-        $origin = $this->resolveStop($stops, $from, $originStopUuid, true);
-        $destination = $this->resolveStop($stops, $to, $destinationStopUuid, false);
+        $origin = $this->resolveStop($stops, $from, $originStopUuid, $originPhysicalStopUuid, true);
+        $destination = $this->resolveStop($stops, $to, $destinationStopUuid, $destinationPhysicalStopUuid, false);
 
         if (! $origin || ! $destination || $origin->stop_order >= $destination->stop_order) {
             throw ValidationException::withMessages([
@@ -43,10 +46,22 @@ class ResolveLineSegmentStopsAction
     /**
      * @param  EloquentCollection<int, Stop>  $stops
      */
-    private function resolveStop(EloquentCollection $stops, ?string $city, ?string $uuid, bool $first): ?Stop
-    {
-        if ($uuid) {
-            return $stops->first(fn (Stop $stop): bool => $stop->uuid === $uuid);
+    private function resolveStop(
+        EloquentCollection $stops,
+        ?string $city,
+        ?string $stopUuid,
+        ?string $physicalStopUuid,
+        bool $first,
+    ): ?Stop {
+        if ($stopUuid) {
+            return $stops->first(fn (Stop $stop): bool => $stop->uuid === $stopUuid);
+        }
+
+        if ($physicalStopUuid) {
+            $physicalStop = PhysicalStop::query()->where('uuid', $physicalStopUuid)->first();
+            if ($physicalStop) {
+                return $stops->first(fn (Stop $stop): bool => $stop->physical_stop_id === $physicalStop->id);
+            }
         }
 
         if ($city) {

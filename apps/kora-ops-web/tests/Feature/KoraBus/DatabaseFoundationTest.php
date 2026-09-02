@@ -9,6 +9,7 @@ use App\Modules\Booking\Models\ReservationPassenger;
 use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
+use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Cash\Models\CashSession;
@@ -160,7 +161,6 @@ it('stores immutable price quote snapshots', function (): void {
 it('enforces idempotency keys for payments', function (): void {
     $data = koraBusScenario();
     $reservation = Reservation::query()->create([
-        'departure_id' => $data['departure']->id,
         'status' => 'confirmed',
         'total_amount' => 10000,
         'currency' => 'XOF',
@@ -221,7 +221,6 @@ it('enforces idempotency keys for offline operations', function (): void {
 it('keeps fiscal invoices unique per KORA reference and MECeF uid', function (): void {
     $data = koraBusScenario();
     $reservation = Reservation::query()->create([
-        'departure_id' => $data['departure']->id,
         'status' => 'paid',
         'total_amount' => 10000,
         'currency' => 'XOF',
@@ -273,14 +272,12 @@ it('prevents overlapping seat segments on PostgreSQL', function (): void {
 
     $data = koraBusScenario();
     $first = Reservation::query()->create([
-        'departure_id' => $data['departure']->id,
         'status' => 'confirmed',
         'total_amount' => 10000,
         'currency' => 'XOF',
         'channel' => 'online',
     ]);
     $second = Reservation::query()->create([
-        'departure_id' => $data['departure']->id,
         'status' => 'confirmed',
         'total_amount' => 10000,
         'currency' => 'XOF',
@@ -328,24 +325,51 @@ function koraBusScenario(): array
         'status' => 'active',
     ]);
 
+    $originPhysical = PhysicalStop::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'name' => 'Cotonou DBF',
+        'city' => 'Cotonou',
+        'country' => 'BJ',
+        'status' => 'active',
+    ]);
+
     $origin = Stop::query()->create([
         'line_id' => $line->id,
+        'physical_stop_id' => $originPhysical->id,
         'name' => 'Cotonou',
         'city' => 'Cotonou',
         'country' => 'BJ',
         'stop_order' => 1,
     ]);
 
+    $lomePhysical = PhysicalStop::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'name' => 'Lome DBF',
+        'city' => 'Lome',
+        'country' => 'TG',
+        'status' => 'active',
+    ]);
+
     Stop::query()->create([
         'line_id' => $line->id,
+        'physical_stop_id' => $lomePhysical->id,
         'name' => 'Lome',
         'city' => 'Lome',
         'country' => 'TG',
         'stop_order' => 3,
     ]);
 
+    $destinationPhysical = PhysicalStop::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'name' => 'Abidjan DBF',
+        'city' => 'Abidjan',
+        'country' => 'CI',
+        'status' => 'active',
+    ]);
+
     $destination = Stop::query()->create([
         'line_id' => $line->id,
+        'physical_stop_id' => $destinationPhysical->id,
         'name' => 'Abidjan',
         'city' => 'Abidjan',
         'country' => 'CI',

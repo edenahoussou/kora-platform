@@ -23,7 +23,7 @@ class VerifyPaymentAction
         }
 
         if ($payment->status->isTerminal()) {
-            return $payment->fresh(['reservation.departure']);
+            return $payment->fresh(['reservation.segments.departure']);
         }
 
         $response = $this->manager->resolve($payment->provider)->verify($payment);
@@ -36,6 +36,6 @@ class VerifyPaymentAction
 
         $updated->update(['last_verified_at' => now()]);
 
-        return $updated->fresh(['reservation.departure']);
+        return $updated->fresh(['reservation.segments.departure']);
     }
 }

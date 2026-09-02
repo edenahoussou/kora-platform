@@ -32,7 +32,7 @@ class UpdateDepartureAction
 
         return DB::transaction(function () use ($departure, $attributes): Departure {
             $departure = Departure::query()->whereKey($departure->id)->lockForUpdate()->firstOrFail();
-            if ($departure->getRawOriginal('status') !== 'scheduled' || $departure->reservations()->whereNotIn('status', ['expired', 'cancelled'])->exists() || $departure->reservations()->whereHas('tickets')->exists() || $departure->reservations()->whereHas('payments', fn ($query) => $query->whereIn('status', ['pending', 'confirmed', 'refunded']))->exists()) {
+            if ($departure->getRawOriginal('status') !== 'scheduled' || $departure->reservationSegments()->whereNotIn('status', ['expired', 'cancelled'])->exists() || $departure->reservationSegments()->whereHas('reservation', fn ($query) => $query->whereHas('tickets'))->exists() || $departure->reservationSegments()->whereHas('reservation', fn ($query) => $query->whereHas('payments', fn ($q) => $q->whereIn('status', ['pending', 'confirmed', 'refunded'])))->exists()) {
                 throw ValidationException::withMessages(['departure' => 'Ce départ est protégé par une réservation ou son état opérationnel.']);
             }
             if (PlannedDeparture::query()->where('departure_id', $departure->id)->exists()) {

@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use App\Modules\BusNetwork\Models\Line;
+use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Stop;
 use Database\Seeders\KoraBusRolePermissionSeeder;
 use Illuminate\Support\Str;
@@ -30,9 +31,17 @@ it('lists lines with stops count and permissions without exposing numeric ids', 
         'distance_km' => 420,
         'estimated_duration_minutes' => 360,
     ]);
+    $physicalStop = PhysicalStop::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'name' => 'Cotonou NM',
+        'city' => 'Cotonou',
+        'country' => 'BJ',
+        'status' => 'active',
+    ]);
     Stop::query()->create([
         'uuid' => Str::uuid()->toString(),
         'line_id' => $line->id,
+        'physical_stop_id' => $physicalStop->id,
         'name' => 'Cotonou',
         'city' => 'Cotonou',
         'country' => 'BJ',
@@ -61,6 +70,21 @@ it('lists lines with stops count and permissions without exposing numeric ids', 
 it('creates a line with nested stops', function (): void {
     $manager = networkManager();
 
+    $cotonouPhysical = PhysicalStop::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'name' => 'Cotonou L5',
+        'city' => 'Cotonou',
+        'country' => 'BJ',
+        'status' => 'active',
+    ]);
+    $ouidahPhysical = PhysicalStop::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'name' => 'Ouidah L5',
+        'city' => 'Ouidah',
+        'country' => 'BJ',
+        'status' => 'active',
+    ]);
+
     $this->actingAs($manager)->post(route('network.store'), [
         'code' => ' l5 ',
         'name' => 'Ligne littorale',
@@ -69,8 +93,8 @@ it('creates a line with nested stops', function (): void {
         'distance_km' => 42,
         'estimated_duration_minutes' => 60,
         'stops' => [
-            ['name' => 'Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0],
-            ['name' => 'Ouidah', 'city' => 'Ouidah', 'country' => 'BJ', 'stop_order' => 2, 'km_from_origin' => 42],
+            ['name' => 'Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0, 'physical_stop_uuid' => $cotonouPhysical->uuid],
+            ['name' => 'Ouidah', 'city' => 'Ouidah', 'country' => 'BJ', 'stop_order' => 2, 'km_from_origin' => 42, 'physical_stop_uuid' => $ouidahPhysical->uuid],
         ],
     ])->assertRedirect(route('network.index', absolute: false));
 
@@ -83,6 +107,21 @@ it('creates a line with nested stops', function (): void {
 it('creates a bidirectional line and exposes the flag in the list and detail', function (): void {
     $manager = networkManager();
 
+    $cotonouPhysical = PhysicalStop::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'name' => 'Cotonou L7',
+        'city' => 'Cotonou',
+        'country' => 'BJ',
+        'status' => 'active',
+    ]);
+    $parakouPhysical = PhysicalStop::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'name' => 'Parakou L7',
+        'city' => 'Parakou',
+        'country' => 'BJ',
+        'status' => 'active',
+    ]);
+
     $this->actingAs($manager)->post(route('network.store'), [
         'code' => 'L7',
         'name' => 'Cotonou - Parakou',
@@ -90,8 +129,8 @@ it('creates a bidirectional line and exposes the flag in the list and detail', f
         'bidirectional' => true,
         'status' => 'active',
         'stops' => [
-            ['name' => 'Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0],
-            ['name' => 'Parakou', 'city' => 'Parakou', 'country' => 'BJ', 'stop_order' => 2, 'km_from_origin' => 600],
+            ['name' => 'Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0, 'physical_stop_uuid' => $cotonouPhysical->uuid],
+            ['name' => 'Parakou', 'city' => 'Parakou', 'country' => 'BJ', 'stop_order' => 2, 'km_from_origin' => 600, 'physical_stop_uuid' => $parakouPhysical->uuid],
         ],
     ])->assertRedirect(route('network.index', absolute: false));
 
@@ -162,8 +201,22 @@ it('shows line detail with ordered stops', function (): void {
         'name' => 'Nationale',
         'status' => 'active',
     ]);
-    Stop::query()->create(['uuid' => Str::uuid()->toString(), 'line_id' => $line->id, 'name' => 'Parakou', 'city' => 'Parakou', 'country' => 'BJ', 'stop_order' => 2, 'km_from_origin' => 420, 'status' => 'active']);
-    Stop::query()->create(['uuid' => Str::uuid()->toString(), 'line_id' => $line->id, 'name' => 'Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0, 'status' => 'active']);
+    $parakouPhysical = PhysicalStop::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'name' => 'Parakou L2 Detail',
+        'city' => 'Parakou',
+        'country' => 'BJ',
+        'status' => 'active',
+    ]);
+    $cotonouPhysical = PhysicalStop::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'name' => 'Cotonou L2 Detail',
+        'city' => 'Cotonou',
+        'country' => 'BJ',
+        'status' => 'active',
+    ]);
+    Stop::query()->create(['uuid' => Str::uuid()->toString(), 'line_id' => $line->id, 'physical_stop_id' => $parakouPhysical->id, 'name' => 'Parakou', 'city' => 'Parakou', 'country' => 'BJ', 'stop_order' => 2, 'km_from_origin' => 420, 'status' => 'active']);
+    Stop::query()->create(['uuid' => Str::uuid()->toString(), 'line_id' => $line->id, 'physical_stop_id' => $cotonouPhysical->id, 'name' => 'Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0, 'status' => 'active']);
 
     $this->actingAs(networkManager())
         ->get(route('network.show', $line))
@@ -184,12 +237,21 @@ it('adds a stop to a line', function (): void {
         'status' => 'active',
     ]);
 
+    $bohiconPhysical = PhysicalStop::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'name' => 'Bohicon NM',
+        'city' => 'Bohicon',
+        'country' => 'BJ',
+        'status' => 'active',
+    ]);
+
     $this->actingAs(networkManager())->post(route('network.stops.store', $line), [
         'name' => 'Bohicon',
         'city' => 'Bohicon',
         'country' => 'BJ',
         'stop_order' => 1,
         'km_from_origin' => 121,
+        'physical_stop_uuid' => $bohiconPhysical->uuid,
     ])->assertRedirect(route('network.show', $line, absolute: false));
 
     expect($line->stops()->count())->toBe(1)
@@ -203,13 +265,29 @@ it('rejects duplicate stop order on the same line', function (): void {
         'name' => 'Nationale',
         'status' => 'active',
     ]);
-    Stop::query()->create(['uuid' => Str::uuid()->toString(), 'line_id' => $line->id, 'name' => 'Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0, 'status' => 'active']);
+    $cotonouPhysical = PhysicalStop::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'name' => 'Cotonou Dup NM',
+        'city' => 'Cotonou',
+        'country' => 'BJ',
+        'status' => 'active',
+    ]);
+    Stop::query()->create(['uuid' => Str::uuid()->toString(), 'line_id' => $line->id, 'physical_stop_id' => $cotonouPhysical->id, 'name' => 'Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0, 'status' => 'active']);
+
+    $alladaPhysical = PhysicalStop::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'name' => 'Allada NM',
+        'city' => 'Allada',
+        'country' => 'BJ',
+        'status' => 'active',
+    ]);
 
     $this->actingAs(networkManager())->post(route('network.stops.store', $line), [
         'name' => 'Allada',
         'city' => 'Allada',
         'country' => 'BJ',
         'stop_order' => 1,
+        'physical_stop_uuid' => $alladaPhysical->uuid,
     ])->assertSessionHasErrors('stop_order');
 });
 
@@ -220,7 +298,14 @@ it('deactivates a stop', function (): void {
         'name' => 'Nationale',
         'status' => 'active',
     ]);
-    $stop = Stop::query()->create(['uuid' => Str::uuid()->toString(), 'line_id' => $line->id, 'name' => 'Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0, 'status' => 'active']);
+    $cotonouPhysical = PhysicalStop::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'name' => 'Cotonou Deactivate NM',
+        'city' => 'Cotonou',
+        'country' => 'BJ',
+        'status' => 'active',
+    ]);
+    $stop = Stop::query()->create(['uuid' => Str::uuid()->toString(), 'line_id' => $line->id, 'physical_stop_id' => $cotonouPhysical->id, 'name' => 'Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0, 'status' => 'active']);
 
     $this->actingAs(networkManager())->patch(route('network.stops.deactivate', [$line, $stop]))
         ->assertRedirect(route('network.show', $line, absolute: false));
@@ -243,8 +328,22 @@ it('filters lines by type and builds itinerary from active stops', function (): 
         'type' => 'nationale',
         'status' => 'active',
     ]);
-    Stop::query()->create(['uuid' => Str::uuid()->toString(), 'line_id' => $nationale->id, 'name' => 'Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0, 'status' => 'active']);
-    Stop::query()->create(['uuid' => Str::uuid()->toString(), 'line_id' => $nationale->id, 'name' => 'Parakou', 'city' => 'Parakou', 'country' => 'BJ', 'stop_order' => 2, 'km_from_origin' => 420, 'status' => 'active']);
+    $cotonouPhysical = PhysicalStop::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'name' => 'Cotonou Filter NM',
+        'city' => 'Cotonou',
+        'country' => 'BJ',
+        'status' => 'active',
+    ]);
+    $parakouPhysical = PhysicalStop::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'name' => 'Parakou Filter NM',
+        'city' => 'Parakou',
+        'country' => 'BJ',
+        'status' => 'active',
+    ]);
+    Stop::query()->create(['uuid' => Str::uuid()->toString(), 'line_id' => $nationale->id, 'physical_stop_id' => $cotonouPhysical->id, 'name' => 'Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'stop_order' => 1, 'km_from_origin' => 0, 'status' => 'active']);
+    Stop::query()->create(['uuid' => Str::uuid()->toString(), 'line_id' => $nationale->id, 'physical_stop_id' => $parakouPhysical->id, 'name' => 'Parakou', 'city' => 'Parakou', 'country' => 'BJ', 'stop_order' => 2, 'km_from_origin' => 420, 'status' => 'active']);
 
     $internationale = Line::query()->create([
         'uuid' => Str::uuid()->toString(),

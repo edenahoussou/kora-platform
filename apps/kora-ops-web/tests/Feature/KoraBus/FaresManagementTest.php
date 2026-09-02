@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use App\Modules\BusNetwork\Models\Line;
+use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\DynamicPricing\Models\Fare;
 use App\Modules\DynamicPricing\Models\ServiceClass;
@@ -33,9 +34,20 @@ function lineWithStops(): array
         'status' => 'active',
     ]);
 
+    $suffix = Str::random(6);
+
+    $originPhysical = PhysicalStop::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'name' => 'Cotonou Fares '.$suffix,
+        'city' => 'Cotonou',
+        'country' => 'BJ',
+        'status' => 'active',
+    ]);
+
     $origin = Stop::query()->create([
         'uuid' => Str::uuid()->toString(),
         'line_id' => $line->id,
+        'physical_stop_id' => $originPhysical->id,
         'name' => 'Cotonou',
         'city' => 'Cotonou',
         'country' => 'BJ',
@@ -44,9 +56,18 @@ function lineWithStops(): array
         'status' => 'active',
     ]);
 
+    $destinationPhysical = PhysicalStop::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'name' => 'Parakou Fares '.$suffix,
+        'city' => 'Parakou',
+        'country' => 'BJ',
+        'status' => 'active',
+    ]);
+
     $destination = Stop::query()->create([
         'uuid' => Str::uuid()->toString(),
         'line_id' => $line->id,
+        'physical_stop_id' => $destinationPhysical->id,
         'name' => 'Parakou',
         'city' => 'Parakou',
         'country' => 'BJ',

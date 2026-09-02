@@ -24,6 +24,7 @@ class UpdateReservationPassengersAction
      *     document_number?: string|null,
      *     nationality?: string|null,
      *     birth_date?: string|null,
+     *     passenger_index?: int|null,
      *     seat_uuid?: string|null
      * }>  $passengersData
      *
@@ -50,19 +51,54 @@ class UpdateReservationPassengersAction
             ]);
         }
 
-        $reservation->loadMissing(['departure.line', 'segments.seat']);
+        $reservation->loadMissing(['segments.departure.line', 'segments.seat']);
 
         $segments = $reservation->segments;
-        if (count($passengersData) !== $segments->count()) {
+        $itineraryPassengerIndexes = $segments
+            ->pluck('passenger_index')
+            ->filter(fn (mixed $index): bool => $index !== null)
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+        $isMultiSegmentMatrix = $itineraryPassengerIndexes !== [];
+        $expectedPassengerCount = $isMultiSegmentMatrix
+            ? count($itineraryPassengerIndexes)
+            : $segments->count();
+
+        if (count($passengersData) !== $expectedPassengerCount) {
             throw ValidationException::withMessages([
-                'passengers' => 'Le nombre de passagers ('.count($passengersData).') ne correspond pas au nombre de sièges réservés ('.$segments->count().').',
+                'passengers' => 'Le nombre de passagers ('.count($passengersData).') ne correspond pas au nombre de voyageurs réservés ('.$expectedPassengerCount.').',
             ]);
         }
 
+        if ($isMultiSegmentMatrix && $itineraryPassengerIndexes !== range(0, $expectedPassengerCount - 1)) {
+            throw ValidationException::withMessages([
+                'reservation' => 'La matrice passager/jambe de la réservation est incomplète.',
+            ]);
+        }
+
+        if ($isMultiSegmentMatrix) {
+            $submittedIndexes = collect($passengersData)
+                ->map(fn (array $passenger, int $index): int => (int) ($passenger['passenger_index'] ?? $index))
+                ->sort()
+                ->values()
+                ->all();
+
+            if ($submittedIndexes !== range(0, $expectedPassengerCount - 1)) {
+                throw ValidationException::withMessages([
+                    'passengers' => 'Les index des passagers doivent former une séquence complète.',
+                ]);
+            }
+        }
+
         $isInternational = false;
-        $countriesCrossed = $reservation->departure->line?->countries_crossed;
-        if (is_array($countriesCrossed) && count($countriesCrossed) > 1) {
-            $isInternational = true;
+        foreach ($segments as $segment) {
+            $countriesCrossed = $segment->departure?->line?->countries_crossed;
+            if (is_array($countriesCrossed) && count($countriesCrossed) > 1) {
+                $isInternational = true;
+                break;
+            }
         }
 
         if ($isInternational) {
@@ -75,7 +111,7 @@ class UpdateReservationPassengersAction
             }
         }
 
-        return DB::transaction(function () use ($reservation, $segments, $passengersData): Reservation {
+        return DB::transaction(function () use ($reservation, $segments, $passengersData, $isMultiSegmentMatrix): Reservation {
             // Unlink existing segments
             $reservation->segments()->update(['reservation_passenger_id' => null]);
             $reservation->passengers()->delete();
@@ -101,25 +137,33 @@ class UpdateReservationPassengersAction
                     'birth_date' => $pData['birth_date'] ?? null,
                 ]);
 
-                // Match with seat_uuid if specified, otherwise by index
-                $matchedSegment = null;
-                if (! empty($pData['seat_uuid']) && $segmentsBySeatUuid->has($pData['seat_uuid'])) {
-                    $matchedSegment = $segmentsBySeatUuid->get($pData['seat_uuid']);
-                } elseif (isset($unassignedSegments[$index])) {
-                    $matchedSegment = $unassignedSegments[$index];
-                }
+                if ($isMultiSegmentMatrix) {
+                    $passengerIndex = $pData['passenger_index'] ?? $index;
+                    $segments
+                        ->where('passenger_index', $passengerIndex)
+                        ->each(fn (ReservationSegment $segment): bool => (bool) $segment->update(['reservation_passenger_id' => $passenger->id]));
+                } else {
+                    // Match with seat_uuid if specified, otherwise by index.
+                    $matchedSegment = null;
+                    if (! empty($pData['seat_uuid']) && $segmentsBySeatUuid->has($pData['seat_uuid'])) {
+                        $matchedSegment = $segmentsBySeatUuid->get($pData['seat_uuid']);
+                    } elseif (isset($unassignedSegments[$index])) {
+                        $matchedSegment = $unassignedSegments[$index];
+                    }
 
-                if ($matchedSegment) {
-                    $matchedSegment->update(['reservation_passenger_id' => $passenger->id]);
+                    if ($matchedSegment) {
+                        $matchedSegment->update(['reservation_passenger_id' => $passenger->id]);
+                    }
                 }
             }
 
             return $reservation->load([
-                'departure',
+                'segments.departure',
                 'segments.seat',
                 'segments.originStop',
                 'segments.destinationStop',
                 'passengers.segments.seat',
+                'passengers.segments.departure',
             ]);
         });
     }

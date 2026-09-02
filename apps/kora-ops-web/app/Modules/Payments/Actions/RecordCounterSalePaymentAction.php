@@ -41,7 +41,7 @@ class RecordCounterSalePaymentAction
     {
         return DB::transaction(function () use ($reservation, $agent, $attributes): array {
             $lockedReservation = Reservation::query()
-                ->with(['departure', 'segments', 'passengers'])
+                ->with(['segments.departure', 'segments', 'passengers'])
                 ->whereKey($reservation->getKey())
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -141,7 +141,7 @@ class RecordCounterSalePaymentAction
             );
 
             return [
-                'reservation' => $lockedReservation->fresh(['departure', 'segments', 'passengers']),
+                'reservation' => $lockedReservation->fresh(['segments.departure', 'segments', 'passengers']),
                 'payment' => $payment->fresh(),
                 'tickets' => $tickets,
                 'fiscalInvoice' => $fiscalInvoice,
@@ -163,7 +163,7 @@ class RecordCounterSalePaymentAction
             ->firstOrFail();
 
         return [
-            'reservation' => $reservation->fresh(['departure', 'segments', 'passengers']),
+            'reservation' => $reservation->fresh(['segments.departure', 'segments', 'passengers']),
             'payment' => $payment->fresh(),
             'tickets' => $tickets,
             'fiscalInvoice' => $fiscalInvoice,

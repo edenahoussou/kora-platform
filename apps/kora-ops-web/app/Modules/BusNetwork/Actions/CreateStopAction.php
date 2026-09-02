@@ -11,7 +11,7 @@ use Illuminate\Validation\ValidationException;
 class CreateStopAction
 {
     /**
-     * @param  array{name: string, city: string, country: string, stop_order: int, km_from_origin?: float, latitude?: float|null, longitude?: float|null}  $attributes
+     * @param  array{name: string, city: string, country: string, stop_order: int, physical_stop_id: int, km_from_origin?: float, latitude?: float|null, longitude?: float|null}  $attributes
      */
     public function execute(Line $line, array $attributes): Stop
     {

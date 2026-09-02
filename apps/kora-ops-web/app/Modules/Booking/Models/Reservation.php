@@ -34,8 +34,8 @@ class Reservation extends KoraModel
     protected $fillable = [
         'uuid',
         'user_id',
-        'departure_id',
         'price_quote_id',
+        'itinerary_quote_id',
         'status',
         'ticket_issuance_status',
         'ticket_issuance_error',
@@ -44,6 +44,7 @@ class Reservation extends KoraModel
         'total_amount',
         'currency',
         'channel',
+        'idempotency_key',
         'expires_at',
         'total_snapshot',
         'draft_data',
@@ -57,28 +58,26 @@ class Reservation extends KoraModel
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * @return BelongsTo<Departure, $this>
-     */
-    public function departure(): BelongsTo
+    /** @return BelongsTo<ItineraryQuote, $this> */
+    public function itineraryQuote(): BelongsTo
     {
-        return $this->belongsTo(Departure::class);
+        return $this->belongsTo(ItineraryQuote::class);
     }
 
-    /**
-     * @return BelongsTo<PriceQuote, $this>
-     */
+    /** @return BelongsTo<PriceQuote, $this> */
     public function priceQuote(): BelongsTo
     {
         return $this->belongsTo(PriceQuote::class);
     }
 
     /**
+     * Ordered legs of this itinerary (by leg_order).
+     *
      * @return HasMany<ReservationSegment, $this>
      */
     public function segments(): HasMany
     {
-        return $this->hasMany(ReservationSegment::class);
+        return $this->hasMany(ReservationSegment::class)->orderBy('leg_order');
     }
 
     /**
@@ -117,5 +116,16 @@ class Reservation extends KoraModel
             'total_snapshot' => 'array',
             'draft_data' => 'array',
         ];
+    }
+
+    /**
+     * Departure of the first leg, replacing the former direct departure_id relation.
+     * Use this for receipts, redirects, and any place that previously read reservation->departure.
+     */
+    public function primaryDeparture(): ?Departure
+    {
+        $first = $this->segments()->orderBy('leg_order')->first();
+
+        return $first?->departure;
     }
 }

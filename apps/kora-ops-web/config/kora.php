@@ -31,4 +31,10 @@ return [
         ],
     ],
 
+    'itineraries' => [
+        'connection_margin_minutes' => env('KORA_CONNECTION_MARGIN_MINUTES', 45),
+        'max_legs' => env('KORA_ITINERARY_MAX_LEGS', 3),
+        'max_results' => env('KORA_ITINERARY_MAX_RESULTS', 25),
+    ],
+
 ];

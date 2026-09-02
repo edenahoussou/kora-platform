@@ -155,7 +155,7 @@ class DepartureController extends Controller
     private function serializeDeparture(Departure $departure): array
     {
         $seatCount = $departure->bus->seat_count ?? 0;
-        $reservationsCount = $departure->reservations()->count();
+        $reservationsCount = $departure->reservationSegments()->distinct('reservation_id')->count('reservation_id');
         $fillRate = $seatCount > 0 ? round($reservationsCount / $seatCount * 100) : 0;
 
         return [
@@ -207,7 +207,7 @@ class DepartureController extends Controller
         }
 
         $seatCount = $departure->bus->seat_count ?? 0;
-        $reservationsCount = $departure->reservations()->count();
+        $reservationsCount = $departure->reservationSegments()->distinct('reservation_id')->count('reservation_id');
         $fillRate = $seatCount > 0 ? round($reservationsCount / $seatCount * 100) : 0;
 
         return [
