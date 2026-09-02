@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             KoraDemoUserSeeder::class,
             KoraCounterSaleSeeder::class,
             KoraDepartureSeeder::class,
+            Mez57GroupPurchaseSeeder::class,
         ]);
     }
 }
