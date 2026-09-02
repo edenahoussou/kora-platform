@@ -6,11 +6,14 @@ use App\Models\User;
 use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Models\Reservation;
+use App\Modules\CompanyAccounts\Services\CompanyCreditService;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class ReleaseSeatHoldAction
 {
+    public function __construct(private readonly CompanyCreditService $companyCredit) {}
+
     /**
      * Release a user's temporary reservation and its held segments atomically.
      */
@@ -22,7 +25,7 @@ class ReleaseSeatHoldAction
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($lockedReservation->user_id !== $user->getKey()) {
+            if ($lockedReservation->created_by_user_id !== $user->getKey()) {
                 throw new AccessDeniedHttpException;
             }
 
@@ -41,6 +44,7 @@ class ReleaseSeatHoldAction
                     'status' => ReservationSegmentStatus::Cancelled,
                     'released_at' => now(),
                 ]);
+            $this->companyCredit->release($lockedReservation);
         });
     }
 }

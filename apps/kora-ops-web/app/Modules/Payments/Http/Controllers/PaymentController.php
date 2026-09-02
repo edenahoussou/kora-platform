@@ -116,7 +116,9 @@ class PaymentController extends Controller
     public function show(Payment $payment, Request $request): JsonResponse
     {
         $user = $request->user();
-        if ($user && $payment->reservation && $payment->reservation->user_id && $payment->reservation->user_id !== $user->id) {
+        if ($user && $payment->reservation && $payment->reservation->created_by_user_id
+            && $payment->reservation->created_by_user_id !== $user->id
+            && $payment->reservation->payer_user_id !== $user->id) {
             throw new AuthorizationException('Vous n\'avez pas accès à ce paiement.');
         }
 
@@ -166,6 +168,8 @@ class PaymentController extends Controller
         }
 
         // Fallback for manual/test confirmations (no real provider).
+        abort_unless(app()->environment(['local', 'testing']), 403, 'Manual payment confirmation is disabled outside local and testing environments.');
+
         $validated = $request->validate([
             'status' => ['required', 'string', 'in:success,confirmed,failed'],
             'provider_reference' => ['nullable', 'string', 'max:255'],

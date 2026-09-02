@@ -34,7 +34,8 @@ class TicketController extends Controller
 
     private function ensureOwner(?Reservation $reservation, Request $request): void
     {
-        if ($reservation?->user_id === null || $reservation->user_id !== $request->user()->getKey()) {
+        if ($reservation?->created_by_user_id === null
+            || ($reservation->created_by_user_id !== $request->user()->getKey() && $reservation->payer_user_id !== $request->user()->getKey())) {
             throw new AuthorizationException('Vous n’avez pas accès à ce billet.');
         }
     }

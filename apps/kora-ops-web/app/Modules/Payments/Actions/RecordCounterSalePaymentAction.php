@@ -13,6 +13,8 @@ use App\Modules\Cash\Data\CashSessionStatus;
 use App\Modules\Cash\Models\CashLedger;
 use App\Modules\Cash\Models\CashMovement;
 use App\Modules\Cash\Models\CashSession;
+use App\Modules\CompanyAccounts\Data\CompanyCreditHoldStatus;
+use App\Modules\CompanyAccounts\Services\CompanyCreditService;
 use App\Modules\Fiscalization\Data\FiscalInvoiceStatus;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
 use App\Modules\Payments\Data\MobileMoneyNetwork;
@@ -31,6 +33,7 @@ class RecordCounterSalePaymentAction
 {
     public function __construct(
         private readonly IssueCounterSaleTicketsAction $issueTickets,
+        private readonly CompanyCreditService $companyCredit,
     ) {}
 
     /**
@@ -64,8 +67,8 @@ class RecordCounterSalePaymentAction
 
             $this->ensureReservationCanBePaid($lockedReservation, $agent);
 
-            $cashSession = $this->openCashSession($agent);
             $method = PaymentMethod::from((string) $attributes['method']);
+            $cashSession = $method === PaymentMethod::CompanyCredit ? null : $this->openCashSession($agent);
             $total = (int) $lockedReservation->total_amount;
             $paymentData = $this->paymentData($method, $attributes, $lockedReservation, $agent, $cashSession, $total);
 
@@ -80,36 +83,44 @@ class RecordCounterSalePaymentAction
 
             $payment = Payment::query()->create($paymentData);
 
-            $movementType = $method === PaymentMethod::Cash
-                ? 'counter_sale_cash'
-                : 'counter_sale_mobile_money';
-
-            CashMovement::query()->create([
-                'cash_session_id' => $cashSession->getKey(),
-                'cash_ledger_id' => $payment->cash_ledger_id,
-                'source_type' => Payment::class,
-                'source_id' => $payment->getKey(),
-                'type' => $movementType,
-                'direction' => CashMovementDirection::In,
-                'status' => CashMovementStatus::Posted,
-                'amount' => $total,
-                'currency' => $lockedReservation->currency,
-                'description' => 'Vente guichet '.$lockedReservation->uuid,
-                'created_by' => $agent->getKey(),
-                'occurred_at' => now(),
-            ]);
-
-            $ledger = CashLedger::query()->lockForUpdate()->findOrFail($payment->cash_ledger_id);
-            $ledger->increment('expected_balance', $total);
-
-            if ($method === PaymentMethod::Cash) {
-                $cashSession->increment('total_cash', $total);
-                $cashSession->refresh();
-                $cashSession->update([
-                    'expected_balance' => (int) $cashSession->opening_float + (int) $cashSession->total_cash,
+            if ($method !== PaymentMethod::CompanyCredit) {
+                $movementType = $method === PaymentMethod::Cash ? 'counter_sale_cash' : 'counter_sale_mobile_money';
+                CashMovement::query()->create([
+                    'cash_session_id' => $cashSession->getKey(),
+                    'cash_ledger_id' => $payment->cash_ledger_id,
+                    'source_type' => Payment::class,
+                    'source_id' => $payment->getKey(),
+                    'type' => $movementType,
+                    'direction' => CashMovementDirection::In,
+                    'status' => CashMovementStatus::Posted,
+                    'amount' => $total,
+                    'currency' => $lockedReservation->currency,
+                    'description' => 'Vente guichet '.$lockedReservation->uuid,
+                    'created_by' => $agent->getKey(),
+                    'occurred_at' => now(),
                 ]);
+
+                $ledger = CashLedger::query()->lockForUpdate()->findOrFail($payment->cash_ledger_id);
+                $ledger->increment('expected_balance', $total);
+
+                if ($method === PaymentMethod::Cash) {
+                    $cashSession->increment('total_cash', $total);
+                    $cashSession->refresh();
+                    $cashSession->update([
+                        'expected_balance' => (int) $cashSession->opening_float + (int) $cashSession->total_cash,
+                    ]);
+                } else {
+                    $cashSession->increment('total_mobile_money', $total);
+                }
             } else {
-                $cashSession->increment('total_mobile_money', $total);
+                $creditHold = $lockedReservation->companyCreditHolds()
+                    ->where('status', CompanyCreditHoldStatus::Reserved->value)
+                    ->lockForUpdate()
+                    ->first();
+                if ($lockedReservation->payer_type->value !== 'company' || $creditHold === null) {
+                    throw ValidationException::withMessages(['method' => 'Aucun crédit entreprise réservé pour cette vente.']);
+                }
+                $this->companyCredit->convert($creditHold, $payment);
             }
 
             $lockedReservation->update([
@@ -243,13 +254,33 @@ class RecordCounterSalePaymentAction
         array $attributes,
         Reservation $reservation,
         User $agent,
-        CashSession $cashSession,
+        ?CashSession $cashSession,
         int $total,
     ): array {
         if ((int) ($attributes['amount'] ?? -1) !== $total) {
             throw ValidationException::withMessages([
                 'amount' => 'Le montant du paiement doit correspondre au total de la vente.',
             ]);
+        }
+
+        if ($method === PaymentMethod::CompanyCredit) {
+            if ((int) ($attributes['amount'] ?? -1) !== $total) {
+                throw ValidationException::withMessages(['amount' => 'Le montant du paiement doit correspondre au total de la vente.']);
+            }
+
+            return [
+                'reservation_id' => $reservation->getKey(),
+                'method' => $method,
+                'provider' => 'company_credit',
+                'idempotency_key' => (string) $attributes['idempotency_key'],
+                'amount' => $total,
+                'currency' => $reservation->currency,
+                'status' => PaymentStatus::Confirmed,
+                'confirmed_at' => now(),
+                'verified_by' => $agent->getKey(),
+                'verified_at' => now(),
+                'provider_payload' => ['channel' => 'counter_sale', 'source' => 'company_credit'],
+            ];
         }
 
         $base = [
@@ -261,7 +292,7 @@ class RecordCounterSalePaymentAction
             'currency' => $reservation->currency,
             'status' => PaymentStatus::Confirmed,
             'confirmed_at' => now(),
-            'cash_session_id' => $cashSession->getKey(),
+            'cash_session_id' => $cashSession?->getKey(),
             'verified_by' => $agent->getKey(),
             'verified_at' => now(),
             'provider_payload' => ['manualVerification' => true, 'channel' => 'counter_sale'],

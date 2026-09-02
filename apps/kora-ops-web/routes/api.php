@@ -2,10 +2,13 @@
 
 use App\Modules\Booking\Http\Controllers\BusSeatHoldController;
 use App\Modules\Booking\Http\Controllers\ItineraryController;
+use App\Modules\Booking\Http\Controllers\ReservationController;
 use App\Modules\Booking\Http\Controllers\ReservationPassengerController;
 use App\Modules\BusNetwork\Http\Controllers\BusCatalogController;
+use App\Modules\CompanyAccounts\Http\Controllers\CompanyAccountController;
 use App\Modules\Departures\Http\Controllers\BusDepartureController;
 use App\Modules\DynamicPricing\Http\Controllers\BusQuoteController;
+use App\Modules\DynamicPricing\Http\Controllers\GroupDiscountRuleController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthDeviceController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthOAuthController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthOtpController;
@@ -80,11 +83,25 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         });
 
     Route::middleware('auth:sanctum')->group(function (): void {
+        Route::get('company-accounts', [CompanyAccountController::class, 'index'])->name('company-accounts.index');
+        Route::post('company-accounts', [CompanyAccountController::class, 'store'])->name('company-accounts.store');
+        Route::put('company-accounts/{companyAccount:uuid}', [CompanyAccountController::class, 'update'])->name('company-accounts.update');
+        Route::post('company-accounts/{companyAccount:uuid}/deactivate', [CompanyAccountController::class, 'deactivate'])->name('company-accounts.deactivate');
+        Route::post('company-accounts/{companyAccount:uuid}/members', [CompanyAccountController::class, 'addMember'])->name('company-accounts.members.store');
+        Route::get('group-discounts', [GroupDiscountRuleController::class, 'index'])->name('group-discounts.index');
+        Route::post('group-discounts', [GroupDiscountRuleController::class, 'store'])->name('group-discounts.store');
+        Route::put('group-discounts/{groupDiscountRule:uuid}', [GroupDiscountRuleController::class, 'update'])->name('group-discounts.update');
+        Route::get('group-booking-settings', [GroupDiscountRuleController::class, 'settings'])->name('group-booking-settings.show');
+        Route::put('group-booking-settings', [GroupDiscountRuleController::class, 'updateSettings'])->name('group-booking-settings.update');
         Route::get('payments/methods', [PaymentController::class, 'methods'])
             ->name('payments.methods');
 
         Route::post('bookings/{reservation:uuid}/passengers', [ReservationPassengerController::class, 'store'])
             ->name('bookings.passengers.store');
+        Route::post('bookings/{reservation:uuid}/cancel', [ReservationController::class, 'cancel'])
+            ->name('bookings.cancel');
+        Route::post('bookings/{reservation:uuid}/passengers/{passenger:uuid}/cancel', [ReservationController::class, 'cancelPassenger'])
+            ->name('bookings.passengers.cancel');
         Route::get('bookings/{reservation:uuid}/tickets', [TicketController::class, 'index'])
             ->name('bookings.tickets.index');
 

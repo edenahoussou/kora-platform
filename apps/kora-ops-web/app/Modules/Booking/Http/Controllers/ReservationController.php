@@ -3,10 +3,12 @@
 namespace App\Modules\Booking\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Booking\Actions\CancelReservationAction;
 use App\Modules\Booking\Actions\ReleaseSeatHoldAction;
 use App\Modules\Booking\Http\Requests\ReleaseSeatHoldRequest;
 use App\Modules\Booking\Http\Resources\ReservationResource;
 use App\Modules\Booking\Models\Reservation;
+use App\Modules\Booking\Models\ReservationPassenger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -91,5 +93,28 @@ class ReservationController extends Controller
         $releaseSeatHold->handle($reservation, $request->user());
 
         return response()->noContent();
+    }
+
+    public function cancel(Request $request, Reservation $reservation, CancelReservationAction $cancelReservation): JsonResponse
+    {
+        Gate::forUser($request->user())->authorize('cancel', $reservation);
+
+        return (new ReservationResource($cancelReservation->cancel($reservation, $request->user())))
+            ->response()
+            ->setStatusCode(200);
+    }
+
+    public function cancelPassenger(
+        Request $request,
+        Reservation $reservation,
+        ReservationPassenger $passenger,
+        CancelReservationAction $cancelReservation,
+    ): JsonResponse {
+        Gate::forUser($request->user())->authorize('cancel', $reservation);
+        abort_unless($passenger->reservation_id === $reservation->getKey(), 404);
+
+        return (new ReservationResource($cancelReservation->cancelPassenger($reservation, $passenger, $request->user())))
+            ->response()
+            ->setStatusCode(200);
     }
 }
