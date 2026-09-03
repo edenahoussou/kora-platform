@@ -16,7 +16,7 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 class OpenCashSessionAction
 {
     /**
-     * @param  list<array{kind: string, account_uuid: string|null, opening_balance: int, opening_comment?: string|null, evidence: UploadedFile}>  $ledgers
+     * @param  list<array{kind: string, account_uuid: string|null, opening_balance: int, opening_comment?: string|null, evidence: UploadedFile, evidence_captured_at?: string}>  $ledgers
      */
     public function execute(User $agent, array $ledgers): CashSession
     {
@@ -98,7 +98,7 @@ class OpenCashSessionAction
     }
 
     /**
-     * @param  array{kind: string, account_uuid: string|null, opening_balance: int, opening_comment?: string|null, evidence: UploadedFile}  $attributes
+     * @param  array{kind: string, account_uuid: string|null, opening_balance: int, opening_comment?: string|null, evidence: UploadedFile, evidence_captured_at?: string}  $attributes
      */
     private function createLedger(
         CashSession $session,
@@ -125,8 +125,10 @@ class OpenCashSessionAction
             ->withCustomProperties([
                 'evidence_type' => 'opening_balance',
                 'ledger_uuid' => $ledger->uuid,
+                'evidence_source' => 'live_camera',
                 'captured_by' => $agent->uuid,
                 'captured_at' => now()->toISOString(),
+                'captured_at_client' => $attributes['evidence_captured_at'] ?? null,
             ])
             ->toMediaCollection('opening-evidence');
 

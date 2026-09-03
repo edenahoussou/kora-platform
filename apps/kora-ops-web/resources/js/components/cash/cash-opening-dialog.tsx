@@ -1,10 +1,11 @@
 import { useForm } from '@inertiajs/react';
-import { Banknote, Camera, Check, Smartphone, X } from 'lucide-react';
+import { Banknote, Smartphone, X } from 'lucide-react';
 import { useMemo } from 'react';
 import type { SaleMobileMoneyAccount } from '@/components/sale/sale-types';
 import { formatMoney } from '@/components/sale/sale-utils';
 import { cn } from '@/lib/utils';
 import { open as openCash } from '@/routes/cash';
+import { CameraCapture } from './camera-capture';
 
 type OpeningLedger = {
     kind: 'cash' | 'mobile_money';
@@ -12,6 +13,8 @@ type OpeningLedger = {
     opening_balance: string;
     opening_comment: string;
     evidence: File | null;
+    evidence_captured_at: string | null;
+    evidence_preview_url: string | null;
 };
 
 type Props = {
@@ -28,6 +31,8 @@ function initialLedgers(accounts: SaleMobileMoneyAccount[]): OpeningLedger[] {
             opening_balance: '',
             opening_comment: '',
             evidence: null,
+            evidence_captured_at: null,
+            evidence_preview_url: null,
         },
         ...accounts.map((account) => ({
             kind: 'mobile_money' as const,
@@ -35,6 +40,8 @@ function initialLedgers(accounts: SaleMobileMoneyAccount[]): OpeningLedger[] {
             opening_balance: '',
             opening_comment: '',
             evidence: null,
+            evidence_captured_at: null,
+            evidence_preview_url: null,
         })),
     ];
 }
@@ -42,6 +49,10 @@ function initialLedgers(accounts: SaleMobileMoneyAccount[]): OpeningLedger[] {
 export function CashOpeningDialog({ accounts, onClose, onSuccess }: Props) {
     const initial = useMemo(() => initialLedgers(accounts), [accounts]);
     const form = useForm<{ ledgers: OpeningLedger[] }>({ ledgers: initial });
+    // Business-rule errors like `cash_session` (e.g. "no agency assigned")
+    // aren't tied to any form field, so they fall outside the strict
+    // FormDataErrors<T> typing; read them via a loosely-typed view.
+    const errors = form.errors as Record<string, string | undefined>;
     const totalDeclared = form.data.ledgers.reduce(
         (total, ledger) => total + (Number(ledger.opening_balance) || 0),
         0,
@@ -50,7 +61,8 @@ export function CashOpeningDialog({ accounts, onClose, onSuccess }: Props) {
         (ledger) =>
             Number.isInteger(Number(ledger.opening_balance)) &&
             Number(ledger.opening_balance) >= 0 &&
-            ledger.evidence !== null,
+            ledger.evidence !== null &&
+            ledger.evidence_captured_at !== null,
     );
 
     const setLedger = (
@@ -71,6 +83,17 @@ export function CashOpeningDialog({ accounts, onClose, onSuccess }: Props) {
         if (!canSubmit || form.processing) {
             return;
         }
+
+        form.transform((data) => ({
+            ledgers: data.ledgers.map((ledger) => ({
+                kind: ledger.kind,
+                account_uuid: ledger.account_uuid,
+                opening_balance: ledger.opening_balance,
+                opening_comment: ledger.opening_comment,
+                evidence: ledger.evidence,
+                evidence_captured_at: ledger.evidence_captured_at,
+            })),
+        }));
 
         form.post(openCash.url(), {
             forceFormData: true,
@@ -118,9 +141,13 @@ export function CashOpeningDialog({ accounts, onClose, onSuccess }: Props) {
                                   (item) => item.uuid === ledger.account_uuid,
                               )
                             : null;
-                        const error =
-                            form.errors[`ledgers.${index}.evidence`] ??
+                        const balanceError =
                             form.errors[`ledgers.${index}.opening_balance`];
+                        const evidenceError =
+                            form.errors[`ledgers.${index}.evidence`] ??
+                            form.errors[
+                                `ledgers.${index}.evidence_captured_at`
+                            ];
 
                         return (
                             <div
@@ -165,30 +192,41 @@ export function CashOpeningDialog({ accounts, onClose, onSuccess }: Props) {
                                             }
                                             placeholder="0"
                                         />
+                                        {balanceError && (
+                                            <small className="field-error-text">
+                                                {balanceError}
+                                            </small>
+                                        )}
                                     </label>
-                                    <label className="cash-evidence-input">
-                                        <span>
-                                            <Camera className="size-3.5" />
-                                            {ledger.evidence
-                                                ? 'Preuve ajoutée'
-                                                : 'Ajouter une preuve'}{' '}
-                                            <b>*</b>
-                                        </span>
-                                        <input
-                                            type="file"
-                                            accept="image/jpeg,image/png,image/webp"
-                                            onChange={(event) =>
-                                                setLedger(index, {
-                                                    evidence:
-                                                        event.target
-                                                            .files?.[0] ?? null,
-                                                })
-                                            }
-                                        />
-                                        <small>
-                                            JPEG, PNG ou WebP · 5 Mo maximum
-                                        </small>
-                                    </label>
+                                    <CameraCapture
+                                        label="Preuve d’ouverture"
+                                        error={evidenceError}
+                                        value={
+                                            ledger.evidence &&
+                                            ledger.evidence_preview_url
+                                                ? {
+                                                      file: ledger.evidence,
+                                                      capturedAt:
+                                                          ledger.evidence_captured_at ??
+                                                          '',
+                                                      previewUrl:
+                                                          ledger.evidence_preview_url,
+                                                  }
+                                                : null
+                                        }
+                                        onChange={(captured) =>
+                                            setLedger(index, {
+                                                evidence:
+                                                    captured?.file ?? null,
+                                                evidence_captured_at:
+                                                    captured?.capturedAt ??
+                                                    null,
+                                                evidence_preview_url:
+                                                    captured?.previewUrl ??
+                                                    null,
+                                            })
+                                        }
+                                    />
                                 </div>
                                 <label className="field cash-opening-comment">
                                     <span>
@@ -206,25 +244,14 @@ export function CashOpeningDialog({ accounts, onClose, onSuccess }: Props) {
                                         placeholder="Ex. comptage effectué avec le responsable"
                                     />
                                 </label>
-                                {error && (
-                                    <small className="field-error-text">
-                                        {error}
-                                    </small>
-                                )}
-                                {ledger.evidence && (
-                                    <span className="cash-evidence-ready">
-                                        <Check className="size-3.5" />{' '}
-                                        {ledger.evidence.name}
-                                    </span>
-                                )}
                             </div>
                         );
                     })}
                 </div>
 
-                {form.errors.ledgers && (
+                {(errors.cash_session || form.errors.ledgers) && (
                     <div className="cash-form-error" role="alert">
-                        {form.errors.ledgers}
+                        {errors.cash_session ?? form.errors.ledgers}
                     </div>
                 )}
 

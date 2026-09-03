@@ -2312,6 +2312,91 @@
         font-weight: 950;
     }
 
+    .camera-capture {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .camera-capture-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: var(--digital);
+        font-size: 9px;
+        font-weight: 850;
+    }
+
+    .camera-capture-label b {
+        color: var(--destructive);
+    }
+
+    .camera-capture-idle {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .camera-capture-trigger {
+        justify-content: center;
+        border: 1px dashed color-mix(in srgb, var(--digital) 45%, var(--border));
+    }
+
+    .camera-capture-status {
+        display: inline-flex;
+        align-items: flex-start;
+        gap: 4px;
+        color: var(--destructive);
+        font-size: 8px;
+        line-height: 1.4;
+    }
+
+    .camera-capture-live {
+        display: grid;
+        gap: 8px;
+    }
+
+    .camera-capture-video {
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        background: #000;
+        object-fit: cover;
+    }
+
+    .camera-capture-live-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+    .camera-capture-preview {
+        display: grid;
+        grid-template-columns: 64px 1fr;
+        align-items: center;
+        gap: 10px;
+        padding: 6px;
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        background: var(--card);
+    }
+
+    .camera-capture-preview img {
+        width: 64px;
+        height: 64px;
+        border-radius: 7px;
+        object-fit: cover;
+    }
+
+    .camera-capture-preview-info {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        align-items: flex-start;
+    }
+
     .cash-form-error {
         margin-top: 12px;
         padding: 9px 11px;

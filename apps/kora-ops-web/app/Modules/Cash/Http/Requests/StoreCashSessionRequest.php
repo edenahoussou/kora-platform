@@ -3,6 +3,7 @@
 namespace App\Modules\Cash\Http\Requests;
 
 use App\Modules\Cash\Models\CashSession;
+use App\Modules\Cash\Rules\RecentCameraCapture;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rules\File;
@@ -31,10 +32,16 @@ class StoreCashSessionRequest extends FormRequest
                 'file',
                 File::types(['jpg', 'jpeg', 'png', 'webp'])->max(5120),
             ],
+            // Captured client-side at the exact moment the live snapshot is
+            // taken (see CameraCapture.tsx). There is no file-picker path
+            // that can populate this field with a plausible recent value,
+            // which is what makes it a meaningful proxy for "this evidence
+            // came from a live photo" rather than an uploaded file.
+            'ledgers.*.evidence_captured_at' => ['required', 'date', new RecentCameraCapture],
         ];
     }
 
-    /** @return list<array{kind: string, account_uuid: string|null, opening_balance: int, opening_comment: string|null, evidence: UploadedFile}> */
+    /** @return list<array{kind: string, account_uuid: string|null, opening_balance: int, opening_comment: string|null, evidence: UploadedFile, evidence_captured_at: string}> */
     public function ledgerData(): array
     {
         $data = $this->validated();
@@ -49,6 +56,7 @@ class StoreCashSessionRequest extends FormRequest
                 'opening_balance' => (int) ($values['opening_balance'] ?? 0),
                 'opening_comment' => isset($values['opening_comment']) ? (string) $values['opening_comment'] : null,
                 'evidence' => $this->evidenceFor('ledgers.'.(int) $index.'.evidence'),
+                'evidence_captured_at' => (string) ($values['evidence_captured_at'] ?? ''),
             ];
         }
 

@@ -12,10 +12,10 @@ import {
     Plus,
     Smartphone,
     SlidersHorizontal,
-    Upload,
     X,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { CameraCapture } from '@/components/cash/camera-capture';
 import { CashOpeningDialog } from '@/components/cash/cash-opening-dialog';
 import type {
     SaleCashLedger,
@@ -1096,6 +1096,8 @@ function CloseDialog({
             actual_balance: string;
             closing_comment: string;
             evidence: File | null;
+            evidence_captured_at: string | null;
+            evidence_preview_url: string | null;
         }>;
     }>({
         ledgers: session.ledgers.map((ledger) => ({
@@ -1103,13 +1105,20 @@ function CloseDialog({
             actual_balance: String(ledger.expectedBalance),
             closing_comment: '',
             evidence: null,
+            evidence_captured_at: null,
+            evidence_preview_url: null,
         })),
     });
+    // Business-rule errors like `cash_session` aren't tied to any form
+    // field, so they fall outside the strict FormDataErrors<T> typing;
+    // read them via a loosely-typed view.
+    const errors = form.errors as Record<string, string | undefined>;
     const valid = form.data.ledgers.every(
         (ledger) =>
             Number.isInteger(Number(ledger.actual_balance)) &&
             Number(ledger.actual_balance) >= 0 &&
-            ledger.evidence !== null,
+            ledger.evidence !== null &&
+            ledger.evidence_captured_at !== null,
     );
     const update = (
         index: number,
@@ -1127,6 +1136,16 @@ function CloseDialog({
         if (!valid || form.processing) {
             return;
         }
+
+        form.transform((data) => ({
+            ledgers: data.ledgers.map((ledger) => ({
+                uuid: ledger.uuid,
+                actual_balance: ledger.actual_balance,
+                closing_comment: ledger.closing_comment,
+                evidence: ledger.evidence,
+                evidence_captured_at: ledger.evidence_captured_at,
+            })),
+        }));
 
         form.post(closeCash.url(session.uuid!), {
             forceFormData: true,
@@ -1209,29 +1228,42 @@ function CloseDialog({
                                             }
                                         />
                                     </label>
-                                    <label className="cash-evidence-input">
-                                        <span>
-                                            <Upload className="size-3.5" />
-                                            {ledger.evidence
-                                                ? 'Preuve ajoutée'
-                                                : 'Ajouter une preuve'}{' '}
-                                            <b>*</b>
-                                        </span>
-                                        <input
-                                            type="file"
-                                            accept="image/jpeg,image/png,image/webp"
-                                            onChange={(event) =>
-                                                update(index, {
-                                                    evidence:
-                                                        event.target
-                                                            .files?.[0] ?? null,
-                                                })
-                                            }
-                                        />
-                                        <small>
-                                            JPEG, PNG ou WebP · 5 Mo maximum
-                                        </small>
-                                    </label>
+                                    <CameraCapture
+                                        label="Preuve de clôture"
+                                        error={
+                                            form.errors[
+                                                `ledgers.${index}.evidence`
+                                            ] ??
+                                            form.errors[
+                                                `ledgers.${index}.evidence_captured_at`
+                                            ]
+                                        }
+                                        value={
+                                            ledger.evidence &&
+                                            ledger.evidence_preview_url
+                                                ? {
+                                                      file: ledger.evidence,
+                                                      capturedAt:
+                                                          ledger.evidence_captured_at ??
+                                                          '',
+                                                      previewUrl:
+                                                          ledger.evidence_preview_url,
+                                                  }
+                                                : null
+                                        }
+                                        onChange={(captured) =>
+                                            update(index, {
+                                                evidence:
+                                                    captured?.file ?? null,
+                                                evidence_captured_at:
+                                                    captured?.capturedAt ??
+                                                    null,
+                                                evidence_preview_url:
+                                                    captured?.previewUrl ??
+                                                    null,
+                                            })
+                                        }
+                                    />
                                 </div>
                                 <label className="field cash-opening-comment">
                                     <span>
@@ -1254,6 +1286,11 @@ function CloseDialog({
                         );
                     })}
                 </div>
+                {(errors.cash_session || form.errors.ledgers) && (
+                    <div className="cash-form-error" role="alert">
+                        {errors.cash_session ?? form.errors.ledgers}
+                    </div>
+                )}
                 <div className="cash-modal-actions">
                     <button
                         type="button"

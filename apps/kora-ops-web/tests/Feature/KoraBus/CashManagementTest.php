@@ -85,6 +85,7 @@ it('submits a balanced closure with evidence for every ledger', function (): voi
         'actual_balance' => $ledger->opening_balance,
         'closing_comment' => '',
         'evidence' => UploadedFile::fake()->image('closing.jpg'),
+        'evidence_captured_at' => now()->toISOString(),
     ])->all()];
 
     $this->actingAs($scenario['agent'])
@@ -134,7 +135,95 @@ function cashManagementScenario(): array
     return compact('agent', 'agency', 'accounts');
 }
 
-/** @return array{kind: string, account_uuid: string|null, opening_balance: int, evidence: UploadedFile} */
+it('rejects cash opening evidence whose capture timestamp is stale', function (): void {
+    $scenario = cashManagementScenario();
+
+    $row = cashOpeningRow(125000);
+    $row['evidence_captured_at'] = now()->subMinutes(30)->toISOString();
+
+    $this->actingAs($scenario['agent'])
+        ->post(route('cash.open'), ['ledgers' => [$row]])
+        ->assertSessionHasErrors('ledgers.0.evidence_captured_at');
+
+    expect(CashSession::query()->count())->toBe(0);
+});
+
+it('rejects cash opening evidence whose capture timestamp is in the future', function (): void {
+    $scenario = cashManagementScenario();
+
+    $row = cashOpeningRow(125000);
+    $row['evidence_captured_at'] = now()->addMinutes(10)->toISOString();
+
+    $this->actingAs($scenario['agent'])
+        ->post(route('cash.open'), ['ledgers' => [$row]])
+        ->assertSessionHasErrors('ledgers.0.evidence_captured_at');
+});
+
+it('rejects a cash opening submitted without a capture timestamp', function (): void {
+    $scenario = cashManagementScenario();
+
+    $row = cashOpeningRow(125000);
+    unset($row['evidence_captured_at']);
+
+    $this->actingAs($scenario['agent'])
+        ->post(route('cash.open'), ['ledgers' => [$row]])
+        ->assertSessionHasErrors('ledgers.0.evidence_captured_at');
+});
+
+it('records the client capture timestamp and live-camera source on the opening evidence media', function (): void {
+    $scenario = cashManagementScenario();
+    $capturedAt = now()->subMinutes(2)->toISOString();
+
+    $row = cashOpeningRow(125000);
+    $row['evidence_captured_at'] = $capturedAt;
+
+    $this->actingAs($scenario['agent'])
+        ->post(route('cash.open'), ['ledgers' => [$row]])
+        ->assertRedirect();
+
+    $ledger = CashSession::query()->firstOrFail()->ledgers()->firstOrFail();
+    $media = $ledger->getFirstMedia('opening-evidence');
+
+    expect($media->getCustomProperty('evidence_source'))->toBe('live_camera')
+        ->and($media->getCustomProperty('captured_at_client'))->toBe($capturedAt);
+});
+
+it('rejects cash closing evidence whose capture timestamp is stale', function (): void {
+    $scenario = cashManagementScenario();
+    $session = createCashManagementSession($scenario);
+
+    $payload = ['ledgers' => $session->ledgers->map(fn (CashLedger $ledger): array => [
+        'uuid' => $ledger->uuid,
+        'actual_balance' => $ledger->opening_balance,
+        'closing_comment' => '',
+        'evidence' => UploadedFile::fake()->image('closing.jpg'),
+        'evidence_captured_at' => now()->subHours(2)->toISOString(),
+    ])->all()];
+
+    $this->actingAs($scenario['agent'])
+        ->post(route('cash.close', $session), $payload)
+        ->assertSessionHasErrors('ledgers.0.evidence_captured_at');
+
+    expect($session->fresh()->status->value)->toBe('open');
+});
+
+it('rejects a cash closing submitted without a capture timestamp', function (): void {
+    $scenario = cashManagementScenario();
+    $session = createCashManagementSession($scenario);
+
+    $payload = ['ledgers' => $session->ledgers->map(fn (CashLedger $ledger): array => [
+        'uuid' => $ledger->uuid,
+        'actual_balance' => $ledger->opening_balance,
+        'closing_comment' => '',
+        'evidence' => UploadedFile::fake()->image('closing.jpg'),
+    ])->all()];
+
+    $this->actingAs($scenario['agent'])
+        ->post(route('cash.close', $session), $payload)
+        ->assertSessionHasErrors('ledgers.0.evidence_captured_at');
+});
+
+/** @return array{kind: string, account_uuid: string|null, opening_balance: int, evidence: UploadedFile, evidence_captured_at: string} */
 function cashOpeningRow(int $balance, ?string $accountUuid = null): array
 {
     return [
@@ -142,6 +231,7 @@ function cashOpeningRow(int $balance, ?string $accountUuid = null): array
         'account_uuid' => $accountUuid,
         'opening_balance' => $balance,
         'evidence' => UploadedFile::fake()->image('opening.jpg'),
+        'evidence_captured_at' => now()->toISOString(),
     ];
 }
 

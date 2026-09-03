@@ -47,6 +47,7 @@ it('opens the current cash session from the counter sale quick action', function
                 'account_uuid' => null,
                 'opening_balance' => 25000,
                 'evidence' => UploadedFile::fake()->image('cash-opening.jpg'),
+                'evidence_captured_at' => now()->toISOString(),
             ]],
         ])
         ->assertRedirect();
