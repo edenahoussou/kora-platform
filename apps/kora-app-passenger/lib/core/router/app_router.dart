@@ -39,6 +39,7 @@ import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/home/presentation/pages/passengers_picker_page.dart';
 import '../../features/notifications/presentation/pages/notifications_page.dart';
 import '../../features/payment/presentation/bloc/payment_catalog_bloc.dart';
+import '../../features/payment/presentation/bloc/payment_flow_bloc.dart';
 import '../../features/payment/presentation/pages/booking_success_page.dart';
 import '../../features/payment/presentation/pages/card_payment_page.dart';
 import '../../features/payment/presentation/pages/mobile_money_page.dart';
@@ -548,6 +549,15 @@ class AppRouter {
                 create: (_) =>
                     getIt<PaymentCatalogBloc>()
                       ..add(const PaymentCatalogRequested()),
+              ),
+              // Le paiement lui-même vit au même niveau : lancé depuis
+              // l'écran Mobile Money, il est attendu par l'écran de
+              // validation puis par celui de confirmation. Le fournir par
+              // écran le remettrait à zéro à chaque navigation — et la
+              // relecture d'état s'arrêterait au moment précis où le
+              // voyageur compose son code.
+              BlocProvider<PaymentFlowBloc>(
+                create: (_) => getIt<PaymentFlowBloc>(),
               ),
             ],
             child: SeatHoldWatcher(child: child),

@@ -1,15 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/phone_number.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../auth/domain/entities/phone_country.dart';
+import '../../../booking/presentation/bloc/seat_hold_bloc.dart';
 import '../../../booking/presentation/widgets/hold_countdown.dart';
 import '../bloc/payment_catalog_bloc.dart';
+import '../bloc/payment_flow_bloc.dart';
 import '../widgets/labelled_field.dart';
 import 'payment_args.dart';
 import 'payment_flow_args.dart';
@@ -139,21 +144,86 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
     setState(() => _showErrors = true);
     if (_operatorError != null || _phoneError != null) return;
 
+    final network = _operator!;
+
     // Le voyageur choisit un **réseau** (`mtn_momo`), pas un encaisseur :
     // il a un compte MTN, pas un compte FedaPay. Le provider s'en déduit
-    // — c'est un détail d'acheminement, et le serveur range son catalogue
-    // par ordre de préférence.
-    //
-    // `POST payments/initiate` attend les deux : `provider` et
-    // `mobile_money_network`, plus `method: mobile_money`, le `phone` et
-    // une clé d'idempotence. L'appel reste à brancher, et rendra la
-    // référence et l'échéance que les écrans suivants savent déjà
-    // afficher.
+    // par le catalogue, qui range ses encaisseurs par ordre de préférence.
+    final provider = context
+        .read<PaymentCatalogBloc>()
+        .state
+        .catalog
+        .providerForNetwork(network);
+
+    // Aucun encaisseur pour ce réseau : le serveur refuserait l'appel.
+    // Le sélecteur ne propose que des réseaux servis, donc ce cas ne
+    // survient qu'entre deux rechargements du catalogue.
+    if (provider == null) {
+      KoraToaster.show(context, context.l10n.paymentMethodNone);
+      return;
+    }
+
+    final hold = context.read<SeatHoldBloc>().state.hold;
+    if (hold == null) {
+      // Sans blocage, il n'y a pas de réservation à payer — un lien
+      // profond, ou un retour après expiration.
+      context.go(AppRouter.holdExpiredPath);
+      return;
+    }
+
+    context.read<PaymentFlowBloc>().add(
+      PaymentFlowStarted(
+        reservationId: hold.id,
+        provider: provider.code,
+        network: network,
+        phone: '${_country.code}${_phone.text.replaceAll(RegExp(r'\D'), '')}',
+        // Volontairement déterministe : un réseau qui coupe entre l'envoi
+        // et la réponse laisse le voyageur retaper « Payer », et cette clé
+        // fait alors répondre au serveur le paiement déjà ouvert plutôt
+        // que d'en créer un second. Une clé tirée au hasard à chaque appui
+        // provoquerait exactement le double débit qu'elle prétend éviter.
+        idempotencyKey: 'kora-${hold.id}-$network',
+      ),
+    );
+  }
+
+  /// Ce que devient l'écran une fois la demande partie.
+  void _onFlowChanged(BuildContext context, PaymentFlowState flow) {
+    if (flow.hasFailed) {
+      KoraToaster.show(
+        context,
+        flow.errorMessage ?? context.l10n.paymentMethodFailed,
+      );
+      return;
+    }
+
+    if (!flow.isPending && !flow.isConfirmed) return;
+
+    final attempt = flow.attempt;
+
+    // Si le serveur venait un jour à rendre un lien de paiement — il
+    // faudrait pour cela qu'il appelle `generateToken()`, ce qu'il ne fait
+    // pas aujourd'hui —, il s'ouvre dans le **navigateur du système**.
+    // Jamais dans un WebView embarqué : un tunnel de paiement encapsulé
+    // dans l'app est précisément ce que la revue Apple examine, alors
+    // qu'un renvoi vers le navigateur ne pose aucune question. Le
+    // paiement reste ainsi hors de l'application, comme la fenêtre USSD
+    // de l'opérateur l'est déjà.
+    final checkout = attempt?.checkoutUrl;
+    if (checkout != null && checkout.isNotEmpty) {
+      unawaited(
+        launchUrl(Uri.parse(checkout), mode: LaunchMode.externalApplication),
+      );
+    }
+
     context.push(
       AppRouter.paymentValidationPath,
       extra: PaymentFlowArgs(
         total: widget.args!.total,
         providerLabel: mobileMoneyLabel(_operator ?? ''),
+        reference: attempt?.reference,
+        expiresAt: attempt?.expiresAt,
+        pollingInterval: attempt?.pollingInterval,
         departure: widget.args!.departure,
         seatLabel: widget.args!.seatLabel,
       ),
@@ -168,130 +238,146 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
 
     if (args == null) return const PaymentMissingArgs();
 
-    return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ScreenHeader(
-                eyebrow: l10n.paymentMomoEyebrow(args.total.formatted),
-                title: l10n.paymentMomoTitle,
-              ),
-              Expanded(
-                child: ListView(
-                  padding: EdgeInsets.zero,
-                  children: [
-                    const HoldCountdown(margin: EdgeInsets.only(bottom: 11)),
-                    LabelledField(
-                      label: l10n.paymentMomoOperator,
-                      // `DropdownMenu` et non `DropdownButtonFormField` :
-                      // le second aligne l'élément choisi sur le champ,
-                      // donc recouvre le champ et son intitulé. Celui-ci
-                      // s'ancre **sous** le champ, comme le `<select>` de
-                      // la maquette — on garde sous les yeux ce qu'on est
-                      // en train de renseigner.
-                      child:
-                          BlocBuilder<PaymentCatalogBloc, PaymentCatalogState>(
-                            builder: (context, catalog) => LayoutBuilder(
-                              builder: (context, constraints) =>
-                                  DropdownMenu<String>(
-                                    width: constraints.maxWidth,
-                                    initialSelection: _operator,
-                                    // Rien à choisir tant que le serveur
-                                    // n'a pas répondu : un menu vide qui
-                                    // s'ouvre sur rien vaut moins qu'un
-                                    // champ visiblement inerte.
-                                    enabled: catalog.hasMobileMoney,
-                                    hintText: _hint(context, catalog),
-                                    errorText: _showErrors
-                                        ? _operatorError
-                                        : null,
-                                    textStyle: AppTextStyles.body(
-                                      koraColors.textPrimary,
-                                    ),
-                                    menuStyle: MenuStyle(
-                                      backgroundColor: WidgetStatePropertyAll(
-                                        koraColors.surface,
-                                      ),
-                                    ),
-                                    onSelected: (value) =>
-                                        setState(() => _operator = value),
-                                    dropdownMenuEntries: [
-                                      for (final network
-                                          in catalog.mobileMoneyNetworks)
-                                        DropdownMenuEntry(
-                                          value: network,
-                                          label: mobileMoneyLabel(network),
-                                        ),
-                                    ],
-                                  ),
-                            ),
-                          ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    LabelledField(
-                      label: l10n.paymentMomoPhone,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Même paire indicatif + numéro que l'écran des
-                          // permissions : le voyageur qui débite un compte
-                          // togolais depuis le Bénin doit pouvoir le dire.
-                          SizedBox(
-                            width: 124,
-                            child: DropdownButtonFormField<PhoneCountry>(
-                              initialValue: _country,
-                              isExpanded: true,
-                              onChanged: _onCountryChanged,
-                              items: [
-                                for (final item in PhoneCountry.all)
-                                  DropdownMenuItem(
-                                    value: item,
-                                    child: Text(
-                                      '${item.flag}  ${item.code}',
-                                      style: AppTextStyles.body(
+    return BlocListener<PaymentFlowBloc, PaymentFlowState>(
+      // Seuls les changements d'état comptent : sans ce filtre, le drapeau
+      // de vérification manuelle rejouerait la navigation.
+      listenWhen: (previous, current) => previous.status != current.status,
+      listener: _onFlowChanged,
+      child: Scaffold(
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ScreenHeader(
+                  eyebrow: l10n.paymentMomoEyebrow(args.total.formatted),
+                  title: l10n.paymentMomoTitle,
+                ),
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.zero,
+                    children: [
+                      const HoldCountdown(margin: EdgeInsets.only(bottom: 11)),
+                      LabelledField(
+                        label: l10n.paymentMomoOperator,
+                        // `DropdownMenu` et non `DropdownButtonFormField` :
+                        // le second aligne l'élément choisi sur le champ,
+                        // donc recouvre le champ et son intitulé. Celui-ci
+                        // s'ancre **sous** le champ, comme le `<select>` de
+                        // la maquette — on garde sous les yeux ce qu'on est
+                        // en train de renseigner.
+                        child:
+                            BlocBuilder<
+                              PaymentCatalogBloc,
+                              PaymentCatalogState
+                            >(
+                              builder: (context, catalog) => LayoutBuilder(
+                                builder: (context, constraints) =>
+                                    DropdownMenu<String>(
+                                      width: constraints.maxWidth,
+                                      initialSelection: _operator,
+                                      // Rien à choisir tant que le serveur
+                                      // n'a pas répondu : un menu vide qui
+                                      // s'ouvre sur rien vaut moins qu'un
+                                      // champ visiblement inerte.
+                                      enabled: catalog.hasMobileMoney,
+                                      hintText: _hint(context, catalog),
+                                      errorText: _showErrors
+                                          ? _operatorError
+                                          : null,
+                                      textStyle: AppTextStyles.body(
                                         koraColors.textPrimary,
                                       ),
+                                      menuStyle: MenuStyle(
+                                        backgroundColor: WidgetStatePropertyAll(
+                                          koraColors.surface,
+                                        ),
+                                      ),
+                                      onSelected: (value) =>
+                                          setState(() => _operator = value),
+                                      dropdownMenuEntries: [
+                                        for (final network
+                                            in catalog.mobileMoneyNetworks)
+                                          DropdownMenuEntry(
+                                            value: network,
+                                            label: mobileMoneyLabel(network),
+                                          ),
+                                      ],
                                     ),
-                                  ),
-                              ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: KoraInput(
-                              hint: _country.example,
-                              controller: _phone,
-                              keyboardType: TextInputType.phone,
-                              errorText: _showErrors ? _phoneError : null,
-                              onChanged: (_) => setState(() {}),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      LabelledField(
+                        label: l10n.paymentMomoPhone,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Même paire indicatif + numéro que l'écran des
+                            // permissions : le voyageur qui débite un compte
+                            // togolais depuis le Bénin doit pouvoir le dire.
+                            SizedBox(
+                              width: 124,
+                              child: DropdownButtonFormField<PhoneCountry>(
+                                initialValue: _country,
+                                isExpanded: true,
+                                onChanged: _onCountryChanged,
+                                items: [
+                                  for (final item in PhoneCountry.all)
+                                    DropdownMenuItem(
+                                      value: item,
+                                      child: Text(
+                                        '${item.flag}  ${item.code}',
+                                        style: AppTextStyles.body(
+                                          koraColors.textPrimary,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: KoraInput(
+                                hint: _country.example,
+                                controller: _phone,
+                                keyboardType: TextInputType.phone,
+                                errorText: _showErrors ? _phoneError : null,
+                                onChanged: (_) => setState(() {}),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    KoraCard(
-                      variant: KoraCardVariant.mist,
-                      child: Text(
-                        l10n.paymentMomoNotice,
-                        style: AppTextStyles.body(koraColors.textMuted),
+                      const SizedBox(height: AppSpacing.md),
+                      KoraCard(
+                        variant: KoraCardVariant.mist,
+                        child: Text(
+                          l10n.paymentMomoNotice,
+                          style: AppTextStyles.body(koraColors.textMuted),
+                        ),
                       ),
+                      const SizedBox(height: AppSpacing.xl),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                  child: BlocBuilder<PaymentFlowBloc, PaymentFlowState>(
+                    builder: (context, flow) => KoraButton(
+                      label: l10n.paymentMomoPay(args.total.formatted),
+                      // Le bouton se verrouille le temps de l'appel : deux
+                      // appuis pendant que la demande vole ouvriraient deux
+                      // paiements, et la clé d'idempotence n'est qu'un
+                      // filet — mieux vaut ne pas avoir à s'en servir.
+                      isLoading: flow.isStarting,
+                      onPressed: flow.isStarting ? null : _pay,
                     ),
-                    const SizedBox(height: AppSpacing.xl),
-                  ],
+                  ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                child: KoraButton(
-                  label: l10n.paymentMomoPay(args.total.formatted),
-                  onPressed: _pay,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

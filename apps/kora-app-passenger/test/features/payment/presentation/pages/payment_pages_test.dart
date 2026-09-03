@@ -147,7 +147,7 @@ void main() {
       await pump(
         tester,
         const PaymentMethodPage(args: args),
-        catalog: PaymentCatalogBloc(const StubPaymentRepository()),
+        catalog: PaymentCatalogBloc(StubPaymentRepository()),
       );
 
       expect(find.text('Chargement des moyens de paiement…'), findsOneWidget);

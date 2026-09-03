@@ -164,6 +164,21 @@ class ApiConstants {
   /// « Authentification `Bearer` requise ».
   static const String paymentMethods = '$_v1/payments/methods';
 
+  /// `POST` : lance un paiement pour une réservation retenue.
+  static const String paymentInitiate = '$_v1/payments/initiate';
+
+  /// `GET` : l'état d'un paiement, interrogé à la cadence que le serveur
+  /// annonce (`polling_interval_seconds`).
+  static String payment(String paymentUuid) => '$_v1/payments/$paymentUuid';
+
+  /// `POST` : demande au serveur de vérifier lui-même auprès du provider.
+  ///
+  /// Distinct de [payment], qui ne fait que relire l'état connu : c'est
+  /// l'app qui décide quand forcer une vérification, jamais l'app qui
+  /// conclut le paiement.
+  static String paymentVerify(String paymentUuid) =>
+      '$_v1/payments/$paymentUuid/verify';
+
   // --- Reste de l'API : pas encore documenté ---
 
   static const String busBooking = '/bus/bookings';

@@ -24,9 +24,11 @@ import 'package:kora_app_passenger/features/booking/domain/repositories/reservat
 import 'package:kora_app_passenger/features/booking/presentation/bloc/group_payer_cubit.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/group_quote_cubit.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/seat_hold_bloc.dart';
+import 'package:kora_app_passenger/features/payment/domain/entities/payment_attempt.dart';
 import 'package:kora_app_passenger/features/payment/domain/entities/payment_catalog.dart';
 import 'package:kora_app_passenger/features/payment/domain/repositories/payment_repository.dart';
 import 'package:kora_app_passenger/features/payment/presentation/bloc/payment_catalog_bloc.dart';
+import 'package:kora_app_passenger/features/payment/presentation/bloc/payment_flow_bloc.dart';
 
 import 'stub_auth_repository.dart';
 
@@ -251,20 +253,107 @@ const PaymentCatalog kStubPaymentCatalog = PaymentCatalog(
   ],
 );
 
+/// Ce qu'un double de [PaymentRepository] doit fournir quand il ne teste
+/// que le catalogue.
+///
+/// Le contrat porte aussi l'initiation et la relecture d'un paiement ;
+/// les refuser franchement vaut mieux que de rendre un faux succès, qui
+/// laisserait passer un test appelant une méthode qu'il n'a pas préparée.
+mixin PaymentCatalogOnly implements PaymentRepository {
+  @override
+  Future<Either<Failure, PaymentAttempt>> initiate({
+    required String reservationId,
+    required String provider,
+    required String network,
+    required String phone,
+    required String idempotencyKey,
+  }) => throw UnimplementedError('Ce double ne sert que pour le catalogue.');
+
+  @override
+  Future<Either<Failure, PaymentAttempt>> status(String paymentId) =>
+      throw UnimplementedError('Ce double ne sert que pour le catalogue.');
+
+  @override
+  Future<Either<Failure, PaymentAttempt>> verify(String paymentId) =>
+      throw UnimplementedError('Ce double ne sert que pour le catalogue.');
+}
+
 /// Dépôt de paiement réglable : rend le catalogue du staging par défaut,
 /// échoue sur demande.
 class StubPaymentRepository implements PaymentRepository {
-  const StubPaymentRepository({this.failure, this.value = kStubPaymentCatalog});
+  StubPaymentRepository({
+    this.failure,
+    this.value = kStubPaymentCatalog,
+    this.attempt = kStubPaymentAttempt,
+    this.initiateFailure,
+    this.statuses = const [],
+  });
 
   final Failure? failure;
   final PaymentCatalog value;
 
+  /// Ce que rend [initiate], et [status] quand [statuses] est épuisée.
+  final PaymentAttempt attempt;
+
+  /// Échec réservé à [initiate] : le catalogue arrive, seul le lancement
+  /// du paiement échoue.
+  final Failure? initiateFailure;
+
+  /// États successifs rendus par [status], dans l'ordre — de quoi jouer un
+  /// paiement qui reste en attente puis se confirme, sans horloge réelle.
+  final List<PaymentAttempt> statuses;
+
+  final List<String> calls = [];
+  int _statusReads = 0;
+
   @override
   Future<Either<Failure, PaymentCatalog>> catalog() async {
+    calls.add('catalog');
     final failure = this.failure;
     return failure != null ? Left(failure) : Right(value);
   }
+
+  @override
+  Future<Either<Failure, PaymentAttempt>> initiate({
+    required String reservationId,
+    required String provider,
+    required String network,
+    required String phone,
+    required String idempotencyKey,
+  }) async {
+    calls.add('initiate:$provider/$network');
+    final failure = initiateFailure ?? this.failure;
+    return failure != null ? Left(failure) : Right(attempt);
+  }
+
+  @override
+  Future<Either<Failure, PaymentAttempt>> status(String paymentId) async {
+    calls.add('status');
+    final failure = this.failure;
+    if (failure != null) return Left(failure);
+
+    if (_statusReads < statuses.length) return Right(statuses[_statusReads++]);
+    return Right(statuses.isEmpty ? attempt : statuses.last);
+  }
+
+  @override
+  Future<Either<Failure, PaymentAttempt>> verify(String paymentId) async {
+    calls.add('verify');
+    final failure = this.failure;
+    if (failure != null) return Left(failure);
+
+    return Right(statuses.isEmpty ? attempt : statuses.last);
+  }
 }
+
+/// Un paiement lancé, en attente de confirmation chez l'opérateur.
+const PaymentAttempt kStubPaymentAttempt = PaymentAttempt(
+  id: 'pay-1',
+  status: PaymentAttemptStatus.pending,
+  reference: 'FEDA-AB12CD34',
+  nextAction: 'verify',
+  pollingInterval: Duration(seconds: 10),
+);
 
 /// Un [AuthBloc] dont la session est **déjà ouverte**.
 ///
@@ -320,6 +409,7 @@ Widget withSeatHold(
   GroupQuoteCubit? groupQuote,
   GroupPayerCubit? groupPayer,
   PaymentCatalogBloc? catalog,
+  PaymentFlowBloc? flow,
 }) {
   return MultiBlocProvider(
     providers: [
@@ -341,6 +431,9 @@ Widget withSeatHold(
             catalog ??
             (PaymentCatalogBloc(StubPaymentRepository())
               ..add(const PaymentCatalogRequested())),
+      ),
+      BlocProvider<PaymentFlowBloc>.value(
+        value: flow ?? PaymentFlowBloc(StubPaymentRepository()),
       ),
     ],
     child: child,
