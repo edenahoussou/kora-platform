@@ -20,7 +20,10 @@ class AgencyFactory extends Factory
      */
     public function definition(): array
     {
-        $code = strtoupper(fake()->unique()->lexify('AG??'));
+        // Mirrors the real AG-000001 format produced by
+        // GenerateAgencyCodeAction, without touching the sequence table, so
+        // factory-created agencies don't collide with server-generated ones.
+        $code = sprintf('AG-%06d', fake()->unique()->numberBetween(900000, 999999));
 
         return [
             'code' => $code,
