@@ -39,9 +39,9 @@ it('opens one cash session with every active agency account and private evidence
     $response->assertRedirect();
     $session = CashSession::query()->firstOrFail();
     expect($session->ledgers)->toHaveCount(3)
-        ->and($session->ledgers->pluck('kind')->map(fn ($kind): string => $kind->value)->all())
+        ->and($session->ledgers->pluck('kind')->map(fn($kind): string => $kind->value)->all())
         ->toContain('cash', 'mobile_money');
-    expect($session->ledgers->every(fn (CashLedger $ledger): bool => $ledger->hasMedia('opening-evidence')))->toBeTrue();
+    expect($session->ledgers->every(fn(CashLedger $ledger): bool => $ledger->hasMedia('opening-evidence')))->toBeTrue();
     expect($session->ledgers->first()->getFirstMedia('opening-evidence')->disk)->toBe('private');
 
     $this->actingAs($scenario['agent'])
@@ -80,7 +80,7 @@ it('submits a balanced closure with evidence for every ledger', function (): voi
     $scenario = cashManagementScenario();
     $session = createCashManagementSession($scenario);
 
-    $payload = ['ledgers' => $session->ledgers->map(fn (CashLedger $ledger): array => [
+    $payload = ['ledgers' => $session->ledgers->map(fn(CashLedger $ledger): array => [
         'uuid' => $ledger->uuid,
         'actual_balance' => $ledger->opening_balance,
         'closing_comment' => '',
@@ -93,7 +93,7 @@ it('submits a balanced closure with evidence for every ledger', function (): voi
         ->assertRedirect();
 
     expect($session->fresh()->status->value)->toBe('closed')
-        ->and($session->fresh()->ledgers->every(fn (CashLedger $ledger): bool => $ledger->hasMedia('closing-evidence')))->toBeTrue();
+        ->and($session->fresh()->ledgers->every(fn(CashLedger $ledger): bool => $ledger->hasMedia('closing-evidence')))->toBeTrue();
 });
 
 it('keeps the operational cash demo seeder idempotent and out of the default seed', function (): void {
@@ -112,7 +112,7 @@ it('keeps the operational cash demo seeder idempotent and out of the default see
     expect(CashSession::query()->count())->toBe(1)
         ->and($session->ledgers)->toHaveCount(4)
         ->and(CashMovement::query()->count())->toBe(2)
-        ->and($session->ledgers->every(fn (CashLedger $ledger): bool => $ledger->hasMedia('opening-evidence')))->toBeTrue();
+        ->and($session->ledgers->every(fn(CashLedger $ledger): bool => $ledger->hasMedia('opening-evidence')))->toBeTrue();
 });
 
 /** @return array{agent: User, agency: Agency, accounts: list<AgencyPaymentAccount>} */
@@ -178,10 +178,17 @@ it('records the client capture timestamp and live-camera source on the opening e
     $row['evidence_captured_at'] = $capturedAt;
 
     $this->actingAs($scenario['agent'])
-        ->post(route('cash.open'), ['ledgers' => [$row]])
+        ->post(route('cash.open'), [
+            'ledgers' => [
+                $row,
+                cashOpeningRow(300000, $scenario['accounts'][0]->uuid),
+                cashOpeningRow(100000, $scenario['accounts'][1]->uuid),
+            ],
+        ])
         ->assertRedirect();
 
-    $ledger = CashSession::query()->firstOrFail()->ledgers()->firstOrFail();
+    $ledger = CashSession::query()->firstOrFail()
+        ->ledgers()->where('kind', 'cash')->firstOrFail();
     $media = $ledger->getFirstMedia('opening-evidence');
 
     expect($media->getCustomProperty('evidence_source'))->toBe('live_camera')
@@ -192,7 +199,7 @@ it('rejects cash closing evidence whose capture timestamp is stale', function ()
     $scenario = cashManagementScenario();
     $session = createCashManagementSession($scenario);
 
-    $payload = ['ledgers' => $session->ledgers->map(fn (CashLedger $ledger): array => [
+    $payload = ['ledgers' => $session->ledgers->map(fn(CashLedger $ledger): array => [
         'uuid' => $ledger->uuid,
         'actual_balance' => $ledger->opening_balance,
         'closing_comment' => '',
@@ -211,7 +218,7 @@ it('rejects a cash closing submitted without a capture timestamp', function (): 
     $scenario = cashManagementScenario();
     $session = createCashManagementSession($scenario);
 
-    $payload = ['ledgers' => $session->ledgers->map(fn (CashLedger $ledger): array => [
+    $payload = ['ledgers' => $session->ledgers->map(fn(CashLedger $ledger): array => [
         'uuid' => $ledger->uuid,
         'actual_balance' => $ledger->opening_balance,
         'closing_comment' => '',
