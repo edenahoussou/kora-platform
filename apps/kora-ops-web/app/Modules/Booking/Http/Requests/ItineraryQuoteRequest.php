@@ -2,6 +2,7 @@
 
 namespace App\Modules\Booking\Http\Requests;
 
+use App\Modules\Booking\Models\GroupBookingSetting;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ItineraryQuoteRequest extends FormRequest
@@ -17,7 +18,7 @@ class ItineraryQuoteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'passenger_count' => ['sometimes', 'integer', 'min:1', 'max:10'],
+            'passenger_count' => ['sometimes', 'integer', 'min:1', 'max:'.GroupBookingSetting::current()->maximum_passengers],
             'legs' => ['required', 'array', 'min:1', 'max:3'],
             'legs.*.departure_uuid' => ['required', 'uuid', 'exists:departures,uuid'],
             'legs.*.origin_stop_uuid' => ['required', 'uuid', 'exists:stops,uuid'],

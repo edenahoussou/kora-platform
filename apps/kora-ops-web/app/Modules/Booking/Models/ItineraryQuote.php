@@ -21,6 +21,9 @@ class ItineraryQuote extends KoraModel
         'uuid',
         'user_id',
         'passenger_count',
+        'subtotal_amount',
+        'dynamic_adjustment_amount',
+        'group_discount_amount',
         'total_amount',
         'currency',
         'snapshot',
@@ -43,6 +46,9 @@ class ItineraryQuote extends KoraModel
     {
         return [
             'passenger_count' => 'integer',
+            'subtotal_amount' => 'integer',
+            'dynamic_adjustment_amount' => 'integer',
+            'group_discount_amount' => 'integer',
             'total_amount' => 'integer',
             'snapshot' => 'array',
             'expires_at' => 'datetime',

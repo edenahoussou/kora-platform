@@ -3,6 +3,7 @@
 namespace App\Modules\Booking\Actions;
 
 use App\Models\User;
+use App\Modules\Booking\Data\PayerContext;
 use App\Modules\Booking\Data\ReservationChannel;
 use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\Booking\Data\ReservationStatus;
@@ -12,6 +13,7 @@ use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Data\SeatStatus;
 use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
+use App\Modules\CompanyAccounts\Services\CompanyCreditService;
 use App\Modules\Departures\Actions\ResolveDepartureSellabilityAction;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Models\PriceQuote;
@@ -28,6 +30,7 @@ class CreateSeatHoldAction
     public function __construct(
         private FindOccupiedSeatIdsAction $findOccupiedSeatIds,
         private ResolveDepartureSellabilityAction $resolveSellability,
+        private CompanyCreditService $companyCredit,
     ) {}
 
     /**
@@ -44,6 +47,8 @@ class CreateSeatHoldAction
         PriceQuote $priceQuote,
         array $seatUuids,
         ReservationChannel $channel = ReservationChannel::Mobile,
+        ?PayerContext $payer = null,
+        ?string $idempotencyKey = null,
     ): Reservation {
         $sellability = $this->resolveSellability->handle($departure);
         if (! $sellability->isSellable) {
@@ -112,6 +117,13 @@ class CreateSeatHoldAction
             }
         }
 
+        $payer ??= PayerContext::personal($user?->id);
+        if ($idempotencyKey === null || trim($idempotencyKey) === '') {
+            throw ValidationException::withMessages([
+                'idempotency_key' => 'Une clé d’idempotence est obligatoire pour créer un hold.',
+            ]);
+        }
+
         try {
             return DB::transaction(function () use (
                 $user,
@@ -121,6 +133,8 @@ class CreateSeatHoldAction
                 $priceQuote,
                 $seats,
                 $channel,
+                $payer,
+                $idempotencyKey,
             ): Reservation {
                 $lockedDeparture = Departure::query()
                     ->whereKey($departure->getKey())
@@ -134,14 +148,34 @@ class CreateSeatHoldAction
                 }
 
                 $priceQuote->refresh();
+                $existingReservation = Reservation::query()
+                    ->where('created_by_user_id', $user?->id)
+                    ->where('idempotency_key', $idempotencyKey)
+                    ->lockForUpdate()
+                    ->first();
+                if ($existingReservation !== null) {
+                    return $existingReservation->load(['segments.departure', 'segments.seat', 'segments.originStop', 'segments.destinationStop', 'passengers']);
+                }
                 if (($priceQuote->expires_at !== null && $priceQuote->expires_at->lte(now())) || $lockedDeparture->line_id !== $originStop->line_id || $seats->contains(fn (Seat $seat): bool => $seat->bus_id !== $lockedDeparture->bus_id)) {
                     throw ValidationException::withMessages(['price_quote_uuid' => 'Le départ a changé. Demandez un nouveau devis et sélectionnez à nouveau les sièges.']);
                 }
-                $totalAmount = (int) ($priceQuote->final_amount * $seats->count());
+                $expectedPassengerCount = (int) ($priceQuote->passenger_count ?: 1);
+                if ($seats->count() !== $expectedPassengerCount) {
+                    throw ValidationException::withMessages([
+                        'seats' => 'Le nombre de sièges doit correspondre au nombre de passagers du devis.',
+                    ]);
+                }
+                $totalAmount = (int) ($priceQuote->total_amount ?: $priceQuote->final_amount * $seats->count());
 
                 $reservation = Reservation::create([
-                    'user_id' => $user?->id,
+                    'created_by_user_id' => $user?->id,
+                    'payer_user_id' => $payer->payerUserId,
+                    'payer_type' => $payer->type,
+                    'company_account_id' => $payer->companyAccount?->getKey(),
+                    'purchase_type' => $expectedPassengerCount >= 5 ? 'group' : 'individual',
+                    'group_size' => $expectedPassengerCount,
                     'price_quote_id' => $priceQuote->id,
+                    'idempotency_key' => $idempotencyKey,
                     'status' => ReservationStatus::Held,
                     'total_amount' => $totalAmount,
                     'currency' => $priceQuote->currency,
@@ -162,6 +196,10 @@ class CreateSeatHoldAction
                         'destination_stop_order' => $destinationStop->stop_order,
                         'status' => ReservationSegmentStatus::Held,
                     ]);
+                }
+
+                if ($payer->companyAccount !== null) {
+                    $this->companyCredit->reserve($reservation, $payer->companyAccount);
                 }
 
                 return $reservation->load([

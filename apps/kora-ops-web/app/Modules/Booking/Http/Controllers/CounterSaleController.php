@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\Booking\Actions\CreateSeatHoldAction;
 use App\Modules\Booking\Actions\ReleaseSeatHoldAction;
+use App\Modules\Booking\Actions\ResolvePayerContextAction;
 use App\Modules\Booking\Actions\SaveCounterSaleDraftAction;
 use App\Modules\Booking\Actions\UpdateReservationPassengersAction;
 use App\Modules\Booking\Data\ReservationChannel;
@@ -105,7 +106,7 @@ class CounterSaleController extends Controller
         return to_route('sale', $request->saleQuery($quote->uuid));
     }
 
-    public function hold(HoldCounterSaleSeatsRequest $request, CreateSeatHoldAction $createSeatHold): RedirectResponse
+    public function hold(HoldCounterSaleSeatsRequest $request, CreateSeatHoldAction $createSeatHold, ResolvePayerContextAction $resolvePayer): RedirectResponse
     {
         $data = $request->holdData();
         try {
@@ -117,6 +118,8 @@ class CounterSaleController extends Controller
                 priceQuote: PriceQuote::query()->where('uuid', $data['price_quote_uuid'])->firstOrFail(),
                 seatUuids: $data['seat_uuids'],
                 channel: ReservationChannel::Counter,
+                payer: $resolvePayer->handle($request->user(), $data['payer']),
+                idempotencyKey: $data['idempotency_key'],
             );
         } catch (SeatUnavailableException $exception) {
             throw ValidationException::withMessages([
@@ -316,7 +319,7 @@ class CounterSaleController extends Controller
 
         return Reservation::query()
             ->where('uuid', $context['reservation_uuid'])
-            ->where('user_id', auth()->id())
+            ->where('created_by_user_id', auth()->id())
             ->with([
                 'segments.departure.line',
                 'segments.seat',
@@ -339,7 +342,7 @@ class CounterSaleController extends Controller
         }
 
         return Reservation::query()
-            ->where('user_id', $user->getKey())
+            ->where('created_by_user_id', $user->getKey())
             ->where('channel', ReservationChannel::Counter->value)
             ->where('status', ReservationStatus::Held->value)
             ->where('expires_at', '>', now())

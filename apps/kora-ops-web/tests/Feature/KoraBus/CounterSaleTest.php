@@ -79,7 +79,7 @@ it('ignores expired, cancelled, paid and ticketed counter sales during resume', 
         ReservationStatus::Ticketed->value => Carbon::now()->addMinutes(10),
     ] as $status => $expiresAt) {
         Reservation::query()->create([
-            'user_id' => $scenario['agent']->id,
+            'created_by_user_id' => $scenario['agent']->id,
             'status' => $status,
             'total_amount' => 10000,
             'currency' => 'XOF',

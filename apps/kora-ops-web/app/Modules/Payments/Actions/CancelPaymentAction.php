@@ -20,7 +20,9 @@ class CancelPaymentAction
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($lockedPayment->reservation?->user_id !== null && $lockedPayment->reservation->user_id !== $user->getKey()) {
+            if ($lockedPayment->reservation?->created_by_user_id !== null
+                && $lockedPayment->reservation->created_by_user_id !== $user->getKey()
+                && $lockedPayment->reservation->payer_user_id !== $user->getKey()) {
                 throw new AuthorizationException('Vous n’avez pas accès à ce paiement.');
             }
 

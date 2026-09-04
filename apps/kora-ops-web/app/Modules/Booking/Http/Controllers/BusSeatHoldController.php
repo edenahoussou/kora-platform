@@ -5,6 +5,7 @@ namespace App\Modules\Booking\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Booking\Actions\CreateSeatHoldAction;
 use App\Modules\Booking\Actions\ReleaseSeatHoldAction;
+use App\Modules\Booking\Actions\ResolvePayerContextAction;
 use App\Modules\Booking\Http\Requests\StoreSeatHoldRequest;
 use App\Modules\Booking\Http\Resources\ReservationResource;
 use App\Modules\Booking\Models\Reservation;
@@ -55,7 +56,7 @@ class BusSeatHoldController extends Controller
      *   "seat_code": "4A"
      * }
      */
-    public function store(StoreSeatHoldRequest $request, CreateSeatHoldAction $createSeatHold): JsonResponse
+    public function store(StoreSeatHoldRequest $request, CreateSeatHoldAction $createSeatHold, ResolvePayerContextAction $resolvePayer): JsonResponse
     {
         $data = $request->holdData();
 
@@ -71,6 +72,8 @@ class BusSeatHoldController extends Controller
             destinationStop: $destinationStop,
             priceQuote: $priceQuote,
             seatUuids: $data['seat_uuids'],
+            payer: $resolvePayer->handle($request->user(), $data['payer']),
+            idempotencyKey: $data['idempotency_key'],
         );
 
         return (new ReservationResource($reservation))

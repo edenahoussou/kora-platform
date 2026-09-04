@@ -97,6 +97,7 @@ it('creates a seat hold for 15 minutes', function (): void {
         'origin_stop_uuid' => $scenario['origin']->uuid,
         'destination_stop_uuid' => $scenario['destination']->uuid,
         'price_quote_uuid' => $quote->uuid,
+        'idempotency_key' => (string) Str::uuid(),
         'seats' => [
             ['seat_uuid' => $scenario['seat2B']->uuid],
         ],
@@ -113,7 +114,7 @@ it('creates a seat hold for 15 minutes', function (): void {
         ->assertJsonPath('data.segments.0.status', 'held');
 
     $this->assertDatabaseHas('reservations', [
-        'user_id' => $scenario['user']->id,
+        'created_by_user_id' => $scenario['user']->id,
         'status' => 'held',
     ]);
 });
@@ -141,6 +142,7 @@ it('returns 409 conflict when requesting an already occupied or blocked seat', f
         'origin_stop_uuid' => $scenario['origin']->uuid,
         'destination_stop_uuid' => $scenario['destination']->uuid,
         'price_quote_uuid' => $quote->uuid,
+        'idempotency_key' => (string) Str::uuid(),
         'seats' => [
             ['seat_uuid' => $scenario['seat2A']->uuid],
         ],
@@ -154,6 +156,7 @@ it('returns 409 conflict when requesting an already occupied or blocked seat', f
         'origin_stop_uuid' => $scenario['origin']->uuid,
         'destination_stop_uuid' => $scenario['destination']->uuid,
         'price_quote_uuid' => $quote->uuid,
+        'idempotency_key' => (string) Str::uuid(),
         'seats' => [
             ['seat_uuid' => $scenario['seat1A']->uuid],
         ],
@@ -189,6 +192,7 @@ it('allows holding seat on non-overlapping segment', function (): void {
         'origin_stop_uuid' => $scenario['middle']->uuid,
         'destination_stop_uuid' => $scenario['destination']->uuid,
         'price_quote_uuid' => $quote->uuid,
+        'idempotency_key' => (string) Str::uuid(),
         'seats' => [
             ['seat_uuid' => $scenario['seat2A']->uuid],
         ],
@@ -218,6 +222,7 @@ it('rejects hold with expired quote', function (): void {
         'origin_stop_uuid' => $scenario['origin']->uuid,
         'destination_stop_uuid' => $scenario['destination']->uuid,
         'price_quote_uuid' => $expiredQuote->uuid,
+        'idempotency_key' => (string) Str::uuid(),
         'seats' => [
             ['seat_uuid' => $scenario['seat2B']->uuid],
         ],
@@ -229,7 +234,7 @@ it('expires past-due holds with bus:expire-holds command', function (): void {
     $scenario = bookingTestScenario();
 
     $reservation = Reservation::create([
-        'user_id' => $scenario['user']->id,
+        'created_by_user_id' => $scenario['user']->id,
         'status' => ReservationStatus::Held,
         'total_amount' => 10000,
         'currency' => 'XOF',
@@ -275,6 +280,7 @@ it('hides internal numeric IDs in quote and hold responses', function (): void {
         'origin_stop_uuid' => $scenario['origin']->uuid,
         'destination_stop_uuid' => $scenario['destination']->uuid,
         'price_quote_uuid' => $quoteUuid,
+        'idempotency_key' => (string) Str::uuid(),
         'seats' => [
             ['seat_uuid' => $scenario['seat2B']->uuid],
         ],
@@ -293,7 +299,7 @@ it('requires authentication to release a seat hold', function (): void {
     $scenario = bookingTestScenario();
 
     $reservation = Reservation::create([
-        'user_id' => $scenario['user']->id,
+        'created_by_user_id' => $scenario['user']->id,
         'status' => ReservationStatus::Held,
         'total_amount' => 10000,
         'currency' => 'XOF',
@@ -330,6 +336,7 @@ it('releases a seat hold and frees the seat for a new hold', function (): void {
         'origin_stop_uuid' => $scenario['origin']->uuid,
         'destination_stop_uuid' => $scenario['destination']->uuid,
         'price_quote_uuid' => $quote->uuid,
+        'idempotency_key' => (string) Str::uuid(),
         'seats' => [
             ['seat_uuid' => $scenario['seat2B']->uuid],
         ],
@@ -370,6 +377,7 @@ it('releases a seat hold and frees the seat for a new hold', function (): void {
         'origin_stop_uuid' => $scenario['origin']->uuid,
         'destination_stop_uuid' => $scenario['destination']->uuid,
         'price_quote_uuid' => $newQuote->uuid,
+        'idempotency_key' => (string) Str::uuid(),
         'seats' => [
             ['seat_uuid' => $scenario['seat2B']->uuid],
         ],
@@ -400,6 +408,7 @@ it('prevents releasing another users seat hold', function (): void {
         'origin_stop_uuid' => $scenario['origin']->uuid,
         'destination_stop_uuid' => $scenario['destination']->uuid,
         'price_quote_uuid' => $quote->uuid,
+        'idempotency_key' => (string) Str::uuid(),
         'seats' => [
             ['seat_uuid' => $scenario['seat2B']->uuid],
         ],

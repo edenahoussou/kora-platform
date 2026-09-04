@@ -1,22 +1,18 @@
-name: Payments
-description: |-
-
-  Payment lifecycle endpoints: initiation, polling status, and provider webhook confirmation.
+name: Endpoints
+description: ''
 endpoints:
   -
     custom: []
     httpMethods:
       - GET
-    uri: api/v1/payments/methods
+    uri: api/v1/company-accounts
     metadata:
       custom: []
-      groupName: Payments
-      groupDescription: |-
-
-        Payment lifecycle endpoints: initiation, polling status, and provider webhook confirmation.
+      groupName: Endpoints
+      groupDescription: ''
       subgroup: ''
       subgroupDescription: ''
-      title: 'Return the active payment methods and providers configured for the mobile app.'
+      title: ''
       description: ''
       authenticated: false
       deprecated: false
@@ -40,16 +36,14 @@ endpoints:
     custom: []
     httpMethods:
       - POST
-    uri: api/v1/payments/initiate
+    uri: api/v1/company-accounts
     metadata:
       custom: []
-      groupName: Payments
-      groupDescription: |-
-
-        Payment lifecycle endpoints: initiation, polling status, and provider webhook confirmation.
+      groupName: Endpoints
+      groupDescription: ''
       subgroup: ''
       subgroupDescription: ''
-      title: 'Initiate a payment for a held reservation.'
+      title: ''
       description: ''
       authenticated: false
       deprecated: false
@@ -61,46 +55,37 @@ endpoints:
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters:
-      reservation_uuid:
+      name:
         custom: []
-        name: reservation_uuid
-        description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
-        required: true
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-        type: string
-        enumValues: []
-        exampleWasSpecified: false
-        nullable: false
-        deprecated: false
-      method:
-        custom: []
-        name: method
-        description: ''
-        required: true
-        example: mobile_money
-        type: string
-        enumValues:
-          - mobile_money
-        exampleWasSpecified: false
-        nullable: false
-        deprecated: false
-      provider:
-        custom: []
-        name: provider
-        description: 'Le champ value ne doit pas dépasser 64 caractères.'
-        required: true
-        example: g
-        type: string
-        enumValues: []
-        exampleWasSpecified: false
-        nullable: false
-        deprecated: false
-      idempotency_key:
-        custom: []
-        name: idempotency_key
+        name: name
         description: 'Le champ value ne doit pas dépasser 255 caractères.'
         required: true
-        example: z
+        example: b
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      type:
+        custom: []
+        name: type
+        description: ''
+        required: true
+        example: ngo
+        type: string
+        enumValues:
+          - company
+          - ngo
+          - embassy
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      reference:
+        custom: []
+        name: reference
+        description: 'Le champ value ne doit pas dépasser 255 caractères.'
+        required: true
+        example: 'n'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -111,53 +96,273 @@ endpoints:
         name: phone
         description: 'Le champ value ne doit pas dépasser 32 caractères.'
         required: false
-        example: m
+        example: g
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: true
         deprecated: false
-      mobile_money_network:
+      email:
         custom: []
-        name: mobile_money_network
-        description: ''
+        name: email
+        description: 'Le champ value doit être une adresse e-mail valide. Le champ value ne doit pas dépasser 255 caractères.'
         required: false
-        example: celtiis_cash
+        example: rowan.gulgowski@example.com
         type: string
-        enumValues:
-          - mtn_momo
-          - moov_flooz
-          - celtiis_cash
+        enumValues: []
         exampleWasSpecified: false
         nullable: true
         deprecated: false
-    cleanBodyParameters:
-      reservation_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-      method: mobile_money
-      provider: g
-      idempotency_key: z
-      phone: m
-      mobile_money_network: celtiis_cash
-    fileParameters: []
-    responses:
-      -
+      monthly_credit_limit:
         custom: []
-        status: 201
-        content: |-
-          {
-            "data": {
-              "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80",
-              "status": "pending",
-              "amount": 12500,
-              "currency": "XOF",
-              "provider": "mtn_momo",
-              "provider_reference": "MM-98270341",
-              "expires_at": "2026-08-20T08:15:00Z",
-              "polling_interval_seconds": 10
-            }
-          }
-        headers: []
-        description: 'Payment initiated'
+        name: monthly_credit_limit
+        description: 'Le champ value doit être au moins 0.'
+        required: true
+        example: 42
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      name: b
+      type: ngo
+      reference: 'n'
+      phone: g
+      email: rowan.gulgowski@example.com
+      monthly_credit_limit: 42
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - PUT
+    uri: 'api/v1/company-accounts/{companyAccount_uuid}'
+    metadata:
+      custom: []
+      groupName: Endpoints
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: ''
+      description: ''
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      companyAccount_uuid:
+        custom: []
+        name: companyAccount_uuid
+        description: ''
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      companyAccount_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      name:
+        custom: []
+        name: name
+        description: 'Le champ value ne doit pas dépasser 255 caractères.'
+        required: true
+        example: b
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      type:
+        custom: []
+        name: type
+        description: ''
+        required: true
+        example: ngo
+        type: string
+        enumValues:
+          - company
+          - ngo
+          - embassy
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      reference:
+        custom: []
+        name: reference
+        description: 'Le champ value ne doit pas dépasser 255 caractères.'
+        required: true
+        example: 'n'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      phone:
+        custom: []
+        name: phone
+        description: 'Le champ value ne doit pas dépasser 32 caractères.'
+        required: false
+        example: g
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      email:
+        custom: []
+        name: email
+        description: 'Le champ value doit être une adresse e-mail valide. Le champ value ne doit pas dépasser 255 caractères.'
+        required: false
+        example: rowan.gulgowski@example.com
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      monthly_credit_limit:
+        custom: []
+        name: monthly_credit_limit
+        description: 'Le champ value doit être au moins 0.'
+        required: true
+        example: 42
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      name: b
+      type: ngo
+      reference: 'n'
+      phone: g
+      email: rowan.gulgowski@example.com
+      monthly_credit_limit: 42
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/company-accounts/{companyAccount_uuid}/deactivate'
+    metadata:
+      custom: []
+      groupName: Endpoints
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: ''
+      description: ''
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      companyAccount_uuid:
+        custom: []
+        name: companyAccount_uuid
+        description: ''
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      companyAccount_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/company-accounts/{companyAccount_uuid}/members'
+    metadata:
+      custom: []
+      groupName: Endpoints
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: ''
+      description: ''
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      companyAccount_uuid:
+        custom: []
+        name: companyAccount_uuid
+        description: ''
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      companyAccount_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      user_uuid:
+        custom: []
+        name: user_uuid
+        description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      role:
+        custom: []
+        name: role
+        description: ''
+        required: true
+        example: member
+        type: string
+        enumValues:
+          - referent
+          - member
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      user_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      role: member
+    fileParameters: []
+    responses: []
     responseFields: []
     auth: []
     controller: null
@@ -167,16 +372,372 @@ endpoints:
     custom: []
     httpMethods:
       - GET
-    uri: 'api/v1/payments/{uuid}'
+    uri: api/v1/group-discounts
     metadata:
       custom: []
-      groupName: Payments
-      groupDescription: |-
-
-        Payment lifecycle endpoints: initiation, polling status, and provider webhook confirmation.
+      groupName: Endpoints
+      groupDescription: ''
       subgroup: ''
       subgroupDescription: ''
-      title: 'Get payment status (polling).'
+      title: ''
+      description: ''
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/group-discounts
+    metadata:
+      custom: []
+      groupName: Endpoints
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: ''
+      description: ''
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      status:
+        custom: []
+        name: status
+        description: ''
+        required: true
+        example: inactive
+        type: string
+        enumValues:
+          - active
+          - inactive
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      passenger_threshold:
+        custom: []
+        name: passenger_threshold
+        description: 'Le champ value doit être au moins 1.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      percentage:
+        custom: []
+        name: percentage
+        description: 'Le champ value doit être au moins 0. Le champ value ne doit pas être supérieur à 100.'
+        required: true
+        example: 22
+        type: number
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      starts_at:
+        custom: []
+        name: starts_at
+        description: 'Le champ value doit être une date valide.'
+        required: false
+        example: '2026-09-02T10:55:44'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      ends_at:
+        custom: []
+        name: ends_at
+        description: 'Le champ value doit être une date valide. Le champ value doit être une date postérieure ou égale à <code>starts_at</code>.'
+        required: false
+        example: '2052-09-25'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+    cleanBodyParameters:
+      status: inactive
+      passenger_threshold: 16
+      percentage: 22
+      starts_at: '2026-09-02T10:55:44'
+      ends_at: '2052-09-25'
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - PUT
+    uri: 'api/v1/group-discounts/{groupDiscountRule_uuid}'
+    metadata:
+      custom: []
+      groupName: Endpoints
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: ''
+      description: ''
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      groupDiscountRule_uuid:
+        custom: []
+        name: groupDiscountRule_uuid
+        description: ''
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      groupDiscountRule_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      status:
+        custom: []
+        name: status
+        description: ''
+        required: true
+        example: inactive
+        type: string
+        enumValues:
+          - active
+          - inactive
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      passenger_threshold:
+        custom: []
+        name: passenger_threshold
+        description: 'Le champ value doit être au moins 1.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      percentage:
+        custom: []
+        name: percentage
+        description: 'Le champ value doit être au moins 0. Le champ value ne doit pas être supérieur à 100.'
+        required: true
+        example: 22
+        type: number
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      starts_at:
+        custom: []
+        name: starts_at
+        description: 'Le champ value doit être une date valide.'
+        required: false
+        example: '2026-09-02T10:55:44'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      ends_at:
+        custom: []
+        name: ends_at
+        description: 'Le champ value doit être une date valide. Le champ value doit être une date postérieure ou égale à <code>starts_at</code>.'
+        required: false
+        example: '2052-09-25'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+    cleanBodyParameters:
+      status: inactive
+      passenger_threshold: 16
+      percentage: 22
+      starts_at: '2026-09-02T10:55:44'
+      ends_at: '2052-09-25'
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/group-booking-settings
+    metadata:
+      custom: []
+      groupName: Endpoints
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: ''
+      description: ''
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - PUT
+    uri: api/v1/group-booking-settings
+    metadata:
+      custom: []
+      groupName: Endpoints
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: ''
+      description: ''
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      minimum_passengers:
+        custom: []
+        name: minimum_passengers
+        description: 'Le champ value doit être au moins 1.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      maximum_passengers:
+        custom: []
+        name: maximum_passengers
+        description: ''
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      minimum_passengers: 16
+      maximum_passengers: 16
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'api/v1/bookings/{reservation_uuid}/tickets'
+    metadata:
+      custom: []
+      groupName: Endpoints
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: ''
+      description: ''
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      reservation_uuid:
+        custom: []
+        name: reservation_uuid
+        description: ''
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      reservation_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'api/v1/tickets/{uuid}'
+    metadata:
+      custom: []
+      groupName: Endpoints
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: ''
       description: ''
       authenticated: false
       deprecated: false
@@ -197,267 +758,6 @@ endpoints:
         deprecated: false
     cleanUrlParameters:
       uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-    queryParameters: []
-    cleanQueryParameters: []
-    bodyParameters: []
-    cleanBodyParameters: []
-    fileParameters: []
-    responses:
-      -
-        custom: []
-        status: 200
-        content: |-
-          {
-            "data": {
-              "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80",
-              "status": "confirmed",
-              "amount": 12500,
-              "currency": "XOF",
-              "provider": "mtn_momo",
-              "provider_reference": "MM-98270341",
-              "confirmed_at": "2026-08-20T08:05:00Z",
-              "reservation": {
-                "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
-                "status": "paid",
-                "departure_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e"
-              }
-            }
-          }
-        headers: []
-        description: 'Payment status'
-    responseFields: []
-    auth: []
-    controller: null
-    method: null
-    route: null
-  -
-    custom: []
-    httpMethods:
-      - POST
-    uri: 'api/v1/payments/{payment_uuid}/verify'
-    metadata:
-      custom: []
-      groupName: Payments
-      groupDescription: |-
-
-        Payment lifecycle endpoints: initiation, polling status, and provider webhook confirmation.
-      subgroup: ''
-      subgroupDescription: ''
-      title: 'Explicitly verify a pending payment with its provider.'
-      description: ''
-      authenticated: false
-      deprecated: false
-    headers:
-      Content-Type: application/json
-      Accept: application/json
-    urlParameters:
-      payment_uuid:
-        custom: []
-        name: payment_uuid
-        description: ''
-        required: true
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-        type: string
-        enumValues: []
-        exampleWasSpecified: false
-        nullable: false
-        deprecated: false
-    cleanUrlParameters:
-      payment_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-    queryParameters: []
-    cleanQueryParameters: []
-    bodyParameters: []
-    cleanBodyParameters: []
-    fileParameters: []
-    responses: []
-    responseFields: []
-    auth: []
-    controller: null
-    method: null
-    route: null
-  -
-    custom: []
-    httpMethods:
-      - POST
-    uri: 'api/v1/payments/{payment_uuid}/cancel'
-    metadata:
-      custom: []
-      groupName: Payments
-      groupDescription: |-
-
-        Payment lifecycle endpoints: initiation, polling status, and provider webhook confirmation.
-      subgroup: ''
-      subgroupDescription: ''
-      title: ''
-      description: ''
-      authenticated: false
-      deprecated: false
-    headers:
-      Content-Type: application/json
-      Accept: application/json
-    urlParameters:
-      payment_uuid:
-        custom: []
-        name: payment_uuid
-        description: ''
-        required: true
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-        type: string
-        enumValues: []
-        exampleWasSpecified: false
-        nullable: false
-        deprecated: false
-    cleanUrlParameters:
-      payment_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-    queryParameters: []
-    cleanQueryParameters: []
-    bodyParameters: []
-    cleanBodyParameters: []
-    fileParameters: []
-    responses: []
-    responseFields: []
-    auth: []
-    controller: null
-    method: null
-    route: null
-  -
-    custom: []
-    httpMethods:
-      - POST
-    uri: 'api/v1/payments/{payment_uuid}/confirm'
-    metadata:
-      custom: []
-      groupName: Payments
-      groupDescription: |-
-
-        Payment lifecycle endpoints: initiation, polling status, and provider webhook confirmation.
-      subgroup: ''
-      subgroupDescription: ''
-      title: 'Provider webhook / callback to confirm or fail a payment.'
-      description: ''
-      authenticated: false
-      deprecated: false
-    headers:
-      Content-Type: application/json
-      Accept: application/json
-    urlParameters:
-      payment_uuid:
-        custom: []
-        name: payment_uuid
-        description: ''
-        required: true
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-        type: string
-        enumValues: []
-        exampleWasSpecified: false
-        nullable: false
-        deprecated: false
-    cleanUrlParameters:
-      payment_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-    queryParameters: []
-    cleanQueryParameters: []
-    bodyParameters:
-      status:
-        custom: []
-        name: status
-        description: ''
-        required: true
-        example: confirmed
-        type: string
-        enumValues:
-          - success
-          - confirmed
-          - failed
-        exampleWasSpecified: false
-        nullable: false
-        deprecated: false
-      provider_reference:
-        custom: []
-        name: provider_reference
-        description: 'Le champ value ne doit pas dépasser 255 caractères.'
-        required: false
-        example: b
-        type: string
-        enumValues: []
-        exampleWasSpecified: false
-        nullable: true
-        deprecated: false
-      provider_payload:
-        custom: []
-        name: provider_payload
-        description: ''
-        required: false
-        example: null
-        type: object
-        enumValues: []
-        exampleWasSpecified: false
-        nullable: true
-        deprecated: false
-    cleanBodyParameters:
-      status: confirmed
-      provider_reference: b
-    fileParameters: []
-    responses: []
-    responseFields: []
-    auth: []
-    controller: null
-    method: null
-    route: null
-  -
-    custom: []
-    httpMethods:
-      - POST
-    uri: api/v1/payments/webhook/fedapay
-    metadata:
-      custom: []
-      groupName: Payments
-      groupDescription: |-
-
-        Payment lifecycle endpoints: initiation, polling status, and provider webhook confirmation.
-      subgroup: ''
-      subgroupDescription: ''
-      title: 'FedaPay webhook endpoint.'
-      description: ''
-      authenticated: false
-      deprecated: false
-    headers:
-      Content-Type: application/json
-      Accept: application/json
-    urlParameters: []
-    cleanUrlParameters: []
-    queryParameters: []
-    cleanQueryParameters: []
-    bodyParameters: []
-    cleanBodyParameters: []
-    fileParameters: []
-    responses: []
-    responseFields: []
-    auth: []
-    controller: null
-    method: null
-    route: null
-  -
-    custom: []
-    httpMethods:
-      - POST
-    uri: api/v1/payments/webhook/mtn-momo
-    metadata:
-      custom: []
-      groupName: Payments
-      groupDescription: |-
-
-        Payment lifecycle endpoints: initiation, polling status, and provider webhook confirmation.
-      subgroup: ''
-      subgroupDescription: ''
-      title: 'MTN MoMo webhook endpoint.'
-      description: ''
-      authenticated: false
-      deprecated: false
-    headers:
-      Content-Type: application/json
-      Accept: application/json
-    urlParameters: []
-    cleanUrlParameters: []
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []

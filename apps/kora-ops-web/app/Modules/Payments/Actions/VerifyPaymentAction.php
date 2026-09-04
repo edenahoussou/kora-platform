@@ -18,7 +18,9 @@ class VerifyPaymentAction
     {
         $payment->loadMissing('reservation');
 
-        if ($payment->reservation?->user_id !== null && $payment->reservation->user_id !== $user->getKey()) {
+        if ($payment->reservation?->created_by_user_id !== null
+            && $payment->reservation->created_by_user_id !== $user->getKey()
+            && $payment->reservation->payer_user_id !== $user->getKey()) {
             throw new AuthorizationException('Vous n’avez pas accès à ce paiement.');
         }
 

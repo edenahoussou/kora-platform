@@ -2,6 +2,7 @@
 
 namespace App\Modules\Booking\Http\Requests;
 
+use App\Modules\Booking\Models\GroupBookingSetting;
 use App\Modules\Booking\Models\Reservation;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -21,7 +22,7 @@ class StoreCounterSaleQuoteRequest extends FormRequest
             'departure_uuid' => ['required', 'uuid', 'exists:departures,uuid'],
             'origin_stop_uuid' => ['required', 'uuid', 'exists:stops,uuid'],
             'destination_stop_uuid' => ['required', 'uuid', 'exists:stops,uuid'],
-            'passenger_count' => ['required', 'integer', 'min:1', 'max:10'],
+            'passenger_count' => ['required', 'integer', 'min:1', 'max:'.GroupBookingSetting::current()->maximum_passengers],
             'date' => ['required', 'date_format:Y-m-d'],
             'from' => ['nullable', 'string', 'max:120'],
             'to' => ['nullable', 'string', 'max:120'],

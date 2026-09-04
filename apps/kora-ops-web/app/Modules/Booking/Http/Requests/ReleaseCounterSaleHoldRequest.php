@@ -16,7 +16,7 @@ class ReleaseCounterSaleHoldRequest extends FormRequest
         return $user instanceof User
             && $user->can('createCounterSale', Reservation::class)
             && $reservation instanceof Reservation
-            && $reservation->user_id === $user->getKey();
+            && $reservation->created_by_user_id === $user->getKey();
     }
 
     /**

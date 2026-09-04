@@ -4,8 +4,12 @@ namespace App\Modules\Booking\Models;
 
 use App\Models\Concerns\HasPublicUuid;
 use App\Models\User;
+use App\Modules\Booking\Data\PayerType;
+use App\Modules\Booking\Data\PurchaseType;
 use App\Modules\Booking\Data\ReservationChannel;
 use App\Modules\Booking\Data\ReservationStatus;
+use App\Modules\CompanyAccounts\Models\CompanyAccount;
+use App\Modules\CompanyAccounts\Models\CompanyCreditHold;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Models\PriceQuote;
 use App\Modules\Payments\Models\Payment;
@@ -26,6 +30,11 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $ticket_issued_at
  * @property array<string, mixed>|null $total_snapshot
  * @property array<string, mixed>|null $draft_data
+ * @property PayerType $payer_type
+ * @property PurchaseType $purchase_type
+ * @property int|null $payer_user_id
+ * @property int|null $company_account_id
+ * @property int|null $created_by_user_id
  */
 class Reservation extends KoraModel
 {
@@ -33,7 +42,12 @@ class Reservation extends KoraModel
 
     protected $fillable = [
         'uuid',
-        'user_id',
+        'created_by_user_id',
+        'payer_user_id',
+        'payer_type',
+        'company_account_id',
+        'purchase_type',
+        'group_size',
         'price_quote_id',
         'itinerary_quote_id',
         'status',
@@ -53,9 +67,27 @@ class Reservation extends KoraModel
     /**
      * @return BelongsTo<User, $this>
      */
-    public function user(): BelongsTo
+    public function creator(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'created_by_user_id');
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function payer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'payer_user_id');
+    }
+
+    /** @return BelongsTo<CompanyAccount, $this> */
+    public function companyAccount(): BelongsTo
+    {
+        return $this->belongsTo(CompanyAccount::class);
+    }
+
+    /** @return HasMany<CompanyCreditHold, $this> */
+    public function companyCreditHolds(): HasMany
+    {
+        return $this->hasMany(CompanyCreditHold::class);
     }
 
     /** @return BelongsTo<ItineraryQuote, $this> */
@@ -110,6 +142,9 @@ class Reservation extends KoraModel
             'status' => ReservationStatus::class,
             'ticket_issuance_status' => TicketIssuanceStatus::class,
             'channel' => ReservationChannel::class,
+            'payer_type' => PayerType::class,
+            'purchase_type' => PurchaseType::class,
+            'group_size' => 'integer',
             'expires_at' => 'datetime',
             'ticket_issuance_started_at' => 'datetime',
             'ticket_issued_at' => 'datetime',

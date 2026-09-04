@@ -27,6 +27,8 @@ class ReservationPassengerResource extends JsonResource
             'document_number' => $this->document_number,
             'nationality' => $this->nationality,
             'birth_date' => $this->birth_date?->toDateString(),
+            'status' => $this->status,
+            'user_uuid' => $this->user?->uuid,
             'seat_code' => $firstSegment?->seat?->code,
             'segments' => $this->segments->map(fn ($segment): array => [
                 'leg_order' => $segment->leg_order,

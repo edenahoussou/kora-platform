@@ -5,10 +5,13 @@ namespace App\Modules\Booking\Actions;
 use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Models\Reservation;
+use App\Modules\CompanyAccounts\Services\CompanyCreditService;
 use Illuminate\Support\Facades\DB;
 
 class ExpireSeatHoldsAction
 {
+    public function __construct(private readonly CompanyCreditService $companyCredit) {}
+
     /**
      * Expire all held reservations whose expiration timestamp is in the past.
      *
@@ -37,6 +40,7 @@ class ExpireSeatHoldsAction
                         'status' => ReservationSegmentStatus::Expired,
                         'released_at' => now(),
                     ]);
+                $this->companyCredit->release($reservation);
 
                 $count++;
             }

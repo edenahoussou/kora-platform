@@ -18,7 +18,7 @@ class StoreCounterSalePaymentRequest extends FormRequest
 
         return $reservation instanceof Reservation
             && $user instanceof User
-            && $reservation->user_id === $user->getKey()
+            && $reservation->created_by_user_id === $user->getKey()
             && $user->can('createCounterSale', Reservation::class);
     }
 

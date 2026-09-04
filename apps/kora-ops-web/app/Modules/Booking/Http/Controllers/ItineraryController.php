@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Booking\Actions\CalculateItineraryQuoteAction;
 use App\Modules\Booking\Actions\CreateItineraryHoldAction;
 use App\Modules\Booking\Actions\ItineraryLegQuoteRequest;
+use App\Modules\Booking\Actions\ResolvePayerContextAction;
 use App\Modules\Booking\Data\ReservationChannel;
 use App\Modules\Booking\Http\Requests\ItineraryHoldRequest;
 use App\Modules\Booking\Http\Requests\ItineraryQuoteRequest;
@@ -112,6 +113,14 @@ class ItineraryController extends Controller
                 'final_amount' => $legQuote->final_amount,
             ], $result->legQuotes),
             'snapshot' => $result->snapshot,
+            'pricing' => [
+                'subtotal_amount' => $result->snapshot['subtotal_amount'],
+                'dynamic_adjustment_amount' => $result->snapshot['dynamic_adjustment_amount'],
+                'group_discount' => $result->snapshot['group_discount'],
+                'passenger_allocations' => $result->snapshot['passenger_allocations'],
+                'total_amount' => $result->totalAmount,
+                'currency' => $result->currency,
+            ],
         ]);
     }
 
@@ -127,7 +136,7 @@ class ItineraryController extends Controller
      *   }
      * }
      */
-    public function hold(ItineraryHoldRequest $request, CreateItineraryHoldAction $createHold): JsonResponse
+    public function hold(ItineraryHoldRequest $request, CreateItineraryHoldAction $createHold, ResolvePayerContextAction $resolvePayer): JsonResponse
     {
         $quote = ItineraryQuote::query()
             ->where('uuid', $request->string('itinerary_quote_uuid')->toString())
@@ -139,6 +148,7 @@ class ItineraryController extends Controller
             seatAssignments: $request->seatAssignments(),
             channel: ReservationChannel::Mobile,
             idempotencyKey: $request->string('idempotency_key')->toString(),
+            payer: $resolvePayer->handle($request->user(), $request->payer()),
         );
 
         return (new ReservationResource($reservation))

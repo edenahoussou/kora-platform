@@ -224,7 +224,7 @@ function passengerTestScenario(bool $isInternational = false): array
     );
 
     $reservation = Reservation::create([
-        'user_id' => $user->id,
+        'created_by_user_id' => $user->id,
         'status' => ReservationStatus::Held,
         'total_amount' => 20000,
         'currency' => 'XOF',

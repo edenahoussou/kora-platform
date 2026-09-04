@@ -47,7 +47,7 @@ $openApi = preg_replace(
     $openApi,
 );
 
-if (! str_contains($openApi, "  securitySchemes:\n    sanctum:")) {
+if (! str_contains($openApi, 'securitySchemes:')) {
     $openApi = preg_replace(
         '/^tags:\n/m',
         "components:\n  securitySchemes:\n    sanctum:\n      type: http\n      scheme: bearer\ntags:\n",

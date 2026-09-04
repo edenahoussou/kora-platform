@@ -3,8 +3,10 @@
 namespace App\Modules\Payments\Actions;
 
 use App\Models\User;
+use App\Modules\Booking\Data\PayerType;
 use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Models\Reservation;
+use App\Modules\CompanyAccounts\Data\CompanyCreditHoldStatus;
 use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -30,7 +32,7 @@ class InitiatePaymentAction
         ?int $walletAmount = null,
         ?int $pointsAmount = null,
     ): array {
-        if ($user && $reservation->user_id && $reservation->user_id !== $user->id) {
+        if ($user && $reservation->created_by_user_id && $reservation->created_by_user_id !== $user->id && $reservation->payer_user_id !== $user->id) {
             throw new AuthorizationException('Vous n\'êtes pas autorisé à payer cette réservation.');
         }
 
@@ -58,12 +60,21 @@ class InitiatePaymentAction
             ]);
         }
 
+        if ($method === 'company_credit') {
+            $reservation->loadMissing('companyCreditHolds');
+            if ($reservation->payer_type !== PayerType::Company || ! $reservation->companyCreditHolds->contains(fn ($hold): bool => $hold->status === CompanyCreditHoldStatus::Reserved)) {
+                throw ValidationException::withMessages(['method' => 'Cette réservation ne possède pas de crédit entreprise réservé.']);
+            }
+            $provider = 'company_credit';
+        }
+
         $providerPrefix = match ($provider) {
             'mtn_momo' => 'MM',
             'moov_money' => 'MOOV',
             'celtiis_cash' => 'CELTIIS',
             'wave' => 'WAVE',
             'kora_wallet' => 'WALLET',
+            'company_credit' => 'COMPANY',
             default => 'PAY',
         };
 
