@@ -27,6 +27,44 @@ class AuthSessionController extends Controller
 {
     public function __construct(private AuthSessionService $authSessionService) {}
 
+    /**
+     * Complete a registration started via OTP verification.
+     *
+     * Creates the user account from a verified OTP challenge and returns a Sanctum session token.
+     *
+     * @unauthenticated
+     *
+     * @response 201 scenario="Registration completed" {
+     *   "data": {
+     *     "token": "3|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef",
+     *     "token_type": "Bearer",
+     *     "expires_at": "2026-08-27T13:05:00.000Z",
+     *     "user": {
+     *       "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
+     *       "name": "Aïcha Hounkpè",
+     *       "email": "aicha.hounkpe@gmail.com",
+     *       "phone": "+22901000000",
+     *       "country_code": "BJ",
+     *       "birth_date": "1990-05-15",
+     *       "avatar_url": null,
+     *       "status": "active",
+     *       "permissions": ["bookings.create", "bookings.view-own", "tickets.view"]
+     *     },
+     *     "device": {
+     *       "uuid": "a3091549-9179-454e-8440-58179f2208df",
+     *       "name": "iPhone 15 Pro",
+     *       "platform": "ios",
+     *       "trusted_at": "2026-08-20T13:05:00.000Z",
+     *       "last_seen_at": "2026-08-20T13:05:00.000Z",
+     *       "status": "trusted"
+     *     }
+     *   }
+     * }
+     * @response 422 scenario="Validation error" {
+     *   "message": "The given data was invalid.",
+     *   "errors": {"verification_token": ["The verification token is invalid or expired."]}
+     * }
+     */
     public function completeRegistration(CompleteRegistrationRequest $request): JsonResponse
     {
         return response()->json(['data' => $this->sessionPayload(
@@ -34,6 +72,68 @@ class AuthSessionController extends Controller
         )], 201);
     }
 
+    /**
+     * Authenticate a user with email/phone and PIN.
+     *
+     * Returns a Sanctum session token. If OTP is required, returns a 202 with an OTP challenge
+     * instead of a token.
+     *
+     * @unauthenticated
+     *
+     * @response 200 scenario="Login successful" {
+     *   "data": {
+     *     "token": "3|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef",
+     *     "token_type": "Bearer",
+     *     "expires_at": "2026-08-27T13:05:00.000Z",
+     *     "user": {
+     *       "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
+     *       "name": "Aïcha Hounkpè",
+     *       "email": "aicha.hounkpe@gmail.com",
+     *       "phone": "+22901000000",
+     *       "country_code": "BJ",
+     *       "birth_date": "1990-05-15",
+     *       "avatar_url": null,
+     *       "status": "active",
+     *       "permissions": ["bookings.create", "bookings.view-own", "tickets.view"]
+     *     },
+     *     "device": {
+     *       "uuid": "a3091549-9179-454e-8440-58179f2208df",
+     *       "name": "iPhone 15 Pro",
+     *       "platform": "ios",
+     *       "trusted_at": "2026-08-20T13:05:00.000Z",
+     *       "last_seen_at": "2026-08-20T13:05:00.000Z",
+     *       "status": "trusted"
+     *     }
+     *   }
+     * }
+     * @response 202 scenario="OTP required" {
+     *   "data": {
+     *     "requires_otp": true,
+     *     "otp_challenge_uuid": "b1234567-89ab-cdef-0123-456789abcdef",
+     *     "purpose": "login",
+     *     "expires_at": "2026-08-20T13:10:00.000Z"
+     *   }
+     * }
+     * @response 422 scenario="Invalid credentials" {
+     *   "error": {
+     *     "code": "invalid_credentials",
+     *     "message": "Identifiants invalides."
+     *   }
+     * }
+     * @response 423 scenario="Account locked" {
+     *   "error": {
+     *     "code": "account_locked",
+     *     "message": "Le compte est temporairement bloqué après plusieurs tentatives incorrectes.",
+     *     "locked_until": "2026-08-20T13:15:00.000Z"
+     *   }
+     * }
+     * @response 403 scenario="Account suspended" {
+     *   "error": {
+     *     "code": "account_suspended",
+     *     "message": "Le compte est suspendu. Contactez le support."
+     *   }
+     * }
+     */
     public function login(LoginRequest $request): JsonResponse
     {
         try {
@@ -76,6 +176,31 @@ class AuthSessionController extends Controller
         return response()->json(['data' => $this->sessionPayload($result)]);
     }
 
+    /**
+     * Reset the user's PIN after OTP verification.
+     *
+     * @unauthenticated
+     *
+     * @response 200 scenario="PIN reset" {
+     *   "data": {
+     *     "user": {
+     *       "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
+     *       "name": "Aïcha Hounkpè",
+     *       "email": "aicha.hounkpe@gmail.com",
+     *       "phone": "+22901000000",
+     *       "country_code": "BJ",
+     *       "birth_date": "1990-05-15",
+     *       "avatar_url": null,
+     *       "status": "active",
+     *       "permissions": ["bookings.create", "bookings.view-own", "tickets.view"]
+     *     }
+     *   }
+     * }
+     * @response 422 scenario="Validation error" {
+     *   "message": "The given data was invalid.",
+     *   "errors": {"verification_token": ["The verification token is invalid or expired."]}
+     * }
+     */
     public function resetPin(ResetPinRequest $request): JsonResponse
     {
         $user = $this->authSessionService->resetPin($request->payload());
@@ -83,6 +208,31 @@ class AuthSessionController extends Controller
         return response()->json(['data' => ['user' => new AuthUserResource($user)]]);
     }
 
+    /**
+     * Unlock a locked account after OTP verification.
+     *
+     * @unauthenticated
+     *
+     * @response 200 scenario="Account unlocked" {
+     *   "data": {
+     *     "user": {
+     *       "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
+     *       "name": "Aïcha Hounkpè",
+     *       "email": "aicha.hounkpe@gmail.com",
+     *       "phone": "+22901000000",
+     *       "country_code": "BJ",
+     *       "birth_date": "1990-05-15",
+     *       "avatar_url": null,
+     *       "status": "active",
+     *       "permissions": ["bookings.create", "bookings.view-own", "tickets.view"]
+     *     }
+     *   }
+     * }
+     * @response 422 scenario="Validation error" {
+     *   "message": "The given data was invalid.",
+     *   "errors": {"verification_token": ["The verification token is invalid or expired."]}
+     * }
+     */
     public function unlockAccount(UnlockAccountRequest $request): JsonResponse
     {
         $user = $this->authSessionService->unlockAccount($request->payload());
@@ -90,11 +240,63 @@ class AuthSessionController extends Controller
         return response()->json(['data' => ['user' => new AuthUserResource($user)]]);
     }
 
+    /**
+     * Get the authenticated user's profile.
+     *
+     * @authenticated
+     *
+     * @response 200 scenario="Current user" {
+     *   "data": {
+     *     "user": {
+     *       "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
+     *       "name": "Aïcha Hounkpè",
+     *       "email": "aicha.hounkpe@gmail.com",
+     *       "phone": "+22901000000",
+     *       "country_code": "BJ",
+     *       "birth_date": "1990-05-15",
+     *       "avatar_url": null,
+     *       "status": "active",
+     *       "permissions": ["bookings.create", "bookings.view-own", "tickets.view"]
+     *     }
+     *   }
+     * }
+     * @response 401 scenario="Unauthenticated" {
+     *   "message": "Unauthenticated."
+     * }
+     */
     public function me(Request $request): JsonResponse
     {
         return response()->json(['data' => ['user' => new AuthUserResource($request->user())]]);
     }
 
+    /**
+     * Update the authenticated user's profile.
+     *
+     * @authenticated
+     *
+     * @response 200 scenario="Profile updated" {
+     *   "data": {
+     *     "user": {
+     *       "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
+     *       "name": "Aïcha Hounkpè",
+     *       "email": "aicha.hounkpe@gmail.com",
+     *       "phone": "+22901000000",
+     *       "country_code": "BJ",
+     *       "birth_date": "1990-05-15",
+     *       "avatar_url": null,
+     *       "status": "active",
+     *       "permissions": ["bookings.create", "bookings.view-own", "tickets.view"]
+     *     }
+     *   }
+     * }
+     * @response 401 scenario="Unauthenticated" {
+     *   "message": "Unauthenticated."
+     * }
+     * @response 422 scenario="Validation error" {
+     *   "message": "The given data was invalid.",
+     *   "errors": {"email": ["The email has already been taken."]}
+     * }
+     */
     public function updateProfile(UpdateProfileRequest $request): JsonResponse
     {
         $user = $this->authSessionService->updateProfile($request->user(), $request->payload());
@@ -102,6 +304,34 @@ class AuthSessionController extends Controller
         return response()->json(['data' => ['user' => new AuthUserResource($user)]]);
     }
 
+    /**
+     * Change the authenticated user's PIN.
+     *
+     * @authenticated
+     *
+     * @response 200 scenario="PIN changed" {
+     *   "data": {
+     *     "user": {
+     *       "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
+     *       "name": "Aïcha Hounkpè",
+     *       "email": "aicha.hounkpe@gmail.com",
+     *       "phone": "+22901000000",
+     *       "country_code": "BJ",
+     *       "birth_date": "1990-05-15",
+     *       "avatar_url": null,
+     *       "status": "active",
+     *       "permissions": ["bookings.create", "bookings.view-own", "tickets.view"]
+     *     }
+     *   }
+     * }
+     * @response 401 scenario="Unauthenticated" {
+     *   "message": "Unauthenticated."
+     * }
+     * @response 422 scenario="Validation error" {
+     *   "message": "The given data was invalid.",
+     *   "errors": {"current_pin": ["The current PIN is incorrect."]}
+     * }
+     */
     public function changePin(ChangePinRequest $request): JsonResponse
     {
         $user = $this->authSessionService->changePin($request->user(), $request->payload());
@@ -109,6 +339,16 @@ class AuthSessionController extends Controller
         return response()->json(['data' => ['user' => new AuthUserResource($user)]]);
     }
 
+    /**
+     * Revoke the current access token.
+     *
+     * @authenticated
+     *
+     * @response 204 scenario="Logged out"
+     * @response 401 scenario="Unauthenticated" {
+     *   "message": "Unauthenticated."
+     * }
+     */
     public function logout(Request $request): JsonResponse
     {
         $request->user()?->currentAccessToken()?->delete();

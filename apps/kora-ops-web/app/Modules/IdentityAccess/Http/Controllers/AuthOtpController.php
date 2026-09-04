@@ -17,6 +17,30 @@ class AuthOtpController extends Controller
 {
     public function __construct(private AuthOtpService $authOtpService) {}
 
+    /**
+     * Request an OTP challenge for registration, login, PIN reset or account unlock.
+     *
+     * Sends a one-time code to the user's email. The returned `otp_challenge_uuid` must
+     * be submitted to the verify endpoint.
+     *
+     * @unauthenticated
+     *
+     * @response 202 scenario="OTP sent" {
+     *   "data": {
+     *     "otp_challenge_uuid": "b1234567-89ab-cdef-0123-456789abcdef",
+     *     "purpose": "registration",
+     *     "email": "aicha.hounkpe@gmail.com",
+     *     "expires_at": "2026-08-20T13:10:00.000Z"
+     *   }
+     * }
+     * @response 422 scenario="Validation error" {
+     *   "message": "The given data was invalid.",
+     *   "errors": {"email": ["The email field is required."]}
+     * }
+     * @response 429 scenario="Too many requests" {
+     *   "message": "Too many requests. Please try again later."
+     * }
+     */
     public function request(RequestOtpRequest $request): JsonResponse
     {
         $challenge = $this->authOtpService->request(
@@ -35,6 +59,27 @@ class AuthOtpController extends Controller
         ], 202);
     }
 
+    /**
+     * Verify an OTP code and obtain a verification token.
+     *
+     * The `verification_token` is used to complete registration, reset PIN, or unlock
+     * an account via the corresponding endpoints.
+     *
+     * @unauthenticated
+     *
+     * @response 200 scenario="OTP verified" {
+     *   "data": {
+     *     "otp_challenge_uuid": "b1234567-89ab-cdef-0123-456789abcdef",
+     *     "purpose": "registration",
+     *     "verification_token": "vrf_aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789",
+     *     "verified_at": "2026-08-20T13:07:00.000Z"
+     *   }
+     * }
+     * @response 422 scenario="Invalid code" {
+     *   "message": "The given data was invalid.",
+     *   "errors": {"code": ["The OTP code is invalid or expired."]}
+     * }
+     */
     public function verify(VerifyOtpRequest $request): JsonResponse
     {
         $result = $this->authOtpService->verify(
