@@ -29,12 +29,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // V1 MVP — Bus core (pages stubs, to be implemented)
     // =========================================================
     Route::get('sale', [CounterSaleController::class, 'index'])->name('sale');
+    Route::get('sale-v2', [CounterSaleController::class, 'index'])->name('sale-v2');
     Route::post('sale/quote', [CounterSaleController::class, 'quote'])->name('sale.quote');
+    Route::post('sale-v2/quote', [CounterSaleController::class, 'quote'])->name('sale-v2.quote');
     Route::post('sale/hold', [CounterSaleController::class, 'hold'])->name('sale.hold');
+    Route::post('sale-v2/hold', [CounterSaleController::class, 'hold'])->name('sale-v2.hold');
     Route::post('sale/{reservation:uuid}/release', [CounterSaleController::class, 'releaseHold'])->name('sale.release');
+    Route::post('sale-v2/{reservation:uuid}/release', [CounterSaleController::class, 'releaseHold'])->name('sale-v2.release');
     Route::patch('sale/{reservation:uuid}/draft', [CounterSaleController::class, 'saveDraft'])->name('sale.draft');
+    Route::patch('sale-v2/{reservation:uuid}/draft', [CounterSaleController::class, 'saveDraft'])->name('sale-v2.draft');
     Route::post('sale/{reservation:uuid}/passengers', [CounterSaleController::class, 'storePassengers'])->name('sale.passengers');
+    Route::post('sale-v2/{reservation:uuid}/passengers', [CounterSaleController::class, 'storePassengers'])->name('sale-v2.passengers');
     Route::post('sale/{reservation:uuid}/payment', [CounterSaleController::class, 'storePayment'])->name('sale.payment');
+    Route::post('sale-v2/{reservation:uuid}/payment', [CounterSaleController::class, 'storePayment'])->name('sale-v2.payment');
+    Route::post('sale/{reservation:uuid}/tickets/retry', [CounterSaleController::class, 'retryTicketIssuance'])->name('sale.tickets.retry');
+    Route::post('sale-v2/{reservation:uuid}/tickets/retry', [CounterSaleController::class, 'retryTicketIssuance'])->name('sale-v2.tickets.retry');
     Route::get('cash', [CashSessionController::class, 'index'])->name('cash');
     Route::post('cash/open', [CashSessionController::class, 'store'])->name('cash.open');
     Route::post('cash/{cashSession:uuid}/close', [CashSessionController::class, 'close'])->name('cash.close');
