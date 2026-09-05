@@ -311,6 +311,7 @@ it('captures counter-sale passengers through the web finalization step', functio
 
     $response = $this->actingAs($scenario['agent'])
         ->post(route('sale.passengers', $reservation), $context + [
+            'information_confirmed' => true,
             'passengers' => [[
                 'first_name' => 'Aïcha',
                 'last_name' => 'Hounkpè',

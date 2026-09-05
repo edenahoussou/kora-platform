@@ -59,11 +59,11 @@ it('stores passenger details and links to reservation segments', function (): vo
     ]);
 });
 
-it('enforces travel document rules for international lines', function (): void {
+it('accepts a minimal international passenger profile and validates document pairs', function (): void {
     $scenario = passengerTestScenario(isInternational: true);
     Sanctum::actingAs($scenario['user']);
 
-    // Missing document details on international line
+    // Identity alone is sufficient for an international sale.
     $this->postJson("/api/v1/bookings/{$scenario['reservation']->uuid}/passengers", [
         'passengers' => [
             [
@@ -77,8 +77,8 @@ it('enforces travel document rules for international lines', function (): void {
                 'seat_uuid' => $scenario['seat2B']->uuid,
             ],
         ],
-    ])->assertUnprocessable()
-        ->assertJsonValidationErrors(['passengers.0.document_number']);
+    ])->assertOk()
+        ->assertJsonPath('data.passengers.0.document_type', null);
 
     // Valid international submission
     $this->postJson("/api/v1/bookings/{$scenario['reservation']->uuid}/passengers", [

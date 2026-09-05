@@ -314,6 +314,7 @@ function paymentReservation(object $test, array $scenario, string $seatCode = '2
     ]);
     $reservation = Reservation::query()->latest('id')->firstOrFail();
     $test->actingAs($scenario['agent'])->post(route('sale.passengers', $reservation), $context + [
+        'information_confirmed' => true,
         'passengers' => [[
             'first_name' => 'Aïcha', 'last_name' => 'Hounkpè', 'phone' => '+22997241806', 'email' => 'aicha@example.com',
             'document_type' => 'passport', 'document_number' => 'BJ0427851', 'nationality' => 'BJ', 'birth_date' => '1994-04-18',
