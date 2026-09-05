@@ -10,15 +10,19 @@ final class PayerContext
         public readonly PayerType $type,
         public readonly ?int $payerUserId = null,
         public readonly ?CompanyAccount $companyAccount = null,
+        /** @var array<string, mixed> */
+        public readonly array $snapshot = [],
     ) {}
 
-    public static function personal(?int $userId): self
+    /** @param array<string, mixed> $snapshot */
+    public static function personal(?int $userId, array $snapshot = []): self
     {
-        return new self(PayerType::Personal, $userId);
+        return new self(PayerType::Personal, $userId, null, $snapshot);
     }
 
-    public static function company(CompanyAccount $companyAccount): self
+    /** @param array<string, mixed> $snapshot */
+    public static function company(CompanyAccount $companyAccount, array $snapshot = []): self
     {
-        return new self(PayerType::Company, null, $companyAccount);
+        return new self(PayerType::Company, null, $companyAccount, $snapshot);
     }
 }

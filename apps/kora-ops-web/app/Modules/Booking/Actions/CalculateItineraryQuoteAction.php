@@ -11,6 +11,7 @@ use App\Modules\Booking\Services\GroupPricingService;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Actions\CalculateQuoteAction;
+use App\Modules\DynamicPricing\Data\PricingBreakdownData;
 use App\Modules\DynamicPricing\Models\PriceQuote;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -149,6 +150,7 @@ class CalculateItineraryQuoteAction
             );
 
             $totalAmount = $pricing['total_amount'];
+            $breakdown = PricingBreakdownData::fromGroupPricing($pricing);
             $snapshot = [
                 'type' => 'itinerary',
                 'legs_count' => count($legs),
@@ -160,6 +162,7 @@ class CalculateItineraryQuoteAction
                 'group_discount' => $pricing['group_discount'],
                 'passenger_allocations' => $pricing['passenger_allocations'],
                 'legs' => $legSnapshots,
+                'pricing_breakdown' => $breakdown->toArray(),
             ];
 
             $itineraryQuote = ItineraryQuote::create([

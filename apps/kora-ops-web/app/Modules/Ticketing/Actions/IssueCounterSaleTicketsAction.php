@@ -17,7 +17,7 @@ class IssueCounterSaleTicketsAction
     {
         $tickets = new Collection;
 
-        foreach ($reservation->passengers()->orderBy('id')->get() as $passenger) {
+        foreach ($reservation->passengers()->where('status', 'active')->orderBy('passenger_index')->orderBy('id')->get() as $passenger) {
             $tickets->push(Ticket::query()->firstOrCreate(
                 ['reservation_passenger_id' => $passenger->getKey()],
                 [

@@ -15,6 +15,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $birth_date
  * @property string|null $email
  * @property string $status
+ * @property int|null $passenger_index
+ * @property bool|null $yellow_fever_vaccinated
  */
 class ReservationPassenger extends KoraModel
 {
@@ -25,6 +27,7 @@ class ReservationPassenger extends KoraModel
         'reservation_id',
         'user_id',
         'status',
+        'passenger_index',
         'refunded_amount',
         'first_name',
         'last_name',
@@ -34,6 +37,7 @@ class ReservationPassenger extends KoraModel
         'document_number',
         'nationality',
         'birth_date',
+        'yellow_fever_vaccinated',
     ];
 
     /**
@@ -64,6 +68,8 @@ class ReservationPassenger extends KoraModel
             'document_type' => PassengerDocumentType::class,
             'birth_date' => 'date',
             'refunded_amount' => 'integer',
+            'passenger_index' => 'integer',
+            'yellow_fever_vaccinated' => 'boolean',
         ];
     }
 }

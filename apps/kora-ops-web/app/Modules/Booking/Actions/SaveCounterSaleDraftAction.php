@@ -6,24 +6,13 @@ use App\Models\User;
 use App\Modules\Booking\Data\ReservationChannel;
 use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Models\Reservation;
-use App\Modules\Booking\Models\ReservationSegment;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
 
 class SaveCounterSaleDraftAction
 {
     /**
-     * @param  list<array{
-     *     first_name?: string|null,
-     *     last_name?: string|null,
-     *     phone?: string|null,
-     *     email?: string|null,
-     *     document_type?: string|null,
-     *     document_number?: string|null,
-     *     nationality?: string|null,
-     *     birth_date?: string|null,
-     *     seat_uuid?: string|null
-     * }>  $passengersData
+     * @param  list<array<string, mixed>>  $passengersData
      */
     public function handle(Reservation $reservation, User $user, array $passengersData): Reservation
     {
@@ -51,35 +40,33 @@ class SaveCounterSaleDraftAction
 
         $reservation->loadMissing('segments.seat');
         $segments = $reservation->segments;
-        $segmentSeatUuids = $segments
-            ->map(fn (ReservationSegment $segment): ?string => $segment->seat?->uuid)
-            ->filter()
-            ->values();
+        $passengerIndexes = $segments->pluck('passenger_index')->filter(fn (mixed $index): bool => $index !== null)->unique()->sort()->values();
+        $expectedPassengerCount = $passengerIndexes->isNotEmpty() ? $passengerIndexes->count() : $segments->count();
 
-        if (count($passengersData) !== $segments->count()) {
+        if (count($passengersData) !== $expectedPassengerCount) {
             throw ValidationException::withMessages([
-                'passengers' => 'Le nombre de passagers doit correspondre au nombre de sièges bloqués.',
+                'passengers' => 'Le nombre de fiches doit correspondre au nombre de voyageurs bloqués.',
             ]);
         }
 
         $draftPassengers = [];
         foreach ($passengersData as $index => $passenger) {
-            $seatUuid = (string) ($passenger['seat_uuid'] ?? '');
+            $passengerIndex = (int) (isset($passenger['passenger_index']) ? $passenger['passenger_index'] : $index);
 
-            if ($seatUuid === '' || ! $segmentSeatUuids->contains($seatUuid)) {
+            if ($passengerIndexes->isNotEmpty() && ! $passengerIndexes->contains($passengerIndex)) {
                 throw ValidationException::withMessages([
-                    "passengers.{$index}.seat_uuid" => 'Le siège ne correspond pas à cette réservation.',
+                    "passengers.{$index}.passenger_index" => 'Le voyageur ne correspond pas à cette réservation.',
                 ]);
             }
 
-            if (array_key_exists($seatUuid, $draftPassengers)) {
+            if (array_key_exists((string) $passengerIndex, $draftPassengers)) {
                 throw ValidationException::withMessages([
-                    "passengers.{$index}.seat_uuid" => 'Un seul brouillon est autorisé par siège.',
+                    "passengers.{$index}.passenger_index" => 'Un seul brouillon est autorisé par voyageur.',
                 ]);
             }
 
-            $draftPassengers[$seatUuid] = [
-                'seat_uuid' => $seatUuid,
+            $draft = [
+                'passenger_index' => $passengerIndex,
                 'first_name' => $this->nullableValue($passenger['first_name'] ?? null),
                 'last_name' => $this->nullableValue($passenger['last_name'] ?? null),
                 'phone' => $this->nullableValue($passenger['phone'] ?? null),
@@ -88,7 +75,12 @@ class SaveCounterSaleDraftAction
                 'document_number' => $this->nullableValue($passenger['document_number'] ?? null),
                 'nationality' => $this->nullableValue($passenger['nationality'] ?? null),
                 'birth_date' => $this->nullableValue($passenger['birth_date'] ?? null),
+                'yellow_fever_vaccinated' => $passenger['yellow_fever_vaccinated'] ?? null,
             ];
+            $draftPassengers[(string) $passengerIndex] = $draft;
+            if (! empty($passenger['seat_uuid'])) {
+                $draftPassengers[(string) $passenger['seat_uuid']] = $draft + ['seat_uuid' => $passenger['seat_uuid']];
+            }
         }
 
         $reservation->update([

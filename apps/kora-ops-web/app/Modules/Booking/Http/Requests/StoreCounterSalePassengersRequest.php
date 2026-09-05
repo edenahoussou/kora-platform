@@ -18,6 +18,15 @@ class StoreCounterSalePassengersRequest extends StorePassengersRequest
             && $user->can('createCounterSale', Reservation::class);
     }
 
+    /** @return array<string, array<int, mixed>> */
+    public function rules(): array
+    {
+        return [
+            ...parent::rules(),
+            'information_confirmed' => ['required', 'accepted'],
+        ];
+    }
+
     /**
      * @return array<string, string|null>
      */

@@ -186,6 +186,7 @@ class CreateItineraryHoldAction
                     'company_account_id' => $payer->companyAccount?->getKey(),
                     'purchase_type' => $quote->passenger_count >= 5 ? 'group' : 'individual',
                     'group_size' => $quote->passenger_count,
+                    'payer_snapshot' => $payer->snapshot,
                     'itinerary_quote_id' => $quote->id,
                     'idempotency_key' => $idempotencyKey,
                     'status' => ReservationStatus::Held,

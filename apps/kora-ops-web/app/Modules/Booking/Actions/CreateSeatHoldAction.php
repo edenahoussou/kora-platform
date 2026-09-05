@@ -174,6 +174,7 @@ class CreateSeatHoldAction
                     'company_account_id' => $payer->companyAccount?->getKey(),
                     'purchase_type' => $expectedPassengerCount >= 5 ? 'group' : 'individual',
                     'group_size' => $expectedPassengerCount,
+                    'payer_snapshot' => $payer->snapshot,
                     'price_quote_id' => $priceQuote->id,
                     'idempotency_key' => $idempotencyKey,
                     'status' => ReservationStatus::Held,
@@ -184,10 +185,11 @@ class CreateSeatHoldAction
                     'total_snapshot' => $priceQuote->snapshot,
                 ]);
 
-                foreach ($seats as $seat) {
+                foreach ($seats->values() as $passengerIndex => $seat) {
                     ReservationSegment::create([
                         'reservation_id' => $reservation->id,
                         'leg_order' => 1,
+                        'passenger_index' => $passengerIndex,
                         'departure_id' => $lockedDeparture->id,
                         'seat_id' => $seat->id,
                         'origin_stop_id' => $originStop->id,

@@ -8,7 +8,11 @@ use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationPassenger;
 use App\Modules\CompanyAccounts\Services\CompanyCreditService;
+use App\Modules\Payments\Data\PaymentRefundDestination;
+use App\Modules\Payments\Data\PaymentRefundStatus;
 use App\Modules\Payments\Data\PaymentStatus;
+use App\Modules\Payments\Models\Payment;
+use App\Modules\Payments\Models\PaymentRefund;
 use App\Modules\Ticketing\Data\TicketStatus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -37,12 +41,15 @@ class CancelReservationAction
             $locked->update(['status' => ReservationStatus::Cancelled, 'draft_data' => null]);
 
             if ($locked->company_account_id !== null && $payment !== null) {
-                $alreadyRefunded = $locked->companyAccount?->creditTransactions()->where('reservation_id', $locked->getKey())->where('type', 'refund')->exists();
-                if (! $alreadyRefunded) {
+                $refund = $this->recordRefund($locked, null, $payment, $amount, true);
+                if ($refund->wasRecentlyCreated) {
                     $this->companyCredit->refund($locked, $amount, $payment);
                 }
             } else {
                 $this->companyCredit->release($locked);
+                if ($payment !== null && $amount > 0) {
+                    $this->recordRefund($locked, null, $payment, $amount, false);
+                }
             }
 
             activity()->performedOn($locked)->causedBy($actor)->withProperties(['amount' => $amount, 'scope' => 'reservation'])->log('reservation_cancelled');
@@ -61,9 +68,8 @@ class CancelReservationAction
                 return $locked->fresh(['passengers', 'segments', 'tickets']);
             }
 
-            $index = $locked->passengers()->orderBy('id')->pluck('id')->search($lockedPassenger->getKey());
             $allocations = $locked->total_snapshot['passenger_allocations'] ?? [];
-            $refund = (int) ($allocations[$index] ?? 0);
+            $refund = (int) ($allocations[$lockedPassenger->passenger_index ?? 0] ?? 0);
             $payment = $locked->payments()->where('status', PaymentStatus::Confirmed->value)->latest('id')->first();
             $lockedPassenger->update(['status' => 'cancelled', 'refunded_amount' => $refund]);
             $lockedPassenger->segments()->whereIn('status', ReservationSegmentStatus::occupyingValues())->update([
@@ -74,7 +80,12 @@ class CancelReservationAction
             $locked->tickets()->where('reservation_passenger_id', $lockedPassenger->getKey())->whereIn('status', [TicketStatus::Issued->value, TicketStatus::Used->value])->update(['status' => TicketStatus::Refunded]);
 
             if ($locked->company_account_id !== null && $payment !== null && $refund > 0) {
-                $this->companyCredit->refund($locked, $refund, $payment);
+                $refundRecord = $this->recordRefund($locked, $lockedPassenger, $payment, $refund, true);
+                if ($refundRecord->wasRecentlyCreated) {
+                    $this->companyCredit->refund($locked, $refund, $payment);
+                }
+            } elseif ($payment !== null && $refund > 0) {
+                $this->recordRefund($locked, $lockedPassenger, $payment, $refund, false);
             }
 
             $activePassengers = $locked->passengers()->where('status', 'active')->count();
@@ -85,6 +96,33 @@ class CancelReservationAction
 
             return $locked->fresh(['passengers', 'segments', 'tickets']);
         });
+    }
+
+    private function recordRefund(
+        Reservation $reservation,
+        ?ReservationPassenger $passenger,
+        Payment $payment,
+        int $amount,
+        bool $companyCredit,
+    ): PaymentRefund {
+        $scope = $passenger === null ? 'full' : 'passenger:'.$passenger->uuid;
+        $idempotencyKey = 'reservation:'.$reservation->uuid.':'.$scope;
+
+        return PaymentRefund::query()->firstOrCreate(
+            ['idempotency_key' => $idempotencyKey],
+            [
+                'reservation_id' => $reservation->getKey(),
+                'reservation_passenger_id' => $passenger?->getKey(),
+                'payment_id' => $payment->getKey(),
+                'amount' => $amount,
+                'currency' => $reservation->currency,
+                'destination' => $companyCredit ? PaymentRefundDestination::CompanyCredit : PaymentRefundDestination::WalletCash,
+                'status' => $companyCredit ? PaymentRefundStatus::Completed : PaymentRefundStatus::Pending,
+                'completed_at' => $companyCredit ? now() : null,
+                'reference' => 'REF-'.strtoupper(substr(hash('sha256', $idempotencyKey), 0, 20)),
+                'metadata' => ['source' => 'reservation_cancellation'],
+            ],
+        );
     }
 
     private function authorize(Reservation $reservation, User $actor): void

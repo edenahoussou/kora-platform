@@ -7,6 +7,7 @@ use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Actions\ResolveDepartureSellabilityAction;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Data\FareStatus;
+use App\Modules\DynamicPricing\Data\PricingBreakdownData;
 use App\Modules\DynamicPricing\Data\PricingRuleStatus;
 use App\Modules\DynamicPricing\Data\PricingRuleType;
 use App\Modules\DynamicPricing\Models\Fare;
@@ -105,6 +106,7 @@ class CalculateQuoteAction
             currency: $fare->currency,
             dynamicAdjustments: [$finalAmount - $baseAmount],
         );
+        $breakdown = PricingBreakdownData::fromGroupPricing($pricing);
 
         $snapshot = [
             'fare_uuid' => $fare->uuid,
@@ -119,6 +121,7 @@ class CalculateQuoteAction
             'group_discount' => $pricing['group_discount'],
             'passenger_allocations' => $pricing['passenger_allocations'],
             'total_amount' => $pricing['total_amount'],
+            'pricing_breakdown' => $breakdown->toArray(),
             // Traçabilité de la décision de tarification dynamique — utile en support/litige,
             // même si ces champs ne sont pas exposés tels quels sur le contrat public de devis.
             'pricing_rule_uuid' => $rule?->uuid,
