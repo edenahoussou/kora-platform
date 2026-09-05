@@ -5,8 +5,10 @@ import type { SaleStage } from './sale-types';
 const steps = [
     { number: 1, label: 'Trajet' },
     { number: 2, label: 'Places' },
-    { number: 3, label: 'Passagers' },
-    { number: 4, label: 'Paiement' },
+    { number: 3, label: 'Payeur' },
+    { number: 4, label: 'Voyageurs' },
+    { number: 5, label: 'Paiement' },
+    { number: 6, label: 'Billets' },
 ];
 
 export function SaleProgress({ stage }: { stage: SaleStage }) {
@@ -15,9 +17,13 @@ export function SaleProgress({ stage }: { stage: SaleStage }) {
             ? 1
             : stage === 'seats'
               ? 2
-              : stage === 'passengers'
+              : stage === 'payer'
                 ? 3
-                : 4;
+                : stage === 'passengers'
+                  ? 4
+                  : stage === 'payment'
+                    ? 5
+                    : 6;
     const activeLabel =
         stage === 'passengers'
             ? 'Informations voyageurs'
@@ -28,7 +34,7 @@ export function SaleProgress({ stage }: { stage: SaleStage }) {
             <div className="progress-copy">
                 <span>Vente guichet</span>
                 <strong>
-                    Étape {activeStep} sur 4 · {activeLabel}
+                    Étape {activeStep} sur 6 · {activeLabel}
                 </strong>
             </div>
             <div className="steps">

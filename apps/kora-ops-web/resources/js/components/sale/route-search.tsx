@@ -6,7 +6,11 @@ type Props = {
     cities: SaleCity[];
     value: SaleSearch;
     processing: boolean;
+    isRoundTrip?: boolean;
+    returnDate?: string | null;
     onChange: (value: SaleSearch) => void;
+    onRoundTripChange?: (enabled: boolean) => void;
+    onReturnDateChange?: (date: string | null) => void;
     onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void;
 };
 
@@ -14,7 +18,11 @@ export function RouteSearch({
     cities,
     value,
     processing,
+    isRoundTrip = false,
+    returnDate = null,
     onChange,
+    onRoundTripChange,
+    onReturnDateChange,
     onSubmit,
 }: Props) {
     const update = (key: keyof SaleSearch, nextValue: string) =>
@@ -97,6 +105,34 @@ export function RouteSearch({
                     {processing ? 'Recherche…' : 'Rechercher'}
                 </button>
             </div>
+            {onRoundTripChange && (
+                <div className="round-trip-toggle">
+                    <label className="round-trip-label">
+                        <input
+                            type="checkbox"
+                            checked={isRoundTrip}
+                            onChange={(e) => onRoundTripChange(e.target.checked)}
+                            className="round-trip-checkbox"
+                        />
+                        Aller-retour
+                    </label>
+                    {isRoundTrip && onReturnDateChange && (
+                        <label className="grid gap-1.5 text-[0.625rem] font-extrabold text-white/60">
+                            Date de retour (optionnel)
+                            <input
+                                type="date"
+                                value={returnDate ?? ''}
+                                onChange={(event) =>
+                                    onReturnDateChange(
+                                        event.target.value || null,
+                                    )
+                                }
+                                className="h-12 w-full rounded-[0.8rem] border border-white/15 bg-white/10 px-3 text-[0.75rem] font-bold text-white outline-none focus:border-gold focus:ring-2 focus:ring-gold/30"
+                            />
+                        </label>
+                    )}
+                </div>
+            )}
             <div className="segment-note">
                 <span>Vente au guichet</span>
                 <strong>Disponibilité en temps réel</strong>

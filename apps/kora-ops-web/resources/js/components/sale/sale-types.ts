@@ -1,8 +1,33 @@
-export type SaleStage = 'search' | 'seats' | 'passengers' | 'payment';
+export type SaleStage =
+    | 'search'
+    | 'seats'
+    | 'payer'
+    | 'passengers'
+    | 'payment'
+    | 'tickets';
 
-export type SalePaymentMethod = 'cash' | 'mobile_money';
+export type SalePaymentMethod = 'cash' | 'mobile_money' | 'company_credit';
 
 export type SaleMobileMoneyNetwork = 'mtn_momo' | 'moov_flooz' | 'celtiis_cash';
+
+export type SaleCompanyAccount = {
+    uuid: string;
+    name: string;
+    type: 'company' | 'ngo' | 'embassy';
+    reference: string;
+    phone: string | null;
+    email: string | null;
+    monthlyCreditLimit: number;
+    availableCredit: number;
+    referent: { uuid: string; name: string } | null;
+};
+
+export type SaleGroupBookingSettings = {
+    minimumPassengers: number;
+    maximumPassengers: number;
+};
+
+export type SalePayerType = 'personal' | 'company';
 
 export type SaleMobileMoneyAccount = {
     uuid: string;
@@ -85,6 +110,17 @@ export type SaleTicket = {
     qrCode: string;
     seatCode: string | null;
     passengerUuid: string | null;
+    passengerIndex: number | null;
+    passengerName: string | null;
+    allocationAmount: number;
+    transactionReference: string;
+    status: string;
+    legs: Array<{
+        legOrder: number;
+        originStop: string | null;
+        destinationStop: string | null;
+        seatCode: string | null;
+    }>;
 };
 
 export type SaleCity = {
@@ -124,11 +160,14 @@ export type SalePassenger = {
     documentNumber: string | null;
     nationality: string | null;
     birthDate: string | null;
+    passengerIndex: number | null;
+    yellowFeverVaccinated: boolean | null;
     seatUuid: string | null;
     seatCode: string | null;
 };
 
 export type SalePassengerForm = {
+    passengerIndex: number;
     firstName: string;
     lastName: string;
     phone: string;
@@ -137,11 +176,13 @@ export type SalePassengerForm = {
     documentNumber: string;
     nationality: string;
     birthDate: string;
+    yellowFeverVaccinated: boolean | null;
     seatUuid: string;
     seatCode: string;
 };
 
 export type SalePassengerDraft = {
+    passengerIndex: number;
     firstName: string;
     lastName: string;
     phone: string;
@@ -150,6 +191,7 @@ export type SalePassengerDraft = {
     documentNumber: string;
     nationality: string;
     birthDate: string;
+    yellowFeverVaccinated: boolean | null;
     seatUuid: string | null;
     seatCode: string | null;
 };
@@ -194,6 +236,40 @@ export type SaleDeparture = {
     } | null;
 };
 
+export type SaleItineraryLeg = {
+    direction?: 'outbound' | 'inbound';
+    legOrder: number;
+    departureUuid: string;
+    departureDate: string;
+    departureTime: string;
+    line: {
+        uuid: string;
+        code: string;
+        name: string;
+        isInternational: boolean;
+    };
+    bus: {
+        uuid: string;
+        registrationNumber: string;
+    };
+    originStop: SaleStop;
+    destinationStop: SaleStop;
+    amount: number;
+    departureAt: string;
+    arrivalAt: string;
+};
+
+export type SaleItinerary = {
+    isDirect: boolean;
+    connectionsCount: number;
+    totalAmount: number;
+    currency: string;
+    departureAt: string;
+    arrivalAt: string;
+    connectionMarginMinutes: number;
+    legs: SaleItineraryLeg[];
+};
+
 export type SaleSeat = {
     uuid: string;
     code: string;
@@ -210,8 +286,65 @@ export type SaleQuote = {
     finalAmount: number;
     currency: string;
     passengerCount: number;
+    subtotalAmount: number;
+    adjustedSubtotalAmount: number;
+    dynamicAdjustmentAmount: number;
+    groupDiscount: {
+        applied: boolean;
+        threshold: number | null;
+        percentage: number;
+        amount: number;
+    };
+    isGroup: boolean;
+    promotions?: Array<Record<string, unknown>>;
+    promotionDiscountAmount?: number;
+    passengerAllocations: number[];
     totalAmount: number;
     expiresAt: string | null;
+};
+
+export type SaleItineraryQuote = SaleQuote & {
+    groupDiscountAmount: number;
+    legs: Array<Record<string, unknown>>;
+};
+
+export type SaleV2TripType = 'one_way' | 'round_trip';
+
+export type SaleV2JourneyLeg = {
+    direction: 'outbound' | 'inbound';
+    legOrder: number;
+    departureUuid: string;
+    departureDate: string;
+    departureTime: string;
+    line: SaleItineraryLeg['line'];
+    bus: SaleItineraryLeg['bus'];
+    originStop: SaleStop;
+    destinationStop: SaleStop;
+    amount: number;
+    departureAt: string;
+    arrivalAt: string;
+};
+
+export type SaleV2JourneyOption = {
+    uuid: string;
+    direction: 'outbound' | 'inbound';
+    isDirect: boolean;
+    connectionsCount: number;
+    totalAmount: number;
+    currency: string;
+    departureAt: string;
+    arrivalAt: string;
+    connectionMarginMinutes: number;
+    legs: SaleV2JourneyLeg[];
+};
+
+export type SaleV2Search = {
+    tripType: SaleV2TripType;
+    originPhysicalStopUuid: string | null;
+    destinationPhysicalStopUuid: string | null;
+    departureDate: string | null;
+    returnDate: string | null;
+    passengerCount: number;
 };
 
 export type SaleReservation = {
@@ -221,6 +354,32 @@ export type SaleReservation = {
     totalAmount: number;
     currency: string;
     channel: string | null;
+    purchaseType: string | null;
+    groupSize: number | null;
+    payerType: string | null;
+    payerSnapshot: {
+        type: string;
+        display_name: string;
+        phone: string | null;
+        account_uuid: string;
+        company_reference?: string | null;
+        referent_uuid?: string | null;
+        referent_name?: string | null;
+        captured_at: string;
+    } | null;
+    ticketIssuance: {
+        status: 'not_started' | 'pending' | 'processing' | 'failed' | 'issued';
+        error: string | null;
+        startedAt: string | null;
+        issuedAt: string | null;
+    };
+    companyAccount: {
+        uuid: string;
+        name: string;
+        type: string;
+        reference: string;
+    } | null;
+    passengerAllocations: number[];
     departureUuid: string | null;
     payment: SalePayment | null;
     qrPayload: SaleReceiptQrPayload | null;
@@ -229,6 +388,14 @@ export type SaleReservation = {
         koraReference: string | null;
         mecefUid: string | null;
     } | null;
+    refunds?: Array<{
+        uuid: string;
+        amount: number;
+        currency: string;
+        destination: string;
+        status: string;
+        reference: string;
+    }>;
     tickets: SaleTicket[];
     passengers: SalePassenger[];
     draftPassengers: SalePassengerDraft[];
@@ -239,6 +406,9 @@ export type SaleReservation = {
         originStop: string | null;
         destinationStop: string | null;
         status: string;
+        passengerIndex?: number | null;
+        legOrder?: number;
+        direction?: 'outbound' | 'inbound';
     }>;
 };
 
@@ -246,11 +416,15 @@ export type SaleProps = {
     cities: SaleCity[];
     search: SaleSearch;
     departures: SaleDeparture[];
+    itineraries: SaleItinerary[];
     selectedDeparture: SaleDeparture | null;
     seats: SaleSeat[];
     quote: SaleQuote | null;
+    itineraryQuote?: SaleItineraryQuote | null;
     reservation: SaleReservation | null;
     cashSession: SaleCashSession;
     mobileMoneyAccounts: SaleMobileMoneyAccount[];
+    companyAccounts: SaleCompanyAccount[];
+    groupBookingSettings: SaleGroupBookingSettings;
     permissions: { canCreate: boolean };
 };

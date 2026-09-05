@@ -9,6 +9,7 @@ type Props = {
     seats: SaleSeat[];
     selectedSeatUuids: string[];
     passengerCount: number;
+    maxPassengers?: number;
     loading: boolean;
     processing: boolean;
     onToggleSeat: (seat: SaleSeat) => void;
@@ -22,6 +23,7 @@ export function SeatPicker({
     seats,
     selectedSeatUuids,
     passengerCount,
+    maxPassengers = 10,
     loading,
     processing,
     onToggleSeat,
@@ -61,6 +63,7 @@ export function SeatPicker({
                     seats={seats}
                     selectedSeatCodes={selectedSeatCodes}
                     passengerCount={passengerCount}
+                    maxPassengers={maxPassengers}
                     loading={loading}
                     processing={processing}
                     onPassengerCountChange={onPassengerCountChange}

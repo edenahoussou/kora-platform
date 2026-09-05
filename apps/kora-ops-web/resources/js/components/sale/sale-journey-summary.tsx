@@ -2,6 +2,7 @@ import {
     Armchair,
     BadgeCheck,
     Banknote,
+    Building2,
     BusFront,
     CalendarDays,
     Check,
@@ -116,16 +117,27 @@ export function SaleJourneySummary({
             <SummaryRow icon={BusFront} label="Véhicule">
                 {departure
                     ? [
-                          [departure.bus.brand, departure.bus.model]
-                              .filter(Boolean)
-                              .join(' ') || 'Véhicule',
-                          departure.bus.registrationNumber,
-                      ].join(' · ')
+                        [departure.bus.brand, departure.bus.model]
+                            .filter(Boolean)
+                            .join(' ') || 'Véhicule',
+                        departure.bus.registrationNumber,
+                    ].join(' · ')
                     : '—'}
             </SummaryRow>
             <SummaryRow icon={Users} label="Passagers">
                 {reservation.passengers.length}
+                {reservation.purchaseType === 'group' && (
+                    <span className="badge badge-group">
+                        <Users className="size-3" />
+                        Groupe
+                    </span>
+                )}
             </SummaryRow>
+            {reservation.companyAccount && (
+                <SummaryRow icon={Building2} label="Payeur">
+                    {reservation.companyAccount.name}
+                </SummaryRow>
+            )}
             <SummaryRow icon={BadgeCheck} label="Service">
                 {departure?.farePreview?.service_class_name ??
                     departure?.farePreview?.service_class_code ??
@@ -133,10 +145,25 @@ export function SaleJourneySummary({
             </SummaryRow>
 
             {variant === 'payment' &&
-            paymentMethod === 'cash' &&
-            cashBreakdown ? (
+                paymentMethod === 'cash' &&
+                cashBreakdown ? (
                 <CashBreakdownPanel breakdown={cashBreakdown} />
             ) : null}
+
+            {variant === 'payment' &&
+                paymentMethod === 'company_credit' &&
+                reservation.companyAccount && (
+                    <div className="summary-callout success">
+                        <div>
+                            <Building2 className="size-4" />
+                            Crédit entreprise
+                        </div>
+                        <p>
+                            {reservation.companyAccount.name} · Réf{' '}
+                            {reservation.companyAccount.reference}
+                        </p>
+                    </div>
+                )}
 
             <div className="summary-total">
                 <span>Total à encaisser</span>
@@ -146,8 +173,8 @@ export function SaleJourneySummary({
             </div>
 
             {variant === 'payment' &&
-            paymentMethod === 'mobile_money' &&
-            mobileChecklist ? (
+                paymentMethod === 'mobile_money' &&
+                mobileChecklist ? (
                 <MobileMoneyChecklistPanel
                     checklist={mobileChecklist}
                     doneCount={mobileChecklistDone ?? 0}
@@ -176,8 +203,8 @@ export function SaleJourneySummary({
                             {holdCountdown.isExpired
                                 ? 'Hold expiré'
                                 : holdCountdown.isUrgent
-                                  ? 'À finaliser rapidement'
-                                  : 'Places sécurisées'}
+                                    ? 'À finaliser rapidement'
+                                    : 'Places sécurisées'}
                         </strong>
                     </span>
                     <time dateTime={reservation.expiresAt ?? undefined}>
@@ -191,12 +218,23 @@ export function SaleJourneySummary({
                     {holdCountdown.isExpired
                         ? 'Le blocage doit être renouvelé avant de poursuivre.'
                         : holdCountdown.isUrgent
-                          ? 'Finalisez les informations ou modifiez les places avant la libération automatique.'
-                          : 'Le temps restant est actualisé automatiquement.'}
+                            ? 'Finalisez les informations ou modifiez les places avant la libération automatique.'
+                            : 'Le temps restant est actualisé automatiquement.'}
                 </p>
             </div>
             {variant === 'payment' ? (
-                cashSession?.isOpen ? (
+                paymentMethod === 'company_credit' ? (
+                    <div className="summary-callout success">
+                        <div>
+                            <Building2 className="size-4" />
+                            Crédit entreprise
+                        </div>
+                        <p>
+                            Le montant sera imputé au plafond mensuel du compte.
+                            Aucun mouvement de caisse.
+                        </p>
+                    </div>
+                ) : cashSession?.isOpen ? (
                     <div className="summary-callout success">
                         <div>
                             <Banknote className="size-4" />

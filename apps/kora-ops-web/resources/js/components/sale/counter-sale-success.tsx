@@ -1,6 +1,8 @@
-import { Check, MessageCircle, Plus, Printer } from 'lucide-react';
+import { router, usePoll } from '@inertiajs/react';
+import { AlertCircle, Check, LoaderCircle, Plus, Printer, RefreshCw } from 'lucide-react';
 import { useEffect } from 'react';
-import { receiptQrValue, ReceiptQr } from './receipt-qr';
+import { retry } from '@/routes/sale/tickets';
+import { ReceiptQr } from './receipt-qr';
 import type { SaleDeparture, SaleReservation, SaleTicket } from './sale-types';
 import { formatMoney, formatTime } from './sale-utils';
 
@@ -16,8 +18,10 @@ export function CounterSaleSuccess({
     releasing: boolean;
 }) {
     useEffect(() => {
-        const clearPrintMode = () =>
-            document.body.classList.remove('receipt-print-mode');
+        const clearPrintMode = () => {
+            document.body.classList.remove('receipt-print-mode', 'single-ticket-print-mode');
+            document.querySelectorAll('.is-print-target').forEach((element) => element.classList.remove('is-print-target'));
+        };
 
         window.addEventListener('afterprint', clearPrintMode);
 
@@ -27,17 +31,23 @@ export function CounterSaleSuccess({
         };
     }, []);
 
+    const issuancePending = ['pending', 'processing'].includes(
+        reservation.ticketIssuance.status,
+    );
+    const { stop, start } = usePoll(
+        2000,
+        { only: ['reservation'] },
+        { autoStart: issuancePending, keepAlive: true, mode: 'rest' },
+    );
+    useEffect(() => {
+        if (issuancePending) {
+            start();
+        } else {
+            stop();
+        }
+    }, [issuancePending, start, stop]);
+
     const payment = reservation.payment;
-    const qrPayload = reservation.qrPayload;
-    const qrValue = qrPayload
-        ? receiptQrValue({
-              reservationCode: qrPayload.reservationCode,
-              reservationUuid: qrPayload.reservationUuid,
-              agencyCode: qrPayload.agencyCode,
-              confirmedAt: qrPayload.confirmedAt,
-              agentUuid: qrPayload.agentUuid,
-          })
-        : null;
     const ticketCount = reservation.tickets.length;
     const paymentName = paymentLabel(payment);
 
@@ -48,9 +58,11 @@ export function CounterSaleSuccess({
                     <Check size={22} strokeWidth={1.8} />
                 </div>
                 <div className="success-copy">
-                    <span className="hero-kicker">Vente confirmée</span>
+                    <span className="hero-kicker">Paiement confirmé</span>
                     <h1>
-                        {ticketCount > 1
+                        {issuancePending
+                            ? 'Émission des billets en cours…'
+                            : ticketCount > 1
                             ? `${ticketCount} billets sont prêts.`
                             : 'Le billet est prêt.'}
                     </h1>
@@ -64,13 +76,34 @@ export function CounterSaleSuccess({
 
             <div className="success-workspace">
                 <div className="issued-ticket-list">
+                    {issuancePending && (
+                        <div className="summary-callout warning" aria-live="polite">
+                            <LoaderCircle className="size-4 animate-spin" />
+                            Paiement conservé. Les billets disponibles apparaissent automatiquement.
+                        </div>
+                    )}
+                    {reservation.ticketIssuance.status === 'failed' && (
+                        <div className="summary-callout warning" role="alert">
+                            <AlertCircle className="size-4" />
+                            <div>
+                                <strong>Émission incomplète</strong>
+                                <p>{reservation.ticketIssuance.error ?? 'Une erreur a empêché certains billets.'}</p>
+                                <button
+                                    type="button"
+                                    className="btn btn-primary mt-3"
+                                    onClick={() => router.post(retry.url(reservation.uuid), {}, { preserveScroll: true })}
+                                >
+                                    <RefreshCw className="size-4" /> Relancer l’émission
+                                </button>
+                            </div>
+                        </div>
+                    )}
                     {reservation.tickets.map((ticket) => (
                         <TicketCard
                             key={ticket.uuid}
                             departure={departure}
                             fiscalization={reservation.fiscalization}
                             payment={payment}
-                            qrValue={qrValue}
                             reservation={reservation}
                             ticket={ticket}
                         />
@@ -85,7 +118,7 @@ export function CounterSaleSuccess({
                         <span>Actions</span>
                         <small>Après encaissement</small>
                     </div>
-                    <button
+                    {ticketCount > 0 && <button
                         type="button"
                         className="action-rail-button action-rail-button-primary"
                         onClick={() => {
@@ -97,23 +130,10 @@ export function CounterSaleSuccess({
                             <Printer size={18} strokeWidth={1.7} />
                         </span>
                         <span className="action-rail-label">
-                            <strong>Imprimer</strong>
-                            <small>Ticket caisse</small>
+                            <strong>Imprimer tout le groupe</strong>
+                            <small>{ticketCount} billet{ticketCount > 1 ? 's' : ''}</small>
                         </span>
-                    </button>
-                    <button
-                        type="button"
-                        className="action-rail-button"
-                        disabled
-                    >
-                        <span className="action-rail-icon" aria-hidden="true">
-                            <MessageCircle size={18} strokeWidth={1.7} />
-                        </span>
-                        <span className="action-rail-label">
-                            <strong>WhatsApp</strong>
-                            <small>Bientôt disponible</small>
-                        </span>
-                    </button>
+                    </button>}
                     <button
                         type="button"
                         className="action-rail-button action-rail-button-new"
@@ -140,27 +160,22 @@ function TicketCard({
     departure,
     fiscalization,
     payment,
-    qrValue,
     reservation,
     ticket,
 }: {
     departure: SaleDeparture | null;
     fiscalization: SaleReservation['fiscalization'];
     payment: SaleReservation['payment'];
-    qrValue: string | null;
     reservation: SaleReservation;
     ticket: SaleTicket;
 }) {
     const passenger = reservation.passengers.find(
         (item) => item.uuid === ticket.passengerUuid,
     );
-    const ticketAmount =
-        ticketCount(reservation) > 0
-            ? Math.round(reservation.totalAmount / ticketCount(reservation))
-            : reservation.totalAmount;
+    const ticketAmount = ticket.allocationAmount;
 
     return (
-        <article className="ticket-card compact-ticket">
+        <article className="ticket-card compact-ticket" data-ticket-uuid={ticket.uuid}>
             <div className="ticket-brand">
                 <div className="ticket-brand-lockup">
                     <img src="/kora-logo-sidebar.png" alt="KORA EXPRESS" />
@@ -208,7 +223,7 @@ function TicketCard({
                                 : '—'
                         }
                     />
-                    <TicketField label="Siège" value={ticket.seatCode ?? '—'} />
+                    <TicketField label="Sièges" value={ticket.legs.map((leg) => leg.seatCode).filter(Boolean).join(' · ') || ticket.seatCode || '—'} />
                     <TicketField
                         label="Numéro billet"
                         value={shortUuid(ticket.ticketNumber)}
@@ -228,8 +243,8 @@ function TicketCard({
                     />
                 </div>
                 <div className="ticket-qr" aria-label="QR Code billet">
-                    {qrValue ? (
-                        <ReceiptQr value={qrValue} />
+                    {ticket.qrCode ? (
+                        <ReceiptQr value={ticket.qrCode} />
                     ) : (
                         <span>QR indisponible</span>
                     )}
@@ -245,6 +260,20 @@ function TicketCard({
                 </b>
                 <span aria-hidden="true" />
             </div>
+            <button
+                type="button"
+                className="btn btn-ghost ticket-screen-only mt-3 w-full"
+                onClick={() => {
+                    const target = document.querySelector<HTMLElement>(`[data-ticket-uuid="${ticket.uuid}"]`);
+                    target?.classList.add('is-print-target');
+                    document.body.classList.add('receipt-print-mode', 'single-ticket-print-mode');
+                    window.print();
+                    target?.classList.remove('is-print-target');
+                    document.body.classList.remove('single-ticket-print-mode');
+                }}
+            >
+                <Printer className="size-4" /> Imprimer ce billet
+            </button>
         </article>
     );
 }
@@ -256,10 +285,6 @@ function TicketField({ label, value }: { label: string; value: string }) {
             <strong>{value}</strong>
         </div>
     );
-}
-
-function ticketCount(reservation: SaleReservation): number {
-    return reservation.tickets.length;
 }
 
 function passengerName(
@@ -278,6 +303,10 @@ function paymentLabel(payment: SaleReservation['payment']): string {
         return 'paiement';
     }
 
+    if (payment.method === 'company_credit') {
+        return 'crédit entreprise';
+    }
+
     if (payment.method !== 'mobile_money') {
         return 'espèces';
     }
@@ -285,16 +314,16 @@ function paymentLabel(payment: SaleReservation['payment']): string {
     return payment.network === 'mtn_momo'
         ? 'MTN MoMo'
         : payment.network === 'moov_flooz'
-          ? 'Moov Money / Flooz'
-          : 'Celtis Cash';
+            ? 'Moov Money / Flooz'
+            : 'Celtis Cash';
 }
 
 function stopCode(city: string | undefined): string {
     return city
         ? city
-              .replace(/[^a-zA-Z]/g, '')
-              .slice(0, 3)
-              .toUpperCase()
+            .replace(/[^a-zA-Z]/g, '')
+            .slice(0, 3)
+            .toUpperCase()
         : '—';
 }
 

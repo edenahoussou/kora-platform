@@ -14,7 +14,9 @@ import {
 import type { CounterSalePaymentPayload } from './payment-step';
 import type {
     SaleDeparture,
+    SaleItinerary,
     SalePassengerForm,
+    SalePayerType,
     SaleProps,
     SaleSearch,
 } from './sale-types';
@@ -29,6 +31,8 @@ function passengerToSnakeCase(passenger: SalePassengerForm) {
         document_number: passenger.documentNumber,
         nationality: passenger.nationality,
         birth_date: passenger.birthDate,
+        passenger_index: passenger.passengerIndex,
+        yellow_fever_vaccinated: passenger.yellowFeverVaccinated,
         seat_uuid: passenger.seatUuid,
     };
 }
@@ -43,6 +47,14 @@ function queryFrom(search: SaleSearch, departure?: SaleDeparture | null) {
         destination_stop_uuid: departure?.destinationStop.uuid,
     };
 }
+
+export type ItinerarySeatAssignment = {
+    passenger_index: number;
+    seat_assignments: Array<{
+        leg_order: number;
+        seat_uuid: string;
+    }>;
+};
 
 export function useCounterSale(props: SaleProps) {
     const searchForm = useForm<SaleSearch>({ ...props.search });
@@ -63,9 +75,11 @@ export function useCounterSale(props: SaleProps) {
         origin_stop_uuid: string | undefined;
         destination_stop_uuid: string | undefined;
         passengers: SalePassengerForm[];
+        information_confirmed: boolean;
     }>({
         ...queryFrom(searchForm.data, props.selectedDeparture),
         passengers: [],
+        information_confirmed: false,
     });
     const draftForm = useForm<{
         passengers: ReturnType<typeof passengerToSnakeCase>[];
@@ -99,6 +113,7 @@ export function useCounterSale(props: SaleProps) {
                 only: [
                     'search',
                     'departures',
+                    'itineraries',
                     'selectedDeparture',
                     'seats',
                     'quote',
@@ -130,16 +145,82 @@ export function useCounterSale(props: SaleProps) {
         }));
         quoteForm.post(quote.url(), { preserveScroll: true, onSuccess });
     };
+    const calculateItineraryQuote = (
+        passengerCount: number,
+        itinerary: SaleItinerary,
+        onSuccess?: () => void,
+    ) => {
+        quoteForm.transform(() => ({
+            date: searchForm.data.date ?? itinerary.legs[0]?.departureDate ?? null,
+            from: searchForm.data.from ?? undefined,
+            to: searchForm.data.to ?? undefined,
+            passenger_count: passengerCount,
+            legs: itinerary.legs.map((leg) => ({
+                departure_uuid: leg.departureUuid,
+                origin_stop_uuid: leg.originStop.uuid,
+                destination_stop_uuid: leg.destinationStop.uuid,
+            })),
+        }));
+        quoteForm.post(quote.url(), { preserveScroll: true, onSuccess });
+    };
     const holdSeats = (
         selectedDeparture: SaleDeparture,
         quoteUuid: string,
         seatUuids: string[],
         onSuccess?: () => void,
+        payer?: {
+            type: SalePayerType;
+            company_account_uuid?: string;
+        },
     ) => {
         holdForm.transform(() => ({
             ...queryFrom(searchForm.data, selectedDeparture),
             price_quote_uuid: quoteUuid,
             seats: seatUuids.map((seatUuid) => ({ seat_uuid: seatUuid })),
+            ...(payer
+                ? {
+                    payer: {
+                        type: payer.type,
+                        ...(payer.company_account_uuid
+                            ? {
+                                company_account_uuid:
+                                    payer.company_account_uuid,
+                            }
+                            : {}),
+                    },
+                }
+                : {}),
+        }));
+        holdForm.post(hold.url(), { preserveScroll: true, onSuccess });
+    };
+    const holdItinerarySeats = (
+        itineraryQuoteUuid: string,
+        seatAssignments: ItinerarySeatAssignment[],
+        onSuccess?: () => void,
+        payer?: {
+            type: SalePayerType;
+            company_account_uuid?: string;
+        },
+    ) => {
+        holdForm.transform(() => ({
+            date: searchForm.data.date,
+            from: searchForm.data.from ?? undefined,
+            to: searchForm.data.to ?? undefined,
+            itinerary_quote_uuid: itineraryQuoteUuid,
+            passengers: seatAssignments,
+            ...(payer
+                ? {
+                    payer: {
+                        type: payer.type,
+                        ...(payer.company_account_uuid
+                            ? {
+                                company_account_uuid:
+                                    payer.company_account_uuid,
+                            }
+                            : {}),
+                    },
+                }
+                : {}),
         }));
         holdForm.post(hold.url(), { preserveScroll: true, onSuccess });
     };
@@ -151,6 +232,7 @@ export function useCounterSale(props: SaleProps) {
         passengersForm.transform(() => ({
             ...queryFrom(searchForm.data, props.selectedDeparture),
             passengers: passengerData.map(passengerToSnakeCase),
+            information_confirmed: true,
         }));
         passengersForm.post(passengers.url(reservationUuid), {
             preserveScroll: true,
@@ -213,8 +295,8 @@ export function useCounterSale(props: SaleProps) {
                     errorRecord?.method ??
                     (errorRecord
                         ? Object.values(errorRecord).find(
-                              (v) => typeof v === 'string',
-                          )
+                            (v) => typeof v === 'string',
+                        )
                         : null) ??
                     'Le paiement n’a pas pu être enregistré.Réessayez.';
                 toast.error(message);
@@ -233,7 +315,9 @@ export function useCounterSale(props: SaleProps) {
         search,
         selectDeparture,
         calculateQuote,
+        calculateItineraryQuote,
         holdSeats,
+        holdItinerarySeats,
         savePassengers,
         saveDraft,
         releaseHold,

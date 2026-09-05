@@ -41,27 +41,51 @@ type Props = {
 };
 
 function initialPassengers(reservation: SaleReservation): SalePassengerForm[] {
-    return reservation.segments.map((segment) => {
+    const passengerIndexes = Array.from(
+        new Set(
+            reservation.segments.map(
+                (segment, index) => segment.passengerIndex ?? index,
+            ),
+        ),
+    ).sort((a, b) => a - b);
+
+    return passengerIndexes.map((passengerIndex) => {
+        const segment = reservation.segments.find(
+            (candidate, index) =>
+                (candidate.passengerIndex ?? index) === passengerIndex,
+        );
         const passenger = reservation.passengers.find(
-            (candidate) => candidate.seatUuid === segment.seatUuid,
+            (candidate) => candidate.passengerIndex === passengerIndex,
         );
         const draft = reservation.draftPassengers.find(
-            (candidate) => candidate.seatUuid === segment.seatUuid,
+            (candidate) => candidate.passengerIndex === passengerIndex,
         );
 
         return {
+            passengerIndex,
             firstName: draft?.firstName ?? passenger?.firstName ?? '',
             lastName: draft?.lastName ?? passenger?.lastName ?? '',
             phone: normalizePhoneValue(draft?.phone ?? passenger?.phone),
             email: draft?.email ?? passenger?.email ?? '',
             documentType:
-                draft?.documentType ?? passenger?.documentType ?? 'national_id',
+                draft?.documentType ?? passenger?.documentType ?? '',
             documentNumber:
                 draft?.documentNumber ?? passenger?.documentNumber ?? '',
             nationality: draft?.nationality ?? passenger?.nationality ?? '',
             birthDate: draft?.birthDate ?? passenger?.birthDate ?? '',
-            seatUuid: segment.seatUuid ?? '',
-            seatCode: segment.seatCode ?? '—',
+            yellowFeverVaccinated:
+                draft?.yellowFeverVaccinated ??
+                passenger?.yellowFeverVaccinated ??
+                null,
+            seatUuid: segment?.seatUuid ?? '',
+            seatCode: reservation.segments
+                .filter(
+                    (candidate, index) =>
+                        (candidate.passengerIndex ?? index) === passengerIndex,
+                )
+                .map((candidate) => candidate.seatCode)
+                .filter(Boolean)
+                .join(' · '),
         };
     });
 }
@@ -78,20 +102,20 @@ function normalizePhoneValue(value: string | null | undefined): string {
     }
 }
 
-function isPassengerComplete(
-    passenger: SalePassengerForm,
-    isInternational: boolean,
-): boolean {
+function isPassengerComplete(passenger: SalePassengerForm): boolean {
+    const hasValidOptionalPhone =
+        passenger.phone.trim() === '' || isValidPhoneNumber(passenger.phone);
+    const hasCompleteDocumentPair =
+        (passenger.documentType.trim() === '' &&
+            passenger.documentNumber.trim() === '') ||
+        (passenger.documentType.trim() !== '' &&
+            passenger.documentNumber.trim() !== '');
+
     return (
         passenger.firstName.trim() !== '' &&
         passenger.lastName.trim() !== '' &&
-        passenger.phone.trim() !== '' &&
-        isValidPhoneNumber(passenger.phone) &&
-        (!isInternational ||
-            (passenger.documentType.trim() !== '' &&
-                passenger.documentNumber.trim() !== '' &&
-                passenger.nationality.trim() !== '' &&
-                passenger.birthDate.trim() !== ''))
+        hasValidOptionalPhone &&
+        hasCompleteDocumentPair
     );
 }
 
@@ -112,6 +136,7 @@ function hasSamePassengerDetails(
         current.documentNumber === persisted.documentNumber &&
         current.nationality === persisted.nationality &&
         current.birthDate === persisted.birthDate
+        && current.yellowFeverVaccinated === persisted.yellowFeverVaccinated
     );
 }
 
@@ -134,6 +159,7 @@ export function PassengerFinalization({
     const [confirmed, setConfirmed] = useState(
         reservation.passengers.length > 0,
     );
+    const [activeIndex, setActiveIndex] = useState(0);
     const [confirmingBack, setConfirmingBack] = useState(false);
     const holdCountdown = useHoldCountdown(reservation.expiresAt);
     const expirationHandled = useRef(false);
@@ -175,9 +201,9 @@ export function PassengerFinalization({
     const completeCount = useMemo(
         () =>
             passengers.filter((passenger) =>
-                isPassengerComplete(passenger, isInternational),
+                isPassengerComplete(passenger),
             ).length,
-        [isInternational, passengers],
+        [passengers],
     );
     const completedPassengers = completeCount === passengers.length;
     const savedPassengers = reservation.passengers.length;
@@ -197,7 +223,7 @@ export function PassengerFinalization({
     const updatePassenger = (
         index: number,
         field: keyof SalePassengerForm,
-        value: string,
+        value: string | boolean | null,
     ) => {
         setPassengers((current) =>
             current.map((passenger, passengerIndex) =>
@@ -243,8 +269,8 @@ export function PassengerFinalization({
                             <h2>Renseigner chaque voyageur</h2>
                             <p>
                                 {isInternational
-                                    ? 'Identité, document, nationalité et date de naissance sont obligatoires pour le manifeste frontière.'
-                                    : 'Le prénom, le nom et le téléphone sont obligatoires pour chaque billet.'}
+                                    ? 'Le prénom et le nom suffisent pour valider la vente. Les informations de document, nationalité et vaccination restent facultatives.'
+                                    : 'Le prénom et le nom sont obligatoires pour chaque billet. Le téléphone et les autres informations restent facultatifs.'}
                             </p>
                         </div>
                         <div
@@ -293,7 +319,26 @@ export function PassengerFinalization({
                     </div>
                 </div>
 
+                <nav className="mb-4 flex gap-2 overflow-x-auto pb-1" aria-label="Voyageurs du groupe">
+                    {passengers.map((passenger, index) => (
+                        <button
+                            key={passenger.passengerIndex}
+                            type="button"
+                            className={cn('btn btn-ghost shrink-0', activeIndex === index && 'border-gold bg-gold/10')}
+                            onClick={() => setActiveIndex(index)}
+                            aria-current={activeIndex === index ? 'step' : undefined}
+                        >
+                            {isPassengerComplete(passenger) ? <CheckCircle2 className="size-3.5 text-emerald-600" /> : <span>{index + 1}</span>}
+                            Voyageur {index + 1} · {passenger.seatCode || 'sans siège'}
+                        </button>
+                    ))}
+                </nav>
+
                 {passengers.map((passenger, index) => {
+                    if (index !== activeIndex) {
+                        return null;
+                    }
+
                     const phoneError =
                         fieldError(index, 'phone') ??
                         (passenger.phone.trim() !== '' &&
@@ -305,10 +350,7 @@ export function PassengerFinalization({
                         <article
                             className={cn(
                                 'passenger-card',
-                                isPassengerComplete(
-                                    passenger,
-                                    isInternational,
-                                ) && 'is-complete',
+                                isPassengerComplete(passenger) && 'is-complete',
                                 Object.keys(errors).some((key) =>
                                     key.startsWith(`passengers.${index}.`),
                                 ) && 'has-server-error',
@@ -324,10 +366,7 @@ export function PassengerFinalization({
                                     </span>
                                 </span>
                                 <span className="passenger-seat-meta">
-                                    {isPassengerComplete(
-                                        passenger,
-                                        isInternational,
-                                    ) && (
+                                    {isPassengerComplete(passenger) && (
                                         <CheckCircle2
                                             className="size-3.5"
                                             aria-label="Informations complètes"
@@ -409,10 +448,7 @@ export function PassengerFinalization({
                                 <label className="field">
                                     <span className="field-label">
                                         <Phone className="size-3.5" />
-                                        Téléphone international{' '}
-                                        <span className="required-asterisk">
-                                            *
-                                        </span>
+                                        Téléphone personnel · optionnel
                                     </span>
                                     <PhoneInput
                                         id={`passenger-${index}-phone`}
@@ -469,7 +505,7 @@ export function PassengerFinalization({
                                     />
                                 </label>
 
-                                {isInternational && (
+                                {(
                                     <>
                                         <div className="form-group-heading">
                                             <span className="form-group-heading-title">
@@ -477,16 +513,12 @@ export function PassengerFinalization({
                                                 Document de voyage
                                             </span>
                                             <small>
-                                                Ces informations seront reprises
-                                                sur le manifeste frontière.
+                                                Facultatif. Si vous renseignez un document, le type et le numéro sont tous deux requis.
                                             </small>
                                         </div>
                                         <label className="field">
                                             <span>
-                                                Type de document{' '}
-                                                <span className="required-asterisk">
-                                                    *
-                                                </span>
+                                                Type de document
                                             </span>
                                             <select
                                                 id={`passenger-${index}-document-type`}
@@ -500,6 +532,7 @@ export function PassengerFinalization({
                                                     )
                                                 }
                                             >
+                                                <option value="">Aucun document</option>
                                                 <option value="national_id">
                                                     Carte nationale
                                                 </option>
@@ -512,15 +545,11 @@ export function PassengerFinalization({
                                                 <option value="consular_card">
                                                     Carte consulaire
                                                 </option>
-                                                <option value="cip">CIP</option>
                                             </select>
                                         </label>
                                         <label className="field">
                                             <span>
-                                                Numéro du document{' '}
-                                                <span className="required-asterisk">
-                                                    *
-                                                </span>
+                                                Numéro du document
                                             </span>
                                             <input
                                                 id={`passenger-${index}-document-number`}
@@ -538,10 +567,7 @@ export function PassengerFinalization({
                                         <div className="field">
                                             <span className="field-label">
                                                 <Globe className="size-3.5" />
-                                                Nationalité{' '}
-                                                <span className="required-asterisk">
-                                                    *
-                                                </span>
+                                                Nationalité · optionnelle
                                             </span>
                                             <NationalitySelect
                                                 id={`passenger-${index}-nationality`}
@@ -558,10 +584,7 @@ export function PassengerFinalization({
                                         <label className="field">
                                             <span className="field-label">
                                                 <CalendarDays className="size-3.5" />
-                                                Date de naissance{' '}
-                                                <span className="required-asterisk">
-                                                    *
-                                                </span>
+                                                Date de naissance · optionnelle
                                             </span>
                                             <input
                                                 id={`passenger-${index}-birth-date`}
@@ -577,12 +600,41 @@ export function PassengerFinalization({
                                                 }
                                             />
                                         </label>
+                                        <label className="field sm:col-span-2">
+                                            <span className="field-label">Vaccination fièvre jaune</span>
+                                            <select
+                                                className="control"
+                                                value={passenger.yellowFeverVaccinated === null ? '' : passenger.yellowFeverVaccinated ? 'yes' : 'no'}
+                                                onChange={(event) =>
+                                                    updatePassenger(
+                                                        index,
+                                                        'yellowFeverVaccinated',
+                                                        event.target.value === '' ? null : event.target.value === 'yes',
+                                                    )
+                                                }
+                                            >
+                                                <option value="">Non renseignée</option>
+                                                <option value="yes">Oui</option>
+                                                <option value="no">Non</option>
+                                            </select>
+                                            <small className="payment-field-help">Information enregistrée sans bloquer la vente.</small>
+                                        </label>
                                     </>
                                 )}
                             </div>
                         </article>
                     );
                 })}
+
+                <div className="mb-5 flex items-center justify-between gap-3">
+                    <button type="button" className="btn btn-ghost" disabled={activeIndex === 0} onClick={() => setActiveIndex((value) => Math.max(0, value - 1))}>
+                        <ArrowLeft className="size-4" /> Précédent
+                    </button>
+                    <span className="text-xs font-semibold text-muted-foreground">{activeIndex + 1} / {passengers.length}</span>
+                    <button type="button" className="btn btn-ghost" disabled={activeIndex === passengers.length - 1} onClick={() => setActiveIndex((value) => Math.min(passengers.length - 1, value + 1))}>
+                        Suivant <ArrowRight className="size-4" />
+                    </button>
+                </div>
 
                 <label className="finalization-check">
                     <input

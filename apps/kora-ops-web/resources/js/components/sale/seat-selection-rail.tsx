@@ -6,6 +6,7 @@ type Props = {
     seats: SaleSeat[];
     selectedSeatCodes: string[];
     passengerCount: number;
+    maxPassengers?: number;
     loading: boolean;
     processing: boolean;
     onPassengerCountChange: (count: number) => void;
@@ -17,6 +18,7 @@ export function SeatSelectionRail({
     seats,
     selectedSeatCodes,
     passengerCount,
+    maxPassengers = 10,
     loading,
     processing,
     onPassengerCountChange,
@@ -82,7 +84,7 @@ export function SeatSelectionRail({
                         <button
                             type="button"
                             aria-label="Ajouter un voyageur"
-                            disabled={passengerCount >= 10 || processing}
+                            disabled={passengerCount >= maxPassengers || processing}
                             onClick={() =>
                                 onPassengerCountChange(passengerCount + 1)
                             }
