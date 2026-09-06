@@ -23,7 +23,16 @@ class CompanyAccount extends KoraModel
     use HasPublicUuid, SoftDeletes;
 
     protected $fillable = [
-        'uuid', 'name', 'type', 'reference', 'phone', 'email', 'monthly_credit_limit', 'status', 'created_by', 'updated_by',
+        'uuid',
+        'name',
+        'type',
+        'reference',
+        'phone',
+        'email',
+        'monthly_credit_limit',
+        'status',
+        'created_by',
+        'updated_by',
     ];
 
     protected function casts(): array

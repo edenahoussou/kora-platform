@@ -249,6 +249,7 @@ class CreateItineraryHoldAction
                         ReservationSegment::create([
                             'reservation_id' => $reservation->id,
                             'leg_order' => $quoteLeg->leg_order,
+                            'direction' => $quoteLeg->direction,
                             'passenger_index' => $assignment['passenger_index'],
                             'departure_id' => $departure->id,
                             'seat_id' => $seat->id,

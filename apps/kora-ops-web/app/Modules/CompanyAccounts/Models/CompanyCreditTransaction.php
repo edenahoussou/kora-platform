@@ -15,7 +15,18 @@ class CompanyCreditTransaction extends KoraModel
 {
     use HasPublicUuid;
 
-    protected $fillable = ['uuid', 'company_account_id', 'reservation_id', 'payment_id', 'type', 'amount', 'period_key', 'reference', 'metadata', 'created_by'];
+    protected $fillable = [
+        'uuid',
+        'company_account_id',
+        'reservation_id',
+        'payment_id',
+        'type',
+        'amount',
+        'period_key',
+        'reference',
+        'metadata',
+        'created_by',
+    ];
 
     protected function casts(): array
     {

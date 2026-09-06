@@ -12,6 +12,7 @@ class ItineraryQuoteLeg extends KoraModel
 {
     protected $fillable = [
         'itinerary_quote_id',
+        'direction',
         'leg_order',
         'price_quote_id',
         'departure_id',

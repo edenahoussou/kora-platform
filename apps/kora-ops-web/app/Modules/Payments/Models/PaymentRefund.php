@@ -15,8 +15,18 @@ class PaymentRefund extends KoraModel
     use HasPublicUuid;
 
     protected $fillable = [
-        'uuid', 'reservation_id', 'reservation_passenger_id', 'payment_id', 'amount', 'currency',
-        'destination', 'status', 'reference', 'idempotency_key', 'metadata', 'completed_at',
+        'uuid',
+        'reservation_id',
+        'reservation_passenger_id',
+        'payment_id',
+        'amount',
+        'currency',
+        'destination',
+        'status',
+        'reference',
+        'idempotency_key',
+        'metadata',
+        'completed_at',
     ];
 
     /** @return BelongsTo<Reservation, $this> */

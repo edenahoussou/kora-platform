@@ -25,13 +25,12 @@ class ReleaseCounterSaleHoldRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'date' => ['required', 'date_format:Y-m-d'],
+            'date' => ['nullable', 'date_format:Y-m-d'],
             'from' => ['nullable', 'string', 'max:120'],
             'to' => ['nullable', 'string', 'max:120'],
-            'departure_uuid' => ['required', 'uuid', 'exists:departures,uuid'],
-            'origin_stop_uuid' => ['required', 'uuid', 'exists:stops,uuid'],
-            'destination_stop_uuid' => ['required', 'uuid', 'exists:stops,uuid'],
-            'quote_uuid' => ['nullable', 'uuid', 'exists:price_quotes,uuid'],
+            'itinerary_quote_uuid' => ['nullable', 'uuid', 'exists:itinerary_quotes,uuid'],
+            'reservation_uuid' => ['nullable', 'uuid', 'exists:reservations,uuid'],
+            'clear_quote' => ['nullable', 'boolean'],
         ];
     }
 
@@ -44,10 +43,7 @@ class ReleaseCounterSaleHoldRequest extends FormRequest
             'date' => $this->string('date')->value(),
             'from' => $this->string('from')->trim()->value() ?: null,
             'to' => $this->string('to')->trim()->value() ?: null,
-            'departure_uuid' => $this->string('departure_uuid')->value(),
-            'origin_stop_uuid' => $this->string('origin_stop_uuid')->value(),
-            'destination_stop_uuid' => $this->string('destination_stop_uuid')->value(),
-            'quote_uuid' => $this->string('quote_uuid')->value() ?: null,
+            'itinerary_quote_uuid' => $this->string('itinerary_quote_uuid')->value() ?: null,
         ], static fn (?string $value): bool => $value !== null && $value !== '');
     }
 }

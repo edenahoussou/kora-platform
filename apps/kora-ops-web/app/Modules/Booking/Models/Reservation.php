@@ -53,7 +53,6 @@ class Reservation extends KoraModel
         'payer_snapshot',
         'price_quote_id',
         'itinerary_quote_id',
-        'journey_quote_id',
         'status',
         'ticket_issuance_status',
         'ticket_issuance_error',
@@ -98,12 +97,6 @@ class Reservation extends KoraModel
     public function itineraryQuote(): BelongsTo
     {
         return $this->belongsTo(ItineraryQuote::class);
-    }
-
-    /** @return BelongsTo<JourneyQuote, $this> */
-    public function journeyQuote(): BelongsTo
-    {
-        return $this->belongsTo(JourneyQuote::class);
     }
 
     /** @return BelongsTo<PriceQuote, $this> */

@@ -17,7 +17,17 @@ class CompanyCreditHold extends KoraModel
 {
     use HasPublicUuid;
 
-    protected $fillable = ['uuid', 'company_account_id', 'reservation_id', 'amount', 'period_key', 'status', 'expires_at', 'released_at', 'converted_at'];
+    protected $fillable = [
+        'uuid',
+        'company_account_id',
+        'reservation_id',
+        'amount',
+        'period_key',
+        'status',
+        'expires_at',
+        'released_at',
+        'converted_at',
+    ];
 
     protected function casts(): array
     {

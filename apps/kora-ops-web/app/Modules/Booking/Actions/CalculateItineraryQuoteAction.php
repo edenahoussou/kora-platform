@@ -19,6 +19,10 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Leg data for a multi-leg quote request.
+ *
+ * `direction` distinguishes the outbound trip from the return trip of an
+ * aller-retour: a quote can carry legs from both directions at once, all
+ * priced and held together as a single reservation.
  */
 final class ItineraryLegQuoteRequest
 {
@@ -26,6 +30,7 @@ final class ItineraryLegQuoteRequest
         public readonly Departure $departure,
         public readonly Stop $originStop,
         public readonly Stop $destinationStop,
+        public readonly string $direction = 'outbound',
     ) {}
 }
 
@@ -85,12 +90,6 @@ class CalculateItineraryQuoteAction
             ]);
         }
 
-        if (count($legs) > (int) config('kora.itineraries.max_legs', 3)) {
-            throw ValidationException::withMessages([
-                'legs' => 'Le nombre maximal de jambes autorisé est dépassé.',
-            ]);
-        }
-
         $this->validateLegs($legs);
 
         return DB::transaction(function () use ($legs, $passengerCount, $user): ItineraryQuoteResult {
@@ -111,6 +110,7 @@ class CalculateItineraryQuoteAction
                 $legQuotes[] = $quote;
                 $legSnapshots[] = [
                     'leg_order' => $index + 1,
+                    'direction' => $leg->direction,
                     'quote_uuid' => $quote->uuid,
                     'departure_uuid' => $leg->departure->uuid,
                     'origin_stop_uuid' => $leg->originStop->uuid,
@@ -151,8 +151,12 @@ class CalculateItineraryQuoteAction
 
             $totalAmount = $pricing['total_amount'];
             $breakdown = PricingBreakdownData::fromGroupPricing($pricing);
+            $tripType = collect($legs)->contains(fn (ItineraryLegQuoteRequest $leg): bool => $leg->direction === 'inbound')
+                ? 'round_trip'
+                : 'one_way';
             $snapshot = [
                 'type' => 'itinerary',
+                'trip_type' => $tripType,
                 'legs_count' => count($legs),
                 'passenger_count' => $passengerCount,
                 'total_amount' => $totalAmount,
@@ -180,6 +184,7 @@ class CalculateItineraryQuoteAction
             foreach ($legs as $index => $leg) {
                 ItineraryQuoteLeg::create([
                     'itinerary_quote_id' => $itineraryQuote->id,
+                    'direction' => $leg->direction,
                     'leg_order' => $index + 1,
                     'price_quote_id' => $legQuotes[$index]->id,
                     'departure_id' => $leg->departure->id,
@@ -201,6 +206,15 @@ class CalculateItineraryQuoteAction
     }
 
     /**
+     * Validates continuity within each direction (outbound legs must chain
+     * into one another the same way inbound legs do) and, when both
+     * directions are present, that the return trip actually goes back to
+     * where the outbound trip started.
+     *
+     * Connections, same-service-day and margin rules only apply between
+     * consecutive legs of the *same* direction — the return can depart
+     * days after the outbound arrives.
+     *
      * @param  list<ItineraryLegQuoteRequest>  $legs
      *
      * @throws ValidationException
@@ -208,6 +222,19 @@ class CalculateItineraryQuoteAction
     private function validateLegs(array $legs): void
     {
         $departureIds = [];
+        $indexesByDirection = [];
+
+        foreach ($legs as $index => $leg) {
+            $indexesByDirection[$leg->direction][] = $index;
+        }
+
+        foreach ($indexesByDirection as $direction => $indexes) {
+            if (count($indexes) > (int) config('kora.itineraries.max_legs', 3)) {
+                throw ValidationException::withMessages([
+                    'legs' => "Le nombre maximal de jambes autorisé est dépassé pour la direction {$direction}.",
+                ]);
+            }
+        }
 
         foreach ($legs as $index => $leg) {
             if (in_array($leg->departure->id, $departureIds, true)) {
@@ -224,15 +251,11 @@ class CalculateItineraryQuoteAction
                 ]);
             }
 
-            if ($leg->originStop->stop_order >= $leg->destinationStop->stop_order) {
+            // Validate segment order using the departure's stop_times, not the
+            // line's stop_order. Return departures have reversed stop_times.
+            if (! $this->isValidSegmentOrder($leg->departure, $leg->originStop, $leg->destinationStop)) {
                 throw ValidationException::withMessages([
-                    "legs.{$index}.destination_stop_uuid" => 'L\'arrêt de destination doit être situé après l\'arrêt d\'origine.',
-                ]);
-            }
-
-            if ($index > 0 && $legs[$index - 1]->destinationStop->physical_stop_id !== $leg->originStop->physical_stop_id) {
-                throw ValidationException::withMessages([
-                    "legs.{$index}.origin_stop_uuid" => 'La correspondance ne se fait pas au même point d\'arrêt physique.',
+                    "legs.{$index}.destination_stop_uuid" => 'L\'arrêt de destination doit être situé après l\'arrêt d\'origine dans le sens de circulation de ce départ.',
                 ]);
             }
 
@@ -244,10 +267,20 @@ class CalculateItineraryQuoteAction
                 ]);
             }
 
-            if ($index > 0) {
+            $positionInDirection = array_search($index, $indexesByDirection[$leg->direction], true);
+
+            if ($positionInDirection > 0) {
+                $previousLeg = $legs[$indexesByDirection[$leg->direction][$positionInDirection - 1]];
+
+                if ($previousLeg->destinationStop->physical_stop_id !== $leg->originStop->physical_stop_id) {
+                    throw ValidationException::withMessages([
+                        "legs.{$index}.origin_stop_uuid" => 'La correspondance ne se fait pas au même point d\'arrêt physique.',
+                    ]);
+                }
+
                 $previousArrivalAt = $this->stopTimeResolver->arrivalAt(
-                    $legs[$index - 1]->departure,
-                    $legs[$index - 1]->destinationStop,
+                    $previousLeg->departure,
+                    $previousLeg->destinationStop,
                 );
                 $margin = (int) config('kora.itineraries.connection_margin_minutes', 45);
 
@@ -256,14 +289,89 @@ class CalculateItineraryQuoteAction
                         "legs.{$index}.departure_uuid" => 'La marge minimale de correspondance n’est pas respectée.',
                     ]);
                 }
-            }
 
-            $serviceDate = $legs[0]->departure->departure_date?->toDateString();
-            if ($serviceDate !== null && $departureAt->setTimezone(config('app.timezone'))->toDateString() !== $serviceDate) {
-                throw ValidationException::withMessages([
-                    "legs.{$index}.departure_uuid" => 'Toutes les jambes doivent appartenir à la même journée de service.',
-                ]);
+                $serviceDate = $previousLeg->departure->departure_date?->toDateString();
+                if ($serviceDate !== null && $departureAt->setTimezone(config('app.timezone'))->toDateString() !== $serviceDate) {
+                    throw ValidationException::withMessages([
+                        "legs.{$index}.departure_uuid" => 'Les jambes d\'une même direction doivent appartenir à la même journée de service.',
+                    ]);
+                }
             }
         }
+
+        $this->validateRoundTripConsistency($legs, $indexesByDirection);
+    }
+
+    /**
+     * @param  list<ItineraryLegQuoteRequest>  $legs
+     * @param  array<string, list<int>>  $indexesByDirection
+     *
+     * @throws ValidationException
+     */
+    private function validateRoundTripConsistency(array $legs, array $indexesByDirection): void
+    {
+        $outboundIndexes = $indexesByDirection['outbound'] ?? [];
+        $inboundIndexes = $indexesByDirection['inbound'] ?? [];
+
+        if ($outboundIndexes === [] || $inboundIndexes === []) {
+            return;
+        }
+
+        $outboundFirst = $legs[$outboundIndexes[0]];
+        $outboundLast = $legs[$outboundIndexes[count($outboundIndexes) - 1]];
+        $inboundFirst = $legs[$inboundIndexes[0]];
+        $inboundLast = $legs[$inboundIndexes[count($inboundIndexes) - 1]];
+
+        if ($inboundFirst->originStop->physical_stop_id !== $outboundLast->destinationStop->physical_stop_id) {
+            throw ValidationException::withMessages([
+                'inbound_legs' => 'Le retour doit partir du point d’arrivée de l’aller.',
+            ]);
+        }
+
+        if ($inboundLast->destinationStop->physical_stop_id !== $outboundFirst->originStop->physical_stop_id) {
+            throw ValidationException::withMessages([
+                'inbound_legs' => 'Le retour doit ramener le passager à son point de départ.',
+            ]);
+        }
+
+        $outboundDepartureAt = $this->stopTimeResolver->departureAt($outboundFirst->departure, $outboundFirst->originStop);
+        $inboundDepartureAt = $this->stopTimeResolver->departureAt($inboundFirst->departure, $inboundFirst->originStop);
+
+        if ($outboundDepartureAt !== null && $inboundDepartureAt !== null && $inboundDepartureAt->lte($outboundDepartureAt)) {
+            throw ValidationException::withMessages([
+                'inbound_legs' => 'La date de retour doit être postérieure à la date de départ.',
+            ]);
+        }
+    }
+
+    /**
+     * Check if the origin stop appears before the destination stop in the
+     * departure's stop_times. Falls back to stop_order if stop_times is empty.
+     */
+    private function isValidSegmentOrder(Departure $departure, Stop $originStop, Stop $destinationStop): bool
+    {
+        $stopTimes = $departure->stop_times ?? [];
+
+        if ($stopTimes === []) {
+            return $originStop->stop_order < $destinationStop->stop_order;
+        }
+
+        $originIndex = null;
+        $destinationIndex = null;
+
+        foreach ($stopTimes as $index => $stopTime) {
+            if (($stopTime['stop_uuid'] ?? null) === $originStop->uuid) {
+                $originIndex = $index;
+            }
+            if (($stopTime['stop_uuid'] ?? null) === $destinationStop->uuid) {
+                $destinationIndex = $index;
+            }
+        }
+
+        if ($originIndex === null || $destinationIndex === null) {
+            return $originStop->stop_order < $destinationStop->stop_order;
+        }
+
+        return $originIndex < $destinationIndex;
     }
 }
