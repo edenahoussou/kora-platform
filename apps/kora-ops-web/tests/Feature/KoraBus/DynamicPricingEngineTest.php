@@ -329,7 +329,7 @@ it('picks the highest priority matching rule among several active candidates', f
         ->assertJsonPath('data.coefficient', 1.2);
 });
 
-it('exposes the base fare in the departure fare preview (dynamic pricing applied at quote time)', function (): void {
+it('exposes the dynamic price in the departure fare preview', function (): void {
     $scenario = pricingEngineScenario(occupiedSeats: 3, hoursFromNow: 10);
 
     PricingRule::query()->create([
@@ -345,6 +345,8 @@ it('exposes the base fare in the departure fare preview (dynamic pricing applied
     $this->getJson('/api/v1/bus/departures?date='.$scenario['departure']->departure_date->toDateString().'&from=Cotonou&to=Parakou')
         ->assertOk()
         ->assertJsonPath('data.0.fare_preview.base_amount', 10000)
-        ->assertJsonPath('data.0.fare_preview.final_amount', 10000)
+        ->assertJsonPath('data.0.fare_preview.final_amount', 12000)
+        ->assertJsonPath('data.0.fare_preview.coefficient', 1.2)
+        ->assertJsonPath('data.0.fare_preview.dynamic_adjustment_amount', 2000)
         ->assertJsonPath('data.0.fare_preview.is_quote', false);
 });
