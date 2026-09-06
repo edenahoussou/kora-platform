@@ -146,7 +146,7 @@ class ItinerarySearchService
         $tripType = $filters['trip_type'] ?? 'one_way';
         $returnDate = $filters['return_date'] ?? null;
 
-        $hasExplicitDate = isset($filters['date']) && is_string($filters['date']) && $filters['date'] !== '';
+        $hasExplicitDate = isset($filters['date']) && $filters['date'] !== '';
         $outbound = $hasExplicitDate
             ? $this->searchWithPhysicalStops(
                 originPhysical: $originPhysical,
@@ -382,19 +382,24 @@ class ItinerarySearchService
 
         // Find all departures from the current physical stop on this date
         // that depart after the earliest allowed time.
-        // For the first leg with an explicit date, the departure must be on
-        // the requested date (bounded by end of day). For upcoming searches
-        // (no date specified), there is no upper bound so overnight buses
-        // that depart after midnight are still found. For connecting legs,
-        // the departure must be within maxWaitHours of the previous leg's
-        // arrival.
+        // For the first leg with an explicit date, the departure's
+        // departure_date must match the requested date. This correctly
+        // includes overnight trips whose intermediate stops fall after
+        // midnight UTC — the bus still belongs to the requested day. For
+        // upcoming searches (no date specified), there is no upper bound so
+        // overnight buses that depart after midnight are still found. For
+        // connecting legs, the departure must be within maxWaitHours of the
+        // previous leg's arrival.
         $latestDeparture = match (true) {
             $legs !== [] => $earliestNextDeparture->addHours($maxWaitHours),
-            $constrainFirstLegToDate => $date->endOfDay(),
+            $constrainFirstLegToDate => null,
             default => null,
         };
+        $maxDepartureDate = $legs === [] && $constrainFirstLegToDate
+            ? $date
+            : null;
 
-        $departures = $this->getDeparturesFromStops($currentStops, $date, $earliestNextDeparture, $latestDeparture);
+        $departures = $this->getDeparturesFromStops($currentStops, $date, $earliestNextDeparture, $latestDeparture, $maxDepartureDate);
 
         // A connection means changing lines. Once we have at least one leg,
         // exclude departures on the same line as the previous leg — staying
@@ -613,6 +618,7 @@ class ItinerarySearchService
         CarbonImmutable $date,
         CarbonImmutable $earliestDeparture,
         ?CarbonImmutable $latestDeparture = null,
+        ?CarbonImmutable $maxDepartureDate = null,
     ): EloquentCollection {
         $lineIds = $stops->pluck('line_id')->unique()->values()->all();
 
@@ -660,7 +666,19 @@ class ItinerarySearchService
         }
 
         return $this->departuresCache[$cacheKey]
-            ->filter(function (Departure $departure) use ($stops, $earliestDeparture, $latestDeparture): bool {
+            ->filter(function (Departure $departure) use ($stops, $earliestDeparture, $latestDeparture, $maxDepartureDate): bool {
+                // When constraining by departure date (first leg with explicit
+                // date), accept any departure whose departure_date falls within
+                // the requested date. This correctly includes overnight trips
+                // whose intermediate stops fall after midnight UTC — the bus
+                // still belongs to the requested day.
+                if ($maxDepartureDate !== null) {
+                    $depDate = CarbonImmutable::parse((string) $departure->departure_date);
+                    if ($depDate->greaterThan($maxDepartureDate)) {
+                        return false;
+                    }
+                }
+
                 return $stops
                     ->where('line_id', $departure->line_id)
                     ->contains(function (Stop $stop) use ($departure, $earliestDeparture, $latestDeparture): bool {
