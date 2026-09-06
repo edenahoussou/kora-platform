@@ -20,7 +20,14 @@ class GroupDiscountRule extends KoraModel
     use HasPublicUuid, SoftDeletes;
 
     protected $fillable = [
-        'uuid', 'status', 'passenger_threshold', 'percentage', 'starts_at', 'ends_at', 'created_by', 'updated_by',
+        'uuid',
+        'status',
+        'passenger_threshold',
+        'percentage',
+        'starts_at',
+        'ends_at',
+        'created_by',
+        'updated_by',
     ];
 
     protected function casts(): array
