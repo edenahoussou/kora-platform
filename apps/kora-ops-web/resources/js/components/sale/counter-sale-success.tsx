@@ -1,5 +1,5 @@
 import { router, usePoll } from '@inertiajs/react';
-import { AlertCircle, Check, LoaderCircle, Plus, Printer, RefreshCw } from 'lucide-react';
+import { AlertCircle, Check, ExternalLink, LoaderCircle, Plus, RefreshCw } from 'lucide-react';
 import { useEffect } from 'react';
 import { retry } from '@/routes/sale/tickets';
 import { ReceiptQr } from './receipt-qr';
@@ -63,8 +63,8 @@ export function CounterSaleSuccess({
                         {issuancePending
                             ? 'Émission des billets en cours…'
                             : ticketCount > 1
-                            ? `${ticketCount} billets sont prêts.`
-                            : 'Le billet est prêt.'}
+                                ? `${ticketCount} billets sont prêts.`
+                                : 'Le billet est prêt.'}
                     </h1>
                     <p>
                         {ticketCount > 1
@@ -118,22 +118,23 @@ export function CounterSaleSuccess({
                         <span>Actions</span>
                         <small>Après encaissement</small>
                     </div>
-                    {ticketCount > 0 && <button
-                        type="button"
-                        className="action-rail-button action-rail-button-primary"
-                        onClick={() => {
-                            document.body.classList.add('receipt-print-mode');
-                            window.print();
-                        }}
-                    >
-                        <span className="action-rail-icon" aria-hidden="true">
-                            <Printer size={18} strokeWidth={1.7} />
-                        </span>
-                        <span className="action-rail-label">
-                            <strong>Imprimer tout le groupe</strong>
-                            <small>{ticketCount} billet{ticketCount > 1 ? 's' : ''}</small>
-                        </span>
-                    </button>}
+                    {ticketCount > 0 && reservation.tickets.map((ticket) => (
+                        <a
+                            key={ticket.uuid}
+                            href={`/tickets/${ticket.uuid}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="action-rail-button action-rail-button-primary"
+                        >
+                            <span className="action-rail-icon" aria-hidden="true">
+                                <ExternalLink size={18} strokeWidth={1.7} />
+                            </span>
+                            <span className="action-rail-label">
+                                <strong>Voir le billet</strong>
+                                <small>{ticket.shortCode}</small>
+                            </span>
+                        </a>
+                    ))}
                     <button
                         type="button"
                         className="action-rail-button action-rail-button-new"
@@ -260,20 +261,14 @@ function TicketCard({
                 </b>
                 <span aria-hidden="true" />
             </div>
-            <button
-                type="button"
+            <a
+                href={`/tickets/${ticket.uuid}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="btn btn-ghost ticket-screen-only mt-3 w-full"
-                onClick={() => {
-                    const target = document.querySelector<HTMLElement>(`[data-ticket-uuid="${ticket.uuid}"]`);
-                    target?.classList.add('is-print-target');
-                    document.body.classList.add('receipt-print-mode', 'single-ticket-print-mode');
-                    window.print();
-                    target?.classList.remove('is-print-target');
-                    document.body.classList.remove('single-ticket-print-mode');
-                }}
             >
-                <Printer className="size-4" /> Imprimer ce billet
-            </button>
+                <ExternalLink className="size-4" /> Voir / Imprimer le billet
+            </a>
         </article>
     );
 }
