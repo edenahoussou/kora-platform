@@ -33,7 +33,7 @@ class HoldCounterSaleSeatsRequest extends JsonValidationRequest
             'date' => ['required', 'date_format:Y-m-d'],
             'from' => ['nullable', 'string', 'max:120'],
             'to' => ['nullable', 'string', 'max:120'],
-            'payer' => ['sometimes', 'array'],
+            'payer' => ['sometimes', 'nullable', 'array'],
             'payer.type' => ['required_with:payer', Rule::in(['personal', 'company'])],
             'payer.phone' => ['nullable', 'string', 'max:32'],
             'payer.name' => ['nullable', 'string', 'max:120'],
