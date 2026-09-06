@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
+use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Models\Departure;
 use Illuminate\Database\Seeder;
@@ -14,6 +15,12 @@ use Illuminate\Support\Str;
 /**
  * Crée des départs sur les 3 lignes du CDC avec des horaires réalistes.
  * Les bus sont assignés selon le CDC : 3 bus L1, 1 bus L2, 1 bus L3.
+ *
+ * Chaque départ reçoit des stop_times calculés proportionnellement à la
+ * distance de chaque arrêt par rapport à l'origine, de façon à ce que
+ * l'origine (stop_order = 1) et la destination (dernier stop) soient
+ * toujours définies et que le resolver puisse produire les horaires
+ * absolus de chaque segment.
  */
 class KoraDepartureSeeder extends Seeder
 {
@@ -52,7 +59,7 @@ class KoraDepartureSeeder extends Seeder
          * }> $departures
          */
         $departures = [
-            // L1 — Corridor (Porto-Novo → Abidjan), 2 départs/jour
+            // L1 — Corridor (Cotonou → Abidjan), 2 départs/jour
             ['line' => $line1, 'bus' => $busL1a, 'date' => $today, 'time' => '07:00', 'driver' => $drivers->get(0), 'conductor' => $conductors->get(0), 'status' => DepartureStatus::Scheduled],
             ['line' => $line1, 'bus' => $busL1b, 'date' => $today, 'time' => '16:00', 'driver' => $drivers->get(1), 'conductor' => $conductors->get(1), 'status' => DepartureStatus::Scheduled],
             ['line' => $line1, 'bus' => $busL1c, 'date' => $tomorrow, 'time' => '07:00', 'driver' => $drivers->get(0), 'conductor' => $conductors->get(0), 'status' => DepartureStatus::Scheduled],
@@ -79,6 +86,8 @@ class KoraDepartureSeeder extends Seeder
                 ? $departureDateTime->addMinutes((int) $data['line']->estimated_duration_minutes)
                 : null;
 
+            $stopTimes = $this->buildStopTimes($data['line']);
+
             // `firstOrCreate` garantit que l'uuid d'un départ existant n'est jamais
             // réécrit lors d'un réensemencement. Les champs mutables sont rafraîchis
             // via `update`, sans toucher à l'uuid.
@@ -95,6 +104,9 @@ class KoraDepartureSeeder extends Seeder
                     'driver_id' => $data['driver']?->id,
                     'conductor_id' => $data['conductor']?->id,
                     'status' => $data['status']->value,
+                    'scheduled_at' => $departureDateTime,
+                    'departure_timezone' => 'Africa/Porto-Novo',
+                    'stop_times' => $stopTimes,
                 ],
             );
 
@@ -103,7 +115,87 @@ class KoraDepartureSeeder extends Seeder
                 'driver_id' => $data['driver']?->id,
                 'conductor_id' => $data['conductor']?->id,
                 'status' => $data['status']->value,
+                'scheduled_at' => $departureDateTime,
+                'departure_timezone' => 'Africa/Porto-Novo',
+                'stop_times' => $stopTimes,
             ]);
         }
+    }
+
+    /**
+     * Construit les stop_times d'une ligne en répartissant la durée estimée
+     * proportionnellement à la distance de chaque arrêt.
+     *
+     * @return list<array{stop_uuid: string, departure_minutes: int|null, arrival_minutes: int|null, timezone: string}>
+     */
+    private function buildStopTimes(Line $line): array
+    {
+        $stops = Stop::query()
+            ->where('line_id', $line->id)
+            ->where('status', 'active')
+            ->orderBy('stop_order')
+            ->get();
+
+        if ($stops->isEmpty()) {
+            return [];
+        }
+
+        $totalDistance = (float) $stops->last()->km_from_origin;
+        $totalDuration = (int) ($line->estimated_duration_minutes ?? 0);
+
+        if ($totalDistance <= 0 || $totalDuration <= 0) {
+            return $stops->map(fn (Stop $stop) => [
+                'stop_uuid' => $stop->uuid,
+                'departure_minutes' => $stop->stop_order === 1 ? 0 : null,
+                'arrival_minutes' => null,
+                'timezone' => 'Africa/Porto-Novo',
+            ])->all();
+        }
+
+        $stopTimes = [];
+        $stopCount = $stops->count();
+
+        foreach ($stops as $index => $stop) {
+            $distance = (float) $stop->km_from_origin;
+            $ratio = $totalDistance > 0 ? $distance / $totalDistance : 0;
+            $minutesFromOrigin = (int) round($ratio * $totalDuration);
+
+            $isFirst = $index === 0;
+            $isLast = $index === $stopCount - 1;
+
+            // Arrêt intermédiaire : on laisse une marge d'arrêt de 10 minutes.
+            // Le bus arrive à minutesFromOrigin - 10 et repart à minutesFromOrigin.
+            $dwellMinutes = 10;
+
+            if ($isFirst) {
+                $departureMinutes = 0;
+                $arrivalMinutes = null;
+            } elseif ($isLast) {
+                $departureMinutes = null;
+                $arrivalMinutes = $minutesFromOrigin;
+            } else {
+                $arrivalMinutes = max(0, $minutesFromOrigin - $dwellMinutes);
+                $departureMinutes = $minutesFromOrigin;
+            }
+
+            $stopTimes[] = [
+                'stop_uuid' => $stop->uuid,
+                'departure_minutes' => $departureMinutes,
+                'arrival_minutes' => $arrivalMinutes,
+                'timezone' => $this->timezoneForCountry($stop->country),
+            ];
+        }
+
+        return $stopTimes;
+    }
+
+    private function timezoneForCountry(string $country): string
+    {
+        return match ($country) {
+            'CI' => 'Africa/Abidjan',
+            'GH' => 'Africa/Accra',
+            'TG' => 'Africa/Lome',
+            default => 'Africa/Porto-Novo',
+        };
     }
 }

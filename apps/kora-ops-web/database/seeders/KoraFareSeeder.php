@@ -15,7 +15,11 @@ use Illuminate\Support\Str;
  * - L1 (internationale) : ~35 FCFA/km
  * - L2, L3 (nationale) : ~22 FCFA/km
  * Deux classes de service : confort et premium (premium = +40%).
- * Sens aller uniquement — le sens retour est géré par `bidirectional=true`.
+ *
+ * Les fares sont créés avec direction='both' par défaut, ce qui permet
+ * au moteur de tarification de les utiliser pour l'aller ET le retour.
+ * Le client peut ensuite créer des fares directionnels spécifiques
+ * (outbound/return) avec des montants différents si besoin.
  */
 class KoraFareSeeder extends Seeder
 {
@@ -74,6 +78,7 @@ class KoraFareSeeder extends Seeder
             ],
             [
                 'uuid' => (string) Str::uuid(),
+                'direction' => 'both',
                 'base_amount' => $amount,
                 'currency' => 'XOF',
                 'status' => 'active',

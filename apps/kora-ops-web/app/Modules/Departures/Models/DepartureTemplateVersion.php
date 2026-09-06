@@ -10,7 +10,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class DepartureTemplateVersion extends KoraModel
 {
-    protected $fillable = ['uuid', 'template_id', 'number', 'slots'];
+    protected $fillable = [
+        'uuid',
+        'template_id',
+        'number',
+        'slots',
+    ];
 
     protected function casts(): array
     {

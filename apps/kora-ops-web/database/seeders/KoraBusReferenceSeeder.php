@@ -101,24 +101,25 @@ class KoraBusReferenceSeeder extends Seeder
         $lines = [
             [
                 'code' => 'L1',
-                'name' => 'Corridor Abidjan–Lomé–Cotonou–Porto-Novo',
+                'name' => 'Corridor',
                 'type' => 'internationale',
                 'countries_crossed' => ['CI', 'GH', 'TG', 'BJ'],
                 'distance_km' => 874,
                 'estimated_duration_minutes' => 1110,
                 'stops' => [
-                    ['name' => 'Porto-Novo', 'stop_order' => 1, 'km_from_origin' => 0],
-                    ['name' => 'Ouidah', 'stop_order' => 2, 'km_from_origin' => 40],
-                    ['name' => 'Comé', 'stop_order' => 3, 'km_from_origin' => 75],
-                    ['name' => 'Grand-Popo', 'stop_order' => 4, 'km_from_origin' => 95],
-                    ['name' => 'Lomé', 'stop_order' => 5, 'km_from_origin' => 160],
-                    ['name' => 'Accra', 'stop_order' => 6, 'km_from_origin' => 360],
-                    ['name' => 'Abidjan', 'stop_order' => 7, 'km_from_origin' => 874],
+                    ['name' => 'Cotonou', 'stop_order' => 1, 'km_from_origin' => 0],
+                    ['name' => 'Porto-Novo', 'stop_order' => 2, 'km_from_origin' => 30],
+                    ['name' => 'Ouidah', 'stop_order' => 3, 'km_from_origin' => 70],
+                    ['name' => 'Comé', 'stop_order' => 4, 'km_from_origin' => 105],
+                    ['name' => 'Grand-Popo', 'stop_order' => 5, 'km_from_origin' => 125],
+                    ['name' => 'Lomé', 'stop_order' => 6, 'km_from_origin' => 190],
+                    ['name' => 'Accra', 'stop_order' => 7, 'km_from_origin' => 390],
+                    ['name' => 'Abidjan', 'stop_order' => 8, 'km_from_origin' => 904],
                 ],
             ],
             [
                 'code' => 'L2',
-                'name' => 'Cotonou–Bohicon–Parakou–Malanville (Nord-Est)',
+                'name' => 'Nord-Est',
                 'type' => 'nationale',
                 'countries_crossed' => ['BJ'],
                 'distance_km' => 711,
@@ -135,7 +136,7 @@ class KoraBusReferenceSeeder extends Seeder
             ],
             [
                 'code' => 'L3',
-                'name' => 'Cotonou–Bohicon–Djougou–Natitingou–Tanguiéta (Nord-Ouest)',
+                'name' => 'Nord-Ouest',
                 'type' => 'nationale',
                 'countries_crossed' => ['BJ'],
                 'distance_km' => 600,
@@ -152,7 +153,7 @@ class KoraBusReferenceSeeder extends Seeder
         ];
 
         foreach ($lines as $lineData) {
-            $line = Line::query()->firstOrCreate(
+            $line = Line::query()->updateOrCreate(
                 ['code' => $lineData['code']],
                 [
                     'uuid' => (string) Str::uuid(),
@@ -206,13 +207,19 @@ class KoraBusReferenceSeeder extends Seeder
             ],
         );
 
-        // 5 bus selon le CDC : 3 pour L1, 1 pour L2, 1 pour L3.
+        // 10 bus : 4 pour L1 (corridor international, rotations aller/retour),
+        // 3 pour L2 (Nord-Est, 2 départs/jour + backup), 3 pour L3 (Nord-Ouest).
         $buses = [
             ['registration_number' => 'KORA-L1-001', 'status' => 'active'],
             ['registration_number' => 'KORA-L1-002', 'status' => 'active'],
             ['registration_number' => 'KORA-L1-003', 'status' => 'active'],
+            ['registration_number' => 'KORA-L1-004', 'status' => 'active'],
             ['registration_number' => 'KORA-L2-001', 'status' => 'active'],
+            ['registration_number' => 'KORA-L2-002', 'status' => 'active'],
+            ['registration_number' => 'KORA-L2-003', 'status' => 'active'],
             ['registration_number' => 'KORA-L3-001', 'status' => 'active'],
+            ['registration_number' => 'KORA-L3-002', 'status' => 'active'],
+            ['registration_number' => 'KORA-L3-003', 'status' => 'active'],
         ];
 
         foreach ($buses as $busData) {
