@@ -107,6 +107,20 @@ class CounterSaleController extends Controller
 
         $itineraryQuote = $this->selectedItineraryQuote($context);
 
+        // After confirm/hold, the redirect only carries reservation_uuid
+        // (not itinerary_quote_uuid). Load the quote from the reservation
+        // so the journey summary can display per-leg pricing and times.
+        if ($itineraryQuote === null && ($context['reservation_uuid'] ?? null) !== null) {
+            $reservation = $this->selectedReservation($context);
+
+            if ($reservation !== null && $reservation->itinerary_quote_id !== null) {
+                $itineraryQuote = ItineraryQuote::query()
+                    ->where('id', $reservation->itinerary_quote_id)
+                    ->with('legs')
+                    ->first();
+            }
+        }
+
         // When the agent has fetched seat availability via POST /sale/seats
         // (the new flow that defers quote creation until after seat
         // selection), the legs are stored in session and we rebuild the
@@ -956,6 +970,12 @@ class CounterSaleController extends Controller
                 'lineCode' => $segment->departure?->line?->code,
                 'lineName' => $segment->departure?->line?->name,
                 'busRegistration' => $segment->departure?->bus?->registration_number,
+                'departureAt' => $segment->departure && $segment->originStop
+                    ? $this->stopTimeResolver->departureAt($segment->departure, $segment->originStop)?->toISOString()
+                    : null,
+                'arrivalAt' => $segment->departure && $segment->destinationStop
+                    ? $this->stopTimeResolver->arrivalAt($segment->departure, $segment->destinationStop)?->toISOString()
+                    : null,
                 'status' => (string) $segment->getRawOriginal('status'),
             ])->values()->all(),
             'passengers' => $reservation->passengers->map(fn (ReservationPassenger $passenger): array => [

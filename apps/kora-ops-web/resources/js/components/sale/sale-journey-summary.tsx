@@ -1,6 +1,5 @@
 import {
     ArrowRight,
-    BadgeCheck,
     Banknote,
     Building2,
     Check,
@@ -138,8 +137,8 @@ function buildDirectionGroups(
                 departureDate: first?.departureDate ?? null,
                 lineCode: first?.lineCode ?? quoteLeg?.line.code ?? null,
                 busRegistration: first?.busRegistration ?? null,
-                departureAt: quoteLeg?.departureAt ?? null,
-                arrivalAt: quoteLeg?.arrivalAt ?? null,
+                departureAt: first?.departureAt ?? quoteLeg?.departureAt ?? null,
+                arrivalAt: first?.arrivalAt ?? quoteLeg?.arrivalAt ?? null,
                 amount: quoteLeg?.amount ?? null,
                 currency: quoteLeg?.currency ?? itineraryQuote?.currency ?? null,
                 passengers: legSegments
@@ -341,11 +340,6 @@ export function SaleJourneySummary({
                     {reservation.companyAccount.name}
                 </SummaryRow>
             )}
-            <SummaryRow icon={BadgeCheck} label="Service">
-                {departure?.farePreview?.service_class_name ??
-                    departure?.farePreview?.service_class_code ??
-                    'Standard'}
-            </SummaryRow>
 
             {variant === 'payment' &&
                 paymentMethod === 'cash' &&

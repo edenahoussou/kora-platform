@@ -415,6 +415,8 @@ export type SaleReservation = {
         lineCode?: string | null;
         lineName?: string | null;
         busRegistration?: string | null;
+        departureAt?: string | null;
+        arrivalAt?: string | null;
         status: string;
         passengerIndex?: number | null;
         legOrder?: number;
