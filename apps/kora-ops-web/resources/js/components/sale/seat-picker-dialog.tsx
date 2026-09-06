@@ -1,17 +1,20 @@
 import { X } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Dialog, DialogClose, DialogContent } from '@/components/ui/dialog';
-import type { SaleDeparture } from './sale-types';
-import { formatShortDate } from './sale-utils';
-import { SeatPickerHeader } from './seat-picker-header';
 
 type Props = {
-    departure: SaleDeparture;
+    header: ReactNode;
     children: ReactNode;
     onClose: () => void;
+    closeLabel?: string;
 };
 
-export function SeatPickerDialog({ departure, children, onClose }: Props) {
+export function SeatPickerDialog({
+    header,
+    children,
+    onClose,
+    closeLabel = 'Fermer la sélection des places',
+}: Props) {
     return (
         <Dialog
             open
@@ -26,12 +29,12 @@ export function SeatPickerDialog({ departure, children, onClose }: Props) {
                 showClose={false}
                 aria-describedby="seat-picker-description"
             >
-                <SeatPickerHeader departure={departure} />
+                {header}
                 <DialogClose asChild>
                     <button
                         type="button"
                         className="seat-dialog-close"
-                        aria-label={`Fermer la sélection du ${formatShortDate(departure.departureDate)}`}
+                        aria-label={closeLabel}
                     >
                         <X className="size-4" />
                     </button>

@@ -103,8 +103,6 @@ const meta = {
         quote: quote(1, 10000),
         reservation: null,
         processing: false,
-        onQuote: () => undefined,
-        onHold: () => undefined,
         companyAccounts,
         payerType: 'personal',
         selectedCompanyAccountUuid: null,

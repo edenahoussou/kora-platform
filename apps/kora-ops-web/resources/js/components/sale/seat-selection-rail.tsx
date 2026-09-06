@@ -1,7 +1,39 @@
-import { Clock3, Minus, Plus } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Clock3, Minus, Plus } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { PayerSelector } from './payer-selector';
-import type { SaleCompanyAccount, SalePayerType, SaleSeat } from './sale-types';
+import type {
+    SaleCompanyAccount,
+    SaleItineraryLeg,
+    SalePayerType,
+    SaleSeat,
+} from './sale-types';
 import { SeatPickerLegend } from './seat-picker-legend';
+
+const DIRECTION_LABEL: Record<string, string> = {
+    outbound: 'Aller',
+    inbound: 'Retour',
+};
+
+/**
+ * Multi-leg/multi-passenger extension. When provided (with more than one
+ * leg), the rail switches from the flat "select N seats" single-leg mode to
+ * a per-passenger, per-leg assignment view. Omitting it (or a single leg)
+ * keeps the original, already-validated single-leg behavior unchanged.
+ */
+type MultiLegRailProps = {
+    legs: SaleItineraryLeg[];
+    activePassenger: number;
+    assignments: Record<number, Record<number, string>>;
+    onSelectPassenger: (index: number) => void;
+    onNextStep: () => void;
+    onPreviousStep: () => void;
+    canGoPrevious: boolean;
+    canGoNext: boolean;
+    allComplete: boolean;
+    completedSteps: number;
+    totalSteps: number;
+    getSeatCode: (legOrder: number, seatUuid: string) => string | undefined;
+};
 
 type Props = {
     seats: SaleSeat[];
@@ -20,6 +52,7 @@ type Props = {
     currency?: string;
     onPayerTypeChange?: (type: SalePayerType) => void;
     onCompanyAccountChange?: (uuid: string | null) => void;
+    multiLeg?: MultiLegRailProps;
 };
 
 export function SeatSelectionRail({
@@ -39,49 +72,114 @@ export function SeatSelectionRail({
     currency = 'XOF',
     onPayerTypeChange,
     onCompanyAccountChange,
+    multiLeg,
 }: Props) {
     const availableCount = seats.filter(
         (seat) => seat.availabilityStatus === 'available',
     ).length;
     const selectionMatchesPassengers =
         selectedSeatCodes.length === passengerCount;
+    const isMultiLeg = Boolean(multiLeg && multiLeg.legs.length > 1);
 
     return (
         <aside className="seat-selection-rail" aria-label="Votre sélection">
             <div className="seat-selection-rail-content">
                 <div className="seat-selection-heading">
                     <div>
-                        <span className="section-kicker">Votre sélection</span>
+                        <span className="section-kicker">
+                            {isMultiLeg
+                                ? `Voyageur ${multiLeg!.activePassenger + 1}/${passengerCount}`
+                                : 'Votre sélection'}
+                        </span>
                         <h3>Places du voyage</h3>
                     </div>
                     <strong>
-                        {selectedSeatCodes.length}/{passengerCount}
+                        {isMultiLeg
+                            ? `${multiLeg!.completedSteps}/${multiLeg!.totalSteps}`
+                            : `${selectedSeatCodes.length}/${passengerCount}`}
                     </strong>
                 </div>
 
-                <div
-                    className={
-                        selectedSeatCodes.length > 0
-                            ? 'selected-seat-list has-seats'
-                            : 'selected-seat-list'
-                    }
-                    aria-live="polite"
-                >
-                    {selectedSeatCodes.length > 0 ? (
-                        selectedSeatCodes.map((code) => (
-                            <span key={code}>{code}</span>
-                        ))
-                    ) : (
-                        <p>Aucune place sélectionnée</p>
-                    )}
-                </div>
+                {isMultiLeg && passengerCount > 1 && (
+                    <div className="multi-leg-passenger-tabs">
+                        {Array.from({ length: passengerCount }, (_, i) => {
+                            const isDone = multiLeg!.legs.every((leg) =>
+                                Boolean(multiLeg!.assignments[i]?.[leg.legOrder]),
+                            );
+
+                            return (
+                                <button
+                                    key={i}
+                                    type="button"
+                                    onClick={() => multiLeg!.onSelectPassenger(i)}
+                                    className={cn(
+                                        'multi-leg-passenger-tab',
+                                        multiLeg!.activePassenger === i && 'is-active',
+                                        isDone && 'is-done',
+                                    )}
+                                >
+                                    {isDone && <Check className="size-3" />}
+                                    P{i + 1}
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {isMultiLeg ? (
+                    <div className="multi-leg-assignment-list">
+                        {multiLeg!.legs.map((leg) => {
+                            const uuid =
+                                multiLeg!.assignments[multiLeg!.activePassenger]?.[
+                                leg.legOrder
+                                ];
+                            const code = uuid
+                                ? multiLeg!.getSeatCode(leg.legOrder, uuid)
+                                : undefined;
+
+                            return (
+                                <div
+                                    key={leg.legOrder}
+                                    className={cn(
+                                        'multi-leg-assignment-row',
+                                        uuid && 'is-assigned',
+                                    )}
+                                >
+                                    <span>
+                                        {DIRECTION_LABEL[leg.direction ?? 'outbound'] ?? 'Aller'}{' '}
+                                        · {leg.originStop.city} → {leg.destinationStop.city}
+                                    </span>
+                                    <strong>{code ?? 'À choisir'}</strong>
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div
+                        className={
+                            selectedSeatCodes.length > 0
+                                ? 'selected-seat-list has-seats'
+                                : 'selected-seat-list'
+                        }
+                        aria-live="polite"
+                    >
+                        {selectedSeatCodes.length > 0 ? (
+                            selectedSeatCodes.map((code) => (
+                                <span key={code}>{code}</span>
+                            ))
+                        ) : (
+                            <p>Aucune place sélectionnée</p>
+                        )}
+                    </div>
+                )}
 
                 <div className="seat-selection-counter">
                     <div>
                         <span>Voyageurs</span>
                         <small>
-                            {selectedSeatCodes.length}/{passengerCount} places
-                            choisies
+                            {isMultiLeg
+                                ? `${multiLeg!.completedSteps}/${multiLeg!.totalSteps} places choisies`
+                                : `${selectedSeatCodes.length}/${passengerCount} places choisies`}
                         </small>
                     </div>
                     <div className="seat-counter-controls">
@@ -146,16 +244,51 @@ export function SeatSelectionRail({
                 >
                     Annuler
                 </button>
-                <button
-                    type="button"
-                    className="btn btn-primary"
-                    disabled={
-                        !selectionMatchesPassengers || loading || processing
-                    }
-                    onClick={onConfirm}
-                >
-                    Confirmer la sélection
-                </button>
+                {isMultiLeg ? (
+                    <div className="multi-leg-nav-actions">
+                        <button
+                            type="button"
+                            className="btn btn-ghost"
+                            disabled={!multiLeg!.canGoPrevious}
+                            onClick={multiLeg!.onPreviousStep}
+                        >
+                            <ArrowLeft className="size-4" />
+                            Précédent
+                        </button>
+                        {!multiLeg!.allComplete ? (
+                            <button
+                                type="button"
+                                className="btn btn-primary"
+                                disabled={!multiLeg!.canGoNext || processing}
+                                onClick={multiLeg!.onNextStep}
+                            >
+                                Suivant
+                                <ArrowRight className="size-4" />
+                            </button>
+                        ) : (
+                            <button
+                                type="button"
+                                className="btn btn-primary"
+                                disabled={processing}
+                                onClick={onConfirm}
+                            >
+                                <Check className="size-4" />
+                                Confirmer ({multiLeg!.totalSteps} places)
+                            </button>
+                        )}
+                    </div>
+                ) : (
+                    <button
+                        type="button"
+                        className="btn btn-primary"
+                        disabled={
+                            !selectionMatchesPassengers || loading || processing
+                        }
+                        onClick={onConfirm}
+                    >
+                        Confirmer la sélection
+                    </button>
+                )}
             </div>
         </aside>
     );

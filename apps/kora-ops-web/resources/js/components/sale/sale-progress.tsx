@@ -5,10 +5,9 @@ import type { SaleStage } from './sale-types';
 const steps = [
     { number: 1, label: 'Trajet' },
     { number: 2, label: 'Places' },
-    { number: 3, label: 'Payeur' },
-    { number: 4, label: 'Voyageurs' },
-    { number: 5, label: 'Paiement' },
-    { number: 6, label: 'Billets' },
+    { number: 3, label: 'Voyageurs' },
+    { number: 4, label: 'Paiement' },
+    { number: 5, label: 'Billets' },
 ];
 
 export function SaleProgress({ stage }: { stage: SaleStage }) {
@@ -16,14 +15,12 @@ export function SaleProgress({ stage }: { stage: SaleStage }) {
         stage === 'search'
             ? 1
             : stage === 'seats'
-              ? 2
-              : stage === 'payer'
-                ? 3
+                ? 2
                 : stage === 'passengers'
-                  ? 4
-                  : stage === 'payment'
-                    ? 5
-                    : 6;
+                    ? 3
+                    : stage === 'payment'
+                        ? 4
+                        : 5;
     const activeLabel =
         stage === 'passengers'
             ? 'Informations voyageurs'
@@ -34,7 +31,7 @@ export function SaleProgress({ stage }: { stage: SaleStage }) {
             <div className="progress-copy">
                 <span>Vente guichet</span>
                 <strong>
-                    Étape {activeStep} sur 6 · {activeLabel}
+                    Étape {activeStep} sur 5 · {activeLabel}
                 </strong>
             </div>
             <div className="steps">
@@ -54,7 +51,7 @@ export function SaleProgress({ stage }: { stage: SaleStage }) {
                                     className={cn(
                                         'step-number',
                                         (current || done) &&
-                                            'border-gold bg-gold text-[var(--kora)]',
+                                        'border-gold bg-gold text-[var(--kora)]',
                                     )}
                                 >
                                     {done ? (

@@ -14,7 +14,9 @@ use App\Modules\Booking\Actions\UpdateReservationPassengersAction;
 use App\Modules\Booking\Data\ReservationChannel;
 use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Exceptions\SeatUnavailableException;
+use App\Modules\Booking\Http\Requests\ConfirmCounterSaleRequest;
 use App\Modules\Booking\Http\Requests\CounterSaleSearchRequest;
+use App\Modules\Booking\Http\Requests\FetchCounterSaleSeatsRequest;
 use App\Modules\Booking\Http\Requests\HoldCounterSaleSeatsRequest;
 use App\Modules\Booking\Http\Requests\ReleaseCounterSaleHoldRequest;
 use App\Modules\Booking\Http\Requests\StoreCounterSaleDraftRequest;
@@ -26,6 +28,7 @@ use App\Modules\Booking\Models\ItineraryQuote;
 use App\Modules\Booking\Models\ItineraryQuoteLeg;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationPassenger;
+use App\Modules\Booking\Services\DepartureStopTimeResolver;
 use App\Modules\Booking\Services\ItineraryData;
 use App\Modules\Booking\Services\ItineraryLegData;
 use App\Modules\Booking\Services\ItinerarySearchService;
@@ -73,6 +76,7 @@ class CounterSaleController extends Controller
         private BuildCounterSaleSeatAvailabilityAction $counterSaleSeatAvailability,
         private CompanyAccountCatalogService $companyAccounts,
         private ItinerarySearchService $itinerarySearch,
+        private DepartureStopTimeResolver $stopTimeResolver,
     ) {}
 
     public function index(CounterSaleSearchRequest $request): Response|RedirectResponse
@@ -103,6 +107,15 @@ class CounterSaleController extends Controller
 
         $itineraryQuote = $this->selectedItineraryQuote($context);
 
+        // When the agent has fetched seat availability via POST /sale/seats
+        // (the new flow that defers quote creation until after seat
+        // selection), the legs are stored in session and we rebuild the
+        // availability from them instead of from a persisted quote.
+        $pendingLegs = session()->pull('counter_sale_pending_legs');
+        $itineraryLegSeats = $pendingLegs !== null
+            ? $this->buildSeatAvailabilityFromLegs($pendingLegs)
+            : $this->serializeItineraryLegSeats($itineraryQuote);
+
         return Inertia::render('sale', [
             'cities' => $this->serializeCities($this->catalog->cities()),
             'serviceClasses' => $this->serializeServiceClasses(),
@@ -118,7 +131,7 @@ class CounterSaleController extends Controller
             'outboundItineraries' => $this->serializeItineraries($results['outbound']),
             'inboundItineraries' => $this->serializeItineraries($results['inbound'], 'inbound'),
             'itineraryQuote' => $this->serializeItineraryQuote($itineraryQuote),
-            'itineraryLegSeats' => $this->serializeItineraryLegSeats($itineraryQuote),
+            'itineraryLegSeats' => $itineraryLegSeats,
             'reservation' => $this->serializeReservation($this->selectedReservation($context)),
             'cashSession' => $this->serializeCashSession(),
             'mobileMoneyAccounts' => $this->serializeMobileMoneyAccounts(),
@@ -175,6 +188,77 @@ class CounterSaleController extends Controller
                 'seats' => $exception->getMessage(),
             ]);
         }
+
+        return to_route('sale', $request->saleQuery($reservation->uuid));
+    }
+
+    /**
+     * Fetches seat availability for the selected legs WITHOUT creating a
+     * quote. Returns a partial Inertia response (only itineraryLegSeats) so
+     * the frontend can open the seat picker immediately without a full page
+     * reload.
+     */
+    public function seats(FetchCounterSaleSeatsRequest $request): Response
+    {
+        Gate::authorize('viewAny', Departure::class);
+
+        $data = $request->legsData();
+
+        // Persist the selected legs in session so a subsequent full page
+        // reload (e.g. browser refresh) can rebuild the same seat
+        // availability without a new POST.
+        session()->put('counter_sale_pending_legs', $data);
+
+        $legSeats = $this->buildSeatAvailabilityFromLegs($data);
+
+        return Inertia::render('sale', [
+            'itineraryLegSeats' => $legSeats,
+        ]);
+    }
+
+    /**
+     * Creates the itinerary quote with the FINAL passenger count and
+     * immediately holds the selected seats in a single request. This
+     * ensures the quote is frozen at the right price (with group discounts,
+     * dynamic pricing, promotions) only after the agent has chosen
+     * passengers, seats and payer.
+     */
+    public function confirm(
+        ConfirmCounterSaleRequest $request,
+        CalculateItineraryQuoteAction $calculateItineraryQuote,
+        CreateItineraryHoldAction $createItineraryHold,
+        ResolvePayerContextAction $resolvePayer,
+    ): RedirectResponse {
+        $data = $request->confirmData();
+
+        $legs = $this->buildItineraryLegs($data['outbound_legs'], $data['inbound_legs']);
+
+        $quoteResult = $calculateItineraryQuote->handle(
+            $legs,
+            $data['passenger_count'],
+            $request->user(),
+        );
+
+        $payer = $data['payer'] !== null
+            ? $resolvePayer->handle($request->user(), $data['payer'])
+            : null;
+
+        try {
+            $reservation = $createItineraryHold->handle(
+                user: $request->user(),
+                itineraryQuote: $quoteResult->itineraryQuote,
+                seatAssignments: $request->itinerarySeatAssignments(),
+                channel: ReservationChannel::Counter,
+                idempotencyKey: $data['idempotency_key'],
+                payer: $payer,
+            );
+        } catch (SeatUnavailableException $exception) {
+            throw ValidationException::withMessages([
+                'seats' => $exception->getMessage(),
+            ]);
+        }
+
+        session()->forget('counter_sale_pending_legs');
 
         return to_route('sale', $request->saleQuery($reservation->uuid));
     }
@@ -401,6 +485,137 @@ class CounterSaleController extends Controller
         ])->all());
     }
 
+    /**
+     * Builds seat availability from raw leg data (UUIDs) without requiring
+     * a persisted ItineraryQuote. Used by the new flow where seats are
+     * fetched BEFORE the quote is created.
+     *
+     * Batch-loads all departures and stops in 2 queries (anti-N+1), with
+     * bus.seats and line.stops eager-loaded so BuildCounterSaleSeatAvailabilityAction
+     * doesn't need to re-query them.
+     *
+     * @param  array{outbound_legs: list<array{departure_uuid: string, origin_stop_uuid: string, destination_stop_uuid: string}>, inbound_legs: list<array{departure_uuid: string, origin_stop_uuid: string, destination_stop_uuid: string}>}  $legsData
+     * @return list<array{legOrder: int, direction: string, departureUuid: string, seats: list<array<string, mixed>>}>
+     */
+    private function buildSeatAvailabilityFromLegs(array $legsData): array
+    {
+        $allLegs = [
+            ...array_map(fn (array $leg): array => [...$leg, 'direction' => 'outbound'], $legsData['outbound_legs']),
+            ...array_map(fn (array $leg): array => [...$leg, 'direction' => 'inbound'], $legsData['inbound_legs']),
+        ];
+
+        if ($allLegs === []) {
+            return [];
+        }
+
+        $departures = $this->batchFetchDepartures(array_column($allLegs, 'departure_uuid'));
+        $stops = $this->batchFetchStops(array_values(array_unique(array_merge(
+            array_column($allLegs, 'origin_stop_uuid'),
+            array_column($allLegs, 'destination_stop_uuid'),
+        ))));
+
+        $result = [];
+        $legOrder = 0;
+
+        foreach ($allLegs as $leg) {
+            $legOrder++;
+            $departure = $departures->get($leg['departure_uuid']);
+            $originStop = $stops->get($leg['origin_stop_uuid']);
+            $destinationStop = $stops->get($leg['destination_stop_uuid']);
+
+            if ($departure === null || $originStop === null || $destinationStop === null) {
+                continue;
+            }
+
+            $result[] = [
+                'legOrder' => $legOrder,
+                'direction' => $leg['direction'],
+                'departureUuid' => $departure->uuid,
+                'seats' => $this->serializeSeats(
+                    $this->counterSaleSeatAvailability->handle($departure, $originStop, $destinationStop),
+                ),
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Builds ItineraryLegQuoteRequest[] from raw leg UUIDs, batch-loading
+     * all departures and stops in 2 queries (anti-N+1). Shared by
+     * confirm() and quote().
+     *
+     * @param  list<array{departure_uuid: string, origin_stop_uuid: string, destination_stop_uuid: string}>  $outboundLegs
+     * @param  list<array{departure_uuid: string, origin_stop_uuid: string, destination_stop_uuid: string}>  $inboundLegs
+     * @return list<ItineraryLegQuoteRequest>
+     */
+    private function buildItineraryLegs(array $outboundLegs, array $inboundLegs): array
+    {
+        $allLegs = [
+            ...array_map(fn (array $leg): array => [...$leg, 'direction' => 'outbound'], $outboundLegs),
+            ...array_map(fn (array $leg): array => [...$leg, 'direction' => 'inbound'], $inboundLegs),
+        ];
+
+        $departures = $this->batchFetchDepartures(array_column($allLegs, 'departure_uuid'));
+        $stops = $this->batchFetchStops(array_values(array_unique(array_merge(
+            array_column($allLegs, 'origin_stop_uuid'),
+            array_column($allLegs, 'destination_stop_uuid'),
+        ))));
+
+        $legs = [];
+        foreach ($allLegs as $leg) {
+            $departure = $departures->get($leg['departure_uuid']);
+            $originStop = $stops->get($leg['origin_stop_uuid']);
+            $destinationStop = $stops->get($leg['destination_stop_uuid']);
+
+            if ($departure === null || $originStop === null || $destinationStop === null) {
+                throw ValidationException::withMessages([
+                    'legs' => 'Un des départs ou arrêts sélectionnés est introuvable.',
+                ]);
+            }
+
+            $legs[] = new ItineraryLegQuoteRequest(
+                departure: $departure,
+                originStop: $originStop,
+                destinationStop: $destinationStop,
+                direction: $leg['direction'],
+            );
+        }
+
+        return $legs;
+    }
+
+    /**
+     * Batch-fetches departures by UUID with bus.seats and line.stops
+     * eager-loaded, keyed by UUID. A single query regardless of leg count.
+     *
+     * @param  list<string>  $uuids
+     * @return Collection<string, Departure>
+     */
+    private function batchFetchDepartures(array $uuids): Collection
+    {
+        return Departure::query()
+            ->whereIn('uuid', $uuids)
+            ->with(['bus.seats', 'line.stops'])
+            ->get()
+            ->keyBy('uuid');
+    }
+
+    /**
+     * Batch-fetches stops by UUID, keyed by UUID. A single query
+     * regardless of leg count.
+     *
+     * @param  list<string>  $uuids
+     * @return Collection<string, Stop>
+     */
+    private function batchFetchStops(array $uuids): Collection
+    {
+        return Stop::query()
+            ->whereIn('uuid', $uuids)
+            ->get()
+            ->keyBy('uuid');
+    }
+
     /** @return array<string, mixed>|null */
     private function serializeItineraryQuote(?ItineraryQuote $quote): ?array
     {
@@ -409,6 +624,8 @@ class CounterSaleController extends Controller
         }
 
         $snapshot = $quote->snapshot ?? [];
+        $quote->loadMissing(['legs.departure.line', 'legs.departure.bus.amenities', 'legs.originStop', 'legs.destinationStop']);
+        $legs = $quote->legs->sortBy('leg_order')->values();
 
         return [
             'uuid' => $quote->uuid,
@@ -420,8 +637,66 @@ class CounterSaleController extends Controller
             'currency' => $quote->currency,
             'groupDiscount' => $snapshot['group_discount'] ?? null,
             'passengerAllocations' => $snapshot['passenger_allocations'] ?? [],
-            'legs' => $snapshot['legs'] ?? [],
+            'legs' => array_values($legs->map(fn (ItineraryQuoteLeg $leg): array => $this->serializeItineraryQuoteLeg($leg, $quote->currency))->all()),
             'expiresAt' => $quote->expires_at->toISOString(),
+        ];
+    }
+
+    /**
+     * Serializes a persisted itinerary quote leg using the same
+     * camelCase/nested shape as serializeItineraryLeg() (used for
+     * outboundItineraries/inboundItineraries), so the frontend can consume
+     * itineraryQuote.legs with the same SaleItineraryLeg-compatible shape
+     * regardless of where the legs came from.
+     *
+     * @return array<string, mixed>
+     */
+    private function serializeItineraryQuoteLeg(ItineraryQuoteLeg $leg, string $currency): array
+    {
+        $departure = $leg->departure;
+
+        return [
+            'legOrder' => $leg->leg_order,
+            'direction' => $leg->direction,
+            'departureUuid' => $departure->uuid,
+            'departureDate' => $departure->departure_date?->toDateString(),
+            'departureTime' => $departure->departure_time,
+            'line' => [
+                'uuid' => $departure->line->uuid,
+                'code' => $departure->line->code,
+                'name' => $departure->line->name,
+                'estimatedDurationMinutes' => $departure->line->estimated_duration_minutes,
+                'isInternational' => is_array($departure->line->countries_crossed)
+                    && count($departure->line->countries_crossed) > 1,
+            ],
+            'bus' => [
+                'uuid' => $departure->bus->uuid,
+                'registrationNumber' => $departure->bus->registration_number,
+                'brand' => $departure->bus->brand,
+                'model' => $departure->bus->model,
+                'seatCount' => $departure->bus->seat_count,
+                'amenities' => $departure->bus->amenities
+                    ->map(fn ($amenity) => [
+                        'code' => $amenity->code,
+                        'label' => $amenity->label,
+                        'icon' => $amenity->icon,
+                    ])
+                    ->values()
+                    ->all(),
+            ],
+            'originStop' => $this->serializeStop($leg->originStop),
+            'destinationStop' => $this->serializeStop($leg->destinationStop),
+            'amount' => $leg->amount,
+            'currency' => $currency,
+            // Not needed by any current consumer of itineraryQuote.legs
+            // (real-time seat counts/service class come from
+            // itineraryLegSeats instead); kept null/0 for type parity with
+            // SaleItineraryLeg.
+            'availableSeatsCount' => 0,
+            'serviceClassCode' => null,
+            'serviceClassName' => null,
+            'departureAt' => $this->stopTimeResolver->departureAt($departure, $leg->originStop)?->toISOString(),
+            'arrivalAt' => $this->stopTimeResolver->arrivalAt($departure, $leg->destinationStop)?->toISOString(),
         ];
     }
 
@@ -439,6 +714,7 @@ class CounterSaleController extends Controller
             ->where('created_by_user_id', auth()->id())
             ->with([
                 'segments.departure.line',
+                'segments.departure.bus',
                 'segments.seat',
                 'segments.originStop',
                 'segments.destinationStop',
@@ -674,6 +950,12 @@ class CounterSaleController extends Controller
                 'seatCode' => $segment->seat?->code,
                 'originStop' => $segment->originStop?->name,
                 'destinationStop' => $segment->destinationStop?->name,
+                'originStopCity' => $segment->originStop?->city,
+                'destinationStopCity' => $segment->destinationStop?->city,
+                'departureDate' => $segment->departure?->departure_date?->toDateString(),
+                'lineCode' => $segment->departure?->line?->code,
+                'lineName' => $segment->departure?->line?->name,
+                'busRegistration' => $segment->departure?->bus?->registration_number,
                 'status' => (string) $segment->getRawOriginal('status'),
             ])->values()->all(),
             'passengers' => $reservation->passengers->map(fn (ReservationPassenger $passenger): array => [

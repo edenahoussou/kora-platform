@@ -1,11 +1,13 @@
-import { ArrowRight, Building2, CheckCircle2, Clock3, ShieldCheck, Users } from 'lucide-react';
+import { Building2, CheckCircle2, Clock3, LayoutGrid, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SaleCompanyAccount, SaleDeparture, SaleItinerary, SaleItineraryQuote, SalePayerType, SaleQuote, SaleReservation } from './sale-types';
 import {
     formatDate,
+    formatIsoDate,
+    formatIsoTime,
     formatMoney,
     formatRemainingTime,
-    formatTime,
+    formatShortDate,
 } from './sale-utils';
 
 type Props = {
@@ -19,8 +21,6 @@ type Props = {
     selectedInbound?: SaleItinerary | null;
     reservation: SaleReservation | null;
     processing: boolean;
-    onQuote: () => void;
-    onHold: () => void;
     onOpenSeatPicker?: () => void;
     companyAccounts?: SaleCompanyAccount[];
     payerType?: SalePayerType;
@@ -38,8 +38,6 @@ export function SaleSummaryCard({
     selectedInbound,
     reservation,
     processing,
-    onQuote,
-    onHold,
     onOpenSeatPicker,
     companyAccounts = [],
     payerType = 'personal',
@@ -58,16 +56,15 @@ export function SaleSummaryCard({
     if (selectedItinerary) {
         const firstLeg = selectedItinerary.legs[0];
         const lastLeg = selectedItinerary.legs[selectedItinerary.legs.length - 1];
-        const amount = itineraryQuote?.totalAmount ?? selectedItinerary.totalAmount * passengerCount;
+        // Before the quote is calculated, sum the per-passenger totals of
+        // the outbound and inbound itineraries. The itineraryQuote, when
+        // available, is the authoritative amount (it includes group
+        // discounts and server-side pricing).
+        const fallbackAmount =
+            (selectedItinerary.totalAmount + (selectedInbound?.totalAmount ?? 0)) * passengerCount;
+        const amount = itineraryQuote?.totalAmount ?? fallbackAmount;
         const currency = itineraryQuote?.currency ?? selectedItinerary.currency;
         const canQuote = selectedItinerary !== null;
-        const canHold =
-            itineraryQuote !== null &&
-            itineraryQuote !== undefined &&
-            (payerType === 'company'
-                ? selectedCompanyAccountUuid !== null &&
-                (companyAccounts.find((account) => account.uuid === selectedCompanyAccountUuid)?.availableCredit ?? 0) >= amount
-                : true);
         const isGroup = itineraryQuote?.isGroup ?? passengerCount >= 5;
         const hasDiscount = (itineraryQuote?.groupDiscountAmount ?? 0) > 0;
 
@@ -86,6 +83,11 @@ export function SaleSummaryCard({
                         <div className="summary-leg-route">
                             {leg.originStop.city} → {leg.destinationStop.city}
                         </div>
+                        <div className="summary-leg-schedule">
+                            {formatShortDate(formatIsoDate(leg.departureAt))} ·{' '}
+                            {formatIsoTime(leg.departureAt)} →{' '}
+                            {formatIsoTime(leg.arrivalAt)}
+                        </div>
                         <div className="summary-leg-price">
                             {formatMoney(leg.amount, currency)} / passager
                         </div>
@@ -103,8 +105,8 @@ export function SaleSummaryCard({
                         {lastLeg.destinationStop.city}
                     </h3>
                     <p>
-                        {formatDate(firstLeg.departureDate)} ·{' '}
-                        {formatTime(firstLeg.departureTime)}
+                        {formatDate(formatIsoDate(firstLeg.departureAt))} ·{' '}
+                        {formatIsoTime(firstLeg.departureAt)}
                     </p>
                 </div>
 
@@ -184,35 +186,23 @@ export function SaleSummaryCard({
                                 {formatRemainingTime(itineraryQuote.expiresAt)}
                             </div>
                         )}
-                        {itineraryQuote && onOpenSeatPicker && (
+                        {onOpenSeatPicker && (
+                            // Opens the seat picker directly — the quote is
+                            // created only after seat/passenger/payer
+                            // selection is complete (inside the picker's
+                            // confirm action), so the price is frozen at
+                            // the right moment with dynamic pricing and
+                            // group discounts applied.
                             <button
                                 type="button"
                                 onClick={onOpenSeatPicker}
-                                className="btn btn-ghost summary-action"
+                                disabled={processing}
+                                className="btn btn-primary summary-action"
                             >
+                                <LayoutGrid className="size-4" />
                                 Choisir les places
                             </button>
                         )}
-                        <button
-                            type="button"
-                            disabled={!canQuote || processing}
-                            onClick={canHold ? onHold : onQuote}
-                            className="btn btn-primary summary-action"
-                        >
-                            {processing ? (
-                                'Traitement…'
-                            ) : canHold ? (
-                                <>
-                                    <ShieldCheck className="size-4" />
-                                    Bloquer les places
-                                </>
-                            ) : (
-                                <>
-                                    {itineraryQuote ? 'Actualiser le devis' : 'Continuer'}
-                                    <ArrowRight className="size-4" />
-                                </>
-                            )}
-                        </button>
                         {!canQuote && (
                             <p className="summary-hint">
                                 Sélectionnez un itinéraire aller

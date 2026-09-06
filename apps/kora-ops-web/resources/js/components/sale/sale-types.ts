@@ -1,7 +1,6 @@
 export type SaleStage =
     | 'search'
     | 'seats'
-    | 'payer'
     | 'passengers'
     | 'payment'
     | 'tickets';
@@ -410,6 +409,12 @@ export type SaleReservation = {
         seatCode: string | null;
         originStop: string | null;
         destinationStop: string | null;
+        originStopCity?: string | null;
+        destinationStopCity?: string | null;
+        departureDate?: string | null;
+        lineCode?: string | null;
+        lineName?: string | null;
+        busRegistration?: string | null;
         status: string;
         passengerIndex?: number | null;
         legOrder?: number;

@@ -3,19 +3,19 @@ import { lazy, Suspense, useCallback, useMemo, useState } from 'react';
 import type { SyntheticEvent } from 'react';
 import { toast } from 'sonner';
 import { ItineraryList } from '@/components/sale/itinerary-list';
-import { MultiLegSeatPicker } from '@/components/sale/multi-leg-seat-picker';
 import { RouteSearch } from '@/components/sale/route-search';
 import { SalePageHeading } from '@/components/sale/sale-page-heading';
 import { SaleProgress } from '@/components/sale/sale-progress';
 import { SaleSummaryCard } from '@/components/sale/sale-summary-card';
 import type {
     SaleItinerary,
-    SaleItineraryQuoteLeg,
+    SaleItineraryLeg,
     SalePassengerForm,
     SalePayerType,
     SaleProps,
     SaleSearch,
 } from '@/components/sale/sale-types';
+import { SeatPicker } from '@/components/sale/seat-picker';
 import { useCounterSale } from '@/components/sale/use-counter-sale';
 import { cn } from '@/lib/utils';
 import { sale } from '@/routes';
@@ -104,13 +104,14 @@ export default function SalePage(props: SaleProps) {
         searchForm,
         quoteForm,
         holdForm,
+        confirmForm,
         passengersForm,
         draftForm,
         releaseForm,
         paymentForm,
         search: submitSearch,
-        calculateItineraryQuote,
-        holdItinerarySeats,
+        fetchSeats,
+        confirmSale,
         savePassengers,
         saveDraft,
         releaseHold,
@@ -153,9 +154,7 @@ export default function SalePage(props: SaleProps) {
                 ? 'payment'
                 : 'passengers'
         : selectedOutbound
-            ? itineraryQuote
-                ? 'payer'
-                : 'seats'
+            ? 'seats'
             : 'search';
 
     const onSearch = (event: SyntheticEvent<HTMLFormElement>) => {
@@ -169,31 +168,87 @@ export default function SalePage(props: SaleProps) {
     const onSelectOutboundItinerary = (itinerary: SaleItinerary) => {
         setSelectedOutbound(itinerary);
         setPassengerCount(1);
+
+        // The return trip must depart strictly after the new outbound trip
+        // (same rule enforced server-side). Clear an already-selected
+        // return that would now be incoherent.
+        const outboundDepartureAt = itinerary.legs[0]?.departureAt;
+        const inboundDepartureAt = selectedInbound?.legs[0]?.departureAt;
+
+        if (
+            outboundDepartureAt &&
+            inboundDepartureAt &&
+            new Date(inboundDepartureAt).getTime() <=
+            new Date(outboundDepartureAt).getTime()
+        ) {
+            setSelectedInbound(null);
+        }
     };
 
     const onSelectInboundItinerary = (itinerary: SaleItinerary) => {
         setSelectedInbound(itinerary);
     };
 
-    const onCalculateItineraryQuote = () => {
+    // The return trip must depart strictly after the outbound trip ends.
+    // For a multi-leg outbound, the outbound only ends at the arrival of its
+    // last leg, so we compare the inbound's first departure against the
+    // outbound's arrival (not the outbound's first departure). Same rule as
+    // the backend's validateRoundTripConsistency.
+    const compatibleInboundItineraries = useMemo(() => {
+        if (!inboundItineraries) {
+            return [];
+        }
+
+        if (!selectedOutbound) {
+            return inboundItineraries;
+        }
+
+        const outboundArrivalAt = selectedOutbound.arrivalAt;
+
+        if (!outboundArrivalAt) {
+            return inboundItineraries;
+        }
+
+        const outboundArrivalTimestamp = new Date(outboundArrivalAt).getTime();
+
+        return inboundItineraries.filter((itinerary) => {
+            const inboundDepartureAt = itinerary.legs[0]?.departureAt;
+
+            return (
+                inboundDepartureAt !== undefined &&
+                new Date(inboundDepartureAt).getTime() > outboundArrivalTimestamp
+            );
+        });
+    }, [inboundItineraries, selectedOutbound]);
+
+    const inboundHiddenByOutboundSelection =
+        selectedOutbound !== null &&
+        (inboundItineraries?.length ?? 0) > 0 &&
+        compatibleInboundItineraries.length === 0;
+
+    const handleOpenSeatPicker = () => {
         if (!selectedOutbound) {
             return;
         }
 
-        calculateItineraryQuote(
-            passengerCount,
-            selectedOutbound,
-            selectedInbound,
-        );
+        fetchSeats(selectedOutbound, selectedInbound, () => {
+            setIsSeatPickerOpen(true);
+        });
     };
 
-    const itineraryQuoteLegs: SaleItineraryQuoteLeg[] = useMemo(() => {
-        if (!itineraryQuote) {
+    // Legs derived from the selected itineraries, renumbered sequentially
+    // (outbound 1..N, inbound N+1..M) so leg_order is consistent between
+    // the frontend seat picker and the backend confirm endpoint.
+    const seatPickerLegs: SaleItineraryLeg[] = useMemo(() => {
+        if (!selectedOutbound) {
             return [];
         }
 
-        return (itineraryQuote.legs as SaleItineraryQuoteLeg[]) ?? [];
-    }, [itineraryQuote]);
+        return [
+            ...selectedOutbound.legs,
+            ...(selectedInbound?.legs ?? []),
+        ].map((leg, index) => ({ ...leg, legOrder: index + 1 }));
+    }, [selectedOutbound, selectedInbound]);
 
     const handleSeatPickerConfirm = (
         assignments: Record<number, Record<number, string>>,
@@ -203,7 +258,7 @@ export default function SalePage(props: SaleProps) {
 
             return {
                 passenger_index: i,
-                seat_assignments: itineraryQuoteLegs.map((leg) => ({
+                seat_assignments: seatPickerLegs.map((leg) => ({
                     leg_order: leg.legOrder,
                     direction: (leg.direction ?? 'outbound') as
                         | 'outbound'
@@ -221,8 +276,10 @@ export default function SalePage(props: SaleProps) {
                 }
                 : undefined;
 
-        holdItinerarySeats(
-            itineraryQuote?.uuid ?? '',
+        confirmSale(
+            selectedOutbound!,
+            selectedInbound,
+            passengerCount,
             seatAssignments,
             () => setIsSeatPickerOpen(false),
             payer,
@@ -254,8 +311,7 @@ export default function SalePage(props: SaleProps) {
     const showSeatPicker =
         isSeatPickerOpen &&
         selectedOutbound !== null &&
-        itineraryQuote !== null &&
-        itineraryQuoteLegs.length > 0;
+        (itineraryLegSeats?.length ?? 0) > 0;
     const hasSelection = selectedOutbound !== null;
 
     return (
@@ -317,6 +373,8 @@ export default function SalePage(props: SaleProps) {
                                 mobileMoneyAccounts={mobileMoneyAccounts}
                                 processing={paymentForm.processing}
                                 errors={paymentForm.errors}
+                                search={search}
+                                itineraryQuote={itineraryQuote ?? null}
                                 onSubmit={(payload) =>
                                     recordPayment(reservation.uuid, payload)
                                 }
@@ -335,6 +393,8 @@ export default function SalePage(props: SaleProps) {
                                 processing={passengersForm.processing}
                                 releasing={releaseForm.processing}
                                 errors={passengersForm.errors}
+                                search={search}
+                                itineraryQuote={itineraryQuote ?? null}
                                 onDraftChange={savePassengerDraft}
                                 draftSaving={draftForm.processing}
                                 draftSaved={draftForm.recentlySuccessful}
@@ -373,7 +433,7 @@ export default function SalePage(props: SaleProps) {
                                     inboundItineraries &&
                                     inboundItineraries.length > 0 && (
                                         <ItineraryList
-                                            itineraries={inboundItineraries}
+                                            itineraries={compatibleInboundItineraries}
                                             selectedLegsKey={
                                                 selectedInbound
                                                     ? itineraryKey(selectedInbound)
@@ -382,6 +442,11 @@ export default function SalePage(props: SaleProps) {
                                             onSelect={onSelectInboundItinerary}
                                             hasDate={search.returnDate !== null}
                                             direction="inbound"
+                                            emptyReason={
+                                                inboundHiddenByOutboundSelection
+                                                    ? 'incompatible-with-outbound'
+                                                    : undefined
+                                            }
                                         />
                                     )}
                             </div>
@@ -398,11 +463,11 @@ export default function SalePage(props: SaleProps) {
                                     selectedInbound={selectedInbound}
                                     reservation={reservation}
                                     processing={
-                                        quoteForm.processing || holdForm.processing
+                                        quoteForm.processing ||
+                                        holdForm.processing ||
+                                        confirmForm.processing
                                     }
-                                    onQuote={onCalculateItineraryQuote}
-                                    onHold={() => setIsSeatPickerOpen(true)}
-                                    onOpenSeatPicker={() => setIsSeatPickerOpen(true)}
+                                    onOpenSeatPicker={handleOpenSeatPicker}
                                     companyAccounts={companyAccounts}
                                     payerType={payerType}
                                     selectedCompanyAccountUuid={selectedCompanyAccountUuid}
@@ -412,26 +477,27 @@ export default function SalePage(props: SaleProps) {
                     )}
                 </div>
             </main>
-            {showSeatPicker && itineraryQuote && (
-                <Suspense fallback={null}>
-                    <MultiLegSeatPicker
-                        legs={itineraryQuoteLegs}
-                        legSeats={itineraryLegSeats ?? []}
-                        passengerCount={passengerCount}
-                        maxPassengers={groupBookingSettings.maximumPassengers}
-                        processing={holdForm.processing}
-                        onPassengerCountChange={setPassengerCount}
-                        onClose={() => setIsSeatPickerOpen(false)}
-                        onConfirm={handleSeatPickerConfirm}
-                        payerType={payerType}
-                        selectedCompanyAccountUuid={selectedCompanyAccountUuid}
-                        companyAccounts={companyAccounts}
-                        amount={itineraryQuote?.totalAmount ?? 0}
-                        currency={itineraryQuote?.currency ?? 'XOF'}
-                        onPayerTypeChange={setPayerType}
-                        onCompanyAccountChange={setSelectedCompanyAccountUuid}
-                    />
-                </Suspense>
+            {showSeatPicker && (
+                <SeatPicker
+                    legs={seatPickerLegs}
+                    legSeats={itineraryLegSeats ?? []}
+                    passengerCount={passengerCount}
+                    maxPassengers={groupBookingSettings.maximumPassengers}
+                    processing={holdForm.processing || confirmForm.processing}
+                    onPassengerCountChange={setPassengerCount}
+                    onClose={() => setIsSeatPickerOpen(false)}
+                    onConfirm={handleSeatPickerConfirm}
+                    payerType={payerType}
+                    selectedCompanyAccountUuid={selectedCompanyAccountUuid}
+                    companyAccounts={companyAccounts}
+                    amount={
+                        (selectedOutbound?.totalAmount ?? 0) +
+                        (selectedInbound?.totalAmount ?? 0)
+                    }
+                    currency={selectedOutbound?.currency ?? 'XOF'}
+                    onPayerTypeChange={setPayerType}
+                    onCompanyAccountChange={setSelectedCompanyAccountUuid}
+                />
             )}
         </>
     );
