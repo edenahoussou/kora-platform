@@ -13,7 +13,6 @@ import {
 } from '@/routes/sale';
 import type { CounterSalePaymentPayload } from './payment-step';
 import type {
-    SaleDeparture,
     SaleItinerary,
     SalePassengerForm,
     SalePayerType,
@@ -37,21 +36,11 @@ function passengerToSnakeCase(passenger: SalePassengerForm) {
     };
 }
 
-function queryFrom(search: SaleSearch, departure?: SaleDeparture | null) {
-    return {
-        date: search.date ?? departure?.departureDate ?? null,
-        from: search.from ?? undefined,
-        to: search.to ?? undefined,
-        departure_uuid: departure?.uuid,
-        origin_stop_uuid: departure?.originStop.uuid,
-        destination_stop_uuid: departure?.destinationStop.uuid,
-    };
-}
-
 export type ItinerarySeatAssignment = {
     passenger_index: number;
     seat_assignments: Array<{
         leg_order: number;
+        direction?: 'outbound' | 'inbound';
         seat_uuid: string;
     }>;
 };
@@ -59,25 +48,48 @@ export type ItinerarySeatAssignment = {
 export function useCounterSale(props: SaleProps) {
     const searchForm = useForm<SaleSearch>({ ...props.search });
     const quoteForm = useForm({
-        ...queryFrom(props.search, props.selectedDeparture),
+        date: searchForm.data.date ?? null,
+        from: searchForm.data.from ?? undefined,
+        to: searchForm.data.to ?? undefined,
+        trip_type: searchForm.data.tripType,
+        return_date:
+            searchForm.data.tripType === 'round_trip'
+                ? searchForm.data.returnDate
+                : null,
         passenger_count: 1,
+        outbound_legs: [] as Array<{
+            departure_uuid: string;
+            origin_stop_uuid: string;
+            destination_stop_uuid: string;
+        }>,
+        inbound_legs: [] as Array<{
+            departure_uuid: string;
+            origin_stop_uuid: string;
+            destination_stop_uuid: string;
+        }>,
     });
     const holdForm = useForm({
-        ...queryFrom(props.search, props.selectedDeparture),
-        price_quote_uuid: props.quote?.uuid ?? '',
-        seats: [] as Array<{ seat_uuid: string }>,
+        date: searchForm.data.date ?? null,
+        from: searchForm.data.from ?? undefined,
+        to: searchForm.data.to ?? undefined,
+        trip_type: searchForm.data.tripType,
+        return_date:
+            searchForm.data.tripType === 'round_trip'
+                ? searchForm.data.returnDate
+                : null,
+        itinerary_quote_uuid: props.itineraryQuote?.uuid ?? '',
+        passengers: [] as ItinerarySeatAssignment[],
     });
     const passengersForm = useForm<{
         date: string | null;
         from: string | undefined;
         to: string | undefined;
-        departure_uuid: string | undefined;
-        origin_stop_uuid: string | undefined;
-        destination_stop_uuid: string | undefined;
         passengers: SalePassengerForm[];
         information_confirmed: boolean;
     }>({
-        ...queryFrom(searchForm.data, props.selectedDeparture),
+        date: searchForm.data.date ?? null,
+        from: searchForm.data.from ?? undefined,
+        to: searchForm.data.to ?? undefined,
         passengers: [],
         information_confirmed: false,
     });
@@ -89,8 +101,10 @@ export function useCounterSale(props: SaleProps) {
     const transformDraft = draftForm.transform;
     const patchDraft = draftForm.patch;
     const releaseForm = useForm({
-        ...queryFrom(props.search, props.selectedDeparture),
-        quote_uuid: props.quote?.uuid ?? undefined,
+        date: searchForm.data.date ?? null,
+        from: searchForm.data.from ?? undefined,
+        to: searchForm.data.to ?? undefined,
+        itinerary_quote_uuid: props.itineraryQuote?.uuid ?? undefined,
     });
     const paymentForm = useForm<CounterSalePaymentPayload>({
         method: 'cash',
@@ -108,15 +122,24 @@ export function useCounterSale(props: SaleProps) {
         event.preventDefault();
         router.get(
             sale.url(),
-            { ...searchForm.data },
+            {
+                date: searchForm.data.date,
+                from: searchForm.data.from,
+                to: searchForm.data.to,
+                trip_type: searchForm.data.tripType,
+                return_date:
+                    searchForm.data.tripType === 'round_trip'
+                        ? searchForm.data.returnDate
+                        : null,
+                service_class: searchForm.data.serviceClass ?? null,
+            },
             {
                 only: [
                     'search',
-                    'departures',
-                    'itineraries',
-                    'selectedDeparture',
-                    'seats',
-                    'quote',
+                    'outboundItineraries',
+                    'inboundItineraries',
+                    'itineraryQuote',
+                    'itineraryLegSeats',
                     'reservation',
                 ],
                 preserveState: true,
@@ -124,74 +147,32 @@ export function useCounterSale(props: SaleProps) {
             },
         );
     };
-    const selectDeparture = (
-        departure: SaleDeparture,
-        options?: { onStart?: () => void; onFinish?: () => void },
-    ) =>
-        router.get(sale.url(), queryFrom(searchForm.data, departure), {
-            only: ['selectedDeparture', 'seats', 'quote', 'reservation'],
-            preserveState: true,
-            preserveScroll: true,
-            ...options,
-        });
-    const calculateQuote = (
-        passengerCount: number,
-        selectedDeparture: SaleDeparture,
-        onSuccess?: () => void,
-    ) => {
-        quoteForm.transform(() => ({
-            ...queryFrom(searchForm.data, selectedDeparture),
-            passenger_count: passengerCount,
-        }));
-        quoteForm.post(quote.url(), { preserveScroll: true, onSuccess });
-    };
     const calculateItineraryQuote = (
         passengerCount: number,
-        itinerary: SaleItinerary,
+        outbound: SaleItinerary,
+        inbound: SaleItinerary | null,
         onSuccess?: () => void,
     ) => {
+        const toLegPayload = (leg: SaleItinerary['legs'][number]) => ({
+            departure_uuid: leg.departureUuid,
+            origin_stop_uuid: leg.originStop.uuid,
+            destination_stop_uuid: leg.destinationStop.uuid,
+        });
         quoteForm.transform(() => ({
-            date: searchForm.data.date ?? itinerary.legs[0]?.departureDate ?? null,
+            date: searchForm.data.date ?? outbound.legs[0]?.departureDate ?? null,
             from: searchForm.data.from ?? undefined,
             to: searchForm.data.to ?? undefined,
+            trip_type: inbound ? 'round_trip' : 'one_way',
+            return_date: inbound
+                ? (searchForm.data.returnDate ??
+                    inbound.legs[0]?.departureDate ??
+                    null)
+                : null,
             passenger_count: passengerCount,
-            legs: itinerary.legs.map((leg) => ({
-                departure_uuid: leg.departureUuid,
-                origin_stop_uuid: leg.originStop.uuid,
-                destination_stop_uuid: leg.destinationStop.uuid,
-            })),
+            outbound_legs: outbound.legs.map(toLegPayload),
+            inbound_legs: inbound ? inbound.legs.map(toLegPayload) : [],
         }));
         quoteForm.post(quote.url(), { preserveScroll: true, onSuccess });
-    };
-    const holdSeats = (
-        selectedDeparture: SaleDeparture,
-        quoteUuid: string,
-        seatUuids: string[],
-        onSuccess?: () => void,
-        payer?: {
-            type: SalePayerType;
-            company_account_uuid?: string;
-        },
-    ) => {
-        holdForm.transform(() => ({
-            ...queryFrom(searchForm.data, selectedDeparture),
-            price_quote_uuid: quoteUuid,
-            seats: seatUuids.map((seatUuid) => ({ seat_uuid: seatUuid })),
-            ...(payer
-                ? {
-                    payer: {
-                        type: payer.type,
-                        ...(payer.company_account_uuid
-                            ? {
-                                company_account_uuid:
-                                    payer.company_account_uuid,
-                            }
-                            : {}),
-                    },
-                }
-                : {}),
-        }));
-        holdForm.post(hold.url(), { preserveScroll: true, onSuccess });
     };
     const holdItinerarySeats = (
         itineraryQuoteUuid: string,
@@ -206,6 +187,11 @@ export function useCounterSale(props: SaleProps) {
             date: searchForm.data.date,
             from: searchForm.data.from ?? undefined,
             to: searchForm.data.to ?? undefined,
+            trip_type: searchForm.data.tripType,
+            return_date:
+                searchForm.data.tripType === 'round_trip'
+                    ? searchForm.data.returnDate
+                    : null,
             itinerary_quote_uuid: itineraryQuoteUuid,
             passengers: seatAssignments,
             ...(payer
@@ -230,7 +216,9 @@ export function useCounterSale(props: SaleProps) {
         onSuccess?: () => void,
     ) => {
         passengersForm.transform(() => ({
-            ...queryFrom(searchForm.data, props.selectedDeparture),
+            date: searchForm.data.date ?? null,
+            from: searchForm.data.from ?? undefined,
+            to: searchForm.data.to ?? undefined,
             passengers: passengerData.map(passengerToSnakeCase),
             information_confirmed: true,
         }));
@@ -264,10 +252,12 @@ export function useCounterSale(props: SaleProps) {
         } = {},
     ) => {
         releaseForm.transform(() => ({
-            ...queryFrom(searchForm.data, props.selectedDeparture),
-            quote_uuid: options.clearQuote
+            date: searchForm.data.date ?? null,
+            from: searchForm.data.from ?? undefined,
+            to: searchForm.data.to ?? undefined,
+            itinerary_quote_uuid: options.clearQuote
                 ? undefined
-                : (props.quote?.uuid ?? undefined),
+                : (props.itineraryQuote?.uuid ?? undefined),
         }));
         releaseForm.post(release.url(reservationUuid), {
             preserveScroll: true,
@@ -313,10 +303,7 @@ export function useCounterSale(props: SaleProps) {
         releaseForm,
         paymentForm,
         search,
-        selectDeparture,
-        calculateQuote,
         calculateItineraryQuote,
-        holdSeats,
         holdItinerarySeats,
         savePassengers,
         saveDraft,

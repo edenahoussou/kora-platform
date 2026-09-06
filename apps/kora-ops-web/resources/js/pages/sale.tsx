@@ -2,20 +2,22 @@ import { Head, router } from '@inertiajs/react';
 import { lazy, Suspense, useCallback, useMemo, useState } from 'react';
 import type { SyntheticEvent } from 'react';
 import { toast } from 'sonner';
-import { DepartureList } from '@/components/sale/departure-list';
 import { ItineraryList } from '@/components/sale/itinerary-list';
+import { MultiLegSeatPicker } from '@/components/sale/multi-leg-seat-picker';
 import { RouteSearch } from '@/components/sale/route-search';
 import { SalePageHeading } from '@/components/sale/sale-page-heading';
 import { SaleProgress } from '@/components/sale/sale-progress';
 import { SaleSummaryCard } from '@/components/sale/sale-summary-card';
 import type {
     SaleItinerary,
+    SaleItineraryQuoteLeg,
     SalePassengerForm,
     SalePayerType,
     SaleProps,
     SaleSearch,
 } from '@/components/sale/sale-types';
 import { useCounterSale } from '@/components/sale/use-counter-sale';
+import { cn } from '@/lib/utils';
 import { sale } from '@/routes';
 
 const CounterSaleSuccess = lazy(() =>
@@ -33,9 +35,6 @@ const PaymentStep = lazy(() =>
         (m) => ({ default: m.PaymentStep }),
     ),
 );
-const SeatPicker = lazy(() =>
-    import('@/components/sale/seat-picker').then((m) => ({ default: m.SeatPicker })),
-);
 
 function itineraryKey(itinerary: SaleItinerary): string {
     return itinerary.legs
@@ -49,13 +48,12 @@ function itineraryKey(itinerary: SaleItinerary): string {
 export default function SalePage(props: SaleProps) {
     const {
         cities,
+        serviceClasses,
         search: initialSearch,
-        departures,
-        itineraries,
-        selectedDeparture,
-        seats,
-        quote,
+        outboundItineraries,
+        inboundItineraries,
         itineraryQuote,
+        itineraryLegSeats,
         reservation,
         permissions,
         cashSession,
@@ -67,18 +65,16 @@ export default function SalePage(props: SaleProps) {
         date: initialSearch.date,
         from: initialSearch.from,
         to: initialSearch.to,
+        tripType: initialSearch.tripType ?? 'one_way',
+        returnDate: initialSearch.returnDate ?? null,
+        serviceClass: initialSearch.serviceClass ?? null,
     });
-    const [isRoundTrip, setIsRoundTrip] = useState(false);
-    const [returnDate, setReturnDate] = useState<string | null>(null);
-    const [selectedItinerary, setSelectedItinerary] =
+    const [selectedOutbound, setSelectedOutbound] =
         useState<SaleItinerary | null>(null);
-    const [selectedSeatUuids, setSelectedSeatUuids] = useState<string[]>(
-        reservation?.segments.flatMap((segment) =>
-            segment.seatUuid ? [segment.seatUuid] : [],
-        ) ?? [],
-    );
+    const [selectedInbound, setSelectedInbound] =
+        useState<SaleItinerary | null>(null);
     const [passengerCount, setPassengerCount] = useState(
-        reservation?.segments.length ?? quote?.passengerCount ?? 1,
+        reservation?.segments.length ?? itineraryQuote?.passengerCount ?? 1,
     );
     const [payerType, setPayerType] = useState<SalePayerType>(
         (reservation?.payerType as SalePayerType) ?? 'personal',
@@ -86,7 +82,6 @@ export default function SalePage(props: SaleProps) {
     const [selectedCompanyAccountUuid, setSelectedCompanyAccountUuid] =
         useState<string | null>(reservation?.companyAccount?.uuid ?? null);
     const [isSeatPickerOpen, setIsSeatPickerOpen] = useState(false);
-    const [isLoadingSeats, setIsLoadingSeats] = useState(false);
     const logicalPassengerCount = reservation
         ? new Set(
             reservation.segments.map(
@@ -114,10 +109,7 @@ export default function SalePage(props: SaleProps) {
         releaseForm,
         paymentForm,
         search: submitSearch,
-        selectDeparture,
-        calculateQuote,
         calculateItineraryQuote,
-        holdSeats,
         holdItinerarySeats,
         savePassengers,
         saveDraft,
@@ -154,124 +146,72 @@ export default function SalePage(props: SaleProps) {
         });
     };
 
-    const selectedSeatCodes = useMemo(
-        () =>
-            seats
-                .filter((seat) => selectedSeatUuids.includes(seat.uuid))
-                .map((seat) => seat.code),
-        [seats, selectedSeatUuids],
-    );
     const stage = reservation
         ? isSaleCompleted
             ? 'tickets'
             : isPaymentStepOpen
                 ? 'payment'
                 : 'passengers'
-        : selectedDeparture
-            ? quote
+        : selectedOutbound
+            ? itineraryQuote
                 ? 'payer'
                 : 'seats'
             : 'search';
 
     const onSearch = (event: SyntheticEvent<HTMLFormElement>) => {
         submitSearch(event);
-        setSelectedSeatUuids([]);
         setPassengerCount(1);
         setIsSeatPickerOpen(false);
-        setSelectedItinerary(null);
+        setSelectedOutbound(null);
+        setSelectedInbound(null);
     };
 
-    const onSelectDeparture = (departure: SaleProps['departures'][number]) => {
-        setSelectedSeatUuids([]);
+    const onSelectOutboundItinerary = (itinerary: SaleItinerary) => {
+        setSelectedOutbound(itinerary);
         setPassengerCount(1);
-        setIsSeatPickerOpen(true);
-        setSelectedItinerary(null);
-        selectDeparture(departure, {
-            onStart: () => setIsLoadingSeats(true),
-            onFinish: () => setIsLoadingSeats(false),
-        });
     };
 
-    const onSelectItinerary = (itinerary: SaleItinerary) => {
-        setSelectedItinerary(itinerary);
-        setSelectedSeatUuids([]);
-        setPassengerCount(1);
-
-        if (itinerary.isDirect) {
-            // For direct itineraries, use the existing departure flow
-            const leg = itinerary.legs[0];
-            const departure = departures.find(
-                (d) => d.uuid === leg.departureUuid,
-            );
-
-            if (departure) {
-                onSelectDeparture(departure);
-            }
-        } else {
-            // For multi-leg itineraries, calculate the itinerary quote first
-            calculateItineraryQuote(1, itinerary, () => {
-                setIsSeatPickerOpen(true);
-            });
-        }
-    };
-
-    const onCalculateQuote = () => {
-        if (!selectedDeparture || selectedSeatUuids.length !== passengerCount) {
-            return;
-        }
-
-        calculateQuote(passengerCount, selectedDeparture);
+    const onSelectInboundItinerary = (itinerary: SaleItinerary) => {
+        setSelectedInbound(itinerary);
     };
 
     const onCalculateItineraryQuote = () => {
-        if (!selectedItinerary || !itineraryQuote) {
+        if (!selectedOutbound) {
             return;
         }
 
-        calculateItineraryQuote(passengerCount, selectedItinerary);
-    };
-
-    const onHold = () => {
-        if (
-            !selectedDeparture ||
-            !quote ||
-            selectedSeatUuids.length !== quote.passengerCount ||
-            selectedSeatUuids.length !== passengerCount
-        ) {
-            return;
-        }
-
-        const payer =
-            payerType === 'company' && selectedCompanyAccountUuid
-                ? {
-                    type: 'company' as const,
-                    company_account_uuid: selectedCompanyAccountUuid,
-                }
-                : undefined;
-
-        holdSeats(
-            selectedDeparture,
-            quote.uuid,
-            selectedSeatUuids,
-            () => setIsSeatPickerOpen(false),
-            payer,
+        calculateItineraryQuote(
+            passengerCount,
+            selectedOutbound,
+            selectedInbound,
         );
     };
 
-    const onHoldItinerary = () => {
-        if (!itineraryQuote || !selectedItinerary) {
-            return;
+    const itineraryQuoteLegs: SaleItineraryQuoteLeg[] = useMemo(() => {
+        if (!itineraryQuote) {
+            return [];
         }
 
-        // For multi-leg, we need seat assignments per passenger per leg
-        // This is a simplified version — the seat picker handles the full assignment
-        const assignments = Array.from({ length: passengerCount }, (_, i) => ({
-            passenger_index: i,
-            seat_assignments: selectedItinerary.legs.map((leg) => ({
-                leg_order: leg.legOrder,
-                seat_uuid: selectedSeatUuids[i] ?? '',
-            })),
-        }));
+        return (itineraryQuote.legs as SaleItineraryQuoteLeg[]) ?? [];
+    }, [itineraryQuote]);
+
+    const handleSeatPickerConfirm = (
+        assignments: Record<number, Record<number, string>>,
+    ) => {
+        const seatAssignments = Array.from({ length: passengerCount }, (_, i) => {
+            const passengerLegs = assignments[i] ?? {};
+
+            return {
+                passenger_index: i,
+                seat_assignments: itineraryQuoteLegs.map((leg) => ({
+                    leg_order: leg.legOrder,
+                    direction: (leg.direction ?? 'outbound') as
+                        | 'outbound'
+                        | 'inbound',
+                    seat_uuid: passengerLegs[leg.legOrder] ?? '',
+                })).filter((a) => a.seat_uuid),
+            };
+        });
 
         const payer =
             payerType === 'company' && selectedCompanyAccountUuid
@@ -282,15 +222,14 @@ export default function SalePage(props: SaleProps) {
                 : undefined;
 
         holdItinerarySeats(
-            itineraryQuote.uuid,
-            assignments,
+            itineraryQuote?.uuid ?? '',
+            seatAssignments,
             () => setIsSeatPickerOpen(false),
             payer,
         );
     };
 
     const reopenSeatSelection = (reservationUuid: string) => {
-        setSelectedSeatUuids([]);
         setPassengerCount(1);
         setIsSeatPickerOpen(false);
 
@@ -310,8 +249,14 @@ export default function SalePage(props: SaleProps) {
         });
     };
 
-    const isMultiLegFlow = selectedItinerary !== null && !selectedItinerary.isDirect;
-    const selectedLegsKey = selectedItinerary ? itineraryKey(selectedItinerary) : null;
+    const selectedLegsKey = selectedOutbound ? itineraryKey(selectedOutbound) : null;
+
+    const showSeatPicker =
+        isSeatPickerOpen &&
+        selectedOutbound !== null &&
+        itineraryQuote !== null &&
+        itineraryQuoteLegs.length > 0;
+    const hasSelection = selectedOutbound !== null;
 
     return (
         <>
@@ -336,7 +281,7 @@ export default function SalePage(props: SaleProps) {
                 {!permissions.canCreate && (
                     <div className="mb-5 rounded-[0.9rem] border border-gold/30 bg-gold/10 px-4 py-3 text-[0.75rem] font-bold text-foreground">
                         Votre profil peut consulter les départs, mais ne dispose
-                        pas de l’autorisation de créer une vente guichet.
+                        pas de l'autorisation de créer une vente guichet.
                     </div>
                 )}
                 <SaleProgress stage={stage} />
@@ -344,23 +289,20 @@ export default function SalePage(props: SaleProps) {
                     {!isSaleCompleted && (
                         <RouteSearch
                             cities={cities}
+                            serviceClasses={serviceClasses}
                             value={search}
                             processing={searchForm.processing}
-                            isRoundTrip={isRoundTrip}
-                            returnDate={returnDate}
                             onChange={(nextSearch) => {
                                 setSearch(nextSearch);
                                 searchForm.setData(nextSearch);
                             }}
-                            onRoundTripChange={setIsRoundTrip}
-                            onReturnDateChange={setReturnDate}
                             onSubmit={onSearch}
                         />
                     )}
                     {reservation && reservation.payment ? (
                         <Suspense fallback={<div className="sale-skeleton" />}>
                             <CounterSaleSuccess
-                                departure={selectedDeparture}
+                                departure={null}
                                 reservation={reservation}
                                 onNewSale={startNewSale}
                                 releasing={releaseForm.processing}
@@ -369,7 +311,7 @@ export default function SalePage(props: SaleProps) {
                     ) : reservation && isPaymentStepOpen ? (
                         <Suspense fallback={<div className="sale-skeleton" />}>
                             <PaymentStep
-                                departure={selectedDeparture}
+                                departure={null}
                                 reservation={reservation}
                                 cashSession={cashSession}
                                 mobileMoneyAccounts={mobileMoneyAccounts}
@@ -388,7 +330,7 @@ export default function SalePage(props: SaleProps) {
                         <Suspense fallback={<div className="sale-skeleton" />}>
                             <PassengerFinalization
                                 key={reservation.uuid}
-                                departure={selectedDeparture}
+                                departure={null}
                                 reservation={reservation}
                                 processing={passengersForm.processing}
                                 releasing={releaseForm.processing}
@@ -413,76 +355,81 @@ export default function SalePage(props: SaleProps) {
                             />
                         </Suspense>
                     ) : (
-                        <div className="sale-layout">
-                            {itineraries.length > 0 ? (
+                        <div
+                            className={cn(
+                                'sale-layout',
+                                !hasSelection && 'is-expanded',
+                            )}
+                        >
+                            <div className="sale-itineraries">
                                 <ItineraryList
-                                    itineraries={itineraries}
+                                    itineraries={outboundItineraries}
                                     selectedLegsKey={selectedLegsKey}
-                                    onSelect={onSelectItinerary}
+                                    onSelect={onSelectOutboundItinerary}
+                                    hasDate={search.date !== null}
+                                    direction="outbound"
                                 />
-                            ) : (
-                                <DepartureList
-                                    departures={departures}
-                                    selectedUuid={selectedDeparture?.uuid ?? null}
-                                    onSelect={onSelectDeparture}
+                                {search.tripType === 'round_trip' &&
+                                    inboundItineraries &&
+                                    inboundItineraries.length > 0 && (
+                                        <ItineraryList
+                                            itineraries={inboundItineraries}
+                                            selectedLegsKey={
+                                                selectedInbound
+                                                    ? itineraryKey(selectedInbound)
+                                                    : null
+                                            }
+                                            onSelect={onSelectInboundItinerary}
+                                            hasDate={search.returnDate !== null}
+                                            direction="inbound"
+                                        />
+                                    )}
+                            </div>
+                            {hasSelection && (
+                                <SaleSummaryCard
+                                    key="sale-summary"
+                                    className="sale-summary-enter"
+                                    departure={null}
+                                    passengerCount={passengerCount}
+                                    selectedSeatCodes={[]}
+                                    quote={null}
+                                    itineraryQuote={itineraryQuote ?? null}
+                                    selectedItinerary={selectedOutbound}
+                                    selectedInbound={selectedInbound}
+                                    reservation={reservation}
+                                    processing={
+                                        quoteForm.processing || holdForm.processing
+                                    }
+                                    onQuote={onCalculateItineraryQuote}
+                                    onHold={() => setIsSeatPickerOpen(true)}
+                                    onOpenSeatPicker={() => setIsSeatPickerOpen(true)}
+                                    companyAccounts={companyAccounts}
+                                    payerType={payerType}
+                                    selectedCompanyAccountUuid={selectedCompanyAccountUuid}
                                 />
                             )}
-                            <SaleSummaryCard
-                                departure={selectedDeparture}
-                                passengerCount={passengerCount}
-                                selectedSeatCodes={selectedSeatCodes}
-                                quote={quote}
-                                itineraryQuote={itineraryQuote ?? null}
-                                selectedItinerary={selectedItinerary}
-                                reservation={reservation}
-                                processing={
-                                    quoteForm.processing || holdForm.processing
-                                }
-                                onQuote={isMultiLegFlow ? onCalculateItineraryQuote : onCalculateQuote}
-                                onHold={isMultiLegFlow ? onHoldItinerary : onHold}
-                                companyAccounts={companyAccounts}
-                                payerType={payerType}
-                                selectedCompanyAccountUuid={selectedCompanyAccountUuid}
-                                onPayerTypeChange={setPayerType}
-                                onCompanyAccountChange={setSelectedCompanyAccountUuid}
-                            />
                         </div>
                     )}
                 </div>
             </main>
-            {isSeatPickerOpen && selectedDeparture && (
+            {showSeatPicker && itineraryQuote && (
                 <Suspense fallback={null}>
-                    <SeatPicker
-                        departure={selectedDeparture}
-                        seats={seats}
-                        selectedSeatUuids={selectedSeatUuids}
+                    <MultiLegSeatPicker
+                        legs={itineraryQuoteLegs}
+                        legSeats={itineraryLegSeats ?? []}
                         passengerCount={passengerCount}
                         maxPassengers={groupBookingSettings.maximumPassengers}
-                        loading={isLoadingSeats}
-                        processing={quoteForm.processing || holdForm.processing}
-                        onToggleSeat={(seat) =>
-                            setSelectedSeatUuids((current) =>
-                                current.includes(seat.uuid)
-                                    ? current.filter((uuid) => uuid !== seat.uuid)
-                                    : current.length >= passengerCount
-                                        ? current
-                                        : [...current, seat.uuid],
-                            )
-                        }
-                        onPassengerCountChange={(count) => {
-                            setPassengerCount(count);
-                            setSelectedSeatUuids((current) =>
-                                current.slice(0, count),
-                            );
-                        }}
+                        processing={holdForm.processing}
+                        onPassengerCountChange={setPassengerCount}
                         onClose={() => setIsSeatPickerOpen(false)}
-                        onConfirm={() => {
-                            if (selectedSeatUuids.length !== passengerCount) {
-                                return;
-                            }
-
-                            setIsSeatPickerOpen(false);
-                        }}
+                        onConfirm={handleSeatPickerConfirm}
+                        payerType={payerType}
+                        selectedCompanyAccountUuid={selectedCompanyAccountUuid}
+                        companyAccounts={companyAccounts}
+                        amount={itineraryQuote?.totalAmount ?? 0}
+                        currency={itineraryQuote?.currency ?? 'XOF'}
+                        onPayerTypeChange={setPayerType}
+                        onCompanyAccountChange={setSelectedCompanyAccountUuid}
                     />
                 </Suspense>
             )}

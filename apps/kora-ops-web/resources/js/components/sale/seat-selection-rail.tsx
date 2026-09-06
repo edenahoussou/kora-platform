@@ -1,5 +1,6 @@
 import { Clock3, Minus, Plus } from 'lucide-react';
-import type { SaleSeat } from './sale-types';
+import { PayerSelector } from './payer-selector';
+import type { SaleCompanyAccount, SalePayerType, SaleSeat } from './sale-types';
 import { SeatPickerLegend } from './seat-picker-legend';
 
 type Props = {
@@ -12,6 +13,13 @@ type Props = {
     onPassengerCountChange: (count: number) => void;
     onClose: () => void;
     onConfirm: () => void;
+    payerType?: SalePayerType;
+    selectedCompanyAccountUuid?: string | null;
+    companyAccounts?: SaleCompanyAccount[];
+    amount?: number;
+    currency?: string;
+    onPayerTypeChange?: (type: SalePayerType) => void;
+    onCompanyAccountChange?: (uuid: string | null) => void;
 };
 
 export function SeatSelectionRail({
@@ -24,6 +32,13 @@ export function SeatSelectionRail({
     onPassengerCountChange,
     onClose,
     onConfirm,
+    payerType = 'personal',
+    selectedCompanyAccountUuid = null,
+    companyAccounts = [],
+    amount = 0,
+    currency = 'XOF',
+    onPayerTypeChange,
+    onCompanyAccountChange,
 }: Props) {
     const availableCount = seats.filter(
         (seat) => seat.availabilityStatus === 'available',
@@ -100,6 +115,19 @@ export function SeatSelectionRail({
                 </div>
 
                 <SeatPickerLegend />
+
+                {onPayerTypeChange && (
+                    <PayerSelector
+                        payerType={payerType}
+                        selectedCompanyAccountUuid={selectedCompanyAccountUuid}
+                        companyAccounts={companyAccounts}
+                        amount={amount}
+                        currency={currency}
+                        onPayerTypeChange={onPayerTypeChange}
+                        onCompanyAccountChange={onCompanyAccountChange ?? (() => { })}
+                        disabled={processing}
+                    />
+                )}
 
                 <div className="seat-selection-notice">
                     <Clock3 className="size-4" />

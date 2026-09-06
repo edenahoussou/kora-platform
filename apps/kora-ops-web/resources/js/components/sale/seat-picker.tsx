@@ -1,4 +1,4 @@
-import type { SaleDeparture, SaleSeat } from './sale-types';
+import type { SaleCompanyAccount, SaleDeparture, SalePayerType, SaleSeat } from './sale-types';
 import { SeatGrid } from './seat-grid';
 import { SeatPickerDialog } from './seat-picker-dialog';
 import { SeatPickerTripSummary } from './seat-picker-trip-summary';
@@ -16,6 +16,13 @@ type Props = {
     onPassengerCountChange: (count: number) => void;
     onClose: () => void;
     onConfirm: () => void;
+    payerType?: SalePayerType;
+    selectedCompanyAccountUuid?: string | null;
+    companyAccounts?: SaleCompanyAccount[];
+    amount?: number;
+    currency?: string;
+    onPayerTypeChange?: (type: SalePayerType) => void;
+    onCompanyAccountChange?: (uuid: string | null) => void;
 };
 
 export function SeatPicker({
@@ -30,6 +37,13 @@ export function SeatPicker({
     onPassengerCountChange,
     onClose,
     onConfirm,
+    payerType = 'personal',
+    selectedCompanyAccountUuid = null,
+    companyAccounts = [],
+    amount = 0,
+    currency = 'XOF',
+    onPayerTypeChange,
+    onCompanyAccountChange,
 }: Props) {
     const selectedSeatCodes = seats
         .filter((seat) => selectedSeatUuids.includes(seat.uuid))
@@ -69,6 +83,13 @@ export function SeatPicker({
                     onPassengerCountChange={onPassengerCountChange}
                     onClose={onClose}
                     onConfirm={onConfirm}
+                    payerType={payerType}
+                    selectedCompanyAccountUuid={selectedCompanyAccountUuid}
+                    companyAccounts={companyAccounts}
+                    amount={amount}
+                    currency={currency}
+                    onPayerTypeChange={onPayerTypeChange}
+                    onCompanyAccountChange={onCompanyAccountChange}
                 />
             </div>
         </SeatPickerDialog>

@@ -26,6 +26,17 @@ export function formatShortDate(value: string | null): string {
     }).format(new Date(`${value}T12:00:00`));
 }
 
+export function formatDayMonth(value: string | null): string {
+    if (!value) {
+        return '';
+    }
+
+    return new Intl.DateTimeFormat('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+    }).format(new Date(`${value}T12:00:00`));
+}
+
 export function formatTime(value: string | null): string {
     return value ? value.slice(0, 5) : '—';
 }
@@ -85,14 +96,23 @@ export function formatDepartureCountdown(
 }
 
 export function formatDuration(minutes: number | null): string {
-    if (!minutes) {
+    if (!minutes || minutes <= 0) {
         return '—';
     }
 
-    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(minutes / 1440);
+    const hours = Math.floor((minutes % 1440) / 60);
     const remainder = minutes % 60;
 
-    return `${hours} h${remainder ? ` ${remainder.toString().padStart(2, '0')}` : ''}`;
+    if (days > 0) {
+        return `${days} j${hours > 0 ? ` ${hours} h${remainder > 0 ? ` ${remainder.toString().padStart(2, '0')}` : ''}` : ''}`;
+    }
+
+    if (hours > 0) {
+        return `${hours} h${remainder > 0 ? ` ${remainder.toString().padStart(2, '0')}` : ''}`;
+    }
+
+    return `${remainder} min`;
 }
 
 export function formatRemainingTime(expiresAt: string | null): string {

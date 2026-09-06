@@ -8,6 +8,12 @@ export type SaleStage =
 
 export type SalePaymentMethod = 'cash' | 'mobile_money' | 'company_credit';
 
+export type SaleBusAmenity = {
+    code: string;
+    label: string;
+    icon: string | null;
+};
+
 export type SaleMobileMoneyNetwork = 'mtn_momo' | 'moov_flooz' | 'celtiis_cash';
 
 export type SaleCompanyAccount = {
@@ -129,10 +135,22 @@ export type SaleCity = {
     stopsCount: number;
 };
 
+export type SaleTripType = 'one_way' | 'round_trip';
+
+export type SaleServiceClass = {
+    uuid: string;
+    code: string;
+    name: string;
+};
+
 export type SaleSearch = {
     date: string | null;
     from: string | null;
     to: string | null;
+    tripType: SaleTripType;
+    returnDate: string | null;
+    serviceClass: string | null;
+    hasDate?: boolean;
 };
 
 export type SaleSellabilityReason =
@@ -223,6 +241,7 @@ export type SaleDeparture = {
         brand: string | null;
         model: string | null;
         seatCount: number;
+        amenities?: SaleBusAmenity[];
     };
     originStop: SaleStop;
     destinationStop: SaleStop;
@@ -246,15 +265,23 @@ export type SaleItineraryLeg = {
         uuid: string;
         code: string;
         name: string;
+        estimatedDurationMinutes?: number | null;
         isInternational: boolean;
     };
     bus: {
         uuid: string;
         registrationNumber: string;
+        brand?: string | null;
+        model?: string | null;
+        seatCount?: number;
+        amenities?: SaleBusAmenity[];
     };
     originStop: SaleStop;
     destinationStop: SaleStop;
     amount: number;
+    availableSeatsCount: number;
+    serviceClassCode: string | null;
+    serviceClassName: string | null;
     departureAt: string;
     arrivalAt: string;
 };
@@ -303,48 +330,26 @@ export type SaleQuote = {
     expiresAt: string | null;
 };
 
-export type SaleItineraryQuote = SaleQuote & {
-    groupDiscountAmount: number;
-    legs: Array<Record<string, unknown>>;
+export type SaleItineraryQuoteLeg = SaleItineraryLeg & {
+    amount: number;
+    currency: string;
 };
 
-export type SaleV2TripType = 'one_way' | 'round_trip';
+export type SaleItineraryQuote = SaleQuote & {
+    groupDiscountAmount: number;
+    legs: SaleItineraryQuoteLeg[];
+};
 
-export type SaleV2JourneyLeg = {
+export type SaleItineraryLegSeat = {
+    legOrder: number;
+    direction: 'outbound' | 'inbound';
+    seats: SaleSeat[];
+};
+
+export type SaleSelectedItineraryLeg = {
     direction: 'outbound' | 'inbound';
     legOrder: number;
     departureUuid: string;
-    departureDate: string;
-    departureTime: string;
-    line: SaleItineraryLeg['line'];
-    bus: SaleItineraryLeg['bus'];
-    originStop: SaleStop;
-    destinationStop: SaleStop;
-    amount: number;
-    departureAt: string;
-    arrivalAt: string;
-};
-
-export type SaleV2JourneyOption = {
-    uuid: string;
-    direction: 'outbound' | 'inbound';
-    isDirect: boolean;
-    connectionsCount: number;
-    totalAmount: number;
-    currency: string;
-    departureAt: string;
-    arrivalAt: string;
-    connectionMarginMinutes: number;
-    legs: SaleV2JourneyLeg[];
-};
-
-export type SaleV2Search = {
-    tripType: SaleV2TripType;
-    originPhysicalStopUuid: string | null;
-    destinationPhysicalStopUuid: string | null;
-    departureDate: string | null;
-    returnDate: string | null;
-    passengerCount: number;
 };
 
 export type SaleReservation = {
@@ -414,11 +419,14 @@ export type SaleReservation = {
 
 export type SaleProps = {
     cities: SaleCity[];
+    serviceClasses: SaleServiceClass[];
     search: SaleSearch;
-    departures: SaleDeparture[];
-    itineraries: SaleItinerary[];
-    selectedDeparture: SaleDeparture | null;
+    outboundItineraries: SaleItinerary[];
+    inboundItineraries?: SaleItinerary[];
+    selectedOutboundItinerary?: SaleItinerary | null;
+    selectedInboundItinerary?: SaleItinerary | null;
     seats: SaleSeat[];
+    itineraryLegSeats?: SaleItineraryLegSeat[];
     quote: SaleQuote | null;
     itineraryQuote?: SaleItineraryQuote | null;
     reservation: SaleReservation | null;
