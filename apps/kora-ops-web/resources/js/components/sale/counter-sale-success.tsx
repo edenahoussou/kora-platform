@@ -1,5 +1,12 @@
 import { router, usePoll } from '@inertiajs/react';
-import { AlertCircle, Check, ExternalLink, LoaderCircle, Plus, RefreshCw } from 'lucide-react';
+import {
+    AlertCircle,
+    Check,
+    ExternalLink,
+    LoaderCircle,
+    Plus,
+    RefreshCw,
+} from 'lucide-react';
 import { useEffect } from 'react';
 import { retry } from '@/routes/sale/tickets';
 import { ReceiptQr } from './receipt-qr';
@@ -19,8 +26,15 @@ export function CounterSaleSuccess({
 }) {
     useEffect(() => {
         const clearPrintMode = () => {
-            document.body.classList.remove('receipt-print-mode', 'single-ticket-print-mode');
-            document.querySelectorAll('.is-print-target').forEach((element) => element.classList.remove('is-print-target'));
+            document.body.classList.remove(
+                'receipt-print-mode',
+                'single-ticket-print-mode',
+            );
+            document
+                .querySelectorAll('.is-print-target')
+                .forEach((element) =>
+                    element.classList.remove('is-print-target'),
+                );
         };
 
         window.addEventListener('afterprint', clearPrintMode);
@@ -63,8 +77,8 @@ export function CounterSaleSuccess({
                         {issuancePending
                             ? 'Émission des billets en cours…'
                             : ticketCount > 1
-                                ? `${ticketCount} billets sont prêts.`
-                                : 'Le billet est prêt.'}
+                              ? `${ticketCount} billets sont prêts.`
+                              : 'Le billet est prêt.'}
                     </h1>
                     <p>
                         {ticketCount > 1
@@ -77,9 +91,13 @@ export function CounterSaleSuccess({
             <div className="success-workspace">
                 <div className="issued-ticket-list">
                     {issuancePending && (
-                        <div className="summary-callout warning" aria-live="polite">
+                        <div
+                            className="summary-callout warning"
+                            aria-live="polite"
+                        >
                             <LoaderCircle className="size-4 animate-spin" />
-                            Paiement conservé. Les billets disponibles apparaissent automatiquement.
+                            Paiement conservé. Les billets disponibles
+                            apparaissent automatiquement.
                         </div>
                     )}
                     {reservation.ticketIssuance.status === 'failed' && (
@@ -87,13 +105,23 @@ export function CounterSaleSuccess({
                             <AlertCircle className="size-4" />
                             <div>
                                 <strong>Émission incomplète</strong>
-                                <p>{reservation.ticketIssuance.error ?? 'Une erreur a empêché certains billets.'}</p>
+                                <p>
+                                    {reservation.ticketIssuance.error ??
+                                        'Une erreur a empêché certains billets.'}
+                                </p>
                                 <button
                                     type="button"
                                     className="btn btn-primary mt-3"
-                                    onClick={() => router.post(retry.url(reservation.uuid), {}, { preserveScroll: true })}
+                                    onClick={() =>
+                                        router.post(
+                                            retry.url(reservation.uuid),
+                                            {},
+                                            { preserveScroll: true },
+                                        )
+                                    }
                                 >
-                                    <RefreshCw className="size-4" /> Relancer l’émission
+                                    <RefreshCw className="size-4" /> Relancer
+                                    l’émission
                                 </button>
                             </div>
                         </div>
@@ -118,23 +146,27 @@ export function CounterSaleSuccess({
                         <span>Actions</span>
                         <small>Après encaissement</small>
                     </div>
-                    {ticketCount > 0 && reservation.tickets.map((ticket) => (
-                        <a
-                            key={ticket.uuid}
-                            href={`/tickets/${ticket.uuid}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="action-rail-button action-rail-button-primary"
-                        >
-                            <span className="action-rail-icon" aria-hidden="true">
-                                <ExternalLink size={18} strokeWidth={1.7} />
-                            </span>
-                            <span className="action-rail-label">
-                                <strong>Voir le billet</strong>
-                                <small>{ticket.shortCode}</small>
-                            </span>
-                        </a>
-                    ))}
+                    {ticketCount > 0 &&
+                        reservation.tickets.map((ticket) => (
+                            <a
+                                key={ticket.uuid}
+                                href={`/tickets/${ticket.uuid}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="action-rail-button action-rail-button-primary"
+                            >
+                                <span
+                                    className="action-rail-icon"
+                                    aria-hidden="true"
+                                >
+                                    <ExternalLink size={18} strokeWidth={1.7} />
+                                </span>
+                                <span className="action-rail-label">
+                                    <strong>Voir le billet</strong>
+                                    <small>{ticket.shortCode}</small>
+                                </span>
+                            </a>
+                        ))}
                     <button
                         type="button"
                         className="action-rail-button action-rail-button-new"
@@ -176,7 +208,10 @@ function TicketCard({
     const ticketAmount = ticket.allocationAmount;
 
     return (
-        <article className="ticket-card compact-ticket" data-ticket-uuid={ticket.uuid}>
+        <article
+            className="ticket-card compact-ticket"
+            data-ticket-uuid={ticket.uuid}
+        >
             <div className="ticket-brand">
                 <div className="ticket-brand-lockup">
                     <img src="/kora-logo-sidebar.png" alt="KORA EXPRESS" />
@@ -224,7 +259,17 @@ function TicketCard({
                                 : '—'
                         }
                     />
-                    <TicketField label="Sièges" value={ticket.legs.map((leg) => leg.seatCode).filter(Boolean).join(' · ') || ticket.seatCode || '—'} />
+                    <TicketField
+                        label="Sièges"
+                        value={
+                            ticket.legs
+                                .map((leg) => leg.seatCode)
+                                .filter(Boolean)
+                                .join(' · ') ||
+                            ticket.seatCode ||
+                            '—'
+                        }
+                    />
                     <TicketField
                         label="Numéro billet"
                         value={shortUuid(ticket.ticketNumber)}
@@ -309,16 +354,16 @@ function paymentLabel(payment: SaleReservation['payment']): string {
     return payment.network === 'mtn_momo'
         ? 'MTN MoMo'
         : payment.network === 'moov_flooz'
-            ? 'Moov Money / Flooz'
-            : 'Celtis Cash';
+          ? 'Moov Money / Flooz'
+          : 'Celtis Cash';
 }
 
 function stopCode(city: string | undefined): string {
     return city
         ? city
-            .replace(/[^a-zA-Z]/g, '')
-            .slice(0, 3)
-            .toUpperCase()
+              .replace(/[^a-zA-Z]/g, '')
+              .slice(0, 3)
+              .toUpperCase()
         : '—';
 }
 

@@ -41,11 +41,23 @@ const departure: SaleDeparture = {
         stopOrder: 2,
     },
     availableSeatsCount: 28,
-    sellability: { isSellable: true, reason: 'within_grace', saleClosesAt: '2026-09-12T07:30:00+00:00' },
-    farePreview: { final_amount: 10000, currency: 'XOF', service_class_name: 'Confort' },
+    sellability: {
+        isSellable: true,
+        reason: 'within_grace',
+        saleClosesAt: '2026-09-12T07:30:00+00:00',
+    },
+    farePreview: {
+        final_amount: 10000,
+        currency: 'XOF',
+        service_class_name: 'Confort',
+    },
 };
 
-const quote = (passengerCount: number, totalAmount: number, discountAmount = 0): SaleQuote => ({
+const quote = (
+    passengerCount: number,
+    totalAmount: number,
+    discountAmount = 0,
+): SaleQuote => ({
     uuid: `quote-${passengerCount}`,
     baseAmount: passengerCount * 10000,
     coefficient: 1,
@@ -62,7 +74,9 @@ const quote = (passengerCount: number, totalAmount: number, discountAmount = 0):
         amount: discountAmount,
     },
     isGroup: passengerCount >= 5,
-    passengerAllocations: Array.from({ length: passengerCount }, () => Math.floor(totalAmount / passengerCount)),
+    passengerAllocations: Array.from({ length: passengerCount }, () =>
+        Math.floor(totalAmount / passengerCount),
+    ),
     totalAmount,
     expiresAt: '2026-09-12T07:45:00+00:00',
 });
@@ -114,12 +128,27 @@ type Story = StoryObj<typeof meta>;
 
 export const OneTraveller: Story = {};
 export const GroupOfFive: Story = {
-    args: { passengerCount: 5, selectedSeatCodes: ['2A', '2B', '3A', '3B', '4A'], quote: quote(5, 50000) },
+    args: {
+        passengerCount: 5,
+        selectedSeatCodes: ['2A', '2B', '3A', '3B', '4A'],
+        quote: quote(5, 50000),
+    },
 };
 export const GroupOfTenWithDiscount: Story = {
     args: {
         passengerCount: 10,
-        selectedSeatCodes: ['2A', '2B', '3A', '3B', '4A', '4B', '5A', '5B', '6A', '6B'],
+        selectedSeatCodes: [
+            '2A',
+            '2B',
+            '3A',
+            '3B',
+            '4A',
+            '4B',
+            '5A',
+            '5B',
+            '6A',
+            '6B',
+        ],
         quote: quote(10, 90000, 10000),
     },
 };
@@ -135,7 +164,18 @@ export const CompanyCreditSolvable: Story = {
 export const CompanyCreditInsufficient: Story = {
     args: {
         passengerCount: 10,
-        selectedSeatCodes: ['2A', '2B', '3A', '3B', '4A', '4B', '5A', '5B', '6A', '6B'],
+        selectedSeatCodes: [
+            '2A',
+            '2B',
+            '3A',
+            '3B',
+            '4A',
+            '4B',
+            '5A',
+            '5B',
+            '6A',
+            '6B',
+        ],
         quote: quote(10, 90000, 10000),
         payerType: 'company',
         selectedCompanyAccountUuid: 'company-insufficient',

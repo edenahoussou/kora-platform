@@ -1,4 +1,11 @@
-import { ArrowLeft, ArrowRight, Check, Clock3, Minus, Plus } from 'lucide-react';
+import {
+    ArrowLeft,
+    ArrowRight,
+    Check,
+    Clock3,
+    Minus,
+    Plus,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PayerSelector } from './payer-selector';
 import type {
@@ -104,22 +111,27 @@ export function SeatSelectionRail({
                     <div className="multi-leg-passenger-tabs">
                         {Array.from({ length: passengerCount }, (_, i) => {
                             const isDone = multiLeg!.legs.every((leg) =>
-                                Boolean(multiLeg!.assignments[i]?.[leg.legOrder]),
+                                Boolean(
+                                    multiLeg!.assignments[i]?.[leg.legOrder],
+                                ),
                             );
 
                             return (
                                 <button
                                     key={i}
                                     type="button"
-                                    onClick={() => multiLeg!.onSelectPassenger(i)}
+                                    onClick={() =>
+                                        multiLeg!.onSelectPassenger(i)
+                                    }
                                     className={cn(
                                         'multi-leg-passenger-tab',
-                                        multiLeg!.activePassenger === i && 'is-active',
+                                        multiLeg!.activePassenger === i &&
+                                            'is-active',
                                         isDone && 'is-done',
                                     )}
                                 >
-                                    {isDone && <Check className="size-3" />}
-                                    P{i + 1}
+                                    {isDone && <Check className="size-3" />}P
+                                    {i + 1}
                                 </button>
                             );
                         })}
@@ -130,9 +142,9 @@ export function SeatSelectionRail({
                     <div className="multi-leg-assignment-list">
                         {multiLeg!.legs.map((leg) => {
                             const uuid =
-                                multiLeg!.assignments[multiLeg!.activePassenger]?.[
-                                leg.legOrder
-                                ];
+                                multiLeg!.assignments[
+                                    multiLeg!.activePassenger
+                                ]?.[leg.legOrder];
                             const code = uuid
                                 ? multiLeg!.getSeatCode(leg.legOrder, uuid)
                                 : undefined;
@@ -146,8 +158,11 @@ export function SeatSelectionRail({
                                     )}
                                 >
                                     <span>
-                                        {DIRECTION_LABEL[leg.direction ?? 'outbound'] ?? 'Aller'}{' '}
-                                        · {leg.originStop.city} → {leg.destinationStop.city}
+                                        {DIRECTION_LABEL[
+                                            leg.direction ?? 'outbound'
+                                        ] ?? 'Aller'}{' '}
+                                        · {leg.originStop.city} →{' '}
+                                        {leg.destinationStop.city}
                                     </span>
                                     <strong>{code ?? 'À choisir'}</strong>
                                 </div>
@@ -197,7 +212,9 @@ export function SeatSelectionRail({
                         <button
                             type="button"
                             aria-label="Ajouter un voyageur"
-                            disabled={passengerCount >= maxPassengers || processing}
+                            disabled={
+                                passengerCount >= maxPassengers || processing
+                            }
                             onClick={() =>
                                 onPassengerCountChange(passengerCount + 1)
                             }
@@ -222,7 +239,9 @@ export function SeatSelectionRail({
                         amount={amount}
                         currency={currency}
                         onPayerTypeChange={onPayerTypeChange}
-                        onCompanyAccountChange={onCompanyAccountChange ?? (() => { })}
+                        onCompanyAccountChange={
+                            onCompanyAccountChange ?? (() => {})
+                        }
                         disabled={processing}
                     />
                 )}

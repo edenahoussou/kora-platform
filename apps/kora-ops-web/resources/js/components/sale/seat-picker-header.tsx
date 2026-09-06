@@ -2,7 +2,12 @@ import { BusFront, CalendarDays, Clock3, Hash, Tag, Users } from 'lucide-react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import type { SaleItineraryLeg } from './sale-types';
-import { formatDuration, formatIsoDate, formatIsoTime, formatShortDate } from './sale-utils';
+import {
+    formatDuration,
+    formatIsoDate,
+    formatIsoTime,
+    formatShortDate,
+} from './sale-utils';
 
 type Props = {
     leg: SaleItineraryLeg;
@@ -12,10 +17,15 @@ type Props = {
     progressBadge?: string;
 };
 
-export function SeatPickerHeader({ leg, directionLabel, progressBadge }: Props) {
+export function SeatPickerHeader({
+    leg,
+    directionLabel,
+    progressBadge,
+}: Props) {
     const serviceClass =
         leg.serviceClassName ?? leg.serviceClassCode ?? 'Service non renseigné';
-    const vehicleModel = leg.bus.model ?? leg.bus.brand ?? 'Modèle non renseigné';
+    const vehicleModel =
+        leg.bus.model ?? leg.bus.brand ?? 'Modèle non renseigné';
     const title = directionLabel
         ? `Choisir les places · ${directionLabel}`
         : 'Choisir les places';
@@ -47,8 +57,7 @@ export function SeatPickerHeader({ leg, directionLabel, progressBadge }: Props) 
                     </span>
                     <span>
                         <Tag className="size-3.5" />
-                        Immat.{' '}
-                        <strong>{leg.bus.registrationNumber}</strong>
+                        Immat. <strong>{leg.bus.registrationNumber}</strong>
                     </span>
                     <span>
                         <Users className="size-3.5" />
@@ -61,7 +70,9 @@ export function SeatPickerHeader({ leg, directionLabel, progressBadge }: Props) 
                     <span>
                         <Clock3 className="size-3.5" />
                         {formatIsoTime(leg.departureAt)} ·{' '}
-                        {formatDuration(leg.line.estimatedDurationMinutes ?? null)}
+                        {formatDuration(
+                            leg.line.estimatedDurationMinutes ?? null,
+                        )}
                     </span>
                 </div>
             </div>

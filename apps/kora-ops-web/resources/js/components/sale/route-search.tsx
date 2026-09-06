@@ -1,4 +1,10 @@
-import { ArrowRightLeft, CalendarDays, MapPin, Search, Sofa } from 'lucide-react';
+import {
+    ArrowRightLeft,
+    CalendarDays,
+    MapPin,
+    Search,
+    Sofa,
+} from 'lucide-react';
 import type { ReactNode, SyntheticEvent } from 'react';
 import { cn } from '@/lib/utils';
 import type {
@@ -59,8 +65,7 @@ export function RouteSearch({
         onChange({
             ...value,
             tripType,
-            returnDate:
-                tripType === 'round_trip' ? value.returnDate : null,
+            returnDate: tripType === 'round_trip' ? value.returnDate : null,
         });
 
     const isRoundTrip = value.tripType === 'round_trip';
@@ -199,7 +204,9 @@ export function RouteSearch({
                 </label>
                 {isRoundTrip && (
                     <label className="grid gap-1.5 text-[0.625rem] font-extrabold text-white/60">
-                        <FieldLabel icon={<CalendarDays className="size-3.5" />}>
+                        <FieldLabel
+                            icon={<CalendarDays className="size-3.5" />}
+                        >
                             Retour
                         </FieldLabel>
                         <input

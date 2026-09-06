@@ -71,8 +71,7 @@ function initialPassengers(reservation: SaleReservation): SalePassengerForm[] {
             lastName: draft?.lastName ?? passenger?.lastName ?? '',
             phone: normalizePhoneValue(draft?.phone ?? passenger?.phone),
             email: draft?.email ?? passenger?.email ?? '',
-            documentType:
-                draft?.documentType ?? passenger?.documentType ?? '',
+            documentType: draft?.documentType ?? passenger?.documentType ?? '',
             documentNumber:
                 draft?.documentNumber ?? passenger?.documentNumber ?? '',
             nationality: draft?.nationality ?? passenger?.nationality ?? '',
@@ -139,8 +138,8 @@ function hasSamePassengerDetails(
         current.documentType === persisted.documentType &&
         current.documentNumber === persisted.documentNumber &&
         current.nationality === persisted.nationality &&
-        current.birthDate === persisted.birthDate
-        && current.yellowFeverVaccinated === persisted.yellowFeverVaccinated
+        current.birthDate === persisted.birthDate &&
+        current.yellowFeverVaccinated === persisted.yellowFeverVaccinated
     );
 }
 
@@ -206,9 +205,8 @@ export function PassengerFinalization({
     const isInternational = departure?.line.isInternational ?? false;
     const completeCount = useMemo(
         () =>
-            passengers.filter((passenger) =>
-                isPassengerComplete(passenger),
-            ).length,
+            passengers.filter((passenger) => isPassengerComplete(passenger))
+                .length,
         [passengers],
     );
     const completedPassengers = completeCount === passengers.length;
@@ -295,8 +293,8 @@ export function PassengerFinalization({
                                 {completedPassengers && savedAllPassengers
                                     ? 'Informations enregistrées'
                                     : completedPassengers
-                                        ? 'Prêt à enregistrer'
-                                        : `${completeCount}/${passengers.length} complété${completeCount > 1 ? 's' : ''}`}
+                                      ? 'Prêt à enregistrer'
+                                      : `${completeCount}/${passengers.length} complété${completeCount > 1 ? 's' : ''}`}
                             </strong>
                         </div>
                     </div>
@@ -310,8 +308,8 @@ export function PassengerFinalization({
                         {draftSaving
                             ? 'Enregistrement du brouillon…'
                             : draftSaved
-                                ? 'Brouillon enregistré'
-                                : 'Brouillon local prêt à enregistrer'}
+                              ? 'Brouillon enregistré'
+                              : 'Brouillon local prêt à enregistrer'}
                     </div>
                     <div
                         className="finalization-progress"
@@ -325,17 +323,31 @@ export function PassengerFinalization({
                     </div>
                 </div>
 
-                <nav className="mb-4 flex gap-2 overflow-x-auto pb-1" aria-label="Voyageurs du groupe">
+                <nav
+                    className="mb-4 flex gap-2 overflow-x-auto pb-1"
+                    aria-label="Voyageurs du groupe"
+                >
                     {passengers.map((passenger, index) => (
                         <button
                             key={passenger.passengerIndex}
                             type="button"
-                            className={cn('btn btn-ghost shrink-0', activeIndex === index && 'border-gold bg-gold/10')}
+                            className={cn(
+                                'btn btn-ghost shrink-0',
+                                activeIndex === index &&
+                                    'border-gold bg-gold/10',
+                            )}
                             onClick={() => setActiveIndex(index)}
-                            aria-current={activeIndex === index ? 'step' : undefined}
+                            aria-current={
+                                activeIndex === index ? 'step' : undefined
+                            }
                         >
-                            {isPassengerComplete(passenger) ? <CheckCircle2 className="size-3.5 text-emerald-600" /> : <span>{index + 1}</span>}
-                            Voyageur {index + 1} · {passenger.seatCode || 'sans siège'}
+                            {isPassengerComplete(passenger) ? (
+                                <CheckCircle2 className="size-3.5 text-emerald-600" />
+                            ) : (
+                                <span>{index + 1}</span>
+                            )}
+                            Voyageur {index + 1} ·{' '}
+                            {passenger.seatCode || 'sans siège'}
                         </button>
                     ))}
                 </nav>
@@ -348,7 +360,7 @@ export function PassengerFinalization({
                     const phoneError =
                         fieldError(index, 'phone') ??
                         (passenger.phone.trim() !== '' &&
-                            !isValidPhoneNumber(passenger.phone)
+                        !isValidPhoneNumber(passenger.phone)
                             ? 'Saisissez un numéro international valide.'
                             : undefined);
 
@@ -511,7 +523,7 @@ export function PassengerFinalization({
                                     />
                                 </label>
 
-                                {(
+                                {
                                     <>
                                         <div className="form-group-heading">
                                             <span className="form-group-heading-title">
@@ -519,13 +531,13 @@ export function PassengerFinalization({
                                                 Document de voyage
                                             </span>
                                             <small>
-                                                Facultatif. Si vous renseignez un document, le type et le numéro sont tous deux requis.
+                                                Facultatif. Si vous renseignez
+                                                un document, le type et le
+                                                numéro sont tous deux requis.
                                             </small>
                                         </div>
                                         <label className="field">
-                                            <span>
-                                                Type de document
-                                            </span>
+                                            <span>Type de document</span>
                                             <select
                                                 id={`passenger-${index}-document-type`}
                                                 className="control"
@@ -538,7 +550,9 @@ export function PassengerFinalization({
                                                     )
                                                 }
                                             >
-                                                <option value="">Aucun document</option>
+                                                <option value="">
+                                                    Aucun document
+                                                </option>
                                                 <option value="national_id">
                                                     Carte nationale
                                                 </option>
@@ -554,9 +568,7 @@ export function PassengerFinalization({
                                             </select>
                                         </label>
                                         <label className="field">
-                                            <span>
-                                                Numéro du document
-                                            </span>
+                                            <span>Numéro du document</span>
                                             <input
                                                 id={`passenger-${index}-document-number`}
                                                 className="control"
@@ -607,37 +619,74 @@ export function PassengerFinalization({
                                             />
                                         </label>
                                         <label className="field sm:col-span-2">
-                                            <span className="field-label">Vaccination fièvre jaune</span>
+                                            <span className="field-label">
+                                                Vaccination fièvre jaune
+                                            </span>
                                             <select
                                                 className="control"
-                                                value={passenger.yellowFeverVaccinated === null ? '' : passenger.yellowFeverVaccinated ? 'yes' : 'no'}
+                                                value={
+                                                    passenger.yellowFeverVaccinated ===
+                                                    null
+                                                        ? ''
+                                                        : passenger.yellowFeverVaccinated
+                                                          ? 'yes'
+                                                          : 'no'
+                                                }
                                                 onChange={(event) =>
                                                     updatePassenger(
                                                         index,
                                                         'yellowFeverVaccinated',
-                                                        event.target.value === '' ? null : event.target.value === 'yes',
+                                                        event.target.value ===
+                                                            ''
+                                                            ? null
+                                                            : event.target
+                                                                  .value ===
+                                                                  'yes',
                                                     )
                                                 }
                                             >
-                                                <option value="">Non renseignée</option>
+                                                <option value="">
+                                                    Non renseignée
+                                                </option>
                                                 <option value="yes">Oui</option>
                                                 <option value="no">Non</option>
                                             </select>
-                                            <small className="payment-field-help">Information enregistrée sans bloquer la vente.</small>
+                                            <small className="payment-field-help">
+                                                Information enregistrée sans
+                                                bloquer la vente.
+                                            </small>
                                         </label>
                                     </>
-                                )}
+                                }
                             </div>
                         </article>
                     );
                 })}
 
                 <div className="mb-5 flex items-center justify-between gap-3">
-                    <button type="button" className="btn btn-ghost" disabled={activeIndex === 0} onClick={() => setActiveIndex((value) => Math.max(0, value - 1))}>
+                    <button
+                        type="button"
+                        className="btn btn-ghost"
+                        disabled={activeIndex === 0}
+                        onClick={() =>
+                            setActiveIndex((value) => Math.max(0, value - 1))
+                        }
+                    >
                         <ArrowLeft className="size-4" /> Précédent
                     </button>
-                    <span className="text-xs font-semibold text-muted-foreground">{activeIndex + 1} / {passengers.length}</span>
-                    <button type="button" className="btn btn-ghost" disabled={activeIndex === passengers.length - 1} onClick={() => setActiveIndex((value) => Math.min(passengers.length - 1, value + 1))}>
+                    <span className="text-xs font-semibold text-muted-foreground">
+                        {activeIndex + 1} / {passengers.length}
+                    </span>
+                    <button
+                        type="button"
+                        className="btn btn-ghost"
+                        disabled={activeIndex === passengers.length - 1}
+                        onClick={() =>
+                            setActiveIndex((value) =>
+                                Math.min(passengers.length - 1, value + 1),
+                            )
+                        }
+                    >
                         Suivant <ArrowRight className="size-4" />
                     </button>
                 </div>
@@ -718,8 +767,8 @@ export function PassengerFinalization({
                                 {holdCountdown.isExpired
                                     ? 'Le blocage a expiré. Revenez aux places pour le renouveler.'
                                     : completedPassengers
-                                        ? 'Toutes les informations requises sont prêtes. Vous pourrez ensuite encaisser la vente.'
-                                        : 'Complétez les champs requis pour continuer.'}
+                                      ? 'Toutes les informations requises sont prêtes. Vous pourrez ensuite encaisser la vente.'
+                                      : 'Complétez les champs requis pour continuer.'}
                             </span>
                         </span>
                     )}
@@ -738,8 +787,8 @@ export function PassengerFinalization({
                         {processing
                             ? 'Enregistrement…'
                             : savedAllPassengers
-                                ? 'Mettre à jour les voyageurs'
-                                : 'Enregistrer les voyageurs'}
+                              ? 'Mettre à jour les voyageurs'
+                              : 'Enregistrer les voyageurs'}
                         <ArrowRight className="size-4" />
                     </button>
                 </div>

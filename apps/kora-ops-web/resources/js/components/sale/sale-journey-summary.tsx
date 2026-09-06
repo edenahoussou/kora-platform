@@ -25,11 +25,7 @@ import type {
     SaleReservation,
     SaleSearch,
 } from './sale-types';
-import {
-    formatDayMonth,
-    formatIsoTime,
-    formatMoney,
-} from './sale-utils';
+import { formatDayMonth, formatIsoTime, formatMoney } from './sale-utils';
 import { useHoldCountdown } from './use-hold-countdown';
 
 type CashBreakdown = {
@@ -116,9 +112,9 @@ function buildDirectionGroups(
             continue;
         }
 
-        const legOrders = [...new Set(segments.map((segment) => segment.legOrder ?? 0))].sort(
-            (a, b) => a - b,
-        );
+        const legOrders = [
+            ...new Set(segments.map((segment) => segment.legOrder ?? 0)),
+        ].sort((a, b) => a - b);
 
         const legs = legOrders.map((legOrder) => {
             const legSegments = segments.filter(
@@ -131,16 +127,21 @@ function buildDirectionGroups(
                 legOrder,
                 originStop: first?.originStop ?? null,
                 destinationStop: first?.destinationStop ?? null,
-                originStopCity: first?.originStopCity ?? quoteLeg?.originStop.city ?? null,
+                originStopCity:
+                    first?.originStopCity ?? quoteLeg?.originStop.city ?? null,
                 destinationStopCity:
-                    first?.destinationStopCity ?? quoteLeg?.destinationStop.city ?? null,
+                    first?.destinationStopCity ??
+                    quoteLeg?.destinationStop.city ??
+                    null,
                 departureDate: first?.departureDate ?? null,
                 lineCode: first?.lineCode ?? quoteLeg?.line.code ?? null,
                 busRegistration: first?.busRegistration ?? null,
-                departureAt: first?.departureAt ?? quoteLeg?.departureAt ?? null,
+                departureAt:
+                    first?.departureAt ?? quoteLeg?.departureAt ?? null,
                 arrivalAt: first?.arrivalAt ?? quoteLeg?.arrivalAt ?? null,
                 amount: quoteLeg?.amount ?? null,
-                currency: quoteLeg?.currency ?? itineraryQuote?.currency ?? null,
+                currency:
+                    quoteLeg?.currency ?? itineraryQuote?.currency ?? null,
                 passengers: legSegments
                     .map((segment) => ({
                         passengerIndex: segment.passengerIndex ?? 0,
@@ -207,20 +208,30 @@ export function SaleJourneySummary({
 
     // Use search from/to (montée/descente) as the main route cities;
     // fall back to segment cities if search is unavailable.
-    const outboundOrigin = search?.from ?? firstLeg?.originStopCity ?? departure?.originStop.city ?? null;
-    const outboundDestination = search?.to ?? lastLeg?.destinationStopCity ?? departure?.destinationStop.city ?? null;
+    const outboundOrigin =
+        search?.from ??
+        firstLeg?.originStopCity ??
+        departure?.originStop.city ??
+        null;
+    const outboundDestination =
+        search?.to ??
+        lastLeg?.destinationStopCity ??
+        departure?.destinationStop.city ??
+        null;
     const returnOrigin = outboundDestination;
     const returnDestination = outboundOrigin;
 
     const renderDirectionBlock = (group: DirectionGroup) => {
         const isOutbound = group.direction === 'outbound';
         const routeOrigin = isOutbound ? outboundOrigin : returnOrigin;
-        const routeDestination = isOutbound ? outboundDestination : returnDestination;
+        const routeDestination = isOutbound
+            ? outboundDestination
+            : returnDestination;
         const firstLegInGroup = group.legs[0];
         const lastLegInGroup = group.legs[group.legs.length - 1];
         const directionDate = isOutbound
-            ? search?.date ?? firstLegInGroup?.departureDate ?? null
-            : search?.returnDate ?? firstLegInGroup?.departureDate ?? null;
+            ? (search?.date ?? firstLegInGroup?.departureDate ?? null)
+            : (search?.returnDate ?? firstLegInGroup?.departureDate ?? null);
         const directionDepartTime = firstLegInGroup?.departureAt ?? null;
         const directionArriveTime = lastLegInGroup?.arrivalAt ?? null;
 
@@ -242,11 +253,15 @@ export function SaleJourneySummary({
                 <div className="summary-direction-times">
                     <span>
                         <Clock3 className="size-3" />
-                        {directionDepartTime ? formatIsoTime(directionDepartTime) : '—'}
+                        {directionDepartTime
+                            ? formatIsoTime(directionDepartTime)
+                            : '—'}
                     </span>
                     <ArrowRight className="size-3" />
                     <span>
-                        {directionArriveTime ? formatIsoTime(directionArriveTime) : '—'}
+                        {directionArriveTime
+                            ? formatIsoTime(directionArriveTime)
+                            : '—'}
                     </span>
                 </div>
 
@@ -259,25 +274,44 @@ export function SaleJourneySummary({
                                     <span>Jambe {leg.legOrder}</span>
                                 </div>
                                 <div className="summary-leg-route">
-                                    {leg.originStopCity ?? leg.originStop ?? '—'} →{' '}
-                                    {leg.destinationStopCity ?? leg.destinationStop ?? '—'}
+                                    {leg.originStopCity ??
+                                        leg.originStop ??
+                                        '—'}{' '}
+                                    →{' '}
+                                    {leg.destinationStopCity ??
+                                        leg.destinationStop ??
+                                        '—'}
                                 </div>
                                 <div className="summary-leg-schedule">
-                                    {leg.departureAt ? formatIsoTime(leg.departureAt) : '—'}
+                                    {leg.departureAt
+                                        ? formatIsoTime(leg.departureAt)
+                                        : '—'}
                                     {' → '}
-                                    {leg.arrivalAt ? formatIsoTime(leg.arrivalAt) : '—'}
-                                    {leg.busRegistration ? ` · ${leg.busRegistration}` : ''}
+                                    {leg.arrivalAt
+                                        ? formatIsoTime(leg.arrivalAt)
+                                        : '—'}
+                                    {leg.busRegistration
+                                        ? ` · ${leg.busRegistration}`
+                                        : ''}
                                 </div>
                                 {leg.amount !== null && leg.currency && (
                                     <div className="summary-leg-price">
-                                        {formatMoney(leg.amount, leg.currency)} / passager
+                                        {formatMoney(leg.amount, leg.currency)}{' '}
+                                        / passager
                                     </div>
                                 )}
                                 <div className="summary-leg-seats">
                                     {leg.passengers.map((passenger) => (
-                                        <span key={passenger.passengerIndex} className="summary-leg-seat">
-                                            <em>P{passenger.passengerIndex + 1}</em>
-                                            <strong>{passenger.seatCode ?? '—'}</strong>
+                                        <span
+                                            key={passenger.passengerIndex}
+                                            className="summary-leg-seat"
+                                        >
+                                            <em>
+                                                P{passenger.passengerIndex + 1}
+                                            </em>
+                                            <strong>
+                                                {passenger.seatCode ?? '—'}
+                                            </strong>
                                         </span>
                                     ))}
                                 </div>
@@ -288,14 +322,22 @@ export function SaleJourneySummary({
 
                 {!isMultiLeg && firstLegInGroup && (
                     <>
-                        {firstLegInGroup.amount !== null && firstLegInGroup.currency && (
-                            <div className="summary-leg-price">
-                                {formatMoney(firstLegInGroup.amount, firstLegInGroup.currency)} / passager
-                            </div>
-                        )}
+                        {firstLegInGroup.amount !== null &&
+                            firstLegInGroup.currency && (
+                                <div className="summary-leg-price">
+                                    {formatMoney(
+                                        firstLegInGroup.amount,
+                                        firstLegInGroup.currency,
+                                    )}{' '}
+                                    / passager
+                                </div>
+                            )}
                         <div className="summary-leg-seats">
                             {firstLegInGroup.passengers.map((passenger) => (
-                                <span key={passenger.passengerIndex} className="summary-leg-seat">
+                                <span
+                                    key={passenger.passengerIndex}
+                                    className="summary-leg-seat"
+                                >
                                     <em>P{passenger.passengerIndex + 1}</em>
                                     <strong>{passenger.seatCode ?? '—'}</strong>
                                 </span>
@@ -342,8 +384,8 @@ export function SaleJourneySummary({
             )}
 
             {variant === 'payment' &&
-                paymentMethod === 'cash' &&
-                cashBreakdown ? (
+            paymentMethod === 'cash' &&
+            cashBreakdown ? (
                 <CashBreakdownPanel breakdown={cashBreakdown} />
             ) : null}
 
@@ -370,8 +412,8 @@ export function SaleJourneySummary({
             </div>
 
             {variant === 'payment' &&
-                paymentMethod === 'mobile_money' &&
-                mobileChecklist ? (
+            paymentMethod === 'mobile_money' &&
+            mobileChecklist ? (
                 <MobileMoneyChecklistPanel
                     checklist={mobileChecklist}
                     doneCount={mobileChecklistDone ?? 0}
@@ -400,8 +442,8 @@ export function SaleJourneySummary({
                             {holdCountdown.isExpired
                                 ? 'Hold expiré'
                                 : holdCountdown.isUrgent
-                                    ? 'À finaliser rapidement'
-                                    : 'Places sécurisées'}
+                                  ? 'À finaliser rapidement'
+                                  : 'Places sécurisées'}
                         </strong>
                     </span>
                     <time dateTime={reservation.expiresAt ?? undefined}>
@@ -415,8 +457,8 @@ export function SaleJourneySummary({
                     {holdCountdown.isExpired
                         ? 'Le blocage doit être renouvelé avant de poursuivre.'
                         : holdCountdown.isUrgent
-                            ? 'Finalisez les informations ou modifiez les places avant la libération automatique.'
-                            : 'Le temps restant est actualisé automatiquement.'}
+                          ? 'Finalisez les informations ou modifiez les places avant la libération automatique.'
+                          : 'Le temps restant est actualisé automatiquement.'}
                 </p>
             </div>
             {variant === 'payment' ? (

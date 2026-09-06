@@ -165,8 +165,8 @@ export function PaymentStep({
         () =>
             network
                 ? mobileMoneyAccounts.filter(
-                    (account) => account.network === network,
-                )
+                      (account) => account.network === network,
+                  )
                 : [],
         [mobileMoneyAccounts, network],
     );
@@ -184,7 +184,9 @@ export function PaymentStep({
         phoneValid &&
         reference.trim() !== '' &&
         verified;
-    const isCompanyCredit = reservation.payerType === 'company' && reservation.companyAccount !== null;
+    const isCompanyCredit =
+        reservation.payerType === 'company' &&
+        reservation.companyAccount !== null;
     const companyCreditReady = isCompanyCredit;
     const canSubmit =
         !holdCountdown.isExpired &&
@@ -192,10 +194,10 @@ export function PaymentStep({
         (method === 'cash'
             ? cashReady
             : method === 'mobile_money'
-                ? mobileReady
-                : method === 'company_credit'
-                    ? companyCreditReady
-                    : false);
+              ? mobileReady
+              : method === 'company_credit'
+                ? companyCreditReady
+                : false);
 
     const mobileChecklist = useMemo(
         () => [
@@ -253,10 +255,10 @@ export function PaymentStep({
     const submitLabel = processing
         ? 'Confirmation…'
         : method === 'cash'
-            ? 'Encaisser les espèces'
-            : method === 'mobile_money'
-                ? 'Confirmer le transfert Mobile Money'
-                : 'Imputer le crédit entreprise';
+          ? 'Encaisser les espèces'
+          : method === 'mobile_money'
+            ? 'Confirmer le transfert Mobile Money'
+            : 'Imputer le crédit entreprise';
 
     return (
         <>
@@ -346,7 +348,10 @@ export function PaymentStep({
                                 onClick={() => setMethod('company_credit')}
                                 icon={Building2}
                                 title="Crédit entreprise"
-                                description={reservation.companyAccount?.name ?? 'Compte entreprise'}
+                                description={
+                                    reservation.companyAccount?.name ??
+                                    'Compte entreprise'
+                                }
                             />
                         )}
                     </div>
@@ -440,9 +445,9 @@ export function PaymentStep({
                     selectedNetwork={
                         network
                             ? {
-                                label: networkMeta[network].label,
-                                color: networkMeta[network].color,
-                            }
+                                  label: networkMeta[network].label,
+                                  color: networkMeta[network].color,
+                              }
                             : null
                     }
                     selectedAccount={selectedAccount ?? null}
@@ -605,13 +610,15 @@ function CompanyCreditFields({
                 <div className="company-credit-header">
                     <Building2 className="size-5" />
                     <div>
-                        <strong>{account?.name ?? 'Compte personne morale'}</strong>
+                        <strong>
+                            {account?.name ?? 'Compte personne morale'}
+                        </strong>
                         <small>
                             {account?.type === 'ngo'
                                 ? 'ONG'
                                 : account?.type === 'embassy'
-                                    ? 'Ambassade'
-                                    : 'Entreprise'}{' '}
+                                  ? 'Ambassade'
+                                  : 'Entreprise'}{' '}
                             · Réf {account?.reference ?? '—'}
                         </small>
                     </div>
@@ -619,7 +626,9 @@ function CompanyCreditFields({
                 <div className="company-credit-amount">
                     <div className="summary-row">
                         <span>Montant à imputer</span>
-                        <strong>{formatMoney(total, reservation.currency)}</strong>
+                        <strong>
+                            {formatMoney(total, reservation.currency)}
+                        </strong>
                     </div>
                     <p className="company-credit-help">
                         Le crédit sera prélevé sur le plafond mensuel du compte.
@@ -695,9 +704,9 @@ function MobileMoneyFields({
                                     style={
                                         isActive
                                             ? {
-                                                borderColor: meta.color,
-                                                background: meta.bg,
-                                            }
+                                                  borderColor: meta.color,
+                                                  background: meta.bg,
+                                              }
                                             : undefined
                                     }
                                     onClick={() => onNetworkChange(value)}

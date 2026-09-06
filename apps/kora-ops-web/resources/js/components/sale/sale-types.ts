@@ -1,9 +1,5 @@
 export type SaleStage =
-    | 'search'
-    | 'seats'
-    | 'passengers'
-    | 'payment'
-    | 'tickets';
+    'search' | 'seats' | 'passengers' | 'payment' | 'tickets';
 
 export type SalePaymentMethod = 'cash' | 'mobile_money' | 'company_credit';
 

@@ -37,7 +37,10 @@ export function PayerSelector({
             <div className="payer-toggle">
                 <button
                     type="button"
-                    className={cn('payer-choice', payerType === 'personal' && 'is-active')}
+                    className={cn(
+                        'payer-choice',
+                        payerType === 'personal' && 'is-active',
+                    )}
                     disabled={disabled}
                     onClick={() => onPayerTypeChange('personal')}
                 >
@@ -46,7 +49,10 @@ export function PayerSelector({
                 </button>
                 <button
                     type="button"
-                    className={cn('payer-choice', payerType === 'company' && 'is-active')}
+                    className={cn(
+                        'payer-choice',
+                        payerType === 'company' && 'is-active',
+                    )}
                     disabled={disabled}
                     onClick={() => onPayerTypeChange('company')}
                 >
@@ -64,34 +70,45 @@ export function PayerSelector({
                         className="control"
                         value={selectedCompanyAccountUuid ?? ''}
                         disabled={disabled}
-                        onChange={(e) => onCompanyAccountChange(e.target.value || null)}
+                        onChange={(e) =>
+                            onCompanyAccountChange(e.target.value || null)
+                        }
                     >
                         <option value="">Sélectionner le compte</option>
                         {companyAccounts.map((account) => (
                             <option key={account.uuid} value={account.uuid}>
-                                {account.name} · {formatMoney(account.availableCredit, 'XOF')} dispo
+                                {account.name} ·{' '}
+                                {formatMoney(account.availableCredit, 'XOF')}{' '}
+                                dispo
                             </option>
                         ))}
                     </select>
-                    {selectedCompanyAccountUuid && (() => {
-                        const account = companyAccounts.find(
-                            (a) => a.uuid === selectedCompanyAccountUuid,
-                        );
+                    {selectedCompanyAccountUuid &&
+                        (() => {
+                            const account = companyAccounts.find(
+                                (a) => a.uuid === selectedCompanyAccountUuid,
+                            );
 
-                        if (!account) {
-                            return null;
-                        }
+                            if (!account) {
+                                return null;
+                            }
 
-                        const insufficient = account.availableCredit < amount;
+                            const insufficient =
+                                account.availableCredit < amount;
 
-                        return (
-                            <small className={cn('payment-field-help', insufficient && 'field-error-text')}>
-                                {insufficient
-                                    ? `Crédit insuffisant (${formatMoney(account.availableCredit, currency)} / ${formatMoney(amount, currency)})`
-                                    : `Crédit disponible : ${formatMoney(account.availableCredit, currency)}`}
-                            </small>
-                        );
-                    })()}
+                            return (
+                                <small
+                                    className={cn(
+                                        'payment-field-help',
+                                        insufficient && 'field-error-text',
+                                    )}
+                                >
+                                    {insufficient
+                                        ? `Crédit insuffisant (${formatMoney(account.availableCredit, currency)} / ${formatMoney(amount, currency)})`
+                                        : `Crédit disponible : ${formatMoney(account.availableCredit, currency)}`}
+                                </small>
+                            );
+                        })()}
                 </label>
             )}
         </div>

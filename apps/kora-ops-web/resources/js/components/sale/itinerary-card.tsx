@@ -117,7 +117,13 @@ function amenityIcon(code: string): LucideIcon {
     return amenityIconMap[code.toLowerCase()] ?? Sofa;
 }
 
-const PRIORITY_AMENITIES = ['wifi', 'air_conditioning', 'power_outlet', 'usb_charging', 'onboard_toilet'];
+const PRIORITY_AMENITIES = [
+    'wifi',
+    'air_conditioning',
+    'power_outlet',
+    'usb_charging',
+    'onboard_toilet',
+];
 
 function BusAmenities({ amenities }: { amenities: SaleBusAmenity[] }) {
     const priority = amenities.filter((a) =>
@@ -210,9 +216,7 @@ export function ItineraryCard({
                     {formatIsoTime(firstLeg.departureAt)}
                 </time>
                 <em>{formatShortDate(formatIsoDate(firstLeg.departureAt))}</em>
-                <span>
-                    {formatDuration(totalTripMinutes ?? null)}
-                </span>
+                <span>{formatDuration(totalTripMinutes ?? null)}</span>
                 {departureCountdown && (
                     <small className="departure-countdown" aria-live="polite">
                         {departureCountdown}
@@ -281,9 +285,7 @@ export function ItineraryCard({
                                 <BusFront className="size-3.5" />
                                 <strong>{busLabel(firstLeg)}</strong>
                                 {firstLeg.bus?.registrationNumber && (
-                                    <em>
-                                        {firstLeg.bus.registrationNumber}
-                                    </em>
+                                    <em>{firstLeg.bus.registrationNumber}</em>
                                 )}
                             </span>
                             {firstLeg.bus?.amenities &&
@@ -307,7 +309,7 @@ export function ItineraryCard({
                             const sameBusAsPrevious =
                                 index > 0 &&
                                 itinerary.legs[index - 1].bus?.uuid ===
-                                leg.bus?.uuid;
+                                    leg.bus?.uuid;
 
                             return (
                                 <div
@@ -337,16 +339,18 @@ export function ItineraryCard({
                                                     )}
                                                 </strong>
                                                 <small>
-                                                    {formatDayMonth(formatIsoDate(leg.departureAt))}
+                                                    {formatDayMonth(
+                                                        formatIsoDate(
+                                                            leg.departureAt,
+                                                        ),
+                                                    )}
                                                 </small>
                                                 <em>départ</em>
                                             </div>
                                             <div className="timeline-segment-place">
                                                 <MapPin className="size-3" />
                                                 <span>
-                                                    <b>
-                                                        {leg.originStop.city}
-                                                    </b>
+                                                    <b>{leg.originStop.city}</b>
                                                     <em>
                                                         {leg.originStop.name}
                                                     </em>
@@ -365,9 +369,13 @@ export function ItineraryCard({
                                                 <span className="timeline-segment-bus">
                                                     <BusFront className="size-3" />
                                                     {busLabel(leg)}
-                                                    {leg.bus?.registrationNumber && (
+                                                    {leg.bus
+                                                        ?.registrationNumber && (
                                                         <em>
-                                                            {leg.bus.registrationNumber}
+                                                            {
+                                                                leg.bus
+                                                                    .registrationNumber
+                                                            }
                                                         </em>
                                                     )}
                                                 </span>
@@ -383,7 +391,9 @@ export function ItineraryCard({
                                         {leg.bus?.amenities &&
                                             leg.bus.amenities.length > 0 && (
                                                 <BusAmenities
-                                                    amenities={leg.bus.amenities}
+                                                    amenities={
+                                                        leg.bus.amenities
+                                                    }
                                                 />
                                             )}
 
@@ -396,7 +406,9 @@ export function ItineraryCard({
                                                 </strong>
                                                 <small>
                                                     {formatDayMonth(
-                                                        formatIsoDate(leg.arrivalAt),
+                                                        formatIsoDate(
+                                                            leg.arrivalAt,
+                                                        ),
                                                     )}
                                                 </small>
                                                 <em>arrivée</em>
@@ -427,13 +439,19 @@ export function ItineraryCard({
                                             <span>
                                                 Correspondance{' '}
                                                 <strong>
-                                                    {formatDuration(waitMinutes)}
+                                                    {formatDuration(
+                                                        waitMinutes,
+                                                    )}
                                                 </strong>{' '}
                                                 à {leg.destinationStop.city}
                                             </span>
                                             <ArrowRight className="size-3" />
                                             <span>
-                                                {formatDayMonth(formatIsoDate(nextLeg.departureAt))}{' '}
+                                                {formatDayMonth(
+                                                    formatIsoDate(
+                                                        nextLeg.departureAt,
+                                                    ),
+                                                )}{' '}
                                                 {formatIsoTime(
                                                     nextLeg.departureAt,
                                                 )}
@@ -486,8 +504,8 @@ export function ItineraryCard({
                             ? 'Retour sélectionné'
                             : 'Aller sélectionné'
                         : direction === 'inbound'
-                            ? 'Sélectionner le retour'
-                            : "Sélectionner l'aller"}
+                          ? 'Sélectionner le retour'
+                          : "Sélectionner l'aller"}
                     <ArrowRight className="size-3.5" />
                 </button>
             </div>

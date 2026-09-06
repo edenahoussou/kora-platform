@@ -1,6 +1,20 @@
-import { Building2, CheckCircle2, Clock3, LayoutGrid, Users } from 'lucide-react';
+import {
+    Building2,
+    CheckCircle2,
+    Clock3,
+    LayoutGrid,
+    Users,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { SaleCompanyAccount, SaleDeparture, SaleItinerary, SaleItineraryQuote, SalePayerType, SaleQuote, SaleReservation } from './sale-types';
+import type {
+    SaleCompanyAccount,
+    SaleDeparture,
+    SaleItinerary,
+    SaleItineraryQuote,
+    SalePayerType,
+    SaleQuote,
+    SaleReservation,
+} from './sale-types';
 import {
     formatDate,
     formatIsoDate,
@@ -43,7 +57,6 @@ export function SaleSummaryCard({
     payerType = 'personal',
     selectedCompanyAccountUuid = null,
 }: Props) {
-
     if (!selectedItinerary) {
         return (
             <aside className={cn('summary empty-summary', className)}>
@@ -55,13 +68,16 @@ export function SaleSummaryCard({
     // Unified itinerary path — handles direct (1 leg) and multi-leg
     if (selectedItinerary) {
         const firstLeg = selectedItinerary.legs[0];
-        const lastLeg = selectedItinerary.legs[selectedItinerary.legs.length - 1];
+        const lastLeg =
+            selectedItinerary.legs[selectedItinerary.legs.length - 1];
         // Before the quote is calculated, sum the per-passenger totals of
         // the outbound and inbound itineraries. The itineraryQuote, when
         // available, is the authoritative amount (it includes group
         // discounts and server-side pricing).
         const fallbackAmount =
-            (selectedItinerary.totalAmount + (selectedInbound?.totalAmount ?? 0)) * passengerCount;
+            (selectedItinerary.totalAmount +
+                (selectedInbound?.totalAmount ?? 0)) *
+            passengerCount;
         const amount = itineraryQuote?.totalAmount ?? fallbackAmount;
         const currency = itineraryQuote?.currency ?? selectedItinerary.currency;
         const canQuote = selectedItinerary !== null;
@@ -73,7 +89,9 @@ export function SaleSummaryCard({
             directionLabel: string,
         ) => (
             <div className="summary-leg-group">
-                <span className="summary-leg-group-title">{directionLabel}</span>
+                <span className="summary-leg-group-title">
+                    {directionLabel}
+                </span>
                 {legs.map((leg) => (
                     <div key={leg.legOrder} className="summary-leg">
                         <div className="summary-leg-header">
@@ -111,7 +129,8 @@ export function SaleSummaryCard({
                 </div>
 
                 {renderLegGroup(selectedItinerary.legs, 'Aller')}
-                {selectedInbound && renderLegGroup(selectedInbound.legs, 'Retour')}
+                {selectedInbound &&
+                    renderLegGroup(selectedInbound.legs, 'Retour')}
 
                 <div className="summary-row">
                     <span>Passagers</span>
@@ -127,43 +146,61 @@ export function SaleSummaryCard({
                 </div>
                 <div className="summary-row">
                     <span>Sièges</span>
-                    <strong>{selectedSeatCodes.join(', ') || 'À choisir'}</strong>
+                    <strong>
+                        {selectedSeatCodes.join(', ') || 'À choisir'}
+                    </strong>
                 </div>
 
                 {itineraryQuote && hasDiscount && (
                     <div className="summary-row summary-discount-row">
                         <span>Remise groupe</span>
                         <strong className="is-discount">
-                            −{formatMoney(itineraryQuote.groupDiscountAmount, currency)}
+                            −
+                            {formatMoney(
+                                itineraryQuote.groupDiscountAmount,
+                                currency,
+                            )}
                         </strong>
                     </div>
                 )}
 
-                {!reservation && companyAccounts.length > 0 && payerType === 'company' && (
-                    <div className="summary-payer-section">
-                        <span className="field-label">
-                            <Building2 className="size-3.5" />
-                            Payeur entreprise
-                        </span>
-                        {(() => {
-                            const account = companyAccounts.find(
-                                (a) => a.uuid === selectedCompanyAccountUuid,
-                            );
+                {!reservation &&
+                    companyAccounts.length > 0 &&
+                    payerType === 'company' && (
+                        <div className="summary-payer-section">
+                            <span className="field-label">
+                                <Building2 className="size-3.5" />
+                                Payeur entreprise
+                            </span>
+                            {(() => {
+                                const account = companyAccounts.find(
+                                    (a) =>
+                                        a.uuid === selectedCompanyAccountUuid,
+                                );
 
-                            return account ? (
-                                <small className="payment-field-help">
-                                    {account.name} · {formatMoney(account.availableCredit, currency)} dispo
-                                </small>
-                            ) : (
-                                <small className="payment-field-help">Compte non sélectionné</small>
-                            );
-                        })()}
-                    </div>
-                )}
+                                return account ? (
+                                    <small className="payment-field-help">
+                                        {account.name} ·{' '}
+                                        {formatMoney(
+                                            account.availableCredit,
+                                            currency,
+                                        )}{' '}
+                                        dispo
+                                    </small>
+                                ) : (
+                                    <small className="payment-field-help">
+                                        Compte non sélectionné
+                                    </small>
+                                );
+                            })()}
+                        </div>
+                    )}
 
                 <div className="summary-total">
                     <span>Total</span>
-                    <strong>{amount ? formatMoney(amount, currency) : '—'}</strong>
+                    <strong>
+                        {amount ? formatMoney(amount, currency) : '—'}
+                    </strong>
                 </div>
 
                 {reservation ? (

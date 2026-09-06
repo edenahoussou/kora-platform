@@ -198,14 +198,15 @@ export function useCounterSale(props: SaleProps) {
             destination_stop_uuid: leg.destinationStop.uuid,
         });
         quoteForm.transform(() => ({
-            date: searchForm.data.date ?? outbound.legs[0]?.departureDate ?? null,
+            date:
+                searchForm.data.date ?? outbound.legs[0]?.departureDate ?? null,
             from: searchForm.data.from ?? undefined,
             to: searchForm.data.to ?? undefined,
             trip_type: inbound ? 'round_trip' : 'one_way',
             return_date: inbound
                 ? (searchForm.data.returnDate ??
-                    inbound.legs[0]?.departureDate ??
-                    null)
+                  inbound.legs[0]?.departureDate ??
+                  null)
                 : null,
             passenger_count: passengerCount,
             outbound_legs: outbound.legs.map(toLegPayload),
@@ -246,16 +247,16 @@ export function useCounterSale(props: SaleProps) {
             passengers: seatAssignments,
             ...(payer
                 ? {
-                    payer: {
-                        type: payer.type,
-                        ...(payer.company_account_uuid
-                            ? {
-                                company_account_uuid:
-                                    payer.company_account_uuid,
-                            }
-                            : {}),
-                    },
-                }
+                      payer: {
+                          type: payer.type,
+                          ...(payer.company_account_uuid
+                              ? {
+                                    company_account_uuid:
+                                        payer.company_account_uuid,
+                                }
+                              : {}),
+                      },
+                  }
                 : {}),
         }));
         holdForm.post(hold.url(), {
@@ -285,14 +286,17 @@ export function useCounterSale(props: SaleProps) {
         router.post(
             saleSeats.url(),
             {
-                date: searchForm.data.date ?? outbound.legs[0]?.departureDate ?? null,
+                date:
+                    searchForm.data.date ??
+                    outbound.legs[0]?.departureDate ??
+                    null,
                 from: searchForm.data.from ?? undefined,
                 to: searchForm.data.to ?? undefined,
                 trip_type: inbound ? 'round_trip' : 'one_way',
                 return_date: inbound
                     ? (searchForm.data.returnDate ??
-                        inbound.legs[0]?.departureDate ??
-                        null)
+                      inbound.legs[0]?.departureDate ??
+                      null)
                     : null,
                 outbound_legs: outbound.legs.map(toLegPayload),
                 inbound_legs: inbound ? inbound.legs.map(toLegPayload) : [],
@@ -331,14 +335,15 @@ export function useCounterSale(props: SaleProps) {
         });
 
         confirmForm.transform(() => ({
-            date: searchForm.data.date ?? outbound.legs[0]?.departureDate ?? null,
+            date:
+                searchForm.data.date ?? outbound.legs[0]?.departureDate ?? null,
             from: searchForm.data.from ?? undefined,
             to: searchForm.data.to ?? undefined,
             trip_type: inbound ? 'round_trip' : 'one_way',
             return_date: inbound
                 ? (searchForm.data.returnDate ??
-                    inbound.legs[0]?.departureDate ??
-                    null)
+                  inbound.legs[0]?.departureDate ??
+                  null)
                 : null,
             passenger_count: passengerCount,
             outbound_legs: outbound.legs.map(toLegPayload),
@@ -435,8 +440,8 @@ export function useCounterSale(props: SaleProps) {
                     errorRecord?.method ??
                     (errorRecord
                         ? Object.values(errorRecord).find(
-                            (v) => typeof v === 'string',
-                        )
+                              (v) => typeof v === 'string',
+                          )
                         : null) ??
                     'Le paiement n’a pas pu être enregistré.Réessayez.';
                 toast.error(message);

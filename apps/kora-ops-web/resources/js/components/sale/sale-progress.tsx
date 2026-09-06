@@ -15,12 +15,12 @@ export function SaleProgress({ stage }: { stage: SaleStage }) {
         stage === 'search'
             ? 1
             : stage === 'seats'
-                ? 2
-                : stage === 'passengers'
-                    ? 3
-                    : stage === 'payment'
-                        ? 4
-                        : 5;
+              ? 2
+              : stage === 'passengers'
+                ? 3
+                : stage === 'payment'
+                  ? 4
+                  : 5;
     const activeLabel =
         stage === 'passengers'
             ? 'Informations voyageurs'
@@ -51,7 +51,7 @@ export function SaleProgress({ stage }: { stage: SaleStage }) {
                                     className={cn(
                                         'step-number',
                                         (current || done) &&
-                                        'border-gold bg-gold text-[var(--kora)]',
+                                            'border-gold bg-gold text-[var(--kora)]',
                                     )}
                                 >
                                     {done ? (

@@ -53,11 +53,17 @@ export function ItineraryList({
                     key: string;
                     timestamp: number;
                 } => {
-                    if (item === null || item.timestamp === null || item.timestamp <= now) {
+                    if (
+                        item === null ||
+                        item.timestamp === null ||
+                        item.timestamp <= now
+                    ) {
                         return false;
                     }
 
-                    const itinerary = itineraries.find((i) => itineraryKey(i) === item.key);
+                    const itinerary = itineraries.find(
+                        (i) => itineraryKey(i) === item.key,
+                    );
 
                     return isToday(
                         formatIsoDate(itinerary?.legs[0]?.departureAt ?? null),
@@ -92,8 +98,8 @@ export function ItineraryList({
                                 ? `Retour disponibles (${itineraries.length})`
                                 : `Prochains retours (${itineraries.length})`
                             : hasDate
-                                ? `Aller disponibles (${itineraries.length})`
-                                : `Prochains allers (${itineraries.length})`}
+                              ? `Aller disponibles (${itineraries.length})`
+                              : `Prochains allers (${itineraries.length})`}
                     </span>
                     <h2 className="results-title">
                         {direction === 'inbound' ? (
@@ -144,15 +150,15 @@ export function ItineraryList({
                             {emptyReason === 'incompatible-with-outbound'
                                 ? 'Aucun retour compatible'
                                 : direction === 'inbound'
-                                    ? 'Aucun retour trouvé'
-                                    : 'Aucun itinéraire trouvé'}
+                                  ? 'Aucun retour trouvé'
+                                  : 'Aucun itinéraire trouvé'}
                         </strong>
                         <span className="mt-1 block text-[0.6875rem] text-muted-foreground">
                             {emptyReason === 'incompatible-with-outbound'
                                 ? "Les retours disponibles partent avant ou en même temps que l'aller sélectionné. Choisissez un aller plus tôt ou une autre date de retour."
                                 : hasDate
-                                    ? 'Modifiez vos critères puis relancez la recherche.'
-                                    : 'Sélectionnez une date précise ou élargissez la ville de départ/descente.'}
+                                  ? 'Modifiez vos critères puis relancez la recherche.'
+                                  : 'Sélectionnez une date précise ou élargissez la ville de départ/descente.'}
                         </span>
                     </div>
                 </div>

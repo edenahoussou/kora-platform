@@ -83,7 +83,9 @@ export function SeatPicker({
     const [assignments, setAssignments] = useState<PassengerAssignments>(() =>
         emptyAssignmentsFor(passengerCount, legs),
     );
-    const autoAdvanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const autoAdvanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+        null,
+    );
 
     useEffect(() => {
         return () => {
@@ -155,7 +157,8 @@ export function SeatPicker({
         { length: passengerCount },
         (_, p) => p,
     ).reduce(
-        (acc, p) => acc + legs.filter((leg) => isLegComplete(p, leg.legOrder)).length,
+        (acc, p) =>
+            acc + legs.filter((leg) => isLegComplete(p, leg.legOrder)).length,
         0,
     );
 
@@ -358,10 +361,13 @@ export function SeatPicker({
                                         </span>
                                         <span className="multi-leg-step-info">
                                             <span className="multi-leg-step-direction">
-                                                {DIRECTION_LABEL[leg.direction ?? 'outbound'] ?? 'Aller'}
+                                                {DIRECTION_LABEL[
+                                                    leg.direction ?? 'outbound'
+                                                ] ?? 'Aller'}
                                             </span>
                                             <span className="multi-leg-step-route">
-                                                {leg.originStop.city} → {leg.destinationStop.city}
+                                                {leg.originStop.city} →{' '}
+                                                {leg.destinationStop.city}
                                             </span>
                                         </span>
                                     </button>
@@ -373,7 +379,8 @@ export function SeatPicker({
                             leg={activeLeg}
                             availableCount={
                                 seatsForActiveLeg.filter(
-                                    (seat) => seat.availabilityStatus === 'available',
+                                    (seat) =>
+                                        seat.availabilityStatus === 'available',
                                 ).length
                             }
                         />
@@ -409,27 +416,28 @@ export function SeatPicker({
                     multiLeg={
                         isMultiLeg
                             ? {
-                                legs,
-                                activePassenger,
-                                assignments,
-                                onSelectPassenger: (i) => {
-                                    setActivePassenger(i);
-                                    setActiveLegIndex(0);
-                                },
-                                onNextStep: goToNextStep,
-                                onPreviousStep: goToPreviousStep,
-                                canGoPrevious: !(
-                                    activePassenger === 0 && activeLegIndex === 0
-                                ),
-                                canGoNext: isLegComplete(
-                                    activePassenger,
-                                    activeLeg.legOrder,
-                                ),
-                                allComplete,
-                                completedSteps,
-                                totalSteps,
-                                getSeatCode,
-                            }
+                                  legs,
+                                  activePassenger,
+                                  assignments,
+                                  onSelectPassenger: (i) => {
+                                      setActivePassenger(i);
+                                      setActiveLegIndex(0);
+                                  },
+                                  onNextStep: goToNextStep,
+                                  onPreviousStep: goToPreviousStep,
+                                  canGoPrevious: !(
+                                      activePassenger === 0 &&
+                                      activeLegIndex === 0
+                                  ),
+                                  canGoNext: isLegComplete(
+                                      activePassenger,
+                                      activeLeg.legOrder,
+                                  ),
+                                  allComplete,
+                                  completedSteps,
+                                  totalSteps,
+                                  getSeatCode,
+                              }
                             : undefined
                     }
                 />

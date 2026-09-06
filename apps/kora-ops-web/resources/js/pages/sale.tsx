@@ -21,19 +21,19 @@ import { cn } from '@/lib/utils';
 import { sale } from '@/routes';
 
 const CounterSaleSuccess = lazy(() =>
-    import('@/components/sale/counter-sale-success').then(
-        (m) => ({ default: m.CounterSaleSuccess }),
-    ),
+    import('@/components/sale/counter-sale-success').then((m) => ({
+        default: m.CounterSaleSuccess,
+    })),
 );
 const PassengerFinalization = lazy(() =>
-    import('@/components/sale/passenger-finalization').then(
-        (m) => ({ default: m.PassengerFinalization }),
-    ),
+    import('@/components/sale/passenger-finalization').then((m) => ({
+        default: m.PassengerFinalization,
+    })),
 );
 const PaymentStep = lazy(() =>
-    import('@/components/sale/payment-step').then(
-        (m) => ({ default: m.PaymentStep }),
-    ),
+    import('@/components/sale/payment-step').then((m) => ({
+        default: m.PaymentStep,
+    })),
 );
 
 function itineraryKey(itinerary: SaleItinerary): string {
@@ -84,16 +84,16 @@ export default function SalePage(props: SaleProps) {
     const [isSeatPickerOpen, setIsSeatPickerOpen] = useState(false);
     const logicalPassengerCount = reservation
         ? new Set(
-            reservation.segments.map(
-                (segment, index) => segment.passengerIndex ?? index,
-            ),
-        ).size
+              reservation.segments.map(
+                  (segment, index) => segment.passengerIndex ?? index,
+              ),
+          ).size
         : 0;
     const [paymentStepReservationUuid, setPaymentStepReservationUuid] =
         useState<string | null>(() =>
             reservation &&
-                reservation.passengers.length === logicalPassengerCount &&
-                logicalPassengerCount > 0
+            reservation.passengers.length === logicalPassengerCount &&
+            logicalPassengerCount > 0
                 ? reservation.uuid
                 : null,
         );
@@ -151,11 +151,11 @@ export default function SalePage(props: SaleProps) {
         ? isSaleCompleted
             ? 'tickets'
             : isPaymentStepOpen
-                ? 'payment'
-                : 'passengers'
+              ? 'payment'
+              : 'passengers'
         : selectedOutbound
-            ? 'seats'
-            : 'search';
+          ? 'seats'
+          : 'search';
 
     const onSearch = (event: SyntheticEvent<HTMLFormElement>) => {
         submitSearch(event);
@@ -179,7 +179,7 @@ export default function SalePage(props: SaleProps) {
             outboundDepartureAt &&
             inboundDepartureAt &&
             new Date(inboundDepartureAt).getTime() <=
-            new Date(outboundDepartureAt).getTime()
+                new Date(outboundDepartureAt).getTime()
         ) {
             setSelectedInbound(null);
         }
@@ -216,7 +216,8 @@ export default function SalePage(props: SaleProps) {
 
             return (
                 inboundDepartureAt !== undefined &&
-                new Date(inboundDepartureAt).getTime() > outboundArrivalTimestamp
+                new Date(inboundDepartureAt).getTime() >
+                    outboundArrivalTimestamp
             );
         });
     }, [inboundItineraries, selectedOutbound]);
@@ -244,36 +245,39 @@ export default function SalePage(props: SaleProps) {
             return [];
         }
 
-        return [
-            ...selectedOutbound.legs,
-            ...(selectedInbound?.legs ?? []),
-        ].map((leg, index) => ({ ...leg, legOrder: index + 1 }));
+        return [...selectedOutbound.legs, ...(selectedInbound?.legs ?? [])].map(
+            (leg, index) => ({ ...leg, legOrder: index + 1 }),
+        );
     }, [selectedOutbound, selectedInbound]);
 
     const handleSeatPickerConfirm = (
         assignments: Record<number, Record<number, string>>,
     ) => {
-        const seatAssignments = Array.from({ length: passengerCount }, (_, i) => {
-            const passengerLegs = assignments[i] ?? {};
+        const seatAssignments = Array.from(
+            { length: passengerCount },
+            (_, i) => {
+                const passengerLegs = assignments[i] ?? {};
 
-            return {
-                passenger_index: i,
-                seat_assignments: seatPickerLegs.map((leg) => ({
-                    leg_order: leg.legOrder,
-                    direction: (leg.direction ?? 'outbound') as
-                        | 'outbound'
-                        | 'inbound',
-                    seat_uuid: passengerLegs[leg.legOrder] ?? '',
-                })).filter((a) => a.seat_uuid),
-            };
-        });
+                return {
+                    passenger_index: i,
+                    seat_assignments: seatPickerLegs
+                        .map((leg) => ({
+                            leg_order: leg.legOrder,
+                            direction: (leg.direction ?? 'outbound') as
+                                'outbound' | 'inbound',
+                            seat_uuid: passengerLegs[leg.legOrder] ?? '',
+                        }))
+                        .filter((a) => a.seat_uuid),
+                };
+            },
+        );
 
         const payer =
             payerType === 'company' && selectedCompanyAccountUuid
                 ? {
-                    type: 'company' as const,
-                    company_account_uuid: selectedCompanyAccountUuid,
-                }
+                      type: 'company' as const,
+                      company_account_uuid: selectedCompanyAccountUuid,
+                  }
                 : undefined;
 
         confirmSale(
@@ -306,7 +310,9 @@ export default function SalePage(props: SaleProps) {
         });
     };
 
-    const selectedLegsKey = selectedOutbound ? itineraryKey(selectedOutbound) : null;
+    const selectedLegsKey = selectedOutbound
+        ? itineraryKey(selectedOutbound)
+        : null;
 
     const showSeatPicker =
         isSeatPickerOpen &&
@@ -378,7 +384,9 @@ export default function SalePage(props: SaleProps) {
                                 onSubmit={(payload) =>
                                     recordPayment(reservation.uuid, payload)
                                 }
-                                onBack={() => setPaymentStepReservationUuid(null)}
+                                onBack={() =>
+                                    setPaymentStepReservationUuid(null)
+                                }
                                 onHoldExpired={() =>
                                     reopenSeatSelection(reservation.uuid)
                                 }
@@ -433,10 +441,14 @@ export default function SalePage(props: SaleProps) {
                                     inboundItineraries &&
                                     inboundItineraries.length > 0 && (
                                         <ItineraryList
-                                            itineraries={compatibleInboundItineraries}
+                                            itineraries={
+                                                compatibleInboundItineraries
+                                            }
                                             selectedLegsKey={
                                                 selectedInbound
-                                                    ? itineraryKey(selectedInbound)
+                                                    ? itineraryKey(
+                                                          selectedInbound,
+                                                      )
                                                     : null
                                             }
                                             onSelect={onSelectInboundItinerary}
@@ -470,7 +482,9 @@ export default function SalePage(props: SaleProps) {
                                     onOpenSeatPicker={handleOpenSeatPicker}
                                     companyAccounts={companyAccounts}
                                     payerType={payerType}
-                                    selectedCompanyAccountUuid={selectedCompanyAccountUuid}
+                                    selectedCompanyAccountUuid={
+                                        selectedCompanyAccountUuid
+                                    }
                                 />
                             )}
                         </div>

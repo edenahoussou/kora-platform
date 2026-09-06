@@ -24,12 +24,12 @@ function buildSeatRows(seats: SaleSeat[]): SeatRow[] {
 
         return match
             ? [
-                {
-                    seat,
-                    number: Number(match[1]),
-                    letter: match[2].toUpperCase(),
-                },
-            ]
+                  {
+                      seat,
+                      number: Number(match[1]),
+                      letter: match[2].toUpperCase(),
+                  },
+              ]
             : [];
     });
 
