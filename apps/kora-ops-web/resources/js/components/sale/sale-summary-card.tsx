@@ -38,6 +38,11 @@ export function SaleSummaryCard({
 
     const unitAmount =
         quote?.finalAmount ?? departure.farePreview?.final_amount;
+    const baseAmount = quote?.baseAmount ?? departure.farePreview?.base_amount;
+    const dynamicAdjustment =
+        quote?.finalAmount !== undefined && quote?.baseAmount !== undefined
+            ? quote.finalAmount - quote.baseAmount
+            : departure.farePreview?.dynamic_adjustment_amount ?? 0;
     const amount = quote?.totalAmount ?? (unitAmount ?? 0) * passengerCount;
     const currency =
         quote?.currency ?? departure.farePreview?.currency ?? 'XOF';
@@ -89,6 +94,18 @@ export function SaleSummaryCard({
                     {unitAmount ? formatMoney(unitAmount, currency) : '—'}
                 </strong>
             </div>
+
+            {dynamicAdjustment !== 0 && baseAmount !== undefined && (
+                <div className="summary-callout warning">
+                    <div>
+                        Prix dynamique · base {formatMoney(baseAmount, currency)}
+                    </div>
+                    <p>
+                        Variation {dynamicAdjustment > 0 ? '+' : ''}
+                        {formatMoney(dynamicAdjustment, currency)} · montant final garanti dans le devis.
+                    </p>
+                </div>
+            )}
 
             <div className="summary-total">
                 <span>Total</span>

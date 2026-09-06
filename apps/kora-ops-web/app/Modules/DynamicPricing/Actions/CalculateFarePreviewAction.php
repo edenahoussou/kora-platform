@@ -2,44 +2,36 @@
 
 namespace App\Modules\DynamicPricing\Actions;
 
-use App\Modules\BusNetwork\Models\Line;
 use App\Modules\BusNetwork\Models\Stop;
-use App\Modules\DynamicPricing\Data\FareStatus;
-use App\Modules\DynamicPricing\Models\Fare;
-use Carbon\CarbonInterface;
+use App\Modules\Departures\Models\Departure;
 
 class CalculateFarePreviewAction
 {
+    public function __construct(private CalculateDynamicPriceAction $calculateDynamicPrice) {}
+
     /**
      * @return array<string, mixed>|null
      */
-    public function handle(Line $line, Stop $originStop, Stop $destinationStop, CarbonInterface $travelDate): ?array
+    public function handle(Departure $departure, Stop $originStop, Stop $destinationStop): ?array
     {
-        $fare = Fare::query()
-            ->with('serviceClass')
-            ->whereBelongsTo($line)
-            ->whereBelongsTo($originStop, 'originStop')
-            ->whereBelongsTo($destinationStop, 'destinationStop')
-            ->where('status', FareStatus::Active->value)
-            ->whereDate('effective_from', '<=', $travelDate)
-            ->where(fn ($query) => $query
-                ->whereNull('effective_until')
-                ->orWhereDate('effective_until', '>=', $travelDate))
-            ->orderByDesc('effective_from')
-            ->first();
-
-        if (! $fare) {
+        $price = $this->calculateDynamicPrice->handle($departure, $originStop, $destinationStop);
+        if (! $price) {
             return null;
         }
 
         return [
-            'fare_uuid' => $fare->uuid,
-            'base_amount' => $fare->base_amount,
-            'final_amount' => $fare->base_amount,
-            'currency' => $fare->currency,
-            'service_class_code' => $fare->serviceClass?->code,
-            'service_class_name' => $fare->serviceClass?->name,
-            'service_class_description' => $fare->serviceClass?->description,
+            'fare_uuid' => $price->fare->uuid,
+            'base_amount' => $price->baseAmount,
+            'final_amount' => $price->finalAmount,
+            'coefficient' => $price->coefficient,
+            'dynamic_adjustment_amount' => $price->adjustmentAmount(),
+            'pricing_rule_uuid' => $price->rule?->uuid,
+            'fill_rate' => $price->fillRate,
+            'hours_before_departure' => $price->hoursBeforeDeparture,
+            'currency' => $price->fare->currency,
+            'service_class_code' => $price->fare->serviceClass?->code,
+            'service_class_name' => $price->fare->serviceClass?->name,
+            'service_class_description' => $price->fare->serviceClass?->description,
             'is_quote' => false,
         ];
     }

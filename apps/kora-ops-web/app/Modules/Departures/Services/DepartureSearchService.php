@@ -227,14 +227,13 @@ class DepartureSearchService
         /** @var Stop $destination */
         $destination = $segment['destination'];
         $availability = $this->buildSeatAvailability->handle($departure, $origin, $destination);
-        $departureDate = CarbonImmutable::parse((string) $departure->departure_date);
 
         return new DepartureAvailabilityData(
             departure: $departure,
             originStop: $origin,
             destinationStop: $destination,
             availableSeatsCount: $availability->where('availabilityStatus', SeatAvailabilityStatus::Available)->count(),
-            farePreview: $this->calculateFarePreview->handle($departure->line, $origin, $destination, $departureDate),
+            farePreview: $this->calculateFarePreview->handle($departure, $origin, $destination),
             sellability: $this->resolveDepartureSellability->handle($departure),
         );
     }

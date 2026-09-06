@@ -77,11 +77,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('fares/{fare:uuid}/status', [FareController::class, 'changeStatus'])->name('fares.status');
 
     // Règles de pricing dynamique (CDC §3.1.3.4, §9.2)
-    Route::get('pricing-rules', [PricingRuleController::class, 'index'])->name('pricing-rules.index');
-    Route::post('pricing-rules', [PricingRuleController::class, 'store'])->name('pricing-rules.store');
-    Route::put('pricing-rules/{pricingRule:uuid}', [PricingRuleController::class, 'update'])->name('pricing-rules.update');
-    Route::patch('pricing-rules/{pricingRule:uuid}/status', [PricingRuleController::class, 'changeStatus'])->name('pricing-rules.status');
-    Route::patch('pricing-rules/settings', [PricingRuleController::class, 'updateSettings'])->name('pricing-rules.settings');
+    Route::get('dynamic-pricing', [PricingRuleController::class, 'index'])->name('pricing-rules.index');
+    Route::post('dynamic-pricing', [PricingRuleController::class, 'store'])->name('pricing-rules.store');
+    Route::put('dynamic-pricing/{pricingRule:uuid}', [PricingRuleController::class, 'update'])->name('pricing-rules.update');
+    Route::patch('dynamic-pricing/{pricingRule:uuid}/status', [PricingRuleController::class, 'changeStatus'])->name('pricing-rules.status');
+    Route::patch('dynamic-pricing/settings', [PricingRuleController::class, 'updateSettings'])->name('pricing-rules.settings');
 
     // Taux fiscaux paramétrables (CDC §9.8) — configuration uniquement, non câblé
     // au calcul de devis public (hors périmètre) ; alimentera la facturation MECeF.
@@ -124,9 +124,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('agencies/{agency:uuid}/status', [AgencyController::class, 'changeStatus'])->name('agencies.status');
     Route::post('agencies/{agency:uuid}/payment-accounts', [AgencyPaymentAccountController::class, 'store'])->name('agencies.payment-accounts.store');
     Route::patch('agencies/{agency:uuid}/payment-accounts/{account:uuid}/status', [AgencyPaymentAccountController::class, 'changeStatus'])->name('agencies.payment-accounts.status');
-
-    // V1 MVP — Tarification dynamique (Réseau commercial)
-    Route::inertia('dynamic-pricing', 'dynamic-pricing')->name('dynamic-pricing');
 
     // =========================================================
     // V1 secondary — Colis & Wallet Lite (stubs)

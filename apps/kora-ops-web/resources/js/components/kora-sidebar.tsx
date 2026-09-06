@@ -86,13 +86,21 @@ const navItems: NavEntry[] = [
             },
             { title: 'Tarifs', href: '/fares', permission: 'pricing.view' },
             {
-                title: 'Règles de pricing',
-                href: '/pricing-rules',
-                permission: 'pricing.view',
-            },
-            {
                 title: 'Taux fiscaux',
                 href: '/tax-rules',
+                permission: 'pricing.view',
+            },
+        ],
+    },
+    {
+        title: 'Réseau commercial',
+        href: '/dynamic-pricing',
+        icon: Store,
+        permission: 'pricing.view',
+        children: [
+            {
+                title: 'Tarification dynamique',
+                href: '/dynamic-pricing',
                 permission: 'pricing.view',
             },
         ],
