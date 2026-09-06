@@ -144,12 +144,15 @@ class KoraDepartureSeeder extends Seeder
         $totalDuration = (int) ($line->estimated_duration_minutes ?? 0);
 
         if ($totalDistance <= 0 || $totalDuration <= 0) {
-            return $stops->map(fn (Stop $stop) => [
+            /** @var list<array{stop_uuid: string, departure_minutes: int|null, arrival_minutes: int|null, timezone: string}> $fallback */
+            $fallback = $stops->values()->map(fn (Stop $stop) => [
                 'stop_uuid' => $stop->uuid,
                 'departure_minutes' => $stop->stop_order === 1 ? 0 : null,
                 'arrival_minutes' => null,
                 'timezone' => 'Africa/Porto-Novo',
-            ])->all();
+            ])->values()->all();
+
+            return $fallback;
         }
 
         $stopTimes = [];

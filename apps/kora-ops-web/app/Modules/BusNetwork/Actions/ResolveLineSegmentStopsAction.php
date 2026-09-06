@@ -77,7 +77,7 @@ class ResolveLineSegmentStopsAction
         $orderedStops = new EloquentCollection;
         $stopOrderInDeparture = [];
         foreach ($stopTimes as $index => $stopTime) {
-            $stop = $stops->first(fn (Stop $s): bool => $s->uuid === ($stopTime['stop_uuid'] ?? null));
+            $stop = $stops->first(fn (Stop $s): bool => $s->uuid === $stopTime['stop_uuid']);
             if ($stop) {
                 $orderedStops->push($stop);
                 $stopOrderInDeparture[$stop->uuid] = $index;

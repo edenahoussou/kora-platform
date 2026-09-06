@@ -11,6 +11,7 @@ use App\Modules\Departures\Data\DepartureAvailabilityData;
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Actions\CalculateFarePreviewAction;
+use App\Modules\DynamicPricing\Models\ServiceClass;
 use App\Modules\SeatInventory\Actions\BuildSeatAvailabilityAction;
 use App\Modules\SeatInventory\Data\SeatAvailabilityData;
 use App\Modules\SeatInventory\Data\SeatAvailabilityStatus;
@@ -200,6 +201,7 @@ class DepartureSearchService
     public function resolveSegment(Departure $departure, string $originStopUuid, string $destinationStopUuid): array
     {
         $departure->loadMissing('line.stops');
+        /** @var list<array{stop_uuid: string, departure_minutes: int|null, arrival_minutes: int|null, timezone: string}> $stopTimes */
         $stopTimes = $departure->stop_times ?? [];
 
         return $stopTimes !== []
@@ -225,6 +227,7 @@ class DepartureSearchService
             'line.stops' => fn ($query) => $query->where('status', StopStatus::Active->value)->orderBy('stop_order'),
             'bus.seats',
         ]);
+        /** @var list<array{stop_uuid: string, departure_minutes: int|null, arrival_minutes: int|null, timezone: string}> $stopTimes */
         $stopTimes = $departure->stop_times ?? [];
 
         $segment = $stopTimes !== []
@@ -249,6 +252,7 @@ class DepartureSearchService
         ?string $to,
         ?ServiceClass $serviceClass = null,
     ): ?DepartureAvailabilityData {
+        /** @var list<array{stop_uuid: string, departure_minutes: int|null, arrival_minutes: int|null, timezone: string}> $stopTimes */
         $stopTimes = $departure->stop_times ?? [];
 
         try {

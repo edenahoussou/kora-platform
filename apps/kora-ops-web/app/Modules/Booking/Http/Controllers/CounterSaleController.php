@@ -440,14 +440,11 @@ class CounterSaleController extends Controller
                 'brand' => $leg->bus->brand ?? $leg->departure->bus->brand,
                 'model' => $leg->bus->model ?? $leg->departure->bus->model,
                 'seatCount' => $leg->bus->seat_count ?? $leg->departure->bus->seat_count,
-                'amenities' => ($leg->bus?->amenities ?? $leg->departure->bus?->amenities)
-                    ?->map(fn ($amenity) => [
-                        'code' => $amenity->code,
-                        'label' => $amenity->label,
-                        'icon' => $amenity->icon,
-                    ])
-                    ?->values()
-                    ?->all() ?? [],
+                'amenities' => $leg->bus->amenities->map(fn ($amenity) => [
+                    'code' => $amenity->code,
+                    'label' => $amenity->label,
+                    'icon' => $amenity->icon,
+                ])->values()->all(),
             ],
             'originStop' => $this->serializeStop($leg->originStop),
             'destinationStop' => $this->serializeStop($leg->destinationStop),
