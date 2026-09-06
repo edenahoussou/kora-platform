@@ -2,9 +2,9 @@
 
 namespace App\Modules\Booking\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
+use App\Http\Requests\JsonValidationRequest;
 
-class StorePassengersRequest extends FormRequest
+class StorePassengersRequest extends JsonValidationRequest
 {
     public function authorize(): bool
     {

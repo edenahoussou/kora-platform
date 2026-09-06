@@ -2,11 +2,11 @@
 
 namespace App\Modules\Booking\Http\Requests;
 
+use App\Http\Requests\JsonValidationRequest;
 use App\Models\User;
 use App\Modules\Booking\Models\Reservation;
-use Illuminate\Foundation\Http\FormRequest;
 
-class ReleaseCounterSaleHoldRequest extends FormRequest
+class ReleaseCounterSaleHoldRequest extends JsonValidationRequest
 {
     public function authorize(): bool
     {

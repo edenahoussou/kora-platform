@@ -2,10 +2,10 @@
 
 namespace App\Modules\Booking\Http\Requests;
 
+use App\Http\Requests\JsonValidationRequest;
 use App\Modules\Departures\Models\Departure;
-use Illuminate\Foundation\Http\FormRequest;
 
-class CounterSaleSearchRequest extends FormRequest
+class CounterSaleSearchRequest extends JsonValidationRequest
 {
     public function authorize(): bool
     {
