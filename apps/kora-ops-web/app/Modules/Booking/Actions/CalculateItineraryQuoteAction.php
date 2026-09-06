@@ -290,12 +290,11 @@ class CalculateItineraryQuoteAction
                     ]);
                 }
 
-                $serviceDate = $previousLeg->departure->departure_date?->toDateString();
-                if ($serviceDate !== null && $departureAt->setTimezone(config('app.timezone'))->toDateString() !== $serviceDate) {
-                    throw ValidationException::withMessages([
-                        "legs.{$index}.departure_uuid" => 'Les jambes d\'une même direction doivent appartenir à la même journée de service.',
-                    ]);
-                }
+                // Les jambes d'une même direction peuvent s'enchaîner sur des
+                // journées de service différentes (correspondances de nuit,
+                // escales inter-journées). La marge minimale de correspondance
+                // et l'ordre chronologique des départs suffisent à garantir un
+                // itinéraire physiquement enchaînable.
             }
         }
 
@@ -334,13 +333,31 @@ class CalculateItineraryQuoteAction
             ]);
         }
 
-        $outboundDepartureAt = $this->stopTimeResolver->departureAt($outboundFirst->departure, $outboundFirst->originStop);
-        $inboundDepartureAt = $this->stopTimeResolver->departureAt($inboundFirst->departure, $inboundFirst->originStop);
+        // The return trip cannot start before the outbound trip ends. For a
+        // multi-leg outbound, the outbound only ends at the arrival of its
+        // last leg, so we compare the inbound's first departure against the
+        // outbound's last arrival (not the outbound's first departure).
+        $outboundLastArrivalAt = $this->stopTimeResolver->arrivalAt($outboundLast->departure, $outboundLast->destinationStop);
+        $inboundFirstDepartureAt = $this->stopTimeResolver->departureAt($inboundFirst->departure, $inboundFirst->originStop);
 
-        if ($outboundDepartureAt !== null && $inboundDepartureAt !== null && $inboundDepartureAt->lte($outboundDepartureAt)) {
-            throw ValidationException::withMessages([
-                'inbound_legs' => 'La date de retour doit être postérieure à la date de départ.',
-            ]);
+        if ($outboundLastArrivalAt !== null && $inboundFirstDepartureAt !== null) {
+            $roundTripMargin = (int) config('kora.itineraries.round_trip_margin_minutes', 0);
+            if ($inboundFirstDepartureAt->lt($outboundLastArrivalAt->addMinutes($roundTripMargin))) {
+                throw ValidationException::withMessages([
+                    'inbound_legs' => 'Le retour doit partir après l’arrivée de l’aller.',
+                ]);
+            }
+        }
+
+        // Fallback when stop times are unavailable: compare first departures.
+        $outboundFirstDepartureAt = $this->stopTimeResolver->departureAt($outboundFirst->departure, $outboundFirst->originStop);
+
+        if ($outboundLastArrivalAt === null || $inboundFirstDepartureAt === null) {
+            if ($outboundFirstDepartureAt !== null && $inboundFirstDepartureAt !== null && $inboundFirstDepartureAt->lte($outboundFirstDepartureAt)) {
+                throw ValidationException::withMessages([
+                    'inbound_legs' => 'La date de retour doit être postérieure à la date de départ.',
+                ]);
+            }
         }
     }
 
