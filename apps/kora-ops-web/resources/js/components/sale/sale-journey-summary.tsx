@@ -1,31 +1,36 @@
 import {
-    Armchair,
+    ArrowRight,
     BadgeCheck,
     Banknote,
     Building2,
-    BusFront,
-    CalendarDays,
     Check,
     CheckCircle2,
     Clock3,
     HandCoins,
     Receipt,
-    Route as RouteIcon,
     ShieldCheck,
     Smartphone,
     Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import type {
     SaleCashSession,
     SaleDeparture,
+    SaleItineraryQuote,
+    SaleItineraryQuoteLeg,
     SaleMobileMoneyAccount,
     SalePaymentMethod,
     SaleReservation,
+    SaleSearch,
 } from './sale-types';
-import { formatDate, formatMoney, formatTime } from './sale-utils';
+import {
+    formatDayMonth,
+    formatIsoTime,
+    formatMoney,
+} from './sale-utils';
 import { useHoldCountdown } from './use-hold-countdown';
 
 type CashBreakdown = {
@@ -45,6 +50,8 @@ type Props = {
     departure: SaleDeparture | null;
     reservation: SaleReservation;
     variant: 'passengers' | 'payment';
+    search?: SaleSearch | null;
+    itineraryQuote?: SaleItineraryQuote | null;
     cashSession?: SaleCashSession;
     onOpenCash?: () => void;
     paymentMethod?: SalePaymentMethod;
@@ -55,10 +62,107 @@ type Props = {
     selectedAccount?: SaleMobileMoneyAccount | null | undefined;
 };
 
+const DIRECTION_LABEL: Record<string, string> = {
+    outbound: 'Aller',
+    inbound: 'Retour',
+};
+
+type LegPassenger = {
+    passengerIndex: number;
+    seatCode: string | null;
+};
+
+type LegInfo = {
+    legOrder: number;
+    originStop: string | null;
+    destinationStop: string | null;
+    originStopCity: string | null;
+    destinationStopCity: string | null;
+    departureDate: string | null;
+    lineCode: string | null;
+    busRegistration: string | null;
+    departureAt: string | null;
+    arrivalAt: string | null;
+    amount: number | null;
+    currency: string | null;
+    passengers: LegPassenger[];
+};
+
+type DirectionGroup = {
+    direction: 'outbound' | 'inbound';
+    legs: LegInfo[];
+};
+
+function buildDirectionGroups(
+    reservation: SaleReservation,
+    itineraryQuote: SaleItineraryQuote | null | undefined,
+): DirectionGroup[] {
+    const quoteLegsByOrder = new Map<number, SaleItineraryQuoteLeg>();
+
+    if (itineraryQuote) {
+        for (const leg of itineraryQuote.legs) {
+            quoteLegsByOrder.set(leg.legOrder, leg);
+        }
+    }
+
+    const directions: Array<'outbound' | 'inbound'> = ['outbound', 'inbound'];
+    const groups: DirectionGroup[] = [];
+
+    for (const direction of directions) {
+        const segments = reservation.segments.filter(
+            (segment) => (segment.direction ?? 'outbound') === direction,
+        );
+
+        if (segments.length === 0) {
+            continue;
+        }
+
+        const legOrders = [...new Set(segments.map((segment) => segment.legOrder ?? 0))].sort(
+            (a, b) => a - b,
+        );
+
+        const legs = legOrders.map((legOrder) => {
+            const legSegments = segments.filter(
+                (segment) => (segment.legOrder ?? 0) === legOrder,
+            );
+            const first = legSegments[0] ?? segments[0];
+            const quoteLeg = quoteLegsByOrder.get(legOrder);
+
+            return {
+                legOrder,
+                originStop: first?.originStop ?? null,
+                destinationStop: first?.destinationStop ?? null,
+                originStopCity: first?.originStopCity ?? quoteLeg?.originStop.city ?? null,
+                destinationStopCity:
+                    first?.destinationStopCity ?? quoteLeg?.destinationStop.city ?? null,
+                departureDate: first?.departureDate ?? null,
+                lineCode: first?.lineCode ?? quoteLeg?.line.code ?? null,
+                busRegistration: first?.busRegistration ?? null,
+                departureAt: quoteLeg?.departureAt ?? null,
+                arrivalAt: quoteLeg?.arrivalAt ?? null,
+                amount: quoteLeg?.amount ?? null,
+                currency: quoteLeg?.currency ?? itineraryQuote?.currency ?? null,
+                passengers: legSegments
+                    .map((segment) => ({
+                        passengerIndex: segment.passengerIndex ?? 0,
+                        seatCode: segment.seatCode ?? null,
+                    }))
+                    .sort((a, b) => a.passengerIndex - b.passengerIndex),
+            };
+        });
+
+        groups.push({ direction, legs });
+    }
+
+    return groups;
+}
+
 export function SaleJourneySummary({
     departure,
     reservation,
     variant,
+    search = null,
+    itineraryQuote = null,
     cashSession,
     onOpenCash,
     paymentMethod,
@@ -70,62 +174,161 @@ export function SaleJourneySummary({
 }: Props) {
     const holdCountdown = useHoldCountdown(reservation.expiresAt);
 
+    const directionGroups = useMemo(
+        () => buildDirectionGroups(reservation, itineraryQuote),
+        [reservation, itineraryQuote],
+    );
+
+    const isRoundTrip = directionGroups.length > 1;
+    const isMultiLeg = directionGroups.some((group) => group.legs.length > 1);
+    const allLegs = directionGroups.flatMap((group) => group.legs);
+    const firstLeg = allLegs[0];
+    const lastLeg = allLegs[allLegs.length - 1];
+
+    // Passenger count: passengers are only persisted at the next step,
+    // so derive the count from segment passenger indexes (or fall back
+    // to groupSize / passengerAllocations) instead of reservation.passengers.length.
+    const passengerCount = useMemo(() => {
+        const fromSegments = new Set(
+            reservation.segments.map(
+                (segment, index) => segment.passengerIndex ?? index,
+            ),
+        ).size;
+
+        if (fromSegments > 0) {
+            return fromSegments;
+        }
+
+        return (
+            reservation.groupSize ??
+            reservation.passengerAllocations.length ??
+            reservation.passengers.length
+        );
+    }, [reservation]);
+
+    // Use search from/to (montée/descente) as the main route cities;
+    // fall back to segment cities if search is unavailable.
+    const outboundOrigin = search?.from ?? firstLeg?.originStopCity ?? departure?.originStop.city ?? null;
+    const outboundDestination = search?.to ?? lastLeg?.destinationStopCity ?? departure?.destinationStop.city ?? null;
+    const returnOrigin = outboundDestination;
+    const returnDestination = outboundOrigin;
+
+    const renderDirectionBlock = (group: DirectionGroup) => {
+        const isOutbound = group.direction === 'outbound';
+        const routeOrigin = isOutbound ? outboundOrigin : returnOrigin;
+        const routeDestination = isOutbound ? outboundDestination : returnDestination;
+        const firstLegInGroup = group.legs[0];
+        const lastLegInGroup = group.legs[group.legs.length - 1];
+        const directionDate = isOutbound
+            ? search?.date ?? firstLegInGroup?.departureDate ?? null
+            : search?.returnDate ?? firstLegInGroup?.departureDate ?? null;
+        const directionDepartTime = firstLegInGroup?.departureAt ?? null;
+        const directionArriveTime = lastLegInGroup?.arrivalAt ?? null;
+
+        return (
+            <div key={group.direction} className="summary-direction-block">
+                <div className="summary-direction-header">
+                    <span className="summary-direction-label">
+                        {DIRECTION_LABEL[group.direction] ?? group.direction}
+                    </span>
+                    <span className="summary-direction-date">
+                        {directionDate ? formatDayMonth(directionDate) : '—'}
+                    </span>
+                </div>
+                <div className="summary-direction-route">
+                    <strong>{routeOrigin ?? '—'}</strong>
+                    <ArrowRight className="size-3" />
+                    <strong>{routeDestination ?? '—'}</strong>
+                </div>
+                <div className="summary-direction-times">
+                    <span>
+                        <Clock3 className="size-3" />
+                        {directionDepartTime ? formatIsoTime(directionDepartTime) : '—'}
+                    </span>
+                    <ArrowRight className="size-3" />
+                    <span>
+                        {directionArriveTime ? formatIsoTime(directionArriveTime) : '—'}
+                    </span>
+                </div>
+
+                {isMultiLeg && (
+                    <div className="summary-direction-legs">
+                        {group.legs.map((leg) => (
+                            <div key={leg.legOrder} className="summary-leg">
+                                <div className="summary-leg-header">
+                                    <strong>{leg.lineCode ?? '—'}</strong>
+                                    <span>Jambe {leg.legOrder}</span>
+                                </div>
+                                <div className="summary-leg-route">
+                                    {leg.originStopCity ?? leg.originStop ?? '—'} →{' '}
+                                    {leg.destinationStopCity ?? leg.destinationStop ?? '—'}
+                                </div>
+                                <div className="summary-leg-schedule">
+                                    {leg.departureAt ? formatIsoTime(leg.departureAt) : '—'}
+                                    {' → '}
+                                    {leg.arrivalAt ? formatIsoTime(leg.arrivalAt) : '—'}
+                                    {leg.busRegistration ? ` · ${leg.busRegistration}` : ''}
+                                </div>
+                                {leg.amount !== null && leg.currency && (
+                                    <div className="summary-leg-price">
+                                        {formatMoney(leg.amount, leg.currency)} / passager
+                                    </div>
+                                )}
+                                <div className="summary-leg-seats">
+                                    {leg.passengers.map((passenger) => (
+                                        <span key={passenger.passengerIndex} className="summary-leg-seat">
+                                            <em>P{passenger.passengerIndex + 1}</em>
+                                            <strong>{passenger.seatCode ?? '—'}</strong>
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {!isMultiLeg && firstLegInGroup && (
+                    <>
+                        {firstLegInGroup.amount !== null && firstLegInGroup.currency && (
+                            <div className="summary-leg-price">
+                                {formatMoney(firstLegInGroup.amount, firstLegInGroup.currency)} / passager
+                            </div>
+                        )}
+                        <div className="summary-leg-seats">
+                            {firstLegInGroup.passengers.map((passenger) => (
+                                <span key={passenger.passengerIndex} className="summary-leg-seat">
+                                    <em>P{passenger.passengerIndex + 1}</em>
+                                    <strong>{passenger.seatCode ?? '—'}</strong>
+                                </span>
+                            ))}
+                        </div>
+                    </>
+                )}
+            </div>
+        );
+    };
+
     return (
         <aside className="journey-summary summary">
             <div className="summary-hero">
-                <small>Dossier de vente</small>
+                <small>Réservation pour</small>
                 <h3>
-                    {departure
-                        ? `${departure.originStop.city} → ${departure.destinationStop.city}`
+                    {outboundOrigin && outboundDestination
+                        ? `${outboundOrigin} → ${outboundDestination}`
                         : 'Vente guichet'}
                 </h3>
-                <p>
-                    {departure
-                        ? `${formatDate(departure.departureDate)} · ${formatTime(departure.departureTime)}`
-                        : 'Réservation temporaire'}
-                </p>
+                {isRoundTrip && (
+                    <p className="summary-hero-return">
+                        <ArrowRight className="size-3" />
+                        {returnOrigin} → {returnDestination}
+                    </p>
+                )}
             </div>
-            <div className="summary-route">
-                <span>
-                    <b>{departure?.originStop.city ?? '—'}</b>
-                    <small>{departure?.originStop.name ?? 'Origine'}</small>
-                </span>
-                <i aria-hidden="true">
-                    <em>K</em>
-                </i>
-                <span>
-                    <b>{departure?.destinationStop.city ?? '—'}</b>
-                    <small>
-                        {departure?.destinationStop.name ?? 'Destination'}
-                    </small>
-                </span>
-            </div>
-            <SummaryRow icon={CalendarDays} label="Date">
-                {departure ? formatDate(departure.departureDate) : '—'}
-            </SummaryRow>
-            <SummaryRow icon={Clock3} label="Départ">
-                {departure ? formatTime(departure.departureTime) : '—'}
-            </SummaryRow>
-            <SummaryRow icon={Armchair} label="Sièges">
-                {reservation.segments
-                    .map((segment) => segment.seatCode)
-                    .join(', ')}
-            </SummaryRow>
-            <SummaryRow icon={RouteIcon} label="Ligne">
-                {departure?.line.code ?? '—'}
-            </SummaryRow>
-            <SummaryRow icon={BusFront} label="Véhicule">
-                {departure
-                    ? [
-                        [departure.bus.brand, departure.bus.model]
-                            .filter(Boolean)
-                            .join(' ') || 'Véhicule',
-                        departure.bus.registrationNumber,
-                    ].join(' · ')
-                    : '—'}
-            </SummaryRow>
+
+            {directionGroups.map(renderDirectionBlock)}
+
             <SummaryRow icon={Users} label="Passagers">
-                {reservation.passengers.length}
+                {passengerCount}
                 {reservation.purchaseType === 'group' && (
                     <span className="badge badge-group">
                         <Users className="size-3" />

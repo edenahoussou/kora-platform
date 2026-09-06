@@ -21,8 +21,10 @@ import { NationalitySelect } from './nationality-select';
 import { SaleJourneySummary } from './sale-journey-summary';
 import type {
     SaleDeparture,
+    SaleItineraryQuote,
     SalePassengerForm,
     SaleReservation,
+    SaleSearch,
 } from './sale-types';
 import { useHoldCountdown } from './use-hold-countdown';
 
@@ -38,6 +40,8 @@ type Props = {
     draftSaved: boolean;
     onBack: () => void;
     onHoldExpired: () => void;
+    search?: SaleSearch | null;
+    itineraryQuote?: SaleItineraryQuote | null;
 };
 
 function initialPassengers(reservation: SaleReservation): SalePassengerForm[] {
@@ -152,6 +156,8 @@ export function PassengerFinalization({
     draftSaved,
     onBack,
     onHoldExpired,
+    search = null,
+    itineraryQuote = null,
 }: Props) {
     const [passengers, setPassengers] = useState(() =>
         initialPassengers(reservation),
@@ -289,8 +295,8 @@ export function PassengerFinalization({
                                 {completedPassengers && savedAllPassengers
                                     ? 'Informations enregistrées'
                                     : completedPassengers
-                                      ? 'Prêt à enregistrer'
-                                      : `${completeCount}/${passengers.length} complété${completeCount > 1 ? 's' : ''}`}
+                                        ? 'Prêt à enregistrer'
+                                        : `${completeCount}/${passengers.length} complété${completeCount > 1 ? 's' : ''}`}
                             </strong>
                         </div>
                     </div>
@@ -304,8 +310,8 @@ export function PassengerFinalization({
                         {draftSaving
                             ? 'Enregistrement du brouillon…'
                             : draftSaved
-                              ? 'Brouillon enregistré'
-                              : 'Brouillon local prêt à enregistrer'}
+                                ? 'Brouillon enregistré'
+                                : 'Brouillon local prêt à enregistrer'}
                     </div>
                     <div
                         className="finalization-progress"
@@ -342,7 +348,7 @@ export function PassengerFinalization({
                     const phoneError =
                         fieldError(index, 'phone') ??
                         (passenger.phone.trim() !== '' &&
-                        !isValidPhoneNumber(passenger.phone)
+                            !isValidPhoneNumber(passenger.phone)
                             ? 'Saisissez un numéro international valide.'
                             : undefined);
 
@@ -712,8 +718,8 @@ export function PassengerFinalization({
                                 {holdCountdown.isExpired
                                     ? 'Le blocage a expiré. Revenez aux places pour le renouveler.'
                                     : completedPassengers
-                                      ? 'Toutes les informations requises sont prêtes. Vous pourrez ensuite encaisser la vente.'
-                                      : 'Complétez les champs requis pour continuer.'}
+                                        ? 'Toutes les informations requises sont prêtes. Vous pourrez ensuite encaisser la vente.'
+                                        : 'Complétez les champs requis pour continuer.'}
                             </span>
                         </span>
                     )}
@@ -732,8 +738,8 @@ export function PassengerFinalization({
                         {processing
                             ? 'Enregistrement…'
                             : savedAllPassengers
-                              ? 'Mettre à jour les voyageurs'
-                              : 'Enregistrer les voyageurs'}
+                                ? 'Mettre à jour les voyageurs'
+                                : 'Enregistrer les voyageurs'}
                         <ArrowRight className="size-4" />
                     </button>
                 </div>
@@ -743,6 +749,8 @@ export function PassengerFinalization({
                 departure={departure}
                 reservation={reservation}
                 variant="passengers"
+                search={search}
+                itineraryQuote={itineraryQuote}
             />
         </form>
     );

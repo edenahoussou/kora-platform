@@ -24,10 +24,12 @@ import { SaleJourneySummary } from './sale-journey-summary';
 import type {
     SaleCashSession,
     SaleDeparture,
+    SaleItineraryQuote,
     SaleMobileMoneyAccount,
     SaleMobileMoneyNetwork,
     SalePaymentMethod,
     SaleReservation,
+    SaleSearch,
 } from './sale-types';
 import { formatMoney, formatRemainingTime } from './sale-utils';
 import { useHoldCountdown } from './use-hold-countdown';
@@ -55,6 +57,8 @@ type Props = {
     onSubmit: (payload: CounterSalePaymentPayload) => void;
     onBack: () => void;
     onHoldExpired: () => void;
+    search?: SaleSearch | null;
+    itineraryQuote?: SaleItineraryQuote | null;
 };
 
 const networkMeta: Record<
@@ -124,6 +128,8 @@ export function PaymentStep({
     onSubmit,
     onBack,
     onHoldExpired,
+    search = null,
+    itineraryQuote = null,
 }: Props) {
     const [method, setMethod] = useState<SalePaymentMethod>(
         reservation.payerType === 'company' && reservation.companyAccount
@@ -417,6 +423,8 @@ export function PaymentStep({
                     departure={departure}
                     reservation={reservation}
                     variant="payment"
+                    search={search}
+                    itineraryQuote={itineraryQuote}
                     cashSession={cashSession}
                     onOpenCash={() => setCashModalOpen(true)}
                     paymentMethod={method}
