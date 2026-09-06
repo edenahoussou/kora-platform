@@ -10,7 +10,11 @@ class GroupBookingSetting extends Model
 {
     protected $table = 'group_booking_settings';
 
-    protected $fillable = ['minimum_passengers', 'maximum_passengers', 'updated_by'];
+    protected $fillable = [
+        'minimum_passengers',
+        'maximum_passengers',
+        'updated_by',
+    ];
 
     protected function casts(): array
     {

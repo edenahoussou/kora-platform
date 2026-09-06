@@ -10,6 +10,7 @@ use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Exceptions\SeatUnavailableException;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationSegment;
+use App\Modules\Booking\Services\DepartureStopTimeResolver;
 use App\Modules\BusNetwork\Data\SeatStatus;
 use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
@@ -31,6 +32,7 @@ class CreateSeatHoldAction
         private FindOccupiedSeatIdsAction $findOccupiedSeatIds,
         private ResolveDepartureSellabilityAction $resolveSellability,
         private CompanyCreditService $companyCredit,
+        private DepartureStopTimeResolver $stopTimeResolver,
     ) {}
 
     /**
@@ -77,9 +79,9 @@ class CreateSeatHoldAction
             ]);
         }
 
-        if ($originStop->stop_order >= $destinationStop->stop_order) {
+        if ($this->stopTimeResolver->circulationIndexOf($departure, $originStop) >= $this->stopTimeResolver->circulationIndexOf($departure, $destinationStop)) {
             throw ValidationException::withMessages([
-                'destination_stop_uuid' => 'L\'arrêt de destination doit être situé après l\'arrêt d\'origine.',
+                'destination_stop_uuid' => 'L\'arrêt de destination doit être situé après l\'arrêt d\'origine dans le sens de circulation de ce départ.',
             ]);
         }
 
@@ -174,6 +176,7 @@ class CreateSeatHoldAction
                     'company_account_id' => $payer->companyAccount?->getKey(),
                     'purchase_type' => $expectedPassengerCount >= 5 ? 'group' : 'individual',
                     'group_size' => $expectedPassengerCount,
+                    'payer_snapshot' => $payer->snapshot,
                     'price_quote_id' => $priceQuote->id,
                     'idempotency_key' => $idempotencyKey,
                     'status' => ReservationStatus::Held,
@@ -184,16 +187,17 @@ class CreateSeatHoldAction
                     'total_snapshot' => $priceQuote->snapshot,
                 ]);
 
-                foreach ($seats as $seat) {
+                foreach ($seats->values() as $passengerIndex => $seat) {
                     ReservationSegment::create([
                         'reservation_id' => $reservation->id,
                         'leg_order' => 1,
+                        'passenger_index' => $passengerIndex,
                         'departure_id' => $lockedDeparture->id,
                         'seat_id' => $seat->id,
                         'origin_stop_id' => $originStop->id,
                         'destination_stop_id' => $destinationStop->id,
-                        'origin_stop_order' => $originStop->stop_order,
-                        'destination_stop_order' => $destinationStop->stop_order,
+                        'origin_stop_order' => $this->stopTimeResolver->circulationIndexOf($lockedDeparture, $originStop),
+                        'destination_stop_order' => $this->stopTimeResolver->circulationIndexOf($lockedDeparture, $destinationStop),
                         'status' => ReservationSegmentStatus::Held,
                     ]);
                 }
@@ -216,6 +220,12 @@ class CreateSeatHoldAction
                     message: 'Un des sièges sélectionnés vient d\'être réservé par un autre utilisateur.',
                     previous: $e,
                 );
+            }
+
+            if (str_contains($e->getMessage(), 'reservation_segments_valid_stop_order') || $e->getCode() === '23514') {
+                throw ValidationException::withMessages([
+                    'price_quote_uuid' => 'La séquence des arrêts de ce départ est incompatible. Demandez un nouveau devis.',
+                ]);
             }
 
             throw $e;

@@ -4,9 +4,11 @@ namespace App\Modules\DynamicPricing\Http\Requests;
 
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\BusNetwork\Models\Stop;
+use App\Modules\DynamicPricing\Data\FareDirection;
 use App\Modules\DynamicPricing\Models\Fare;
 use App\Modules\DynamicPricing\Models\ServiceClass;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreFareRequest extends FormRequest
 {
@@ -23,6 +25,7 @@ class StoreFareRequest extends FormRequest
             'service_class_id' => ['required', 'string', 'exists:service_classes,uuid'],
             'origin_stop_id' => ['required', 'string', 'exists:stops,uuid'],
             'destination_stop_id' => ['required', 'string', 'exists:stops,uuid', 'different:origin_stop_id'],
+            'direction' => ['nullable', 'string', Rule::in(array_column(FareDirection::cases(), 'value'))],
             'base_amount' => ['required', 'integer', 'min:1'],
             'currency' => ['required', 'string', 'size:3'],
             'effective_from' => ['required', 'date'],
@@ -53,7 +56,7 @@ class StoreFareRequest extends FormRequest
     }
 
     /**
-     * @return array{line_id: int, service_class_id: int, origin_stop_id: int, destination_stop_id: int, base_amount: int, currency: string, effective_from: string, effective_until: string|null}
+     * @return array{line_id: int, service_class_id: int, origin_stop_id: int, destination_stop_id: int, direction: string, base_amount: int, currency: string, effective_from: string, effective_until: string|null}
      */
     public function payload(): array
     {
@@ -62,11 +65,17 @@ class StoreFareRequest extends FormRequest
         $origin = Stop::query()->where('uuid', $this->string('origin_stop_id')->value())->firstOrFail();
         $destination = Stop::query()->where('uuid', $this->string('destination_stop_id')->value())->firstOrFail();
 
+        $direction = $this->string('direction')->value();
+        if (! in_array($direction, array_column(FareDirection::cases(), 'value'), true)) {
+            $direction = FareDirection::Both->value;
+        }
+
         return [
             'line_id' => $line->id,
             'service_class_id' => $serviceClass->id,
             'origin_stop_id' => $origin->id,
             'destination_stop_id' => $destination->id,
+            'direction' => $direction,
             'base_amount' => (int) $this->input('base_amount'),
             'currency' => strtoupper($this->string('currency')->trim()->value()),
             'effective_from' => $this->string('effective_from')->value(),

@@ -33,7 +33,9 @@ class StoreCounterSaleDraftRequest extends StorePassengersRequest
             'passengers.*.document_number' => ['nullable', 'string', 'max:64'],
             'passengers.*.nationality' => ['nullable', 'string', 'size:2'],
             'passengers.*.birth_date' => ['nullable', 'date_format:Y-m-d'],
-            'passengers.*.seat_uuid' => ['required', 'uuid'],
+            'passengers.*.passenger_index' => ['nullable', 'integer', 'min:0', 'max:9', 'distinct'],
+            'passengers.*.seat_uuid' => ['nullable', 'uuid'],
+            'passengers.*.yellow_fever_vaccinated' => ['nullable', 'boolean'],
         ];
     }
 }

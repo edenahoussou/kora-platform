@@ -6,21 +6,35 @@ use App\Models\User;
 use App\Modules\Booking\Data\PayerContext;
 use App\Modules\CompanyAccounts\Data\CompanyAccountStatus;
 use App\Modules\CompanyAccounts\Models\CompanyAccount;
+use App\Modules\IdentityAccess\Contracts\PassengerIdentityResolver;
 use Illuminate\Validation\ValidationException;
 
 class ResolvePayerContextAction
 {
-    /** @param array{type?: string, user_uuid?: string|null, company_account_uuid?: string|null} $data */
+    public function __construct(private readonly PassengerIdentityResolver $identityResolver) {}
+
+    /** @param array{type?: string, phone?: string|null, name?: string|null, company_account_uuid?: string|null} $data */
     public function handle(?User $actor, array $data): PayerContext
     {
         $type = (string) ($data['type'] ?? 'personal');
         if ($type === 'personal') {
-            $payerUuid = $data['user_uuid'] ?? null;
-            if ($payerUuid !== null && ($actor === null || $actor->uuid !== $payerUuid)) {
-                throw ValidationException::withMessages(['payer.user_uuid' => 'Le payeur personnel doit être l’utilisateur authentifié.']);
+            $normalizedPhone = $this->identityResolver->normalizePhone($data['phone'] ?? null);
+            if ($normalizedPhone === null && $actor?->phone !== null) {
+                $normalizedPhone = $this->identityResolver->normalizePhone($actor->phone);
+            }
+            if ($normalizedPhone === null) {
+                throw ValidationException::withMessages(['payer.phone' => 'Le téléphone du payeur est obligatoire.']);
             }
 
-            return PayerContext::personal($actor?->getKey());
+            $payer = $this->identityResolver->resolveOrCreateByPhone($normalizedPhone, $data['name'] ?? null);
+
+            return PayerContext::personal($payer->getKey(), [
+                'type' => 'personal',
+                'display_name' => $payer->name,
+                'phone' => $payer->phone,
+                'account_uuid' => $payer->uuid,
+                'captured_at' => now()->toISOString(),
+            ]);
         }
 
         if ($type !== 'company' || $actor === null) {
@@ -42,6 +56,21 @@ class ResolvePayerContextAction
             throw ValidationException::withMessages(['payer.company_account_uuid' => 'Vous n’êtes pas autorisé à utiliser ce compte entreprise.']);
         }
 
-        return PayerContext::company($companyAccount);
+        $referent = $companyAccount->members()
+            ->with('user')
+            ->where('role', 'referent')
+            ->where('status', 'active')
+            ->first()?->user;
+
+        return PayerContext::company($companyAccount, [
+            'type' => 'company',
+            'display_name' => $companyAccount->name,
+            'phone' => $companyAccount->phone,
+            'account_uuid' => $companyAccount->uuid,
+            'company_reference' => $companyAccount->reference,
+            'referent_uuid' => $referent?->uuid,
+            'referent_name' => $referent?->name,
+            'captured_at' => now()->toISOString(),
+        ]);
     }
 }

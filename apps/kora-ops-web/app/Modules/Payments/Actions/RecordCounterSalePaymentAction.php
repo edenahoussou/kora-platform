@@ -22,7 +22,8 @@ use App\Modules\Payments\Data\PaymentMethod;
 use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\AgencyPaymentAccount;
 use App\Modules\Payments\Models\Payment;
-use App\Modules\Ticketing\Actions\IssueCounterSaleTicketsAction;
+use App\Modules\Ticketing\Data\TicketIssuanceStatus;
+use App\Modules\Ticketing\Jobs\IssueReservationTicketsJob;
 use App\Modules\Ticketing\Models\Ticket;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -32,7 +33,6 @@ use Illuminate\Validation\ValidationException;
 class RecordCounterSalePaymentAction
 {
     public function __construct(
-        private readonly IssueCounterSaleTicketsAction $issueTickets,
         private readonly CompanyCreditService $companyCredit,
     ) {}
 
@@ -42,7 +42,7 @@ class RecordCounterSalePaymentAction
      */
     public function execute(Reservation $reservation, User $agent, array $attributes): array
     {
-        return DB::transaction(function () use ($reservation, $agent, $attributes): array {
+        $result = DB::transaction(function () use ($reservation, $agent, $attributes): array {
             $lockedReservation = Reservation::query()
                 ->with(['segments.departure', 'segments', 'passengers'])
                 ->whereKey($reservation->getKey())
@@ -56,9 +56,9 @@ class RecordCounterSalePaymentAction
                 ->first();
 
             if ($existingPayment !== null) {
-                if ($existingPayment->reservation_id !== $lockedReservation->getKey()) {
+                if (! $this->matchesReplay($existingPayment, $lockedReservation, $attributes)) {
                     throw ValidationException::withMessages([
-                        'idempotency_key' => 'Cette clé de paiement est déjà utilisée.',
+                        'idempotency_key' => 'Cette clé de paiement a déjà été utilisée avec un contenu différent.',
                     ]);
                 }
 
@@ -125,14 +125,11 @@ class RecordCounterSalePaymentAction
 
             $lockedReservation->update([
                 'status' => ReservationStatus::Paid,
+                'ticket_issuance_status' => TicketIssuanceStatus::Pending,
+                'ticket_issuance_error' => null,
                 'draft_data' => null,
             ]);
             $lockedReservation->segments()->update(['status' => ReservationSegmentStatus::Paid]);
-
-            $tickets = $this->issueTickets->execute($lockedReservation);
-
-            $lockedReservation->update(['status' => ReservationStatus::Ticketed]);
-            $lockedReservation->segments()->update(['status' => ReservationSegmentStatus::Ticketed]);
 
             $fiscalInvoice = FiscalInvoice::query()->firstOrCreate(
                 ['reservation_id' => $lockedReservation->getKey()],
@@ -154,10 +151,16 @@ class RecordCounterSalePaymentAction
             return [
                 'reservation' => $lockedReservation->fresh(['segments.departure', 'segments', 'passengers']),
                 'payment' => $payment->fresh(),
-                'tickets' => $tickets,
+                'tickets' => new Collection,
                 'fiscalInvoice' => $fiscalInvoice,
             ];
         });
+
+        IssueReservationTicketsJob::dispatch($result['reservation']->getKey());
+        $result['reservation'] = $result['reservation']->fresh(['segments.departure', 'segments', 'passengers']);
+        $result['tickets'] = Ticket::query()->where('reservation_id', $result['reservation']->getKey())->orderBy('id')->get();
+
+        return $result;
     }
 
     /**
@@ -171,7 +174,20 @@ class RecordCounterSalePaymentAction
             ->get();
         $fiscalInvoice = FiscalInvoice::query()
             ->where('reservation_id', $reservation->getKey())
-            ->firstOrFail();
+            ->first();
+        if ($fiscalInvoice === null) {
+            $total = (int) $reservation->total_amount;
+            $fiscalInvoice = FiscalInvoice::query()->create([
+                'reservation_id' => $reservation->getKey(),
+                'payment_id' => $payment->getKey(),
+                'kora_reference' => 'KORA-'.Str::upper(Str::substr(str_replace('-', '', $reservation->uuid), 0, 16)),
+                'status' => FiscalInvoiceStatus::Pending,
+                'total_without_tax' => $total,
+                'total_tax' => 0,
+                'total_with_tax' => $total,
+                'tax_snapshot' => ['taxRate' => 0, 'taxCode' => 'exempt', 'source' => 'counter_sale'],
+            ]);
+        }
 
         return [
             'reservation' => $reservation->fresh(['segments.departure', 'segments', 'passengers']),
@@ -212,11 +228,35 @@ class RecordCounterSalePaymentAction
             ]);
         }
 
-        if ($reservation->passengers->count() === 0 || $reservation->passengers->count() !== $reservation->segments->count()) {
+        $logicalPassengerCount = $reservation->segments->pluck('passenger_index')->filter(fn (mixed $index): bool => $index !== null)->unique()->count();
+        $expectedPassengerCount = $logicalPassengerCount > 0 ? $logicalPassengerCount : $reservation->segments->count();
+        if ($reservation->passengers->count() === 0 || $reservation->passengers->count() !== $expectedPassengerCount) {
             throw ValidationException::withMessages([
                 'reservation' => 'Renseignez tous les passagers avant de confirmer le paiement.',
             ]);
         }
+    }
+
+    /** @param array<string, mixed> $attributes */
+    private function matchesReplay(Payment $payment, Reservation $reservation, array $attributes): bool
+    {
+        if ($payment->reservation_id !== $reservation->getKey()
+            || $payment->method?->value !== (string) ($attributes['method'] ?? '')
+            || (int) $payment->amount !== (int) ($attributes['amount'] ?? -1)) {
+            return false;
+        }
+
+        if ($payment->method === PaymentMethod::Cash) {
+            return (int) $payment->cash_received_amount === (int) ($attributes['cash_received_amount'] ?? -1);
+        }
+
+        if ($payment->method === PaymentMethod::MobileMoney) {
+            return $payment->mobile_money_network?->value === (string) ($attributes['mobile_money_network'] ?? '')
+                && $payment->provider_reference === trim((string) ($attributes['provider_reference'] ?? ''))
+                && $payment->payer_phone === trim((string) ($attributes['payer_phone'] ?? ''));
+        }
+
+        return true;
     }
 
     private function openCashSession(User $agent): CashSession

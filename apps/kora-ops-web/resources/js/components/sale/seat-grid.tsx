@@ -4,6 +4,7 @@ import type { SaleSeat } from './sale-types';
 type Props = {
     seats: SaleSeat[];
     selectedSeatUuids: string[];
+    takenSeatUuids?: string[];
     loading: boolean;
     onToggleSeat: (seat: SaleSeat) => void;
 };
@@ -61,7 +62,15 @@ function buildSeatRows(seats: SaleSeat[]): SeatRow[] {
     });
 }
 
-function seatStatus(seat: SaleSeat, selectedSeatUuids: string[]) {
+function seatStatus(
+    seat: SaleSeat,
+    selectedSeatUuids: string[],
+    takenSeatUuids: string[],
+) {
+    if (takenSeatUuids.includes(seat.uuid)) {
+        return 'taken';
+    }
+
     return selectedSeatUuids.includes(seat.uuid)
         ? 'selected'
         : seat.availabilityStatus;
@@ -81,6 +90,7 @@ function expiryLabel(value: string | null): string | null {
 export function SeatGrid({
     seats,
     selectedSeatUuids,
+    takenSeatUuids = [],
     loading,
     onToggleSeat,
 }: Props) {
@@ -120,9 +130,18 @@ export function SeatGrid({
                                 );
                             }
 
-                            const status = seatStatus(seat, selectedSeatUuids);
+                            const status = seatStatus(
+                                seat,
+                                selectedSeatUuids,
+                                takenSeatUuids,
+                            );
                             const disabled =
                                 status !== 'available' && status !== 'selected';
+
+                            const ariaStatusLabel =
+                                status === 'taken'
+                                    ? 'prise par un autre voyageur'
+                                    : status;
 
                             return (
                                 <button
@@ -135,7 +154,7 @@ export function SeatGrid({
                                         `seat-position-${letter.toLowerCase()}`,
                                         status,
                                     )}
-                                    aria-label={`${seat.code} · ${status}`}
+                                    aria-label={`${seat.code} · ${ariaStatusLabel}`}
                                 >
                                     <span>{seat.code}</span>
                                     {status === 'reserved' && (

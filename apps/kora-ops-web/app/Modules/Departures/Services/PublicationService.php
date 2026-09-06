@@ -12,6 +12,7 @@ use App\Modules\DynamicPricing\Models\Fare;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class PublicationService
@@ -38,8 +39,12 @@ class PublicationService
         $line = $this->batch !== null ? ($this->batch['lines'][$item->line_id] ?? null) : Line::query()->with('stops')->find($item->line_id);
         if ($line === null || $line->getRawOriginal('status') !== 'active') {
             $blockers[] = 'La ligne n’est plus active.';
-        } elseif ($line->stops->filter(fn ($stop): bool => $stop->getRawOriginal('status') === 'active')->pluck('uuid')->values()->all() !== array_column($item->snapshot['stops'], 'stop_uuid')) {
-            $blockers[] = 'Le parcours a changé. Révisez les horaires du modèle.';
+        } else {
+            $activeUuids = $line->stops->filter(fn ($stop): bool => $stop->getRawOriginal('status') === 'active')->pluck('uuid')->values()->all();
+            $snapshotUuids = array_column($item->snapshot['stops'], 'stop_uuid');
+            if ($activeUuids !== $snapshotUuids && array_reverse($activeUuids) !== $snapshotUuids) {
+                $blockers[] = 'Le parcours a changé. Révisez les horaires du modèle.';
+            }
         }
         $date = $item->scheduled_at->setTimezone($item->timezone)->toDateString();
         $fares = $this->batch !== null ? $this->batch['fares']->filter(fn (Fare $fare): bool => $fare->line_id === $item->line_id && $fare->effective_from->toDateString() <= $date && ($fare->effective_until === null || $fare->effective_until->toDateString() >= $date))->count() : Fare::query()->where('line_id', $item->line_id)->where('status', 'active')
@@ -271,6 +276,7 @@ class PublicationService
                 }
                 $time = $entry->scheduled_at->setTimezone(config('app.timezone'));
                 $departure = Departure::query()->create([
+                    'uuid' => (string) Str::uuid(),
                     'line_id' => $entry->line_id, 'bus_id' => $entry->bus_id,
                     'driver_id' => $entry->driver_id, 'secondary_driver_id' => $entry->secondary_driver_id,
                     'conductor_id' => $entry->conductor_id, 'mechanic_id' => $entry->mechanic_id,

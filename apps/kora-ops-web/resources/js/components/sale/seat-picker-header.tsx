@@ -1,42 +1,55 @@
 import { BusFront, CalendarDays, Clock3, Hash, Tag, Users } from 'lucide-react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { DialogDescription, DialogTitle } from '@/components/ui/dialog';
-import type { SaleDeparture } from './sale-types';
-import { formatDuration, formatShortDate, formatTime } from './sale-utils';
+import type { SaleItineraryLeg } from './sale-types';
+import {
+    formatDuration,
+    formatIsoDate,
+    formatIsoTime,
+    formatShortDate,
+} from './sale-utils';
 
 type Props = {
-    departure: SaleDeparture;
+    leg: SaleItineraryLeg;
+    /** Shown next to the title (e.g. "Aller"/"Retour") when there is more than one leg. */
+    directionLabel?: string;
+    /** Overrides the service-class badge, e.g. with a "2/4 places" progress indicator. */
+    progressBadge?: string;
 };
 
-export function SeatPickerHeader({ departure }: Props) {
+export function SeatPickerHeader({
+    leg,
+    directionLabel,
+    progressBadge,
+}: Props) {
     const serviceClass =
-        departure.farePreview?.service_class_name ??
-        departure.farePreview?.service_class_code ??
-        'Service non renseigné';
+        leg.serviceClassName ?? leg.serviceClassCode ?? 'Service non renseigné';
     const vehicleModel =
-        departure.bus.model ?? departure.bus.brand ?? 'Modèle non renseigné';
+        leg.bus.model ?? leg.bus.brand ?? 'Modèle non renseigné';
+    const title = directionLabel
+        ? `Choisir les places · ${directionLabel}`
+        : 'Choisir les places';
 
     return (
         <header className="seat-dialog-header">
             <div className="seat-dialog-header-copy">
                 <div className="seat-dialog-heading-line">
-                    <DialogTitle id="seat-picker-title">
-                        Choisir les places
-                    </DialogTitle>
+                    <DialogTitle id="seat-picker-title">{title}</DialogTitle>
                     <KoraStatusBadge
-                        label={serviceClass}
+                        label={progressBadge ?? serviceClass}
                         tone="gold"
                         className="seat-dialog-service-badge"
                     />
                 </div>
                 <DialogDescription id="seat-picker-description">
-                    Sélectionnez une place pour chaque voyageur avant de
-                    continuer.
+                    {directionLabel
+                        ? 'Attribuez une place à chaque voyageur sur chaque jambe du trajet.'
+                        : 'Sélectionnez une place pour chaque voyageur avant de continuer.'}
                 </DialogDescription>
                 <div className="seat-dialog-meta">
                     <span>
                         <Hash className="size-3.5" />
-                        Ligne <strong>{departure.line.code}</strong>
+                        Ligne <strong>{leg.line.code}</strong>
                     </span>
                     <span>
                         <BusFront className="size-3.5" />
@@ -44,22 +57,21 @@ export function SeatPickerHeader({ departure }: Props) {
                     </span>
                     <span>
                         <Tag className="size-3.5" />
-                        Immat.{' '}
-                        <strong>{departure.bus.registrationNumber}</strong>
+                        Immat. <strong>{leg.bus.registrationNumber}</strong>
                     </span>
                     <span>
                         <Users className="size-3.5" />
-                        <strong>{departure.bus.seatCount}</strong> places
+                        <strong>{leg.bus.seatCount}</strong> places
                     </span>
                     <span>
                         <CalendarDays className="size-3.5" />
-                        {formatShortDate(departure.departureDate)}
+                        {formatShortDate(formatIsoDate(leg.departureAt))}
                     </span>
                     <span>
                         <Clock3 className="size-3.5" />
-                        {formatTime(departure.departureTime)} ·{' '}
+                        {formatIsoTime(leg.departureAt)} ·{' '}
                         {formatDuration(
-                            departure.line.estimatedDurationMinutes,
+                            leg.line.estimatedDurationMinutes ?? null,
                         )}
                     </span>
                 </div>

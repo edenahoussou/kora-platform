@@ -14,7 +14,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class CompanyAccountMember extends KoraModel
 {
-    protected $fillable = ['uuid', 'company_account_id', 'user_id', 'role', 'status'];
+    protected $fillable = [
+        'uuid',
+        'company_account_id',
+        'user_id',
+        'role',
+        'status',
+    ];
 
     protected function casts(): array
     {

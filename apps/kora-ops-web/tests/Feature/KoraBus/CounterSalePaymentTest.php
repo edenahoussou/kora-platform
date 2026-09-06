@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use App\Modules\Booking\Data\ReservationStatus;
+use App\Modules\Booking\Models\ItineraryQuote;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
@@ -12,7 +13,6 @@ use App\Modules\Cash\Models\CashLedger;
 use App\Modules\Cash\Models\CashSession;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Models\Fare;
-use App\Modules\DynamicPricing\Models\PriceQuote;
 use App\Modules\DynamicPricing\Models\PricingRule;
 use App\Modules\DynamicPricing\Models\ServiceClass;
 use App\Modules\IdentityAccess\Models\Agency;
@@ -303,17 +303,32 @@ function paymentSaleScenario(): array
 function paymentReservation(object $test, array $scenario, string $seatCode = '2A'): Reservation
 {
     $context = [
-        'date' => '2026-08-20', 'from' => 'Cotonou', 'to' => 'Abidjan', 'departure_uuid' => $scenario['departure']->uuid,
-        'origin_stop_uuid' => $scenario['origin']->uuid, 'destination_stop_uuid' => $scenario['destination']->uuid,
+        'date' => '2026-08-20', 'from' => 'Cotonou', 'to' => 'Abidjan',
+        'trip_type' => 'one_way',
     ];
-    $test->actingAs($scenario['agent'])->post(route('sale.quote'), $context + ['passenger_count' => 1]);
-    $quote = PriceQuote::query()->latest('id')->firstOrFail();
+    $legContext = [
+        'departure_uuid' => $scenario['departure']->uuid,
+        'origin_stop_uuid' => $scenario['origin']->uuid,
+        'destination_stop_uuid' => $scenario['destination']->uuid,
+    ];
+    $test->actingAs($scenario['agent'])->post(route('sale.quote'), $context + [
+        'passenger_count' => 1,
+        'outbound_legs' => [$legContext],
+    ]);
+    $quote = ItineraryQuote::query()->latest('id')->firstOrFail();
     $test->actingAs($scenario['agent'])->post(route('sale.hold'), $context + [
-        'price_quote_uuid' => $quote->uuid,
-        'seats' => [['seat_uuid' => $scenario['seats'][$seatCode]->uuid]],
+        'itinerary_quote_uuid' => $quote->uuid,
+        'idempotency_key' => (string) Str::uuid(),
+        'passengers' => [[
+            'passenger_index' => 0,
+            'seat_assignments' => [
+                ['leg_order' => 1, 'direction' => 'outbound', 'seat_uuid' => $scenario['seats'][$seatCode]->uuid],
+            ],
+        ]],
     ]);
     $reservation = Reservation::query()->latest('id')->firstOrFail();
     $test->actingAs($scenario['agent'])->post(route('sale.passengers', $reservation), $context + [
+        'information_confirmed' => true,
         'passengers' => [[
             'first_name' => 'Aïcha', 'last_name' => 'Hounkpè', 'phone' => '+22997241806', 'email' => 'aicha@example.com',
             'document_type' => 'passport', 'document_number' => 'BJ0427851', 'nationality' => 'BJ', 'birth_date' => '1994-04-18',

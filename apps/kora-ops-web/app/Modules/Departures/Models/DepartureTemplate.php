@@ -10,7 +10,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class DepartureTemplate extends KoraModel
 {
-    protected $fillable = ['uuid', 'name', 'status', 'revision', 'draft', 'created_by'];
+    protected $fillable = [
+        'uuid',
+        'name',
+        'status',
+        'revision',
+        'draft',
+        'created_by',
+    ];
 
     protected function casts(): array
     {
