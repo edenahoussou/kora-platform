@@ -255,8 +255,8 @@ class CreateItineraryHoldAction
                             'seat_id' => $seat->id,
                             'origin_stop_id' => $quoteLeg->origin_stop_id,
                             'destination_stop_id' => $quoteLeg->destination_stop_id,
-                            'origin_stop_order' => $quoteLeg->originStop->stop_order,
-                            'destination_stop_order' => $quoteLeg->destinationStop->stop_order,
+                            'origin_stop_order' => $this->stopTimeResolver->circulationIndexOf($departure, $quoteLeg->originStop),
+                            'destination_stop_order' => $this->stopTimeResolver->circulationIndexOf($departure, $quoteLeg->destinationStop),
                             'status' => ReservationSegmentStatus::Held,
                         ]);
                     }
@@ -274,6 +274,12 @@ class CreateItineraryHoldAction
                     message: 'Un des sièges sélectionnés vient d’être réservé par un autre utilisateur.',
                     previous: $exception,
                 );
+            }
+
+            if (str_contains($exception->getMessage(), 'reservation_segments_valid_stop_order') || $exception->getCode() === '23514') {
+                throw ValidationException::withMessages([
+                    'itinerary_quote_uuid' => 'La séquence des arrêts de ce départ est incompatible. Demandez un nouveau devis.',
+                ]);
             }
 
             throw $exception;
