@@ -11,6 +11,7 @@ use App\Modules\Departures\Models\Departure;
 use App\Modules\SeatInventory\Data\SeatAvailabilityData;
 use App\Modules\SeatInventory\Data\SeatAvailabilityStatus;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 use function Illuminate\Support\enum_value;
@@ -24,14 +25,7 @@ class BuildSeatAvailabilityAction
     {
         $departure->loadMissing(['bus.seats']);
 
-        $segments = ReservationSegment::query()
-            ->whereBelongsTo($departure)
-            ->whereIn('status', ReservationSegmentStatus::occupyingValues())
-            ->where('origin_stop_order', '<', $destinationStop->stop_order)
-            ->where('destination_stop_order', '>', $originStop->stop_order)
-            ->with(['reservation:id,expires_at'])
-            ->get(['id', 'reservation_id', 'seat_id', 'status'])
-            ->keyBy('seat_id');
+        $segments = $this->loadOverlappingSegments($departure, $originStop, $destinationStop);
 
         return $departure->bus->seats
             ->map(function (Seat $seat) use ($segments): SeatAvailabilityData {
@@ -48,6 +42,72 @@ class BuildSeatAvailabilityAction
                 );
             })
             ->values();
+    }
+
+    /**
+     * Count available seats using a pre-loaded collection of ALL occupying
+     * segments for the departure (without stop-order filtering). The
+     * stop-order overlap is applied in PHP, avoiding a database query per
+     * (origin, destination) pair.
+     *
+     * The departure must already have bus.seats loaded.
+     *
+     * @param  EloquentCollection<int, ReservationSegment>  $allOccupyingSegments
+     */
+    public function countAvailableFromLoadedSegments(
+        Departure $departure,
+        Stop $originStop,
+        Stop $destinationStop,
+        EloquentCollection $allOccupyingSegments,
+    ): int {
+        $overlapping = $allOccupyingSegments
+            ->where('origin_stop_order', '<', $destinationStop->stop_order)
+            ->where('destination_stop_order', '>', $originStop->stop_order)
+            ->keyBy('seat_id');
+
+        return $departure->bus->seats
+            ->filter(function (Seat $seat) use ($overlapping): bool {
+                if (! $seat->sellable || enum_value($seat->status) !== SeatStatus::Active->value) {
+                    return false;
+                }
+
+                /** @var ReservationSegment|null $segment */
+                $segment = $overlapping->get($seat->id);
+
+                return $segment === null
+                    || ! in_array($segment->status, ReservationSegmentStatus::occupyingCases(), true);
+            })
+            ->count();
+    }
+
+    /**
+     * Load all occupying reservation segments for a departure, without
+     * stop-order filtering. The caller filters by stop-order in PHP.
+     *
+     * @return EloquentCollection<int, ReservationSegment>
+     */
+    public function loadAllOccupyingSegments(Departure $departure): EloquentCollection
+    {
+        return ReservationSegment::query()
+            ->whereBelongsTo($departure)
+            ->whereIn('status', ReservationSegmentStatus::occupyingValues())
+            ->with(['reservation:id,expires_at'])
+            ->get(['id', 'reservation_id', 'seat_id', 'status', 'origin_stop_order', 'destination_stop_order']);
+    }
+
+    /**
+     * @return Collection<int, ReservationSegment>
+     */
+    private function loadOverlappingSegments(Departure $departure, Stop $originStop, Stop $destinationStop): Collection
+    {
+        return ReservationSegment::query()
+            ->whereBelongsTo($departure)
+            ->whereIn('status', ReservationSegmentStatus::occupyingValues())
+            ->where('origin_stop_order', '<', $destinationStop->stop_order)
+            ->where('destination_stop_order', '>', $originStop->stop_order)
+            ->with(['reservation:id,expires_at'])
+            ->get(['id', 'reservation_id', 'seat_id', 'status'])
+            ->keyBy('seat_id');
     }
 
     private function availabilityStatus(Seat $seat, ?ReservationSegment $segment): SeatAvailabilityStatus
