@@ -42,7 +42,7 @@ export function PayerSelector({
                     onClick={() => onPayerTypeChange('personal')}
                 >
                     <UserRound className="size-3.5" />
-                    Personnel
+                    Personne physique
                 </button>
                 <button
                     type="button"
@@ -51,14 +51,14 @@ export function PayerSelector({
                     onClick={() => onPayerTypeChange('company')}
                 >
                     <Building2 className="size-3.5" />
-                    Entreprise
+                    Personne morale
                 </button>
             </div>
             {payerType === 'company' && (
                 <label className="field">
                     <span className="field-label">
                         <Building2 className="size-3.5" />
-                        Compte entreprise
+                        Compte personne morale
                     </span>
                     <select
                         className="control"

@@ -597,7 +597,7 @@ function CompanyCreditFields({
                 <div className="company-credit-header">
                     <Building2 className="size-5" />
                     <div>
-                        <strong>{account?.name ?? 'Compte entreprise'}</strong>
+                        <strong>{account?.name ?? 'Compte personne morale'}</strong>
                         <small>
                             {account?.type === 'ngo'
                                 ? 'ONG'
