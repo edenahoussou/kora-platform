@@ -41,6 +41,63 @@ export function formatTime(value: string | null): string {
     return value ? value.slice(0, 5) : '—';
 }
 
+/**
+ * Convert an ISO UTC timestamp (e.g. "2026-09-07T05:00:00.000Z") to a
+ * local "HH:MM" string using the browser's timezone. This is essential
+ * for displaying stop-specific departure/arrival times that are stored
+ * as UTC instants — without conversion, times appear off by the UTC
+ * offset (e.g. 05:00 UTC shown as 05:00 instead of 06:00 in UTC+1).
+ */
+export function formatIsoTime(iso: string | null): string {
+    if (!iso) {
+        return '—';
+    }
+
+    const date = new Date(iso);
+
+    if (Number.isNaN(date.getTime())) {
+        return '—';
+    }
+
+    return date.toTimeString().slice(0, 5);
+}
+
+/**
+ * Convert an ISO UTC timestamp to a local "YYYY-MM-DD" string using the
+ * browser's timezone. Mirrors formatIsoTime for date display.
+ */
+export function formatIsoDate(iso: string | null): string {
+    if (!iso) {
+        return '';
+    }
+
+    const date = new Date(iso);
+
+    if (Number.isNaN(date.getTime())) {
+        return '';
+    }
+
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+
+    return `${y}-${m}-${d}`;
+}
+
+/**
+ * Get the Unix timestamp (ms) from an ISO UTC string. Returns null if
+ * the string is invalid.
+ */
+export function getIsoTimestamp(iso: string | null): number | null {
+    if (!iso) {
+        return null;
+    }
+
+    const ts = new Date(iso).getTime();
+
+    return Number.isNaN(ts) ? null : ts;
+}
+
 export function getDepartureTimestamp(
     departureDate: string,
     departureTime: string,
@@ -82,6 +139,46 @@ export function formatDepartureCountdown(
     }
 
     const remainingMinutes = Math.ceil((departureTimestamp - now) / 60000);
+
+    if (remainingMinutes < 60) {
+        return `dans ${remainingMinutes} min`;
+    }
+
+    const hours = Math.floor(remainingMinutes / 60);
+    const minutes = remainingMinutes % 60;
+
+    return minutes > 0
+        ? `dans ${hours} h ${minutes.toString().padStart(2, '0')}`
+        : `dans ${hours} h`;
+}
+
+/**
+ * Countdown from an ISO UTC timestamp (e.g. leg.departureAt). Converts
+ * the ISO instant to the browser's local date before checking isToday,
+ * so that a departure at 23:30 UTC (00:30 local next day) is correctly
+ * treated as "today" in local time.
+ */
+export function formatIsoDepartureCountdown(
+    departureAt: string | null,
+    now = Date.now(),
+): string | null {
+    if (!departureAt) {
+        return null;
+    }
+
+    const localDate = formatIsoDate(departureAt);
+
+    if (!isToday(localDate)) {
+        return null;
+    }
+
+    const ts = getIsoTimestamp(departureAt);
+
+    if (ts === null || ts <= now) {
+        return null;
+    }
+
+    const remainingMinutes = Math.ceil((ts - now) / 60000);
 
     if (remainingMinutes < 60) {
         return `dans ${remainingMinutes} min`;

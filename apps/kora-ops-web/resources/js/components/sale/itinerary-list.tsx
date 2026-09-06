@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { ItineraryCard } from './itinerary-card';
 import type { SaleItinerary } from './sale-types';
-import { getDepartureTimestamp, isToday } from './sale-utils';
+import { formatIsoDate, getIsoTimestamp, isToday } from './sale-utils';
 
 type Props = {
     itineraries: SaleItinerary[];
@@ -11,6 +11,7 @@ type Props = {
     onSelect: (itinerary: SaleItinerary) => void;
     hasDate?: boolean;
     direction?: 'outbound' | 'inbound';
+    emptyReason?: 'incompatible-with-outbound';
 };
 
 function itineraryKey(itinerary: SaleItinerary): string {
@@ -28,6 +29,7 @@ export function ItineraryList({
     onSelect,
     hasDate = true,
     direction = 'outbound',
+    emptyReason,
 }: Props) {
     const [now, setNow] = useState(() => Date.now());
     const nextItineraryKey = useMemo(() => {
@@ -41,10 +43,7 @@ export function ItineraryList({
 
                 return {
                     key: itineraryKey(itinerary),
-                    timestamp: getDepartureTimestamp(
-                        firstLeg.departureDate,
-                        firstLeg.departureTime,
-                    ),
+                    timestamp: getIsoTimestamp(firstLeg.departureAt),
                 };
             })
             .filter(
@@ -60,7 +59,9 @@ export function ItineraryList({
 
                     const itinerary = itineraries.find((i) => itineraryKey(i) === item.key);
 
-                    return isToday(itinerary?.legs[0]?.departureDate ?? '');
+                    return isToday(
+                        formatIsoDate(itinerary?.legs[0]?.departureAt ?? null),
+                    );
                 },
             )
             .sort((first, second) => first.timestamp - second.timestamp)[0];
@@ -140,14 +141,18 @@ export function ItineraryList({
                     </span>
                     <div className="mt-3">
                         <strong className="block text-[0.8rem] font-extrabold text-foreground">
-                            {direction === 'inbound'
-                                ? 'Aucun retour trouvé'
-                                : 'Aucun itinéraire trouvé'}
+                            {emptyReason === 'incompatible-with-outbound'
+                                ? 'Aucun retour compatible'
+                                : direction === 'inbound'
+                                    ? 'Aucun retour trouvé'
+                                    : 'Aucun itinéraire trouvé'}
                         </strong>
                         <span className="mt-1 block text-[0.6875rem] text-muted-foreground">
-                            {hasDate
-                                ? 'Modifiez vos critères puis relancez la recherche.'
-                                : 'Sélectionnez une date précise ou élargissez la ville de départ/descente.'}
+                            {emptyReason === 'incompatible-with-outbound'
+                                ? "Les retours disponibles partent avant ou en même temps que l'aller sélectionné. Choisissez un aller plus tôt ou une autre date de retour."
+                                : hasDate
+                                    ? 'Modifiez vos critères puis relancez la recherche.'
+                                    : 'Sélectionnez une date précise ou élargissez la ville de départ/descente.'}
                         </span>
                     </div>
                 </div>

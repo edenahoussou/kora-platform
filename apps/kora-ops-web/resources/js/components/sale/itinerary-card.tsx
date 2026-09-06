@@ -23,11 +23,12 @@ import type {
 } from './sale-types';
 import {
     formatDayMonth,
-    formatDepartureCountdown,
     formatDuration,
+    formatIsoDate,
+    formatIsoDepartureCountdown,
+    formatIsoTime,
     formatMoney,
     formatShortDate,
-    formatTime,
 } from './sale-utils';
 
 type Props = {
@@ -164,11 +165,7 @@ export function ItineraryCard({
     }
 
     const departureCountdown = isNextDeparture
-        ? formatDepartureCountdown(
-            firstLeg.departureDate,
-            firstLeg.departureTime,
-            now,
-        )
+        ? formatIsoDepartureCountdown(firstLeg.departureAt, now)
         : null;
     const minAvailableSeats = Math.min(
         ...itinerary.legs.map((leg) => leg.availableSeatsCount),
@@ -178,9 +175,7 @@ export function ItineraryCard({
         firstLeg.serviceClassName ??
         firstLeg.serviceClassCode ??
         'Service non renseigné';
-    const arrivalTime = formatTime(
-        new Date(itinerary.arrivalAt).toTimeString().slice(0, 5),
-    );
+    const arrivalTime = formatIsoTime(itinerary.arrivalAt);
     const totalTripMinutes = (() => {
         const start = new Date(itinerary.departureAt).getTime();
         const end = new Date(itinerary.arrivalAt).getTime();
@@ -211,12 +206,10 @@ export function ItineraryCard({
         >
             <div className="departure-time">
                 <small>Départ</small>
-                <time
-                    dateTime={`${firstLeg.departureDate}T${firstLeg.departureTime}`}
-                >
-                    {formatTime(firstLeg.departureTime)}
+                <time dateTime={firstLeg.departureAt}>
+                    {formatIsoTime(firstLeg.departureAt)}
                 </time>
-                <em>{formatShortDate(firstLeg.departureDate)}</em>
+                <em>{formatShortDate(formatIsoDate(firstLeg.departureAt))}</em>
                 <span>
                     {formatDuration(totalTripMinutes ?? null)}
                 </span>
@@ -339,12 +332,12 @@ export function ItineraryCard({
                                         <div className="timeline-segment-endpoint">
                                             <div className="timeline-segment-time">
                                                 <strong>
-                                                    {formatTime(
-                                                        leg.departureTime,
+                                                    {formatIsoTime(
+                                                        leg.departureAt,
                                                     )}
                                                 </strong>
                                                 <small>
-                                                    {formatDayMonth(leg.departureDate)}
+                                                    {formatDayMonth(formatIsoDate(leg.departureAt))}
                                                 </small>
                                                 <em>départ</em>
                                             </div>
@@ -397,19 +390,13 @@ export function ItineraryCard({
                                         <div className="timeline-segment-endpoint">
                                             <div className="timeline-segment-time">
                                                 <strong>
-                                                    {formatTime(
-                                                        new Date(
-                                                            leg.arrivalAt,
-                                                        )
-                                                            .toTimeString()
-                                                            .slice(0, 5),
+                                                    {formatIsoTime(
+                                                        leg.arrivalAt,
                                                     )}
                                                 </strong>
                                                 <small>
                                                     {formatDayMonth(
-                                                        new Date(leg.arrivalAt)
-                                                            .toISOString()
-                                                            .slice(0, 10),
+                                                        formatIsoDate(leg.arrivalAt),
                                                     )}
                                                 </small>
                                                 <em>arrivée</em>
@@ -446,9 +433,9 @@ export function ItineraryCard({
                                             </span>
                                             <ArrowRight className="size-3" />
                                             <span>
-                                                {formatDayMonth(nextLeg.departureDate)}{' '}
-                                                {formatTime(
-                                                    nextLeg.departureTime,
+                                                {formatDayMonth(formatIsoDate(nextLeg.departureAt))}{' '}
+                                                {formatIsoTime(
+                                                    nextLeg.departureAt,
                                                 )}
                                             </span>
                                         </div>
