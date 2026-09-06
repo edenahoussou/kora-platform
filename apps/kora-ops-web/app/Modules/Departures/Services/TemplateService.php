@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\Departures\Models\DepartureTemplate;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class TemplateService
@@ -19,12 +20,12 @@ class TemplateService
                 abort_unless((int) $template->revision === (int) $data['revision'], 409, 'Le modèle a changé. Rechargez-le avant de sauvegarder.');
                 abort_if($template->status === 'archived', 422, 'Ce modèle est archivé.');
             } else {
-                $template = DepartureTemplate::query()->create(['name' => $data['name'], 'revision' => 0, 'created_by' => $actor->id]);
+                $template = DepartureTemplate::query()->create(['uuid' => (string) Str::uuid(), 'name' => $data['name'], 'revision' => 0, 'created_by' => $actor->id]);
             }
             if ($data['ready']) {
                 $this->validateSlots($data['slots']);
                 $number = (int) $template->versions()->max('number') + 1;
-                $template->versions()->create(['number' => $number, 'slots' => $data['slots']]);
+                $template->versions()->create(['uuid' => (string) Str::uuid(), 'number' => $number, 'slots' => $data['slots']]);
             }
             $template->update([
                 'name' => $data['name'], 'revision' => $template->revision + 1,
@@ -57,8 +58,11 @@ class TemplateService
             }
             $lines[$slot['direction']][$line->uuid] = true;
             $stops = $slot['stops'];
-            $expected = $line->stops->where('status.value', 'active')->values();
-            if (count($stops) < 2 || array_column($stops, 'stop_uuid') !== $expected->pluck('uuid')->all()) {
+            $expected = $line->stops->where('status.value', 'active')->values()->pluck('uuid')->all();
+            $expectedReversed = array_reverse($expected);
+            $stopUuids = array_column($stops, 'stop_uuid');
+            $isReturn = ($slot['direction'] ?? 'outbound') === 'return';
+            if (count($stops) < 2 || ($stopUuids !== $expected && (! $isReturn || $stopUuids !== $expectedReversed))) {
                 $errors[$path.'.stops'] = 'Renseignez tous les arrêts actifs dans leur ordre de circulation.';
             }
             $previous = 0;

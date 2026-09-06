@@ -25,6 +25,7 @@ class Fare extends KoraModel
         'service_class_id',
         'origin_stop_id',
         'destination_stop_id',
+        'direction',
         'base_amount',
         'currency',
         'effective_from',

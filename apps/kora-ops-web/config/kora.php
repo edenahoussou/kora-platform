@@ -35,6 +35,8 @@ return [
         'connection_margin_minutes' => env('KORA_CONNECTION_MARGIN_MINUTES', 45),
         'max_legs' => env('KORA_ITINERARY_MAX_LEGS', 3),
         'max_results' => env('KORA_ITINERARY_MAX_RESULTS', 25),
+        'default_search_days' => env('KORA_ITINERARY_DEFAULT_SEARCH_DAYS', 7),
+        'max_wait_hours' => env('KORA_CONNECTION_MAX_WAIT_HOURS', 12),
     ],
 
 ];

@@ -2,10 +2,10 @@
 
 namespace App\Modules\Booking\Http\Requests;
 
+use App\Http\Requests\JsonValidationRequest;
 use App\Modules\Departures\Models\Departure;
-use Illuminate\Foundation\Http\FormRequest;
 
-class CounterSaleSearchRequest extends FormRequest
+class CounterSaleSearchRequest extends JsonValidationRequest
 {
     public function authorize(): bool
     {
@@ -25,12 +25,16 @@ class CounterSaleSearchRequest extends FormRequest
             'origin_stop_uuid' => ['nullable', 'uuid', 'exists:stops,uuid'],
             'destination_stop_uuid' => ['nullable', 'uuid', 'exists:stops,uuid'],
             'quote_uuid' => ['nullable', 'uuid', 'exists:price_quotes,uuid'],
+            'itinerary_quote_uuid' => ['nullable', 'uuid', 'exists:itinerary_quotes,uuid'],
+            'trip_type' => ['nullable', 'in:one_way,round_trip'],
+            'return_date' => ['nullable', 'date_format:Y-m-d'],
+            'service_class' => ['nullable', 'string', 'max:120'],
             'reservation_uuid' => ['nullable', 'uuid', 'exists:reservations,uuid'],
         ];
     }
 
     /**
-     * @return array{date: string|null, from: string|null, to: string|null}
+     * @return array{date: string|null, from: string|null, to: string|null, service_class: string|null}
      */
     public function departureFilters(): array
     {
@@ -38,6 +42,7 @@ class CounterSaleSearchRequest extends FormRequest
             'date' => $this->string('date')->trim()->value() ?: null,
             'from' => $this->string('from')->trim()->value() ?: null,
             'to' => $this->string('to')->trim()->value() ?: null,
+            'service_class' => $this->string('service_class')->trim()->value() ?: null,
         ];
     }
 
@@ -51,6 +56,7 @@ class CounterSaleSearchRequest extends FormRequest
             'origin_stop_uuid' => $this->string('origin_stop_uuid')->trim()->value() ?: null,
             'destination_stop_uuid' => $this->string('destination_stop_uuid')->trim()->value() ?: null,
             'quote_uuid' => $this->string('quote_uuid')->trim()->value() ?: null,
+            'itinerary_quote_uuid' => $this->string('itinerary_quote_uuid')->trim()->value() ?: null,
             'reservation_uuid' => $this->string('reservation_uuid')->trim()->value() ?: null,
         ];
     }
@@ -65,7 +71,11 @@ class CounterSaleSearchRequest extends FormRequest
             'origin_stop_uuid',
             'destination_stop_uuid',
             'quote_uuid',
+            'itinerary_quote_uuid',
             'reservation_uuid',
+            'trip_type',
+            'return_date',
+            'service_class',
         ] as $key) {
             if ($this->filled($key)) {
                 return true;

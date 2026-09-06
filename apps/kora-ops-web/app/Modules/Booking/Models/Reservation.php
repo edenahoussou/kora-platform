@@ -13,6 +13,7 @@ use App\Modules\CompanyAccounts\Models\CompanyCreditHold;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Models\PriceQuote;
 use App\Modules\Payments\Models\Payment;
+use App\Modules\Payments\Models\PaymentRefund;
 use App\Modules\Support\Models\KoraModel;
 use App\Modules\Ticketing\Data\TicketIssuanceStatus;
 use App\Modules\Ticketing\Models\Ticket;
@@ -30,6 +31,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $ticket_issued_at
  * @property array<string, mixed>|null $total_snapshot
  * @property array<string, mixed>|null $draft_data
+ * @property array<string, mixed>|null $payer_snapshot
  * @property PayerType $payer_type
  * @property PurchaseType $purchase_type
  * @property int|null $payer_user_id
@@ -48,6 +50,7 @@ class Reservation extends KoraModel
         'company_account_id',
         'purchase_type',
         'group_size',
+        'payer_snapshot',
         'price_quote_id',
         'itinerary_quote_id',
         'status',
@@ -128,6 +131,12 @@ class Reservation extends KoraModel
         return $this->hasMany(Payment::class);
     }
 
+    /** @return HasMany<PaymentRefund, $this> */
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(PaymentRefund::class);
+    }
+
     /**
      * @return HasMany<Ticket, $this>
      */
@@ -150,6 +159,7 @@ class Reservation extends KoraModel
             'ticket_issued_at' => 'datetime',
             'total_snapshot' => 'array',
             'draft_data' => 'array',
+            'payer_snapshot' => 'array',
         ];
     }
 

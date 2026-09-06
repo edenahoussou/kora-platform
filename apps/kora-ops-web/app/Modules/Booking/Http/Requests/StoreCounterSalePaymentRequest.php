@@ -2,14 +2,14 @@
 
 namespace App\Modules\Booking\Http\Requests;
 
+use App\Http\Requests\JsonValidationRequest;
 use App\Models\User;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Payments\Data\MobileMoneyNetwork;
 use App\Modules\Payments\Data\PaymentMethod;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class StoreCounterSalePaymentRequest extends FormRequest
+class StoreCounterSalePaymentRequest extends JsonValidationRequest
 {
     public function authorize(): bool
     {

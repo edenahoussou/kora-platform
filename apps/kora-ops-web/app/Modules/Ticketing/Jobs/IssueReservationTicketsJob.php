@@ -69,6 +69,15 @@ class IssueReservationTicketsJob implements ShouldQueue
 
                 $issueTickets->execute($reservation);
 
+                $activePassengerCount = $reservation->passengers()->where('status', 'active')->count();
+                $issuedTicketCount = $reservation->tickets()->whereHas(
+                    'reservationPassenger',
+                    fn ($query) => $query->where('status', 'active'),
+                )->count();
+                if ($activePassengerCount !== $issuedTicketCount) {
+                    throw new \RuntimeException('Certains billets n’ont pas pu être émis.');
+                }
+
                 $reservation->update([
                     'status' => ReservationStatus::Ticketed,
                     'ticket_issuance_status' => TicketIssuanceStatus::Issued,

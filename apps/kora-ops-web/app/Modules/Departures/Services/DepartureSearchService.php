@@ -11,6 +11,7 @@ use App\Modules\Departures\Data\DepartureAvailabilityData;
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Actions\CalculateFarePreviewAction;
+use App\Modules\DynamicPricing\Models\ServiceClass;
 use App\Modules\SeatInventory\Actions\BuildSeatAvailabilityAction;
 use App\Modules\SeatInventory\Data\SeatAvailabilityData;
 use App\Modules\SeatInventory\Data\SeatAvailabilityStatus;
@@ -35,7 +36,7 @@ class DepartureSearchService
      * Used by the passenger app. Only the current page of departures is loaded
      * and has its (expensive) seat availability / fare preview computed.
      *
-     * @param  array{date?: string|null, line?: string|null, from?: string|null, to?: string|null, per_page?: int}  $filters
+     * @param  array{date?: string|null, line?: string|null, from?: string|null, to?: string|null, per_page?: int, service_class?: string|null}  $filters
      * @return LengthAwarePaginator<int, DepartureAvailabilityData>
      */
     public function search(array $filters, bool $sellableOnly = false): LengthAwarePaginator
@@ -54,11 +55,14 @@ class DepartureSearchService
             );
         }
 
+        $serviceClass = $this->resolveServiceClass($filters['service_class'] ?? null);
+
         $items = $this->baseQuery($date, $lineIds)->get()
             ->map(fn (Departure $departure): ?DepartureAvailabilityData => $this->buildDepartureData(
                 $departure,
                 $filters['from'] ?? null,
                 $filters['to'] ?? null,
+                $serviceClass,
             ))
             ->filter()
             ->when($sellableOnly, fn (Collection $items) => $items->filter(fn (DepartureAvailabilityData $item): bool => $item->sellability->isSellable))
@@ -81,7 +85,7 @@ class DepartureSearchService
      * List sellable departures without pagination, for internal consumers that
      * need the full result set (e.g. counter-sale search). Not exposed publicly.
      *
-     * @param  array{date?: string|null, line?: string|null, from?: string|null, to?: string|null}  $filters
+     * @param  array{date?: string|null, line?: string|null, from?: string|null, to?: string|null, service_class?: string|null}  $filters
      * @return Collection<int, DepartureAvailabilityData>
      */
     public function searchSellable(array $filters, bool $sellableOnly = false): Collection
@@ -93,11 +97,14 @@ class DepartureSearchService
             return collect();
         }
 
+        $serviceClass = $this->resolveServiceClass($filters['service_class'] ?? null);
+
         return $this->baseQuery($date, $lineIds)->get()
             ->map(fn (Departure $departure): ?DepartureAvailabilityData => $this->buildDepartureData(
                 $departure,
                 $filters['from'] ?? null,
                 $filters['to'] ?? null,
+                $serviceClass,
             ))
             ->filter()
             ->when($sellableOnly, fn (Collection $items) => $items->filter(fn (DepartureAvailabilityData $item): bool => $item->sellability->isSellable))
@@ -147,20 +154,29 @@ class DepartureSearchService
             ->with(['stops' => fn ($query) => $query->where('status', StopStatus::Active->value)->orderBy('stop_order')])
             ->get()
             ->filter(function (Line $line) use ($from, $to): bool {
-                try {
-                    $this->resolveLineSegmentStops->handle($line, $from, $to);
-
+                if ($from === null && $to === null) {
                     return true;
-                } catch (ValidationException) {
-                    return false;
                 }
+
+                // Accept the line if both cities exist as stops, regardless of
+                // canonical stop_order. Return departures have reversed
+                // stop_times, so a segment Lomé → Ouidah (stop_order 5 → 2)
+                // is valid on a return departure even though the canonical
+                // order is reversed. The per-departure resolution in
+                // buildDepartureData will filter out departures that cannot
+                // serve the requested segment.
+                $stops = $line->getRelation('stops');
+                $hasOrigin = $from === null || $stops->contains(fn (Stop $stop): bool => strtolower($stop->city) === strtolower($from));
+                $hasDestination = $to === null || $stops->contains(fn (Stop $stop): bool => strtolower($stop->city) === strtolower($to));
+
+                return $hasOrigin && $hasDestination;
             })
             ->pluck('id')
             ->all();
     }
 
     /**
-     * @param  array{from?: string|null, to?: string|null}  $filters
+     * @param  array{from?: string|null, to?: string|null, service_class?: string|null}  $filters
      */
     public function show(Departure $departure, array $filters): DepartureAvailabilityData
     {
@@ -175,6 +191,7 @@ class DepartureSearchService
             $departure,
             $filters['from'] ?? null,
             $filters['to'] ?? null,
+            $this->resolveServiceClass($filters['service_class'] ?? null),
         );
     }
 
@@ -184,12 +201,21 @@ class DepartureSearchService
     public function resolveSegment(Departure $departure, string $originStopUuid, string $destinationStopUuid): array
     {
         $departure->loadMissing('line.stops');
+        /** @var list<array{stop_uuid: string, departure_minutes: int|null, arrival_minutes: int|null, timezone: string}> $stopTimes */
+        $stopTimes = $departure->stop_times ?? [];
 
-        return $this->resolveLineSegmentStops->handle(
-            $departure->line,
-            originStopUuid: $originStopUuid,
-            destinationStopUuid: $destinationStopUuid,
-        );
+        return $stopTimes !== []
+            ? $this->resolveLineSegmentStops->handleForDeparture(
+                $departure->line,
+                $stopTimes,
+                originStopUuid: $originStopUuid,
+                destinationStopUuid: $destinationStopUuid,
+            )
+            : $this->resolveLineSegmentStops->handle(
+                $departure->line,
+                originStopUuid: $originStopUuid,
+                destinationStopUuid: $destinationStopUuid,
+            );
     }
 
     /**
@@ -201,12 +227,21 @@ class DepartureSearchService
             'line.stops' => fn ($query) => $query->where('status', StopStatus::Active->value)->orderBy('stop_order'),
             'bus.seats',
         ]);
+        /** @var list<array{stop_uuid: string, departure_minutes: int|null, arrival_minutes: int|null, timezone: string}> $stopTimes */
+        $stopTimes = $departure->stop_times ?? [];
 
-        $segment = $this->resolveLineSegmentStops->handle(
-            $departure->line,
-            originStopUuid: $originStopUuid,
-            destinationStopUuid: $destinationStopUuid,
-        );
+        $segment = $stopTimes !== []
+            ? $this->resolveLineSegmentStops->handleForDeparture(
+                $departure->line,
+                $stopTimes,
+                originStopUuid: $originStopUuid,
+                destinationStopUuid: $destinationStopUuid,
+            )
+            : $this->resolveLineSegmentStops->handle(
+                $departure->line,
+                originStopUuid: $originStopUuid,
+                destinationStopUuid: $destinationStopUuid,
+            );
 
         return $this->buildSeatAvailability->handle($departure, $segment['origin'], $segment['destination']);
     }
@@ -215,9 +250,15 @@ class DepartureSearchService
         Departure $departure,
         ?string $from,
         ?string $to,
+        ?ServiceClass $serviceClass = null,
     ): ?DepartureAvailabilityData {
+        /** @var list<array{stop_uuid: string, departure_minutes: int|null, arrival_minutes: int|null, timezone: string}> $stopTimes */
+        $stopTimes = $departure->stop_times ?? [];
+
         try {
-            $segment = $this->resolveLineSegmentStops->handle($departure->line, $from, $to);
+            $segment = $stopTimes !== []
+                ? $this->resolveLineSegmentStops->handleForDeparture($departure->line, $stopTimes, $from, $to)
+                : $this->resolveLineSegmentStops->handle($departure->line, $from, $to);
         } catch (ValidationException) {
             return null;
         }
@@ -228,13 +269,36 @@ class DepartureSearchService
         $destination = $segment['destination'];
         $availability = $this->buildSeatAvailability->handle($departure, $origin, $destination);
 
+        $farePreview = $this->calculateFarePreview->handle(
+            $departure->line,
+            $origin,
+            $destination,
+            $departureDate,
+            serviceClass: $serviceClass,
+        );
+
+        // When a service class filter is active, drop departures that have no
+        // fare for the requested class on this segment.
+        if ($serviceClass !== null && $farePreview === null) {
+            return null;
+        }
+
         return new DepartureAvailabilityData(
             departure: $departure,
             originStop: $origin,
             destinationStop: $destination,
             availableSeatsCount: $availability->where('availabilityStatus', SeatAvailabilityStatus::Available)->count(),
-            farePreview: $this->calculateFarePreview->handle($departure, $origin, $destination),
+            farePreview: $farePreview,
             sellability: $this->resolveDepartureSellability->handle($departure),
         );
+    }
+
+    private function resolveServiceClass(?string $code): ?ServiceClass
+    {
+        if ($code === null || $code === '') {
+            return null;
+        }
+
+        return ServiceClass::query()->where('code', $code)->first();
     }
 }

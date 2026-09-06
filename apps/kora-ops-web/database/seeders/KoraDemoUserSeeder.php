@@ -49,7 +49,12 @@ class KoraDemoUserSeeder extends Seeder
             'two_factor_confirmed_at' => null,
         ];
 
-        return User::create(array_merge($defaults, $overrides));
+        $data = array_merge($defaults, $overrides);
+
+        return User::query()->firstOrCreate(
+            ['email' => $data['email']],
+            $data,
+        );
     }
 
     /**
@@ -83,6 +88,7 @@ class KoraDemoUserSeeder extends Seeder
     private function seedFieldStaff(): void
     {
         $fieldStaff = [
+            // Chauffeurs — 6 au total pour couvrir 3 lignes en simultané
             [
                 'role' => SystemRole::BusDriver,
                 'name' => 'Jean-Baptiste Houngbo',
@@ -96,6 +102,31 @@ class KoraDemoUserSeeder extends Seeder
                 'phone' => '+22902000002',
             ],
             [
+                'role' => SystemRole::BusDriver,
+                'name' => 'Koffi Adjé',
+                'email' => 'driver.koffi@kora.demo',
+                'phone' => '+22902000008',
+            ],
+            [
+                'role' => SystemRole::BusDriver,
+                'name' => 'Mensah Aikpe',
+                'email' => 'driver.mensah@kora.demo',
+                'phone' => '+22902000009',
+            ],
+            [
+                'role' => SystemRole::BusDriver,
+                'name' => 'Basil Adjovi',
+                'email' => 'driver.basil@kora.demo',
+                'phone' => '+22902000010',
+            ],
+            [
+                'role' => SystemRole::BusDriver,
+                'name' => 'Hervé Dossou',
+                'email' => 'driver.herve@kora.demo',
+                'phone' => '+22902000011',
+            ],
+            // Convoyeurs — 6 au total
+            [
                 'role' => SystemRole::Conductor,
                 'name' => 'Marc Adjagba',
                 'email' => 'conductor.marc@kora.demo',
@@ -107,6 +138,31 @@ class KoraDemoUserSeeder extends Seeder
                 'email' => 'conductor.luc@kora.demo',
                 'phone' => '+22902000004',
             ],
+            [
+                'role' => SystemRole::Conductor,
+                'name' => 'Aimé Hounkpatin',
+                'email' => 'conductor.aime@kora.demo',
+                'phone' => '+22902000012',
+            ],
+            [
+                'role' => SystemRole::Conductor,
+                'name' => 'David Kpakpo',
+                'email' => 'conductor.david@kora.demo',
+                'phone' => '+22902000013',
+            ],
+            [
+                'role' => SystemRole::Conductor,
+                'name' => 'Serge Akpavi',
+                'email' => 'conductor.serge@kora.demo',
+                'phone' => '+22902000014',
+            ],
+            [
+                'role' => SystemRole::Conductor,
+                'name' => 'Eric Zinsou',
+                'email' => 'conductor.eric@kora.demo',
+                'phone' => '+22902000015',
+            ],
+            // Agents d'agence
             [
                 'role' => SystemRole::AgencyAgent,
                 'name' => 'Sandrine Akpovi',

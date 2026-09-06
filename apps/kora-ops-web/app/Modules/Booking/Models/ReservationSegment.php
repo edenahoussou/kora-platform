@@ -24,6 +24,7 @@ class ReservationSegment extends KoraModel
         'uuid',
         'reservation_id',
         'leg_order',
+        'direction',
         'passenger_index',
         'reservation_passenger_id',
         'departure_id',

@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 const statusLegend = [
     ['available', 'Disponible'],
     ['selected', 'Sélectionnée'],
+    ['taken', 'Prise (autre voyageur)'],
     ['reserved', 'Réservée'],
     ['paid', 'Payée'],
     ['blocked', 'Bloquée'],

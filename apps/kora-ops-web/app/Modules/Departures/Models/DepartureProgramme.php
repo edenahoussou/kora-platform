@@ -15,7 +15,20 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class DepartureProgramme extends KoraModel
 {
-    protected $fillable = ['uuid', 'name', 'version_id', 'starts_on', 'ends_on', 'automatic', 'horizon_days', 'revision', 'exceptions', 'version_schedule', 'created_by', 'automatic_approved_by'];
+    protected $fillable = [
+        'uuid',
+        'name',
+        'version_id',
+        'starts_on',
+        'ends_on',
+        'automatic',
+        'horizon_days',
+        'revision',
+        'exceptions',
+        'version_schedule',
+        'created_by',
+        'automatic_approved_by',
+    ];
 
     protected function casts(): array
     {

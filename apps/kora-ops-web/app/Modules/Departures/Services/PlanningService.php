@@ -11,6 +11,7 @@ use App\Modules\Departures\Models\ProgrammingRun;
 use App\Modules\DynamicPricing\Models\PriceQuote;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class PlanningService
@@ -23,6 +24,7 @@ class PlanningService
         $version = DepartureTemplateVersion::query()->with('template')->where('uuid', $data['version_uuid'])->firstOrFail();
         abort_if($version->template->status === 'archived', 422, 'Ce modèle est archivé.');
         $programme = new DepartureProgramme([
+            'uuid' => (string) Str::uuid(),
             'name' => $data['name'], 'version_id' => $version->id,
             'starts_on' => $data['starts_on'], 'ends_on' => $data['ends_on'],
             'horizon_days' => $data['horizon_days'], 'automatic' => false,
@@ -77,12 +79,12 @@ class PlanningService
             $created = 0;
             foreach ($this->recurrence->expand($programme, $from, $until) as $attributes) {
                 $item = PlannedDeparture::query()->where('programme_id', $programme->id)->where('slot_key', $attributes['slot_key'])->whereDate('service_date', $attributes['service_date'])->first();
-                $item ??= PlannedDeparture::query()->create($attributes);
+                $item ??= PlannedDeparture::query()->create(['uuid' => (string) Str::uuid(), ...$attributes]);
                 if ($item->wasRecentlyCreated) {
                     $created++;
                 }
             }
-            $run = $programme->runs()->create(['operation' => 'generate', 'status' => 'completed', 'processed' => $created, 'result' => ['created' => $created], 'created_by' => $actor->id]);
+            $run = $programme->runs()->create(['uuid' => (string) Str::uuid(), 'operation' => 'generate', 'status' => 'completed', 'processed' => $created, 'result' => ['created' => $created], 'created_by' => $actor->id]);
             activity()->causedBy($actor)->performedOn($programme)->withProperties(['created' => $created])->log('programming.generated');
 
             return $run;

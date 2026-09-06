@@ -18,18 +18,7 @@ class UpdateReservationPassengersAction
     public function __construct(private readonly PassengerIdentityResolver $identityResolver) {}
 
     /**
-     * @param  list<array{
-     *     first_name: string,
-     *     last_name: string,
-     *     phone?: string|null,
-     *     email?: string|null,
-     *     document_type?: string|null,
-     *     document_number?: string|null,
-     *     nationality?: string|null,
-     *     birth_date?: string|null,
-     *     passenger_index?: int|null,
-     *     seat_uuid?: string|null
-     * }>  $passengersData
+     * @param  list<array<string, mixed>>  $passengersData
      *
      * @throws AuthorizationException
      * @throws ValidationException
@@ -95,23 +84,13 @@ class UpdateReservationPassengersAction
             }
         }
 
-        $isInternational = false;
-        foreach ($segments as $segment) {
-            $countriesCrossed = $segment->departure?->line?->countries_crossed;
-            if (is_array($countriesCrossed) && count($countriesCrossed) > 1) {
-                $isInternational = true;
-                break;
-            }
-        }
-
-        if ($isInternational) {
-            foreach ($passengersData as $index => $p) {
-                if (empty($p['document_type']) || empty($p['document_number']) || empty($p['nationality'])) {
-                    throw ValidationException::withMessages([
-                        "passengers.{$index}.document_number" => 'Le type de document, numéro et nationalité sont obligatoires pour les trajets internationaux.',
-                    ]);
-                }
-            }
+        $normalizedPhones = collect($passengersData)
+            ->map(fn (array $passenger): ?string => $this->identityResolver->normalizePhone($passenger['phone'] ?? null))
+            ->filter();
+        if ($normalizedPhones->unique()->count() !== $normalizedPhones->count()) {
+            throw ValidationException::withMessages([
+                'passengers' => 'Un même numéro personnel ne peut identifier qu’un seul voyageur du groupe.',
+            ]);
         }
 
         return DB::transaction(function () use ($reservation, $segments, $passengersData, $isMultiSegmentMatrix): Reservation {
@@ -124,16 +103,20 @@ class UpdateReservationPassengersAction
             $unassignedSegments = $segments->values();
 
             foreach ($passengersData as $index => $pData) {
-                $normalizedPhone = $this->normalizePhone($pData['phone'] ?? null);
+                $normalizedPhone = $this->identityResolver->normalizePhone($pData['phone'] ?? null);
                 $docType = ! empty($pData['document_type'])
                     ? PassengerDocumentType::tryFrom($pData['document_type'])
                     : null;
 
                 $passenger = ReservationPassenger::create([
                     'reservation_id' => $reservation->id,
+                    'passenger_index' => (int) ($pData['passenger_index'] ?? $index),
                     'user_id' => $normalizedPhone === null
                         ? null
-                        : $this->identityResolver->resolveByPhone($normalizedPhone)?->getKey(),
+                        : $this->identityResolver->resolveOrCreateByPhone(
+                            $normalizedPhone,
+                            trim($pData['first_name'].' '.$pData['last_name']),
+                        )->getKey(),
                     'first_name' => $pData['first_name'],
                     'last_name' => $pData['last_name'],
                     'phone' => $normalizedPhone,
@@ -142,6 +125,7 @@ class UpdateReservationPassengersAction
                     'document_number' => $pData['document_number'] ?? null,
                     'nationality' => ! empty($pData['nationality']) ? strtoupper($pData['nationality']) : null,
                     'birth_date' => $pData['birth_date'] ?? null,
+                    'yellow_fever_vaccinated' => $pData['yellow_fever_vaccinated'] ?? null,
                 ]);
 
                 if ($isMultiSegmentMatrix) {
@@ -173,12 +157,5 @@ class UpdateReservationPassengersAction
                 'passengers.segments.departure',
             ]);
         });
-    }
-
-    private function normalizePhone(?string $phone): ?string
-    {
-        $normalized = preg_replace('/[^0-9+]/', '', trim((string) $phone));
-
-        return $normalized !== '' ? $normalized : null;
     }
 }

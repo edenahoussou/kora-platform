@@ -13,7 +13,6 @@ import {
     ShieldCheck,
     Smartphone,
     UserRound,
-    WalletCards,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -25,10 +24,12 @@ import { SaleJourneySummary } from './sale-journey-summary';
 import type {
     SaleCashSession,
     SaleDeparture,
+    SaleItineraryQuote,
     SaleMobileMoneyAccount,
     SaleMobileMoneyNetwork,
     SalePaymentMethod,
     SaleReservation,
+    SaleSearch,
 } from './sale-types';
 import { formatMoney, formatRemainingTime } from './sale-utils';
 import { useHoldCountdown } from './use-hold-countdown';
@@ -56,6 +57,8 @@ type Props = {
     onSubmit: (payload: CounterSalePaymentPayload) => void;
     onBack: () => void;
     onHoldExpired: () => void;
+    search?: SaleSearch | null;
+    itineraryQuote?: SaleItineraryQuote | null;
 };
 
 const networkMeta: Record<
@@ -125,8 +128,14 @@ export function PaymentStep({
     onSubmit,
     onBack,
     onHoldExpired,
+    search = null,
+    itineraryQuote = null,
 }: Props) {
-    const [method, setMethod] = useState<SalePaymentMethod>('cash');
+    const [method, setMethod] = useState<SalePaymentMethod>(
+        reservation.payerType === 'company' && reservation.companyAccount
+            ? 'company_credit'
+            : 'cash',
+    );
     const [cashReceived, setCashReceived] = useState('');
     const [network, setNetwork] = useState<SaleMobileMoneyNetwork | ''>('');
     const [accountUuid, setAccountUuid] = useState('');
@@ -175,10 +184,20 @@ export function PaymentStep({
         phoneValid &&
         reference.trim() !== '' &&
         verified;
+    const isCompanyCredit =
+        reservation.payerType === 'company' &&
+        reservation.companyAccount !== null;
+    const companyCreditReady = isCompanyCredit;
     const canSubmit =
         !holdCountdown.isExpired &&
         !processing &&
-        (method === 'cash' ? cashReady : mobileReady);
+        (method === 'cash'
+            ? cashReady
+            : method === 'mobile_money'
+              ? mobileReady
+              : method === 'company_credit'
+                ? companyCreditReady
+                : false);
 
     const mobileChecklist = useMemo(
         () => [
@@ -237,7 +256,9 @@ export function PaymentStep({
         ? 'Confirmation…'
         : method === 'cash'
           ? 'Encaisser les espèces'
-          : 'Confirmer le transfert Mobile Money';
+          : method === 'mobile_money'
+            ? 'Confirmer le transfert Mobile Money'
+            : 'Imputer le crédit entreprise';
 
     return (
         <>
@@ -265,7 +286,7 @@ export function PaymentStep({
                         </div>
                     </div>
 
-                    {!cashSession.isOpen && (
+                    {!cashSession.isOpen && method !== 'company_credit' && (
                         <div className="cash-required-card" role="status">
                             <span className="cash-required-icon">
                                 <Banknote className="size-5" />
@@ -321,20 +342,18 @@ export function PaymentStep({
                             title="Mobile Money"
                             description="Vérification manuelle"
                         />
-                        <button
-                            type="button"
-                            disabled
-                            className="payment-choice is-disabled"
-                            aria-label="Mini Wallet, bientôt disponible"
-                        >
-                            <span className="payment-choice-icon">
-                                <WalletCards className="size-4" />
-                            </span>
-                            <span className="payment-choice-copy">
-                                <strong>Mini Wallet</strong>
-                                <small>Bientôt disponible</small>
-                            </span>
-                        </button>
+                        {isCompanyCredit && (
+                            <PaymentChoice
+                                active={method === 'company_credit'}
+                                onClick={() => setMethod('company_credit')}
+                                icon={Building2}
+                                title="Crédit entreprise"
+                                description={
+                                    reservation.companyAccount?.name ??
+                                    'Compte entreprise'
+                                }
+                            />
+                        )}
                     </div>
 
                     {method === 'cash' ? (
@@ -348,7 +367,7 @@ export function PaymentStep({
                             onChange={setCashReceived}
                             onQuickAmount={applyQuickAmount}
                         />
-                    ) : (
+                    ) : method === 'mobile_money' ? (
                         <MobileMoneyFields
                             network={network}
                             accountUuid={accountUuid}
@@ -365,6 +384,11 @@ export function PaymentStep({
                             onPayerNameChange={setPayerName}
                             onReferenceChange={setReference}
                             onVerifiedChange={setVerified}
+                        />
+                    ) : (
+                        <CompanyCreditFields
+                            reservation={reservation}
+                            total={total}
                         />
                     )}
 
@@ -404,6 +428,8 @@ export function PaymentStep({
                     departure={departure}
                     reservation={reservation}
                     variant="payment"
+                    search={search}
+                    itineraryQuote={itineraryQuote}
                     cashSession={cashSession}
                     onOpenCash={() => setCashModalOpen(true)}
                     paymentMethod={method}
@@ -563,6 +589,52 @@ function CashPaymentFields({
                     <small className="payment-field-help">
                         La monnaie s’affiche dès que le montant reçu est saisi.
                     </small>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function CompanyCreditFields({
+    reservation,
+    total,
+}: {
+    reservation: SaleReservation;
+    total: number;
+}) {
+    const account = reservation.companyAccount;
+
+    return (
+        <div className="company-credit-section">
+            <div className="company-credit-info">
+                <div className="company-credit-header">
+                    <Building2 className="size-5" />
+                    <div>
+                        <strong>
+                            {account?.name ?? 'Compte personne morale'}
+                        </strong>
+                        <small>
+                            {account?.type === 'ngo'
+                                ? 'ONG'
+                                : account?.type === 'embassy'
+                                  ? 'Ambassade'
+                                  : 'Entreprise'}{' '}
+                            · Réf {account?.reference ?? '—'}
+                        </small>
+                    </div>
+                </div>
+                <div className="company-credit-amount">
+                    <div className="summary-row">
+                        <span>Montant à imputer</span>
+                        <strong>
+                            {formatMoney(total, reservation.currency)}
+                        </strong>
+                    </div>
+                    <p className="company-credit-help">
+                        Le crédit sera prélevé sur le plafond mensuel du compte.
+                        La réservation a déjà été réservée lors du blocage des
+                        places.
+                    </p>
                 </div>
             </div>
         </div>

@@ -186,6 +186,7 @@ class CreateItineraryHoldAction
                     'company_account_id' => $payer->companyAccount?->getKey(),
                     'purchase_type' => $quote->passenger_count >= 5 ? 'group' : 'individual',
                     'group_size' => $quote->passenger_count,
+                    'payer_snapshot' => $payer->snapshot,
                     'itinerary_quote_id' => $quote->id,
                     'idempotency_key' => $idempotencyKey,
                     'status' => ReservationStatus::Held,
@@ -248,13 +249,14 @@ class CreateItineraryHoldAction
                         ReservationSegment::create([
                             'reservation_id' => $reservation->id,
                             'leg_order' => $quoteLeg->leg_order,
+                            'direction' => $quoteLeg->direction,
                             'passenger_index' => $assignment['passenger_index'],
                             'departure_id' => $departure->id,
                             'seat_id' => $seat->id,
                             'origin_stop_id' => $quoteLeg->origin_stop_id,
                             'destination_stop_id' => $quoteLeg->destination_stop_id,
-                            'origin_stop_order' => $quoteLeg->originStop->stop_order,
-                            'destination_stop_order' => $quoteLeg->destinationStop->stop_order,
+                            'origin_stop_order' => $this->stopTimeResolver->circulationIndexOf($departure, $quoteLeg->originStop),
+                            'destination_stop_order' => $this->stopTimeResolver->circulationIndexOf($departure, $quoteLeg->destinationStop),
                             'status' => ReservationSegmentStatus::Held,
                         ]);
                     }
@@ -272,6 +274,12 @@ class CreateItineraryHoldAction
                     message: 'Un des sièges sélectionnés vient d’être réservé par un autre utilisateur.',
                     previous: $exception,
                 );
+            }
+
+            if (str_contains($exception->getMessage(), 'reservation_segments_valid_stop_order') || $exception->getCode() === '23514') {
+                throw ValidationException::withMessages([
+                    'itinerary_quote_uuid' => 'La séquence des arrêts de ce départ est incompatible. Demandez un nouveau devis.',
+                ]);
             }
 
             throw $exception;

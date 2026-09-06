@@ -6,15 +6,26 @@ use App\Modules\Booking\Services\GroupPricingService;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Actions\ResolveDepartureSellabilityAction;
 use App\Modules\Departures\Models\Departure;
+use App\Modules\DynamicPricing\Data\FareDirection;
+use App\Modules\DynamicPricing\Data\FareStatus;
+use App\Modules\DynamicPricing\Data\PricingBreakdownData;
+use App\Modules\DynamicPricing\Data\PricingRuleStatus;
+use App\Modules\DynamicPricing\Data\PricingRuleType;
+use App\Modules\DynamicPricing\Models\Fare;
 use App\Modules\DynamicPricing\Models\PriceQuote;
+use App\Modules\DynamicPricing\Models\PricingRule;
+use App\Modules\DynamicPricing\Models\PricingSetting;
 use App\Modules\DynamicPricing\Models\ServiceClass;
+use App\Modules\SeatInventory\Actions\BuildSeatAvailabilityAction;
+use App\Modules\SeatInventory\Data\SeatAvailabilityStatus;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 
 class CalculateQuoteAction
 {
     public function __construct(
         private ResolveDepartureSellabilityAction $resolveSellability,
-        private CalculateDynamicPriceAction $calculateDynamicPrice,
+        private BuildSeatAvailabilityAction $buildSeatAvailability,
         private GroupPricingService $groupPricing,
     ) {}
 
@@ -43,32 +54,59 @@ class CalculateQuoteAction
             ]);
         }
 
-        if ($originStop->stop_order >= $destinationStop->stop_order) {
+        // Validate that the origin precedes the destination in the departure's
+        // actual circulation order (stop_times when available, stop_order otherwise).
+        if (! $this->isValidSegmentOrder($departure, $originStop, $destinationStop)) {
             throw ValidationException::withMessages([
-                'destination_stop_uuid' => 'L\'arrêt de destination doit être situé après l\'arrêt d\'origine.',
+                'destination_stop_uuid' => 'L\'arrêt de destination doit être situé après l\'arrêt d\'origine dans le sens de circulation de ce départ.',
             ]);
         }
 
-        $price = $this->calculateDynamicPrice->handle($departure, $originStop, $destinationStop, $serviceClass);
-        if (! $price) {
+        // Determine the circulation direction from the departure's stop_times.
+        // stop_times defines the actual order of stops for this departure,
+        // which may be reversed for return trips.
+        $direction = $this->resolveDirection($departure, $originStop, $destinationStop);
+
+        $fare = $this->resolveFare($departure, $originStop, $destinationStop, $serviceClass, $direction);
+
+        if (! $fare) {
             throw ValidationException::withMessages([
                 'origin_stop_uuid' => 'Aucun tarif actif n\'a été trouvé pour ce trajet.',
             ]);
         }
 
+        [$fillRate, $hoursBeforeDeparture] = $this->measureConditionInputs($departure, $originStop, $destinationStop);
+
+        $rule = $this->matchPricingRule($departure, $fillRate, $hoursBeforeDeparture);
+
+        $coefficient = 1.0;
+        if ($rule) {
+            $percentage = (float) $rule->percentage;
+            if ($rule->type === PricingRuleType::Increase) {
+                $coefficient = round(1.0 + ($percentage / 100), 4);
+            } elseif ($rule->type === PricingRuleType::Decrease) {
+                $coefficient = round(max(0.0, 1.0 - ($percentage / 100)), 4);
+            }
+        }
+
+        $coefficient = $this->applyFloorAndCeiling($coefficient);
+
+        $baseAmount = (int) $fare->base_amount;
+        $finalAmount = (int) round($baseAmount * $coefficient);
         $pricing = $this->groupPricing->calculate(
-            unitAmounts: [$price->finalAmount],
+            unitAmounts: [$finalAmount],
             passengerCount: $passengerCount,
-            currency: $price->fare->currency,
-            dynamicAdjustments: [$price->adjustmentAmount()],
+            currency: $fare->currency,
+            dynamicAdjustments: [$finalAmount - $baseAmount],
         );
+        $breakdown = PricingBreakdownData::fromGroupPricing($pricing);
 
         $snapshot = [
-            'fare_uuid' => $price->fare->uuid,
+            'fare_uuid' => $fare->uuid,
             'line_code' => $departure->line->code,
             'origin_stop' => $originStop->name,
             'destination_stop' => $destinationStop->name,
-            'service_class' => $price->fare->serviceClass->name ?? 'Standard',
+            'service_class' => $fare->serviceClass->name ?? 'Standard',
             'passenger_count' => $passengerCount,
             'subtotal_amount' => $pricing['subtotal_amount'],
             'dynamic_adjustment_amount' => $pricing['dynamic_adjustment_amount'],
@@ -76,27 +114,244 @@ class CalculateQuoteAction
             'group_discount' => $pricing['group_discount'],
             'passenger_allocations' => $pricing['passenger_allocations'],
             'total_amount' => $pricing['total_amount'],
-            'pricing_rule_uuid' => $price->rule?->uuid,
-            'fill_rate_at_quote' => $price->fillRate,
-            'hours_before_departure_at_quote' => $price->hoursBeforeDeparture,
+            'pricing_breakdown' => $breakdown->toArray(),
+            // Traçabilité de la décision de tarification dynamique — utile en support/litige,
+            // même si ces champs ne sont pas exposés tels quels sur le contrat public de devis.
+            'pricing_rule_uuid' => $rule?->uuid,
+            'fill_rate_at_quote' => $fillRate,
+            'hours_before_departure_at_quote' => $hoursBeforeDeparture,
         ];
 
         return PriceQuote::create([
             'departure_id' => $departure->id,
             'origin_stop_id' => $originStop->id,
             'destination_stop_id' => $destinationStop->id,
-            'fare_id' => $price->fare->id,
-            'pricing_rule_id' => $price->rule?->id,
-            'base_amount' => $price->baseAmount,
-            'coefficient' => $price->coefficient,
-            'final_amount' => $price->finalAmount,
+            'fare_id' => $fare->id,
+            'pricing_rule_id' => $rule?->id,
+            'base_amount' => $baseAmount,
+            'coefficient' => $coefficient,
+            'final_amount' => $finalAmount,
             'passenger_count' => $passengerCount,
             'subtotal_amount' => $pricing['subtotal_amount'],
             'group_discount_amount' => $pricing['group_discount']['amount'],
             'total_amount' => $pricing['total_amount'],
-            'currency' => $price->fare->currency,
+            'currency' => $fare->currency,
             'snapshot' => $snapshot,
             'expires_at' => now()->addMinutes(10),
         ]);
+    }
+
+    /**
+     * Mesure les deux entrées utilisées par les conditions des règles de pricing
+     * dynamique (CDC §3.1.3.4) : taux de remplissage du segment O/D demandé
+     * (en %, sur les sièges vendables) et délai avant départ (en heures).
+     *
+     * @return array{0: float, 1: float}
+     */
+    private function measureConditionInputs(Departure $departure, Stop $originStop, Stop $destinationStop): array
+    {
+        $seats = $this->buildSeatAvailability->handle($departure, $originStop, $destinationStop);
+
+        $sellableSeats = $seats->filter(fn ($seat) => $seat->availabilityStatus !== SeatAvailabilityStatus::Blocked);
+        $sellableCount = $sellableSeats->count();
+
+        $fillRate = $sellableCount > 0
+            ? round(
+                $sellableSeats
+                    ->whereIn('availabilityStatus', [SeatAvailabilityStatus::Held, SeatAvailabilityStatus::Occupied])
+                    ->count() / $sellableCount * 100,
+                2,
+            )
+            : 0.0;
+
+        $scheduledAt = $departure->scheduledDepartureAt();
+        // Valeur absolue + signe explicite plutôt que de compter sur le sens
+        // conventionnel de diffInHours($date, false), pour éviter toute ambiguïté.
+        $hoursBeforeDeparture = round(
+            Carbon::now()->diffInHours($scheduledAt, true) * ($scheduledAt->isFuture() ? 1 : -1),
+            2,
+        );
+
+        return [$fillRate, $hoursBeforeDeparture];
+    }
+
+    /**
+     * Sélectionne la règle de pricing active dont les conditions (remplissage,
+     * délai) matchent réellement le contexte de la demande, par ordre de
+     * priorité croissante (1 = plus prioritaire). Une règle sans "conditions"
+     * s'applique inconditionnellement dès lors qu'elle est active et dans sa
+     * période de validité.
+     */
+    private function matchPricingRule(Departure $departure, float $fillRate, float $hoursBeforeDeparture): ?PricingRule
+    {
+        $candidates = PricingRule::query()
+            ->where(fn ($query) => $query->where('line_id', $departure->line_id)->orWhereNull('line_id'))
+            ->where('status', PricingRuleStatus::Active->value)
+            ->where(fn ($query) => $query->whereNull('starts_at')->orWhere('starts_at', '<=', now()))
+            ->where(fn ($query) => $query->whereNull('ends_at')->orWhere('ends_at', '>=', now()))
+            ->orderBy('priority')
+            ->get();
+
+        foreach ($candidates as $candidate) {
+            if ($this->conditionsMatch($candidate->conditions ?? [], $fillRate, $hoursBeforeDeparture)) {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $conditions
+     */
+    private function conditionsMatch(array $conditions, float $fillRate, float $hoursBeforeDeparture): bool
+    {
+        $fillRateMin = $conditions['fill_rate_min'] ?? null;
+        if ($fillRateMin !== null && $fillRate < (float) $fillRateMin) {
+            return false;
+        }
+
+        $fillRateMax = $conditions['fill_rate_max'] ?? null;
+        if ($fillRateMax !== null && $fillRate > (float) $fillRateMax) {
+            return false;
+        }
+
+        $hoursMin = $conditions['hours_before_departure_min'] ?? null;
+        if ($hoursMin !== null && $hoursBeforeDeparture < (float) $hoursMin) {
+            return false;
+        }
+
+        $hoursMax = $conditions['hours_before_departure_max'] ?? null;
+        if ($hoursMax !== null && $hoursBeforeDeparture > (float) $hoursMax) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Applique le plancher/plafond global paramétrable par la Direction
+     * Commerciale (CDC MVP §9.2). Aucun réglage enregistré = aucun bornage.
+     */
+    private function applyFloorAndCeiling(float $coefficient): float
+    {
+        $settings = PricingSetting::current();
+        if (! $settings) {
+            return $coefficient;
+        }
+
+        if ($settings->floor_coefficient !== null) {
+            $coefficient = max($coefficient, (float) $settings->floor_coefficient);
+        }
+
+        if ($settings->ceiling_coefficient !== null) {
+            $coefficient = min($coefficient, (float) $settings->ceiling_coefficient);
+        }
+
+        return round($coefficient, 4);
+    }
+
+    /**
+     * Determine the pricing direction (outbound/return) from the line's
+     * stop_order. Outbound means travelling in the line's defined direction
+     * (stop_order ascending); return means travelling in the opposite
+     * direction (stop_order descending). This is independent of the
+     * departure's circulation order — a return departure has reversed
+     * stop_times but the pricing direction is still based on the line's
+     * stop_order.
+     */
+    private function resolveDirection(Departure $departure, Stop $originStop, Stop $destinationStop): string
+    {
+        return $originStop->stop_order < $destinationStop->stop_order
+            ? FareDirection::Outbound->value
+            : FareDirection::Return->value;
+    }
+
+    /**
+     * Check if the origin stop precedes the destination stop in the
+     * departure's actual circulation order. Uses stop_times when available,
+     * falls back to the line's stop_order otherwise.
+     */
+    private function isValidSegmentOrder(Departure $departure, Stop $originStop, Stop $destinationStop): bool
+    {
+        $stopTimes = $departure->stop_times ?? [];
+
+        if ($stopTimes === []) {
+            return $originStop->stop_order < $destinationStop->stop_order;
+        }
+
+        $originIndex = null;
+        $destinationIndex = null;
+
+        foreach ($stopTimes as $index => $stopTime) {
+            if (($stopTime['stop_uuid'] ?? null) === $originStop->uuid) {
+                $originIndex = $index;
+            }
+            if (($stopTime['stop_uuid'] ?? null) === $destinationStop->uuid) {
+                $destinationIndex = $index;
+            }
+        }
+
+        if ($originIndex === null || $destinationIndex === null) {
+            return $originStop->stop_order < $destinationStop->stop_order;
+        }
+
+        return $originIndex < $destinationIndex;
+    }
+
+    /**
+     * Resolve a fare for the requested direction with fallback to the
+     * reverse segment if no direct fare is found.
+     */
+    private function resolveFare(Departure $departure, Stop $originStop, Stop $destinationStop, ?ServiceClass $serviceClass, string $direction): ?Fare
+    {
+        // 1a. Direct search: origin → destination with the exact direction.
+        $fare = $this->queryFare($departure, $originStop, $destinationStop, $serviceClass, [$direction]);
+        if ($fare) {
+            return $fare;
+        }
+
+        // 1b. Direct search: origin → destination with 'both' direction.
+        $fare = $this->queryFare($departure, $originStop, $destinationStop, $serviceClass, [FareDirection::Both->value]);
+        if ($fare) {
+            return $fare;
+        }
+
+        // 2. Fallback: reverse search (destination → origin) with the
+        //    opposite direction or 'both'.
+        $reverseDirection = $direction === FareDirection::Outbound->value
+            ? FareDirection::Return->value
+            : FareDirection::Outbound->value;
+
+        $fare = $this->queryFare($departure, $destinationStop, $originStop, $serviceClass, [$reverseDirection]);
+        if ($fare) {
+            return $fare;
+        }
+
+        return $this->queryFare($departure, $destinationStop, $originStop, $serviceClass, [FareDirection::Both->value]);
+    }
+
+    /**
+     * @param  list<string>  $directions
+     */
+    private function queryFare(Departure $departure, Stop $originStop, Stop $destinationStop, ?ServiceClass $serviceClass, array $directions): ?Fare
+    {
+        $fareQuery = Fare::query()
+            ->with(['serviceClass'])
+            ->whereBelongsTo($departure->line)
+            ->whereBelongsTo($originStop, 'originStop')
+            ->whereBelongsTo($destinationStop, 'destinationStop')
+            ->where('status', FareStatus::Active->value)
+            ->whereIn('direction', $directions)
+            ->whereDate('effective_from', '<=', $departure->departure_date)
+            ->where(fn ($query) => $query
+                ->whereNull('effective_until')
+                ->orWhereDate('effective_until', '>=', $departure->departure_date));
+
+        if ($serviceClass) {
+            $fareQuery->where('service_class_id', $serviceClass->id);
+        }
+
+        return $fareQuery->orderByDesc('effective_from')->first();
     }
 }
