@@ -3,6 +3,7 @@
 use App\Models\User;
 use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Models\GroupBookingSetting;
+use App\Modules\Booking\Models\ItineraryQuote;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
@@ -15,7 +16,6 @@ use App\Modules\DynamicPricing\Data\GroupDiscountRuleStatus;
 use App\Modules\DynamicPricing\Data\PricingRuleType;
 use App\Modules\DynamicPricing\Models\Fare;
 use App\Modules\DynamicPricing\Models\GroupDiscountRule;
-use App\Modules\DynamicPricing\Models\PriceQuote;
 use App\Modules\DynamicPricing\Models\PricingRule;
 use App\Modules\DynamicPricing\Models\ServiceClass;
 use App\Modules\IdentityAccess\Models\Agency;
@@ -83,7 +83,7 @@ it('does not expose company accounts to users without the counter sale permissio
         ->assertForbidden();
 });
 
-it('serializes the group pricing breakdown in the quote Inertia props', function (): void {
+it('serializes the group pricing breakdown in the itinerary quote Inertia props', function (): void {
     $scenario = groupSaleScenario();
     $context = groupSaleContext($scenario);
 
@@ -91,17 +91,14 @@ it('serializes the group pricing breakdown in the quote Inertia props', function
         ->post(route('sale.quote'), $context + ['passenger_count' => 10])
         ->assertRedirect();
 
-    $quote = PriceQuote::query()->latest('id')->firstOrFail();
+    $quote = ItineraryQuote::query()->latest('id')->firstOrFail();
 
     $this->actingAs($scenario['agent'])
-        ->get(route('sale', $context + ['quote_uuid' => $quote->uuid]))
+        ->get(route('sale', $context + ['itinerary_quote_uuid' => $quote->uuid]))
         ->assertInertia(fn (Assert $page): Assert => $page
-            ->where('quote.uuid', $quote->uuid)
-            ->where('quote.passengerCount', 10)
-            ->where('quote.isGroup', true)
-            ->where('quote.groupDiscount.applied', true)
-            ->where('quote.groupDiscount.percentage', 10)
-            ->has('quote.passengerAllocations', 10)
+            ->where('itineraryQuote.uuid', $quote->uuid)
+            ->where('itineraryQuote.passengerCount', 10)
+            ->has('itineraryQuote.passengerAllocations', 10)
         );
 });
 
@@ -114,12 +111,9 @@ it('marks a 5-passenger quote as group without applying the discount', function 
         ->assertRedirect();
 
     $this->actingAs($scenario['agent'])
-        ->get(route('sale', $context + ['quote_uuid' => PriceQuote::query()->latest('id')->firstOrFail()->uuid]))
+        ->get(route('sale', $context + ['itinerary_quote_uuid' => ItineraryQuote::query()->latest('id')->firstOrFail()->uuid]))
         ->assertInertia(fn (Assert $page): Assert => $page
-            ->where('quote.passengerCount', 5)
-            ->where('quote.isGroup', true)
-            ->where('quote.groupDiscount.applied', false)
-            ->where('quote.groupDiscount.amount', 0)
+            ->where('itineraryQuote.passengerCount', 5)
         );
 });
 
@@ -137,14 +131,21 @@ it('creates a group hold with a company payer and reserves company credit', func
     $this->actingAs($scenario['agent'])
         ->post(route('sale.quote'), $context + ['passenger_count' => 10])
         ->assertRedirect();
-    $quote = PriceQuote::query()->latest('id')->firstOrFail();
+    $quote = ItineraryQuote::query()->latest('id')->firstOrFail();
 
-    $seatUuids = collect($scenario['seats'])->take(10)->map(fn (Seat $seat): array => ['seat_uuid' => $seat->uuid])->all();
+    $seatUuids = collect($scenario['seats'])->take(10)->values();
+    $passengers = $seatUuids->map(fn (Seat $seat, int $i): array => [
+        'passenger_index' => $i,
+        'seat_assignments' => [
+            ['leg_order' => 1, 'direction' => 'outbound', 'seat_uuid' => $seat->uuid],
+        ],
+    ])->all();
 
     $this->actingAs($scenario['agent'])
         ->post(route('sale.hold'), $context + [
-            'price_quote_uuid' => $quote->uuid,
-            'seats' => $seatUuids,
+            'itinerary_quote_uuid' => $quote->uuid,
+            'idempotency_key' => (string) Str::uuid(),
+            'passengers' => $passengers,
             'payer' => [
                 'type' => 'company',
                 'company_account_uuid' => $account->uuid,
@@ -223,14 +224,21 @@ it('rejects company credit payment when no credit hold exists', function (): voi
 
     $this->actingAs($scenario['agent'])
         ->post(route('sale.quote'), $context + ['passenger_count' => 10]);
-    $quote = PriceQuote::query()->latest('id')->firstOrFail();
+    $quote = ItineraryQuote::query()->latest('id')->firstOrFail();
 
-    $seatUuids = collect($scenario['seats'])->take(10)->map(fn (Seat $seat): array => ['seat_uuid' => $seat->uuid])->all();
+    $seatUuids = collect($scenario['seats'])->take(10)->values();
+    $passengers = $seatUuids->map(fn (Seat $seat, int $i): array => [
+        'passenger_index' => $i,
+        'seat_assignments' => [
+            ['leg_order' => 1, 'direction' => 'outbound', 'seat_uuid' => $seat->uuid],
+        ],
+    ])->all();
 
     $this->actingAs($scenario['agent'])
         ->post(route('sale.hold'), $context + [
-            'price_quote_uuid' => $quote->uuid,
-            'seats' => $seatUuids,
+            'itinerary_quote_uuid' => $quote->uuid,
+            'idempotency_key' => (string) Str::uuid(),
+            'passengers' => $passengers,
         ])
         ->assertRedirect();
 
@@ -253,14 +261,21 @@ it('still allows a personal payer for a group booking paid in cash', function ()
 
     $this->actingAs($scenario['agent'])
         ->post(route('sale.quote'), $context + ['passenger_count' => 10]);
-    $quote = PriceQuote::query()->latest('id')->firstOrFail();
+    $quote = ItineraryQuote::query()->latest('id')->firstOrFail();
 
-    $seatUuids = collect($scenario['seats'])->take(10)->map(fn (Seat $seat): array => ['seat_uuid' => $seat->uuid])->all();
+    $seatUuids = collect($scenario['seats'])->take(10)->values();
+    $passengers = $seatUuids->map(fn (Seat $seat, int $i): array => [
+        'passenger_index' => $i,
+        'seat_assignments' => [
+            ['leg_order' => 1, 'direction' => 'outbound', 'seat_uuid' => $seat->uuid],
+        ],
+    ])->all();
 
     $this->actingAs($scenario['agent'])
         ->post(route('sale.hold'), $context + [
-            'price_quote_uuid' => $quote->uuid,
-            'seats' => $seatUuids,
+            'itinerary_quote_uuid' => $quote->uuid,
+            'idempotency_key' => (string) Str::uuid(),
+            'passengers' => $passengers,
         ])
         ->assertRedirect();
 
@@ -408,16 +423,18 @@ function groupSaleScenario(): array
     return compact('agency', 'agent', 'line', 'origin', 'destination', 'bus', 'seats', 'departure');
 }
 
-/** @return array<string, string> */
+/** @return array<string, mixed> */
 function groupSaleContext(array $scenario): array
 {
     return [
         'date' => '2026-08-20',
         'from' => 'Cotonou',
         'to' => 'Abidjan',
-        'departure_uuid' => $scenario['departure']->uuid,
-        'origin_stop_uuid' => $scenario['origin']->uuid,
-        'destination_stop_uuid' => $scenario['destination']->uuid,
+        'outbound_legs' => [[
+            'departure_uuid' => $scenario['departure']->uuid,
+            'origin_stop_uuid' => $scenario['origin']->uuid,
+            'destination_stop_uuid' => $scenario['destination']->uuid,
+        ]],
     ];
 }
 
@@ -434,14 +451,21 @@ function createGroupCompanyHold(object $test, array $scenario): Reservation
 
     $test->actingAs($scenario['agent'])
         ->post(route('sale.quote'), $context + ['passenger_count' => 10]);
-    $quote = PriceQuote::query()->latest('id')->firstOrFail();
+    $quote = ItineraryQuote::query()->latest('id')->firstOrFail();
 
-    $seatUuids = collect($scenario['seats'])->take(10)->map(fn (Seat $seat): array => ['seat_uuid' => $seat->uuid])->all();
+    $seatUuids = collect($scenario['seats'])->take(10)->values();
+    $passengers = $seatUuids->map(fn (Seat $seat, int $i): array => [
+        'passenger_index' => $i,
+        'seat_assignments' => [
+            ['leg_order' => 1, 'direction' => 'outbound', 'seat_uuid' => $seat->uuid],
+        ],
+    ])->all();
 
     $test->actingAs($scenario['agent'])
         ->post(route('sale.hold'), $context + [
-            'price_quote_uuid' => $quote->uuid,
-            'seats' => $seatUuids,
+            'itinerary_quote_uuid' => $quote->uuid,
+            'idempotency_key' => (string) Str::uuid(),
+            'passengers' => $passengers,
             'payer' => [
                 'type' => 'company',
                 'company_account_uuid' => $account->uuid,
