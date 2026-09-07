@@ -7118,3 +7118,228 @@
         }
     }
 }
+
+/* ==========================================================================
+   Onboarding Tour — reusable guided tour component
+   ========================================================================== */
+
+.kora-onboarding-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: auto;
+}
+
+.kora-onboarding-mask {
+    pointer-events: none !important;
+}
+
+.kora-onboarding-highlight {
+    pointer-events: none;
+    border-radius: 12px;
+    box-shadow:
+        0 0 0 2px var(--gold),
+        0 0 0 6px rgba(246, 176, 0, 0.25),
+        0 0 24px rgba(246, 176, 0, 0.15);
+    transition:
+        top 0.3s cubic-bezier(0.32, 0.72, 0, 1),
+        left 0.3s cubic-bezier(0.32, 0.72, 0, 1),
+        width 0.3s cubic-bezier(0.32, 0.72, 0, 1),
+        height 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    z-index: 10000;
+}
+
+.kora-onboarding-tooltip {
+    z-index: 10001;
+    border-radius: 12px;
+    background: var(--card);
+    box-shadow:
+        0 20px 60px rgba(0, 29, 78, 0.18),
+        0 0 0 1px rgba(0, 0, 0, 0.06);
+    padding: 20px;
+    pointer-events: auto;
+}
+
+.kora-onboarding-tooltip-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.kora-onboarding-step-counter {
+    font-size: 0.625rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold);
+    background: rgba(246, 176, 0, 0.12);
+    padding: 4px 10px;
+    border-radius: 999px;
+}
+
+.kora-onboarding-close {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    color: var(--muted-foreground);
+    transition:
+        background-color 0.2s,
+        color 0.2s;
+}
+
+.kora-onboarding-close:hover {
+    background: var(--muted);
+    color: var(--foreground);
+}
+
+.kora-onboarding-tooltip-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--foreground);
+    margin-bottom: 8px;
+}
+
+.kora-onboarding-tooltip-body {
+    font-size: 0.78rem;
+    line-height: 1.55;
+    color: var(--muted-foreground);
+    margin-bottom: 18px;
+}
+
+.kora-onboarding-tooltip-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.kora-onboarding-dots {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.kora-onboarding-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition:
+        width 0.25s,
+        background-color 0.25s;
+}
+
+.kora-onboarding-dot-active {
+    width: 18px;
+    border-radius: 999px;
+    background: var(--gold);
+}
+
+.kora-onboarding-btn-prev,
+.kora-onboarding-btn-next {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: 8px;
+    padding: 8px 14px;
+    transition:
+        background-color 0.2s,
+        color 0.2s,
+        transform 0.2s;
+}
+
+.kora-onboarding-btn-prev {
+    color: var(--muted-foreground);
+    background: transparent;
+}
+
+.kora-onboarding-btn-prev:hover {
+    background: var(--muted);
+    color: var(--foreground);
+}
+
+.kora-onboarding-btn-next {
+    color: var(--kora);
+    background: rgba(246, 176, 0, 0.15);
+}
+
+.kora-onboarding-btn-next:hover {
+    background: rgba(246, 176, 0, 0.25);
+    transform: translateY(-1px);
+}
+
+/* Arrow pointing toward the highlighted element */
+.kora-onboarding-arrow {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: var(--card);
+    transform: rotate(45deg);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.kora-onboarding-arrow-top {
+    top: -7px;
+    left: 50%;
+    margin-left: -6px;
+    border-bottom: none;
+    border-right: none;
+}
+
+.kora-onboarding-arrow-bottom {
+    bottom: -7px;
+    left: 50%;
+    margin-left: -6px;
+    border-top: none;
+    border-left: none;
+}
+
+.kora-onboarding-arrow-left {
+    left: -7px;
+    top: 50%;
+    margin-top: -6px;
+    border-right: none;
+    border-top: none;
+}
+
+.kora-onboarding-arrow-right {
+    right: -7px;
+    top: 50%;
+    margin-top: -6px;
+    border-left: none;
+    border-bottom: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .kora-onboarding-highlight {
+        transition: none;
+    }
+}
+
+/* Onboarding tooltip entrance animation */
+@keyframes kora-onboarding-enter {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.kora-onboarding-tooltip-enter {
+    animation: kora-onboarding-enter 0.25s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .kora-onboarding-tooltip-enter {
+        animation: none;
+    }
+}
