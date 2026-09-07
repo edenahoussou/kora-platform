@@ -4,6 +4,7 @@ namespace App\Modules\DynamicPricing\Actions;
 
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\BusNetwork\Models\Stop;
+use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Data\FareDirection;
 use App\Modules\DynamicPricing\Data\FareStatus;
 use App\Modules\DynamicPricing\Models\Fare;
@@ -13,7 +14,41 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 class CalculateFarePreviewAction
 {
+    public function __construct(private CalculateDynamicPriceAction $calculateDynamicPrice) {}
+
     /**
+     * Resolve a fare preview for a departure, applying dynamic pricing.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function handleForDeparture(Departure $departure, Stop $originStop, Stop $destinationStop, ?ServiceClass $serviceClass = null): ?array
+    {
+        $price = $this->calculateDynamicPrice->handle($departure, $originStop, $destinationStop, $serviceClass);
+        if (! $price) {
+            return null;
+        }
+
+        return [
+            'fare_uuid' => $price->fare->uuid,
+            'base_amount' => $price->baseAmount,
+            'final_amount' => $price->finalAmount,
+            'coefficient' => $price->coefficient,
+            'dynamic_adjustment_amount' => $price->adjustmentAmount(),
+            'pricing_rule_uuid' => $price->rule?->uuid,
+            'fill_rate' => $price->fillRate,
+            'hours_before_departure' => $price->hoursBeforeDeparture,
+            'currency' => $price->fare->currency,
+            'service_class_code' => $price->fare->serviceClass?->code,
+            'service_class_name' => $price->fare->serviceClass?->name,
+            'service_class_description' => $price->fare->serviceClass?->description,
+            'is_quote' => false,
+        ];
+    }
+
+    /**
+     * Resolve a fare preview for a line and travel date (direction-aware),
+     * without dynamic pricing. Used when no departure context is available.
+     *
      * @return array<string, mixed>|null
      */
     public function handle(Line $line, Stop $originStop, Stop $destinationStop, CarbonInterface $travelDate, ?string $direction = null, ?ServiceClass $serviceClass = null): ?array

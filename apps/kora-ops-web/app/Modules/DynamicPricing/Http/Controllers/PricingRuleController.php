@@ -47,7 +47,7 @@ class PricingRuleController extends Controller
 
         $setting = PricingSetting::current();
 
-        return inertia('pricing-rules', [
+        return inertia('dynamic-pricing', [
             'rules' => $query->paginate(15)->through(fn (PricingRule $rule): array => $this->serializeRule($rule)),
             'statuses' => PricingRuleStatus::options(),
             'types' => PricingRuleType::options(),

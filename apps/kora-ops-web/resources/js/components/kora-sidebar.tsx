@@ -20,17 +20,19 @@ import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import programming from '@/routes/programming';
 
+type NavPermission = string | string[] | null;
+
 type NavChild = {
     title: string;
     href: string;
-    permission: string | null;
+    permission: NavPermission;
 };
 
 type NavEntry = {
     title: string;
     href: string;
     icon: typeof LayoutDashboard;
-    permission: string | null;
+    permission: NavPermission;
     children?: NavChild[];
 };
 
@@ -86,14 +88,22 @@ const navItems: NavEntry[] = [
             },
             { title: 'Tarifs', href: '/fares', permission: 'pricing.view' },
             {
-                title: 'Règles de pricing',
-                href: '/pricing-rules',
-                permission: 'pricing.view',
-            },
-            {
                 title: 'Taux fiscaux',
                 href: '/tax-rules',
                 permission: 'pricing.view',
+            },
+        ],
+    },
+    {
+        title: 'Réseau commercial',
+        href: '/dynamic-pricing',
+        icon: Store,
+        permission: ['pricing.view', 'pricing.manage'],
+        children: [
+            {
+                title: 'Tarification dynamique',
+                href: '/dynamic-pricing',
+                permission: ['pricing.view', 'pricing.manage'],
             },
         ],
     },
@@ -155,8 +165,16 @@ export function KoraSidebar({
 }) {
     const { isCurrentUrl } = useCurrentUrl();
     const { auth } = usePage().props;
-    const { can } = usePermissions();
+    const { can, canAny } = usePermissions();
     const [openGroups, setOpenGroups] = useState<string[]>([]);
+
+    const canAccess = (permission: NavPermission): boolean => {
+        if (Array.isArray(permission)) {
+            return canAny(permission);
+        }
+
+        return can(permission);
+    };
 
     const toggleGroup = (title: string) => {
         setOpenGroups((prev) =>
@@ -249,11 +267,11 @@ export function KoraSidebar({
             >
                 {navItems.map((item) => {
                     const visibleChildren = item.children?.filter((child) =>
-                        can(child.permission),
+                        canAccess(child.permission),
                     );
 
                     if (
-                        !can(item.permission) ||
+                        !canAccess(item.permission) ||
                         (item.children && visibleChildren?.length === 0)
                     ) {
                         return null;

@@ -26,7 +26,7 @@ describe('SystemRole enum', function (): void {
             ->and(SystemRole::BusDriver->permissions())->toBe(['departures.view'])
             ->and(SystemRole::Conductor->permissions())->toContain('boarding.scan', 'seat-releases.create')
             ->and(SystemRole::CommercialDirector->permissions())->toContain('agencies.view', 'agencies.create', 'agencies.update', 'agencies.deactivate')
-            ->and(SystemRole::SystemAdmin->permissions())->toBe([]);
+            ->and(SystemRole::SystemAdmin->permissions())->toBe(SystemRole::allPermissions());
     });
 
     it('differentiates bus_driver from conductor', function (): void {

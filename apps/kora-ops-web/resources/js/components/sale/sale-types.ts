@@ -243,7 +243,13 @@ export type SaleDeparture = {
     availableSeatsCount: number;
     sellability: SaleDepartureSellability;
     farePreview: {
+        base_amount?: number;
         final_amount?: number;
+        coefficient?: number;
+        dynamic_adjustment_amount?: number;
+        pricing_rule_uuid?: string | null;
+        fill_rate?: number;
+        hours_before_departure?: number;
         currency?: string;
         service_class_code?: string | null;
         service_class_name?: string | null;
