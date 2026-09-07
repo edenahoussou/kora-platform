@@ -10,6 +10,7 @@ use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\IdentityAccess\Models\Agency;
 use Database\Seeders\KoraBusRolePermissionSeeder;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function (): void {
@@ -27,14 +28,13 @@ function fleetManager(): User
 function fleetReferences(): array
 {
     return [
-        Agency::query()->create(['code' => 'COT', 'name' => 'Agence Cotonou', 'city' => 'Cotonou', 'country' => 'BJ', 'status' => 'active']),
         BusModel::query()->create(['brand' => 'KORA', 'name' => 'Coach 55', 'default_seat_count' => 55, 'status' => 'active']),
         BusComposition::query()->create(['code' => '2+2-55', 'name' => 'Standard 2+2 — 55 places', 'seat_count' => 55, 'layout' => [['type' => 'standard', 'codes' => ['1A', '1B', '1C', '1D']], ['type' => 'crew', 'codes' => ['C1']]], 'status' => 'active']),
     ];
 }
 
 it('lists buses with their model and composition without exposing numeric ids', function (): void {
-    [$agency, $model, $composition] = fleetReferences();
+    [$model, $composition] = fleetReferences();
     $bus = Bus::query()->create(['registration_number' => 'BJ-9254-RB', 'bus_model_id' => $model->id, 'composition_id' => $composition->id, 'seat_count' => 55, 'status' => 'active']);
 
     $this->actingAs(fleetManager())->get(route('fleet.index'))->assertSuccessful()->assertInertia(fn (Assert $page) => $page
@@ -48,7 +48,7 @@ it('lists buses with their model and composition without exposing numeric ids', 
 });
 
 it('filters buses by search term and status', function (): void {
-    [$agency1, $model, $composition] = fleetReferences();
+    [$model, $composition] = fleetReferences();
 
     $bus1 = Bus::query()->create(['registration_number' => 'BJ-1111-RB', 'bus_model_id' => $model->id, 'composition_id' => $composition->id, 'seat_count' => 55, 'status' => 'active']);
     $bus2 = Bus::query()->create(['registration_number' => 'BJ-2222-RB', 'bus_model_id' => $model->id, 'composition_id' => $composition->id, 'seat_count' => 55, 'status' => 'maintenance']);
@@ -71,7 +71,7 @@ it('filters buses by search term and status', function (): void {
 });
 
 it('shows bus detail page with seats, departures, and timeline without exposing numeric ids', function (): void {
-    [$agency, $model, $composition] = fleetReferences();
+    [$model, $composition] = fleetReferences();
 
     $createBusAction = app(CreateBusAction::class);
     $bus = $createBusAction->execute([
@@ -116,7 +116,7 @@ it('shows bus detail page with seats, departures, and timeline without exposing 
 });
 
 it('creates a bus from a model and composition and generates its seats', function (): void {
-    [$agency, $model, $composition] = fleetReferences();
+    [$model, $composition] = fleetReferences();
     $user = fleetManager();
 
     $this->actingAs($user)->post(route('fleet.store'), [
@@ -131,7 +131,7 @@ it('creates a bus from a model and composition and generates its seats', functio
 });
 
 it('updates a bus and resyncs seats when composition changes', function (): void {
-    [$agency, $model, $composition1] = fleetReferences();
+    [$model, $composition1] = fleetReferences();
     $composition2 = BusComposition::query()->create([
         'code' => '2+1-30',
         'name' => 'Premium 2+1 — 30 places',
@@ -164,7 +164,7 @@ it('updates a bus and resyncs seats when composition changes', function (): void
 });
 
 it('prevents composition change when bus already has departures', function (): void {
-    [$agency, $model, $composition1] = fleetReferences();
+    [$model, $composition1] = fleetReferences();
     $composition2 = BusComposition::query()->create([
         'code' => '2+1-30',
         'name' => 'Premium 2+1 — 30 places',
@@ -205,7 +205,7 @@ it('prevents composition change when bus already has departures', function (): v
 });
 
 it('changes bus status through status endpoint', function (): void {
-    [$agency, $model, $composition] = fleetReferences();
+    [$model, $composition] = fleetReferences();
     $bus = Bus::query()->create([
         'registration_number' => 'BJ-9254-RB',
         'bus_model_id' => $model->id,
@@ -228,7 +228,7 @@ it('changes bus status through status endpoint', function (): void {
 });
 
 it('rejects duplicate registrations and unauthorized fleet access', function (): void {
-    [$agency, $model, $composition] = fleetReferences();
+    [$model, $composition] = fleetReferences();
     Bus::query()->create(['registration_number' => 'BJ-9254-RB', 'bus_model_id' => $model->id, 'composition_id' => $composition->id, 'seat_count' => 55, 'status' => 'active']);
 
     $this->actingAs(fleetManager())->post(route('fleet.store'), ['registration_number' => 'BJ-9254-RB', 'bus_model_id' => $model->id, 'composition_id' => $composition->id, 'status' => 'active'])->assertSessionHasErrors('registration_number');
@@ -238,4 +238,34 @@ it('rejects duplicate registrations and unauthorized fleet access', function ():
     $this->actingAs($agent)->get(route('fleet.index'))->assertForbidden();
     $this->actingAs($agent)->get(route('fleet.show', Bus::first()))->assertForbidden();
     $this->actingAs($agent)->post(route('fleet.store'), ['registration_number' => 'BJ-0000-RB', 'bus_model_id' => $model->id, 'composition_id' => $composition->id, 'status' => 'active'])->assertForbidden();
+});
+
+it('has no agency_id column on buses: the bus is company-owned, operational assignment lives on the departure', function (): void {
+    expect(Schema::hasColumn('buses', 'agency_id'))->toBeFalse();
+});
+
+it('creates a bus with no agency attachment at all and ignores a stray agency_id sent in the payload', function (): void {
+    [$model, $composition] = fleetReferences();
+    $agency = Agency::query()->create([
+        'code' => 'AG-STRAY',
+        'name' => 'Agence fantôme',
+        'city' => 'Cotonou',
+        'country' => 'BJ',
+        'status' => 'active',
+    ]);
+
+    // A bus is company property: nothing in the create flow requires or
+    // even accepts an agency, and a stray `agency_id` sent by a client
+    // (e.g. an old integration) must be silently ignored rather than
+    // rejected or stored — there is no column left to store it in.
+    $this->actingAs(fleetManager())->post(route('fleet.store'), [
+        'registration_number' => 'BJ-8888-RB',
+        'bus_model_id' => $model->id,
+        'composition_id' => $composition->id,
+        'status' => 'active',
+        'agency_id' => $agency->id,
+    ])->assertRedirect(route('fleet.index', absolute: false));
+
+    $bus = Bus::query()->where('registration_number', 'BJ-8888-RB')->firstOrFail();
+    expect($bus->getAttributes())->not->toHaveKey('agency_id');
 });
