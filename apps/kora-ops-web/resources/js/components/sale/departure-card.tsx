@@ -27,7 +27,8 @@ export function DepartureCard({
 }: Props) {
     const price = departure.farePreview?.final_amount;
     const basePrice = departure.farePreview?.base_amount;
-    const dynamicAdjustment = departure.farePreview?.dynamic_adjustment_amount ?? 0;
+    const dynamicAdjustment =
+        departure.farePreview?.dynamic_adjustment_amount ?? 0;
     const currency = departure.farePreview?.currency;
     const serviceClass =
         departure.farePreview?.service_class_name ??
@@ -111,7 +112,11 @@ export function DepartureCard({
             </div>
 
             <div className="departure-price">
-                <small>{dynamicAdjustment !== 0 ? 'prix dynamique' : 'par passager'}</small>
+                <small>
+                    {dynamicAdjustment !== 0
+                        ? 'prix dynamique'
+                        : 'par passager'}
+                </small>
                 <div className="price">
                     {price !== undefined
                         ? formatMoney(price, currency)
@@ -119,7 +124,9 @@ export function DepartureCard({
                 </div>
                 {dynamicAdjustment !== 0 && basePrice !== undefined && (
                     <span className="mt-1 block text-[0.65rem] text-muted-foreground">
-                        Base {formatMoney(basePrice, currency)} · {dynamicAdjustment > 0 ? '+' : ''}{formatMoney(dynamicAdjustment, currency)}
+                        Base {formatMoney(basePrice, currency)} ·{' '}
+                        {dynamicAdjustment > 0 ? '+' : ''}
+                        {formatMoney(dynamicAdjustment, currency)}
                     </span>
                 )}
                 <button
