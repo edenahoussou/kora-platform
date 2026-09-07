@@ -151,7 +151,7 @@ enum SystemRole: string
                 'seat-releases.view',
                 'tickets.view',
             ],
-            self::SystemAdmin => [],
+            self::SystemAdmin => self::allPermissions(),
         };
     }
 
