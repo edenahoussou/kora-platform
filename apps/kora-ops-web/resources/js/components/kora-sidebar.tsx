@@ -84,6 +84,11 @@ const navItems: NavEntry[] = [
                 href: '/network',
                 permission: 'network.view',
             },
+            {
+                title: 'Carte (prototype)',
+                href: '/network/map-prototype',
+                permission: 'network.view',
+            },
             { title: 'Tarifs', href: '/fares', permission: 'pricing.view' },
             {
                 title: 'Règles de pricing',

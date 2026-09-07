@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Modules\BusNetwork\Models\MapSetting;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -52,6 +53,19 @@ class HandleInertiaRequests extends Middleware
                 ] : null,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'mapConfig' => [
+                'provider' => MapSetting::resolvedProvider()->value,
+                'osm' => [
+                    'tileUrl' => config('services.maps.osm.tile_url'),
+                    'attribution' => config('services.maps.osm.attribution'),
+                ],
+                // Google Maps JS API keys are meant to be used client-side —
+                // they're restricted by HTTP referrer/domain on the Google
+                // Cloud console, not a secret like an OAuth client secret.
+                'google' => [
+                    'apiKey' => config('services.maps.google.api_key'),
+                ],
+            ],
         ];
     }
 }
