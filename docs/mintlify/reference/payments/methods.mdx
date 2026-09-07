@@ -78,10 +78,11 @@ final methods = res.data['data']['methods'];
       },
       {
         "code": "wallet",
-        "label": "Mini Wallet",
+        "label": "Wallet KORA BUS",
         "enabled": false,
-        "availability": "out_of_mvp",
-        "providers": []
+        "availability": "disabled_until_wallet_ledger",
+        "providers": [],
+        "requires": ["wallet_amount"]
       }
     ]
   }
@@ -108,7 +109,7 @@ final methods = res.data['data']['methods'];
   <ResponseField name="data.methods[].providers[].interaction" type="string" required>`push` (USSD push vers le téléphone) ou `push_or_redirect` (push ou redirection web).</ResponseField>
   <ResponseField name="data.methods[].providers[].polling_interval_seconds" type="integer" required>Intervalle recommandé entre deux vérifications.</ResponseField>
   <ResponseField name="data.methods[].providers[].verification" type="string" required>Toujours `server_verify` — le mobile doit appeler `POST /payments/{uuid}/verify`.</ResponseField>
-  <ResponseField name="data.methods[].availability" type="string">Présent uniquement si `enabled=false`. `out_of_mvp` pour les moyens hors périmètre.</ResponseField>
+  <ResponseField name="data.methods[].availability" type="string">Présent uniquement si `enabled=false`. `disabled_until_wallet_ledger` indique que le contrat existe mais que l'activation du ledger est nécessaire.</ResponseField>
 </ResponseField>
 
 ## Codes de réponse
@@ -119,5 +120,5 @@ final methods = res.data['data']['methods'];
 | `401` | Token absent ou invalide. |
 
 <Info>
-  Le Mini Wallet est retourné comme désactivé avec `availability: out_of_mvp`. L'application ne doit pas proposer son parcours dans ce lot.
+  Le Wallet est retourné comme connu mais désactivé avec `availability: disabled_until_wallet_ledger`. L'application ne doit pas proposer son parcours avant activation serveur.
 </Info>

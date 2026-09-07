@@ -6,6 +6,8 @@ api: POST /api/v1/bus/quotes
 
 # Créer un devis
 
+> Cette page décrit le devis mono-segment legacy. Le parcours mobile recommandé utilise [Devis d'itinéraire](/reference/booking/itinerary-quotes), y compris pour un trajet direct à un seul leg.
+
 Fige le tarif d'un segment demandé. La durée de validité est contrôlée par `KORA_QUOTE_TTL_MINUTES` (10 minutes par défaut). Le mobile doit conserver l'UUID du devis et le transmettre lors de la création du hold.
 
 ## Paramètres

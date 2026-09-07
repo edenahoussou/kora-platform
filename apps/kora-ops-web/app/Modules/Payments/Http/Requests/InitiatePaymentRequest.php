@@ -20,13 +20,13 @@ class InitiatePaymentRequest extends FormRequest
     {
         return [
             'reservation_uuid' => ['required', 'uuid', 'exists:reservations,uuid'],
-            'method' => ['required', 'string', Rule::in(['mobile_money', 'company_credit'])],
-            'provider' => ['required', 'string', 'max:64'],
+            'method' => ['required', 'string', Rule::in(['mobile_money', 'wallet'])],
+            'provider' => ['required_if:method,mobile_money', 'nullable', 'string', Rule::in(['fedapay', 'mtn_momo'])],
             'idempotency_key' => ['required', 'string', 'max:255'],
-            // The action performs these checks after ownership/hold validation so
-            // legacy clients still receive the most relevant reservation error.
-            'phone' => ['nullable', 'string', 'max:32'],
-            'mobile_money_network' => ['nullable', 'string', Rule::in(MobileMoneyNetwork::values())],
+            'phone' => ['required_if:method,mobile_money', 'nullable', 'string', 'max:32'],
+            'mobile_money_network' => ['required_if:method,mobile_money', 'nullable', 'string', Rule::in(MobileMoneyNetwork::values())],
+            'wallet_amount' => ['required_if:method,wallet', 'nullable', 'integer', 'min:0'],
+            'mobile_money_amount' => ['nullable', 'integer', 'min:0'],
         ];
     }
 
@@ -34,10 +34,12 @@ class InitiatePaymentRequest extends FormRequest
      * @return array{
      *     reservation_uuid: string,
      *     method: string,
-     *     provider: string,
+     *     provider: string|null,
      *     idempotency_key: string,
      *     phone: string|null,
-     *     mobile_money_network: string|null
+     *     mobile_money_network: string|null,
+     *     wallet_amount: int|null,
+     *     mobile_money_amount: int|null
      * }
      */
     public function paymentData(): array
@@ -45,10 +47,12 @@ class InitiatePaymentRequest extends FormRequest
         return [
             'reservation_uuid' => $this->string('reservation_uuid')->value(),
             'method' => $this->string('method')->value(),
-            'provider' => $this->string('provider')->value(),
+            'provider' => $this->string('provider')->value() ?: null,
             'idempotency_key' => $this->string('idempotency_key')->value(),
             'phone' => $this->string('phone')->trim()->value() ?: null,
             'mobile_money_network' => $this->string('mobile_money_network')->value() ?: null,
+            'wallet_amount' => $this->input('wallet_amount') === null ? null : $this->integer('wallet_amount'),
+            'mobile_money_amount' => $this->input('mobile_money_amount') === null ? null : $this->integer('mobile_money_amount'),
         ];
     }
 }

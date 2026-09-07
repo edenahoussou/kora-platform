@@ -1,0 +1,68 @@
+---
+title: Devis d'itinéraire
+description: "POST /api/v1/bus/itinerary-quotes calcule le prix serveur d'un trajet direct ou multi-leg."
+api: POST /api/v1/bus/itinerary-quotes
+---
+
+# Devis d'itinéraire
+
+Crée un devis serveur pour un itinéraire direct ou avec correspondances. Pour un trajet direct, envoyez un seul leg. Le devis est lié à l'utilisateur authentifié et doit être utilisé avant son expiration.
+
+## Requête
+
+```json
+{
+  "passenger_count": 2,
+  "legs": [
+    {
+      "leg_order": 1,
+      "departure_uuid": "departure-leg-1-uuid",
+      "origin_stop_uuid": "origin-stop-uuid",
+      "destination_stop_uuid": "destination-stop-uuid"
+    }
+  ]
+}
+```
+
+| Champ | Type | Requis | Description |
+|---|---|---:|---|
+| `passenger_count` | integer | non | Nombre de passagers, de 1 à 10. |
+| `legs` | array | oui | Un à trois legs ordonnés. |
+| `legs[].leg_order` | integer | non | Ordre 1-based ; l'ordre du tableau reste la référence. |
+| `legs[].departure_uuid` | UUID | oui | Départ sélectionné. |
+| `legs[].origin_stop_uuid` | UUID | oui | Arrêt origine du segment. |
+| `legs[].destination_stop_uuid` | UUID | oui | Arrêt destination du segment. |
+
+## Réponse
+
+```json
+{
+  "data": {
+    "itinerary_quote_uuid": "itinerary-quote-uuid",
+    "total_amount": 27500,
+    "currency": "XOF",
+    "expires_at": "2026-09-10T08:00:00Z",
+    "legs": [
+      { "leg_order": 1, "quote_uuid": "quote-leg-1-uuid", "final_amount": 27500 }
+    ],
+    "pricing": {
+      "subtotal_amount": 27500,
+      "dynamic_adjustment_amount": 0,
+      "group_discount": {},
+      "passenger_allocations": [13750, 13750],
+      "total_amount": 27500,
+      "currency": "XOF"
+    }
+  }
+}
+```
+
+Le montant et l'expiration retournés par le serveur sont la référence du hold. Le mobile ne doit pas reconstruire le snapshot tarifaire.
+
+## Codes de réponse
+
+| Code | Description |
+|---|---|
+| `200` | Devis créé. |
+| `401` | Authentification absente ou invalide. |
+| `422` | Leg invalide, itinéraire discontinu, vente fermée ou devise incohérente. |

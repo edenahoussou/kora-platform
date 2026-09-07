@@ -57,6 +57,12 @@ class GroupDiscountRuleController extends Controller
      *
      * @authenticated
      *
+     * @bodyParam status string required Rule status. Example: active
+     * @bodyParam passenger_threshold integer required Minimum passenger count for the rule. Example: 5
+     * @bodyParam percentage number required Discount percentage. Example: 10
+     * @bodyParam starts_at string Start of the validity period. Example: 2026-09-01T00:00:00+00:00
+     * @bodyParam ends_at string End of the validity period. Example: 2026-12-31T00:00:00+00:00
+     *
      * @response 201 scenario="Discount rule created" {
      *   "data": {
      *     "uuid": "d1234567-89ab-cdef-0123-456789abcdef",
@@ -96,6 +102,12 @@ class GroupDiscountRuleController extends Controller
      * Update an existing group discount rule.
      *
      * @authenticated
+     *
+     * @bodyParam status string required Rule status. Example: active
+     * @bodyParam passenger_threshold integer required Minimum passenger count for the rule. Example: 8
+     * @bodyParam percentage number required Discount percentage. Example: 15
+     * @bodyParam starts_at string Start of the validity period. Example: 2026-09-01T00:00:00+00:00
+     * @bodyParam ends_at string End of the validity period. Example: 2026-12-31T00:00:00+00:00
      *
      * @response 200 scenario="Discount rule updated" {
      *   "data": {

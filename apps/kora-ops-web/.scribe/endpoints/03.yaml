@@ -114,7 +114,7 @@ endpoints:
         name: type
         description: ''
         required: true
-        example: ngo
+        example: company
         type: string
         enumValues:
           - company
@@ -169,7 +169,7 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       name: b
-      type: ngo
+      type: company
       reference: 'n'
       phone: g
       email: rowan.gulgowski@example.com
@@ -258,14 +258,14 @@ endpoints:
         name: companyAccount_uuid
         description: ''
         required: true
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        example: bb17d368-32aa-42cc-a85d-ba56625b0b7d
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      companyAccount_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      companyAccount_uuid: bb17d368-32aa-42cc-a85d-ba56625b0b7d
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters:
@@ -285,7 +285,7 @@ endpoints:
         name: type
         description: ''
         required: true
-        example: embassy
+        example: company
         type: string
         enumValues:
           - company
@@ -340,7 +340,7 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       name: b
-      type: embassy
+      type: company
       reference: 'n'
       phone: g
       email: rowan.gulgowski@example.com
@@ -431,14 +431,14 @@ endpoints:
         name: companyAccount_uuid
         description: ''
         required: true
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        example: bb17d368-32aa-42cc-a85d-ba56625b0b7d
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      companyAccount_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      companyAccount_uuid: bb17d368-32aa-42cc-a85d-ba56625b0b7d
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -519,14 +519,14 @@ endpoints:
         name: companyAccount_uuid
         description: ''
         required: true
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        example: bb17d368-32aa-42cc-a85d-ba56625b0b7d
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      companyAccount_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      companyAccount_uuid: bb17d368-32aa-42cc-a85d-ba56625b0b7d
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters:

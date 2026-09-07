@@ -281,7 +281,7 @@ process can answer, with no dependency checks.</a>
     </ul>
 
     <ul class="toc-footer" id="last-updated">
-        <li>Last updated: September 2, 2026</li>
+        <li>Last updated: September 7, 2026</li>
     </ul>
 </div>
 
@@ -654,14 +654,14 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/bus/lines/6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
+    --get "http://kora-ops-web.local/api/v1/bus/lines/99090785-31c0-48bc-94e8-2ff1594d9b8b" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bus/lines/6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+    "http://kora-ops-web.local/api/v1/bus/lines/99090785-31c0-48bc-94e8-2ff1594d9b8b"
 );
 
 const headers = {
@@ -808,10 +808,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="uuid"                data-endpoint="GETapi-v1-bus-lines--uuid-"
-               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               value="99090785-31c0-48bc-94e8-2ff1594d9b8b"
                data-component="url">
     <br>
-<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Example: <code>99090785-31c0-48bc-94e8-2ff1594d9b8b</code></p>
             </div>
                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>line</code></b>&nbsp;&nbsp;
@@ -844,7 +844,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
-    \"date\": \"2026-09-02\",
+    \"date\": \"2026-09-07\",
     \"line\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
     \"from\": \"g\",
     \"to\": \"z\",
@@ -880,7 +880,7 @@ const headers = {
 };
 
 let body = {
-    "date": "2026-09-02",
+    "date": "2026-09-07",
     "line": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
     "from": "g",
     "to": "z",
@@ -1212,10 +1212,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="date"                data-endpoint="GETapi-v1-bus-departures"
-               value="2026-09-02"
+               value="2026-09-07"
                data-component="body">
     <br>
-<p>Must be a valid date in the format <code>Y-m-d</code>. Example: <code>2026-09-02</code></p>
+<p>Must be a valid date in the format <code>Y-m-d</code>. Example: <code>2026-09-07</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>line</code></b>&nbsp;&nbsp;
@@ -1316,7 +1316,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/bus/departures/6ff8f7f6-1eb3-3525-be4a-3932c805afed?from=Cotonou&amp;to=Abidjan" \
+    --get "http://kora-ops-web.local/api/v1/bus/departures/081aadf2-2c27-4d72-9d3c-f2192775284e?from=Cotonou&amp;to=Abidjan" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -1328,7 +1328,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bus/departures/6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+    "http://kora-ops-web.local/api/v1/bus/departures/081aadf2-2c27-4d72-9d3c-f2192775284e"
 );
 
 const params = {
@@ -1551,10 +1551,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="uuid"                data-endpoint="GETapi-v1-bus-departures--uuid-"
-               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               value="081aadf2-2c27-4d72-9d3c-f2192775284e"
                data-component="url">
     <br>
-<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Example: <code>081aadf2-2c27-4d72-9d3c-f2192775284e</code></p>
             </div>
                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>departure</code></b>&nbsp;&nbsp;
@@ -1634,7 +1634,7 @@ the requested origin/destination segment (available, held, occupied, or blocked)
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/bus/departures/6ff8f7f6-1eb3-3525-be4a-3932c805afed/seats?origin_stop_uuid=5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21&amp;destination_stop_uuid=5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22" \
+    --get "http://kora-ops-web.local/api/v1/bus/departures/081aadf2-2c27-4d72-9d3c-f2192775284e/seats?origin_stop_uuid=5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21&amp;destination_stop_uuid=5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -1646,7 +1646,7 @@ the requested origin/destination segment (available, held, occupied, or blocked)
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bus/departures/6ff8f7f6-1eb3-3525-be4a-3932c805afed/seats"
+    "http://kora-ops-web.local/api/v1/bus/departures/081aadf2-2c27-4d72-9d3c-f2192775284e/seats"
 );
 
 const params = {
@@ -1803,10 +1803,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="departure_uuid"                data-endpoint="GETapi-v1-bus-departures--departure_uuid--seats"
-               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               value="081aadf2-2c27-4d72-9d3c-f2192775284e"
                data-component="url">
     <br>
-<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Example: <code>081aadf2-2c27-4d72-9d3c-f2192775284e</code></p>
             </div>
                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>departure</code></b>&nbsp;&nbsp;
@@ -1885,13 +1885,13 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/bus/itineraries?from_physical_stop_uuid=6ff8f7f6-1eb3-3525-be4a-3932c805afed&amp;to_physical_stop_uuid=6ff8f7f6-1eb3-3525-be4a-3932c805afed&amp;date=architecto" \
+    --get "http://kora-ops-web.local/api/v1/bus/itineraries?from_physical_stop_uuid=6ff8f7f6-1eb3-3525-be4a-3932c805afed&amp;to_physical_stop_uuid=6ff8f7f6-1eb3-3525-be4a-3932c805afed&amp;date=architecto&amp;passenger_count=16" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
     \"from_physical_stop_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
     \"to_physical_stop_uuid\": \"6b72fe4a-5b40-307c-bc24-f79acf9a1bb9\",
-    \"date\": \"2026-09-02\",
+    \"date\": \"2026-09-07\",
     \"passenger_count\": 7
 }"
 </code></pre></div>
@@ -1906,6 +1906,7 @@ const params = {
     "from_physical_stop_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
     "to_physical_stop_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
     "date": "architecto",
+    "passenger_count": "16",
 };
 Object.keys(params)
     .forEach(key =&gt; url.searchParams.append(key, params[key]));
@@ -1918,7 +1919,7 @@ const headers = {
 let body = {
     "from_physical_stop_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
     "to_physical_stop_uuid": "6b72fe4a-5b40-307c-bc24-f79acf9a1bb9",
-    "date": "2026-09-02",
+    "date": "2026-09-07",
     "passenger_count": 7
 };
 
@@ -2070,6 +2071,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
     <br>
 <p>Travel date (Y-m-d). Example: <code>architecto</code></p>
             </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>passenger_count</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="passenger_count"                data-endpoint="GETapi-v1-bus-itineraries"
+               value="16"
+               data-component="query">
+    <br>
+<p>Number of passengers. Defaults to 1. Example: <code>16</code></p>
+            </div>
                         <h4 class="fancy-heading-panel"><b>Body Parameters</b></h4>
         <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>from_physical_stop_uuid</code></b>&nbsp;&nbsp;
@@ -2102,10 +2115,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="date"                data-endpoint="GETapi-v1-bus-itineraries"
-               value="2026-09-02"
+               value="2026-09-07"
                data-component="body">
     <br>
-<p>Must be a valid date in the format <code>Y-m-d</code>. Example: <code>2026-09-02</code></p>
+<p>Must be a valid date in the format <code>Y-m-d</code>. Example: <code>2026-09-07</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>passenger_count</code></b>&nbsp;&nbsp;
@@ -2719,7 +2732,7 @@ returns 204.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request DELETE \
-    "http://kora-ops-web.local/api/v1/bus/holds/6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
+    "http://kora-ops-web.local/api/v1/bus/holds/3d0d4b6f-1242-4881-8ac5-5c0ff761b799" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -2727,7 +2740,7 @@ returns 204.</p>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bus/holds/6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+    "http://kora-ops-web.local/api/v1/bus/holds/3d0d4b6f-1242-4881-8ac5-5c0ff761b799"
 );
 
 const headers = {
@@ -2861,10 +2874,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="reservation_uuid"                data-endpoint="DELETEapi-v1-bus-holds--reservation_uuid-"
-               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               value="3d0d4b6f-1242-4881-8ac5-5c0ff761b799"
                data-component="url">
     <br>
-<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Example: <code>3d0d4b6f-1242-4881-8ac5-5c0ff761b799</code></p>
             </div>
                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>reservation</code></b>&nbsp;&nbsp;
@@ -2886,7 +2899,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <small class="badge badge-darkred">requires authentication</small>
 </p>
 
-
+<p>Requires a Sanctum bearer token.</p>
 
 <span id="example-requests-POSTapi-v1-bus-itinerary-quotes">
 <blockquote>Example request:</blockquote>
@@ -2899,14 +2912,9 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
-    \"passenger_count\": 6,
+    \"passenger_count\": 16,
     \"legs\": [
-        {
-            \"departure_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
-            \"origin_stop_uuid\": \"6b72fe4a-5b40-307c-bc24-f79acf9a1bb9\",
-            \"destination_stop_uuid\": \"977e5426-8d13-3824-86aa-b092f8ae52c5\",
-            \"leg_order\": 1
-        }
+        \"architecto\"
     ]
 }"
 </code></pre></div>
@@ -2924,14 +2932,9 @@ const headers = {
 };
 
 let body = {
-    "passenger_count": 6,
+    "passenger_count": 16,
     "legs": [
-        {
-            "departure_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-            "origin_stop_uuid": "6b72fe4a-5b40-307c-bc24-f79acf9a1bb9",
-            "destination_stop_uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
-            "leg_order": 1
-        }
+        "architecto"
     ]
 };
 
@@ -2950,16 +2953,29 @@ fetch(url, {
                 <pre>
 
 <code class="language-json" style="max-height: 300px;">{
-    &quot;total_amount&quot;: 27500,
-    &quot;currency&quot;: &quot;XOF&quot;,
-    &quot;expires_at&quot;: &quot;2026-09-10T08:00:00Z&quot;,
-    &quot;legs&quot;: [
-        {
-            &quot;leg_order&quot;: 1,
-            &quot;quote_uuid&quot;: &quot;quote-uuid-1&quot;,
-            &quot;final_amount&quot;: 15000
+    &quot;data&quot;: {
+        &quot;itinerary_quote_uuid&quot;: &quot;9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70&quot;,
+        &quot;total_amount&quot;: 27500,
+        &quot;currency&quot;: &quot;XOF&quot;,
+        &quot;expires_at&quot;: &quot;2026-09-10T08:00:00Z&quot;,
+        &quot;legs&quot;: [
+            {
+                &quot;leg_order&quot;: 1,
+                &quot;quote_uuid&quot;: &quot;quote-uuid-1&quot;,
+                &quot;final_amount&quot;: 15000
+            }
+        ],
+        &quot;pricing&quot;: {
+            &quot;subtotal_amount&quot;: 27500,
+            &quot;dynamic_adjustment_amount&quot;: 0,
+            &quot;group_discount&quot;: {},
+            &quot;passenger_allocations&quot;: [
+                27500
+            ],
+            &quot;total_amount&quot;: 27500,
+            &quot;currency&quot;: &quot;XOF&quot;
         }
-    ]
+    }
 }</code>
  </pre>
     </span>
@@ -3054,20 +3070,20 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="number" style="display: none"
                step="any"               name="passenger_count"                data-endpoint="POSTapi-v1-bus-itinerary-quotes"
-               value="6"
+               value="16"
                data-component="body">
     <br>
-<p>Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 10. Example: <code>6</code></p>
+<p>Number of passengers. Defaults to 1. Example: <code>16</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
         <details>
             <summary style="padding-bottom: 10px;">
                 <b style="line-height: 2;"><code>legs</code></b>&nbsp;&nbsp;
-<small>object[]</small>&nbsp;
+<small>string[]</small>&nbsp;
  &nbsp;
  &nbsp;
 <br>
-<p>Le champ value doit contenir au moins 1 éléments. Le champ value ne doit pas contenir plus de 3 éléments.</p>
+<p>Ordered itinerary legs, including a direct itinerary with one leg.</p>
             </summary>
                                                 <div style="margin-left: 14px; clear: unset;">
                         <b style="line-height: 2;"><code>departure_uuid</code></b>&nbsp;&nbsp;
@@ -3117,7 +3133,67 @@ You can check the Dev Tools console for debugging information.</code></pre>
     <br>
 <p>Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 3. Example: <code>1</code></p>
                     </div>
+                                                                <div style=" margin-left: 14px; clear: unset;">
+        <details>
+            <summary style="padding-bottom: 10px;">
+                <b style="line-height: 2;"><code>*</code></b>&nbsp;&nbsp;
+<small>object</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+<br>
+
+            </summary>
+                                                <div style="margin-left: 28px; clear: unset;">
+                        <b style="line-height: 2;"><code>leg_order</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="legs.*.leg_order"                data-endpoint="POSTapi-v1-bus-itinerary-quotes"
+               value="16"
+               data-component="body">
+    <br>
+<p>Leg order, starting at 1. Example: <code>16</code></p>
+                    </div>
+                                                                <div style="margin-left: 28px; clear: unset;">
+                        <b style="line-height: 2;"><code>departure_uuid</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="legs.*.departure_uuid"                data-endpoint="POSTapi-v1-bus-itinerary-quotes"
+               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               data-component="body">
+    <br>
+<p>Departure UUID. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+                    </div>
+                                                                <div style="margin-left: 28px; clear: unset;">
+                        <b style="line-height: 2;"><code>origin_stop_uuid</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="legs.*.origin_stop_uuid"                data-endpoint="POSTapi-v1-bus-itinerary-quotes"
+               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               data-component="body">
+    <br>
+<p>Origin stop UUID. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+                    </div>
+                                                                <div style="margin-left: 28px; clear: unset;">
+                        <b style="line-height: 2;"><code>destination_stop_uuid</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="legs.*.destination_stop_uuid"                data-endpoint="POSTapi-v1-bus-itinerary-quotes"
+               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               data-component="body">
+    <br>
+<p>Destination stop UUID. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+                    </div>
                                     </details>
+        </div>
+                                        </details>
         </div>
         </form>
 
@@ -3127,7 +3203,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <small class="badge badge-darkred">requires authentication</small>
 </p>
 
-
+<p>Requires a Sanctum bearer token.</p>
 
 <span id="example-requests-POSTapi-v1-bus-itinerary-holds">
 <blockquote>Example request:</blockquote>
@@ -3141,15 +3217,14 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Accept: application/json" \
     --data "{
     \"itinerary_quote_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
-    \"idempotency_key\": \"g\",
+    \"idempotency_key\": \"architecto\",
     \"payer\": {
-        \"type\": \"personal\",
+        \"type\": \"company\",
         \"user_uuid\": \"c90237e9-ced5-3af6-88ea-84aeaa148878\",
         \"company_account_uuid\": \"a1a0a47d-e8c3-3cf0-8e6e-c1ff9dca5d1f\"
     },
     \"passengers\": [
         {
-            \"passenger_index\": 7,
             \"seat_assignments\": [
                 {
                     \"leg_order\": 1,
@@ -3175,15 +3250,14 @@ const headers = {
 
 let body = {
     "itinerary_quote_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-    "idempotency_key": "g",
+    "idempotency_key": "architecto",
     "payer": {
-        "type": "personal",
+        "type": "company",
         "user_uuid": "c90237e9-ced5-3af6-88ea-84aeaa148878",
         "company_account_uuid": "a1a0a47d-e8c3-3cf0-8e6e-c1ff9dca5d1f"
     },
     "passengers": [
         {
-            "passenger_index": 7,
             "seat_assignments": [
                 {
                     "leg_order": 1,
@@ -3310,7 +3384,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
                data-component="body">
     <br>
-<p>Le champ value doit être un UUID valide. Must match an existing stored value. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Immutable itinerary quote UUID. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>idempotency_key</code></b>&nbsp;&nbsp;
@@ -3319,10 +3393,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="idempotency_key"                data-endpoint="POSTapi-v1-bus-itinerary-holds"
-               value="g"
+               value="architecto"
                data-component="body">
     <br>
-<p>Le champ value ne doit pas dépasser 100 caractères. Example: <code>g</code></p>
+<p>Client-generated key for safe retries. Example: <code>architecto</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
         <details>
@@ -3332,7 +3406,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <i>optional</i> &nbsp;
  &nbsp;
 <br>
-
+<p>Optional personal or company payer context.</p>
             </summary>
                                                 <div style="margin-left: 14px; clear: unset;">
                         <b style="line-height: 2;"><code>type</code></b>&nbsp;&nbsp;
@@ -3341,10 +3415,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="payer.type"                data-endpoint="POSTapi-v1-bus-itinerary-holds"
-               value="personal"
+               value="company"
                data-component="body">
     <br>
-<p>This field is required when <code>payer</code> is present. Example: <code>personal</code></p>
+<p>This field is required when <code>payer</code> is present. Example: <code>company</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>personal</code></li> <li><code>company</code></li></ul>
                     </div>
@@ -3378,11 +3452,11 @@ Must be one of:
         <details>
             <summary style="padding-bottom: 10px;">
                 <b style="line-height: 2;"><code>passengers</code></b>&nbsp;&nbsp;
-<small>object[]</small>&nbsp;
+<small>string[]</small>&nbsp;
  &nbsp;
  &nbsp;
 <br>
-<p>Le champ value doit contenir au moins 1 éléments. Le champ value ne doit pas contenir plus de 10 éléments.</p>
+<p>Passenger-to-leg seat assignment matrix.</p>
             </summary>
                                                 <div style="margin-left: 14px; clear: unset;">
                         <b style="line-height: 2;"><code>passenger_index</code></b>&nbsp;&nbsp;
@@ -3432,6 +3506,78 @@ Must be one of:
                     </div>
                                     </details>
         </div>
+                                                                    <div style=" margin-left: 14px; clear: unset;">
+        <details>
+            <summary style="padding-bottom: 10px;">
+                <b style="line-height: 2;"><code>*</code></b>&nbsp;&nbsp;
+<small>object</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+<br>
+
+            </summary>
+                                                <div style="margin-left: 28px; clear: unset;">
+                        <b style="line-height: 2;"><code>passenger_index</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="passengers.*.passenger_index"                data-endpoint="POSTapi-v1-bus-itinerary-holds"
+               value="16"
+               data-component="body">
+    <br>
+<p>Zero-based passenger index. Example: <code>16</code></p>
+                    </div>
+                                                                <div style=" margin-left: 28px; clear: unset;">
+        <details>
+            <summary style="padding-bottom: 10px;">
+                <b style="line-height: 2;"><code>seat_assignments</code></b>&nbsp;&nbsp;
+<small>string[]</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>One seat assignment per itinerary leg.</p>
+            </summary>
+                                                <div style=" margin-left: 42px; clear: unset;">
+        <details>
+            <summary style="padding-bottom: 10px;">
+                <b style="line-height: 2;"><code>*</code></b>&nbsp;&nbsp;
+<small>object</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+<br>
+
+            </summary>
+                                                <div style="margin-left: 56px; clear: unset;">
+                        <b style="line-height: 2;"><code>leg_order</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="passengers.*.seat_assignments.*.leg_order"                data-endpoint="POSTapi-v1-bus-itinerary-holds"
+               value="16"
+               data-component="body">
+    <br>
+<p>One-based itinerary leg order. Example: <code>16</code></p>
+                    </div>
+                                                                <div style="margin-left: 56px; clear: unset;">
+                        <b style="line-height: 2;"><code>seat_uuid</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="passengers.*.seat_assignments.*.seat_uuid"                data-endpoint="POSTapi-v1-bus-itinerary-holds"
+               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               data-component="body">
+    <br>
+<p>Seat UUID. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+                    </div>
+                                    </details>
+        </div>
+                                        </details>
+        </div>
+                                        </details>
+        </div>
                                         </details>
         </div>
         </form>
@@ -3439,9 +3585,10 @@ Must be one of:
                     <h2 id="bus-POSTapi-v1-bookings--reservation_uuid--passengers">Store passenger details for a reservation.</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
-
+<p>Requires a Sanctum bearer token.</p>
 
 <span id="example-requests-POSTapi-v1-bookings--reservation_uuid--passengers">
 <blockquote>Example request:</blockquote>
@@ -3449,23 +3596,13 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed/passengers" \
+    "http://kora-ops-web.local/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799/passengers" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
     \"passengers\": [
-        {
-            \"first_name\": \"b\",
-            \"last_name\": \"n\",
-            \"phone\": \"g\",
-            \"email\": \"rowan.gulgowski@example.com\",
-            \"document_type\": \"consular_card\",
-            \"document_number\": \"d\",
-            \"nationality\": \"lj\",
-            \"birth_date\": \"2026-09-02\",
-            \"passenger_index\": 2,
-            \"seat_uuid\": \"cd1eb1ea-4697-3b9a-9dd0-988044a83af6\"
-        }
+        \"architecto\"
     ]
 }"
 </code></pre></div>
@@ -3473,28 +3610,18 @@ Must be one of:
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed/passengers"
+    "http://kora-ops-web.local/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799/passengers"
 );
 
 const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
 
 let body = {
     "passengers": [
-        {
-            "first_name": "b",
-            "last_name": "n",
-            "phone": "g",
-            "email": "rowan.gulgowski@example.com",
-            "document_type": "consular_card",
-            "document_number": "d",
-            "nationality": "lj",
-            "birth_date": "2026-09-02",
-            "passenger_index": 2,
-            "seat_uuid": "cd1eb1ea-4697-3b9a-9dd0-988044a83af6"
-        }
+        "architecto"
     ]
 };
 
@@ -3524,6 +3651,7 @@ fetch(url, {
         &quot;passengers&quot;: [
             {
                 &quot;uuid&quot;: &quot;9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb73&quot;,
+                &quot;passenger_index&quot;: 0,
                 &quot;first_name&quot;: &quot;A&iuml;cha&quot;,
                 &quot;last_name&quot;: &quot;HOUNKP&Egrave;&quot;,
                 &quot;phone&quot;: &quot;+2290197421860&quot;,
@@ -3555,7 +3683,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-POSTapi-v1-bookings--reservation_uuid--passengers" data-method="POST"
       data-path="api/v1/bookings/{reservation_uuid}/passengers"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -3585,6 +3713,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <b><code>api/v1/bookings/{reservation_uuid}/passengers</code></b>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
                                 <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
@@ -3617,21 +3757,21 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="reservation_uuid"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
-               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               value="3d0d4b6f-1242-4881-8ac5-5c0ff761b799"
                data-component="url">
     <br>
-<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Example: <code>3d0d4b6f-1242-4881-8ac5-5c0ff761b799</code></p>
             </div>
                             <h4 class="fancy-heading-panel"><b>Body Parameters</b></h4>
         <div style=" padding-left: 28px;  clear: unset;">
         <details>
             <summary style="padding-bottom: 10px;">
                 <b style="line-height: 2;"><code>passengers</code></b>&nbsp;&nbsp;
-<small>object[]</small>&nbsp;
+<small>string[]</small>&nbsp;
  &nbsp;
  &nbsp;
 <br>
-<p>Le champ value doit contenir au moins 1 éléments.</p>
+<p>Passenger identity data, one item per passenger.</p>
             </summary>
                                                 <div style="margin-left: 14px; clear: unset;">
                         <b style="line-height: 2;"><code>first_name</code></b>&nbsp;&nbsp;
@@ -3682,20 +3822,6 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <p>Le champ value doit être une adresse e-mail valide. Le champ value ne doit pas dépasser 255 caractères. Example: <code>rowan.gulgowski@example.com</code></p>
                     </div>
                                                                 <div style="margin-left: 14px; clear: unset;">
-                        <b style="line-height: 2;"><code>document_type</code></b>&nbsp;&nbsp;
-<small>string</small>&nbsp;
-<i>optional</i> &nbsp;
- &nbsp;
-                <input type="text" style="display: none"
-                              name="passengers.0.document_type"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
-               value="consular_card"
-               data-component="body">
-    <br>
-<p>Example: <code>consular_card</code></p>
-Must be one of:
-<ul style="list-style-type: square;"><li><code>national_id</code></li> <li><code>biometric_card</code></li> <li><code>passport</code></li> <li><code>consular_card</code></li></ul>
-                    </div>
-                                                                <div style="margin-left: 14px; clear: unset;">
                         <b style="line-height: 2;"><code>document_number</code></b>&nbsp;&nbsp;
 <small>string</small>&nbsp;
 <i>optional</i> &nbsp;
@@ -3705,7 +3831,21 @@ Must be one of:
                value="d"
                data-component="body">
     <br>
-<p>Le champ value ne doit pas dépasser 64 caractères. Example: <code>d</code></p>
+<p>This field is required when <code>passengers.*.document_type</code> is present. Le champ value ne doit pas dépasser 64 caractères. Example: <code>d</code></p>
+                    </div>
+                                                                <div style="margin-left: 14px; clear: unset;">
+                        <b style="line-height: 2;"><code>document_type</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="passengers.0.document_type"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
+               value="consular_card"
+               data-component="body">
+    <br>
+<p>This field is required when <code>passengers.*.document_number</code> is present. Example: <code>consular_card</code></p>
+Must be one of:
+<ul style="list-style-type: square;"><li><code>national_id</code></li> <li><code>biometric_card</code></li> <li><code>passport</code></li> <li><code>consular_card</code></li></ul>
                     </div>
                                                                 <div style="margin-left: 14px; clear: unset;">
                         <b style="line-height: 2;"><code>nationality</code></b>&nbsp;&nbsp;
@@ -3726,10 +3866,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="passengers.0.birth_date"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
-               value="2026-09-02"
+               value="2026-09-07"
                data-component="body">
     <br>
-<p>Must be a valid date in the format <code>Y-m-d</code>. Example: <code>2026-09-02</code></p>
+<p>Must be a valid date in the format <code>Y-m-d</code>. Example: <code>2026-09-07</code></p>
                     </div>
                                                                 <div style="margin-left: 14px; clear: unset;">
                         <b style="line-height: 2;"><code>passenger_index</code></b>&nbsp;&nbsp;
@@ -3755,7 +3895,161 @@ Must be one of:
     <br>
 <p>Le champ value doit être un UUID valide. Example: <code>cd1eb1ea-4697-3b9a-9dd0-988044a83af6</code></p>
                     </div>
+                                                                <div style="margin-left: 14px; clear: unset;">
+                        <b style="line-height: 2;"><code>yellow_fever_vaccinated</code></b>&nbsp;&nbsp;
+<small>boolean</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <label data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers" style="display: none">
+            <input type="radio" name="passengers.0.yellow_fever_vaccinated"
+                   value="true"
+                   data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
+                   data-component="body"             >
+            <code>true</code>
+        </label>
+        <label data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers" style="display: none">
+            <input type="radio" name="passengers.0.yellow_fever_vaccinated"
+                   value="false"
+                   data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
+                   data-component="body"             >
+            <code>false</code>
+        </label>
+    <br>
+<p>Example: <code>false</code></p>
+                    </div>
+                                                                <div style=" margin-left: 14px; clear: unset;">
+        <details>
+            <summary style="padding-bottom: 10px;">
+                <b style="line-height: 2;"><code>*</code></b>&nbsp;&nbsp;
+<small>object</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+<br>
+
+            </summary>
+                                                <div style="margin-left: 28px; clear: unset;">
+                        <b style="line-height: 2;"><code>passenger_index</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="passengers.*.passenger_index"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
+               value="16"
+               data-component="body">
+    <br>
+<p>Stable zero-based passenger index across all itinerary legs. Example: <code>16</code></p>
+                    </div>
+                                                                <div style="margin-left: 28px; clear: unset;">
+                        <b style="line-height: 2;"><code>first_name</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="passengers.*.first_name"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
+               value="architecto"
+               data-component="body">
+    <br>
+<p>Passenger first name. Example: <code>architecto</code></p>
+                    </div>
+                                                                <div style="margin-left: 28px; clear: unset;">
+                        <b style="line-height: 2;"><code>last_name</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="passengers.*.last_name"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
+               value="architecto"
+               data-component="body">
+    <br>
+<p>Passenger last name. Example: <code>architecto</code></p>
+                    </div>
+                                                                <div style="margin-left: 28px; clear: unset;">
+                        <b style="line-height: 2;"><code>phone</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="passengers.*.phone"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
+               value="architecto"
+               data-component="body">
+    <br>
+<p>Passenger phone number. Example: <code>architecto</code></p>
+                    </div>
+                                                                <div style="margin-left: 28px; clear: unset;">
+                        <b style="line-height: 2;"><code>email</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="passengers.*.email"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
+               value="gbailey@example.net"
+               data-component="body">
+    <br>
+<p>Passenger email address. Example: <code>gbailey@example.net</code></p>
+                    </div>
+                                                                <div style="margin-left: 28px; clear: unset;">
+                        <b style="line-height: 2;"><code>document_type</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="passengers.*.document_type"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
+               value="architecto"
+               data-component="body">
+    <br>
+<p>Identity document type required for international lines. Example: <code>architecto</code></p>
+                    </div>
+                                                                <div style="margin-left: 28px; clear: unset;">
+                        <b style="line-height: 2;"><code>document_number</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="passengers.*.document_number"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
+               value="architecto"
+               data-component="body">
+    <br>
+<p>Identity document number required for international lines. Example: <code>architecto</code></p>
+                    </div>
+                                                                <div style="margin-left: 28px; clear: unset;">
+                        <b style="line-height: 2;"><code>nationality</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="passengers.*.nationality"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
+               value="architecto"
+               data-component="body">
+    <br>
+<p>ISO 2-letter nationality code. Example: <code>architecto</code></p>
+                    </div>
+                                                                <div style="margin-left: 28px; clear: unset;">
+                        <b style="line-height: 2;"><code>birth_date</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="passengers.*.birth_date"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
+               value="architecto"
+               data-component="body">
+    <br>
+<p>Date of birth in Y-m-d format. Example: <code>architecto</code></p>
+                    </div>
+                                                                <div style="margin-left: 28px; clear: unset;">
+                        <b style="line-height: 2;"><code>seat_uuid</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="passengers.*.seat_uuid"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
+               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               data-component="body">
+    <br>
+<p>Seat UUID for the passenger's segment. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+                    </div>
                                     </details>
+        </div>
+                                        </details>
         </div>
         </form>
 
@@ -3774,7 +4068,7 @@ The operation is idempotent — cancelling an already-cancelled reservation is a
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed/cancel" \
+    "http://kora-ops-web.local/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799/cancel" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -3782,7 +4076,7 @@ The operation is idempotent — cancelling an already-cancelled reservation is a
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed/cancel"
+    "http://kora-ops-web.local/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799/cancel"
 );
 
 const headers = {
@@ -3926,10 +4220,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="reservation_uuid"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--cancel"
-               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               value="3d0d4b6f-1242-4881-8ac5-5c0ff761b799"
                data-component="url">
     <br>
-<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Example: <code>3d0d4b6f-1242-4881-8ac5-5c0ff761b799</code></p>
             </div>
                     </form>
 
@@ -3948,7 +4242,7 @@ rest of the reservation intact. The passenger must belong to the reservation.</p
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed/passengers/6ff8f7f6-1eb3-3525-be4a-3932c805afed/cancel" \
+    "http://kora-ops-web.local/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799/passengers/2dc7e142-80fd-45af-8b08-28b8d83b5639/cancel" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -3956,7 +4250,7 @@ rest of the reservation intact. The passenger must belong to the reservation.</p
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed/passengers/6ff8f7f6-1eb3-3525-be4a-3932c805afed/cancel"
+    "http://kora-ops-web.local/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799/passengers/2dc7e142-80fd-45af-8b08-28b8d83b5639/cancel"
 );
 
 const headers = {
@@ -4109,10 +4403,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="reservation_uuid"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers--passenger_uuid--cancel"
-               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               value="3d0d4b6f-1242-4881-8ac5-5c0ff761b799"
                data-component="url">
     <br>
-<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Example: <code>3d0d4b6f-1242-4881-8ac5-5c0ff761b799</code></p>
             </div>
                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>passenger_uuid</code></b>&nbsp;&nbsp;
@@ -4121,10 +4415,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="passenger_uuid"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers--passenger_uuid--cancel"
-               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               value="2dc7e142-80fd-45af-8b08-28b8d83b5639"
                data-component="url">
     <br>
-<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Example: <code>2dc7e142-80fd-45af-8b08-28b8d83b5639</code></p>
             </div>
                     </form>
 
@@ -4151,7 +4445,7 @@ be submitted to the verify endpoint.</p>
     --header "Accept: application/json" \
     --data "{
     \"email\": \"gbailey@example.net\",
-    \"purpose\": \"pin_reset\"
+    \"purpose\": \"login_new_device\"
 }"
 </code></pre></div>
 
@@ -4168,7 +4462,7 @@ const headers = {
 
 let body = {
     "email": "gbailey@example.net",
-    "purpose": "pin_reset"
+    "purpose": "login_new_device"
 };
 
 fetch(url, {
@@ -4309,10 +4603,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="purpose"                data-endpoint="POSTapi-v1-auth-otp-request"
-               value="pin_reset"
+               value="login_new_device"
                data-component="body">
     <br>
-<p>Example: <code>pin_reset</code></p>
+<p>Example: <code>login_new_device</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>registration</code></li> <li><code>login_new_device</code></li> <li><code>pin_reset</code></li> <li><code>account_unlock</code></li></ul>
         </div>
@@ -4914,7 +5208,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"verification_token\": \"gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn\",
     \"pin\": \"9775\",
     \"device_name\": \"n\",
-    \"platform\": \"unknown\",
+    \"platform\": \"android\",
     \"device_fingerprint\": \"g\",
     \"push_token\": \"z\"
 }"
@@ -4936,7 +5230,7 @@ let body = {
     "verification_token": "gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn",
     "pin": "9775",
     "device_name": "n",
-    "platform": "unknown",
+    "platform": "android",
     "device_fingerprint": "g",
     "push_token": "z"
 };
@@ -5128,10 +5422,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="platform"                data-endpoint="POSTapi-v1-auth-register-complete"
-               value="unknown"
+               value="android"
                data-component="body">
     <br>
-<p>Example: <code>unknown</code></p>
+<p>Example: <code>android</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>android</code></li> <li><code>ios</code></li> <li><code>web</code></li> <li><code>unknown</code></li></ul>
         </div>
@@ -5506,7 +5800,7 @@ compte social, télécharge l'avatar via Spatie Media Library et
     \"provider\": \"tiktok\",
     \"provider_token\": \"b\",
     \"device_name\": \"n\",
-    \"platform\": \"android\",
+    \"platform\": \"ios\",
     \"device_fingerprint\": \"g\",
     \"push_token\": \"z\"
 }"
@@ -5527,7 +5821,7 @@ let body = {
     "provider": "tiktok",
     "provider_token": "b",
     "device_name": "n",
-    "platform": "android",
+    "platform": "ios",
     "device_fingerprint": "g",
     "push_token": "z"
 };
@@ -5767,10 +6061,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="platform"                data-endpoint="POSTapi-v1-auth-oauth-token"
-               value="android"
+               value="ios"
                data-component="body">
     <br>
-<p>Example: <code>android</code></p>
+<p>Example: <code>ios</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>android</code></li> <li><code>ios</code></li> <li><code>web</code></li> <li><code>unknown</code></li></ul>
         </div>
@@ -5983,7 +6277,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"email\": \"zbailey@example.net\",
     \"phone\": \"iyvdljnikhwaykcm\",
     \"country_code\": \"yuwp\",
-    \"birth_date\": \"2022-09-27\"
+    \"birth_date\": \"2022-10-01\"
 }"
 </code></pre></div>
 
@@ -6004,7 +6298,7 @@ let body = {
     "email": "zbailey@example.net",
     "phone": "iyvdljnikhwaykcm",
     "country_code": "yuwp",
-    "birth_date": "2022-09-27"
+    "birth_date": "2022-10-01"
 };
 
 fetch(url, {
@@ -6204,10 +6498,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="birth_date"                data-endpoint="PUTapi-v1-auth-me"
-               value="2022-09-27"
+               value="2022-10-01"
                data-component="body">
     <br>
-<p>Le champ value doit être une date valide. Le champ value doit être une date antérieure à <code>today</code>. Example: <code>2022-09-27</code></p>
+<p>Le champ value doit être une date valide. Le champ value doit être une date antérieure à <code>today</code>. Example: <code>2022-10-01</code></p>
         </div>
         </form>
 
@@ -6592,8 +6886,8 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"push_notifications\": true,
     \"whatsapp_notifications\": false,
     \"email_notifications\": false,
-    \"locale\": \"fr\",
-    \"theme\": \"dark\"
+    \"locale\": \"en\",
+    \"theme\": \"system\"
 }"
 </code></pre></div>
 
@@ -6613,8 +6907,8 @@ let body = {
     "push_notifications": true,
     "whatsapp_notifications": false,
     "email_notifications": false,
-    "locale": "fr",
-    "theme": "dark"
+    "locale": "en",
+    "theme": "system"
 };
 
 fetch(url, {
@@ -6822,10 +7116,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="locale"                data-endpoint="PUTapi-v1-auth-preferences"
-               value="fr"
+               value="en"
                data-component="body">
     <br>
-<p>Example: <code>fr</code></p>
+<p>Example: <code>en</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>fr</code></li> <li><code>en</code></li></ul>
         </div>
@@ -6836,10 +7130,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="theme"                data-endpoint="PUTapi-v1-auth-preferences"
-               value="dark"
+               value="system"
                data-component="body">
     <br>
-<p>Example: <code>dark</code></p>
+<p>Example: <code>system</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>light</code></li> <li><code>dark</code></li> <li><code>system</code></li></ul>
         </div>
@@ -7483,7 +7777,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Accept: application/json" \
     --data "{
     \"name\": \"b\",
-    \"type\": \"ngo\",
+    \"type\": \"company\",
     \"reference\": \"n\",
     \"phone\": \"g\",
     \"email\": \"rowan.gulgowski@example.com\",
@@ -7505,7 +7799,7 @@ const headers = {
 
 let body = {
     "name": "b",
-    "type": "ngo",
+    "type": "company",
     "reference": "n",
     "phone": "g",
     "email": "rowan.gulgowski@example.com",
@@ -7676,10 +7970,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="type"                data-endpoint="POSTapi-v1-company-accounts"
-               value="ngo"
+               value="company"
                data-component="body">
     <br>
-<p>Example: <code>ngo</code></p>
+<p>Example: <code>company</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>company</code></li> <li><code>ngo</code></li> <li><code>embassy</code></li></ul>
         </div>
@@ -7747,13 +8041,13 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request PUT \
-    "http://kora-ops-web.local/api/v1/company-accounts/6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
+    "http://kora-ops-web.local/api/v1/company-accounts/bb17d368-32aa-42cc-a85d-ba56625b0b7d" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
     \"name\": \"b\",
-    \"type\": \"embassy\",
+    \"type\": \"company\",
     \"reference\": \"n\",
     \"phone\": \"g\",
     \"email\": \"rowan.gulgowski@example.com\",
@@ -7764,7 +8058,7 @@ Must be one of:
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/company-accounts/6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+    "http://kora-ops-web.local/api/v1/company-accounts/bb17d368-32aa-42cc-a85d-ba56625b0b7d"
 );
 
 const headers = {
@@ -7775,7 +8069,7 @@ const headers = {
 
 let body = {
     "name": "b",
-    "type": "embassy",
+    "type": "company",
     "reference": "n",
     "phone": "g",
     "email": "rowan.gulgowski@example.com",
@@ -7934,10 +8228,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="companyAccount_uuid"                data-endpoint="PUTapi-v1-company-accounts--companyAccount_uuid-"
-               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               value="bb17d368-32aa-42cc-a85d-ba56625b0b7d"
                data-component="url">
     <br>
-<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Example: <code>bb17d368-32aa-42cc-a85d-ba56625b0b7d</code></p>
             </div>
                             <h4 class="fancy-heading-panel"><b>Body Parameters</b></h4>
         <div style=" padding-left: 28px;  clear: unset;">
@@ -7959,10 +8253,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="type"                data-endpoint="PUTapi-v1-company-accounts--companyAccount_uuid-"
-               value="embassy"
+               value="company"
                data-component="body">
     <br>
-<p>Example: <code>embassy</code></p>
+<p>Example: <code>company</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>company</code></li> <li><code>ngo</code></li> <li><code>embassy</code></li></ul>
         </div>
@@ -8031,7 +8325,7 @@ purchases are allowed.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/company-accounts/6ff8f7f6-1eb3-3525-be4a-3932c805afed/deactivate" \
+    "http://kora-ops-web.local/api/v1/company-accounts/bb17d368-32aa-42cc-a85d-ba56625b0b7d/deactivate" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -8039,7 +8333,7 @@ purchases are allowed.</p>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/company-accounts/6ff8f7f6-1eb3-3525-be4a-3932c805afed/deactivate"
+    "http://kora-ops-web.local/api/v1/company-accounts/bb17d368-32aa-42cc-a85d-ba56625b0b7d/deactivate"
 );
 
 const headers = {
@@ -8186,10 +8480,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="companyAccount_uuid"                data-endpoint="POSTapi-v1-company-accounts--companyAccount_uuid--deactivate"
-               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               value="bb17d368-32aa-42cc-a85d-ba56625b0b7d"
                data-component="url">
     <br>
-<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Example: <code>bb17d368-32aa-42cc-a85d-ba56625b0b7d</code></p>
             </div>
                     </form>
 
@@ -8208,7 +8502,7 @@ a member, their role and status are updated.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/company-accounts/6ff8f7f6-1eb3-3525-be4a-3932c805afed/members" \
+    "http://kora-ops-web.local/api/v1/company-accounts/bb17d368-32aa-42cc-a85d-ba56625b0b7d/members" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
@@ -8221,7 +8515,7 @@ a member, their role and status are updated.</p>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/company-accounts/6ff8f7f6-1eb3-3525-be4a-3932c805afed/members"
+    "http://kora-ops-web.local/api/v1/company-accounts/bb17d368-32aa-42cc-a85d-ba56625b0b7d/members"
 );
 
 const headers = {
@@ -8391,10 +8685,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="companyAccount_uuid"                data-endpoint="POSTapi-v1-company-accounts--companyAccount_uuid--members"
-               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               value="bb17d368-32aa-42cc-a85d-ba56625b0b7d"
                data-component="url">
     <br>
-<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Example: <code>bb17d368-32aa-42cc-a85d-ba56625b0b7d</code></p>
             </div>
                             <h4 class="fancy-heading-panel"><b>Body Parameters</b></h4>
         <div style=" padding-left: 28px;  clear: unset;">
@@ -8611,11 +8905,11 @@ Only one active rule can cover a given period.</p>
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
-    \"status\": \"inactive\",
-    \"passenger_threshold\": 16,
-    \"percentage\": 22,
-    \"starts_at\": \"2026-09-02T15:34:20\",
-    \"ends_at\": \"2052-09-25\"
+    \"status\": \"active\",
+    \"passenger_threshold\": 5,
+    \"percentage\": 10,
+    \"starts_at\": \"2026-09-01T00:00:00+00:00\",
+    \"ends_at\": \"2026-12-31T00:00:00+00:00\"
 }"
 </code></pre></div>
 
@@ -8632,11 +8926,11 @@ const headers = {
 };
 
 let body = {
-    "status": "inactive",
-    "passenger_threshold": 16,
-    "percentage": 22,
-    "starts_at": "2026-09-02T15:34:20",
-    "ends_at": "2052-09-25"
+    "status": "active",
+    "passenger_threshold": 5,
+    "percentage": 10,
+    "starts_at": "2026-09-01T00:00:00+00:00",
+    "ends_at": "2026-12-31T00:00:00+00:00"
 };
 
 fetch(url, {
@@ -8802,12 +9096,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="POSTapi-v1-group-discounts"
-               value="inactive"
+               value="active"
                data-component="body">
     <br>
-<p>Example: <code>inactive</code></p>
-Must be one of:
-<ul style="list-style-type: square;"><li><code>active</code></li> <li><code>inactive</code></li></ul>
+<p>Rule status. Example: <code>active</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>passenger_threshold</code></b>&nbsp;&nbsp;
@@ -8816,10 +9108,10 @@ Must be one of:
  &nbsp;
                 <input type="number" style="display: none"
                step="any"               name="passenger_threshold"                data-endpoint="POSTapi-v1-group-discounts"
-               value="16"
+               value="5"
                data-component="body">
     <br>
-<p>Le champ value doit être au moins 1. Example: <code>16</code></p>
+<p>Minimum passenger count for the rule. Example: <code>5</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>percentage</code></b>&nbsp;&nbsp;
@@ -8828,10 +9120,10 @@ Must be one of:
  &nbsp;
                 <input type="number" style="display: none"
                step="any"               name="percentage"                data-endpoint="POSTapi-v1-group-discounts"
-               value="22"
+               value="10"
                data-component="body">
     <br>
-<p>Le champ value doit être au moins 0. Le champ value ne doit pas être supérieur à 100. Example: <code>22</code></p>
+<p>Discount percentage. Example: <code>10</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>starts_at</code></b>&nbsp;&nbsp;
@@ -8840,10 +9132,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="starts_at"                data-endpoint="POSTapi-v1-group-discounts"
-               value="2026-09-02T15:34:20"
+               value="2026-09-01T00:00:00+00:00"
                data-component="body">
     <br>
-<p>Le champ value doit être une date valide. Example: <code>2026-09-02T15:34:20</code></p>
+<p>Start of the validity period. Example: <code>2026-09-01T00:00:00+00:00</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>ends_at</code></b>&nbsp;&nbsp;
@@ -8852,10 +9144,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="ends_at"                data-endpoint="POSTapi-v1-group-discounts"
-               value="2052-09-25"
+               value="2026-12-31T00:00:00+00:00"
                data-component="body">
     <br>
-<p>Le champ value doit être une date valide. Le champ value doit être une date postérieure ou égale à <code>starts_at</code>. Example: <code>2052-09-25</code></p>
+<p>End of the validity period. Example: <code>2026-12-31T00:00:00+00:00</code></p>
         </div>
         </form>
 
@@ -8873,23 +9165,23 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request PUT \
-    "http://kora-ops-web.local/api/v1/group-discounts/6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
+    "http://kora-ops-web.local/api/v1/group-discounts/6b49f31e-8fdf-4287-8ee8-1665ebf6e80e" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
     \"status\": \"active\",
-    \"passenger_threshold\": 16,
-    \"percentage\": 22,
-    \"starts_at\": \"2026-09-02T15:34:20\",
-    \"ends_at\": \"2052-09-25\"
+    \"passenger_threshold\": 8,
+    \"percentage\": 15,
+    \"starts_at\": \"2026-09-01T00:00:00+00:00\",
+    \"ends_at\": \"2026-12-31T00:00:00+00:00\"
 }"
 </code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/group-discounts/6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+    "http://kora-ops-web.local/api/v1/group-discounts/6b49f31e-8fdf-4287-8ee8-1665ebf6e80e"
 );
 
 const headers = {
@@ -8900,10 +9192,10 @@ const headers = {
 
 let body = {
     "status": "active",
-    "passenger_threshold": 16,
-    "percentage": 22,
-    "starts_at": "2026-09-02T15:34:20",
-    "ends_at": "2052-09-25"
+    "passenger_threshold": 8,
+    "percentage": 15,
+    "starts_at": "2026-09-01T00:00:00+00:00",
+    "ends_at": "2026-12-31T00:00:00+00:00"
 };
 
 fetch(url, {
@@ -9055,10 +9347,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="groupDiscountRule_uuid"                data-endpoint="PUTapi-v1-group-discounts--groupDiscountRule_uuid-"
-               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               value="6b49f31e-8fdf-4287-8ee8-1665ebf6e80e"
                data-component="url">
     <br>
-<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Example: <code>6b49f31e-8fdf-4287-8ee8-1665ebf6e80e</code></p>
             </div>
                             <h4 class="fancy-heading-panel"><b>Body Parameters</b></h4>
         <div style=" padding-left: 28px;  clear: unset;">
@@ -9071,9 +9363,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="active"
                data-component="body">
     <br>
-<p>Example: <code>active</code></p>
-Must be one of:
-<ul style="list-style-type: square;"><li><code>active</code></li> <li><code>inactive</code></li></ul>
+<p>Rule status. Example: <code>active</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>passenger_threshold</code></b>&nbsp;&nbsp;
@@ -9082,10 +9372,10 @@ Must be one of:
  &nbsp;
                 <input type="number" style="display: none"
                step="any"               name="passenger_threshold"                data-endpoint="PUTapi-v1-group-discounts--groupDiscountRule_uuid-"
-               value="16"
+               value="8"
                data-component="body">
     <br>
-<p>Le champ value doit être au moins 1. Example: <code>16</code></p>
+<p>Minimum passenger count for the rule. Example: <code>8</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>percentage</code></b>&nbsp;&nbsp;
@@ -9094,10 +9384,10 @@ Must be one of:
  &nbsp;
                 <input type="number" style="display: none"
                step="any"               name="percentage"                data-endpoint="PUTapi-v1-group-discounts--groupDiscountRule_uuid-"
-               value="22"
+               value="15"
                data-component="body">
     <br>
-<p>Le champ value doit être au moins 0. Le champ value ne doit pas être supérieur à 100. Example: <code>22</code></p>
+<p>Discount percentage. Example: <code>15</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>starts_at</code></b>&nbsp;&nbsp;
@@ -9106,10 +9396,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="starts_at"                data-endpoint="PUTapi-v1-group-discounts--groupDiscountRule_uuid-"
-               value="2026-09-02T15:34:20"
+               value="2026-09-01T00:00:00+00:00"
                data-component="body">
     <br>
-<p>Le champ value doit être une date valide. Example: <code>2026-09-02T15:34:20</code></p>
+<p>Start of the validity period. Example: <code>2026-09-01T00:00:00+00:00</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>ends_at</code></b>&nbsp;&nbsp;
@@ -9118,10 +9408,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="ends_at"                data-endpoint="PUTapi-v1-group-discounts--groupDiscountRule_uuid-"
-               value="2052-09-25"
+               value="2026-12-31T00:00:00+00:00"
                data-component="body">
     <br>
-<p>Le champ value doit être une date valide. Le champ value doit être une date postérieure ou égale à <code>starts_at</code>. Example: <code>2052-09-25</code></p>
+<p>End of the validity period. Example: <code>2026-12-31T00:00:00+00:00</code></p>
         </div>
         </form>
 
@@ -9767,8 +10057,8 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <small class="badge badge-darkred">requires authentication</small>
 </p>
 
-<p>Returns the catalog of payment methods configured for the mobile app
-(MTN MoMo, FedaPay, cash, etc.).</p>
+<p>Returns the catalog of payment methods and providers configured for the mobile app.</p>
+<p>Requires a Sanctum bearer token.</p>
 
 <span id="example-requests-GETapi-v1-payments-methods">
 <blockquote>Example request:</blockquote>
@@ -9808,20 +10098,44 @@ fetch(url, {
                 <pre>
 
 <code class="language-json" style="max-height: 300px;">{
-    &quot;data&quot;: [
-        {
-            &quot;method&quot;: &quot;mobile_money&quot;,
-            &quot;provider&quot;: &quot;mtn_momo&quot;,
-            &quot;label&quot;: &quot;MTN Mobile Money&quot;,
-            &quot;enabled&quot;: true
-        },
-        {
-            &quot;method&quot;: &quot;card&quot;,
-            &quot;provider&quot;: &quot;fedapay&quot;,
-            &quot;label&quot;: &quot;Carte bancaire (FedaPay)&quot;,
-            &quot;enabled&quot;: true
-        }
-    ]
+    &quot;data&quot;: {
+        &quot;country&quot;: &quot;BJ&quot;,
+        &quot;currency&quot;: &quot;XOF&quot;,
+        &quot;methods&quot;: [
+            {
+                &quot;code&quot;: &quot;mobile_money&quot;,
+                &quot;label&quot;: &quot;Mobile Money&quot;,
+                &quot;enabled&quot;: true,
+                &quot;providers&quot;: [
+                    {
+                        &quot;code&quot;: &quot;mtn_momo&quot;,
+                        &quot;label&quot;: &quot;MTN MoMo&quot;,
+                        &quot;enabled&quot;: true,
+                        &quot;networks&quot;: [
+                            &quot;mtn_momo&quot;
+                        ],
+                        &quot;requires&quot;: [
+                            &quot;phone&quot;,
+                            &quot;mobile_money_network&quot;
+                        ],
+                        &quot;interaction&quot;: &quot;push&quot;,
+                        &quot;polling_interval_seconds&quot;: 10,
+                        &quot;verification&quot;: &quot;server_verify&quot;
+                    }
+                ]
+            },
+            {
+                &quot;code&quot;: &quot;wallet&quot;,
+                &quot;label&quot;: &quot;Wallet KORA BUS&quot;,
+                &quot;enabled&quot;: false,
+                &quot;availability&quot;: &quot;disabled_until_wallet_ledger&quot;,
+                &quot;providers&quot;: [],
+                &quot;requires&quot;: [
+                    &quot;wallet_amount&quot;
+                ]
+            }
+        ]
+    }
 }</code>
  </pre>
             <blockquote>
@@ -9922,9 +10236,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
                     <h2 id="payments-POSTapi-v1-payments-initiate">Initiate a payment for a held reservation.</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
-
+<p>Requires a Sanctum bearer token.</p>
 
 <span id="example-requests-POSTapi-v1-payments-initiate">
 <blockquote>Example request:</blockquote>
@@ -9933,15 +10248,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
     "http://kora-ops-web.local/api/v1/payments/initiate" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
     \"reservation_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
-    \"method\": \"company_credit\",
-    \"provider\": \"g\",
-    \"idempotency_key\": \"z\",
-    \"phone\": \"m\",
-    \"mobile_money_network\": \"moov_flooz\"
+    \"method\": \"architecto\",
+    \"provider\": \"architecto\",
+    \"idempotency_key\": \"architecto\",
+    \"phone\": \"architecto\",
+    \"mobile_money_network\": \"architecto\",
+    \"wallet_amount\": 16,
+    \"mobile_money_amount\": 16
 }"
 </code></pre></div>
 
@@ -9952,17 +10270,20 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
 
 let body = {
     "reservation_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-    "method": "company_credit",
-    "provider": "g",
-    "idempotency_key": "z",
-    "phone": "m",
-    "mobile_money_network": "moov_flooz"
+    "method": "architecto",
+    "provider": "architecto",
+    "idempotency_key": "architecto",
+    "phone": "architecto",
+    "mobile_money_network": "architecto",
+    "wallet_amount": 16,
+    "mobile_money_amount": 16
 };
 
 fetch(url, {
@@ -9985,8 +10306,17 @@ fetch(url, {
         &quot;status&quot;: &quot;pending&quot;,
         &quot;amount&quot;: 12500,
         &quot;currency&quot;: &quot;XOF&quot;,
+        &quot;method&quot;: &quot;mobile_money&quot;,
         &quot;provider&quot;: &quot;mtn_momo&quot;,
+        &quot;provider_currency&quot;: &quot;EUR&quot;,
+        &quot;provider_amount&quot;: 12500,
         &quot;provider_reference&quot;: &quot;MM-98270341&quot;,
+        &quot;provider_transaction_id&quot;: null,
+        &quot;mobile_money_network&quot;: &quot;mtn_momo&quot;,
+        &quot;payer_phone&quot;: &quot;+2290197421860&quot;,
+        &quot;confirmed_at&quot;: null,
+        &quot;last_verified_at&quot;: null,
+        &quot;next_action&quot;: &quot;verify&quot;,
         &quot;expires_at&quot;: &quot;2026-08-20T08:15:00Z&quot;,
         &quot;polling_interval_seconds&quot;: 10
     }
@@ -10010,7 +10340,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-POSTapi-v1-payments-initiate" data-method="POST"
       data-path="api/v1/payments/initiate"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -10040,6 +10370,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <b><code>api/v1/payments/initiate</code></b>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="POSTapi-v1-payments-initiate"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
                                 <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
@@ -10075,7 +10417,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
                value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
                data-component="body">
     <br>
-<p>Le champ value doit être un UUID valide. Must match an existing stored value. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>UUID of the held reservation. Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>method</code></b>&nbsp;&nbsp;
@@ -10084,24 +10426,22 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="method"                data-endpoint="POSTapi-v1-payments-initiate"
-               value="company_credit"
+               value="architecto"
                data-component="body">
     <br>
-<p>Example: <code>company_credit</code></p>
-Must be one of:
-<ul style="list-style-type: square;"><li><code>mobile_money</code></li> <li><code>company_credit</code></li></ul>
+<p>Payment method: <code>mobile_money</code> or <code>wallet</code>. Wallet is currently disabled. Example: <code>architecto</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>provider</code></b>&nbsp;&nbsp;
 <small>string</small>&nbsp;
- &nbsp;
+<i>optional</i> &nbsp;
  &nbsp;
                 <input type="text" style="display: none"
                               name="provider"                data-endpoint="POSTapi-v1-payments-initiate"
-               value="g"
+               value="architecto"
                data-component="body">
     <br>
-<p>Le champ value ne doit pas dépasser 64 caractères. Example: <code>g</code></p>
+<p>Provider from the server catalog: <code>fedapay</code> or <code>mtn_momo</code>. Required for <code>mobile_money</code>. Example: <code>architecto</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>idempotency_key</code></b>&nbsp;&nbsp;
@@ -10110,10 +10450,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="idempotency_key"                data-endpoint="POSTapi-v1-payments-initiate"
-               value="z"
+               value="architecto"
                data-component="body">
     <br>
-<p>Le champ value ne doit pas dépasser 255 caractères. Example: <code>z</code></p>
+<p>Client-generated key, scoped to the reservation and request payload. Example: <code>architecto</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>phone</code></b>&nbsp;&nbsp;
@@ -10122,10 +10462,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="phone"                data-endpoint="POSTapi-v1-payments-initiate"
-               value="m"
+               value="architecto"
                data-component="body">
     <br>
-<p>Le champ value ne doit pas dépasser 32 caractères. Example: <code>m</code></p>
+<p>Mobile Money phone number. Required for <code>mobile_money</code>. Example: <code>architecto</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>mobile_money_network</code></b>&nbsp;&nbsp;
@@ -10134,21 +10474,44 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="mobile_money_network"                data-endpoint="POSTapi-v1-payments-initiate"
-               value="moov_flooz"
+               value="architecto"
                data-component="body">
     <br>
-<p>Example: <code>moov_flooz</code></p>
-Must be one of:
-<ul style="list-style-type: square;"><li><code>mtn_momo</code></li> <li><code>moov_flooz</code></li> <li><code>celtiis_cash</code></li></ul>
+<p>Mobile Money network supported by the selected provider. Example: <code>architecto</code></p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>wallet_amount</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="wallet_amount"                data-endpoint="POSTapi-v1-payments-initiate"
+               value="16"
+               data-component="body">
+    <br>
+<p>Amount allocated to Wallet. Reserved for the disabled Wallet contract. Example: <code>16</code></p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>mobile_money_amount</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="mobile_money_amount"                data-endpoint="POSTapi-v1-payments-initiate"
+               value="16"
+               data-component="body">
+    <br>
+<p>Amount allocated to Mobile Money. Must equal the server quote total in this iteration. Example: <code>16</code></p>
         </div>
         </form>
 
                     <h2 id="payments-GETapi-v1-payments--uuid-">Get payment status (polling).</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
-
+<p>Requires a Sanctum bearer token.</p>
 
 <span id="example-requests-GETapi-v1-payments--uuid-">
 <blockquote>Example request:</blockquote>
@@ -10156,17 +10519,19 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/payments/6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
+    --get "http://kora-ops-web.local/api/v1/payments/c5e52cf5-f94a-45cb-a494-1941a0cf2882" \
+    --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/payments/6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+    "http://kora-ops-web.local/api/v1/payments/c5e52cf5-f94a-45cb-a494-1941a0cf2882"
 );
 
 const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -10220,7 +10585,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-GETapi-v1-payments--uuid-" data-method="GET"
       data-path="api/v1/payments/{uuid}"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -10250,6 +10615,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <b><code>api/v1/payments/{uuid}</code></b>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="GETapi-v1-payments--uuid-"
+               value="Bearer {YOUR_AUTH_KEY}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer {YOUR_AUTH_KEY}</code></p>
+            </div>
                                 <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
@@ -10282,10 +10659,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="uuid"                data-endpoint="GETapi-v1-payments--uuid-"
-               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               value="c5e52cf5-f94a-45cb-a494-1941a0cf2882"
                data-component="url">
     <br>
-<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Example: <code>c5e52cf5-f94a-45cb-a494-1941a0cf2882</code></p>
             </div>
                     </form>
 
@@ -10303,7 +10680,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/payments/6ff8f7f6-1eb3-3525-be4a-3932c805afed/verify" \
+    "http://kora-ops-web.local/api/v1/payments/c5e52cf5-f94a-45cb-a494-1941a0cf2882/verify" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -10311,7 +10688,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/payments/6ff8f7f6-1eb3-3525-be4a-3932c805afed/verify"
+    "http://kora-ops-web.local/api/v1/payments/c5e52cf5-f94a-45cb-a494-1941a0cf2882/verify"
 );
 
 const headers = {
@@ -10475,10 +10852,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="payment_uuid"                data-endpoint="POSTapi-v1-payments--payment_uuid--verify"
-               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               value="c5e52cf5-f94a-45cb-a494-1941a0cf2882"
                data-component="url">
     <br>
-<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Example: <code>c5e52cf5-f94a-45cb-a494-1941a0cf2882</code></p>
             </div>
                     </form>
 
@@ -10496,7 +10873,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/payments/6ff8f7f6-1eb3-3525-be4a-3932c805afed/cancel" \
+    "http://kora-ops-web.local/api/v1/payments/c5e52cf5-f94a-45cb-a494-1941a0cf2882/cancel" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -10504,7 +10881,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/payments/6ff8f7f6-1eb3-3525-be4a-3932c805afed/cancel"
+    "http://kora-ops-web.local/api/v1/payments/c5e52cf5-f94a-45cb-a494-1941a0cf2882/cancel"
 );
 
 const headers = {
@@ -10659,10 +11036,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="payment_uuid"                data-endpoint="POSTapi-v1-payments--payment_uuid--cancel"
-               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               value="c5e52cf5-f94a-45cb-a494-1941a0cf2882"
                data-component="url">
     <br>
-<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Example: <code>c5e52cf5-f94a-45cb-a494-1941a0cf2882</code></p>
             </div>
                     </form>
 
@@ -10681,11 +11058,11 @@ allowed without a real provider.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/payments/6ff8f7f6-1eb3-3525-be4a-3932c805afed/confirm" \
+    "http://kora-ops-web.local/api/v1/payments/c5e52cf5-f94a-45cb-a494-1941a0cf2882/confirm" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
-    \"status\": \"failed\",
+    \"status\": \"confirmed\",
     \"provider_reference\": \"b\"
 }"
 </code></pre></div>
@@ -10693,7 +11070,7 @@ allowed without a real provider.</p>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/payments/6ff8f7f6-1eb3-3525-be4a-3932c805afed/confirm"
+    "http://kora-ops-web.local/api/v1/payments/c5e52cf5-f94a-45cb-a494-1941a0cf2882/confirm"
 );
 
 const headers = {
@@ -10702,7 +11079,7 @@ const headers = {
 };
 
 let body = {
-    "status": "failed",
+    "status": "confirmed",
     "provider_reference": "b"
 };
 
@@ -10825,10 +11202,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="payment_uuid"                data-endpoint="POSTapi-v1-payments--payment_uuid--confirm"
-               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               value="c5e52cf5-f94a-45cb-a494-1941a0cf2882"
                data-component="url">
     <br>
-<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Example: <code>c5e52cf5-f94a-45cb-a494-1941a0cf2882</code></p>
             </div>
                             <h4 class="fancy-heading-panel"><b>Body Parameters</b></h4>
         <div style=" padding-left: 28px;  clear: unset;">
@@ -10838,10 +11215,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="POSTapi-v1-payments--payment_uuid--confirm"
-               value="failed"
+               value="confirmed"
                data-component="body">
     <br>
-<p>Example: <code>failed</code></p>
+<p>Example: <code>confirmed</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>success</code></li> <li><code>confirmed</code></li> <li><code>failed</code></li></ul>
         </div>
@@ -11191,7 +11568,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed/tickets" \
+    --get "http://kora-ops-web.local/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799/tickets" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -11199,7 +11576,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bookings/6ff8f7f6-1eb3-3525-be4a-3932c805afed/tickets"
+    "http://kora-ops-web.local/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799/tickets"
 );
 
 const headers = {
@@ -11238,7 +11615,7 @@ fetch(url, {
             },
             &quot;segments&quot;: [
                 {
-                    &quot;leg_order&quot;: 0,
+                    &quot;leg_order&quot;: 1,
                     &quot;departure_uuid&quot;: &quot;dep12345-6789-abcd-ef01-23456789abcd&quot;,
                     &quot;origin_stop_uuid&quot;: &quot;stp12345-6789-abcd-ef01-23456789abcd&quot;,
                     &quot;destination_stop_uuid&quot;: &quot;stp23456-6789-abcd-ef01-23456789abcd&quot;,
@@ -11361,10 +11738,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="reservation_uuid"                data-endpoint="GETapi-v1-bookings--reservation_uuid--tickets"
-               value="6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+               value="3d0d4b6f-1242-4881-8ac5-5c0ff761b799"
                data-component="url">
     <br>
-<p>Example: <code>6ff8f7f6-1eb3-3525-be4a-3932c805afed</code></p>
+<p>Example: <code>3d0d4b6f-1242-4881-8ac5-5c0ff761b799</code></p>
             </div>
                     </form>
 
@@ -11428,7 +11805,7 @@ fetch(url, {
         },
         &quot;segments&quot;: [
             {
-                &quot;leg_order&quot;: 0,
+                &quot;leg_order&quot;: 1,
                 &quot;departure_uuid&quot;: &quot;dep12345-6789-abcd-ef01-23456789abcd&quot;,
                 &quot;origin_stop_uuid&quot;: &quot;stp12345-6789-abcd-ef01-23456789abcd&quot;,
                 &quot;destination_stop_uuid&quot;: &quot;stp23456-6789-abcd-ef01-23456789abcd&quot;,

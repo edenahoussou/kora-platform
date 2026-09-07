@@ -1,0 +1,92 @@
+---
+title: Rechercher des itinéraires
+description: "GET /api/v1/bus/itineraries retourne les trajets directs et les correspondances à partir des points physiques."
+api: GET /api/v1/bus/itineraries
+---
+
+# Rechercher des itinéraires
+
+Endpoint public et canonique de recherche mobile. Un résultat contient un ou plusieurs `legs`. Un trajet direct est représenté par une liste contenant un seul leg.
+
+## Paramètres
+
+<ParamField query="from_physical_stop_uuid" type="UUID" required>
+  UUID du point physique d'origine.
+</ParamField>
+
+<ParamField query="to_physical_stop_uuid" type="UUID" required>
+  UUID du point physique de destination.
+</ParamField>
+
+<ParamField query="date" type="string" required>
+  Date de départ au format `Y-m-d`.
+</ParamField>
+
+<ParamField query="passenger_count" type="integer">
+  Nombre de passagers. Défaut : `1`.
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X GET 'https://staging.koraexpress.app/api/v1/bus/itineraries?from_physical_stop_uuid=origin-physical-uuid&to_physical_stop_uuid=destination-physical-uuid&date=2026-09-10&passenger_count=2' \
+  -H 'Accept: application/json'
+```
+
+```dart Dart
+final response = await dio.get('/api/v1/bus/itineraries', queryParameters: {
+  'from_physical_stop_uuid': originPhysicalStopUuid,
+  'to_physical_stop_uuid': destinationPhysicalStopUuid,
+  'date': '2026-09-10',
+  'passenger_count': 2,
+});
+final itineraries = response.data['data'] as List;
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "data": [
+    {
+      "connections_count": 1,
+      "total_amount": 27500,
+      "currency": "XOF",
+      "departure_at": "2026-09-10T06:00:00Z",
+      "arrival_at": "2026-09-10T19:30:00Z",
+      "connection_margin_minutes": 45,
+      "legs": [
+        {
+          "leg_order": 1,
+          "departure_uuid": "departure-leg-1-uuid",
+          "line_code": "L1",
+          "origin_stop_uuid": "origin-stop-uuid",
+          "destination_stop_uuid": "connection-stop-uuid",
+          "departure_at": "2026-09-10T06:00:00Z",
+          "arrival_at": "2026-09-10T13:00:00Z",
+          "amount": 15000
+        }
+      ]
+    }
+  ]
+}
+```
+
+</ResponseExample>
+
+## Règles
+
+- Les points physiques sont identifiés par UUID ; un libellé de ville ne suffit pas pour poursuivre la réservation.
+- `leg_order` commence à `1`.
+- Le prix retourné est un aperçu de recherche. Créez un devis d'itinéraire avant de l'afficher comme prix contractuel.
+- La réponse est publique et ne contient aucune donnée de réservation ou de passager.
+
+## Codes de réponse
+
+| Code | Description |
+|---|---|
+| `200` | Itinéraires trouvés ou liste vide. |
+| `422` | Point physique, date ou nombre de passagers invalide. |
+| `429` | Limite de recherche atteinte. |

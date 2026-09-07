@@ -1,0 +1,47 @@
+---
+title: Hold d'itinéraire
+description: "POST /api/v1/bus/itinerary-holds bloque atomiquement un siège par passager et par leg."
+api: POST /api/v1/bus/itinerary-holds
+---
+
+# Hold d'itinéraire
+
+Crée une réservation mobile `held` à partir d'un devis d'itinéraire. Le serveur verrouille les départs et les sièges, contrôle l'expiration et recalcule l'autorisation de vente.
+
+## Requête
+
+```json
+{
+  "itinerary_quote_uuid": "itinerary-quote-uuid",
+  "idempotency_key": "hold-device-uuid-attempt-001",
+  "passengers": [
+    {
+      "passenger_index": 0,
+      "seat_assignments": [
+        { "leg_order": 1, "seat_uuid": "seat-leg-1-uuid" },
+        { "leg_order": 2, "seat_uuid": "seat-leg-2-uuid" }
+      ]
+    }
+  ]
+}
+```
+
+Chaque passager doit contenir exactement un `seat_uuid` par `leg_order` du devis. `idempotency_key` est obligatoire pour permettre la reprise après timeout réseau.
+
+## Réponse
+
+La réponse `201` est une `ReservationResource` enveloppée dans `data`. Elle contient l'UUID de réservation, son statut, `expires_at`, le montant serveur, les segments et les passagers.
+
+## Codes de réponse
+
+| Code | Description |
+|---|---|
+| `201` | Hold créé. |
+| `401` | Authentification absente ou invalide. |
+| `403` | Devis appartenant à un autre utilisateur. |
+| `409` | Conflit de disponibilité d'un siège. |
+| `422` | Devis expiré, matrice incomplète, départ modifié ou siège invalide. |
+
+<Warning>
+  Le champ `total_amount` fourni par le client est ignoré. Le montant de la réservation provient exclusivement du devis serveur.
+</Warning>

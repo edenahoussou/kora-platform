@@ -184,7 +184,7 @@ endpoints:
         name: uuid
         description: ''
         required: true
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        example: 99090785-31c0-48bc-94e8-2ff1594d9b8b
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -202,7 +202,7 @@ endpoints:
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      uuid: 99090785-31c0-48bc-94e8-2ff1594d9b8b
       line: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
     queryParameters: []
     cleanQueryParameters: []
@@ -386,7 +386,7 @@ endpoints:
         name: date
         description: 'Must be a valid date in the format <code>Y-m-d</code>.'
         required: true
-        example: '2026-09-02'
+        example: '2026-09-07'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -470,7 +470,7 @@ endpoints:
         nullable: true
         deprecated: false
     cleanBodyParameters:
-      date: '2026-09-02'
+      date: '2026-09-07'
       line: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
       from: g
       to: z
@@ -609,7 +609,7 @@ endpoints:
         name: uuid
         description: ''
         required: true
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        example: 081aadf2-2c27-4d72-9d3c-f2192775284e
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -627,7 +627,7 @@ endpoints:
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      uuid: 081aadf2-2c27-4d72-9d3c-f2192775284e
       departure: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
     queryParameters:
       from:
@@ -794,7 +794,7 @@ endpoints:
         name: departure_uuid
         description: ''
         required: true
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        example: 081aadf2-2c27-4d72-9d3c-f2192775284e
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -812,7 +812,7 @@ endpoints:
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      departure_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      departure_uuid: 081aadf2-2c27-4d72-9d3c-f2192775284e
       departure: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
     queryParameters:
       origin_stop_uuid:
@@ -975,10 +975,22 @@ endpoints:
         exampleWasSpecified: false
         nullable: false
         deprecated: false
+      passenger_count:
+        custom: []
+        name: passenger_count
+        description: 'Number of passengers. Defaults to 1.'
+        required: false
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
     cleanQueryParameters:
       from_physical_stop_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
       to_physical_stop_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
       date: architecto
+      passenger_count: 16
     bodyParameters:
       from_physical_stop_uuid:
         custom: []
@@ -1007,7 +1019,7 @@ endpoints:
         name: date
         description: 'Must be a valid date in the format <code>Y-m-d</code>.'
         required: true
-        example: '2026-09-02'
+        example: '2026-09-07'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -1027,7 +1039,7 @@ endpoints:
     cleanBodyParameters:
       from_physical_stop_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
       to_physical_stop_uuid: 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
-      date: '2026-09-02'
+      date: '2026-09-07'
       passenger_count: 7
     fileParameters: []
     responses:
@@ -1447,7 +1459,7 @@ endpoints:
         name: reservation_uuid
         description: ''
         required: true
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        example: 3d0d4b6f-1242-4881-8ac5-5c0ff761b799
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -1465,7 +1477,7 @@ endpoints:
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      reservation_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      reservation_uuid: 3d0d4b6f-1242-4881-8ac5-5c0ff761b799
       reservation: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
     queryParameters: []
     cleanQueryParameters: []
@@ -1519,7 +1531,7 @@ endpoints:
       subgroup: ''
       subgroupDescription: ''
       title: 'Calculate an aggregated quote for a multi-leg itinerary.'
-      description: ''
+      description: 'Requires a Sanctum bearer token.'
       authenticated: true
       deprecated: false
     headers:
@@ -1534,9 +1546,9 @@ endpoints:
       passenger_count:
         custom: []
         name: passenger_count
-        description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 10.'
+        description: 'Number of passengers. Defaults to 1.'
         required: false
-        example: 6
+        example: 16
         type: integer
         enumValues: []
         exampleWasSpecified: false
@@ -1545,11 +1557,11 @@ endpoints:
       legs:
         custom: []
         name: legs
-        description: 'Le champ value doit contenir au moins 1 éléments. Le champ value ne doit pas contenir plus de 3 éléments.'
+        description: 'Ordered itinerary legs, including a direct itinerary with one leg.'
         required: true
         example:
-          - []
-        type: 'object[]'
+          - architecto
+        type: 'string[]'
         enumValues: []
         exampleWasSpecified: false
         nullable: false
@@ -1598,14 +1610,54 @@ endpoints:
         exampleWasSpecified: false
         nullable: false
         deprecated: false
+      'legs.*.leg_order':
+        custom: []
+        name: 'legs.*.leg_order'
+        description: 'Leg order, starting at 1.'
+        required: false
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'legs.*.departure_uuid':
+        custom: []
+        name: 'legs.*.departure_uuid'
+        description: 'Departure UUID.'
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'legs.*.origin_stop_uuid':
+        custom: []
+        name: 'legs.*.origin_stop_uuid'
+        description: 'Origin stop UUID.'
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'legs.*.destination_stop_uuid':
+        custom: []
+        name: 'legs.*.destination_stop_uuid'
+        description: 'Destination stop UUID.'
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
     cleanBodyParameters:
-      passenger_count: 6
+      passenger_count: 16
       legs:
-        -
-          departure_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-          origin_stop_uuid: 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
-          destination_stop_uuid: 977e5426-8d13-3824-86aa-b092f8ae52c5
-          leg_order: 1
+        - architecto
     fileParameters: []
     responses:
       -
@@ -1613,16 +1665,27 @@ endpoints:
         status: 200
         content: |-
           {
-            "total_amount": 27500,
-            "currency": "XOF",
-            "expires_at": "2026-09-10T08:00:00Z",
-            "legs": [
+            "data": {
+              "itinerary_quote_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+              "total_amount": 27500,
+              "currency": "XOF",
+              "expires_at": "2026-09-10T08:00:00Z",
+              "legs": [
               {
                 "leg_order": 1,
                 "quote_uuid": "quote-uuid-1",
                 "final_amount": 15000
               }
-            ]
+              ],
+              "pricing": {
+                "subtotal_amount": 27500,
+                "dynamic_adjustment_amount": 0,
+                "group_discount": {},
+                "passenger_allocations": [27500],
+                "total_amount": 27500,
+                "currency": "XOF"
+              }
+            }
           }
         headers: []
         description: 'Quote calculated'
@@ -1648,7 +1711,7 @@ endpoints:
       subgroup: ''
       subgroupDescription: ''
       title: 'Create an atomic seat hold for a multi-leg itinerary.'
-      description: ''
+      description: 'Requires a Sanctum bearer token.'
       authenticated: true
       deprecated: false
     headers:
@@ -1663,7 +1726,7 @@ endpoints:
       itinerary_quote_uuid:
         custom: []
         name: itinerary_quote_uuid
-        description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
+        description: 'Immutable itinerary quote UUID.'
         required: true
         example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
         type: string
@@ -1674,9 +1737,9 @@ endpoints:
       idempotency_key:
         custom: []
         name: idempotency_key
-        description: 'Le champ value ne doit pas dépasser 100 caractères.'
+        description: 'Client-generated key for safe retries.'
         required: true
-        example: g
+        example: architecto
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -1685,9 +1748,9 @@ endpoints:
       payer:
         custom: []
         name: payer
-        description: ''
+        description: 'Optional personal or company payer context.'
         required: false
-        example: null
+        example: []
         type: object
         enumValues: []
         exampleWasSpecified: false
@@ -1698,7 +1761,7 @@ endpoints:
         name: payer.type
         description: 'This field is required when <code>payer</code> is present.'
         required: false
-        example: personal
+        example: company
         type: string
         enumValues:
           - personal
@@ -1731,11 +1794,11 @@ endpoints:
       passengers:
         custom: []
         name: passengers
-        description: 'Le champ value doit contenir au moins 1 éléments. Le champ value ne doit pas contenir plus de 10 éléments.'
+        description: 'Passenger-to-leg seat assignment matrix.'
         required: true
         example:
-          - []
-        type: 'object[]'
+          - architecto
+        type: 'string[]'
         enumValues: []
         exampleWasSpecified: false
         nullable: false
@@ -1785,16 +1848,60 @@ endpoints:
         exampleWasSpecified: false
         nullable: false
         deprecated: false
+      'passengers.*.passenger_index':
+        custom: []
+        name: 'passengers.*.passenger_index'
+        description: 'Zero-based passenger index.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers.*.seat_assignments':
+        custom: []
+        name: 'passengers.*.seat_assignments'
+        description: 'One seat assignment per itinerary leg.'
+        required: true
+        example:
+          - architecto
+        type: 'string[]'
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers.*.seat_assignments.*.leg_order':
+        custom: []
+        name: 'passengers.*.seat_assignments.*.leg_order'
+        description: 'One-based itinerary leg order.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers.*.seat_assignments.*.seat_uuid':
+        custom: []
+        name: 'passengers.*.seat_assignments.*.seat_uuid'
+        description: 'Seat UUID.'
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
     cleanBodyParameters:
       itinerary_quote_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-      idempotency_key: g
+      idempotency_key: architecto
       payer:
-        type: personal
+        type: company
         user_uuid: c90237e9-ced5-3af6-88ea-84aeaa148878
         company_account_uuid: a1a0a47d-e8c3-3cf0-8e6e-c1ff9dca5d1f
       passengers:
         -
-          passenger_index: 7
           seat_assignments:
             -
               leg_order: 1
@@ -1835,10 +1942,11 @@ endpoints:
       subgroup: ''
       subgroupDescription: ''
       title: 'Store passenger details for a reservation.'
-      description: ''
-      authenticated: false
+      description: 'Requires a Sanctum bearer token.'
+      authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
       Content-Type: application/json
       Accept: application/json
     urlParameters:
@@ -1847,25 +1955,25 @@ endpoints:
         name: reservation_uuid
         description: ''
         required: true
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        example: 3d0d4b6f-1242-4881-8ac5-5c0ff761b799
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      reservation_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      reservation_uuid: 3d0d4b6f-1242-4881-8ac5-5c0ff761b799
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters:
       passengers:
         custom: []
         name: passengers
-        description: 'Le champ value doit contenir au moins 1 éléments.'
+        description: 'Passenger identity data, one item per passenger.'
         required: true
         example:
-          - []
-        type: 'object[]'
+          - architecto
+        type: 'string[]'
         enumValues: []
         exampleWasSpecified: false
         nullable: false
@@ -1914,10 +2022,21 @@ endpoints:
         exampleWasSpecified: false
         nullable: true
         deprecated: false
+      'passengers[].document_number':
+        custom: []
+        name: 'passengers[].document_number'
+        description: 'This field is required when <code>passengers.*.document_type</code> is present. Le champ value ne doit pas dépasser 64 caractères.'
+        required: false
+        example: d
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
       'passengers[].document_type':
         custom: []
         name: 'passengers[].document_type'
-        description: ''
+        description: 'This field is required when <code>passengers.*.document_number</code> is present.'
         required: false
         example: consular_card
         type: string
@@ -1926,17 +2045,6 @@ endpoints:
           - biometric_card
           - passport
           - consular_card
-        exampleWasSpecified: false
-        nullable: true
-        deprecated: false
-      'passengers[].document_number':
-        custom: []
-        name: 'passengers[].document_number'
-        description: 'Le champ value ne doit pas dépasser 64 caractères.'
-        required: false
-        example: d
-        type: string
-        enumValues: []
         exampleWasSpecified: false
         nullable: true
         deprecated: false
@@ -1956,7 +2064,7 @@ endpoints:
         name: 'passengers[].birth_date'
         description: 'Must be a valid date in the format <code>Y-m-d</code>.'
         required: false
-        example: '2026-09-02'
+        example: '2026-09-07'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -1984,19 +2092,130 @@ endpoints:
         exampleWasSpecified: false
         nullable: true
         deprecated: false
+      'passengers[].yellow_fever_vaccinated':
+        custom: []
+        name: 'passengers[].yellow_fever_vaccinated'
+        description: ''
+        required: false
+        example: false
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      'passengers.*.passenger_index':
+        custom: []
+        name: 'passengers.*.passenger_index'
+        description: 'Stable zero-based passenger index across all itinerary legs.'
+        required: false
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers.*.first_name':
+        custom: []
+        name: 'passengers.*.first_name'
+        description: 'Passenger first name.'
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers.*.last_name':
+        custom: []
+        name: 'passengers.*.last_name'
+        description: 'Passenger last name.'
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers.*.phone':
+        custom: []
+        name: 'passengers.*.phone'
+        description: 'Passenger phone number.'
+        required: false
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers.*.email':
+        custom: []
+        name: 'passengers.*.email'
+        description: 'Passenger email address.'
+        required: false
+        example: gbailey@example.net
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers.*.document_type':
+        custom: []
+        name: 'passengers.*.document_type'
+        description: 'Identity document type required for international lines.'
+        required: false
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers.*.document_number':
+        custom: []
+        name: 'passengers.*.document_number'
+        description: 'Identity document number required for international lines.'
+        required: false
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers.*.nationality':
+        custom: []
+        name: 'passengers.*.nationality'
+        description: 'ISO 2-letter nationality code.'
+        required: false
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers.*.birth_date':
+        custom: []
+        name: 'passengers.*.birth_date'
+        description: 'Date of birth in Y-m-d format.'
+        required: false
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers.*.seat_uuid':
+        custom: []
+        name: 'passengers.*.seat_uuid'
+        description: "Seat UUID for the passenger's segment."
+        required: false
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
     cleanBodyParameters:
       passengers:
-        -
-          first_name: b
-          last_name: 'n'
-          phone: g
-          email: rowan.gulgowski@example.com
-          document_type: consular_card
-          document_number: d
-          nationality: lj
-          birth_date: '2026-09-02'
-          passenger_index: 2
-          seat_uuid: cd1eb1ea-4697-3b9a-9dd0-988044a83af6
+        - architecto
     fileParameters: []
     responses:
       -
@@ -2015,6 +2234,7 @@ endpoints:
               "passengers": [
                 {
                   "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb73",
+                  "passenger_index": 0,
                   "first_name": "Aïcha",
                   "last_name": "HOUNKPÈ",
                   "phone": "+2290197421860",
@@ -2030,7 +2250,10 @@ endpoints:
         headers: []
         description: 'Passengers stored'
     responseFields: []
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null
@@ -2063,14 +2286,14 @@ endpoints:
         name: reservation_uuid
         description: ''
         required: true
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        example: 3d0d4b6f-1242-4881-8ac5-5c0ff761b799
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      reservation_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      reservation_uuid: 3d0d4b6f-1242-4881-8ac5-5c0ff761b799
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -2148,7 +2371,7 @@ endpoints:
         name: reservation_uuid
         description: ''
         required: true
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        example: 3d0d4b6f-1242-4881-8ac5-5c0ff761b799
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -2159,15 +2382,15 @@ endpoints:
         name: passenger_uuid
         description: ''
         required: true
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        example: 2dc7e142-80fd-45af-8b08-28b8d83b5639
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      reservation_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-      passenger_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      reservation_uuid: 3d0d4b6f-1242-4881-8ac5-5c0ff761b799
+      passenger_uuid: 2dc7e142-80fd-45af-8b08-28b8d83b5639
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []

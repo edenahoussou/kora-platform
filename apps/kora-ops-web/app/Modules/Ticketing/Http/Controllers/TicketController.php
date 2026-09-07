@@ -38,7 +38,7 @@ class TicketController extends Controller
      *       },
      *       "segments": [
      *         {
-     *           "leg_order": 0,
+     *           "leg_order": 1,
      *           "departure_uuid": "dep12345-6789-abcd-ef01-23456789abcd",
      *           "origin_stop_uuid": "stp12345-6789-abcd-ef01-23456789abcd",
      *           "destination_stop_uuid": "stp23456-6789-abcd-ef01-23456789abcd",
@@ -89,7 +89,7 @@ class TicketController extends Controller
      *     },
      *     "segments": [
      *       {
-     *         "leg_order": 0,
+     *         "leg_order": 1,
      *         "departure_uuid": "dep12345-6789-abcd-ef01-23456789abcd",
      *         "origin_stop_uuid": "stp12345-6789-abcd-ef01-23456789abcd",
      *         "destination_stop_uuid": "stp23456-6789-abcd-ef01-23456789abcd",

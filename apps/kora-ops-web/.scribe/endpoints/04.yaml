@@ -107,66 +107,64 @@ endpoints:
       status:
         custom: []
         name: status
-        description: ''
+        description: 'Rule status.'
         required: true
-        example: inactive
+        example: active
         type: string
-        enumValues:
-          - active
-          - inactive
-        exampleWasSpecified: false
+        enumValues: []
+        exampleWasSpecified: true
         nullable: false
         deprecated: false
       passenger_threshold:
         custom: []
         name: passenger_threshold
-        description: 'Le champ value doit être au moins 1.'
+        description: 'Minimum passenger count for the rule.'
         required: true
-        example: 16
+        example: 5
         type: integer
         enumValues: []
-        exampleWasSpecified: false
+        exampleWasSpecified: true
         nullable: false
         deprecated: false
       percentage:
         custom: []
         name: percentage
-        description: 'Le champ value doit être au moins 0. Le champ value ne doit pas être supérieur à 100.'
+        description: 'Discount percentage.'
         required: true
-        example: 22
+        example: 10.0
         type: number
         enumValues: []
-        exampleWasSpecified: false
+        exampleWasSpecified: true
         nullable: false
         deprecated: false
       starts_at:
         custom: []
         name: starts_at
-        description: 'Le champ value doit être une date valide.'
+        description: 'Start of the validity period.'
         required: false
-        example: '2026-09-02T15:34:20'
+        example: '2026-09-01T00:00:00+00:00'
         type: string
         enumValues: []
-        exampleWasSpecified: false
+        exampleWasSpecified: true
         nullable: true
         deprecated: false
       ends_at:
         custom: []
         name: ends_at
-        description: 'Le champ value doit être une date valide. Le champ value doit être une date postérieure ou égale à <code>starts_at</code>.'
+        description: 'End of the validity period.'
         required: false
-        example: '2052-09-25'
+        example: '2026-12-31T00:00:00+00:00'
         type: string
         enumValues: []
-        exampleWasSpecified: false
+        exampleWasSpecified: true
         nullable: true
         deprecated: false
     cleanBodyParameters:
-      status: inactive
-      passenger_threshold: 16
-      percentage: 22
-      starts_at: '2026-09-02T15:34:20'
-      ends_at: '2052-09-25'
+      status: active
+      passenger_threshold: 5
+      percentage: 10.0
+      starts_at: '2026-09-01T00:00:00+00:00'
+      ends_at: '2026-12-31T00:00:00+00:00'
     fileParameters: []
     responses:
       -
@@ -258,80 +256,78 @@ endpoints:
         name: groupDiscountRule_uuid
         description: ''
         required: true
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        example: 6b49f31e-8fdf-4287-8ee8-1665ebf6e80e
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      groupDiscountRule_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      groupDiscountRule_uuid: 6b49f31e-8fdf-4287-8ee8-1665ebf6e80e
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters:
       status:
         custom: []
         name: status
-        description: ''
+        description: 'Rule status.'
         required: true
         example: active
         type: string
-        enumValues:
-          - active
-          - inactive
-        exampleWasSpecified: false
+        enumValues: []
+        exampleWasSpecified: true
         nullable: false
         deprecated: false
       passenger_threshold:
         custom: []
         name: passenger_threshold
-        description: 'Le champ value doit être au moins 1.'
+        description: 'Minimum passenger count for the rule.'
         required: true
-        example: 16
+        example: 8
         type: integer
         enumValues: []
-        exampleWasSpecified: false
+        exampleWasSpecified: true
         nullable: false
         deprecated: false
       percentage:
         custom: []
         name: percentage
-        description: 'Le champ value doit être au moins 0. Le champ value ne doit pas être supérieur à 100.'
+        description: 'Discount percentage.'
         required: true
-        example: 22
+        example: 15.0
         type: number
         enumValues: []
-        exampleWasSpecified: false
+        exampleWasSpecified: true
         nullable: false
         deprecated: false
       starts_at:
         custom: []
         name: starts_at
-        description: 'Le champ value doit être une date valide.'
+        description: 'Start of the validity period.'
         required: false
-        example: '2026-09-02T15:34:20'
+        example: '2026-09-01T00:00:00+00:00'
         type: string
         enumValues: []
-        exampleWasSpecified: false
+        exampleWasSpecified: true
         nullable: true
         deprecated: false
       ends_at:
         custom: []
         name: ends_at
-        description: 'Le champ value doit être une date valide. Le champ value doit être une date postérieure ou égale à <code>starts_at</code>.'
+        description: 'End of the validity period.'
         required: false
-        example: '2052-09-25'
+        example: '2026-12-31T00:00:00+00:00'
         type: string
         enumValues: []
-        exampleWasSpecified: false
+        exampleWasSpecified: true
         nullable: true
         deprecated: false
     cleanBodyParameters:
       status: active
-      passenger_threshold: 16
-      percentage: 22
-      starts_at: '2026-09-02T15:34:20'
-      ends_at: '2052-09-25'
+      passenger_threshold: 8
+      percentage: 15.0
+      starts_at: '2026-09-01T00:00:00+00:00'
+      ends_at: '2026-12-31T00:00:00+00:00'
     fileParameters: []
     responses:
       -

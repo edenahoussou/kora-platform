@@ -1,118 +1,73 @@
 ---
 title: Devis & blocage de sièges
-description: "Créez un devis figé et bloquez des sièges avec l'API KORA BUS : endpoints quotes et holds, TTL, gestion de l'expiration et pièges à éviter."
+description: "Créer un devis serveur puis bloquer atomiquement les sièges d'un itinéraire direct ou multi-leg."
 ---
-
 
 # Devis & blocage de sièges
 
-Après avoir choisi un départ et un segment, le passager doit **figer le prix** (devis) puis **bloquer les sièges** (hold) avant de saisir les voyageurs et payer. Ce guide décrit le flow complet et les pièges à éviter.
+Le mobile sélectionne un résultat de recherche, demande un devis serveur, choisit un siège par passager et par leg, puis crée un blocage de sièges (`hold`). Le prix et l'état de disponibilité restent sous l'autorité du serveur.
 
-## Vue d'ensemble du flow
-
-<Steps>
-  <Step title="1. Créer le devis">
-    Le devis fige le tarif pour le segment et le nombre de passagers. Il est valable `KORA_QUOTE_TTL_MINUTES` (10 min par défaut).
+## 1. Créer le devis d'itinéraire
 
 ```bash
-curl -X POST https://staging.koraexpress.app/api/v1/bus/quotes \
+curl -X POST https://staging.koraexpress.app/api/v1/bus/itinerary-quotes \
   -H 'Authorization: Bearer $TOKEN' \
   -H 'Content-Type: application/json' \
   -d '{
-    "departure_uuid": "a3091549-...",
-    "origin_stop_uuid": "6b72fe4a-...",
-    "destination_stop_uuid": "8d94f06c-...",
-    "service_class_uuid": null,
-    "passenger_count": 2
-  }'
-```
-
-Conservez le `uuid` du devis — il est requis pour le hold.
-
-Voir : [Devis — Référence](/reference/booking/quotes).
-  </Step>
-
-  <Step title="2. Consulter le plan des sièges">
-    Récupérez la disponibilité pour le segment O/D. Les `origin_stop_uuid` et `destination_stop_uuid` doivent correspondre au devis.
-
-```bash
-curl -X GET 'https://staging.koraexpress.app/api/v1/bus/departures/a3091549-.../seats?origin_stop_uuid=6b72fe4a-...&destination_stop_uuid=8d94f06c-...'
-```
-
-Voir : [Sièges — Référence](/reference/bus/seats).
-  </Step>
-
-  <Step title="3. Bloquer les sièges (hold)">
-    Le hold démarre **uniquement** à cet appel — pas pendant la consultation du plan. Le nombre de sièges doit égaler `passenger_count` du devis.
-
-```bash
-curl -X POST https://staging.koraexpress.app/api/v1/bus/holds \
-  -H 'Authorization: Bearer $TOKEN' \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "departure_uuid": "a3091549-...",
-    "origin_stop_uuid": "6b72fe4a-...",
-    "destination_stop_uuid": "8d94f06c-...",
-    "price_quote_uuid": "9b1deb4d-...",
-    "seats": [
-      { "seat_uuid": "seat-002-uuid" },
-      { "seat_uuid": "seat-004-uuid" }
+    "passenger_count": 2,
+    "legs": [
+      { "leg_order": 1, "departure_uuid": "departure-leg-1-uuid", "origin_stop_uuid": "origin-stop-uuid", "destination_stop_uuid": "connection-stop-uuid" },
+      { "leg_order": 2, "departure_uuid": "departure-leg-2-uuid", "origin_stop_uuid": "connection-stop-uuid-2", "destination_stop_uuid": "destination-stop-uuid" }
     ]
   }'
 ```
 
-La réponse `201` contient l'UUID de réservation, le statut `held`, `expires_at`, les segments et les codes sièges.
+La réponse est enveloppée dans `data` et contient l'UUID du devis, le montant total, la devise, l'expiration, les devis de chaque leg et le détail de tarification dynamique.
 
-Voir : [Holds — Référence](/reference/booking/holds).
-  </Step>
-</Steps>
+## 2. Créer le hold
 
-## TTLs et expiration
+```bash
+curl -X POST https://staging.koraexpress.app/api/v1/bus/itinerary-holds \
+  -H 'Authorization: Bearer $TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "itinerary_quote_uuid": "itinerary-quote-uuid",
+    "idempotency_key": "hold-device-uuid-attempt-001",
+    "passengers": [
+      {
+        "passenger_index": 0,
+        "seat_assignments": [
+          { "leg_order": 1, "seat_uuid": "seat-leg-1-passenger-1" },
+          { "leg_order": 2, "seat_uuid": "seat-leg-2-passenger-1" }
+        ]
+      },
+      {
+        "passenger_index": 1,
+        "seat_assignments": [
+          { "leg_order": 1, "seat_uuid": "seat-leg-1-passenger-2" },
+          { "leg_order": 2, "seat_uuid": "seat-leg-2-passenger-2" }
+        ]
+      }
+    ]
+  }'
+```
 
-| Ressource | Variable | Durée par défaut | Effet à l'expiration |
-|-----------|----------|------------------|----------------------|
-| Devis | `KORA_QUOTE_TTL_MINUTES` | 10 minutes | Devis invalide — le hold refusé avec `422` |
-| Hold | `KORA_HOLD_TTL_MINUTES` | 15 minutes | Réservation → `expired`, segments libérés |
+La matrice doit contenir exactement un siège pour chaque couple `passenger_index × leg_order`. Le hold retourne une réservation `held`, son expiration, les segments et le montant serveur.
+
+## Expiration et conflits
+
+| Situation | Réponse | Action mobile |
+|---|---:|---|
+| Devis expiré | `422` | Rechercher et recréer un devis. |
+| Siège pris entre la consultation et le hold | `409` | Recharger les sièges du leg concerné. |
+| Matrice passager/leg incomplète | `422` | Corriger les assignations. |
+| Rejeu avec la même clé | `201` avec la réservation existante | Réutiliser l'UUID retourné. |
+| Abandon du parcours | `204` | Libérer le hold avec l'endpoint prévu. |
 
 <Warning>
-  Le hold ne démarre **pas** à l'ouverture de l'écran de sélection ni pendant la consultation. Il démarre uniquement à l'appel explicite de `POST /api/v1/bus/holds`. Ne retardez pas cet appel après la sélection.
+  Ne transmettez jamais un `total_amount` calculé par le mobile comme source de vérité. Le serveur calcule et fige le montant depuis le devis d'itinéraire.
 </Warning>
 
-## Gestion des conflits
-
-| Situation | Code | Action client |
-|-----------|------|---------------|
-| Siège pris par un autre hold entre la consultation et le hold | `409` | Recharger le plan et re-sélectionner |
-| Devis expiré avant le hold | `422` | Recréer un devis, puis retenter le hold |
-| Nombre de sièges ≠ `passenger_count` | `422` | Ajuster le tableau `seats` |
-| Siège en doublon dans la requête | `422` | Dédupliquer les `seat_uuid` |
-
-<Info>
-  Un même siège peut être vendu sur deux segments **non chevauchants**. Le `409` n'apparaît que si le segment demandé chevauche un segment déjà réservé.
-</Info>
-
-## Libération volontaire
-
-Si le passager abandonne le parcours :
-
-```bash
-curl -X DELETE https://staging.koraexpress.app/api/v1/holds/9b1deb4d-... \
-  -H 'Authorization: Bearer $TOKEN'
-```
-
-Réponse `204`. La réservation passe à `cancelled`, les segments sont libérés immédiatement.
-
-## Reprise après perte de session
-
-Le mobile ne doit **jamais** reconstruire la réservation depuis son état local. Après un crash ou une réouverture d'app :
-
-```bash
-curl -X GET https://staging.koraexpress.app/api/v1/bookings/9b1deb4d-... \
-  -H 'Authorization: Bearer $TOKEN'
-```
-
-La réponse contient le statut, `expires_at`, les segments, les voyageurs et le montant serveur.
-
-<Card title="Cycle de vie d'une réservation" href="/guides/booking-lifecycle" icon="arrow-right" iconType="solid">
-  Maintenant que les sièges sont bloqués, **enregistrez les voyageurs** et suivez le cycle de vie.
+<Card title="Cycle de réservation" href="/guides/booking-lifecycle" icon="arrow-right" iconType="solid">
+  Après le hold, enregistrez les passagers, initiez le paiement et attendez l'émission des billets.
 </Card>

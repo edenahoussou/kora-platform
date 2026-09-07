@@ -140,11 +140,125 @@ it('is idempotent on payment initiation with same idempotency key', function ():
         'method' => 'mobile_money',
         'provider' => 'mtn_momo',
         'phone' => '+2290197421860',
+        'mobile_money_network' => 'mtn_momo',
         'idempotency_key' => $idempotencyKey,
     ])->assertOk()->json();
 
     expect($secondRes['data']['uuid'])->toBe($firstRes['data']['uuid']);
     expect(Payment::query()->where('idempotency_key', $idempotencyKey)->count())->toBe(1);
+});
+
+it('rejects reusing a payment idempotency key with a different payload', function (): void {
+    $scenario = paymentTestScenario();
+    Sanctum::actingAs($scenario['user']);
+
+    $idempotencyKey = (string) Str::uuid();
+    $payload = [
+        'reservation_uuid' => $scenario['reservation']->uuid,
+        'method' => 'mobile_money',
+        'provider' => 'mtn_momo',
+        'phone' => '+2290197421860',
+        'mobile_money_network' => 'mtn_momo',
+        'idempotency_key' => $idempotencyKey,
+    ];
+
+    $this->postJson('/api/v1/payments/initiate', $payload)->assertCreated();
+
+    $this->postJson('/api/v1/payments/initiate', [
+        ...$payload,
+        'provider' => 'fedapay',
+    ])->assertUnprocessable()->assertJsonValidationErrors(['idempotency_key']);
+});
+
+it('does not replay a legacy payment without a request fingerprint', function (): void {
+    $scenario = paymentTestScenario();
+    Sanctum::actingAs($scenario['user']);
+    $idempotencyKey = (string) Str::uuid();
+
+    Payment::create([
+        'reservation_id' => $scenario['reservation']->id,
+        'method' => 'mobile_money',
+        'provider' => 'mtn_momo',
+        'idempotency_key' => $idempotencyKey,
+        'amount' => 15000,
+        'currency' => 'XOF',
+        'status' => PaymentStatus::Pending,
+    ]);
+
+    $this->postJson('/api/v1/payments/initiate', [
+        'reservation_uuid' => $scenario['reservation']->uuid,
+        'method' => 'mobile_money',
+        'provider' => 'mtn_momo',
+        'phone' => '+2290197421860',
+        'mobile_money_network' => 'mtn_momo',
+        'idempotency_key' => $idempotencyKey,
+    ])->assertUnprocessable()->assertJsonValidationErrors(['idempotency_key']);
+});
+
+it('does not replay a payment idempotency key across reservations', function (): void {
+    $scenario = paymentTestScenario();
+    $otherReservation = Reservation::create([
+        'created_by_user_id' => $scenario['user']->id,
+        'status' => ReservationStatus::Held,
+        'total_amount' => 15000,
+        'currency' => 'XOF',
+        'channel' => 'mobile',
+        'expires_at' => now()->addMinutes(15),
+    ]);
+    Sanctum::actingAs($scenario['user']);
+
+    $idempotencyKey = (string) Str::uuid();
+    $payload = [
+        'reservation_uuid' => $scenario['reservation']->uuid,
+        'method' => 'mobile_money',
+        'provider' => 'mtn_momo',
+        'phone' => '+2290197421860',
+        'mobile_money_network' => 'mtn_momo',
+        'idempotency_key' => $idempotencyKey,
+    ];
+
+    $this->postJson('/api/v1/payments/initiate', $payload)->assertCreated();
+    FakePaymentProvider::$nextReference = 'FAKE-REF-456';
+
+    $second = $this->postJson('/api/v1/payments/initiate', [
+        ...$payload,
+        'reservation_uuid' => $otherReservation->uuid,
+    ])->assertCreated();
+
+    expect($second->json('data.reservation.uuid'))->toBe($otherReservation->uuid)
+        ->and(Payment::query()->where('idempotency_key', $idempotencyKey)->count())->toBe(2);
+});
+
+it('rejects unsupported mobile payment providers before creating a payment', function (): void {
+    $scenario = paymentTestScenario();
+    Sanctum::actingAs($scenario['user']);
+
+    $this->postJson('/api/v1/payments/initiate', [
+        'reservation_uuid' => $scenario['reservation']->uuid,
+        'method' => 'mobile_money',
+        'provider' => 'stripe',
+        'phone' => '+2290197421860',
+        'mobile_money_network' => 'mtn_momo',
+        'idempotency_key' => (string) Str::uuid(),
+    ])->assertUnprocessable()->assertJsonValidationErrors(['provider']);
+});
+
+it('keeps the wallet in the catalog while rejecting wallet initiation until activation', function (): void {
+    $scenario = paymentTestScenario();
+    Sanctum::actingAs($scenario['user']);
+
+    $this->getJson('/api/v1/payments/methods')
+        ->assertOk()
+        ->assertJsonPath('data.methods.1.code', 'wallet')
+        ->assertJsonPath('data.methods.1.enabled', false)
+        ->assertJsonPath('data.methods.1.availability', 'disabled_until_wallet_ledger');
+
+    $this->postJson('/api/v1/payments/initiate', [
+        'reservation_uuid' => $scenario['reservation']->uuid,
+        'method' => 'wallet',
+        'wallet_amount' => 15000,
+        'idempotency_key' => (string) Str::uuid(),
+    ])->assertUnprocessable()->assertJsonValidationErrors(['method']);
 });
 
 it('rejects initiation for expired reservation', function (): void {
@@ -172,6 +286,8 @@ it('forbids initiating payment on another user reservation', function (): void {
         'reservation_uuid' => $scenario['reservation']->uuid,
         'method' => 'mobile_money',
         'provider' => 'mtn_momo',
+        'phone' => '+2290197421860',
+        'mobile_money_network' => 'mtn_momo',
         'idempotency_key' => (string) Str::uuid(),
     ])->assertForbidden();
 });

@@ -6,6 +6,8 @@ api: POST /api/v1/bus/holds
 
 # Bloquer des sièges (hold)
 
+> Cette page décrit le hold mono-segment legacy. Le parcours mobile recommandé utilise [Hold d'itinéraire](/reference/booking/itinerary-holds), avec une matrice passager × leg.
+
 Démarre un blocage de sièges (hold) après que le passager a confirmé sa sélection. Le hold ne démarre **pas** pendant la consultation du plan — uniquement à la confirmation explicite. La durée est contrôlée par `KORA_HOLD_TTL_MINUTES` (15 minutes par défaut).
 
 ## Paramètres

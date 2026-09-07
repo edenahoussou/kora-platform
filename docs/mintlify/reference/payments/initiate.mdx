@@ -15,7 +15,7 @@ Initie un paiement Mobile Money pour une réservation au statut `held`. Au Béni
 </ParamField>
 
 <ParamField body="method" type="string" required>
-  `mobile_money` uniquement dans le parcours passager MVP.
+  `mobile_money` est la seule méthode actuellement activée dans le parcours passager. `wallet` est reconnu par le contrat mais reste désactivé jusqu'à l'activation du ledger.
 </ParamField>
 
 <ParamField body="provider" type="string" required>
@@ -32,6 +32,10 @@ Initie un paiement Mobile Money pour une réservation au statut `held`. Au Béni
 
 <ParamField body="mobile_money_network" type="string" required>
   Réseau utilisé : `mtn_momo`, `moov_flooz` ou `celtiis_cash`. Le provider doit supporter ce réseau.
+</ParamField>
+
+<ParamField body="wallet_amount" type="integer">
+  Montant prévu sur le Wallet dans le contrat de paiement mixte. Le Wallet reste désactivé tant que le ledger n'est pas activé.
 </ParamField>
 
 <RequestExample>
@@ -162,5 +166,5 @@ final paymentUuid = res.data['data']['uuid'];
 | `422` | Réservation non `held`, méthode invalide, réservation expirée, ou validation échouée. |
 
 <Warning>
-  Le paiement est accepté **uniquement** tant que le hold est valide. Après initiation, utilisez `POST /payments/{uuid}/verify` pour demander une vérification serveur explicite; le polling GET reste utile pour rafraîchir l'état.
+  Le paiement est accepté **uniquement** tant que le hold est valide. Après initiation, utilisez `POST /payments/{uuid}/verify` pour demander une vérification serveur explicite ; le polling GET reste utile pour rafraîchir l'état. Une même clé réutilisée sur une autre réservation ou avec un payload différent est rejetée.
 </Warning>

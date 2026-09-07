@@ -36,7 +36,10 @@ it('searches, quotes and holds a two-leg itinerary without trusting client prici
         ], $legs),
     ])->assertOk();
 
-    $quoteUuid = $quote->json('itinerary_quote_uuid');
+    $quote->assertJsonPath('data.pricing.total_amount', 15000)
+        ->assertJsonMissingPath('data.snapshot');
+
+    $quoteUuid = $quote->json('data.itinerary_quote_uuid');
     expect($quoteUuid)->not->toBeNull();
 
     $hold = $this->postJson('/api/v1/bus/itinerary-holds', [
@@ -87,7 +90,7 @@ it('returns the same itinerary hold for a repeated idempotency key', function ()
             'origin_stop_uuid' => $scenario['secondConnection']->uuid,
             'destination_stop_uuid' => $scenario['destination']->uuid,
         ]],
-    ])->assertOk()->json('itinerary_quote_uuid');
+    ])->assertOk()->json('data.itinerary_quote_uuid');
 
     $payload = [
         'itinerary_quote_uuid' => $quoteUuid,

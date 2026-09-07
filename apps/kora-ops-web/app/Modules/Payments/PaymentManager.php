@@ -105,10 +105,11 @@ class PaymentManager
                 ],
                 [
                     'code' => 'wallet',
-                    'label' => 'Mini Wallet',
+                    'label' => 'Wallet KORA BUS',
                     'enabled' => false,
-                    'availability' => 'out_of_mvp',
+                    'availability' => 'disabled_until_wallet_ledger',
                     'providers' => [],
+                    'requires' => ['wallet_amount'],
                 ],
             ],
         ];
@@ -130,6 +131,12 @@ class PaymentManager
      */
     public function assertAvailable(string $method, string $provider, ?string $network = null): void
     {
+        if ($method === 'wallet') {
+            throw ValidationException::withMessages([
+                'method' => 'Le Wallet est prévu dans le contrat mobile mais n’est pas encore activé.',
+            ]);
+        }
+
         if ($method !== 'mobile_money') {
             throw ValidationException::withMessages(['method' => 'Le mode de paiement n’est pas disponible dans l’application mobile.']);
         }

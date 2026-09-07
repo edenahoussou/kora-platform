@@ -18,8 +18,9 @@ endpoints:
       subgroupDescription: ''
       title: 'List available payment methods and providers.'
       description: |-
-        Returns the catalog of payment methods configured for the mobile app
-        (MTN MoMo, FedaPay, cash, etc.).
+        Returns the catalog of payment methods and providers configured for the mobile app.
+
+        Requires a Sanctum bearer token.
       authenticated: true
       deprecated: false
     headers:
@@ -39,20 +40,37 @@ endpoints:
         status: 200
         content: |-
           {
-            "data": [
-              {
-                "method": "mobile_money",
-                "provider": "mtn_momo",
-                "label": "MTN Mobile Money",
-                "enabled": true
-              },
-              {
-                "method": "card",
-                "provider": "fedapay",
-                "label": "Carte bancaire (FedaPay)",
-                "enabled": true
-              }
-            ]
+            "data": {
+              "country": "BJ",
+              "currency": "XOF",
+              "methods": [
+                {
+                  "code": "mobile_money",
+                  "label": "Mobile Money",
+                  "enabled": true,
+                  "providers": [
+                    {
+                      "code": "mtn_momo",
+                      "label": "MTN MoMo",
+                      "enabled": true,
+                      "networks": ["mtn_momo"],
+                      "requires": ["phone", "mobile_money_network"],
+                      "interaction": "push",
+                      "polling_interval_seconds": 10,
+                      "verification": "server_verify"
+                    }
+                  ]
+                },
+                {
+                  "code": "wallet",
+                  "label": "Wallet KORA BUS",
+                  "enabled": false,
+                  "availability": "disabled_until_wallet_ledger",
+                  "providers": [],
+                  "requires": ["wallet_amount"]
+                }
+              ]
+            }
           }
         headers: []
         description: 'Payment methods'
@@ -87,10 +105,11 @@ endpoints:
       subgroup: ''
       subgroupDescription: ''
       title: 'Initiate a payment for a held reservation.'
-      description: ''
-      authenticated: false
+      description: 'Requires a Sanctum bearer token.'
+      authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
       Content-Type: application/json
       Accept: application/json
     urlParameters: []
@@ -101,7 +120,7 @@ endpoints:
       reservation_uuid:
         custom: []
         name: reservation_uuid
-        description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
+        description: 'UUID of the held reservation.'
         required: true
         example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
         type: string
@@ -112,33 +131,31 @@ endpoints:
       method:
         custom: []
         name: method
-        description: ''
+        description: 'Payment method: `mobile_money` or `wallet`. Wallet is currently disabled.'
         required: true
-        example: company_credit
+        example: architecto
         type: string
-        enumValues:
-          - mobile_money
-          - company_credit
+        enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
       provider:
         custom: []
         name: provider
-        description: 'Le champ value ne doit pas dépasser 64 caractères.'
-        required: true
-        example: g
+        description: 'Provider from the server catalog: `fedapay` or `mtn_momo`. Required for `mobile_money`.'
+        required: false
+        example: architecto
         type: string
         enumValues: []
         exampleWasSpecified: false
-        nullable: false
+        nullable: true
         deprecated: false
       idempotency_key:
         custom: []
         name: idempotency_key
-        description: 'Le champ value ne doit pas dépasser 255 caractères.'
+        description: 'Client-generated key, scoped to the reservation and request payload.'
         required: true
-        example: z
+        example: architecto
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -147,9 +164,9 @@ endpoints:
       phone:
         custom: []
         name: phone
-        description: 'Le champ value ne doit pas dépasser 32 caractères.'
+        description: 'Mobile Money phone number. Required for `mobile_money`.'
         required: false
-        example: m
+        example: architecto
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -158,24 +175,45 @@ endpoints:
       mobile_money_network:
         custom: []
         name: mobile_money_network
-        description: ''
+        description: 'Mobile Money network supported by the selected provider.'
         required: false
-        example: moov_flooz
+        example: architecto
         type: string
-        enumValues:
-          - mtn_momo
-          - moov_flooz
-          - celtiis_cash
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      wallet_amount:
+        custom: []
+        name: wallet_amount
+        description: 'Amount allocated to Wallet. Reserved for the disabled Wallet contract.'
+        required: false
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      mobile_money_amount:
+        custom: []
+        name: mobile_money_amount
+        description: 'Amount allocated to Mobile Money. Must equal the server quote total in this iteration.'
+        required: false
+        example: 16
+        type: integer
+        enumValues: []
         exampleWasSpecified: false
         nullable: true
         deprecated: false
     cleanBodyParameters:
       reservation_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-      method: company_credit
-      provider: g
-      idempotency_key: z
-      phone: m
-      mobile_money_network: moov_flooz
+      method: architecto
+      provider: architecto
+      idempotency_key: architecto
+      phone: architecto
+      mobile_money_network: architecto
+      wallet_amount: 16
+      mobile_money_amount: 16
     fileParameters: []
     responses:
       -
@@ -188,8 +226,17 @@ endpoints:
               "status": "pending",
               "amount": 12500,
               "currency": "XOF",
+              "method": "mobile_money",
               "provider": "mtn_momo",
+              "provider_currency": "EUR",
+              "provider_amount": 12500,
               "provider_reference": "MM-98270341",
+              "provider_transaction_id": null,
+              "mobile_money_network": "mtn_momo",
+              "payer_phone": "+2290197421860",
+              "confirmed_at": null,
+              "last_verified_at": null,
+              "next_action": "verify",
               "expires_at": "2026-08-20T08:15:00Z",
               "polling_interval_seconds": 10
             }
@@ -197,7 +244,10 @@ endpoints:
         headers: []
         description: 'Payment initiated'
     responseFields: []
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null
@@ -215,10 +265,11 @@ endpoints:
       subgroup: ''
       subgroupDescription: ''
       title: 'Get payment status (polling).'
-      description: ''
-      authenticated: false
+      description: 'Requires a Sanctum bearer token.'
+      authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
       Content-Type: application/json
       Accept: application/json
     urlParameters:
@@ -227,14 +278,14 @@ endpoints:
         name: uuid
         description: ''
         required: true
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        example: c5e52cf5-f94a-45cb-a494-1941a0cf2882
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      uuid: c5e52cf5-f94a-45cb-a494-1941a0cf2882
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -264,7 +315,10 @@ endpoints:
         headers: []
         description: 'Payment status'
     responseFields: []
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null
@@ -295,14 +349,14 @@ endpoints:
         name: payment_uuid
         description: ''
         required: true
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        example: c5e52cf5-f94a-45cb-a494-1941a0cf2882
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      payment_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      payment_uuid: c5e52cf5-f94a-45cb-a494-1941a0cf2882
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -398,14 +452,14 @@ endpoints:
         name: payment_uuid
         description: ''
         required: true
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        example: c5e52cf5-f94a-45cb-a494-1941a0cf2882
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      payment_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      payment_uuid: c5e52cf5-f94a-45cb-a494-1941a0cf2882
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -494,14 +548,14 @@ endpoints:
         name: payment_uuid
         description: ''
         required: true
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        example: c5e52cf5-f94a-45cb-a494-1941a0cf2882
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      payment_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      payment_uuid: c5e52cf5-f94a-45cb-a494-1941a0cf2882
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters:
@@ -510,7 +564,7 @@ endpoints:
         name: status
         description: ''
         required: true
-        example: failed
+        example: confirmed
         type: string
         enumValues:
           - success
@@ -542,7 +596,7 @@ endpoints:
         nullable: true
         deprecated: false
     cleanBodyParameters:
-      status: failed
+      status: confirmed
       provider_reference: b
     fileParameters: []
     responses:

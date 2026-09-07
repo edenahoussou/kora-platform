@@ -46,7 +46,7 @@ it('quotes a two-leg itinerary when the connection spans two service days', func
         ]],
     ])->assertOk();
 
-    expect($quote->json('itinerary_quote_uuid'))->not->toBeNull();
+    expect($quote->json('data.itinerary_quote_uuid'))->not->toBeNull();
 });
 
 /** @return array<string, mixed> */

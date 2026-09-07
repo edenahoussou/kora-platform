@@ -37,6 +37,7 @@ class ItineraryController extends Controller
      * @queryParam from_physical_stop_uuid string required UUID of the origin physical stop.
      * @queryParam to_physical_stop_uuid string required UUID of the destination physical stop.
      * @queryParam date string required Travel date (Y-m-d).
+     * @queryParam passenger_count integer Number of passengers. Defaults to 1.
      *
      * @response 200 scenario="Itineraries found" {
      *   "data": [
@@ -80,19 +81,39 @@ class ItineraryController extends Controller
     /**
      * Calculate an aggregated quote for a multi-leg itinerary.
      *
+     * Requires a Sanctum bearer token.
+     *
      * @authenticated
      *
+     * @bodyParam passenger_count integer Number of passengers. Defaults to 1.
+     * @bodyParam legs array required Ordered itinerary legs, including a direct itinerary with one leg.
+     * @bodyParam legs.*.leg_order integer Leg order, starting at 1.
+     * @bodyParam legs.*.departure_uuid string required Departure UUID.
+     * @bodyParam legs.*.origin_stop_uuid string required Origin stop UUID.
+     * @bodyParam legs.*.destination_stop_uuid string required Destination stop UUID.
+     *
      * @response 200 scenario="Quote calculated" {
-     *   "total_amount": 27500,
-     *   "currency": "XOF",
-     *   "expires_at": "2026-09-10T08:00:00Z",
-     *   "legs": [
+     *   "data": {
+     *     "itinerary_quote_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+     *     "total_amount": 27500,
+     *     "currency": "XOF",
+     *     "expires_at": "2026-09-10T08:00:00Z",
+     *     "legs": [
      *     {
      *       "leg_order": 1,
      *       "quote_uuid": "quote-uuid-1",
      *       "final_amount": 15000
      *     }
-     *   ]
+     *     ],
+     *     "pricing": {
+     *       "subtotal_amount": 27500,
+     *       "dynamic_adjustment_amount": 0,
+     *       "group_discount": {},
+     *       "passenger_allocations": [27500],
+     *       "total_amount": 27500,
+     *       "currency": "XOF"
+     *     }
+     *   }
      * }
      */
     public function quote(ItineraryQuoteRequest $request, CalculateItineraryQuoteAction $calculateQuote): JsonResponse
@@ -102,17 +123,16 @@ class ItineraryController extends Controller
 
         $result = $calculateQuote->handle($legs, $passengerCount, $request->user());
 
-        return response()->json([
+        return response()->json(['data' => [
+            'itinerary_quote_uuid' => $result->itineraryQuote->uuid,
             'total_amount' => $result->totalAmount,
             'currency' => $result->currency,
-            'itinerary_quote_uuid' => $result->itineraryQuote->uuid,
             'expires_at' => $result->expiresAt?->toIso8601String(),
             'legs' => array_map(fn ($legQuote): array => [
                 'leg_order' => array_search($legQuote, $result->legQuotes, true) + 1,
                 'quote_uuid' => $legQuote->uuid,
                 'final_amount' => $legQuote->final_amount,
             ], $result->legQuotes),
-            'snapshot' => $result->snapshot,
             'pricing' => [
                 'subtotal_amount' => $result->snapshot['subtotal_amount'],
                 'dynamic_adjustment_amount' => $result->snapshot['dynamic_adjustment_amount'],
@@ -121,13 +141,24 @@ class ItineraryController extends Controller
                 'total_amount' => $result->totalAmount,
                 'currency' => $result->currency,
             ],
-        ]);
+        ]]);
     }
 
     /**
      * Create an atomic seat hold for a multi-leg itinerary.
      *
+     * Requires a Sanctum bearer token.
+     *
      * @authenticated
+     *
+     * @bodyParam itinerary_quote_uuid string required Immutable itinerary quote UUID.
+     * @bodyParam idempotency_key string required Client-generated key for safe retries.
+     * @bodyParam payer object Optional personal or company payer context.
+     * @bodyParam passengers array required Passenger-to-leg seat assignment matrix.
+     * @bodyParam passengers.*.passenger_index integer required Zero-based passenger index.
+     * @bodyParam passengers.*.seat_assignments array required One seat assignment per itinerary leg.
+     * @bodyParam passengers.*.seat_assignments.*.leg_order integer required One-based itinerary leg order.
+     * @bodyParam passengers.*.seat_assignments.*.seat_uuid string required Seat UUID.
      *
      * @response 201 scenario="Hold created" {
      *   "data": {

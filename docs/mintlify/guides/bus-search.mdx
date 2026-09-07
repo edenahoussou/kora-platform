@@ -1,119 +1,62 @@
 ---
 title: Recherche Bus
-description: "Parcours de recherche bus KORA BUS en 4 étapes : villes desservies, lignes, départs disponibles et plan des sièges via l'API REST V1."
+description: "Rechercher un itinéraire direct ou avec correspondances dans KORA BUS à partir des points physiques du réseau."
 ---
 
 # Recherche Bus
 
-Le parcours de recherche est le point d'entrée du client passager. Il s'enchaîne en 4 étapes : **villes → lignes → départs → sièges**.
+Le parcours mobile utilise une recherche d'itinéraire unifiée. Un même résultat peut représenter un départ direct ou plusieurs `legs` avec correspondances.
 
 <Steps>
-  <Step title="Lister les villes desservies">
-    Retourne les villes actives dérivées des arrêts de bus en service. Cet endpoint est **public** et mis en cache côté serveur.
+  <Step title="1. Charger le catalogue des villes et points physiques">
+    `GET /api/v1/bus/cities` reste public et permet d'afficher les villes desservies. Pour réserver, conservez ensuite les UUID des points physiques associés aux arrêts, et non uniquement le libellé de la ville.
 
-<CodeGroup>
-
-```bash Curl
+```bash
 curl -X GET https://staging.koraexpress.app/api/v1/bus/cities \
   -H 'Accept: application/json'
 ```
 
-```dart Dart
-final response = await dio.get('/api/v1/bus/cities');
-final cities = response.data['data'] as List;
-
-for (final city in cities) {
-  print('${city['city']} (${city['country']}) — ${city['stops_count']} arrêts');
-}
-// Cotonou (BJ) — 3 arrêts
-// Abidjan (CI) — 2 arrêts
-```
-
-</CodeGroup>
-
-**Réponse attendue (200) :**
-
-```json
-{
-  "data": [
-    {
-      "city": "Cotonou",
-      "country": "BJ",
-      "stops_count": 3
-    },
-    {
-      "city": "Abidjan",
-      "country": "CI",
-      "stops_count": 2
-    },
-    {
-      "city": "Bohicon",
-      "country": "BJ",
-      "stops_count": 1
-    }
-  ]
-}
-```
+Les UUID sont la référence stable utilisée par la recherche, le devis et la sélection de sièges.
   </Step>
 
-  <Step title="Lister les lignes">
-    Filtrable par segment origine/destination. Chaque ligne contient ses arrêts ordonnés.
+  <Step title="2. Rechercher un itinéraire direct ou multi-leg">
+    Appelez l'endpoint canonique avec les points physiques origine/destination :
 
-<CodeGroup>
-
-```bash Curl
-curl -X GET 'https://staging.koraexpress.app/api/v1/bus/lines?from=Cotonou&to=Abidjan' \
+```bash
+curl -X GET 'https://staging.koraexpress.app/api/v1/bus/itineraries?from_physical_stop_uuid=origin-physical-uuid&to_physical_stop_uuid=destination-physical-uuid&date=2026-09-10&passenger_count=2' \
   -H 'Accept: application/json'
 ```
 
-```dart Dart
-final response = await dio.get('/api/v1/bus/lines', queryParameters: {
-  'from': 'Cotonou',
-  'to': 'Abidjan',
-});
-
-final lines = response.data['data'] as List;
-```
-
-</CodeGroup>
-
-**Réponse attendue (200) :**
-
 ```json
 {
   "data": [
     {
-      "uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-      "code": "COT-ABJ",
-      "name": "Cotonou — Abidjan",
-      "countries_crossed": ["BJ", "CI"],
-      "distance_km": 1050.5,
-      "estimated_duration_minutes": 480,
-      "status": "active",
-      "stops": [
+      "connections_count": 1,
+      "total_amount": 27500,
+      "currency": "XOF",
+      "departure_at": "2026-09-10T06:00:00Z",
+      "arrival_at": "2026-09-10T19:30:00Z",
+      "connection_margin_minutes": 45,
+      "legs": [
         {
-          "uuid": "6b72fe4a-5b40-307c-bc24-f79acf9a1bb9",
-          "name": "Gare de Cotonou",
-          "city": "Cotonou",
-          "country": "BJ",
-          "stop_order": 1,
-          "km_from_origin": 0.0
+          "leg_order": 1,
+          "departure_uuid": "departure-leg-1-uuid",
+          "line_code": "L1",
+          "origin_stop_uuid": "origin-stop-uuid",
+          "destination_stop_uuid": "connection-stop-uuid",
+          "departure_at": "2026-09-10T06:00:00Z",
+          "arrival_at": "2026-09-10T13:00:00Z",
+          "amount": 15000
         },
         {
-          "uuid": "7c83ef5b-6c51-418d-cd35-8abd0bab2cc0",
-          "name": "Gare de Bohicon",
-          "city": "Bohicon",
-          "country": "BJ",
-          "stop_order": 2,
-          "km_from_origin": 120.0
-        },
-        {
-          "uuid": "8d94f06c-7d62-529e-de46-9bce1cbc3dd1",
-          "name": "Gare d'Abidjan",
-          "city": "Abidjan",
-          "country": "CI",
-          "stop_order": 3,
-          "km_from_origin": 1050.5
+          "leg_order": 2,
+          "departure_uuid": "departure-leg-2-uuid",
+          "line_code": "L2",
+          "origin_stop_uuid": "connection-stop-uuid-2",
+          "destination_stop_uuid": "destination-stop-uuid",
+          "departure_at": "2026-09-10T14:00:00Z",
+          "arrival_at": "2026-09-10T19:30:00Z",
+          "amount": 12500
         }
       ]
     }
@@ -121,163 +64,31 @@ final lines = response.data['data'] as List;
 }
 ```
 
-<Warning>
-  Conservez les `uuid` des arrêts d'origine et de destination — ils sont requis pour l'endpoint sièges à l'étape 4.
-</Warning>
+`leg_order` commence à `1`. Le moteur vérifie les correspondances, l'identité du point physique et la marge minimale entre deux départs.
   </Step>
 
-  <Step title="Rechercher des départs">
-    Retourne les départs programmés pour une date et un segment. Le `date` est obligatoire.
+  <Step title="3. Consulter les sièges de chaque leg">
+    Pour chaque leg sélectionné, appelez l'endpoint de sièges avec les arrêts O/D du leg :
 
-<CodeGroup>
-
-```bash Curl
-curl -X GET 'https://staging.koraexpress.app/api/v1/bus/departures?date=2026-08-20&from=Cotonou&to=Abidjan' \
+```bash
+curl -X GET 'https://staging.koraexpress.app/api/v1/bus/departures/departure-leg-1-uuid/seats?origin_stop_uuid=origin-stop-uuid&destination_stop_uuid=connection-stop-uuid' \
   -H 'Accept: application/json'
 ```
 
-```dart Dart
-final response = await dio.get('/api/v1/bus/departures', queryParameters: {
-  'date': '2026-08-20',
-  'from': 'Cotonou',
-  'to': 'Abidjan',
-});
-
-final departures = response.data['data'] as List;
-for (final d in departures) {
-  print('${d['uuid']} — ${d['departure_time']} — ${d['available_seats_count']} places');
-}
-```
-
-</CodeGroup>
-
-**Réponse attendue (200) :**
-
-```json
-{
-  "data": [
-    {
-      "uuid": "a3091549-9179-454e-8440-58179f2208df",
-      "departure_date": "2026-08-20",
-      "departure_time": "06:00",
-      "estimated_arrival_at": "2026-08-20T14:00:00.000Z",
-      "status": "scheduled",
-      "line": {
-        "uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-        "code": "COT-ABJ",
-        "name": "Cotonou — Abidjan",
-        "countries_crossed": ["BJ", "CI"],
-        "distance_km": 1050.5,
-        "estimated_duration_minutes": 480,
-        "status": "active"
-      },
-      "bus": {
-        "uuid": "b4102650-a280-4655-9551-69280321aaef",
-        "registration_number": "BJ-2024-AB-1234",
-        "brand": "Mercedes",
-        "model": "O500",
-        "seat_count": 49
-      },
-      "origin_stop": {
-        "uuid": "6b72fe4a-5b40-307c-bc24-f79acf9a1bb9",
-        "name": "Gare de Cotonou",
-        "city": "Cotonou",
-        "country": "BJ",
-        "stop_order": 1,
-        "km_from_origin": 0.0
-      },
-      "destination_stop": {
-        "uuid": "8d94f06c-7d62-529e-de46-9bce1cbc3dd1",
-        "name": "Gare d'Abidjan",
-        "city": "Abidjan",
-        "country": "CI",
-        "stop_order": 3,
-        "km_from_origin": 1050.5
-      },
-      "available_seats_count": 32,
-      "fare_preview": {
-        "amount": 15000,
-        "currency": "XOF",
-        "label": "15 000 FCFA"
-      }
-    }
-  ]
-}
-```
-
-<Info>
-  Le `fare_preview` est un **aperçu** du tarif actif. Il ne crée pas de devis figé. Pour obtenir le montant contractuel, appelez `POST /api/v1/bus/quotes` avec les UUID du départ et du segment, après authentification. Ne pas afficher de prix définitif côté client avant cette réponse.
-</Info>
+La disponibilité et le prix affichés avant le devis sont indicatifs. Le serveur revérifie le départ, le bus, le siège et le segment au moment du devis et du hold.
   </Step>
 
-  <Step title="Consulter le plan des sièges">
-    Retourne la disponibilité de chaque siège pour le segment O/D demandé. Les `origin_stop_uuid` et `destination_stop_uuid` sont obligatoires.
+  <Step title="4. Créer le devis puis le hold">
+    Envoyez les legs sélectionnés à `POST /api/v1/bus/itinerary-quotes`, puis utilisez le UUID obtenu avec `POST /api/v1/bus/itinerary-holds`.
 
-<CodeGroup>
-
-```bash Curl
-curl -X GET 'https://staging.koraexpress.app/api/v1/bus/departures/a3091549-9179-454e-8440-58179f2208df/seats?origin_stop_uuid=6b72fe4a-5b40-307c-bc24-f79acf9a1bb9&destination_stop_uuid=8d94f06c-7d62-529e-de46-9bce1cbc3dd1' \
-  -H 'Accept: application/json'
-```
-
-```dart Dart
-final response = await dio.get(
-  '/api/v1/bus/departures/a3091549-9179-454e-8440-58179f2208df/seats',
-  queryParameters: {
-    'origin_stop_uuid': '6b72fe4a-5b40-307c-bc24-f79acf9a1bb9',
-    'destination_stop_uuid': '8d94f06c-7d62-529e-de46-9bce1cbc3dd1',
-  },
-);
-
-final seats = response.data['data'] as List;
-final available = seats.where((s) => s['availability_status'] == 'available').toList();
-print('${available.length} sièges disponibles');
-```
-
-</CodeGroup>
-
-**Réponse attendue (200) :**
-
-```json
-{
-  "data": [
-    {
-      "uuid": "seat-001-uuid",
-      "code": "1A",
-      "type": "standard",
-      "sellable": true,
-      "availability_status": "available"
-    },
-    {
-      "uuid": "seat-002-uuid",
-      "code": "1B",
-      "type": "standard",
-      "sellable": true,
-      "availability_status": "occupied"
-    },
-    {
-      "uuid": "seat-003-uuid",
-      "code": "1C",
-      "type": "aisle",
-      "sellable": true,
-      "availability_status": "blocked"
-    },
-    {
-      "uuid": "seat-004-uuid",
-      "code": "2A",
-      "type": "standard",
-      "sellable": true,
-      "availability_status": "available"
-    }
-  ]
-}
-```
-
-Voir le guide [Sélection de sièges](/guides/seat-selection) pour les statuts et la logique de segment.
+    Même un trajet direct utilise la forme multi-leg avec un seul élément dans `legs`. Cette forme évite de maintenir deux parcours mobiles différents.
   </Step>
-
 </Steps>
 
-<Card title="Guide suivant" href="/guides/quotes-and-holds" icon="arrow-right" iconType="solid">
-  Après la sélection, créez un **devis** et bloquez les sièges.
+<Warning>
+  Les endpoints `/api/v1/bus/departures` et `/api/v1/bus/quotes` restent disponibles pour les détails de catalogue et les clients internes. Ils ne constituent plus le parcours de recherche mobile recommandé.
+</Warning>
+
+<Card title="Devis et blocage de sièges" href="/guides/quotes-and-holds" icon="arrow-right" iconType="solid">
+  Consultez le contrat multi-leg, la matrice passager × leg et les règles d'expiration.
 </Card>

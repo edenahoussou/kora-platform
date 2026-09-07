@@ -62,7 +62,17 @@ final tickets = res.data['data'] as List;
         "first_name": "Aïcha",
         "last_name": "HOUNKPÈ"
       },
-      "seat_code": "12A"
+      "segments": [
+        {
+          "leg_order": 1,
+          "departure_uuid": "departure-leg-1-uuid",
+          "origin_stop_uuid": "origin-stop-uuid",
+          "destination_stop_uuid": "destination-stop-uuid",
+          "seat_uuid": "seat-leg-1-uuid",
+          "seat_code": "12A",
+          "status": "active"
+        }
+      ]
     }
   ]
 }
@@ -83,7 +93,14 @@ final tickets = res.data['data'] as List;
 <ResponseField name="data[].passenger.uuid" type="UUID">UUID du passager.</ResponseField>
 <ResponseField name="data[].passenger.first_name" type="string">Prénom.</ResponseField>
 <ResponseField name="data[].passenger.last_name" type="string">Nom.</ResponseField>
-<ResponseField name="data[].seat_code" type="string">Code du siège attribué ou `null`.</ResponseField>
+<ResponseField name="data[].segments" type="array" required>Un segment de billet par leg, trié par `leg_order` 1-based.</ResponseField>
+<ResponseField name="data[].segments[].leg_order" type="integer" required>Ordre du leg, à partir de `1`.</ResponseField>
+<ResponseField name="data[].segments[].departure_uuid" type="UUID">UUID public du départ.</ResponseField>
+<ResponseField name="data[].segments[].origin_stop_uuid" type="UUID">UUID public de l'origine du segment.</ResponseField>
+<ResponseField name="data[].segments[].destination_stop_uuid" type="UUID">UUID public de la destination du segment.</ResponseField>
+<ResponseField name="data[].segments[].seat_uuid" type="UUID">UUID public du siège.</ResponseField>
+<ResponseField name="data[].segments[].seat_code" type="string">Code du siège attribué ou `null`.</ResponseField>
+<ResponseField name="data[].segments[].status" type="string">Statut du segment.</ResponseField>
 
 ## Codes de réponse
 
