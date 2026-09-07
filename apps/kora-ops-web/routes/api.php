@@ -1,13 +1,11 @@
 <?php
 
-use App\Modules\Booking\Http\Controllers\BusSeatHoldController;
 use App\Modules\Booking\Http\Controllers\ItineraryController;
 use App\Modules\Booking\Http\Controllers\ReservationController;
 use App\Modules\Booking\Http\Controllers\ReservationPassengerController;
 use App\Modules\BusNetwork\Http\Controllers\BusCatalogController;
 use App\Modules\CompanyAccounts\Http\Controllers\CompanyAccountController;
 use App\Modules\Departures\Http\Controllers\BusDepartureController;
-use App\Modules\DynamicPricing\Http\Controllers\BusQuoteController;
 use App\Modules\DynamicPricing\Http\Controllers\GroupDiscountRuleController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthDeviceController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthOAuthController;
@@ -62,17 +60,12 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::get('cities', [BusCatalogController::class, 'cities'])->name('cities.index');
             Route::get('lines', [BusCatalogController::class, 'lines'])->name('lines.index');
             Route::get('lines/{line:uuid}', [BusCatalogController::class, 'line'])->name('lines.show');
-            Route::get('departures', [BusDepartureController::class, 'index'])->name('departures.index');
-            Route::get('departures/{departure:uuid}', [BusDepartureController::class, 'show'])->name('departures.show');
             Route::get('departures/{departure:uuid}/seats', [BusDepartureController::class, 'seats'])->name('departures.seats.index');
             Route::get('itineraries', [ItineraryController::class, 'index'])
                 ->middleware('throttle:bus-itinerary-search')
                 ->name('itineraries.index');
 
             Route::middleware('auth:sanctum')->group(function (): void {
-                Route::post('quotes', [BusQuoteController::class, 'store'])->name('quotes.store');
-                Route::post('holds', [BusSeatHoldController::class, 'store'])->name('holds.store');
-                Route::delete('holds/{reservation:uuid}', [BusSeatHoldController::class, 'destroy'])->name('holds.destroy');
                 Route::post('itinerary-quotes', [ItineraryController::class, 'quote'])
                     ->middleware('throttle:bus-itinerary-actions')
                     ->name('itinerary-quotes.store');
@@ -96,6 +89,10 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::get('payments/methods', [PaymentController::class, 'methods'])
             ->name('payments.methods');
 
+        Route::get('bookings/{reservation:uuid}', [ReservationController::class, 'show'])
+            ->name('bookings.show');
+        Route::delete('bookings/{reservation:uuid}', [ReservationController::class, 'destroy'])
+            ->name('bookings.destroy');
         Route::post('bookings/{reservation:uuid}/passengers', [ReservationPassengerController::class, 'store'])
             ->name('bookings.passengers.store');
         Route::post('bookings/{reservation:uuid}/cancel', [ReservationController::class, 'cancel'])
@@ -127,4 +124,10 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->name('payments.webhook.fedapay');
     Route::post('payments/webhook/mtn-momo', [PaymentController::class, 'webhookMtnMomo'])
         ->name('payments.webhook.mtn-momo');
+
+    // Provider callback endpoints (redirect or POST after payment processing).
+    Route::get('payments/callback/fedapay', [PaymentController::class, 'callbackFedaPay'])
+        ->name('payments.callback.fedapay');
+    Route::post('payments/callback/fedapay', [PaymentController::class, 'callbackFedaPay'])
+        ->name('payments.callback.fedapay.post');
 });

@@ -22,7 +22,9 @@ class BusCatalogController extends Controller
     /**
      * List served cities.
      *
-     * Returns active cities derived from active Bus stops.
+     * Returns active cities with their physical stops, ready for itinerary search.
+     * Each physical stop exposes its UUID, which the mobile uses as
+     * `from_physical_stop_uuid` / `to_physical_stop_uuid` in `GET /bus/itineraries`.
      *
      * @unauthenticated
      *
@@ -31,12 +33,26 @@ class BusCatalogController extends Controller
      *     {
      *       "city": "Cotonou",
      *       "country": "BJ",
-     *       "stops_count": 4
+     *       "physical_stops": [
+     *         {
+     *           "uuid": "5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21",
+     *           "name": "Cotonou · St Michel"
+     *         },
+     *         {
+     *           "uuid": "5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22",
+     *           "name": "Cotonou · Dantokpa"
+     *         }
+     *       ]
      *     },
      *     {
      *       "city": "Abidjan",
      *       "country": "CI",
-     *       "stops_count": 2
+     *       "physical_stops": [
+     *         {
+     *           "uuid": "5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e23",
+     *           "name": "Abidjan · Adjamé"
+     *         }
+     *       ]
      *     }
      *   ]
      * }
