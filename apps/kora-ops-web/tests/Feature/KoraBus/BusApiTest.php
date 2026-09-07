@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\User;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Models\Bus;
@@ -25,14 +26,251 @@ afterEach(function (): void {
     Carbon::setTestNow();
 });
 
-it('lists active cities derived from stops', function (): void {
-    koraBusApiScenario();
+it('lists active cities with their physical stops for itinerary search', function (): void {
+    $scenario = koraBusApiScenario();
 
     $this->getJson('/api/v1/bus/cities')
         ->assertOk()
-        ->assertJsonPath('data.0.city', 'Abidjan')
         ->assertJsonFragment(['city' => 'Cotonou', 'country' => 'BJ'])
-        ->assertJsonMissingPath('data.0.id');
+        ->assertJsonFragment(['city' => 'Abidjan', 'country' => 'CI'])
+        ->assertJsonPath('data.0.physical_stops.0.uuid', fn (?string $uuid): bool => $uuid !== null)
+        ->assertJsonMissingPath('data.0.id')
+        ->assertJsonMissingPath('data.0.physical_stops.0.id');
+});
+
+it('returns rich itinerary legs with line, bus, amenities, stops and service class', function (): void {
+    $scenario = koraBusApiScenario();
+
+    $this->getJson('/api/v1/bus/itineraries?from_physical_stop_uuid='.$scenario['origin']->physicalStop->uuid.'&to_physical_stop_uuid='.$scenario['destination']->physicalStop->uuid.'&date=2026-08-15')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.connections_count', 0)
+        ->assertJsonPath('data.0.total_amount', 12500)
+        ->assertJsonPath('data.0.currency', 'XOF')
+        ->assertJsonPath('data.0.legs.0.leg_order', 1)
+        ->assertJsonPath('data.0.legs.0.departure_uuid', $scenario['departure']->uuid)
+        // Line block
+        ->assertJsonPath('data.0.legs.0.line.uuid', $scenario['line']->uuid)
+        ->assertJsonPath('data.0.legs.0.line.code', 'API-L1')
+        ->assertJsonPath('data.0.legs.0.line.name', 'Cotonou - Abidjan API')
+        ->assertJsonPath('data.0.legs.0.line.is_international', true)
+        // Bus block
+        ->assertJsonPath('data.0.legs.0.bus.uuid', $scenario['bus']->uuid)
+        ->assertJsonPath('data.0.legs.0.bus.registration_number', 'API-BUS-001')
+        ->assertJsonPath('data.0.legs.0.bus.seat_count', 3)
+        ->assertJsonPath('data.0.legs.0.bus.amenities.0.code', 'wifi')
+        // Stops with city/country
+        ->assertJsonPath('data.0.legs.0.origin_stop.uuid', $scenario['origin']->uuid)
+        ->assertJsonPath('data.0.legs.0.origin_stop.city', 'Cotonou')
+        ->assertJsonPath('data.0.legs.0.origin_stop.country', 'BJ')
+        ->assertJsonPath('data.0.legs.0.destination_stop.uuid', $scenario['destination']->uuid)
+        ->assertJsonPath('data.0.legs.0.destination_stop.city', 'Abidjan')
+        ->assertJsonPath('data.0.legs.0.destination_stop.country', 'CI')
+        // Fare + availability + service class
+        ->assertJsonPath('data.0.legs.0.amount', 12500)
+        ->assertJsonPath('data.0.legs.0.available_seats_count', 1)
+        ->assertJsonPath('data.0.legs.0.service_class_code', 'api-standard')
+        ->assertJsonPath('data.0.legs.0.service_class_name', 'Standard API')
+        // No numeric ids leaked
+        ->assertJsonMissingPath('data.0.legs.0.bus.id')
+        ->assertJsonMissingPath('data.0.legs.0.origin_stop.id')
+        ->assertJsonMissingPath('data.0.legs.0.destination_stop.id')
+        ->assertJsonMissingPath('data.0.legs.0.line.id');
+});
+
+it('supports sorting by departure time and filtering by service class code', function (): void {
+    $scenario = koraBusApiScenario();
+
+    // Sort by departure_time asc — default secondary sort keeps direct first
+    $this->getJson('/api/v1/bus/itineraries?from_physical_stop_uuid='.$scenario['origin']->physicalStop->uuid.'&to_physical_stop_uuid='.$scenario['destination']->physicalStop->uuid.'&date=2026-08-15&sort=departure_time&sort_direction=asc')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.legs.0.departure_uuid', $scenario['departure']->uuid);
+
+    // Filter by the matching service class code — should still return the itinerary
+    $this->getJson('/api/v1/bus/itineraries?from_physical_stop_uuid='.$scenario['origin']->physicalStop->uuid.'&to_physical_stop_uuid='.$scenario['destination']->physicalStop->uuid.'&date=2026-08-15&service_class_code=api-standard')
+        ->assertOk()
+        ->assertJsonCount(1, 'data');
+
+    // Filter by a non-matching service class code — should return empty
+    $otherClass = ServiceClass::query()->where('code', '!=', 'api-standard')->first() ?? ServiceClass::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'code' => 'api-premium',
+        'name' => 'Premium API',
+        'status' => 'active',
+    ]);
+
+    $this->getJson('/api/v1/bus/itineraries?from_physical_stop_uuid='.$scenario['origin']->physicalStop->uuid.'&to_physical_stop_uuid='.$scenario['destination']->physicalStop->uuid.'&date=2026-08-15&service_class_code='.$otherClass->code)
+        ->assertOk()
+        ->assertJsonCount(0, 'data');
+});
+
+it('rejects invalid sort and sort_direction parameters', function (): void {
+    $scenario = koraBusApiScenario();
+
+    $this->getJson('/api/v1/bus/itineraries?from_physical_stop_uuid='.$scenario['origin']->physicalStop->uuid.'&to_physical_stop_uuid='.$scenario['destination']->physicalStop->uuid.'&date=2026-08-15&sort=invalid')
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['sort']);
+
+    $this->getJson('/api/v1/bus/itineraries?from_physical_stop_uuid='.$scenario['origin']->physicalStop->uuid.'&to_physical_stop_uuid='.$scenario['destination']->physicalStop->uuid.'&date=2026-08-15&sort_direction=sideways')
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['sort_direction']);
+});
+
+it('returns outbound and inbound itineraries when trip_type is round_trip', function (): void {
+    $scenario = koraBusApiScenario();
+
+    // Create a return departure on the same line (reversed direction)
+    $returnDeparture = Departure::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'line_id' => $scenario['line']->id,
+        'bus_id' => $scenario['bus']->id,
+        'departure_date' => '2026-08-16',
+        'departure_time' => '07:30',
+        'estimated_arrival_at' => CarbonImmutable::parse('2026-08-16 17:15'),
+        'status' => 'scheduled',
+        'stop_times' => [
+            ['stop_uuid' => $scenario['destination']->uuid, 'arrival_minutes' => null, 'departure_minutes' => 0, 'timezone' => 'Africa/Abidjan'],
+            ['stop_uuid' => $scenario['middle']->uuid, 'arrival_minutes' => 621, 'departure_minutes' => 631, 'timezone' => 'Africa/Lome'],
+            ['stop_uuid' => $scenario['origin']->uuid, 'arrival_minutes' => 1024, 'departure_minutes' => null, 'timezone' => 'Africa/Porto-Novo'],
+        ],
+    ]);
+
+    // Fare for the return direction
+    Fare::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'line_id' => $scenario['line']->id,
+        'origin_stop_id' => $scenario['destination']->id,
+        'destination_stop_id' => $scenario['origin']->id,
+        'service_class_id' => ServiceClass::query()->where('code', 'api-standard')->firstOrFail()->id,
+        'base_amount' => 12500,
+        'currency' => 'XOF',
+        'effective_from' => '2026-01-01',
+        'status' => 'active',
+    ]);
+
+    $response = $this->getJson('/api/v1/bus/itineraries?from_physical_stop_uuid='.$scenario['origin']->physicalStop->uuid.'&to_physical_stop_uuid='.$scenario['destination']->physicalStop->uuid.'&date=2026-08-15&trip_type=round_trip&return_date=2026-08-16')
+        ->assertOk();
+
+    $response->assertJsonStructure(['outbound', 'inbound'])
+        ->assertJsonCount(1, 'outbound')
+        ->assertJsonCount(1, 'inbound')
+        ->assertJsonPath('outbound.0.legs.0.departure_uuid', $scenario['departure']->uuid)
+        ->assertJsonPath('inbound.0.legs.0.departure_uuid', $returnDeparture->uuid)
+        ->assertJsonMissingPath('data');
+});
+
+it('returns data key for one_way trip_type (retro-compatible)', function (): void {
+    $scenario = koraBusApiScenario();
+
+    $this->getJson('/api/v1/bus/itineraries?from_physical_stop_uuid='.$scenario['origin']->physicalStop->uuid.'&to_physical_stop_uuid='.$scenario['destination']->physicalStop->uuid.'&date=2026-08-15&trip_type=one_way')
+        ->assertOk()
+        ->assertJsonStructure(['data'])
+        ->assertJsonMissingPath('outbound')
+        ->assertJsonMissingPath('inbound');
+});
+
+it('accepts direction per leg in itinerary quotes for round trips', function (): void {
+    $scenario = koraBusApiScenario();
+
+    $user = User::factory()->create();
+
+    // Create a return departure
+    $returnDeparture = Departure::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'line_id' => $scenario['line']->id,
+        'bus_id' => $scenario['bus']->id,
+        'departure_date' => '2026-08-16',
+        'departure_time' => '07:30',
+        'estimated_arrival_at' => CarbonImmutable::parse('2026-08-16 17:15'),
+        'status' => 'scheduled',
+        'stop_times' => [
+            ['stop_uuid' => $scenario['destination']->uuid, 'arrival_minutes' => null, 'departure_minutes' => 0, 'timezone' => 'Africa/Abidjan'],
+            ['stop_uuid' => $scenario['middle']->uuid, 'arrival_minutes' => 621, 'departure_minutes' => 631, 'timezone' => 'Africa/Lome'],
+            ['stop_uuid' => $scenario['origin']->uuid, 'arrival_minutes' => 1024, 'departure_minutes' => null, 'timezone' => 'Africa/Porto-Novo'],
+        ],
+    ]);
+
+    Fare::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'line_id' => $scenario['line']->id,
+        'origin_stop_id' => $scenario['destination']->id,
+        'destination_stop_id' => $scenario['origin']->id,
+        'service_class_id' => ServiceClass::query()->where('code', 'api-standard')->firstOrFail()->id,
+        'base_amount' => 12500,
+        'currency' => 'XOF',
+        'effective_from' => '2026-01-01',
+        'status' => 'active',
+    ]);
+
+    $response = $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/bus/itinerary-quotes', [
+            'passenger_count' => 1,
+            'legs' => [
+                [
+                    'leg_order' => 1,
+                    'direction' => 'outbound',
+                    'departure_uuid' => $scenario['departure']->uuid,
+                    'origin_stop_uuid' => $scenario['origin']->uuid,
+                    'destination_stop_uuid' => $scenario['destination']->uuid,
+                ],
+                [
+                    'leg_order' => 2,
+                    'direction' => 'inbound',
+                    'departure_uuid' => $returnDeparture->uuid,
+                    'origin_stop_uuid' => $scenario['destination']->uuid,
+                    'destination_stop_uuid' => $scenario['origin']->uuid,
+                ],
+            ],
+        ])
+        ->assertOk();
+
+    $response->assertJsonPath('data.trip_type', 'round_trip')
+        ->assertJsonPath('data.legs.0.direction', 'outbound')
+        ->assertJsonPath('data.legs.1.direction', 'inbound')
+        ->assertJsonPath('data.legs.0.leg_order', 1)
+        ->assertJsonPath('data.legs.1.leg_order', 2);
+});
+
+it('searches upcoming return departures when trip_type is round_trip without return_date', function (): void {
+    $scenario = koraBusApiScenario();
+
+    // Create a return departure the day after outbound
+    $returnDeparture = Departure::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'line_id' => $scenario['line']->id,
+        'bus_id' => $scenario['bus']->id,
+        'departure_date' => '2026-08-16',
+        'departure_time' => '07:30',
+        'estimated_arrival_at' => CarbonImmutable::parse('2026-08-16 17:15'),
+        'status' => 'scheduled',
+        'stop_times' => [
+            ['stop_uuid' => $scenario['destination']->uuid, 'arrival_minutes' => null, 'departure_minutes' => 0, 'timezone' => 'Africa/Abidjan'],
+            ['stop_uuid' => $scenario['middle']->uuid, 'arrival_minutes' => 621, 'departure_minutes' => 631, 'timezone' => 'Africa/Lome'],
+            ['stop_uuid' => $scenario['origin']->uuid, 'arrival_minutes' => 1024, 'departure_minutes' => null, 'timezone' => 'Africa/Porto-Novo'],
+        ],
+    ]);
+
+    Fare::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'line_id' => $scenario['line']->id,
+        'origin_stop_id' => $scenario['destination']->id,
+        'destination_stop_id' => $scenario['origin']->id,
+        'service_class_id' => ServiceClass::query()->where('code', 'api-standard')->firstOrFail()->id,
+        'base_amount' => 12500,
+        'currency' => 'XOF',
+        'effective_from' => '2026-01-01',
+        'status' => 'active',
+    ]);
+
+    // round_trip WITHOUT return_date — should search upcoming return departures
+    $this->getJson('/api/v1/bus/itineraries?from_physical_stop_uuid='.$scenario['origin']->physicalStop->uuid.'&to_physical_stop_uuid='.$scenario['destination']->physicalStop->uuid.'&date=2026-08-15&trip_type=round_trip')
+        ->assertOk()
+        ->assertJsonStructure(['outbound', 'inbound'])
+        ->assertJsonMissingPath('data')
+        ->assertJsonCount(1, 'outbound')
+        ->assertJsonCount(1, 'inbound')
+        ->assertJsonPath('inbound.0.legs.0.departure_uuid', $returnDeparture->uuid);
 });
 
 it('lists lines filtered by ordered city segment', function (): void {
@@ -61,93 +299,6 @@ it('shows a line with ordered stops', function (): void {
         ->assertJsonPath('data.stops.2.city', 'Abidjan')
         ->assertJsonMissingPath('data.id')
         ->assertJsonMissingPath('data.stops.0.id');
-});
-
-it('lists departures by date and segment with fare preview', function (): void {
-    $scenario = koraBusApiScenario();
-
-    $this->getJson('/api/v1/bus/departures?date=2026-08-15&from=Cotonou&to=Abidjan')
-        ->assertOk()
-        ->assertJsonCount(1, 'data')
-        ->assertJsonPath('data.0.uuid', $scenario['departure']->uuid)
-        ->assertJsonPath('data.0.available_seats_count', 1)
-        ->assertJsonPath('data.0.fare_preview.final_amount', 12500)
-        ->assertJsonPath('data.0.fare_preview.is_quote', false)
-        ->assertJsonPath('data.0.line.type', 'nationale')
-        ->assertJsonPath('data.0.bus.layout', [
-            ['type' => 'row', 'codes' => ['1A']],
-            ['type' => 'row', 'codes' => ['2A', '2B']],
-        ])
-        ->assertJsonMissingPath('data.0.id')
-        ->assertJsonMissingPath('data.0.line.id')
-        ->assertJsonMissingPath('data.0.bus.id');
-});
-
-it('paginates the departures list', function (): void {
-    $scenario = koraBusApiScenario();
-
-    $response = $this->getJson('/api/v1/bus/departures?date=2026-08-15&from=Cotonou&to=Abidjan&per_page=1')
-        ->assertOk()
-        ->assertJsonCount(1, 'data')
-        ->assertJsonPath('meta.current_page', 1)
-        ->assertJsonPath('meta.per_page', 1)
-        ->assertJsonPath('meta.total', 1)
-        ->assertJsonPath('data.0.uuid', $scenario['departure']->uuid);
-
-    $response->assertJsonStructure(['data', 'links' => ['first', 'last', 'prev', 'next'], 'meta']);
-});
-
-it('filters departures by line uuid, hiding results from other lines', function (): void {
-    $scenario = koraBusApiScenario();
-
-    $otherLine = Line::query()->create([
-        'code' => 'API-L2',
-        'name' => 'Other line',
-        'countries_crossed' => ['BJ'],
-        'distance_km' => 50,
-        'estimated_duration_minutes' => 60,
-        'status' => 'active',
-    ]);
-
-    $this->getJson("/api/v1/bus/departures?date=2026-08-15&from=Cotonou&to=Abidjan&line={$scenario['line']->uuid}")
-        ->assertOk()
-        ->assertJsonCount(1, 'data')
-        ->assertJsonPath('data.0.uuid', $scenario['departure']->uuid);
-
-    $this->getJson("/api/v1/bus/departures?date=2026-08-15&from=Cotonou&to=Abidjan&line={$otherLine->uuid}")
-        ->assertOk()
-        ->assertJsonCount(0, 'data');
-
-    $this->getJson('/api/v1/bus/departures?date=2026-08-15&line='.Str::uuid())
-        ->assertUnprocessable()
-        ->assertJsonValidationErrors(['line']);
-});
-
-it('accepts origin_city and destination_city as aliases for from and to', function (): void {
-    $scenario = koraBusApiScenario();
-
-    $this->getJson('/api/v1/bus/departures?date=2026-08-15&origin_city=Cotonou&destination_city=Abidjan')
-        ->assertOk()
-        ->assertJsonCount(1, 'data')
-        ->assertJsonPath('data.0.uuid', $scenario['departure']->uuid);
-});
-
-it('shows a departure with bus line segment and fare preview', function (): void {
-    $scenario = koraBusApiScenario();
-
-    $this->getJson("/api/v1/bus/departures/{$scenario['departure']->uuid}?from=Cotonou&to=Abidjan")
-        ->assertOk()
-        ->assertJsonPath('data.uuid', $scenario['departure']->uuid)
-        ->assertJsonPath('data.line.code', 'API-L1')
-        ->assertJsonPath('data.origin_stop.uuid', $scenario['origin']->uuid)
-        ->assertJsonPath('data.destination_stop.uuid', $scenario['destination']->uuid)
-        ->assertJsonPath('data.fare_preview.currency', 'XOF')
-        ->assertJsonPath('data.bus.layout', [
-            ['type' => 'row', 'codes' => ['1A']],
-            ['type' => 'row', 'codes' => ['2A', '2B']],
-        ])
-        ->assertJsonMissingPath('data.id')
-        ->assertJsonMissingPath('data.origin_stop.id');
 });
 
 it('lists seat availability for an origin destination segment', function (): void {
@@ -204,44 +355,12 @@ it('marks a seat as held (not occupied) with a visible expiry while a temporary 
         ->assertJsonFragment(['code' => '2A', 'availability_status' => 'occupied', 'held_until' => null]);
 });
 
-it('exposes only active amenities on a departure bus, hiding archived ones', function (): void {
-    $scenario = koraBusApiScenario();
-
-    $this->getJson('/api/v1/bus/departures?date=2026-08-15&from=Cotonou&to=Abidjan')
-        ->assertOk()
-        ->assertJsonCount(1, 'data.0.bus.amenities')
-        ->assertJsonPath('data.0.bus.amenities.0.code', 'wifi')
-        ->assertJsonPath('data.0.bus.amenities.0.label', 'Wi-Fi à bord')
-        ->assertJsonMissingPath('data.0.bus.amenities.0.id')
-        ->assertJsonFragment(['code' => 'wifi', 'label' => 'Wi-Fi à bord', 'icon' => 'wifi']);
-
-    $this->getJson("/api/v1/bus/departures/{$scenario['departure']->uuid}?from=Cotonou&to=Abidjan")
-        ->assertOk()
-        ->assertJsonCount(1, 'data.bus.amenities')
-        ->assertJsonPath('data.bus.amenities.0.code', 'wifi');
-});
-
-it('exposes the service class description in the fare preview', function (): void {
-    koraBusApiScenario();
-
-    $this->getJson('/api/v1/bus/departures?date=2026-08-15&from=Cotonou&to=Abidjan')
-        ->assertOk()
-        ->assertJsonPath('data.0.fare_preview.service_class_code', 'api-standard')
-        ->assertJsonPath('data.0.fare_preview.service_class_name', 'Standard API')
-        ->assertJsonPath('data.0.fare_preview.service_class_description', 'Sièges inclinables, climatisation, prise USB.');
-});
-
 it('returns 404 for unknown public uuids', function (): void {
     $this->getJson('/api/v1/bus/lines/'.Str::uuid())->assertNotFound();
-    $this->getJson('/api/v1/bus/departures/'.Str::uuid())->assertNotFound();
 });
 
-it('validates departure and seat filters', function (): void {
+it('validates seat filters', function (): void {
     $scenario = koraBusApiScenario();
-
-    $this->getJson('/api/v1/bus/departures?date=15-08-2026')
-        ->assertUnprocessable()
-        ->assertJsonValidationErrors(['date']);
 
     $this->getJson("/api/v1/bus/departures/{$scenario['departure']->uuid}/seats")
         ->assertUnprocessable()
@@ -256,6 +375,8 @@ it('does not expose numeric ids anywhere in public bus payloads', function (stri
         '{departure}' => $scenario['departure']->uuid,
         '{origin}' => $scenario['origin']->uuid,
         '{destination}' => $scenario['destination']->uuid,
+        '{originPhysical}' => $scenario['origin']->physicalStop->uuid,
+        '{destinationPhysical}' => $scenario['destination']->physicalStop->uuid,
     ]);
 
     $payload = $this->getJson($uri)->assertOk()->json();
@@ -265,9 +386,8 @@ it('does not expose numeric ids anywhere in public bus payloads', function (stri
     'cities' => '/api/v1/bus/cities',
     'lines' => '/api/v1/bus/lines?from=Cotonou&to=Abidjan',
     'line' => '/api/v1/bus/lines/{line}',
-    'departures' => '/api/v1/bus/departures?date=2026-08-15&from=Cotonou&to=Abidjan',
-    'departure' => '/api/v1/bus/departures/{departure}?from=Cotonou&to=Abidjan',
     'seats' => '/api/v1/bus/departures/{departure}/seats?origin_stop_uuid={origin}&destination_stop_uuid={destination}',
+    'itineraries' => '/api/v1/bus/itineraries?from_physical_stop_uuid={originPhysical}&to_physical_stop_uuid={destinationPhysical}&date=2026-08-15',
 ]);
 
 /**

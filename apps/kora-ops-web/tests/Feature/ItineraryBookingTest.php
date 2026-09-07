@@ -31,8 +31,8 @@ it('searches, quotes and holds a two-leg itinerary without trusting client prici
         'legs' => array_map(fn (array $leg): array => [
             'leg_order' => $leg['leg_order'],
             'departure_uuid' => $leg['departure_uuid'],
-            'origin_stop_uuid' => $leg['origin_stop_uuid'],
-            'destination_stop_uuid' => $leg['destination_stop_uuid'],
+            'origin_stop_uuid' => $leg['origin_stop']['uuid'],
+            'destination_stop_uuid' => $leg['destination_stop']['uuid'],
         ], $legs),
     ])->assertOk();
 
