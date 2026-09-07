@@ -3,6 +3,7 @@
 namespace App\Modules\Cash\Http\Requests;
 
 use App\Modules\Cash\Models\CashSession;
+use App\Modules\Cash\Rules\RecentCameraCapture;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rules\File;
@@ -31,10 +32,11 @@ class CloseCashSessionRequest extends FormRequest
                 'file',
                 File::types(['jpg', 'jpeg', 'png', 'webp'])->max(5120),
             ],
+            'ledgers.*.evidence_captured_at' => ['required', 'date', new RecentCameraCapture],
         ];
     }
 
-    /** @return list<array{uuid: string, actual_balance: int, closing_comment: string|null, evidence: UploadedFile}> */
+    /** @return list<array{uuid: string, actual_balance: int, closing_comment: string|null, evidence: UploadedFile, evidence_captured_at: string}> */
     public function ledgerData(): array
     {
         $data = $this->validated();
@@ -48,6 +50,7 @@ class CloseCashSessionRequest extends FormRequest
                 'actual_balance' => (int) ($values['actual_balance'] ?? 0),
                 'closing_comment' => isset($values['closing_comment']) ? (string) $values['closing_comment'] : null,
                 'evidence' => $this->evidenceFor('ledgers.'.(int) $index.'.evidence'),
+                'evidence_captured_at' => (string) ($values['evidence_captured_at'] ?? ''),
             ];
         }
 

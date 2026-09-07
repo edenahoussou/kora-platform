@@ -17,7 +17,7 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 class CloseCashSessionAction
 {
     /**
-     * @param  list<array{uuid: string, actual_balance: int, closing_comment?: string|null, evidence: UploadedFile}>  $ledgers
+     * @param  list<array{uuid: string, actual_balance: int, closing_comment?: string|null, evidence: UploadedFile, evidence_captured_at?: string}>  $ledgers
      */
     public function execute(CashSession $session, User $agent, array $ledgers): CashSession
     {
@@ -58,7 +58,7 @@ class CloseCashSessionAction
 
             $hasVariance = false;
             foreach ($lockedSession->ledgers as $ledger) {
-                /** @var array{uuid: string, actual_balance: int, closing_comment?: string|null, evidence: UploadedFile} $data */
+                /** @var array{uuid: string, actual_balance: int, closing_comment?: string|null, evidence: UploadedFile, evidence_captured_at?: string} $data */
                 $data = $submitted->get($ledger->uuid);
                 $expectedBalance = $this->expectedBalance($ledger);
                 $actualBalance = (int) $data['actual_balance'];
@@ -85,8 +85,10 @@ class CloseCashSessionAction
                     ->withCustomProperties([
                         'evidence_type' => 'closing_balance',
                         'ledger_uuid' => $ledger->uuid,
+                        'evidence_source' => 'live_camera',
                         'captured_by' => $agent->uuid,
                         'captured_at' => now()->toISOString(),
+                        'captured_at_client' => $data['evidence_captured_at'] ?? null,
                     ])
                     ->toMediaCollection('closing-evidence');
             }

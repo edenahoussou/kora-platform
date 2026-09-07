@@ -6,7 +6,6 @@ use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\BusAmenity;
 use App\Modules\BusNetwork\Models\BusComposition;
 use App\Modules\BusNetwork\Models\BusModel;
-use App\Modules\IdentityAccess\Models\Agency;
 use Database\Seeders\KoraBusRolePermissionSeeder;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -143,15 +142,6 @@ it('attaches amenities to a bus on creation and reflects them on the fleet detai
     $wifi = createAmenity(['code' => 'wifi', 'label' => 'Wi-Fi à bord']);
     $ac = createAmenity(['code' => 'air_conditioning', 'label' => 'Climatisation']);
 
-    $agency = Agency::query()->create([
-        'uuid' => Str::uuid()->toString(),
-        'code' => 'AG-'.Str::random(6),
-        'name' => 'Agence Cotonou',
-        'city' => 'Cotonou',
-        'country' => 'BJ',
-        'status' => 'active',
-    ]);
-
     $composition = BusComposition::query()->create([
         'uuid' => Str::uuid()->toString(),
         'code' => 'COMP-'.Str::random(6),
@@ -173,7 +163,6 @@ it('attaches amenities to a bus on creation and reflects them on the fleet detai
         'registration_number' => 'BJ-1234-AB',
         'bus_model_id' => $model->id,
         'composition_id' => $composition->id,
-        'agency_id' => $agency->id,
         'status' => 'active',
         'amenity_ids' => [$wifi->id, $ac->id],
     ])->assertRedirect(route('fleet.index', absolute: false));

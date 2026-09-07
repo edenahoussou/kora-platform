@@ -158,18 +158,23 @@ export function AgencyFormDialog({
                             <div className="grid gap-5 p-7">
                                 <div className="grid gap-2">
                                     <Label htmlFor="agency-code">
-                                        Code agence *
+                                        Code agence
                                     </Label>
                                     <Input
                                         id="agency-code"
-                                        name="code"
-                                        defaultValue={agency?.code ?? ''}
-                                        required
-                                        maxLength={32}
-                                        placeholder="COT"
-                                        className="h-12 rounded-[0.875rem] border-0 bg-muted uppercase shadow-[inset_0_0_0_1px_var(--border)] focus-visible:bg-background"
+                                        readOnly
+                                        disabled
+                                        value={
+                                            isEditing
+                                                ? (agency?.code ?? '')
+                                                : 'Généré automatiquement à la création'
+                                        }
+                                        className="h-12 rounded-[0.875rem] border-0 bg-muted text-muted-foreground uppercase shadow-[inset_0_0_0_1px_var(--border)] disabled:opacity-100"
                                     />
-                                    <InputError message={errors.code} />
+                                    <p className="text-xs text-muted-foreground">
+                                        Le code est attribué automatiquement par
+                                        le système et ne peut pas être modifié.
+                                    </p>
                                 </div>
 
                                 <div className="grid gap-2">

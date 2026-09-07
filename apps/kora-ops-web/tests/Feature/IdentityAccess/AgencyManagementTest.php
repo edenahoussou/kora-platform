@@ -47,7 +47,6 @@ it('creates and updates an agency through the web module', function (): void {
 
     $this->actingAs($user)
         ->post(route('agencies.store'), [
-            'code' => '  cot-centre ',
             'name' => 'Agence Cotonou Centre',
             'city' => 'Cotonou',
             'country' => 'bj',
@@ -55,15 +54,15 @@ it('creates and updates an agency through the web module', function (): void {
         ])
         ->assertRedirect(route('agencies.index', absolute: false));
 
-    $agency = Agency::query()->where('code', 'COT-CENTRE')->firstOrFail();
+    $agency = Agency::query()->where('name', 'Agence Cotonou Centre')->firstOrFail();
 
     expect($agency->uuid)->not->toBeEmpty()
+        ->and($agency->code)->toMatch('/^AG-\d{6}$/')
         ->and($agency->country)->toBe('BJ')
         ->and($agency->status->value)->toBe('draft');
 
     $this->actingAs($user)
         ->put(route('agencies.update', $agency), [
-            'code' => 'COT-CENTRE',
             'name' => 'Agence Cotonou Centre rénovée',
             'city' => 'Cotonou',
             'country' => 'BJ',
@@ -75,7 +74,66 @@ it('creates and updates an agency through the web module', function (): void {
         ->and($agency->status->value)->toBe('active');
 });
 
-it('rejects duplicate agency codes and users without the agency permission', function (): void {
+it('auto-generates sequential, unique agency codes and ignores any client-supplied code', function (): void {
+    $user = agencyManager();
+
+    $this->actingAs($user)
+        ->post(route('agencies.store'), [
+            // A client-supplied `code` must be silently ignored: it is not
+            // even part of the validated payload.
+            'code' => 'HACKED',
+            'name' => 'Agence Un',
+            'city' => 'Cotonou',
+            'country' => 'BJ',
+            'status' => 'draft',
+        ])
+        ->assertRedirect(route('agencies.index', absolute: false));
+
+    $this->actingAs($user)
+        ->post(route('agencies.store'), [
+            'name' => 'Agence Deux',
+            'city' => 'Parakou',
+            'country' => 'BJ',
+            'status' => 'draft',
+        ])
+        ->assertRedirect(route('agencies.index', absolute: false));
+
+    $first = Agency::query()->where('name', 'Agence Un')->firstOrFail();
+    $second = Agency::query()->where('name', 'Agence Deux')->firstOrFail();
+
+    expect($first->code)->not->toBe('HACKED')
+        ->and($first->code)->toMatch('/^AG-\d{6}$/')
+        ->and($second->code)->toMatch('/^AG-\d{6}$/')
+        ->and($first->code)->not->toBe($second->code);
+
+    // Sequence keeps advancing, so codes are monotonically increasing.
+    expect((int) substr($second->code, 3))->toBeGreaterThan((int) substr($first->code, 3));
+});
+
+it('keeps the agency code unchanged when a client attempts to modify it on update', function (): void {
+    $user = agencyManager();
+    $agency = Agency::query()->create([
+        'code' => 'AG-000010',
+        'name' => 'Agence Cotonou',
+        'city' => 'Cotonou',
+        'country' => 'BJ',
+        'status' => 'active',
+    ]);
+
+    $this->actingAs($user)
+        ->put(route('agencies.update', $agency), [
+            'code' => 'AG-999999',
+            'name' => 'Agence Cotonou',
+            'city' => 'Cotonou',
+            'country' => 'BJ',
+            'status' => 'active',
+        ])
+        ->assertRedirect(route('agencies.index', absolute: false));
+
+    expect($agency->refresh()->code)->toBe('AG-000010');
+});
+
+it('forbids users without the agency permission from accessing agencies', function (): void {
     $agency = Agency::query()->create([
         'code' => 'COT',
         'name' => 'Agence Cotonou',
@@ -83,18 +141,6 @@ it('rejects duplicate agency codes and users without the agency permission', fun
         'country' => 'BJ',
         'status' => 'active',
     ]);
-
-    $manager = agencyManager();
-
-    $this->actingAs($manager)
-        ->post(route('agencies.store'), [
-            'code' => 'COT',
-            'name' => 'Doublon',
-            'city' => 'Cotonou',
-            'country' => 'BJ',
-            'status' => 'draft',
-        ])
-        ->assertSessionHasErrors('code');
 
     $agent = User::factory()->create();
     $agent->assignRole('agency_agent');
@@ -135,7 +181,6 @@ it('assigns and updates the agency head', function (): void {
 
     $this->actingAs($user)
         ->post(route('agencies.store'), [
-            'code' => 'COT',
             'name' => 'Agence Cotonou',
             'city' => 'Cotonou',
             'country' => 'BJ',
@@ -144,7 +189,7 @@ it('assigns and updates the agency head', function (): void {
         ])
         ->assertRedirect(route('agencies.index', absolute: false));
 
-    $agency = Agency::query()->where('code', 'COT')->firstOrFail();
+    $agency = Agency::query()->where('name', 'Agence Cotonou')->firstOrFail();
 
     expect($agency->head_user_id)->toBe($manager->id)
         ->and($agency->head->name)->toBe($manager->name);
@@ -162,7 +207,6 @@ it('assigns and updates the agency head', function (): void {
 
     $this->actingAs($user)
         ->put(route('agencies.update', $agency), [
-            'code' => 'COT',
             'name' => 'Agence Cotonou',
             'city' => 'Cotonou',
             'country' => 'BJ',

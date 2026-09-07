@@ -145,7 +145,7 @@ class CashSessionController extends Controller
         return back();
     }
 
-    /** @return array<string, mixed>|null */
+    /** @return array<string, mixed>|null  */
     private function serializeSession(?CashSession $session): ?array
     {
         if ($session === null) {
