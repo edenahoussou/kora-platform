@@ -19,11 +19,12 @@ class ItineraryQuoteRequest extends FormRequest
     {
         return [
             'passenger_count' => ['sometimes', 'integer', 'min:1', 'max:'.GroupBookingSetting::current()->maximum_passengers],
-            'legs' => ['required', 'array', 'min:1', 'max:3'],
+            'legs' => ['required', 'array', 'min:1', 'max:6'],
             'legs.*.departure_uuid' => ['required', 'uuid', 'exists:departures,uuid'],
             'legs.*.origin_stop_uuid' => ['required', 'uuid', 'exists:stops,uuid'],
             'legs.*.destination_stop_uuid' => ['required', 'uuid', 'exists:stops,uuid'],
-            'legs.*.leg_order' => ['sometimes', 'integer', 'min:1', 'max:3'],
+            'legs.*.leg_order' => ['sometimes', 'integer', 'min:1', 'max:6'],
+            'legs.*.direction' => ['sometimes', 'string', 'in:outbound,inbound'],
         ];
     }
 }

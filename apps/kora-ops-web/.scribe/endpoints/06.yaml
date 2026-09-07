@@ -30,14 +30,14 @@ endpoints:
         name: reservation_uuid
         description: ''
         required: true
-        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        example: 3d0d4b6f-1242-4881-8ac5-5c0ff761b799
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      reservation_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      reservation_uuid: 3d0d4b6f-1242-4881-8ac5-5c0ff761b799
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -64,7 +64,7 @@ endpoints:
                 },
                 "segments": [
                   {
-                    "leg_order": 0,
+                    "leg_order": 1,
                     "departure_uuid": "dep12345-6789-abcd-ef01-23456789abcd",
                     "origin_stop_uuid": "stp12345-6789-abcd-ef01-23456789abcd",
                     "destination_stop_uuid": "stp23456-6789-abcd-ef01-23456789abcd",
@@ -164,7 +164,7 @@ endpoints:
               },
               "segments": [
                 {
-                  "leg_order": 0,
+                  "leg_order": 1,
                   "departure_uuid": "dep12345-6789-abcd-ef01-23456789abcd",
                   "origin_stop_uuid": "stp12345-6789-abcd-ef01-23456789abcd",
                   "destination_stop_uuid": "stp23456-6789-abcd-ef01-23456789abcd",

@@ -161,12 +161,12 @@ Les statuts de réservation qui rendent un siège `occupied` :
 | `boarded` | Passager embarqué |
 
 <Info>
-  Le `fare_preview` retourné avec le départ est un **aperçu**. Le prix figé par segment est obtenu via `POST /api/v1/bus/quotes`. Ce devis nécessite une authentification et doit être créé avant le hold.
+  Le `fare_preview` retourné avec le départ est un **aperçu**. Le prix figé par segment est obtenu via `POST /api/v1/bus/itinerary-quotes`. Ce devis nécessite une authentification et doit être créé avant le hold.
 </Info>
 
 ## Devis et hold après sélection
 
-Le hold ne démarre pas à l'ouverture de l'écran ni pendant la simple consultation du plan. Après sélection des sièges, le client appelle explicitement `POST /api/v1/bus/holds` lorsqu'il quitte l'écran de sélection pour confirmer son récapitulatif.
+Le hold ne démarre pas à l'ouverture de l'écran ni pendant la simple consultation du plan. Après sélection des sièges, le client appelle explicitement `POST /api/v1/bus/itinerary-holds` lorsqu'il quitte l'écran de sélection pour confirmer son récapitulatif.
 
 <Info>
   Le flow complet (devis → hold → expiration) est détaillé dans le guide **[Devis & blocage de sièges](/guides/quotes-and-holds)**.

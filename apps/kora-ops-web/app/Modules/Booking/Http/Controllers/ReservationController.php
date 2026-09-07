@@ -57,7 +57,7 @@ class ReservationController extends Controller
 
         $reservation->load([
             'segments.departure.line',
-            'priceQuote',
+            'itineraryQuote',
             'segments.seat',
             'segments.originStop',
             'segments.destinationStop',

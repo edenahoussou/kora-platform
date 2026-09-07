@@ -49,8 +49,10 @@ return [
         INTRO,
 
     // The base URL displayed in the docs.
-    // If you're using `laravel` type, you can set this to a dynamic string, like '{{ config("app.tenant_url") }}' to get a dynamic base URL.
-    'base_url' => config('app.url'),
+    // Use a stable URL so the generated OpenAPI spec is identical across
+    // local, CI, and staging environments. The actual runtime APP_URL is
+    // never used by API consumers — they always hit the deployed domain.
+    'base_url' => 'https://staging.koraexpress.app',
 
     // Routes to include in the docs
     'routes' => [

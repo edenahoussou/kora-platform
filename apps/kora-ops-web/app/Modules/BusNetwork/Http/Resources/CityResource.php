@@ -15,7 +15,7 @@ class CityResource extends JsonResource
         return [
             'city' => $this->resource['city'],
             'country' => $this->resource['country'],
-            'stops_count' => $this->resource['stops_count'],
+            'physical_stops' => $this->resource['physical_stops'],
         ];
     }
 }

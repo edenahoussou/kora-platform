@@ -26,6 +26,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $provider_transaction_id
  * @property string|null $provider_currency
  * @property int|null $provider_amount
+ * @property string|null $request_fingerprint
  * @property string|null $failure_code
  * @property string|null $failure_message
  * @property int|null $cash_received_amount
@@ -49,6 +50,7 @@ class Payment extends KoraModel
         'provider_currency',
         'provider_amount',
         'idempotency_key',
+        'request_fingerprint',
         'amount',
         'mobile_money_network',
         'payer_phone',

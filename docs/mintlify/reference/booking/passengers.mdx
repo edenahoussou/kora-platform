@@ -6,7 +6,7 @@ api: POST /api/v1/bookings/{reservation_uuid}/passengers
 
 # Enregistrer les passagers
 
-Enregistre les voyageurs et associe chaque voyageur à un siège réservé. Le nombre de voyageurs doit correspondre au nombre de segments.
+Enregistre les voyageurs d'une réservation directe ou multi-leg. `passenger_index` reste stable entre les legs et permet de rattacher les segments et les billets au bon passager.
 
 ## Paramètres
 
@@ -19,6 +19,9 @@ Enregistre les voyageurs et associe chaque voyageur à un siège réservé. Le n
 
   <ParamField body="passengers[].first_name" type="string" required>
     Prénom (max 120).
+  </ParamField>
+  <ParamField body="passengers[].passenger_index" type="integer">
+    Index zero-based du passager, stable sur tous les legs.
   </ParamField>
   <ParamField body="passengers[].last_name" type="string" required>
     Nom (max 120).
@@ -55,6 +58,7 @@ curl -X POST https://staging.koraexpress.app/api/v1/bookings/9b1deb4d-3b7d-4bad-
   -d '{
     "passengers": [
       {
+        "passenger_index": 0,
         "first_name": "Aïcha",
         "last_name": "HOUNKPÈ",
         "phone": "+2290197421860",
@@ -134,6 +138,7 @@ final res = await authDio.post('/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3
     "passengers": [
       {
         "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb73",
+        "passenger_index": 0,
         "first_name": "Aïcha",
         "last_name": "HOUNKPÈ",
         "phone": "+2290197421860",
@@ -142,7 +147,16 @@ final res = await authDio.post('/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3
         "nationality": "BJ",
         "birth_date": "1994-04-18",
         "seat_uuid": "seat-002-uuid",
-        "seat_code": "4A"
+        "seat_code": "4A",
+        "segments": [
+          {
+            "leg_order": 1,
+            "departure_uuid": "a3091549-9179-454e-8440-58179f2208df",
+            "seat_uuid": "seat-002-uuid",
+            "seat_code": "4A",
+            "status": "held"
+          }
+        ]
       }
     ]
   }
@@ -183,5 +197,5 @@ final res = await authDio.post('/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3
 | `422` | Réservation expirée, siège hors réservation, siège associé deux fois, nombre de voyageurs incorrect, ou documents manquants pour ligne internationale. |
 
 <Warning>
-  Chaque `seat_uuid` doit appartenir à la réservation et ne peut être associé qu'à **un seul** voyageur. Pour une **ligne internationale**, `document_type`, `document_number` et `nationality` sont obligatoires.
+  Chaque `passenger_index` identifie le même voyageur sur tous les legs. Chaque `seat_uuid` doit appartenir à la réservation et ne peut être associé qu'à **un seul** voyageur. Pour une **ligne internationale**, `document_type`, `document_number` et `nationality` sont obligatoires.
 </Warning>

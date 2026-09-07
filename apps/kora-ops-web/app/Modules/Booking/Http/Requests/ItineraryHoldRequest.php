@@ -3,6 +3,7 @@
 namespace App\Modules\Booking\Http\Requests;
 
 use App\Modules\Booking\Models\GroupBookingSetting;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -27,10 +28,37 @@ class ItineraryHoldRequest extends FormRequest
             'payer.company_account_uuid' => ['required_if:payer.type,company', 'uuid', 'exists:company_accounts,uuid'],
             'passengers' => ['required', 'array', 'min:1', 'max:'.GroupBookingSetting::current()->maximum_passengers],
             'passengers.*.passenger_index' => ['required', 'integer', 'min:0', 'max:'.(GroupBookingSetting::current()->maximum_passengers - 1), 'distinct'],
-            'passengers.*.seat_assignments' => ['required', 'array', 'min:1', 'max:3'],
-            'passengers.*.seat_assignments.*.leg_order' => ['required', 'integer', 'min:1', 'max:3', 'distinct'],
+            'passengers.*.seat_assignments' => ['required', 'array', 'min:1', 'max:6'],
+            'passengers.*.seat_assignments.*.leg_order' => ['required', 'integer', 'min:1', 'max:6'],
             'passengers.*.seat_assignments.*.seat_uuid' => ['required', 'uuid', 'exists:seats,uuid'],
         ];
+    }
+
+    /**
+     * Validates that leg_order values are distinct within each passenger's
+     * seat_assignments (not globally across all passengers).
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            $passengers = $this->input('passengers', []);
+
+            foreach ($passengers as $pIndex => $passenger) {
+                /** @var array<int, array<string, mixed>> $seatAssignments */
+                $seatAssignments = is_array($passenger) ? ($passenger['seat_assignments'] ?? []) : [];
+                $legOrders = collect($seatAssignments)
+                    ->pluck('leg_order')
+                    ->map(fn ($order): int => (int) $order)
+                    ->all();
+
+                if (count($legOrders) !== count(array_unique($legOrders))) {
+                    $validator->errors()->add(
+                        "passengers.{$pIndex}.seat_assignments",
+                        'Chaque passager doit avoir un siège sur des jambes distinctes.'
+                    );
+                }
+            }
+        });
     }
 
     /**

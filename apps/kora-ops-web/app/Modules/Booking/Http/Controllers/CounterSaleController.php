@@ -775,15 +775,18 @@ class CounterSaleController extends Controller
     }
 
     /**
-     * @param  Collection<int, array{city: string, country: string, stops_count: int}>  $cities
-     * @return list<array{city: string, country: string, stopsCount: int}>
+     * @param  Collection<int, array{city: string, country: string, physical_stops: array<int, array{uuid: string, name: string}>}>  $cities
+     * @return list<array{city: string, country: string, physicalStops: array<int, array{uuid: string, name: string}>}>
      */
     private function serializeCities(Collection $cities): array
     {
         return array_values($cities->map(fn (array $city): array => [
             'city' => $city['city'],
             'country' => $city['country'],
-            'stopsCount' => $city['stops_count'],
+            'physicalStops' => array_map(fn (array $stop): array => [
+                'uuid' => $stop['uuid'],
+                'name' => $stop['name'],
+            ], $city['physical_stops']),
         ])->all());
     }
 

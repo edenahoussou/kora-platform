@@ -33,7 +33,7 @@ Voir : [Moyens de paiement — Référence](/reference/payments/methods).
   </Step>
 
   <Step title="2. Initier le paiement">
-    La réservation doit être au statut `held`. Fournissez une `idempotency_key` unique, le `provider`, le `phone` et le `mobile_money_network`.
+    La réservation doit être au statut `held`. Fournissez une `idempotency_key` unique, le `provider`, le `phone` et le `mobile_money_network`. Le provider doit provenir du catalogue serveur.
 
 ```bash
 curl -X POST https://staging.koraexpress.app/api/v1/payments/initiate \
@@ -113,7 +113,7 @@ Voir : [Billets — Référence](/reference/payments/tickets).
 | Méthode | `method` | Providers configurables au Bénin | Champs requis |
 |---------|----------|-------------------|--------------|
 | Mobile Money | `mobile_money` | `fedapay`, `mtn_momo` | `phone`, `mobile_money_network` |
-| Mini Wallet | `wallet` | Hors MVP | — |
+| Wallet KORA BUS | `wallet` | Contrat préparé, désactivé jusqu'à l'activation du ledger | `wallet_amount` |
 
 Les réservations KORA restent en XOF. MTN utilise EUR uniquement dans le sandbox public; le montant numérique de test est transmis tel quel. En production, la devise doit correspondre au compte MTN provisionné.
 

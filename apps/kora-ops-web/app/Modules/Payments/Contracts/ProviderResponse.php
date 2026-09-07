@@ -9,6 +9,7 @@ use App\Modules\Payments\Data\PaymentStatus;
  *
  * @property-read PaymentStatus $status   KORA-normalized status.
  * @property-read string|null   $providerReference  Provider transaction reference.
+ * @property-read string|null   $providerTransactionId  Provider internal transaction ID.
  * @property-read array<string, mixed>  $payload  Raw provider payload for audit.
  * @property-read string|null   $message  Human-readable detail.
  */
@@ -22,6 +23,7 @@ final readonly class ProviderResponse
         public ?string $providerReference = null,
         public array $payload = [],
         public ?string $message = null,
+        public ?string $providerTransactionId = null,
     ) {}
 
     public function isConfirmed(): bool

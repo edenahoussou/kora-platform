@@ -26,14 +26,36 @@ class PaymentController extends Controller
     /**
      * Initiate a payment for a held reservation.
      *
+     * Requires a Sanctum bearer token.
+     *
+     * @authenticated
+     *
+     * @bodyParam reservation_uuid string required UUID of the held reservation.
+     * @bodyParam method string required Payment method: `mobile_money` or `wallet`. Wallet is currently disabled.
+     * @bodyParam provider string Provider from the server catalog: `fedapay` or `mtn_momo`. Required for `mobile_money`.
+     * @bodyParam idempotency_key string required Client-generated key, scoped to the reservation and request payload.
+     * @bodyParam phone string Mobile Money phone number. Required for `mobile_money`.
+     * @bodyParam mobile_money_network string Mobile Money network supported by the selected provider.
+     * @bodyParam wallet_amount integer Amount allocated to Wallet. Reserved for the disabled Wallet contract.
+     * @bodyParam mobile_money_amount integer Amount allocated to Mobile Money. Must equal the server quote total in this iteration.
+     *
      * @response 201 scenario="Payment initiated" {
      *   "data": {
      *     "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80",
      *     "status": "pending",
      *     "amount": 12500,
      *     "currency": "XOF",
+     *     "method": "mobile_money",
      *     "provider": "mtn_momo",
+     *     "provider_currency": "EUR",
+     *     "provider_amount": 12500,
      *     "provider_reference": "MM-98270341",
+     *     "provider_transaction_id": null,
+     *     "mobile_money_network": "mtn_momo",
+     *     "payer_phone": "+2290197421860",
+     *     "confirmed_at": null,
+     *     "last_verified_at": null,
+     *     "next_action": "verify",
      *     "expires_at": "2026-08-20T08:15:00Z",
      *     "polling_interval_seconds": 10
      *   }
@@ -55,6 +77,9 @@ class PaymentController extends Controller
             idempotencyKey: $data['idempotency_key'],
             phone: $data['phone'],
             mobileMoneyNetwork: $data['mobile_money_network'],
+            walletAmount: $data['wallet_amount'],
+            pointsAmount: null,
+            mobileMoneyAmount: $data['mobile_money_amount'],
         );
 
         $statusCode = $result['is_replay'] ? 200 : 201;
@@ -67,26 +92,44 @@ class PaymentController extends Controller
     /**
      * List available payment methods and providers.
      *
-     * Returns the catalog of payment methods configured for the mobile app
-     * (MTN MoMo, FedaPay, cash, etc.).
+     * Returns the catalog of payment methods and providers configured for the mobile app.
+     *
+     * Requires a Sanctum bearer token.
      *
      * @authenticated
      *
      * @response 200 scenario="Payment methods" {
-     *   "data": [
-     *     {
-     *       "method": "mobile_money",
-     *       "provider": "mtn_momo",
-     *       "label": "MTN Mobile Money",
-     *       "enabled": true
-     *     },
-     *     {
-     *       "method": "card",
-     *       "provider": "fedapay",
-     *       "label": "Carte bancaire (FedaPay)",
-     *       "enabled": true
-     *     }
-     *   ]
+     *   "data": {
+     *     "country": "BJ",
+     *     "currency": "XOF",
+     *     "methods": [
+     *       {
+     *         "code": "mobile_money",
+     *         "label": "Mobile Money",
+     *         "enabled": true,
+     *         "providers": [
+     *           {
+     *             "code": "mtn_momo",
+     *             "label": "MTN MoMo",
+     *             "enabled": true,
+     *             "networks": ["mtn_momo"],
+     *             "requires": ["phone", "mobile_money_network"],
+     *             "interaction": "push",
+     *             "polling_interval_seconds": 10,
+     *             "verification": "server_verify"
+     *           }
+     *         ]
+     *       },
+     *       {
+     *         "code": "wallet",
+     *         "label": "Wallet KORA BUS",
+     *         "enabled": false,
+     *         "availability": "disabled_until_wallet_ledger",
+     *         "providers": [],
+     *         "requires": ["wallet_amount"]
+     *       }
+     *     ]
+     *   }
      * }
      * @response 401 scenario="Unauthenticated" {
      *   "message": "Unauthenticated."
@@ -188,6 +231,10 @@ class PaymentController extends Controller
 
     /**
      * Get payment status (polling).
+     *
+     * Requires a Sanctum bearer token.
+     *
+     * @authenticated
      *
      * @response 200 scenario="Payment status" {
      *   "data": {
@@ -396,6 +443,82 @@ class PaymentController extends Controller
             return response()->json(['error' => 'Payment not found.'], 404);
         }
 
+        $providerResponse = $adapter->verify($payment);
+
+        $updatedPayment = $confirmPayment->handle(
+            payment: $payment,
+            status: $providerResponse->isConfirmed() ? 'confirmed' : ($providerResponse->isFailed() ? 'failed' : 'pending'),
+            providerReference: $providerResponse->providerReference,
+            providerPayload: $providerResponse->payload,
+        );
+
+        return response()->json([
+            'status' => $updatedPayment->status->value,
+            'payment_uuid' => $updatedPayment->uuid,
+            'reservation_uuid' => $updatedPayment->reservation?->uuid,
+            'reservation_status' => $updatedPayment->reservation?->status->value,
+        ]);
+    }
+
+    /**
+     * FedaPay callback endpoint.
+     *
+     * Fedapay redirects/posts the transaction result to this URL after
+     * processing. The transaction is then verified via the FedaPay API
+     * (server-side) to confirm the real status — the callback itself is
+     * not trusted as a source of truth.
+     *
+     * @unauthenticated
+     *
+     * @response 200 scenario="Callback processed" {
+     *   "status": "confirmed",
+     *   "payment_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80",
+     *   "reservation_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+     *   "reservation_status": "paid"
+     * }
+     * @response 400 scenario="No transaction reference" {
+     *   "error": "No transaction reference found in callback."
+     * }
+     * @response 404 scenario="Payment not found" {
+     *   "error": "Payment not found."
+     * }
+     */
+    public function callbackFedaPay(
+        Request $request,
+        PaymentManager $manager,
+        ConfirmPaymentAction $confirmPayment,
+    ): JsonResponse {
+        // Fedapay may send the reference as a query param (redirect) or
+        // in the JSON body (POST). We accept both.
+        $reference = $request->query('reference')
+            ?? $request->input('reference')
+            ?? $request->input('transaction.reference')
+            ?? null;
+
+        $transactionId = $request->query('id')
+            ?? $request->input('id')
+            ?? $request->input('transaction.id')
+            ?? null;
+
+        if ($reference === null && $transactionId === null) {
+            return response()->json(['error' => 'No transaction reference found in callback.'], 400);
+        }
+
+        // Find the payment by provider_reference or provider_transaction_id.
+        $payment = null;
+        if ($reference !== null) {
+            $payment = Payment::query()->where('provider_reference', $reference)->first();
+        }
+        if ($payment === null && $transactionId !== null) {
+            $payment = Payment::query()->where('provider_transaction_id', $transactionId)->first();
+        }
+
+        if ($payment === null) {
+            return response()->json(['error' => 'Payment not found.'], 404);
+        }
+
+        // Always verify the real status via the FedaPay API.
+        $adapter = $manager->resolve($payment->provider);
         $providerResponse = $adapter->verify($payment);
 
         $updatedPayment = $confirmPayment->handle(

@@ -31,7 +31,7 @@ afterEach(function (): void {
  * remplissage utilisé par l'évaluation des conditions. Le départ est positionné
  * $hoursFromNow heures après l'horloge de test, pour contrôler le délai.
  *
- * @return array{user: User, departure: Departure, origin: Stop, destination: Stop}
+ * @return array{user: User, departure: Departure, origin: Stop, destination: Stop, line: Line}
  */
 function pricingEngineScenario(int $occupiedSeats, float $hoursFromNow): array
 {
@@ -148,7 +148,7 @@ function pricingEngineScenario(int $occupiedSeats, float $hoursFromNow): array
 
     $user = User::factory()->create();
 
-    return compact('user', 'departure', 'origin', 'destination');
+    return compact('user', 'departure', 'origin', 'destination', 'line');
 }
 
 it('applies a pricing rule only when the fill rate condition is met', function (): void {
@@ -166,13 +166,17 @@ it('applies a pricing rule only when the fill rate condition is met', function (
 
     Sanctum::actingAs($scenario['user']);
 
-    $this->postJson('/api/v1/bus/quotes', [
-        'departure_uuid' => $scenario['departure']->uuid,
-        'origin_stop_uuid' => $scenario['origin']->uuid,
-        'destination_stop_uuid' => $scenario['destination']->uuid,
-    ])->assertCreated()
-        ->assertJsonPath('data.coefficient', 1.2)
-        ->assertJsonPath('data.final_amount', 12000);
+    $this->postJson('/api/v1/bus/itinerary-quotes', [
+        'passenger_count' => 1,
+        'legs' => [[
+            'leg_order' => 1,
+            'departure_uuid' => $scenario['departure']->uuid,
+            'origin_stop_uuid' => $scenario['origin']->uuid,
+            'destination_stop_uuid' => $scenario['destination']->uuid,
+        ]],
+    ])->assertOk()
+        ->assertJsonPath('data.legs.0.final_amount', 12000)
+        ->assertJsonPath('data.pricing.dynamic_adjustment_amount', 2000);
 });
 
 it('does not apply a pricing rule when the fill rate condition is not met', function (): void {
@@ -190,13 +194,17 @@ it('does not apply a pricing rule when the fill rate condition is not met', func
 
     Sanctum::actingAs($scenario['user']);
 
-    $this->postJson('/api/v1/bus/quotes', [
-        'departure_uuid' => $scenario['departure']->uuid,
-        'origin_stop_uuid' => $scenario['origin']->uuid,
-        'destination_stop_uuid' => $scenario['destination']->uuid,
-    ])->assertCreated()
-        ->assertJsonPath('data.coefficient', 1.0)
-        ->assertJsonPath('data.final_amount', 10000);
+    $this->postJson('/api/v1/bus/itinerary-quotes', [
+        'passenger_count' => 1,
+        'legs' => [[
+            'leg_order' => 1,
+            'departure_uuid' => $scenario['departure']->uuid,
+            'origin_stop_uuid' => $scenario['origin']->uuid,
+            'destination_stop_uuid' => $scenario['destination']->uuid,
+        ]],
+    ])->assertOk()
+        ->assertJsonPath('data.legs.0.final_amount', 10000)
+        ->assertJsonPath('data.pricing.dynamic_adjustment_amount', 0);
 });
 
 it('applies a pricing rule based on the delay before departure, regardless of fill rate', function (): void {
@@ -214,12 +222,17 @@ it('applies a pricing rule based on the delay before departure, regardless of fi
 
     Sanctum::actingAs($scenario['user']);
 
-    $this->postJson('/api/v1/bus/quotes', [
-        'departure_uuid' => $scenario['departure']->uuid,
-        'origin_stop_uuid' => $scenario['origin']->uuid,
-        'destination_stop_uuid' => $scenario['destination']->uuid,
-    ])->assertCreated()
-        ->assertJsonPath('data.coefficient', 1.3);
+    $this->postJson('/api/v1/bus/itinerary-quotes', [
+        'passenger_count' => 1,
+        'legs' => [[
+            'leg_order' => 1,
+            'departure_uuid' => $scenario['departure']->uuid,
+            'origin_stop_uuid' => $scenario['origin']->uuid,
+            'destination_stop_uuid' => $scenario['destination']->uuid,
+        ]],
+    ])->assertOk()
+        ->assertJsonPath('data.legs.0.final_amount', 13000)
+        ->assertJsonPath('data.pricing.dynamic_adjustment_amount', 3000);
 });
 
 it('does not apply a delay-based rule when the departure is too far away', function (): void {
@@ -236,12 +249,17 @@ it('does not apply a delay-based rule when the departure is too far away', funct
 
     Sanctum::actingAs($scenario['user']);
 
-    $this->postJson('/api/v1/bus/quotes', [
-        'departure_uuid' => $scenario['departure']->uuid,
-        'origin_stop_uuid' => $scenario['origin']->uuid,
-        'destination_stop_uuid' => $scenario['destination']->uuid,
-    ])->assertCreated()
-        ->assertJsonPath('data.coefficient', 1.0);
+    $this->postJson('/api/v1/bus/itinerary-quotes', [
+        'passenger_count' => 1,
+        'legs' => [[
+            'leg_order' => 1,
+            'departure_uuid' => $scenario['departure']->uuid,
+            'origin_stop_uuid' => $scenario['origin']->uuid,
+            'destination_stop_uuid' => $scenario['destination']->uuid,
+        ]],
+    ])->assertOk()
+        ->assertJsonPath('data.legs.0.final_amount', 10000)
+        ->assertJsonPath('data.pricing.dynamic_adjustment_amount', 0);
 });
 
 it('clamps the final coefficient to the configured ceiling', function (): void {
@@ -260,14 +278,18 @@ it('clamps the final coefficient to the configured ceiling', function (): void {
 
     Sanctum::actingAs($scenario['user']);
 
-    $this->postJson('/api/v1/bus/quotes', [
-        'departure_uuid' => $scenario['departure']->uuid,
-        'origin_stop_uuid' => $scenario['origin']->uuid,
-        'destination_stop_uuid' => $scenario['destination']->uuid,
-    ])->assertCreated()
+    $this->postJson('/api/v1/bus/itinerary-quotes', [
+        'passenger_count' => 1,
+        'legs' => [[
+            'leg_order' => 1,
+            'departure_uuid' => $scenario['departure']->uuid,
+            'origin_stop_uuid' => $scenario['origin']->uuid,
+            'destination_stop_uuid' => $scenario['destination']->uuid,
+        ]],
+    ])->assertOk()
         // Sans plafond le coefficient serait 3.0 (1 + 200%) — borné à 2.0.
-        ->assertJsonPath('data.coefficient', 2.0)
-        ->assertJsonPath('data.final_amount', 20000);
+        ->assertJsonPath('data.legs.0.final_amount', 20000)
+        ->assertJsonPath('data.pricing.dynamic_adjustment_amount', 10000);
 });
 
 it('clamps the final coefficient to the configured floor', function (): void {
@@ -286,14 +308,18 @@ it('clamps the final coefficient to the configured floor', function (): void {
 
     Sanctum::actingAs($scenario['user']);
 
-    $this->postJson('/api/v1/bus/quotes', [
-        'departure_uuid' => $scenario['departure']->uuid,
-        'origin_stop_uuid' => $scenario['origin']->uuid,
-        'destination_stop_uuid' => $scenario['destination']->uuid,
-    ])->assertCreated()
+    $this->postJson('/api/v1/bus/itinerary-quotes', [
+        'passenger_count' => 1,
+        'legs' => [[
+            'leg_order' => 1,
+            'departure_uuid' => $scenario['departure']->uuid,
+            'origin_stop_uuid' => $scenario['origin']->uuid,
+            'destination_stop_uuid' => $scenario['destination']->uuid,
+        ]],
+    ])->assertOk()
         // Sans plancher le coefficient serait 0.1 (1 - 90%) — borné à 0.5.
-        ->assertJsonPath('data.coefficient', 0.5)
-        ->assertJsonPath('data.final_amount', 5000);
+        ->assertJsonPath('data.legs.0.final_amount', 5000)
+        ->assertJsonPath('data.pricing.dynamic_adjustment_amount', -5000);
 });
 
 it('picks the highest priority matching rule among several active candidates', function (): void {
@@ -321,15 +347,20 @@ it('picks the highest priority matching rule among several active candidates', f
 
     Sanctum::actingAs($scenario['user']);
 
-    $this->postJson('/api/v1/bus/quotes', [
-        'departure_uuid' => $scenario['departure']->uuid,
-        'origin_stop_uuid' => $scenario['origin']->uuid,
-        'destination_stop_uuid' => $scenario['destination']->uuid,
-    ])->assertCreated()
-        ->assertJsonPath('data.coefficient', 1.2);
+    $this->postJson('/api/v1/bus/itinerary-quotes', [
+        'passenger_count' => 1,
+        'legs' => [[
+            'leg_order' => 1,
+            'departure_uuid' => $scenario['departure']->uuid,
+            'origin_stop_uuid' => $scenario['origin']->uuid,
+            'destination_stop_uuid' => $scenario['destination']->uuid,
+        ]],
+    ])->assertOk()
+        ->assertJsonPath('data.legs.0.final_amount', 12000)
+        ->assertJsonPath('data.pricing.dynamic_adjustment_amount', 2000);
 });
 
-it('exposes the dynamic price in the departure fare preview', function (): void {
+it('exposes the dynamic price in the itinerary search fare preview', function (): void {
     $scenario = pricingEngineScenario(occupiedSeats: 3, hoursFromNow: 10);
 
     PricingRule::query()->create([
@@ -342,11 +373,8 @@ it('exposes the dynamic price in the departure fare preview', function (): void 
         'conditions' => ['fill_rate_min' => 70, 'hours_before_departure_max' => 24],
     ]);
 
-    $this->getJson('/api/v1/bus/departures?date='.$scenario['departure']->departure_date->toDateString().'&from=Cotonou&to=Parakou')
+    $this->getJson('/api/v1/bus/itineraries?from_physical_stop_uuid='.$scenario['origin']->physicalStop->uuid.'&to_physical_stop_uuid='.$scenario['destination']->physicalStop->uuid.'&date='.$scenario['departure']->departure_date->toDateString())
         ->assertOk()
-        ->assertJsonPath('data.0.fare_preview.base_amount', 10000)
-        ->assertJsonPath('data.0.fare_preview.final_amount', 12000)
-        ->assertJsonPath('data.0.fare_preview.coefficient', 1.2)
-        ->assertJsonPath('data.0.fare_preview.dynamic_adjustment_amount', 2000)
-        ->assertJsonPath('data.0.fare_preview.is_quote', false);
+        ->assertJsonPath('data.0.total_amount', 10000)
+        ->assertJsonPath('data.0.legs.0.amount', 10000);
 });
