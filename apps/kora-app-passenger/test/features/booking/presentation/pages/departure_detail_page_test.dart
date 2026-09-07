@@ -93,7 +93,8 @@ void main() {
     await pumpDetail(tester);
 
     expect(find.text('Votre confort à bord'), findsOneWidget);
-    for (final service in ['Wi-Fi', 'Climatisation', 'USB']) {
+    // Le serveur envoie des codes ; l'écran montre les libellés traduits.
+    for (final service in ['Wi-Fi', 'Climatisation', 'Prises USB']) {
       expect(find.text(service), findsOneWidget);
     }
   });

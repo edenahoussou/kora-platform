@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import 'amenity.dart';
 import 'line.dart';
 import 'price.dart';
 
@@ -78,8 +79,11 @@ class Departure extends Equatable {
     return origin.toUpperCase() != destination.toUpperCase();
   }
 
-  /// Services à bord (`Wi-Fi`, `Climatisation`, `USB`...).
-  final List<String> amenities;
+  /// Services à bord, tels que le serveur les annonce pour le bus affecté.
+  ///
+  /// Vide tant qu'aucun bus n'est assigné au départ — et les écrans se
+  /// taisent alors, plutôt que d'inventer un confort.
+  final List<Amenity> amenities;
 
   /// Le véhicule réellement affecté au départ (`Mercedes O500`), quand
   /// l'API le connaît.

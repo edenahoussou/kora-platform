@@ -141,6 +141,15 @@ class AppLocalization {
     return value ?? key;
   }
 
+  /// La traduction de [key], ou `null` si l'app ne la connaît pas.
+  ///
+  /// Contrairement à [translate], n'accuse pas la clé manquante : elle sert
+  /// aux libellés dont la liste est décidée par le **serveur** — les
+  /// services à bord, par exemple. Un équipement ajouté côté back après la
+  /// sortie de cette version n'est pas un oubli de traduction, et ne doit
+  /// pas faire sauter l'assertion en développement.
+  String? maybeTranslate(String key) => _strings[key] ?? _fallbackStrings[key];
+
   /// Remplace les jetons `{nom}` d'un texte par leur valeur — les langues
   /// ne placent pas leurs variables au même endroit dans la phrase, une
   /// concaténation en Dart figerait l'ordre français.
@@ -155,6 +164,14 @@ class AppLocalization {
   }
 
   // ---------------------------------------------------------------- commun
+  String get paymentMethodLoading => translate('payment_method_loading');
+  String get paymentMethodFailed => translate('payment_method_failed');
+  String get paymentMethodRetry => translate('payment_method_retry');
+  String get paymentMethodNone => translate('payment_method_none');
+  String get paymentMethodOutOfMvp => translate('payment_method_out_of_mvp');
+  String get paymentMethodUnavailable =>
+      translate('payment_method_unavailable');
+
   String get appTagline => translate('app_tagline');
   String get actionRetry => translate('action_retry');
   String get actionContinue => translate('action_continue');
