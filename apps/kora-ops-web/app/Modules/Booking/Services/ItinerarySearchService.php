@@ -195,15 +195,19 @@ class ItinerarySearchService
      *
      * Used when the counter-sale search has no explicit date — the agent sees
      * the next available departures instead of an empty list for today.
+     * Also used by the mobile API for round-trip searches without a return date.
      *
      * @return list<ItineraryData>
      */
-    private function searchUpcoming(
+    public function searchUpcoming(
         string $originPhysicalStopUuid,
         string $destinationPhysicalStopUuid,
         CarbonImmutable $fromDate,
         int $days,
         int $passengerCount = 1,
+        ?string $sortBy = null,
+        string $sortDirection = 'asc',
+        ?string $serviceClassCode = null,
     ): array {
         $days = max(1, min($days, 30));
         $merged = [];
@@ -240,7 +244,11 @@ class ItinerarySearchService
             }
         }
 
-        return $this->sortItineraries($merged);
+        if ($serviceClassCode !== null) {
+            $merged = $this->filterByServiceClass($merged, $serviceClassCode);
+        }
+
+        return $this->sortItinerariesBy($merged, $sortBy ?? 'connections', $sortDirection);
     }
 
     /**
@@ -251,6 +259,9 @@ class ItinerarySearchService
         string $destinationPhysicalStopUuid,
         CarbonImmutable $date,
         int $passengerCount = 1,
+        ?string $sortBy = null,
+        string $sortDirection = 'asc',
+        ?string $serviceClassCode = null,
     ): array {
         if ($passengerCount < 1 || $passengerCount > 10) {
             return [];
@@ -265,12 +276,18 @@ class ItinerarySearchService
             return [];
         }
 
-        return $this->searchWithPhysicalStops(
+        $itineraries = $this->searchWithPhysicalStops(
             originPhysical: $originPhysical,
             destinationPhysical: $destinationPhysical,
             date: $date,
             passengerCount: $passengerCount,
         );
+
+        if ($serviceClassCode !== null) {
+            $itineraries = $this->filterByServiceClass($itineraries, $serviceClassCode);
+        }
+
+        return $this->sortItinerariesBy($itineraries, $sortBy ?? 'connections', $sortDirection);
     }
 
     /**
@@ -865,6 +882,54 @@ class ItinerarySearchService
             }
 
             return $a->totalAmount <=> $b->totalAmount;
+        });
+
+        return $itineraries;
+    }
+
+    /**
+     * @param  list<ItineraryData>  $itineraries
+     * @return list<ItineraryData>
+     */
+    private function filterByServiceClass(array $itineraries, string $serviceClassCode): array
+    {
+        return array_values(array_filter(
+            $itineraries,
+            fn (ItineraryData $itinerary): bool => array_any(
+                $itinerary->legs,
+                fn (ItineraryLegData $leg): bool => $leg->serviceClassCode === $serviceClassCode,
+            ),
+        ));
+    }
+
+    /**
+     * @param  list<ItineraryData>  $itineraries
+     * @return list<ItineraryData>
+     */
+    private function sortItinerariesBy(array $itineraries, string $sortBy, string $sortDirection): array
+    {
+        $multiplier = $sortDirection === 'desc' ? -1 : 1;
+
+        usort($itineraries, function (ItineraryData $a, ItineraryData $b) use ($sortBy, $multiplier): int {
+            $comparison = match ($sortBy) {
+                'departure_time' => $a->departureAt <=> $b->departureAt,
+                'arrival_time' => $a->arrivalAt <=> $b->arrivalAt,
+                'price' => $a->totalAmount <=> $b->totalAmount,
+                'duration' => $a->arrivalAt->diffInMinutes($a->departureAt) <=> $b->arrivalAt->diffInMinutes($b->departureAt),
+                'connections' => $a->connectionsCount <=> $b->connectionsCount,
+                default => $a->connectionsCount <=> $b->connectionsCount,
+            };
+
+            if ($comparison === 0) {
+                // Stable secondary sort: direct first, then by departure time
+                if ($a->connectionsCount !== $b->connectionsCount) {
+                    return $a->connectionsCount <=> $b->connectionsCount;
+                }
+
+                return $a->departureAt <=> $b->departureAt;
+            }
+
+            return $comparison * $multiplier;
         });
 
         return $itineraries;

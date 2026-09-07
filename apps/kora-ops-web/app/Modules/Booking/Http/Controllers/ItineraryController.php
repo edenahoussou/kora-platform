@@ -14,6 +14,7 @@ use App\Modules\Booking\Http\Requests\ItinerarySearchRequest;
 use App\Modules\Booking\Http\Resources\ReservationResource;
 use App\Modules\Booking\Models\ItineraryQuote;
 use App\Modules\Booking\Services\ItineraryData;
+use App\Modules\Booking\Services\ItineraryLegData;
 use App\Modules\Booking\Services\ItinerarySearchService;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
@@ -34,43 +35,161 @@ class ItineraryController extends Controller
     /**
      * Search for multi-line itineraries (direct and with connections).
      *
+     * Returns rich leg data (line, bus with amenities, origin/destination stops
+     * with city and country, available seats count, service class) so the
+     * mobile client can render search results without extra calls.
+     *
      * @queryParam from_physical_stop_uuid string required UUID of the origin physical stop.
      * @queryParam to_physical_stop_uuid string required UUID of the destination physical stop.
      * @queryParam date string required Travel date (Y-m-d).
      * @queryParam passenger_count integer Number of passengers. Defaults to 1.
+     * @queryParam sort string Sort key: departure_time, arrival_time, price, duration, connections. Defaults to connections.
+     * @queryParam sort_direction string Sort direction: asc or desc. Defaults to asc.
+     * @queryParam service_class_code string Filter by service class code (e.g. standard, confort).
+     * @queryParam trip_type string Trip type: one_way or round_trip. Defaults to one_way. When round_trip, return_date is required and the response shape changes to { outbound: [...], inbound: [...] }.
+     * @queryParam return_date string Return date (Y-m-d). Required when trip_type is round_trip.
      *
-     * @response 200 scenario="Itineraries found" {
+     * @response 200 scenario="One-way itineraries" {
      *   "data": [
      *     {
-     *       "connections_count": 1,
-     *       "total_amount": 27500,
+     *       "connections_count": 0,
+     *       "total_amount": 15600,
      *       "currency": "XOF",
-     *       "departure_at": "2026-09-10T06:00:00Z",
-     *       "arrival_at": "2026-09-10T19:30:00Z",
+     *       "departure_at": "2026-09-07T13:00:00+00:00",
+     *       "arrival_at": "2026-09-07T23:00:00+00:00",
      *       "connection_margin_minutes": 45,
      *       "legs": [
      *         {
      *           "leg_order": 1,
-     *           "departure_uuid": "dep-l1-uuid",
-     *           "line_code": "L1",
-     *           "origin_stop_uuid": "stop-malanville-uuid",
-     *           "destination_stop_uuid": "stop-cotonou-gare-uuid",
-     *           "departure_at": "2026-09-10T06:00:00Z",
-     *           "arrival_at": "2026-09-10T13:00:00Z",
-     *           "amount": 15000
+     *           "departure_uuid": "eaaf800b-90b6-4334-b840-7122d9ed65ac",
+     *           "line": {
+     *             "uuid": "line-uuid",
+     *             "code": "L2",
+     *             "name": "Cotonou - Malanville",
+     *             "estimated_duration_minutes": 600,
+     *             "is_international": false
+     *           },
+     *           "bus": {
+     *             "uuid": "bus-uuid",
+     *             "registration_number": "BJ-1234-AA",
+     *             "brand": "Toyota",
+     *             "model": "Coaster",
+     *             "seat_count": 30,
+     *             "amenities": [
+     *               { "code": "wifi", "label": "Wi-Fi", "icon": "wifi" }
+     *             ]
+     *           },
+     *           "origin_stop": {
+     *             "uuid": "stop-uuid",
+     *             "name": "Cotonou",
+     *             "city": "Cotonou",
+     *             "country": "BJ",
+     *             "stop_order": 1
+     *           },
+     *           "destination_stop": {
+     *             "uuid": "stop-uuid",
+     *             "name": "Malanville",
+     *             "city": "Malanville",
+     *             "country": "BJ",
+     *             "stop_order": 7
+     *           },
+     *           "amount": 15600,
+     *           "available_seats_count": 28,
+     *           "service_class_code": "standard",
+     *           "service_class_name": "Standard",
+     *           "departure_at": "2026-09-07T13:00:00+00:00",
+     *           "arrival_at": "2026-09-07T23:00:00+00:00"
      *         }
      *       ]
+     *     }
+     *   ]
+     * }
+     * @response 200 scenario="Round-trip itineraries" {
+     *   "outbound": [
+     *     {
+     *       "connections_count": 0,
+     *       "total_amount": 15600,
+     *       "currency": "XOF",
+     *       "departure_at": "2026-09-07T13:00:00+00:00",
+     *       "arrival_at": "2026-09-07T23:00:00+00:00",
+     *       "connection_margin_minutes": 45,
+     *       "legs": [...]
+     *     }
+     *   ],
+     *   "inbound": [
+     *     {
+     *       "connections_count": 0,
+     *       "total_amount": 15600,
+     *       "currency": "XOF",
+     *       "departure_at": "2026-09-14T13:00:00+00:00",
+     *       "arrival_at": "2026-09-14T23:00:00+00:00",
+     *       "connection_margin_minutes": 45,
+     *       "legs": [...]
      *     }
      *   ]
      * }
      */
     public function index(ItinerarySearchRequest $request): JsonResponse
     {
+        $fromUuid = $request->string('from_physical_stop_uuid')->toString();
+        $toUuid = $request->string('to_physical_stop_uuid')->toString();
+        $date = CarbonImmutable::parse($request->string('date'));
+        $passengerCount = (int) $request->integer('passenger_count', 1);
+        $sortBy = $request->sortBy();
+        $sortDirection = $request->sortDirection();
+        $serviceClassCode = $request->serviceClassCode();
+
+        if ($request->tripType() === 'round_trip') {
+            $outbound = $this->itinerarySearch->search(
+                originPhysicalStopUuid: $fromUuid,
+                destinationPhysicalStopUuid: $toUuid,
+                date: $date,
+                passengerCount: $passengerCount,
+                sortBy: $sortBy,
+                sortDirection: $sortDirection,
+                serviceClassCode: $serviceClassCode,
+            );
+
+            if ($request->returnDate() !== null) {
+                $inbound = $this->itinerarySearch->search(
+                    originPhysicalStopUuid: $toUuid,
+                    destinationPhysicalStopUuid: $fromUuid,
+                    date: $request->returnDate(),
+                    passengerCount: $passengerCount,
+                    sortBy: $sortBy,
+                    sortDirection: $sortDirection,
+                    serviceClassCode: $serviceClassCode,
+                );
+            } else {
+                // No return date — search upcoming return departures starting
+                // from the day after the outbound date, matching the counter-sale
+                // behavior so the mobile user sees available return trips.
+                $inbound = $this->itinerarySearch->searchUpcoming(
+                    originPhysicalStopUuid: $toUuid,
+                    destinationPhysicalStopUuid: $fromUuid,
+                    fromDate: $date->addDay(),
+                    days: (int) config('kora.itineraries.default_search_days', 7),
+                    passengerCount: $passengerCount,
+                    sortBy: $sortBy,
+                    sortDirection: $sortDirection,
+                    serviceClassCode: $serviceClassCode,
+                );
+            }
+
+            return response()->json([
+                'outbound' => array_map(fn ($itinerary): array => $this->serializeItinerary($itinerary), $outbound),
+                'inbound' => array_map(fn ($itinerary): array => $this->serializeItinerary($itinerary), $inbound),
+            ]);
+        }
+
         $itineraries = $this->itinerarySearch->search(
-            originPhysicalStopUuid: $request->string('from_physical_stop_uuid')->toString(),
-            destinationPhysicalStopUuid: $request->string('to_physical_stop_uuid')->toString(),
-            date: CarbonImmutable::parse($request->string('date')),
-            passengerCount: (int) $request->integer('passenger_count', 1),
+            originPhysicalStopUuid: $fromUuid,
+            destinationPhysicalStopUuid: $toUuid,
+            date: $date,
+            passengerCount: $passengerCount,
+            sortBy: $sortBy,
+            sortDirection: $sortDirection,
+            serviceClassCode: $serviceClassCode,
         );
 
         return response()->json([
@@ -86,23 +205,32 @@ class ItineraryController extends Controller
      * @authenticated
      *
      * @bodyParam passenger_count integer Number of passengers. Defaults to 1.
-     * @bodyParam legs array required Ordered itinerary legs, including a direct itinerary with one leg.
+     * @bodyParam legs array required Ordered itinerary legs, including a direct itinerary with one leg. For a round trip, include outbound legs first, then inbound legs.
      * @bodyParam legs.*.leg_order integer Leg order, starting at 1.
      * @bodyParam legs.*.departure_uuid string required Departure UUID.
      * @bodyParam legs.*.origin_stop_uuid string required Origin stop UUID.
      * @bodyParam legs.*.destination_stop_uuid string required Destination stop UUID.
+     * @bodyParam legs.*.direction string Leg direction: outbound or inbound. Defaults to outbound. Required for round-trip legs.
      *
      * @response 200 scenario="Quote calculated" {
      *   "data": {
      *     "itinerary_quote_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+     *     "trip_type": "round_trip",
      *     "total_amount": 27500,
      *     "currency": "XOF",
      *     "expires_at": "2026-09-10T08:00:00Z",
      *     "legs": [
      *     {
      *       "leg_order": 1,
+     *       "direction": "outbound",
      *       "quote_uuid": "quote-uuid-1",
      *       "final_amount": 15000
+     *     },
+     *     {
+     *       "leg_order": 2,
+     *       "direction": "inbound",
+     *       "quote_uuid": "quote-uuid-2",
+     *       "final_amount": 12500
      *     }
      *     ],
      *     "pricing": {
@@ -123,16 +251,22 @@ class ItineraryController extends Controller
 
         $result = $calculateQuote->handle($legs, $passengerCount, $request->user());
 
+        $tripType = collect($legs)->contains(fn (ItineraryLegQuoteRequest $leg): bool => $leg->direction === 'inbound')
+            ? 'round_trip'
+            : 'one_way';
+
         return response()->json(['data' => [
             'itinerary_quote_uuid' => $result->itineraryQuote->uuid,
+            'trip_type' => $tripType,
             'total_amount' => $result->totalAmount,
             'currency' => $result->currency,
             'expires_at' => $result->expiresAt?->toIso8601String(),
-            'legs' => array_map(fn ($legQuote): array => [
-                'leg_order' => array_search($legQuote, $result->legQuotes, true) + 1,
+            'legs' => array_map(fn ($legQuote, $index): array => [
+                'leg_order' => $index + 1,
+                'direction' => $legs[$index]->direction,
                 'quote_uuid' => $legQuote->uuid,
                 'final_amount' => $legQuote->final_amount,
-            ], $result->legQuotes),
+            ], $result->legQuotes, array_keys($result->legQuotes)),
             'pricing' => [
                 'subtotal_amount' => $result->snapshot['subtotal_amount'],
                 'dynamic_adjustment_amount' => $result->snapshot['dynamic_adjustment_amount'],
@@ -197,16 +331,58 @@ class ItineraryController extends Controller
             'departure_at' => $itinerary->departureAt->toIso8601String(),
             'arrival_at' => $itinerary->arrivalAt->toIso8601String(),
             'connection_margin_minutes' => $itinerary->connectionMarginMinutes,
-            'legs' => array_map(fn ($leg): array => [
-                'leg_order' => $leg->legOrder,
-                'departure_uuid' => $leg->departure->uuid,
-                'line_code' => $leg->departure->line->code,
-                'origin_stop_uuid' => $leg->originStop->uuid,
-                'destination_stop_uuid' => $leg->destinationStop->uuid,
-                'departure_at' => $leg->departureAt->toIso8601String(),
-                'arrival_at' => $leg->arrivalAt->toIso8601String(),
-                'amount' => $leg->amount,
-            ], $itinerary->legs),
+            'legs' => array_map(fn ($leg): array => $this->serializeLeg($leg), $itinerary->legs),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function serializeLeg(ItineraryLegData $leg): array
+    {
+        $bus = $leg->bus ?? $leg->departure->bus;
+
+        return [
+            'leg_order' => $leg->legOrder,
+            'departure_uuid' => $leg->departure->uuid,
+            'line' => [
+                'uuid' => $leg->departure->line->uuid,
+                'code' => $leg->departure->line->code,
+                'name' => $leg->departure->line->name,
+                'estimated_duration_minutes' => $leg->estimatedDurationMinutes,
+                'is_international' => is_array($leg->departure->line->countries_crossed)
+                    && count($leg->departure->line->countries_crossed) > 1,
+            ],
+            'bus' => $bus !== null ? [
+                'uuid' => $bus->uuid,
+                'registration_number' => $bus->registration_number,
+                'brand' => $bus->brand,
+                'model' => $bus->model,
+                'seat_count' => $bus->seat_count,
+                'amenities' => $bus->amenities->map(fn ($amenity) => [
+                    'code' => $amenity->code,
+                    'label' => $amenity->label,
+                    'icon' => $amenity->icon,
+                ])->values()->all(),
+            ] : null,
+            'origin_stop' => $this->serializeStop($leg->originStop),
+            'destination_stop' => $this->serializeStop($leg->destinationStop),
+            'amount' => $leg->amount,
+            'available_seats_count' => $leg->availableSeatsCount,
+            'service_class_code' => $leg->serviceClassCode,
+            'service_class_name' => $leg->serviceClassName,
+            'departure_at' => $leg->departureAt->toIso8601String(),
+            'arrival_at' => $leg->arrivalAt->toIso8601String(),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function serializeStop(Stop $stop): array
+    {
+        return [
+            'uuid' => $stop->uuid,
+            'name' => $stop->name,
+            'city' => $stop->city,
+            'country' => $stop->country,
+            'stop_order' => $stop->stop_order,
         ];
     }
 
@@ -223,6 +399,7 @@ class ItineraryController extends Controller
                 departure: Departure::query()->where('uuid', $legData['departure_uuid'])->firstOrFail(),
                 originStop: Stop::query()->where('uuid', $legData['origin_stop_uuid'])->firstOrFail(),
                 destinationStop: Stop::query()->where('uuid', $legData['destination_stop_uuid'])->firstOrFail(),
+                direction: $legData['direction'] ?? 'outbound',
             );
         }
 
