@@ -13,6 +13,11 @@ declare module '@inertiajs/core' {
             name: string;
             auth: Auth;
             sidebarOpen: boolean;
+            mapConfig: {
+                provider: 'openstreetmap' | 'google';
+                osm: { tileUrl: string; attribution: string };
+                google: { apiKey: string | null };
+            };
             [key: string]: unknown;
         };
     }

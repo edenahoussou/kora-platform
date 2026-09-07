@@ -2225,6 +2225,122 @@
         font-weight: 950;
     }
 
+    .map-picker {
+        display: grid;
+        gap: 10px;
+    }
+
+    .map-picker-canvas {
+        position: relative;
+        z-index: 0;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: 0.875rem;
+        background: var(--card);
+    }
+
+    .map-picker-unavailable {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 24px;
+        color: var(--muted-foreground);
+        text-align: center;
+    }
+
+    .map-picker-unavailable svg {
+        color: var(--destructive);
+    }
+
+    .map-picker-status {
+        margin: 0;
+        color: var(--muted-foreground);
+        font-size: 10px;
+        font-weight: 700;
+    }
+
+    .map-picker-legend {
+        display: grid;
+        gap: 8px;
+    }
+
+    .map-picker-hint {
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+        margin: 0;
+        color: var(--muted-foreground);
+        font-size: 10px;
+        line-height: 1.5;
+    }
+
+    .map-picker-hint svg {
+        flex: 0 0 auto;
+        margin-top: 1px;
+        color: var(--digital);
+    }
+
+    .map-picker-points {
+        display: grid;
+        gap: 6px;
+    }
+
+    .map-picker-point {
+        display: grid;
+        grid-template-columns: 20px 1fr 90px 90px 70px;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 9px;
+        border-radius: 8px;
+        cursor: pointer;
+        box-shadow: inset 0 0 0 1px var(--border);
+    }
+
+    .map-picker-point-active {
+        box-shadow: inset 0 0 0 1.5px var(--gold);
+        background: color-mix(in srgb, var(--gold) 8%, transparent);
+    }
+
+    .map-picker-point-index {
+        display: grid;
+        place-items: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 999px;
+        background: var(--digital);
+        color: #fff;
+        font-size: 9px;
+        font-weight: 800;
+    }
+
+    .map-picker-point-label {
+        overflow: hidden;
+        color: var(--foreground);
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    .map-picker-coord {
+        min-height: 28px;
+        font-size: 10px;
+        padding: 0 8px;
+    }
+
+    .map-picker-point-distance {
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 3px;
+        color: var(--muted-foreground);
+        font-size: 10px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
     .camera-capture {
         display: flex;
         min-width: 0;

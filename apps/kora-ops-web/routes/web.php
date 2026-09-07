@@ -4,6 +4,7 @@ use App\Modules\Booking\Http\Controllers\CounterSaleController;
 use App\Modules\BusNetwork\Http\Controllers\BusAmenityController;
 use App\Modules\BusNetwork\Http\Controllers\BusController;
 use App\Modules\BusNetwork\Http\Controllers\LineController;
+use App\Modules\BusNetwork\Http\Controllers\MapSettingsController;
 use App\Modules\Cash\Http\Controllers\CashMediaController;
 use App\Modules\Cash\Http\Controllers\CashSessionController;
 use App\Modules\Departures\Http\Controllers\DepartureController;
@@ -100,6 +101,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // V1 MVP — Réseau (Lignes & arrêts)
     Route::get('network', [LineController::class, 'index'])->name('network.index');
+    Route::get('network/settings/map', [MapSettingsController::class, 'edit'])->name('network.map-settings.edit');
+    Route::patch('network/settings/map', [MapSettingsController::class, 'update'])->name('network.map-settings.update');
+    Route::inertia('network/map-prototype', 'network/map-prototype')->name('network.map-prototype');
     Route::get('network/{line:uuid}', [LineController::class, 'show'])->name('network.show');
     Route::post('network', [LineController::class, 'store'])->name('network.store');
     Route::put('network/{line:uuid}', [LineController::class, 'update'])->name('network.update');
