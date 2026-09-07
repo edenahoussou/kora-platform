@@ -459,4 +459,80 @@ class PaymentController extends Controller
             'reservation_status' => $updatedPayment->reservation?->status->value,
         ]);
     }
+
+    /**
+     * FedaPay callback endpoint.
+     *
+     * Fedapay redirects/posts the transaction result to this URL after
+     * processing. The transaction is then verified via the FedaPay API
+     * (server-side) to confirm the real status — the callback itself is
+     * not trusted as a source of truth.
+     *
+     * @unauthenticated
+     *
+     * @response 200 scenario="Callback processed" {
+     *   "status": "confirmed",
+     *   "payment_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80",
+     *   "reservation_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+     *   "reservation_status": "paid"
+     * }
+     * @response 400 scenario="No transaction reference" {
+     *   "error": "No transaction reference found in callback."
+     * }
+     * @response 404 scenario="Payment not found" {
+     *   "error": "Payment not found."
+     * }
+     */
+    public function callbackFedaPay(
+        Request $request,
+        PaymentManager $manager,
+        ConfirmPaymentAction $confirmPayment,
+    ): JsonResponse {
+        // Fedapay may send the reference as a query param (redirect) or
+        // in the JSON body (POST). We accept both.
+        $reference = $request->query('reference')
+            ?? $request->input('reference')
+            ?? $request->input('transaction.reference')
+            ?? null;
+
+        $transactionId = $request->query('id')
+            ?? $request->input('id')
+            ?? $request->input('transaction.id')
+            ?? null;
+
+        if ($reference === null && $transactionId === null) {
+            return response()->json(['error' => 'No transaction reference found in callback.'], 400);
+        }
+
+        // Find the payment by provider_reference or provider_transaction_id.
+        $payment = null;
+        if ($reference !== null) {
+            $payment = Payment::query()->where('provider_reference', $reference)->first();
+        }
+        if ($payment === null && $transactionId !== null) {
+            $payment = Payment::query()->where('provider_transaction_id', $transactionId)->first();
+        }
+
+        if ($payment === null) {
+            return response()->json(['error' => 'Payment not found.'], 404);
+        }
+
+        // Always verify the real status via the FedaPay API.
+        $adapter = $manager->resolve($payment->provider);
+        $providerResponse = $adapter->verify($payment);
+
+        $updatedPayment = $confirmPayment->handle(
+            payment: $payment,
+            status: $providerResponse->isConfirmed() ? 'confirmed' : ($providerResponse->isFailed() ? 'failed' : 'pending'),
+            providerReference: $providerResponse->providerReference,
+            providerPayload: $providerResponse->payload,
+        );
+
+        return response()->json([
+            'status' => $updatedPayment->status->value,
+            'payment_uuid' => $updatedPayment->uuid,
+            'reservation_uuid' => $updatedPayment->reservation?->uuid,
+            'reservation_status' => $updatedPayment->reservation?->status->value,
+        ]);
+    }
 }

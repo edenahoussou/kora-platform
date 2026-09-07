@@ -167,6 +167,7 @@ class InitiatePaymentAction
         $payment->update([
             'status' => $providerResponse->status,
             'provider_reference' => $providerResponse->providerReference,
+            'provider_transaction_id' => $providerResponse->providerTransactionId,
             'provider_payload' => array_merge($payment->provider_payload ?? [], $providerResponse->payload),
             'failure_code' => $providerResponse->isFailed() ? 'provider_initiation_failed' : null,
             'failure_message' => $providerResponse->isFailed() ? $providerResponse->message : null,
