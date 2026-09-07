@@ -564,7 +564,7 @@ endpoints:
         name: status
         description: ''
         required: true
-        example: confirmed
+        example: failed
         type: string
         enumValues:
           - success
@@ -596,7 +596,7 @@ endpoints:
         nullable: true
         deprecated: false
     cleanBodyParameters:
-      status: confirmed
+      status: failed
       provider_reference: b
     fileParameters: []
     responses:
@@ -769,6 +769,140 @@ endpoints:
           }
         headers: []
         description: 'Invalid webhook signature'
+      -
+        custom: []
+        status: 404
+        content: |-
+          {
+            "error": "Payment not found."
+          }
+        headers: []
+        description: 'Payment not found'
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/payments/callback/fedapay
+    metadata:
+      custom: []
+      groupName: Payments
+      groupDescription: |-
+
+        Payment lifecycle endpoints: initiation, polling status, and provider webhook confirmation.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'FedaPay callback endpoint.'
+      description: |-
+        Fedapay redirects/posts the transaction result to this URL after
+        processing. The transaction is then verified via the FedaPay API
+        (server-side) to confirm the real status — the callback itself is
+        not trusted as a source of truth.
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "status": "confirmed",
+            "payment_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80",
+            "reservation_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+            "reservation_status": "paid"
+          }
+        headers: []
+        description: 'Callback processed'
+      -
+        custom: []
+        status: 400
+        content: |-
+          {
+            "error": "No transaction reference found in callback."
+          }
+        headers: []
+        description: 'No transaction reference'
+      -
+        custom: []
+        status: 404
+        content: |-
+          {
+            "error": "Payment not found."
+          }
+        headers: []
+        description: 'Payment not found'
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/payments/callback/fedapay
+    metadata:
+      custom: []
+      groupName: Payments
+      groupDescription: |-
+
+        Payment lifecycle endpoints: initiation, polling status, and provider webhook confirmation.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'FedaPay callback endpoint.'
+      description: |-
+        Fedapay redirects/posts the transaction result to this URL after
+        processing. The transaction is then verified via the FedaPay API
+        (server-side) to confirm the real status — the callback itself is
+        not trusted as a source of truth.
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "status": "confirmed",
+            "payment_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80",
+            "reservation_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+            "reservation_status": "paid"
+          }
+        headers: []
+        description: 'Callback processed'
+      -
+        custom: []
+        status: 400
+        content: |-
+          {
+            "error": "No transaction reference found in callback."
+          }
+        headers: []
+        description: 'No transaction reference'
       -
         custom: []
         status: 404

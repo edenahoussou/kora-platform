@@ -48,7 +48,7 @@ endpoints:
         name: purpose
         description: ''
         required: true
-        example: login_new_device
+        example: registration
         type: string
         enumValues:
           - registration
@@ -60,7 +60,7 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       email: gbailey@example.net
-      purpose: login_new_device
+      purpose: registration
     fileParameters: []
     responses:
       -
@@ -462,7 +462,7 @@ endpoints:
         name: platform
         description: ''
         required: true
-        example: android
+        example: unknown
         type: string
         enumValues:
           - android
@@ -499,7 +499,7 @@ endpoints:
       verification_token: gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn
       pin: '9775'
       device_name: 'n'
-      platform: android
+      platform: unknown
       device_fingerprint: g
       push_token: z
     fileParameters: []
@@ -616,7 +616,7 @@ endpoints:
         name: platform
         description: ''
         required: true
-        example: ios
+        example: android
         type: string
         enumValues:
           - android
@@ -674,7 +674,7 @@ endpoints:
       email: gbailey@example.net
       pin: '9775'
       device_name: 'n'
-      platform: ios
+      platform: android
       device_fingerprint: g
       push_token: z
       otp_challenge_uuid: 977e5426-8d13-3824-86aa-b092f8ae52c5
@@ -808,7 +808,7 @@ endpoints:
         name: provider
         description: ''
         required: true
-        example: tiktok
+        example: google
         type: string
         enumValues:
           - google
@@ -844,7 +844,7 @@ endpoints:
         name: platform
         description: ''
         required: true
-        example: ios
+        example: unknown
         type: string
         enumValues:
           - android
@@ -877,10 +877,10 @@ endpoints:
         nullable: true
         deprecated: false
     cleanBodyParameters:
-      provider: tiktok
+      provider: google
       provider_token: b
       device_name: 'n'
-      platform: ios
+      platform: unknown
       device_fingerprint: g
       push_token: z
     fileParameters: []
@@ -1114,7 +1114,7 @@ endpoints:
         name: birth_date
         description: 'Le champ value doit être une date valide. Le champ value doit être une date antérieure à <code>today</code>.'
         required: false
-        example: '2022-10-01'
+        example: '2022-10-02'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -1125,7 +1125,7 @@ endpoints:
       email: zbailey@example.net
       phone: iyvdljnikhwaykcm
       country_code: yuwp
-      birth_date: '2022-10-01'
+      birth_date: '2022-10-02'
     fileParameters: []
     responses:
       -
@@ -1380,7 +1380,7 @@ endpoints:
         name: whatsapp_notifications
         description: ''
         required: false
-        example: false
+        example: true
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -1391,7 +1391,7 @@ endpoints:
         name: email_notifications
         description: ''
         required: false
-        example: false
+        example: true
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -1402,7 +1402,7 @@ endpoints:
         name: locale
         description: ''
         required: false
-        example: en
+        example: fr
         type: string
         enumValues:
           - fr
@@ -1415,7 +1415,7 @@ endpoints:
         name: theme
         description: ''
         required: false
-        example: system
+        example: light
         type: string
         enumValues:
           - light
@@ -1426,10 +1426,10 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       push_notifications: true
-      whatsapp_notifications: false
-      email_notifications: false
-      locale: en
-      theme: system
+      whatsapp_notifications: true
+      email_notifications: true
+      locale: fr
+      theme: light
     fileParameters: []
     responses:
       -

@@ -1,12 +1,20 @@
 ---
 title: Rechercher des itinéraires
-description: "GET /api/v1/bus/itineraries retourne les trajets directs et les correspondances à partir des points physiques."
+description: "GET /api/v1/bus/itineraries retourne les trajets directs et les correspondances à partir des points physiques, avec données riches (ligne, bus, amenities, classe de service, sièges disponibles). Supporte l'aller-retour."
 api: GET /api/v1/bus/itineraries
 ---
 
 # Rechercher des itinéraires
 
 Endpoint public et canonique de recherche mobile. Un résultat contient un ou plusieurs `legs`. Un trajet direct est représenté par une liste contenant un seul leg.
+
+Chaque leg expose des données riches — ligne, véhicule avec amenities, arrêts d'origine et de destination avec ville et pays, classe de service, nombre de sièges disponibles — pour que le mobile puisse afficher les résultats sans appels supplémentaires.
+
+## Aller simple vs aller-retour
+
+- **Aller simple** (`trip_type=one_way`, défaut) : la réponse utilise la clé `data`.
+- **Aller-retour avec date de retour** (`trip_type=round_trip` + `return_date`) : la réponse utilise deux clés `outbound` et `inbound`. Le retour recherche sur la date spécifiée, depuis la destination vers l'origine.
+- **Aller-retour sans date de retour** (`trip_type=round_trip` sans `return_date`) : la réponse utilise deux clés `outbound` et `inbound`. Le retour recherche les prochains départs disponibles sur `default_search_days` (7 jours par défaut) à partir du lendemain du départ. Le mobile peut ainsi proposer une liste de retours disponibles sans que l'utilisateur choisisse une date précise.
 
 ## Paramètres
 
@@ -23,13 +31,40 @@ Endpoint public et canonique de recherche mobile. Un résultat contient un ou pl
 </ParamField>
 
 <ParamField query="passenger_count" type="integer">
-  Nombre de passagers. Défaut : `1`.
+  Nombre de passagers. Défaut : `1`. Maximum autorisé par les paramètres de réservation de groupe.
+</ParamField>
+
+<ParamField query="trip_type" type="string">
+  Type de trajet : `one_way` ou `round_trip`. Défaut : `one_way`. Quand `round_trip`, `return_date` est requis et la réponse change de shape (`{ outbound, inbound }` au lieu de `{ data }`).
+</ParamField>
+
+<ParamField query="return_date" type="string">
+  Date de retour au format `Y-m-d`. Optionnel quand `trip_type=round_trip` : si absent, la recherche retour scanne les 7 prochains jours à partir du lendemain du départ.
+</ParamField>
+
+<ParamField query="sort" type="string">
+  Clé de tri : `departure_time`, `arrival_time`, `price`, `duration`, `connections`. Défaut : `connections` (trajets directs en premier).
+</ParamField>
+
+<ParamField query="sort_direction" type="string">
+  Direction du tri : `asc` ou `desc`. Défaut : `asc`.
+</ParamField>
+
+<ParamField query="service_class_code" type="string">
+  Code de classe de service pour filtrer les résultats (ex. `confort`, `premium`). Doit exister dans `service_classes`.
 </ParamField>
 
 <RequestExample>
 
 ```bash cURL
-curl -X GET 'https://staging.koraexpress.app/api/v1/bus/itineraries?from_physical_stop_uuid=origin-physical-uuid&to_physical_stop_uuid=destination-physical-uuid&date=2026-09-10&passenger_count=2' \
+# Aller simple
+curl -X GET 'https://staging.koraexpress.app/api/v1/bus/itineraries?from_physical_stop_uuid=origin-uuid&to_physical_stop_uuid=destination-uuid&date=2026-09-10&passenger_count=2&sort=price&sort_direction=asc' \
+  -H 'Accept: application/json'
+```
+
+```bash cURL
+# Aller-retour
+curl -X GET 'https://staging.koraexpress.app/api/v1/bus/itineraries?from_physical_stop_uuid=origin-uuid&to_physical_stop_uuid=destination-uuid&date=2026-09-10&trip_type=round_trip&return_date=2026-09-14&passenger_count=2' \
   -H 'Accept: application/json'
 ```
 
@@ -38,9 +73,12 @@ final response = await dio.get('/api/v1/bus/itineraries', queryParameters: {
   'from_physical_stop_uuid': originPhysicalStopUuid,
   'to_physical_stop_uuid': destinationPhysicalStopUuid,
   'date': '2026-09-10',
+  'trip_type': 'round_trip',
+  'return_date': '2026-09-14',
   'passenger_count': 2,
 });
-final itineraries = response.data['data'] as List;
+final outbound = response.data['outbound'] as List;
+final inbound = response.data['inbound'] as List;
 ```
 
 </RequestExample>
@@ -49,26 +87,69 @@ final itineraries = response.data['data'] as List;
 
 ```json 200
 {
-  "data": [
+  "outbound": [
     {
-      "connections_count": 1,
-      "total_amount": 27500,
+      "connections_count": 0,
+      "total_amount": 15600,
       "currency": "XOF",
-      "departure_at": "2026-09-10T06:00:00Z",
-      "arrival_at": "2026-09-10T19:30:00Z",
+      "departure_at": "2026-09-10T13:00:00+00:00",
+      "arrival_at": "2026-09-10T23:00:00+00:00",
       "connection_margin_minutes": 45,
       "legs": [
         {
           "leg_order": 1,
-          "departure_uuid": "departure-leg-1-uuid",
-          "line_code": "L1",
-          "origin_stop_uuid": "origin-stop-uuid",
-          "destination_stop_uuid": "connection-stop-uuid",
-          "departure_at": "2026-09-10T06:00:00Z",
-          "arrival_at": "2026-09-10T13:00:00Z",
-          "amount": 15000
+          "departure_uuid": "eaaf800b-90b6-4334-b840-7122d9ed65ac",
+          "line": {
+            "uuid": "line-uuid",
+            "code": "L2",
+            "name": "Nord-Est",
+            "estimated_duration_minutes": 600,
+            "is_international": false
+          },
+          "bus": {
+            "uuid": "bus-uuid",
+            "registration_number": "KORA-L2-002",
+            "brand": "KORA",
+            "model": "Coach 55",
+            "seat_count": 55,
+            "amenities": [
+              { "code": "wifi", "label": "Wi-Fi à bord", "icon": "wifi" },
+              { "code": "air_conditioning", "label": "Climatisation", "icon": "snowflake" }
+            ]
+          },
+          "origin_stop": {
+            "uuid": "origin-stop-uuid",
+            "name": "Cotonou",
+            "city": "Cotonou",
+            "country": "BJ",
+            "stop_order": 1
+          },
+          "destination_stop": {
+            "uuid": "destination-stop-uuid",
+            "name": "Malanville",
+            "city": "Malanville",
+            "country": "BJ",
+            "stop_order": 7
+          },
+          "amount": 15600,
+          "available_seats_count": 32,
+          "service_class_code": "confort",
+          "service_class_name": "KORA Confort",
+          "departure_at": "2026-09-10T13:00:00+00:00",
+          "arrival_at": "2026-09-10T23:00:00+00:00"
         }
       ]
+    }
+  ],
+  "inbound": [
+    {
+      "connections_count": 0,
+      "total_amount": 15600,
+      "currency": "XOF",
+      "departure_at": "2026-09-14T13:00:00+00:00",
+      "arrival_at": "2026-09-14T23:00:00+00:00",
+      "connection_margin_minutes": 45,
+      "legs": [...]
     }
   ]
 }
@@ -80,6 +161,10 @@ final itineraries = response.data['data'] as List;
 
 - Les points physiques sont identifiés par UUID ; un libellé de ville ne suffit pas pour poursuivre la réservation.
 - `leg_order` commence à `1`.
+- `connections_count` vaut `0` pour un trajet direct, `>0` pour un trajet avec correspondances.
+- Le tri secondaire est stable : à valeur de tri égale, les directs sont prioritaires, puis tri par `departure_at`.
+- Le filtre `service_class_code` ne retient que les itinéraires dont au moins une leg propose cette classe.
+- Pour l'aller-retour, la recherche inbound inverse automatiquement l'origine et la destination.
 - Le prix retourné est un aperçu de recherche. Créez un devis d'itinéraire avant de l'afficher comme prix contractuel.
 - La réponse est publique et ne contient aucune donnée de réservation ou de passager.
 
@@ -88,5 +173,5 @@ final itineraries = response.data['data'] as List;
 | Code | Description |
 |---|---|
 | `200` | Itinéraires trouvés ou liste vide. |
-| `422` | Point physique, date ou nombre de passagers invalide. |
+| `422` | Point physique, date, paramètre de tri, classe de service ou `trip_type` invalide. |
 | `429` | Limite de recherche atteinte. |

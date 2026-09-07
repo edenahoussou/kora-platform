@@ -1,13 +1,13 @@
 ---
 title: Lister les villes
-description: GET /api/v1/bus/cities liste les villes desservies par KORA BUS avec pays et nombre d'arrêts, endpoint public sans authentification requise.
+description: "GET /api/v1/bus/cities liste les villes desservies par KORA BUS avec leurs points physiques (physical stops) pour la recherche d'itinéraires, endpoint public sans authentification requise."
 api: GET /api/v1/bus/cities
 authMethod: none
 ---
 
 # Lister les villes
 
-Retourne les villes desservies par KORA BUS, avec leur pays et le nombre d'arrêts associés. Aucun paramètre requis.
+Retourne les villes desservies par KORA BUS avec leurs points physiques d'embarquement et de débarquement. Chaque point physique expose son UUID, que le mobile utilise comme `from_physical_stop_uuid` / `to_physical_stop_uuid` dans `GET /api/v1/bus/itineraries`. Aucun paramètre requis.
 
 <RequestExample>
 
@@ -38,9 +38,21 @@ final cities = res.data['data'] as List;
 ```json 200
 {
   "data": [
-    { "city": "Cotonou", "country": "Bénin", "stops_count": 5 },
-    { "city": "Abidjan", "country": "Côte d'Ivoire", "stops_count": 3 },
-    { "city": "Malanville", "country": "Bénin", "stops_count": 1 }
+    {
+      "city": "Cotonou",
+      "country": "BJ",
+      "physical_stops": [
+        { "uuid": "5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21", "name": "Cotonou · St Michel" },
+        { "uuid": "5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22", "name": "Cotonou · Dantokpa" }
+      ]
+    },
+    {
+      "city": "Abidjan",
+      "country": "CI",
+      "physical_stops": [
+        { "uuid": "5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e23", "name": "Abidjan · Adjamé" }
+      ]
+    }
   ]
 }
 ```
@@ -52,13 +64,26 @@ final cities = res.data['data'] as List;
 <ResponseField name="data" type="City[]" required>
   Tableau des villes.
 
-  <ResponseField name="city" type="string" required>Nom de la ville.</ResponseField>
-  <ResponseField name="country" type="string" required>Nom du pays.</ResponseField>
-  <ResponseField name="stops_count" type="integer" required>Nombre d'arrêts dans cette ville.</ResponseField>
+  <ResponseField name="data[].city" type="string" required>Nom de la ville.</ResponseField>
+  <ResponseField name="data[].country" type="string" required>Code pays ISO 3166-1 alpha-2.</ResponseField>
+  <ResponseField name="data[].physical_stops" type="object[]" required>
+    Points physiques d'embarquement/débarquement de la ville.
+
+    <ResponseField name="data[].physical_stops[].uuid" type="UUID" required>
+      UUID du point physique. À utiliser comme `from_physical_stop_uuid` ou `to_physical_stop_uuid` dans `GET /api/v1/bus/itineraries`.
+    </ResponseField>
+    <ResponseField name="data[].physical_stops[].name" type="string" required>
+      Nom affichable du point physique (ex: « Cotonou · St Michel »).
+    </ResponseField>
+  </ResponseField>
 </ResponseField>
 
 ## Codes de réponse
 
 | Code | Description |
 |------|-------------|
-| `200` | Liste des villes. |
+| `200` | Liste des villes avec leurs points physiques. |
+
+<Info>
+  Appelez cet endpoint au démarrage de l'application pour construire le sélecteur origine/destination. L'utilisateur choisit une ville, puis un point physique, puis une date — le mobile appelle ensuite `GET /api/v1/bus/itineraries` avec les UUIDs sélectionnés.
+</Info>

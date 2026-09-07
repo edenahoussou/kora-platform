@@ -106,8 +106,6 @@
                   "reference/bus/cities",
                   "reference/bus/lines",
                   "reference/bus/line",
-                  "reference/bus/departures",
-                  "reference/bus/departure",
                   "reference/bus/seats",
                   "reference/bus/itineraries"
                 ]
@@ -116,12 +114,9 @@
                 "group": "Réservation",
                 "icon": "ticket",
                 "pages": [
-                  "reference/booking/quotes",
-                  "reference/booking/holds",
                   "reference/booking/itinerary-quotes",
                   "reference/booking/itinerary-holds",
                   "reference/booking/reservation",
-                  "reference/booking/release-hold",
                   "reference/booking/passengers"
                 ]
               },

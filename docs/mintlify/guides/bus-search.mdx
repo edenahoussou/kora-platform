@@ -86,7 +86,7 @@ La disponibilité et le prix affichés avant le devis sont indicatifs. Le serveu
 </Steps>
 
 <Warning>
-  Les endpoints `/api/v1/bus/departures` et `/api/v1/bus/quotes` restent disponibles pour les détails de catalogue et les clients internes. Ils ne constituent plus le parcours de recherche mobile recommandé.
+  La recherche par nom de ville (`/api/v1/bus/departures?from=Cotonou&to=Abidjan`) est dépréciée. Le parcours mobile canonical utilise `/api/v1/bus/itineraries` avec les UUIDs des points physiques.
 </Warning>
 
 <Card title="Devis et blocage de sièges" href="/guides/quotes-and-holds" icon="arrow-right" iconType="solid">
