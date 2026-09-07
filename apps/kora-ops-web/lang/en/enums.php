@@ -81,6 +81,17 @@ return [
         'refunded' => 'Refunded',
     ],
 
+    'passenger_journey_status' => [
+        'hold_pending' => 'Reservation pending',
+        'hold_expired' => 'Hold expired',
+        'payment_pending' => 'Payment pending',
+        'payment_confirmed' => 'Payment confirmed',
+        'ticket_issued' => 'Ticket issued',
+        'boarded' => 'Boarded',
+        'absent' => 'Absent',
+        'cancelled' => 'Cancelled',
+    ],
+
     'payment_status' => [
         'pending' => 'Pending',
         'completed' => 'Completed',

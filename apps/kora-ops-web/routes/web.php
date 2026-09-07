@@ -8,12 +8,14 @@ use App\Modules\BusNetwork\Http\Controllers\MapSettingsController;
 use App\Modules\Cash\Http\Controllers\CashMediaController;
 use App\Modules\Cash\Http\Controllers\CashSessionController;
 use App\Modules\Departures\Http\Controllers\DepartureController;
+use App\Modules\Departures\Http\Controllers\ManifestController;
 use App\Modules\Departures\Http\Controllers\ProgrammingController;
 use App\Modules\DynamicPricing\Http\Controllers\FareController;
 use App\Modules\DynamicPricing\Http\Controllers\PricingRuleController;
 use App\Modules\DynamicPricing\Http\Controllers\TaxRuleController;
 use App\Modules\IdentityAccess\Http\Controllers\AgencyController;
 use App\Modules\Payments\Http\Controllers\AgencyPaymentAccountController;
+use App\Modules\Ticketing\Http\Controllers\TicketsController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -44,8 +46,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('cash/movements/{movement:uuid}/approve', [CashSessionController::class, 'approveMovement'])->name('cash.movements.approve');
     Route::post('cash/movements/{movement:uuid}/reject', [CashSessionController::class, 'rejectMovement'])->name('cash.movements.reject');
     Route::get('cash/media/{mediaUuid}', [CashMediaController::class, 'show'])->name('cash.media');
-    Route::inertia('boarding', 'boarding')->name('boarding');
-    Route::inertia('manifest', 'manifest')->name('manifest');
 
     // V1 MVP — Départs (CRUD)
     Route::prefix('programming')->name('programming.')->group(function (): void {
@@ -70,7 +70,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('departures/{departure:uuid}/status', [DepartureController::class, 'changeStatus'])->name('departures.status');
     Route::patch('departures/{departure:uuid}/delay', [DepartureController::class, 'recordDelay'])->name('departures.delay');
     Route::inertia('boarding', 'boarding')->name('boarding');
-    Route::inertia('manifest', 'manifest')->name('manifest');
+    Route::get('manifest', [ManifestController::class, 'index'])->name('manifest.index');
+    Route::get('manifest/reservations/{reservation:uuid}', [ManifestController::class, 'reservation'])->name('manifest.reservations.show');
+    Route::get('manifest/{departure:uuid}', [ManifestController::class, 'show'])->name('manifest.show');
     Route::get('fares', [FareController::class, 'index'])->name('fares.index');
     Route::get('fares/{fare:uuid}', [FareController::class, 'show'])->name('fares.show');
     Route::post('fares', [FareController::class, 'store'])->name('fares.store');
@@ -91,7 +93,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('tax-rules/{taxRule:uuid}', [TaxRuleController::class, 'update'])->name('tax-rules.update');
     Route::patch('tax-rules/{taxRule:uuid}/status', [TaxRuleController::class, 'changeStatus'])->name('tax-rules.status');
     Route::inertia('passengers', 'passengers')->name('passengers');
-    Route::inertia('tickets', 'tickets')->name('tickets');
+    Route::get('tickets', [TicketsController::class, 'index'])->name('tickets.index');
 
     // V1 MVP — Réseau (Lignes & arrêts)
     Route::get('network', [LineController::class, 'index'])->name('network.index');

@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 
-type StatusTone = 'navy' | 'gold' | 'blue' | 'muted';
+type StatusTone = 'navy' | 'gold' | 'blue' | 'muted' | 'destructive';
 
 type Props = {
     label: string;
@@ -13,6 +13,7 @@ const toneStyles: Record<StatusTone, string> = {
     gold: 'text-[var(--kora)] bg-gold/20 dark:text-gold dark:bg-gold/15',
     blue: 'text-[var(--kora)] bg-[var(--digital)]/9 dark:text-[var(--digital)] dark:bg-[var(--digital)]/15',
     muted: 'text-muted-foreground bg-muted dark:bg-muted/40',
+    destructive: 'text-destructive bg-destructive/12 dark:bg-destructive/20',
 };
 
 const dotStyles: Record<StatusTone, string> = {
@@ -20,6 +21,7 @@ const dotStyles: Record<StatusTone, string> = {
     gold: 'bg-gold',
     blue: 'bg-[var(--digital)]',
     muted: 'bg-muted-foreground',
+    destructive: 'bg-destructive',
 };
 
 export function KoraStatusBadge({ label, tone = 'blue', className }: Props) {

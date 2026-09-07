@@ -2428,6 +2428,88 @@
         white-space: nowrap;
     }
 
+    .manifest-summary-card {
+        position: relative;
+        min-width: 0;
+        overflow: hidden;
+        padding: 16px;
+        border: 1px solid var(--border);
+        border-radius: var(--kora-radius);
+        background: var(--card);
+        box-shadow: 0 7px 24px rgba(0, 29, 78, 0.045);
+        transition:
+            transform 0.42s cubic-bezier(0.32, 0.72, 0, 1),
+            box-shadow 0.42s cubic-bezier(0.32, 0.72, 0, 1),
+            border-color 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    .manifest-summary-card::after {
+        position: absolute;
+        top: -40px;
+        right: -36px;
+        width: 96px;
+        height: 96px;
+        border: 16px solid color-mix(in srgb, var(--digital) 6%, transparent);
+        border-radius: 50%;
+        content: '';
+        pointer-events: none;
+    }
+
+    .manifest-summary-card:hover {
+        border-color: color-mix(in srgb, var(--digital) 25%, var(--border));
+        box-shadow: 0 14px 34px rgba(0, 29, 78, 0.08);
+        transform: translateY(-2px);
+    }
+
+    .manifest-summary-card-total {
+        border-top: 3px solid var(--gold);
+    }
+
+    .manifest-summary-card-boarded {
+        border-top: 3px solid var(--digital);
+    }
+
+    .manifest-summary-card-absent {
+        border-top: 3px solid var(--destructive);
+    }
+
+    .manifest-summary-card-tickets {
+        border-top: 3px solid var(--kora);
+    }
+
+    .manifest-summary-card-pending {
+        border-top: 3px solid var(--gold);
+    }
+
+    .manifest-summary-icon {
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        background: color-mix(in srgb, var(--digital) 9%, transparent);
+        color: var(--kora);
+    }
+
+    .manifest-summary-card-absent .manifest-summary-icon {
+        background: color-mix(in srgb, var(--destructive) 12%, transparent);
+        color: var(--destructive);
+    }
+
+    .manifest-summary-value {
+        margin-top: 10px;
+        display: block;
+        font-size: 1.375rem;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        color: var(--foreground);
+    }
+
+    .manifest-summary-label {
+        font-size: 0.625rem;
+        color: var(--muted-foreground);
+    }
+
     .camera-capture {
         display: flex;
         min-width: 0;
