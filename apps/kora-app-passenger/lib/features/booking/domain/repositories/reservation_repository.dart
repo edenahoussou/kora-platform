@@ -1,7 +1,11 @@
 import 'package:dartz/dartz.dart';
 
 import '../../../../core/error/failures.dart';
+import '../entities/company_account.dart';
 import '../entities/departure.dart';
+import '../entities/group_payer.dart';
+import '../entities/group_quote.dart';
+import '../entities/group_ticket.dart';
 import '../entities/passenger.dart';
 import '../entities/quote.dart';
 import '../entities/seat.dart';
@@ -19,6 +23,43 @@ abstract class ReservationRepository {
   ///
   /// À appeler juste avant [hold] : le blocage réclame l'identifiant du
   /// devis, et un devis expire vite.
+  /// Le devis d'un groupe, remise comprise.
+  ///
+  /// Distinct de [quote] : celui-ci passe par `bus/itinerary-quotes`, le
+  /// seul point d'entrée qui applique la remise de groupe et la détaille
+  /// au passager. Il sert à **afficher** le prix ; le blocage d'un groupe
+  /// s'appuiera sur son `itinerary_quote_uuid`.
+  /// Les billets émis d'une réservation, un par voyageur.
+  ///
+  /// Une liste vide est un succès : l'émission suit le paiement, et le
+  /// voyageur peut arriver sur l'écran avant que le serveur ait fini.
+  Future<Either<Failure, List<GroupTicket>>> bookingTickets(
+    String reservationId,
+  );
+
+  /// Les comptes entreprise dont le voyageur est membre actif.
+  ///
+  /// Une liste vide est un succès : la plupart des voyageurs n'appartiennent
+  /// à aucune entreprise, et l'écran doit le dire plutôt que d'échouer.
+  Future<Either<Failure, List<CompanyAccount>>> companyAccounts();
+
+  /// Retient d'un seul coup tous les sièges d'un groupe.
+  ///
+  /// Atomique : soit les N sièges partent ensemble, soit aucun. Retenir la
+  /// moitié d'un groupe laisserait une réservation inutilisable et des
+  /// places retirées de la vente pour rien.
+  Future<Either<Failure, SeatHold>> holdGroup({
+    required GroupQuote quote,
+    required List<Seat> seats,
+    required GroupPayer payer,
+    required String idempotencyKey,
+  });
+
+  Future<Either<Failure, GroupQuote>> groupQuote({
+    required Departure departure,
+    required int passengers,
+  });
+
   Future<Either<Failure, Quote>> quote({
     required Departure departure,
     required int passengers,

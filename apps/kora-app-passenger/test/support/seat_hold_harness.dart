@@ -10,13 +10,19 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kora_app_passenger/core/error/failures.dart';
 import 'package:kora_app_passenger/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/company_account.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/group_payer.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/group_quote.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/group_ticket.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/passenger.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/price.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/quote.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/seat.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/seat_hold.dart';
 import 'package:kora_app_passenger/features/booking/domain/repositories/reservation_repository.dart';
+import 'package:kora_app_passenger/features/booking/presentation/bloc/group_payer_cubit.dart';
+import 'package:kora_app_passenger/features/booking/presentation/bloc/group_quote_cubit.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/seat_hold_bloc.dart';
 import 'package:kora_app_passenger/features/payment/domain/entities/payment_catalog.dart';
 import 'package:kora_app_passenger/features/payment/domain/repositories/payment_repository.dart';
@@ -29,6 +35,9 @@ class StubReservationRepository implements ReservationRepository {
     this.failure,
     this.holdDuration = const Duration(minutes: 7),
     this.passengersFailure,
+    this.groupQuoteValue,
+    this.accounts = const [],
+    this.tickets = const [],
     DateTime? now,
   }) : now = now ?? DateTime.now().toUtc();
 
@@ -51,6 +60,46 @@ class StubReservationRepository implements ReservationRepository {
 
   final List<String> calls = [];
 
+  /// Le devis groupé rendu par le stub : sous-total pour tous, et une
+  /// remise seulement au-delà du seuil.
+  final GroupQuote? groupQuoteValue;
+
+  @override
+  Future<Either<Failure, GroupQuote>> groupQuote({
+    required Departure departure,
+    required int passengers,
+  }) async {
+    calls.add('groupQuote:$passengers');
+    final failure = this.failure;
+    if (failure != null) return Left(failure);
+
+    final value = groupQuoteValue;
+    if (value != null) return Right(value);
+
+    // Le barème du staging : 10 % à partir de cinq voyageurs.
+    final subtotal = 12500 * passengers;
+    final applies = passengers >= 5;
+    final discount = applies ? subtotal ~/ 10 : 0;
+
+    return Right(
+      GroupQuote(
+        id: 'itinerary-quote-1',
+        subtotal: Price(subtotal),
+        total: Price(subtotal - discount),
+        passengerCount: passengers,
+        discount: applies
+            ? GroupDiscount(
+                applied: true,
+                threshold: 5,
+                percentage: 10,
+                amount: Price(discount),
+              )
+            : GroupDiscount.none,
+        expiresAt: now.add(holdDuration),
+      ),
+    );
+  }
+
   @override
   Future<Either<Failure, Quote>> quote({
     required Departure departure,
@@ -66,6 +115,57 @@ class StubReservationRepository implements ReservationRepository {
         total: Price(12500 * passengers),
         passengerCount: passengers,
         expiresAt: now.add(holdDuration),
+      ),
+    );
+  }
+
+  /// Les billets rendus par [bookingTickets]. Vide par défaut : l'émission
+  /// suit le paiement, et un écran ouvert trop tôt n'en voit aucun.
+  final List<GroupTicket> tickets;
+
+  @override
+  Future<Either<Failure, List<GroupTicket>>> bookingTickets(
+    String reservationId,
+  ) async {
+    calls.add('bookingTickets');
+    final failure = this.failure;
+    return failure != null ? Left(failure) : Right(tickets);
+  }
+
+  /// Les comptes entreprise rendus par [companyAccounts]. Vide par défaut :
+  /// la plupart des voyageurs n'appartiennent à aucune entreprise.
+  final List<CompanyAccount> accounts;
+
+  @override
+  Future<Either<Failure, List<CompanyAccount>>> companyAccounts() async {
+    calls.add('companyAccounts');
+    final failure = this.failure;
+    return failure != null ? Left(failure) : Right(accounts);
+  }
+
+  /// Le payeur reçu par [holdGroup] : c'est lui que vérifient les tests du
+  /// compte entreprise.
+  GroupPayer? groupPayer;
+
+  @override
+  Future<Either<Failure, SeatHold>> holdGroup({
+    required GroupQuote quote,
+    required List<Seat> seats,
+    required GroupPayer payer,
+    required String idempotencyKey,
+  }) async {
+    calls.add('holdGroup:${seats.length}');
+    groupPayer = payer;
+
+    final failure = this.failure;
+    if (failure != null) return Left(failure);
+
+    return Right(
+      SeatHold(
+        id: 'hold-groupe-1',
+        expiresAt: now.add(holdDuration),
+        seatLabels: [for (final seat in seats) seat.label],
+        total: quote.total,
       ),
     );
   }
@@ -193,12 +293,23 @@ Widget withSeatHold(
   Widget child, {
   required SeatHoldBloc bloc,
   AuthBloc? auth,
+  GroupQuoteCubit? groupQuote,
+  GroupPayerCubit? groupPayer,
 }) {
   return MultiBlocProvider(
     providers: [
       BlocProvider<SeatHoldBloc>.value(value: bloc),
       BlocProvider<AuthBloc>.value(
         value: auth ?? AuthBloc(StubAuthRepository()),
+      ),
+      // Le récapitulatif détaille le prix depuis le devis du serveur : le
+      // tunnel le fournit dans l'app, le harnais doit en faire autant.
+      BlocProvider<GroupQuoteCubit>.value(
+        value: groupQuote ?? GroupQuoteCubit(StubReservationRepository()),
+      ),
+      // Le payeur du groupe : choisi sur l'écran de groupe, lu au blocage.
+      BlocProvider<GroupPayerCubit>.value(
+        value: groupPayer ?? GroupPayerCubit(StubReservationRepository()),
       ),
     ],
     child: child,

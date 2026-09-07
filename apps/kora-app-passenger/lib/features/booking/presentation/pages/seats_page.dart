@@ -11,7 +11,10 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../domain/entities/departure.dart';
+import '../../domain/entities/group_booking_limits.dart';
 import '../../domain/entities/seat.dart';
+import '../bloc/group_payer_cubit.dart';
+import '../bloc/group_quote_cubit.dart';
 import '../bloc/seat_hold_bloc.dart';
 import '../bloc/seats_bloc.dart';
 import '../widgets/booking_progress.dart';
@@ -298,18 +301,43 @@ class _ContinueButton extends StatelessWidget {
           // Désactivé tant qu'il manque un siège : la maquette laisse le
           // bouton actif et affiche un message d'erreur au clic, ce qui
           // fait faire un aller-retour pour rien.
-          onPressed: state.canContinue
-              ? () => context.read<SeatHoldBloc>().add(
-                  SeatHoldRequested(
-                    departure: state.departure!,
-                    seats: state.selectedSeats,
-                  ),
-                )
-              : null,
+          onPressed: state.canContinue ? () => _hold(context, state) : null,
         );
       },
     );
   }
+}
+
+/// Retient les sièges choisis, par le chemin qui convient.
+///
+/// Un groupe passe par le blocage **atomique** : ses N sièges partent
+/// ensemble ou pas du tout, et il s'appuie sur le devis d'itinéraire déjà
+/// obtenu — celui qui portait la remise montrée au voyageur. Sans ce devis
+/// en mémoire, on retombe sur le chemin ordinaire plutôt que de bloquer le
+/// parcours : le prix sera juste, à la remise près.
+void _hold(BuildContext context, SeatsState state) {
+  final departure = state.departure!;
+  final quoteState = context.read<GroupQuoteCubit>().state;
+  final quote = quoteState.matches(departure.id, state.passengers)
+      ? quoteState.quote
+      : null;
+
+  final bloc = context.read<SeatHoldBloc>();
+
+  if (state.passengers >= kGroupMinimumPassengers && quote != null) {
+    bloc.add(
+      SeatHoldGroupRequested(
+        departure: departure,
+        quote: quote,
+        seats: state.selectedSeats,
+        // Choisi deux écrans plus tôt, sur la réservation de groupe.
+        payer: context.read<GroupPayerCubit>().state.payer,
+      ),
+    );
+    return;
+  }
+
+  bloc.add(SeatHoldRequested(departure: departure, seats: state.selectedSeats));
 }
 
 class _CheckoutSlot extends StatelessWidget {

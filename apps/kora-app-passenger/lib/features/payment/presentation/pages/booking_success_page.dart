@@ -4,8 +4,10 @@ import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/l10n/app_localization.dart';
+import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../booking/presentation/bloc/seat_hold_bloc.dart';
+import '../../../booking/presentation/pages/group_tickets_page.dart';
 import '../../../booking/presentation/widgets/state_view.dart';
 import 'payment_flow_args.dart';
 import 'payment_method_page.dart';
@@ -38,6 +40,25 @@ class _BookingSuccessPageState extends State<BookingSuccessPage> {
     });
   }
 
+  /// Ouvre les billets : la liste du groupe, ou l'onglet Voyages.
+  void _openTickets(BuildContext context) {
+    final hold = context.read<SeatHoldBloc>().state;
+    final reservationId = hold.hold?.id;
+
+    if (reservationId != null && hold.passengers > 1) {
+      context.push(
+        AppRouter.groupTicketsPath,
+        extra: GroupTicketsArgs(
+          reservationId: reservationId,
+          passengers: hold.passengers,
+        ),
+      );
+      return;
+    }
+
+    context.go('/voyages');
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -59,7 +80,10 @@ class _BookingSuccessPageState extends State<BookingSuccessPage> {
                 title: l10n.bookingSuccessTitle,
                 message: l10n.bookingSuccessText,
                 primaryLabel: l10n.bookingSuccessTicket,
-                onPrimary: () => context.go('/voyages'),
+                // Un groupe a autant de billets que de voyageurs, chacun
+                // avec son QR : l'écran dédié les liste. Un voyageur seul
+                // n'a qu'un billet, et la liste des voyages y mène déjà.
+                onPrimary: () => _openTickets(context),
                 secondaryLabel: l10n.holdExpiredSecondary,
                 onSecondary: () => context.go('/home'),
               ),

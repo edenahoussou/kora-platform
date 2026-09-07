@@ -109,6 +109,28 @@ class ApiConstants {
   /// rebours ; le choix sur le plan n'engage rien.
   static const String busHolds = '$_v1/bus/holds';
 
+  /// `POST` : le devis d'un itinéraire, un ou plusieurs tronçons, pour un
+  /// nombre de voyageurs donné.
+  ///
+  /// C'est le seul point d'entrée qui rend la remise de groupe au
+  /// passager : `group-discounts` et `group-booking-settings` sont fermés
+  /// par la permission `group-discounts.view`, réservée à
+  /// l'administration.
+  static const String itineraryQuotes = '$_v1/bus/itinerary-quotes';
+
+  /// `POST` : le blocage atomique de tous les sièges d'un groupe.
+  static const String itineraryHolds = '$_v1/bus/itinerary-holds';
+
+  /// `GET` : les comptes entreprise dont le voyageur est membre actif.
+  ///
+  /// Ouvert à tous : sans la permission `company-credit.view`, la réponse
+  /// se limite aux comptes du demandeur — et masque leurs plafonds.
+  static const String companyAccounts = '$_v1/company-accounts';
+
+  /// `GET` : les billets émis d'une réservation, un par voyageur.
+  static String bookingTickets(String reservationUuid) =>
+      '$_v1/bookings/$reservationUuid/tickets';
+
   /// Libération d'un blocage avant son échéance (`DELETE`, authentifié).
   /// La clé est l'identifiant de la **réservation**, pas du départ.
   ///

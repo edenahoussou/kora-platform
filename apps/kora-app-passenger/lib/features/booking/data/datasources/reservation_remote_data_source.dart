@@ -2,11 +2,18 @@ import 'package:dio/dio.dart';
 
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/network/api_json.dart';
+import '../../domain/entities/company_account.dart';
 import '../../domain/entities/departure.dart';
+import '../../domain/entities/group_payer.dart';
+import '../../domain/entities/group_quote.dart';
+import '../../domain/entities/group_ticket.dart';
 import '../../domain/entities/passenger.dart';
 import '../../domain/entities/quote.dart';
 import '../../domain/entities/seat.dart';
 import '../../domain/entities/seat_hold.dart';
+import '../models/company_account_model.dart';
+import '../models/group_quote_model.dart';
+import '../models/group_ticket_model.dart';
 import '../models/quote_model.dart';
 import '../models/seat_hold_model.dart';
 
@@ -36,6 +43,37 @@ class ReservationRemoteDataSource {
     );
 
     return QuoteModel.fromJson(ApiJson.map(_payload(response.data))).toEntity();
+  }
+
+  /// Le devis d'un groupe, avec sa remise.
+  ///
+  /// Passe par `bus/itinerary-quotes` et non par `bus/quotes` : c'est le
+  /// seul point d'entrée qui applique la remise de groupe et la détaille
+  /// au passager. Un seul tronçon ici — les correspondances viendront avec
+  /// le parcours multi-lignes, que ce point d'entrée sait déjà traiter.
+  Future<GroupQuote> groupQuote({
+    required Departure departure,
+    required int passengers,
+  }) async {
+    final response = await _dio.post<dynamic>(
+      ApiConstants.itineraryQuotes,
+      data: {
+        'passenger_count': passengers,
+        'legs': [
+          {
+            'leg_order': 1,
+            'departure_uuid': departure.id,
+            'origin_stop_uuid': departure.originStopId,
+            'destination_stop_uuid': departure.destinationStopId,
+          },
+        ],
+      },
+    );
+
+    // Réponse à plat, sans enveloppe `data`, contrairement au reste.
+    return GroupQuoteModel.fromJson(
+      ApiJson.map(response.data),
+    ).toEntity(passengerCount: passengers);
   }
 
   Future<SeatHold> hold({
@@ -85,6 +123,78 @@ class ReservationRemoteDataSource {
     return SeatHoldModel.fromJson(
       ApiJson.map(_payload(response.data)),
     ).toEntity();
+  }
+
+  /// Retient d'un seul coup tous les sièges d'un groupe.
+  ///
+  /// **Atomique côté serveur** : soit les N sièges partent ensemble, soit
+  /// aucun. C'est ce qui distingue ce point d'entrée de `bus/holds` — sur
+  /// un groupe de dix, retenir neuf sièges puis échouer sur le dixième
+  /// laisserait le voyageur avec une réservation inutilisable et neuf
+  /// places retirées de la vente.
+  ///
+  /// L'ordre des sièges fait foi : le voyageur d'indice `i` occupe le
+  /// i-ième siège choisi, et c'est ce même ordre que suivra le formulaire
+  /// des identités.
+  Future<SeatHold> holdGroup({
+    required GroupQuote quote,
+    required List<Seat> seats,
+    required GroupPayer payer,
+    required String idempotencyKey,
+  }) async {
+    final response = await _dio.post<dynamic>(
+      ApiConstants.itineraryHolds,
+      data: {
+        'itinerary_quote_uuid': quote.id,
+        'idempotency_key': idempotencyKey,
+        // Tu par défaut : le serveur retombe alors sur le titulaire.
+        if (payer.isCompany) 'payer': payer.toJson(),
+        'passengers': [
+          for (var index = 0; index < seats.length; index++)
+            {
+              'passenger_index': index,
+              'seat_assignments': [
+                {'leg_order': 1, 'seat_uuid': seats[index].id},
+              ],
+            },
+        ],
+      },
+    );
+
+    return SeatHoldModel.fromJson(
+      ApiJson.map(_payload(response.data)),
+    ).toEntity();
+  }
+
+  /// Les comptes entreprise dont le voyageur est membre actif.
+  ///
+  /// Rangé ici plutôt que dans une couche à part : c'est un seul point
+  /// d'entrée, et il ne sert qu'à désigner le payeur d'une réservation.
+  /// Une liste vide est un **succès** — la plupart des voyageurs
+  /// n'appartiennent à aucune entreprise.
+  Future<List<CompanyAccount>> companyAccounts() async {
+    final response = await _dio.get<dynamic>(ApiConstants.companyAccounts);
+
+    return [
+      for (final json in ApiJson.list(_payload(response.data)))
+        CompanyAccountModel.fromJson(json).toEntity(),
+    ];
+  }
+
+  /// Les billets émis d'une réservation, un par voyageur.
+  ///
+  /// Vide tant que le paiement n'est pas confirmé : l'émission suit le
+  /// règlement, et une liste vide n'est donc pas une erreur mais une
+  /// attente.
+  Future<List<GroupTicket>> bookingTickets(String reservationId) async {
+    final response = await _dio.get<dynamic>(
+      ApiConstants.bookingTickets(reservationId),
+    );
+
+    return [
+      for (final json in ApiJson.list(_payload(response.data)))
+        GroupTicketModel.fromJson(json).toEntity(),
+    ];
   }
 
   Future<void> release(String reservationId) =>

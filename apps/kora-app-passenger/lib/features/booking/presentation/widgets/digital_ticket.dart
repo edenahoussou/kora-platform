@@ -5,6 +5,7 @@ import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../domain/entities/city.dart';
 import '../../domain/entities/ticket.dart';
+import 'kora_qr.dart';
 
 /// `.digital-ticket` : le billet lui-même, celui qu'on présente à
 /// l'embarquement.
@@ -14,9 +15,22 @@ import '../../domain/entities/ticket.dart';
 /// La forme n'est pas gratuite — elle dit d'un coup d'œil, à distance, que
 /// l'écran affiche un titre de transport et non une confirmation de plus.
 class DigitalTicket extends StatelessWidget {
-  const DigitalTicket({super.key, required this.ticket, this.passengerName});
+  const DigitalTicket({
+    super.key,
+    required this.ticket,
+    this.passengerName,
+    this.qrPayload,
+  });
 
   final Ticket ticket;
+
+  /// Ce que le serveur porte sur le billet (`qr_code`), et qui sera scanné
+  /// au contrôle.
+  ///
+  /// À défaut, la référence en tient lieu : le code reste unique et
+  /// scannable, mais il faudra que le contrôle sache le lire. Les billets
+  /// venus de l'API portent le vrai champ.
+  final String? qrPayload;
 
   /// `A. HOUNKPÈ` — le porteur, en bas du billet.
   final String? passengerName;
@@ -77,7 +91,7 @@ class DigitalTicket extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
                 child: Column(
                   children: [
-                    _QrBlock(payload: ticket.reference),
+                    KoraQr(payload: qrPayload ?? ticket.reference),
                     const SizedBox(height: AppSpacing.md),
                     Row(
                       children: [
@@ -304,65 +318,6 @@ class _DashedLine extends StatelessWidget {
         );
       },
     );
-  }
-}
-
-/// Le carré du code d'embarquement.
-///
-/// **Décoratif pour l'instant.** Le serveur porte bien un `qr_code` sur le
-/// billet, mais aucun endpoint ne l'expose encore et l'app n'embarque pas
-/// d'encodeur. Cette grille est donc dérivée de la référence : elle change
-/// d'un billet à l'autre, mais **ne se scanne pas**. Le jour où le champ
-/// arrive, c'est ce widget seul qui change.
-class _QrBlock extends StatelessWidget {
-  const _QrBlock({required this.payload});
-
-  final String payload;
-
-  /// 9 × 9, comme la maquette.
-  static const int _side = 9;
-
-  @override
-  Widget build(BuildContext context) {
-    final cells = _cellsOf(payload);
-
-    return Semantics(
-      label: context.l10n.ticketQrSemantics,
-      child: Container(
-        padding: const EdgeInsets.all(9),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(AppRadius.input),
-          border: Border.all(color: AppColors.seatBorderLight),
-        ),
-        child: SizedBox(
-          width: 132,
-          height: 132,
-          child: GridView.count(
-            crossAxisCount: _side,
-            physics: const NeverScrollableScrollPhysics(),
-            children: [
-              for (final filled in cells)
-                ColoredBox(color: filled ? AppColors.kora : AppColors.white),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Une grille stable pour une référence donnée : le même billet montre
-  /// toujours le même dessin, deux billets différents non.
-  static List<bool> _cellsOf(String payload) {
-    var seed = 0x811c9dc5;
-    for (final unit in payload.codeUnits) {
-      seed = (seed ^ unit) * 0x01000193 & 0x7fffffff;
-    }
-
-    return [
-      for (var i = 0; i < _side * _side; i++)
-        ((seed >> (i % 31)) ^ (i * 2654435761)) & 1 == 1,
-    ];
   }
 }
 

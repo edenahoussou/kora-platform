@@ -55,6 +55,7 @@ class TicketView extends StatelessWidget {
     required this.seatLabel,
     required this.ticketCode,
     this.isCancelled = false,
+    this.qr,
   });
 
   final String passengerName;
@@ -75,6 +76,15 @@ class TicketView extends StatelessWidget {
   /// Billet annulé — équivalent `.digital-ticket.cancelled` : billet
   /// désaturé (`filter: grayscale(.7)`) et tampon "ANNULÉ" (`.cancel-stamp`).
   final bool isCancelled;
+
+  /// Le vrai QR du billet, dessiné par l'app.
+  ///
+  /// Injecté plutôt que produit ici : encoder un QR demande une
+  /// bibliothèque, et ce paquet est partagé par plusieurs applications —
+  /// leur imposer cette dépendance pour un seul écran serait cher payé.
+  /// À défaut, le motif décoratif du prototype prend sa place : il tient
+  /// les golden tests stables et ne prétend pas être scannable.
+  final Widget? qr;
 
   @override
   Widget build(BuildContext context) {
@@ -105,6 +115,7 @@ class TicketView extends StatelessWidget {
                   seatLabel: seatLabel,
                   ticketCode: ticketCode,
                   passengerName: passengerName,
+                  qr: qr,
                 ),
               ],
             ),
@@ -399,6 +410,7 @@ class _Body extends StatelessWidget {
     required this.seatLabel,
     required this.ticketCode,
     required this.passengerName,
+    this.qr,
   });
 
   final String date;
@@ -406,6 +418,9 @@ class _Body extends StatelessWidget {
   final String seatLabel;
   final String ticketCode;
   final String passengerName;
+
+  /// Le QR fourni par l'app, ou `null` pour le motif décoratif.
+  final Widget? qr;
 
   @override
   Widget build(BuildContext context) {
@@ -416,7 +431,7 @@ class _Body extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const _Qr(),
+            qr ?? const _Qr(),
             const SizedBox(height: 15),
             Row(
               children: [
