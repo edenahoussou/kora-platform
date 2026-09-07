@@ -26,7 +26,7 @@
             </style>
 
     <script>
-        var tryItOutBaseUrl = "http://kora-ops-web.local";
+        var tryItOutBaseUrl = "https://staging.koraexpress.app";
         var useCsrf = Boolean();
         var csrfUrl = "/sanctum/csrf-cookie";
     </script>
@@ -288,7 +288,7 @@ process can answer, with no dependency checks.</a>
         <h1 id="introduction">Introduction</h1>
 <p>KORA BUS MVP REST API.</p>
 <aside>
-    <strong>Base URL</strong>: <code>http://kora-ops-web.local</code>
+    <strong>Base URL</strong>: <code>https://staging.koraexpress.app</code>
 </aside>
 <pre><code>KORA BUS MVP exposes public read endpoints for Bus search and protected operational endpoints as the product grows.
 
@@ -318,14 +318,14 @@ Each physical stop exposes its UUID, which the mobile uses as
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/bus/cities" \
+    --get "https://staging.koraexpress.app/api/v1/bus/cities" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bus/cities"
+    "https://staging.koraexpress.app/api/v1/bus/cities"
 );
 
 const headers = {
@@ -463,7 +463,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/bus/lines?from=Cotonou&amp;to=Abidjan" \
+    --get "https://staging.koraexpress.app/api/v1/bus/lines?from=Cotonou&amp;to=Abidjan" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -475,7 +475,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bus/lines"
+    "https://staging.koraexpress.app/api/v1/bus/lines"
 );
 
 const params = {
@@ -667,14 +667,14 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/bus/lines/99090785-31c0-48bc-94e8-2ff1594d9b8b" \
+    --get "https://staging.koraexpress.app/api/v1/bus/lines/99090785-31c0-48bc-94e8-2ff1594d9b8b" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bus/lines/99090785-31c0-48bc-94e8-2ff1594d9b8b"
+    "https://staging.koraexpress.app/api/v1/bus/lines/99090785-31c0-48bc-94e8-2ff1594d9b8b"
 );
 
 const headers = {
@@ -854,7 +854,7 @@ the requested origin/destination segment (available, held, occupied, or blocked)
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/bus/departures/081aadf2-2c27-4d72-9d3c-f2192775284e/seats?origin_stop_uuid=5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21&amp;destination_stop_uuid=5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22" \
+    --get "https://staging.koraexpress.app/api/v1/bus/departures/081aadf2-2c27-4d72-9d3c-f2192775284e/seats?origin_stop_uuid=5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21&amp;destination_stop_uuid=5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -866,7 +866,7 @@ the requested origin/destination segment (available, held, occupied, or blocked)
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bus/departures/081aadf2-2c27-4d72-9d3c-f2192775284e/seats"
+    "https://staging.koraexpress.app/api/v1/bus/departures/081aadf2-2c27-4d72-9d3c-f2192775284e/seats"
 );
 
 const params = {
@@ -1107,7 +1107,7 @@ mobile client can render search results without extra calls.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/bus/itineraries?from_physical_stop_uuid=6ff8f7f6-1eb3-3525-be4a-3932c805afed&amp;to_physical_stop_uuid=6ff8f7f6-1eb3-3525-be4a-3932c805afed&amp;date=architecto&amp;passenger_count=16&amp;sort=architecto&amp;sort_direction=architecto&amp;service_class_code=architecto&amp;trip_type=architecto&amp;return_date=architecto" \
+    --get "https://staging.koraexpress.app/api/v1/bus/itineraries?from_physical_stop_uuid=6ff8f7f6-1eb3-3525-be4a-3932c805afed&amp;to_physical_stop_uuid=6ff8f7f6-1eb3-3525-be4a-3932c805afed&amp;date=architecto&amp;passenger_count=16&amp;sort=architecto&amp;sort_direction=architecto&amp;service_class_code=architecto&amp;trip_type=architecto&amp;return_date=architecto" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -1115,10 +1115,10 @@ mobile client can render search results without extra calls.</p>
     \"to_physical_stop_uuid\": \"6b72fe4a-5b40-307c-bc24-f79acf9a1bb9\",
     \"date\": \"2026-09-07\",
     \"passenger_count\": 7,
-    \"sort\": \"departure_time\",
-    \"sort_direction\": \"desc\",
+    \"sort\": \"price\",
+    \"sort_direction\": \"asc\",
     \"service_class_code\": \"architecto\",
-    \"trip_type\": \"round_trip\",
+    \"trip_type\": \"one_way\",
     \"return_date\": \"2026-09-07\"
 }"
 </code></pre></div>
@@ -1126,7 +1126,7 @@ mobile client can render search results without extra calls.</p>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bus/itineraries"
+    "https://staging.koraexpress.app/api/v1/bus/itineraries"
 );
 
 const params = {
@@ -1153,10 +1153,10 @@ let body = {
     "to_physical_stop_uuid": "6b72fe4a-5b40-307c-bc24-f79acf9a1bb9",
     "date": "2026-09-07",
     "passenger_count": 7,
-    "sort": "departure_time",
-    "sort_direction": "desc",
+    "sort": "price",
+    "sort_direction": "asc",
     "service_class_code": "architecto",
-    "trip_type": "round_trip",
+    "trip_type": "one_way",
     "return_date": "2026-09-07"
 };
 
@@ -1501,10 +1501,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="sort"                data-endpoint="GETapi-v1-bus-itineraries"
-               value="departure_time"
+               value="price"
                data-component="body">
     <br>
-<p>Example: <code>departure_time</code></p>
+<p>Example: <code>price</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>departure_time</code></li> <li><code>arrival_time</code></li> <li><code>price</code></li> <li><code>duration</code></li> <li><code>connections</code></li></ul>
         </div>
@@ -1515,10 +1515,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="sort_direction"                data-endpoint="GETapi-v1-bus-itineraries"
-               value="desc"
+               value="asc"
                data-component="body">
     <br>
-<p>Example: <code>desc</code></p>
+<p>Example: <code>asc</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>asc</code></li> <li><code>desc</code></li></ul>
         </div>
@@ -1541,10 +1541,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="trip_type"                data-endpoint="GETapi-v1-bus-itineraries"
-               value="round_trip"
+               value="one_way"
                data-component="body">
     <br>
-<p>Example: <code>round_trip</code></p>
+<p>Example: <code>one_way</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>one_way</code></li> <li><code>round_trip</code></li></ul>
         </div>
@@ -1576,7 +1576,7 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/bus/itinerary-quotes" \
+    "https://staging.koraexpress.app/api/v1/bus/itinerary-quotes" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
@@ -1591,7 +1591,7 @@ Must be one of:
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bus/itinerary-quotes"
+    "https://staging.koraexpress.app/api/v1/bus/itinerary-quotes"
 );
 
 const headers = {
@@ -1914,7 +1914,7 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/bus/itinerary-holds" \
+    "https://staging.koraexpress.app/api/v1/bus/itinerary-holds" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
@@ -1942,7 +1942,7 @@ Must be one of:
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bus/itinerary-holds"
+    "https://staging.koraexpress.app/api/v1/bus/itinerary-holds"
 );
 
 const headers = {
@@ -2300,7 +2300,7 @@ server-side reservation state instead of requiring the client to rebuild it loca
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799" \
+    --get "https://staging.koraexpress.app/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -2308,7 +2308,7 @@ server-side reservation state instead of requiring the client to rebuild it loca
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799"
+    "https://staging.koraexpress.app/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799"
 );
 
 const headers = {
@@ -2479,7 +2479,7 @@ It never releases a paid or ticketed reservation.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request DELETE \
-    "http://kora-ops-web.local/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799" \
+    "https://staging.koraexpress.app/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -2487,7 +2487,7 @@ It never releases a paid or ticketed reservation.</p>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799"
+    "https://staging.koraexpress.app/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799"
 );
 
 const headers = {
@@ -2642,7 +2642,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799/passengers" \
+    "https://staging.koraexpress.app/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799/passengers" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
@@ -2656,7 +2656,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799/passengers"
+    "https://staging.koraexpress.app/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799/passengers"
 );
 
 const headers = {
@@ -2886,10 +2886,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="passengers.0.document_type"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
-               value="passport"
+               value="biometric_card"
                data-component="body">
     <br>
-<p>This field is required when <code>passengers.*.document_number</code> is present. Example: <code>passport</code></p>
+<p>This field is required when <code>passengers.*.document_number</code> is present. Example: <code>biometric_card</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>national_id</code></li> <li><code>biometric_card</code></li> <li><code>passport</code></li> <li><code>consular_card</code></li></ul>
                     </div>
@@ -3114,7 +3114,7 @@ The operation is idempotent — cancelling an already-cancelled reservation is a
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799/cancel" \
+    "https://staging.koraexpress.app/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799/cancel" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -3122,7 +3122,7 @@ The operation is idempotent — cancelling an already-cancelled reservation is a
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799/cancel"
+    "https://staging.koraexpress.app/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799/cancel"
 );
 
 const headers = {
@@ -3288,7 +3288,7 @@ rest of the reservation intact. The passenger must belong to the reservation.</p
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799/passengers/2dc7e142-80fd-45af-8b08-28b8d83b5639/cancel" \
+    "https://staging.koraexpress.app/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799/passengers/2dc7e142-80fd-45af-8b08-28b8d83b5639/cancel" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -3296,7 +3296,7 @@ rest of the reservation intact. The passenger must belong to the reservation.</p
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799/passengers/2dc7e142-80fd-45af-8b08-28b8d83b5639/cancel"
+    "https://staging.koraexpress.app/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799/passengers/2dc7e142-80fd-45af-8b08-28b8d83b5639/cancel"
 );
 
 const headers = {
@@ -3486,7 +3486,7 @@ be submitted to the verify endpoint.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/auth/otp/request" \
+    "https://staging.koraexpress.app/api/v1/auth/otp/request" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -3498,7 +3498,7 @@ be submitted to the verify endpoint.</p>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/auth/otp/request"
+    "https://staging.koraexpress.app/api/v1/auth/otp/request"
 );
 
 const headers = {
@@ -3672,12 +3672,12 @@ an account via the corresponding endpoints.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/auth/otp/verify" \
+    "https://staging.koraexpress.app/api/v1/auth/otp/verify" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
     \"otp_challenge_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
-    \"purpose\": \"account_unlock\",
+    \"purpose\": \"pin_reset\",
     \"code\": \"569775\"
 }"
 </code></pre></div>
@@ -3685,7 +3685,7 @@ an account via the corresponding endpoints.</p>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/auth/otp/verify"
+    "https://staging.koraexpress.app/api/v1/auth/otp/verify"
 );
 
 const headers = {
@@ -3695,7 +3695,7 @@ const headers = {
 
 let body = {
     "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-    "purpose": "account_unlock",
+    "purpose": "pin_reset",
     "code": "569775"
 };
 
@@ -3828,10 +3828,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="purpose"                data-endpoint="POSTapi-v1-auth-otp-verify"
-               value="account_unlock"
+               value="pin_reset"
                data-component="body">
     <br>
-<p>Example: <code>account_unlock</code></p>
+<p>Example: <code>pin_reset</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>registration</code></li> <li><code>login_new_device</code></li> <li><code>pin_reset</code></li> <li><code>account_unlock</code></li></ul>
         </div>
@@ -3862,7 +3862,7 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/auth/pin/reset" \
+    "https://staging.koraexpress.app/api/v1/auth/pin/reset" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -3875,7 +3875,7 @@ Must be one of:
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/auth/pin/reset"
+    "https://staging.koraexpress.app/api/v1/auth/pin/reset"
 );
 
 const headers = {
@@ -4061,7 +4061,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/auth/unlock" \
+    "https://staging.koraexpress.app/api/v1/auth/unlock" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -4073,7 +4073,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/auth/unlock"
+    "https://staging.koraexpress.app/api/v1/auth/unlock"
 );
 
 const headers = {
@@ -4246,7 +4246,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/auth/register/complete" \
+    "https://staging.koraexpress.app/api/v1/auth/register/complete" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -4254,7 +4254,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"verification_token\": \"gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn\",
     \"pin\": \"9775\",
     \"device_name\": \"n\",
-    \"platform\": \"unknown\",
+    \"platform\": \"web\",
     \"device_fingerprint\": \"g\",
     \"push_token\": \"z\"
 }"
@@ -4263,7 +4263,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/auth/register/complete"
+    "https://staging.koraexpress.app/api/v1/auth/register/complete"
 );
 
 const headers = {
@@ -4276,7 +4276,7 @@ let body = {
     "verification_token": "gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn",
     "pin": "9775",
     "device_name": "n",
-    "platform": "unknown",
+    "platform": "web",
     "device_fingerprint": "g",
     "push_token": "z"
 };
@@ -4468,10 +4468,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="platform"                data-endpoint="POSTapi-v1-auth-register-complete"
-               value="unknown"
+               value="web"
                data-component="body">
     <br>
-<p>Example: <code>unknown</code></p>
+<p>Example: <code>web</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>android</code></li> <li><code>ios</code></li> <li><code>web</code></li> <li><code>unknown</code></li></ul>
         </div>
@@ -4515,14 +4515,14 @@ instead of a token.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/auth/login" \
+    "https://staging.koraexpress.app/api/v1/auth/login" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
     \"email\": \"gbailey@example.net\",
     \"pin\": \"9775\",
     \"device_name\": \"n\",
-    \"platform\": \"android\",
+    \"platform\": \"unknown\",
     \"device_fingerprint\": \"g\",
     \"push_token\": \"z\",
     \"otp_challenge_uuid\": \"977e5426-8d13-3824-86aa-b092f8ae52c5\",
@@ -4533,7 +4533,7 @@ instead of a token.</p>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/auth/login"
+    "https://staging.koraexpress.app/api/v1/auth/login"
 );
 
 const headers = {
@@ -4545,7 +4545,7 @@ let body = {
     "email": "gbailey@example.net",
     "pin": "9775",
     "device_name": "n",
-    "platform": "android",
+    "platform": "unknown",
     "device_fingerprint": "g",
     "push_token": "z",
     "otp_challenge_uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
@@ -4764,10 +4764,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="platform"                data-endpoint="POSTapi-v1-auth-login"
-               value="android"
+               value="unknown"
                data-component="body">
     <br>
-<p>Example: <code>android</code></p>
+<p>Example: <code>unknown</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>android</code></li> <li><code>ios</code></li> <li><code>web</code></li> <li><code>unknown</code></li></ul>
         </div>
@@ -4839,14 +4839,14 @@ compte social, télécharge l'avatar via Spatie Media Library et
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/auth/oauth/token" \
+    "https://staging.koraexpress.app/api/v1/auth/oauth/token" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
     \"provider\": \"google\",
     \"provider_token\": \"b\",
     \"device_name\": \"n\",
-    \"platform\": \"unknown\",
+    \"platform\": \"web\",
     \"device_fingerprint\": \"g\",
     \"push_token\": \"z\"
 }"
@@ -4855,7 +4855,7 @@ compte social, télécharge l'avatar via Spatie Media Library et
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/auth/oauth/token"
+    "https://staging.koraexpress.app/api/v1/auth/oauth/token"
 );
 
 const headers = {
@@ -4867,7 +4867,7 @@ let body = {
     "provider": "google",
     "provider_token": "b",
     "device_name": "n",
-    "platform": "unknown",
+    "platform": "web",
     "device_fingerprint": "g",
     "push_token": "z"
 };
@@ -5107,10 +5107,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="platform"                data-endpoint="POSTapi-v1-auth-oauth-token"
-               value="unknown"
+               value="web"
                data-component="body">
     <br>
-<p>Example: <code>unknown</code></p>
+<p>Example: <code>web</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>android</code></li> <li><code>ios</code></li> <li><code>web</code></li> <li><code>unknown</code></li></ul>
         </div>
@@ -5154,7 +5154,7 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/auth/me" \
+    --get "https://staging.koraexpress.app/api/v1/auth/me" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -5162,7 +5162,7 @@ Must be one of:
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/auth/me"
+    "https://staging.koraexpress.app/api/v1/auth/me"
 );
 
 const headers = {
@@ -5314,7 +5314,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request PUT \
-    "http://kora-ops-web.local/api/v1/auth/me" \
+    "https://staging.koraexpress.app/api/v1/auth/me" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
@@ -5330,7 +5330,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/auth/me"
+    "https://staging.koraexpress.app/api/v1/auth/me"
 );
 
 const headers = {
@@ -5565,7 +5565,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/auth/pin/change" \
+    "https://staging.koraexpress.app/api/v1/auth/pin/change" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
@@ -5578,7 +5578,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/auth/pin/change"
+    "https://staging.koraexpress.app/api/v1/auth/pin/change"
 );
 
 const headers = {
@@ -5774,7 +5774,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/auth/preferences" \
+    --get "https://staging.koraexpress.app/api/v1/auth/preferences" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -5782,7 +5782,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/auth/preferences"
+    "https://staging.koraexpress.app/api/v1/auth/preferences"
 );
 
 const headers = {
@@ -5924,23 +5924,23 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request PUT \
-    "http://kora-ops-web.local/api/v1/auth/preferences" \
+    "https://staging.koraexpress.app/api/v1/auth/preferences" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
     \"push_notifications\": true,
-    \"whatsapp_notifications\": true,
-    \"email_notifications\": true,
-    \"locale\": \"fr\",
-    \"theme\": \"light\"
+    \"whatsapp_notifications\": false,
+    \"email_notifications\": false,
+    \"locale\": \"en\",
+    \"theme\": \"dark\"
 }"
 </code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/auth/preferences"
+    "https://staging.koraexpress.app/api/v1/auth/preferences"
 );
 
 const headers = {
@@ -5951,10 +5951,10 @@ const headers = {
 
 let body = {
     "push_notifications": true,
-    "whatsapp_notifications": true,
-    "email_notifications": true,
-    "locale": "fr",
-    "theme": "light"
+    "whatsapp_notifications": false,
+    "email_notifications": false,
+    "locale": "en",
+    "theme": "dark"
 };
 
 fetch(url, {
@@ -6131,7 +6131,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>true</code></p>
+<p>Example: <code>false</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>email_notifications</code></b>&nbsp;&nbsp;
@@ -6153,7 +6153,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>true</code></p>
+<p>Example: <code>false</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>locale</code></b>&nbsp;&nbsp;
@@ -6162,10 +6162,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="locale"                data-endpoint="PUTapi-v1-auth-preferences"
-               value="fr"
+               value="en"
                data-component="body">
     <br>
-<p>Example: <code>fr</code></p>
+<p>Example: <code>en</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>fr</code></li> <li><code>en</code></li></ul>
         </div>
@@ -6176,10 +6176,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="theme"                data-endpoint="PUTapi-v1-auth-preferences"
-               value="light"
+               value="dark"
                data-component="body">
     <br>
-<p>Example: <code>light</code></p>
+<p>Example: <code>dark</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>light</code></li> <li><code>dark</code></li> <li><code>system</code></li></ul>
         </div>
@@ -6199,7 +6199,7 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/auth/devices" \
+    --get "https://staging.koraexpress.app/api/v1/auth/devices" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -6207,7 +6207,7 @@ Must be one of:
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/auth/devices"
+    "https://staging.koraexpress.app/api/v1/auth/devices"
 );
 
 const headers = {
@@ -6352,7 +6352,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request DELETE \
-    "http://kora-ops-web.local/api/v1/auth/devices/6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
+    "https://staging.koraexpress.app/api/v1/auth/devices/6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -6360,7 +6360,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/auth/devices/6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+    "https://staging.koraexpress.app/api/v1/auth/devices/6ff8f7f6-1eb3-3525-be4a-3932c805afed"
 );
 
 const headers = {
@@ -6515,7 +6515,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/auth/logout" \
+    "https://staging.koraexpress.app/api/v1/auth/logout" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -6523,7 +6523,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/auth/logout"
+    "https://staging.koraexpress.app/api/v1/auth/logout"
 );
 
 const headers = {
@@ -6661,7 +6661,7 @@ Others see only accounts where they are an active member.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/company-accounts" \
+    --get "https://staging.koraexpress.app/api/v1/company-accounts" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -6669,7 +6669,7 @@ Others see only accounts where they are an active member.</p>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/company-accounts"
+    "https://staging.koraexpress.app/api/v1/company-accounts"
 );
 
 const headers = {
@@ -6817,7 +6817,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/company-accounts" \
+    "https://staging.koraexpress.app/api/v1/company-accounts" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
@@ -6834,7 +6834,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/company-accounts"
+    "https://staging.koraexpress.app/api/v1/company-accounts"
 );
 
 const headers = {
@@ -7087,13 +7087,13 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request PUT \
-    "http://kora-ops-web.local/api/v1/company-accounts/bb17d368-32aa-42cc-a85d-ba56625b0b7d" \
+    "https://staging.koraexpress.app/api/v1/company-accounts/bb17d368-32aa-42cc-a85d-ba56625b0b7d" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
     \"name\": \"b\",
-    \"type\": \"company\",
+    \"type\": \"ngo\",
     \"reference\": \"n\",
     \"phone\": \"g\",
     \"email\": \"rowan.gulgowski@example.com\",
@@ -7104,7 +7104,7 @@ Must be one of:
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/company-accounts/bb17d368-32aa-42cc-a85d-ba56625b0b7d"
+    "https://staging.koraexpress.app/api/v1/company-accounts/bb17d368-32aa-42cc-a85d-ba56625b0b7d"
 );
 
 const headers = {
@@ -7115,7 +7115,7 @@ const headers = {
 
 let body = {
     "name": "b",
-    "type": "company",
+    "type": "ngo",
     "reference": "n",
     "phone": "g",
     "email": "rowan.gulgowski@example.com",
@@ -7299,10 +7299,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="type"                data-endpoint="PUTapi-v1-company-accounts--companyAccount_uuid-"
-               value="company"
+               value="ngo"
                data-component="body">
     <br>
-<p>Example: <code>company</code></p>
+<p>Example: <code>ngo</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>company</code></li> <li><code>ngo</code></li> <li><code>embassy</code></li></ul>
         </div>
@@ -7371,7 +7371,7 @@ purchases are allowed.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/company-accounts/bb17d368-32aa-42cc-a85d-ba56625b0b7d/deactivate" \
+    "https://staging.koraexpress.app/api/v1/company-accounts/bb17d368-32aa-42cc-a85d-ba56625b0b7d/deactivate" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -7379,7 +7379,7 @@ purchases are allowed.</p>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/company-accounts/bb17d368-32aa-42cc-a85d-ba56625b0b7d/deactivate"
+    "https://staging.koraexpress.app/api/v1/company-accounts/bb17d368-32aa-42cc-a85d-ba56625b0b7d/deactivate"
 );
 
 const headers = {
@@ -7548,20 +7548,20 @@ a member, their role and status are updated.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/company-accounts/bb17d368-32aa-42cc-a85d-ba56625b0b7d/members" \
+    "https://staging.koraexpress.app/api/v1/company-accounts/bb17d368-32aa-42cc-a85d-ba56625b0b7d/members" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
     \"user_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
-    \"role\": \"referent\"
+    \"role\": \"member\"
 }"
 </code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/company-accounts/bb17d368-32aa-42cc-a85d-ba56625b0b7d/members"
+    "https://staging.koraexpress.app/api/v1/company-accounts/bb17d368-32aa-42cc-a85d-ba56625b0b7d/members"
 );
 
 const headers = {
@@ -7572,7 +7572,7 @@ const headers = {
 
 let body = {
     "user_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-    "role": "referent"
+    "role": "member"
 };
 
 fetch(url, {
@@ -7756,10 +7756,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="role"                data-endpoint="POSTapi-v1-company-accounts--companyAccount_uuid--members"
-               value="referent"
+               value="member"
                data-component="body">
     <br>
-<p>Example: <code>referent</code></p>
+<p>Example: <code>member</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>referent</code></li> <li><code>member</code></li></ul>
         </div>
@@ -7783,7 +7783,7 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/group-discounts" \
+    --get "https://staging.koraexpress.app/api/v1/group-discounts" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -7791,7 +7791,7 @@ Must be one of:
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/group-discounts"
+    "https://staging.koraexpress.app/api/v1/group-discounts"
 );
 
 const headers = {
@@ -7946,7 +7946,7 @@ Only one active rule can cover a given period.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/group-discounts" \
+    "https://staging.koraexpress.app/api/v1/group-discounts" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
@@ -7962,7 +7962,7 @@ Only one active rule can cover a given period.</p>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/group-discounts"
+    "https://staging.koraexpress.app/api/v1/group-discounts"
 );
 
 const headers = {
@@ -8211,7 +8211,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request PUT \
-    "http://kora-ops-web.local/api/v1/group-discounts/6b49f31e-8fdf-4287-8ee8-1665ebf6e80e" \
+    "https://staging.koraexpress.app/api/v1/group-discounts/6b49f31e-8fdf-4287-8ee8-1665ebf6e80e" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
@@ -8227,7 +8227,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/group-discounts/6b49f31e-8fdf-4287-8ee8-1665ebf6e80e"
+    "https://staging.koraexpress.app/api/v1/group-discounts/6b49f31e-8fdf-4287-8ee8-1665ebf6e80e"
 );
 
 const headers = {
@@ -8475,7 +8475,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/group-booking-settings" \
+    --get "https://staging.koraexpress.app/api/v1/group-booking-settings" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -8483,7 +8483,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/group-booking-settings"
+    "https://staging.koraexpress.app/api/v1/group-booking-settings"
 );
 
 const headers = {
@@ -8631,7 +8631,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request PUT \
-    "http://kora-ops-web.local/api/v1/group-booking-settings" \
+    "https://staging.koraexpress.app/api/v1/group-booking-settings" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
@@ -8644,7 +8644,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/group-booking-settings"
+    "https://staging.koraexpress.app/api/v1/group-booking-settings"
 );
 
 const headers = {
@@ -8831,14 +8831,14 @@ balancers and monitoring can drain traffic from an unhealthy instance.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/health" \
+    --get "https://staging.koraexpress.app/api/v1/health" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/health"
+    "https://staging.koraexpress.app/api/v1/health"
 );
 
 const headers = {
@@ -8989,14 +8989,14 @@ process can answer, with no dependency checks.</h2>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/health/ping" \
+    --get "https://staging.koraexpress.app/api/v1/health/ping" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/health/ping"
+    "https://staging.koraexpress.app/api/v1/health/ping"
 );
 
 const headers = {
@@ -9112,7 +9112,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/payments/methods" \
+    --get "https://staging.koraexpress.app/api/v1/payments/methods" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -9120,7 +9120,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/payments/methods"
+    "https://staging.koraexpress.app/api/v1/payments/methods"
 );
 
 const headers = {
@@ -9293,7 +9293,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/payments/initiate" \
+    "https://staging.koraexpress.app/api/v1/payments/initiate" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
@@ -9312,7 +9312,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/payments/initiate"
+    "https://staging.koraexpress.app/api/v1/payments/initiate"
 );
 
 const headers = {
@@ -9565,7 +9565,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/payments/c5e52cf5-f94a-45cb-a494-1941a0cf2882" \
+    --get "https://staging.koraexpress.app/api/v1/payments/c5e52cf5-f94a-45cb-a494-1941a0cf2882" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -9573,7 +9573,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/payments/c5e52cf5-f94a-45cb-a494-1941a0cf2882"
+    "https://staging.koraexpress.app/api/v1/payments/c5e52cf5-f94a-45cb-a494-1941a0cf2882"
 );
 
 const headers = {
@@ -9726,7 +9726,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/payments/c5e52cf5-f94a-45cb-a494-1941a0cf2882/verify" \
+    "https://staging.koraexpress.app/api/v1/payments/c5e52cf5-f94a-45cb-a494-1941a0cf2882/verify" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -9734,7 +9734,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/payments/c5e52cf5-f94a-45cb-a494-1941a0cf2882/verify"
+    "https://staging.koraexpress.app/api/v1/payments/c5e52cf5-f94a-45cb-a494-1941a0cf2882/verify"
 );
 
 const headers = {
@@ -9919,7 +9919,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/payments/c5e52cf5-f94a-45cb-a494-1941a0cf2882/cancel" \
+    "https://staging.koraexpress.app/api/v1/payments/c5e52cf5-f94a-45cb-a494-1941a0cf2882/cancel" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -9927,7 +9927,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/payments/c5e52cf5-f94a-45cb-a494-1941a0cf2882/cancel"
+    "https://staging.koraexpress.app/api/v1/payments/c5e52cf5-f94a-45cb-a494-1941a0cf2882/cancel"
 );
 
 const headers = {
@@ -10104,11 +10104,11 @@ allowed without a real provider.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/payments/c5e52cf5-f94a-45cb-a494-1941a0cf2882/confirm" \
+    "https://staging.koraexpress.app/api/v1/payments/c5e52cf5-f94a-45cb-a494-1941a0cf2882/confirm" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
-    \"status\": \"failed\",
+    \"status\": \"confirmed\",
     \"provider_reference\": \"b\"
 }"
 </code></pre></div>
@@ -10116,7 +10116,7 @@ allowed without a real provider.</p>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/payments/c5e52cf5-f94a-45cb-a494-1941a0cf2882/confirm"
+    "https://staging.koraexpress.app/api/v1/payments/c5e52cf5-f94a-45cb-a494-1941a0cf2882/confirm"
 );
 
 const headers = {
@@ -10125,7 +10125,7 @@ const headers = {
 };
 
 let body = {
-    "status": "failed",
+    "status": "confirmed",
     "provider_reference": "b"
 };
 
@@ -10261,10 +10261,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="POSTapi-v1-payments--payment_uuid--confirm"
-               value="failed"
+               value="confirmed"
                data-component="body">
     <br>
-<p>Example: <code>failed</code></p>
+<p>Example: <code>confirmed</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>success</code></li> <li><code>confirmed</code></li> <li><code>failed</code></li></ul>
         </div>
@@ -10308,14 +10308,14 @@ signature and confirms or fails the corresponding payment.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/payments/webhook/fedapay" \
+    "https://staging.koraexpress.app/api/v1/payments/webhook/fedapay" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/payments/webhook/fedapay"
+    "https://staging.koraexpress.app/api/v1/payments/webhook/fedapay"
 );
 
 const headers = {
@@ -10459,14 +10459,14 @@ webhook signature and confirms or fails the corresponding payment.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/payments/webhook/mtn-momo" \
+    "https://staging.koraexpress.app/api/v1/payments/webhook/mtn-momo" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/payments/webhook/mtn-momo"
+    "https://staging.koraexpress.app/api/v1/payments/webhook/mtn-momo"
 );
 
 const headers = {
@@ -10612,14 +10612,14 @@ not trusted as a source of truth.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/payments/callback/fedapay" \
+    --get "https://staging.koraexpress.app/api/v1/payments/callback/fedapay" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/payments/callback/fedapay"
+    "https://staging.koraexpress.app/api/v1/payments/callback/fedapay"
 );
 
 const headers = {
@@ -10756,14 +10756,14 @@ not trusted as a source of truth.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://kora-ops-web.local/api/v1/payments/callback/fedapay" \
+    "https://staging.koraexpress.app/api/v1/payments/callback/fedapay" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/payments/callback/fedapay"
+    "https://staging.koraexpress.app/api/v1/payments/callback/fedapay"
 );
 
 const headers = {
@@ -10902,7 +10902,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799/tickets" \
+    --get "https://staging.koraexpress.app/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799/tickets" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -10910,7 +10910,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799/tickets"
+    "https://staging.koraexpress.app/api/v1/bookings/3d0d4b6f-1242-4881-8ac5-5c0ff761b799/tickets"
 );
 
 const headers = {
@@ -11093,7 +11093,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://kora-ops-web.local/api/v1/tickets/6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
+    --get "https://staging.koraexpress.app/api/v1/tickets/6ff8f7f6-1eb3-3525-be4a-3932c805afed" \
     --header "Authorization: Bearer {YOUR_AUTH_KEY}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
@@ -11101,7 +11101,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://kora-ops-web.local/api/v1/tickets/6ff8f7f6-1eb3-3525-be4a-3932c805afed"
+    "https://staging.koraexpress.app/api/v1/tickets/6ff8f7f6-1eb3-3525-be4a-3932c805afed"
 );
 
 const headers = {

@@ -617,7 +617,7 @@ endpoints:
         name: sort
         description: ''
         required: false
-        example: departure_time
+        example: price
         type: string
         enumValues:
           - departure_time
@@ -633,7 +633,7 @@ endpoints:
         name: sort_direction
         description: ''
         required: false
-        example: desc
+        example: asc
         type: string
         enumValues:
           - asc
@@ -657,7 +657,7 @@ endpoints:
         name: trip_type
         description: ''
         required: false
-        example: round_trip
+        example: one_way
         type: string
         enumValues:
           - one_way
@@ -681,10 +681,10 @@ endpoints:
       to_physical_stop_uuid: 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
       date: '2026-09-07'
       passenger_count: 7
-      sort: departure_time
-      sort_direction: desc
+      sort: price
+      sort_direction: asc
       service_class_code: architecto
-      trip_type: round_trip
+      trip_type: one_way
       return_date: '2026-09-07'
     fileParameters: []
     responses:
@@ -1502,7 +1502,7 @@ endpoints:
         name: 'passengers[].document_type'
         description: 'This field is required when <code>passengers.*.document_number</code> is present.'
         required: false
-        example: passport
+        example: biometric_card
         type: string
         enumValues:
           - national_id

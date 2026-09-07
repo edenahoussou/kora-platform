@@ -144,7 +144,7 @@ endpoints:
         name: purpose
         description: ''
         required: true
-        example: account_unlock
+        example: pin_reset
         type: string
         enumValues:
           - registration
@@ -167,7 +167,7 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       otp_challenge_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-      purpose: account_unlock
+      purpose: pin_reset
       code: '569775'
     fileParameters: []
     responses:
@@ -462,7 +462,7 @@ endpoints:
         name: platform
         description: ''
         required: true
-        example: unknown
+        example: web
         type: string
         enumValues:
           - android
@@ -499,7 +499,7 @@ endpoints:
       verification_token: gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn
       pin: '9775'
       device_name: 'n'
-      platform: unknown
+      platform: web
       device_fingerprint: g
       push_token: z
     fileParameters: []
@@ -616,7 +616,7 @@ endpoints:
         name: platform
         description: ''
         required: true
-        example: android
+        example: unknown
         type: string
         enumValues:
           - android
@@ -674,7 +674,7 @@ endpoints:
       email: gbailey@example.net
       pin: '9775'
       device_name: 'n'
-      platform: android
+      platform: unknown
       device_fingerprint: g
       push_token: z
       otp_challenge_uuid: 977e5426-8d13-3824-86aa-b092f8ae52c5
@@ -844,7 +844,7 @@ endpoints:
         name: platform
         description: ''
         required: true
-        example: unknown
+        example: web
         type: string
         enumValues:
           - android
@@ -880,7 +880,7 @@ endpoints:
       provider: google
       provider_token: b
       device_name: 'n'
-      platform: unknown
+      platform: web
       device_fingerprint: g
       push_token: z
     fileParameters: []
@@ -1380,7 +1380,7 @@ endpoints:
         name: whatsapp_notifications
         description: ''
         required: false
-        example: true
+        example: false
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -1391,7 +1391,7 @@ endpoints:
         name: email_notifications
         description: ''
         required: false
-        example: true
+        example: false
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -1402,7 +1402,7 @@ endpoints:
         name: locale
         description: ''
         required: false
-        example: fr
+        example: en
         type: string
         enumValues:
           - fr
@@ -1415,7 +1415,7 @@ endpoints:
         name: theme
         description: ''
         required: false
-        example: light
+        example: dark
         type: string
         enumValues:
           - light
@@ -1426,10 +1426,10 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       push_notifications: true
-      whatsapp_notifications: true
-      email_notifications: true
-      locale: fr
-      theme: light
+      whatsapp_notifications: false
+      email_notifications: false
+      locale: en
+      theme: dark
     fileParameters: []
     responses:
       -
