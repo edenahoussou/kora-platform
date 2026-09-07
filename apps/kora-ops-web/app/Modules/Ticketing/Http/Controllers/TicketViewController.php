@@ -40,6 +40,18 @@ class TicketViewController extends Controller
         $this->loadRelations($ticket);
         $this->authorizeOwner($ticket->reservation, $request);
 
+        return $this->renderPdf($ticket);
+    }
+
+    public function signedPdf(Ticket $ticket): Response
+    {
+        $this->loadRelations($ticket);
+
+        return $this->renderPdf($ticket);
+    }
+
+    private function renderPdf(Ticket $ticket): Response
+    {
         $data = $this->viewData($ticket, isPdf: true);
         $pdf = Pdf::loadView('tickets.show', $data)
             ->setPaper([0, 0, 226.77, 600], 'portrait'); // 80mm width, auto height

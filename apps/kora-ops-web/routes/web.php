@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\FiscalizationController;
 use App\Modules\Booking\Http\Controllers\CounterSaleController;
 use App\Modules\BusNetwork\Http\Controllers\BusAmenityController;
 use App\Modules\BusNetwork\Http\Controllers\BusController;
@@ -22,6 +23,10 @@ Route::get('/', fn () => Auth::check()
     : redirect()->route('login')
 )->name('home');
 
+Route::get('tickets/{ticket:uuid}/pdf/signed', [TicketViewController::class, 'signedPdf'])
+    ->middleware('signed')
+    ->name('tickets.signed-pdf');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     // Dashboard
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
@@ -39,6 +44,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('sale/{reservation:uuid}/passengers', [CounterSaleController::class, 'storePassengers'])->name('sale.passengers');
     Route::post('sale/{reservation:uuid}/payment', [CounterSaleController::class, 'storePayment'])->name('sale.payment');
     Route::post('sale/{reservation:uuid}/tickets/retry', [CounterSaleController::class, 'retryTicketIssuance'])->name('sale.tickets.retry');
+    Route::post('fiscalization/{fiscalInvoice:uuid}/retry', [FiscalizationController::class, 'retry'])->name('fiscalization.retry');
     Route::get('cash', [CashSessionController::class, 'index'])->name('cash');
     Route::post('cash/open', [CashSessionController::class, 'store'])->name('cash.open');
     Route::post('cash/{cashSession:uuid}/close', [CashSessionController::class, 'close'])->name('cash.close');
