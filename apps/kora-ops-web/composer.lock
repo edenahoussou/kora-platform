@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "82d3d298e5975013311f35a3bee6aa95",
+    "content-hash": "622c002cda89a9beb6533056dfeb59e8",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -265,6 +265,67 @@
                 }
             ],
             "time": "2024-02-09T16:56:22+00:00"
+        },
+        {
+            "name": "codianselme/lara-sygmef",
+            "version": "1.0.6",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/codianselme/lara-sygmef.git",
+                "reference": "2686d451ef9d51a9e74fae5e1ea1e171eba18a57"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/codianselme/lara-sygmef/zipball/2686d451ef9d51a9e74fae5e1ea1e171eba18a57",
+                "reference": "2686d451ef9d51a9e74fae5e1ea1e171eba18a57",
+                "shasum": ""
+            },
+            "require": {
+                "guzzlehttp/guzzle": "^7.0|^8.0",
+                "illuminate/support": "^7.0|^8.0|^9.0|^10.0|^11.0|^12.0|^13.0",
+                "php": "^8.1"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^7.0|^8.0",
+                "phpunit/phpunit": "^9.0|^10.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Codianselme\\LaraSygmef\\Providers\\EmecfServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Codianselme\\LaraSygmef\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Anselme",
+                    "email": "codianselme@gmail.com"
+                }
+            ],
+            "description": "Service e-MECeF pour Laravel - Intégration API DGI Bénin",
+            "keywords": [
+                "benin",
+                "dgi",
+                "emecf",
+                "invoice",
+                "laravel",
+                "tax"
+            ],
+            "support": {
+                "issues": "https://github.com/codianselme/lara-sygmef/issues",
+                "source": "https://github.com/codianselme/lara-sygmef/tree/v1.0.6"
+            },
+            "time": "2026-08-25T10:26:53+00:00"
         },
         {
             "name": "composer/semver",
