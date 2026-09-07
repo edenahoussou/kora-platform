@@ -77,12 +77,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Continuer avec 1 passager'), findsOneWidget);
 
-    // 6 passagers maximum : au-delà, c'est une réservation de groupe.
-    for (var i = 0; i < 8; i++) {
+    // Dix voyageurs au plus : le plafond d'un achat groupé en une seule
+    // transaction, fixé par MEZ-57.
+    for (var i = 0; i < 14; i++) {
       await tester.tap(find.byIcon(Icons.add_rounded));
       await tester.pumpAndSettle();
     }
-    expect(find.text('Continuer avec 6 passagers'), findsOneWidget);
+    expect(find.text('Continuer avec 10 passagers'), findsOneWidget);
   });
 
   testWidgets('renvoie le nombre confirmé', (tester) async {
@@ -96,16 +97,53 @@ void main() {
     expect(result, 4);
   });
 
-  testWidgets('annonce les parcours groupe et entreprise comme à venir', (
+  testWidgets('le raccourci groupe ouvre l’écran de réservation groupée', (
     tester,
   ) async {
+    // Le bouton ne pousse plus un compteur : il ouvre l'écran BUS-15 de la
+    // maquette, qui explique l'offre avant de faire confirmer le nombre.
+    await pumpPicker(tester);
+
+    expect(find.text('Groupe 5–10'), findsOneWidget);
+
+    final shortcut = tester.widget<KoraButton>(
+      find.ancestor(
+        of: find.text('Groupe 5–10'),
+        matching: find.byType(KoraButton),
+      ),
+    );
+
+    // Toujours actif, quel que soit le compte : on peut vouloir relire
+    // l'offre après être passé au-dessus du seuil.
+    expect(shortcut.onPressed, isNotNull);
+  });
+
+  testWidgets('le raccourci groupe renvoie le seuil à l’accueil', (
+    tester,
+  ) async {
+    // Le nombre exact ne se règle pas ici : il se choisit sur l'écran de
+    // réservation de groupe, une fois le départ connu — c'est là seulement
+    // que les montants existent.
     await pumpPicker(tester);
 
     await tester.tap(find.text('Groupe 5–10'));
     await tester.pumpAndSettle();
 
+    expect(result, 5);
+  });
+
+  testWidgets('le compte entreprise renvoie au moment du paiement', (
+    tester,
+  ) async {
+    // Le compte entreprise désigne un payeur, pas un nombre de sièges : il
+    // n'a rien à faire sur cet écran-ci.
+    await pumpPicker(tester);
+
+    await tester.tap(find.text('Compte entreprise'));
+    await tester.pumpAndSettle();
+
     expect(
-      find.text('La réservation de groupe arrive après le MVP Bus.'),
+      find.text('Le compte entreprise se choisit au moment du paiement.'),
       findsOneWidget,
     );
   });

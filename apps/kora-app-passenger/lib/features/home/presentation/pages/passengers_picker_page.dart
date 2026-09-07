@@ -4,6 +4,7 @@ import 'package:flutter_design_system/flutter_design_system.dart';
 import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
+import '../../../booking/domain/entities/group_booking_limits.dart';
 
 /// Écran de choix du nombre de voyageurs — équivalent `passengerScreen` de
 /// la maquette (`js/app.js`, écran `passengers`) : compteur −/+, note sur
@@ -15,13 +16,12 @@ class PassengersPickerPage extends StatefulWidget {
   const PassengersPickerPage({
     super.key,
     required this.selected,
-    this.maxPassengers = 6,
+    this.maxPassengers = kGroupMaximumPassengers,
   });
 
   final int selected;
 
-  /// Au-delà, c'est une réservation de groupe, qui a son propre parcours
-  /// (`1 à 6 · groupe jusqu'à 10` dans la maquette).
+  /// Le plafond proposé par le compteur.
   final int maxPassengers;
 
   @override
@@ -32,6 +32,14 @@ class _PassengersPickerPageState extends State<PassengersPickerPage> {
   late int _count = widget.selected.clamp(1, widget.maxPassengers);
 
   void _change(int delta) => setState(() => _count += delta);
+
+  /// Bascule en réservation de groupe et rend la main à l'accueil.
+  ///
+  /// Le nombre exact ne se règle pas ici : il se choisit sur l'écran de
+  /// réservation de groupe (BUS-15), une fois le départ connu — c'est là
+  /// seulement que les montants existent. Le compteur repart donc du seuil,
+  /// et l'accueil affiche « Groupe 5–10 » plutôt qu'un nombre d'adultes.
+  void _chooseGroup() => Navigator.of(context).pop(kGroupMinimumPassengers);
 
   @override
   Widget build(BuildContext context) {
@@ -68,8 +76,10 @@ class _PassengersPickerPageState extends State<PassengersPickerPage> {
                                 ),
                                 const SizedBox(height: 3),
                                 Text(
-                                  '1 à ${widget.maxPassengers} · groupe '
-                                  'jusqu’à 10',
+                                  context.l10n.homePassengersRange(
+                                    widget.maxPassengers,
+                                    kGroupMinimumPassengers,
+                                  ),
                                   style: AppTextStyles.body(
                                     koraColors.textMuted,
                                   ),
@@ -96,21 +106,19 @@ class _PassengersPickerPageState extends State<PassengersPickerPage> {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.md),
-                    // Les deux parcours dédiés (groupe, entreprise) ne font
-                    // pas partie du MVP Bus : les raccourcis restent
-                    // affichés, conformes à la maquette, mais annoncent
-                    // leur indisponibilité plutôt que d'ouvrir un écran
-                    // vide.
+                    // Le raccourci groupe amène au seuil de la remise ; le
+                    // compte entreprise, lui, désigne un **payeur** et se
+                    // choisit au paiement, pas ici.
                     Row(
                       children: [
                         Expanded(
                           child: KoraButton(
-                            label: context.l10n.homePassengersGroup,
-                            variant: KoraButtonVariant.secondary,
-                            onPressed: () => _notAvailableYet(
-                              context,
-                              context.l10n.homePassengersGroupSoon,
+                            label: context.l10n.homePassengersGroup(
+                              kGroupMinimumPassengers,
+                              kGroupMaximumPassengers,
                             ),
+                            variant: KoraButtonVariant.secondary,
+                            onPressed: _chooseGroup,
                           ),
                         ),
                         const SizedBox(width: 9),
@@ -120,7 +128,7 @@ class _PassengersPickerPageState extends State<PassengersPickerPage> {
                             variant: KoraButtonVariant.secondary,
                             onPressed: () => _notAvailableYet(
                               context,
-                              context.l10n.homePassengersBusinessSoon,
+                              context.l10n.homePassengersBusinessPayer,
                             ),
                           ),
                         ),

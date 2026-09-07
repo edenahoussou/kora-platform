@@ -4,7 +4,11 @@ import 'package:dio/dio.dart';
 import '../../../../core/error/api_failure_mapper.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/network/api_json.dart';
+import '../../domain/entities/company_account.dart';
 import '../../domain/entities/departure.dart';
+import '../../domain/entities/group_payer.dart';
+import '../../domain/entities/group_quote.dart';
+import '../../domain/entities/group_ticket.dart';
 import '../../domain/entities/passenger.dart';
 import '../../domain/entities/quote.dart';
 import '../../domain/entities/seat.dart';
@@ -18,6 +22,43 @@ class ReservationRepositoryImpl
   const ReservationRepositoryImpl(this._dataSource);
 
   final ReservationRemoteDataSource _dataSource;
+
+  @override
+  Future<Either<Failure, List<GroupTicket>>> bookingTickets(
+    String reservationId,
+  ) => attempt(() => _dataSource.bookingTickets(reservationId));
+
+  @override
+  Future<Either<Failure, List<CompanyAccount>>> companyAccounts() =>
+      attempt(_dataSource.companyAccounts);
+
+  @override
+  Future<Either<Failure, SeatHold>> holdGroup({
+    required GroupQuote quote,
+    required List<Seat> seats,
+    required GroupPayer payer,
+    required String idempotencyKey,
+  }) {
+    return attempt(
+      () => _dataSource.holdGroup(
+        quote: quote,
+        seats: seats,
+        payer: payer,
+        idempotencyKey: idempotencyKey,
+      ),
+    );
+  }
+
+  @override
+  Future<Either<Failure, GroupQuote>> groupQuote({
+    required Departure departure,
+    required int passengers,
+  }) {
+    return attempt(
+      () =>
+          _dataSource.groupQuote(departure: departure, passengers: passengers),
+    );
+  }
 
   @override
   Future<Either<Failure, Quote>> quote({

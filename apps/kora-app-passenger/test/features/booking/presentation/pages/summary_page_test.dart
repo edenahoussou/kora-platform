@@ -6,13 +6,16 @@ import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:kora_app_passenger/core/error/failures.dart';
 import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/core/utils/date_formats.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/passenger.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/price.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/seat.dart';
+import 'package:kora_app_passenger/features/booking/presentation/bloc/group_quote_cubit.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/seat_hold_bloc.dart';
 import 'package:kora_app_passenger/features/booking/presentation/pages/summary_page.dart';
 
@@ -43,9 +46,11 @@ void main() {
         date: DateTime(2026, 8, 14),
       ),
     ).first;
+    // Assez de sièges pour un groupe : le détail du prix se vérifie à
+    // cinq voyageurs, le seuil de la remise.
     freeSeats = mockSeatsFor(
       departure,
-    ).where((seat) => seat.status == SeatStatus.free).take(2).toList();
+    ).where((seat) => seat.status == SeatStatus.free).take(10).toList();
   });
 
   List<Passenger> passengersOf(int count) => [
@@ -53,12 +58,16 @@ void main() {
       Passenger(
         firstName: i == 0 ? 'Aïcha' : 'Kofi',
         lastName: i == 0 ? 'HOUNKPÈ' : 'MENSAH',
-        phone: '+229 01 97 42 18 6$i',
+        phone: '+229 01 97 42 18 ${60 + i}',
         seat: freeSeats[i],
       ),
   ];
 
-  Future<void> pumpSummary(WidgetTester tester, {int passengers = 1}) async {
+  Future<void> pumpSummary(
+    WidgetTester tester, {
+    int passengers = 1,
+    StubReservationRepository? repository,
+  }) async {
     tester.view.physicalSize = const Size(390 * 3, 1000 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -80,11 +89,72 @@ void main() {
             passengers: passengersOf(passengers),
           ),
           bloc: holdBloc,
+          groupQuote: GroupQuoteCubit(
+            repository ?? StubReservationRepository(),
+          ),
         ),
       ),
     );
     await tester.pumpAndSettle();
   }
+
+  group('détail du prix', () {
+    /// Les montants passent par `Price.formatted`, qui sépare les milliers
+    /// d'une espace fine insécable — pas celle du clavier.
+    String money(int amount) => Price(amount).formatted;
+
+    testWidgets('un voyageur seul ne voit ni tarif unitaire ni remise', (
+      tester,
+    ) async {
+      // Répéter « tarif par voyageur » sous un total identique n'apprend
+      // rien à qui voyage seul.
+      await pumpSummary(tester);
+
+      expect(find.text('Tarif par voyageur'), findsNothing);
+      expect(find.textContaining('Remise groupe'), findsNothing);
+    });
+
+    testWidgets('un groupe voit le tarif unitaire, la remise et le total', (
+      tester,
+    ) async {
+      // Le barème du stub : 12 500 par voyageur, 10 % dès cinq.
+      await pumpSummary(tester, passengers: 5);
+
+      expect(find.text('Tarif par voyageur'), findsOneWidget);
+      expect(find.text(money(12500)), findsOneWidget);
+      expect(find.text('Remise groupe (dès 5 voyageurs)'), findsOneWidget);
+      expect(find.text('−${money(6250)}'), findsOneWidget);
+      // 62 500 moins la remise.
+      expect(find.text(money(56250)), findsOneWidget);
+    });
+
+    testWidgets('sous le seuil, aucune ligne de remise', (tester) async {
+      await pumpSummary(tester, passengers: 3);
+
+      expect(find.text('Tarif par voyageur'), findsOneWidget);
+      expect(find.textContaining('Remise groupe'), findsNothing);
+      expect(find.text(money(37500)), findsWidgets);
+    });
+
+    testWidgets('un devis refusé laisse le tarif de la recherche', (
+      tester,
+    ) async {
+      // Barrer le récapitulatif parce qu'une ligne de détail manque
+      // coûterait plus au voyageur que de lui montrer un total sans détail.
+      await pumpSummary(
+        tester,
+        passengers: 2,
+        repository: StubReservationRepository(
+          failure: const ServerFailure('Devis indisponible.'),
+        ),
+      );
+
+      expect(find.text('Vérifiez votre voyage'), findsOneWidget);
+      expect(find.textContaining('Remise groupe'), findsNothing);
+      // Le prix du départ, multiplié localement.
+      expect(find.text((departure.price * 2).formatted), findsWidgets);
+    });
+  });
 
   testWidgets('rappelle le voyage choisi et le point d’embarquement', (
     tester,

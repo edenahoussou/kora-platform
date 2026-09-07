@@ -11,9 +11,11 @@ import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../../core/widgets/section_title.dart';
 import '../../domain/entities/departure.dart';
+import '../../domain/entities/group_booking_limits.dart';
 import '../../domain/entities/trip_segment.dart';
 import '../bloc/departure_detail_cubit.dart';
 import '../widgets/state_view.dart';
+import 'group_booking_page.dart';
 import 'seats_page.dart';
 
 /// Données passées à [DepartureDetailPage] par `go_router` (`extra`).
@@ -170,12 +172,24 @@ class _DetailContent extends StatelessWidget {
             label: context.l10n.departureDetailChooseSeat,
             onPressed: departure.isSoldOut
                 ? null
+                // Un groupe passe d'abord par la réservation de groupe
+                // (BUS-15) puis par la remise (BUS-16) : les montants
+                // n'existent qu'une fois le départ connu, et c'est le
+                // dernier moment où les annoncer sert encore à décider. En
+                // dessous du seuil, on va droit aux sièges.
                 : () => context.push(
-                    AppRouter.seatsPath,
-                    extra: SeatsArgs(
-                      departure: departure,
-                      passengers: passengers,
-                    ),
+                    passengers >= kGroupMinimumPassengers
+                        ? AppRouter.groupBookingPath
+                        : AppRouter.seatsPath,
+                    extra: passengers >= kGroupMinimumPassengers
+                        ? GroupBookingArgs(
+                            departure: departure,
+                            passengers: passengers,
+                          )
+                        : SeatsArgs(
+                            departure: departure,
+                            passengers: passengers,
+                          ),
                   ),
           ),
         ),
