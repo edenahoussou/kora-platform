@@ -251,9 +251,6 @@ process can answer, with no dependency checks.</a>
                                                                                 <li class="tocify-item level-2" data-unique="payments-GETapi-v1-payments-callback-fedapay">
                                 <a href="#payments-GETapi-v1-payments-callback-fedapay">FedaPay callback endpoint.</a>
                             </li>
-                                                                                <li class="tocify-item level-2" data-unique="payments-POSTapi-v1-payments-callback-fedapay">
-                                <a href="#payments-POSTapi-v1-payments-callback-fedapay">FedaPay callback endpoint.</a>
-                            </li>
                                                                         </ul>
                             </ul>
                     <ul id="tocify-header-tickets" class="tocify-header">
@@ -1116,9 +1113,9 @@ mobile client can render search results without extra calls.</p>
     \"date\": \"2026-09-07\",
     \"passenger_count\": 7,
     \"sort\": \"price\",
-    \"sort_direction\": \"asc\",
+    \"sort_direction\": \"desc\",
     \"service_class_code\": \"architecto\",
-    \"trip_type\": \"one_way\",
+    \"trip_type\": \"round_trip\",
     \"return_date\": \"2026-09-07\"
 }"
 </code></pre></div>
@@ -1154,9 +1151,9 @@ let body = {
     "date": "2026-09-07",
     "passenger_count": 7,
     "sort": "price",
-    "sort_direction": "asc",
+    "sort_direction": "desc",
     "service_class_code": "architecto",
-    "trip_type": "one_way",
+    "trip_type": "round_trip",
     "return_date": "2026-09-07"
 };
 
@@ -1515,10 +1512,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="sort_direction"                data-endpoint="GETapi-v1-bus-itineraries"
-               value="asc"
+               value="desc"
                data-component="body">
     <br>
-<p>Example: <code>asc</code></p>
+<p>Example: <code>desc</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>asc</code></li> <li><code>desc</code></li></ul>
         </div>
@@ -1541,10 +1538,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="trip_type"                data-endpoint="GETapi-v1-bus-itineraries"
-               value="one_way"
+               value="round_trip"
                data-component="body">
     <br>
-<p>Example: <code>one_way</code></p>
+<p>Example: <code>round_trip</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>one_way</code></li> <li><code>round_trip</code></li></ul>
         </div>
@@ -1922,7 +1919,7 @@ Must be one of:
     \"itinerary_quote_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
     \"idempotency_key\": \"architecto\",
     \"payer\": {
-        \"type\": \"personal\",
+        \"type\": \"company\",
         \"user_uuid\": \"c90237e9-ced5-3af6-88ea-84aeaa148878\",
         \"company_account_uuid\": \"a1a0a47d-e8c3-3cf0-8e6e-c1ff9dca5d1f\"
     },
@@ -1955,7 +1952,7 @@ let body = {
     "itinerary_quote_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
     "idempotency_key": "architecto",
     "payer": {
-        "type": "personal",
+        "type": "company",
         "user_uuid": "c90237e9-ced5-3af6-88ea-84aeaa148878",
         "company_account_uuid": "a1a0a47d-e8c3-3cf0-8e6e-c1ff9dca5d1f"
     },
@@ -2118,10 +2115,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="payer.type"                data-endpoint="POSTapi-v1-bus-itinerary-holds"
-               value="personal"
+               value="company"
                data-component="body">
     <br>
-<p>This field is required when <code>payer</code> is present. Example: <code>personal</code></p>
+<p>This field is required when <code>payer</code> is present. Example: <code>company</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>personal</code></li> <li><code>company</code></li></ul>
                     </div>
@@ -2886,10 +2883,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="passengers.0.document_type"                data-endpoint="POSTapi-v1-bookings--reservation_uuid--passengers"
-               value="biometric_card"
+               value="consular_card"
                data-component="body">
     <br>
-<p>This field is required when <code>passengers.*.document_number</code> is present. Example: <code>biometric_card</code></p>
+<p>This field is required when <code>passengers.*.document_number</code> is present. Example: <code>consular_card</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>national_id</code></li> <li><code>biometric_card</code></li> <li><code>passport</code></li> <li><code>consular_card</code></li></ul>
                     </div>
@@ -3491,7 +3488,7 @@ be submitted to the verify endpoint.</p>
     --header "Accept: application/json" \
     --data "{
     \"email\": \"gbailey@example.net\",
-    \"purpose\": \"registration\"
+    \"purpose\": \"login_new_device\"
 }"
 </code></pre></div>
 
@@ -3508,7 +3505,7 @@ const headers = {
 
 let body = {
     "email": "gbailey@example.net",
-    "purpose": "registration"
+    "purpose": "login_new_device"
 };
 
 fetch(url, {
@@ -3649,10 +3646,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="purpose"                data-endpoint="POSTapi-v1-auth-otp-request"
-               value="registration"
+               value="login_new_device"
                data-component="body">
     <br>
-<p>Example: <code>registration</code></p>
+<p>Example: <code>login_new_device</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>registration</code></li> <li><code>login_new_device</code></li> <li><code>pin_reset</code></li> <li><code>account_unlock</code></li></ul>
         </div>
@@ -3677,7 +3674,7 @@ an account via the corresponding endpoints.</p>
     --header "Accept: application/json" \
     --data "{
     \"otp_challenge_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
-    \"purpose\": \"pin_reset\",
+    \"purpose\": \"login_new_device\",
     \"code\": \"569775\"
 }"
 </code></pre></div>
@@ -3695,7 +3692,7 @@ const headers = {
 
 let body = {
     "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-    "purpose": "pin_reset",
+    "purpose": "login_new_device",
     "code": "569775"
 };
 
@@ -3828,10 +3825,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="purpose"                data-endpoint="POSTapi-v1-auth-otp-verify"
-               value="pin_reset"
+               value="login_new_device"
                data-component="body">
     <br>
-<p>Example: <code>pin_reset</code></p>
+<p>Example: <code>login_new_device</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>registration</code></li> <li><code>login_new_device</code></li> <li><code>pin_reset</code></li> <li><code>account_unlock</code></li></ul>
         </div>
@@ -4522,7 +4519,7 @@ instead of a token.</p>
     \"email\": \"gbailey@example.net\",
     \"pin\": \"9775\",
     \"device_name\": \"n\",
-    \"platform\": \"unknown\",
+    \"platform\": \"web\",
     \"device_fingerprint\": \"g\",
     \"push_token\": \"z\",
     \"otp_challenge_uuid\": \"977e5426-8d13-3824-86aa-b092f8ae52c5\",
@@ -4545,7 +4542,7 @@ let body = {
     "email": "gbailey@example.net",
     "pin": "9775",
     "device_name": "n",
-    "platform": "unknown",
+    "platform": "web",
     "device_fingerprint": "g",
     "push_token": "z",
     "otp_challenge_uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
@@ -4764,10 +4761,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="platform"                data-endpoint="POSTapi-v1-auth-login"
-               value="unknown"
+               value="web"
                data-component="body">
     <br>
-<p>Example: <code>unknown</code></p>
+<p>Example: <code>web</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>android</code></li> <li><code>ios</code></li> <li><code>web</code></li> <li><code>unknown</code></li></ul>
         </div>
@@ -4843,7 +4840,7 @@ compte social, télécharge l'avatar via Spatie Media Library et
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
-    \"provider\": \"google\",
+    \"provider\": \"tiktok\",
     \"provider_token\": \"b\",
     \"device_name\": \"n\",
     \"platform\": \"web\",
@@ -4864,7 +4861,7 @@ const headers = {
 };
 
 let body = {
-    "provider": "google",
+    "provider": "tiktok",
     "provider_token": "b",
     "device_name": "n",
     "platform": "web",
@@ -5069,10 +5066,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="provider"                data-endpoint="POSTapi-v1-auth-oauth-token"
-               value="google"
+               value="tiktok"
                data-component="body">
     <br>
-<p>Example: <code>google</code></p>
+<p>Example: <code>tiktok</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>google</code></li> <li><code>facebook</code></li> <li><code>tiktok</code></li></ul>
         </div>
@@ -5929,11 +5926,11 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
-    \"push_notifications\": true,
+    \"push_notifications\": false,
     \"whatsapp_notifications\": false,
-    \"email_notifications\": false,
-    \"locale\": \"en\",
-    \"theme\": \"dark\"
+    \"email_notifications\": true,
+    \"locale\": \"fr\",
+    \"theme\": \"system\"
 }"
 </code></pre></div>
 
@@ -5950,11 +5947,11 @@ const headers = {
 };
 
 let body = {
-    "push_notifications": true,
+    "push_notifications": false,
     "whatsapp_notifications": false,
-    "email_notifications": false,
-    "locale": "en",
-    "theme": "dark"
+    "email_notifications": true,
+    "locale": "fr",
+    "theme": "system"
 };
 
 fetch(url, {
@@ -6109,7 +6106,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>true</code></p>
+<p>Example: <code>false</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>whatsapp_notifications</code></b>&nbsp;&nbsp;
@@ -6153,7 +6150,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>false</code></p>
+<p>Example: <code>true</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>locale</code></b>&nbsp;&nbsp;
@@ -6162,10 +6159,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="locale"                data-endpoint="PUTapi-v1-auth-preferences"
-               value="en"
+               value="fr"
                data-component="body">
     <br>
-<p>Example: <code>en</code></p>
+<p>Example: <code>fr</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>fr</code></li> <li><code>en</code></li></ul>
         </div>
@@ -6176,10 +6173,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="theme"                data-endpoint="PUTapi-v1-auth-preferences"
-               value="dark"
+               value="system"
                data-component="body">
     <br>
-<p>Example: <code>dark</code></p>
+<p>Example: <code>system</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>light</code></li> <li><code>dark</code></li> <li><code>system</code></li></ul>
         </div>
@@ -6823,7 +6820,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Accept: application/json" \
     --data "{
     \"name\": \"b\",
-    \"type\": \"ngo\",
+    \"type\": \"company\",
     \"reference\": \"n\",
     \"phone\": \"g\",
     \"email\": \"rowan.gulgowski@example.com\",
@@ -6845,7 +6842,7 @@ const headers = {
 
 let body = {
     "name": "b",
-    "type": "ngo",
+    "type": "company",
     "reference": "n",
     "phone": "g",
     "email": "rowan.gulgowski@example.com",
@@ -7016,10 +7013,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="type"                data-endpoint="POSTapi-v1-company-accounts"
-               value="ngo"
+               value="company"
                data-component="body">
     <br>
-<p>Example: <code>ngo</code></p>
+<p>Example: <code>company</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>company</code></li> <li><code>ngo</code></li> <li><code>embassy</code></li></ul>
         </div>
@@ -7554,7 +7551,7 @@ a member, their role and status are updated.</p>
     --header "Accept: application/json" \
     --data "{
     \"user_uuid\": \"6ff8f7f6-1eb3-3525-be4a-3932c805afed\",
-    \"role\": \"member\"
+    \"role\": \"referent\"
 }"
 </code></pre></div>
 
@@ -7572,7 +7569,7 @@ const headers = {
 
 let body = {
     "user_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
-    "role": "member"
+    "role": "referent"
 };
 
 fetch(url, {
@@ -7756,10 +7753,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="role"                data-endpoint="POSTapi-v1-company-accounts--companyAccount_uuid--members"
-               value="member"
+               value="referent"
                data-component="body">
     <br>
-<p>Example: <code>member</code></p>
+<p>Example: <code>referent</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>referent</code></li> <li><code>member</code></li></ul>
         </div>
@@ -10713,6 +10710,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <small class="badge badge-green">GET</small>
             <b><code>api/v1/payments/callback/fedapay</code></b>
         </p>
+            <p>
+            <small class="badge badge-black">POST</small>
+            <b><code>api/v1/payments/callback/fedapay</code></b>
+        </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
                                 <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
@@ -10733,150 +10734,6 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="Accept"                data-endpoint="GETapi-v1-payments-callback-fedapay"
-               value="application/json"
-               data-component="header">
-    <br>
-<p>Example: <code>application/json</code></p>
-            </div>
-                        </form>
-
-                    <h2 id="payments-POSTapi-v1-payments-callback-fedapay">FedaPay callback endpoint.</h2>
-
-<p>
-</p>
-
-<p>Fedapay redirects/posts the transaction result to this URL after
-processing. The transaction is then verified via the FedaPay API
-(server-side) to confirm the real status — the callback itself is
-not trusted as a source of truth.</p>
-
-<span id="example-requests-POSTapi-v1-payments-callback-fedapay">
-<blockquote>Example request:</blockquote>
-
-
-<div class="bash-example">
-    <pre><code class="language-bash">curl --request POST \
-    "https://staging.koraexpress.app/api/v1/payments/callback/fedapay" \
-    --header "Content-Type: application/json" \
-    --header "Accept: application/json"</code></pre></div>
-
-
-<div class="javascript-example">
-    <pre><code class="language-javascript">const url = new URL(
-    "https://staging.koraexpress.app/api/v1/payments/callback/fedapay"
-);
-
-const headers = {
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-};
-
-
-fetch(url, {
-    method: "POST",
-    headers,
-}).then(response =&gt; response.json());</code></pre></div>
-
-</span>
-
-<span id="example-responses-POSTapi-v1-payments-callback-fedapay">
-            <blockquote>
-            <p>Example response (200, Callback processed):</p>
-        </blockquote>
-                <pre>
-
-<code class="language-json" style="max-height: 300px;">{
-    &quot;status&quot;: &quot;confirmed&quot;,
-    &quot;payment_uuid&quot;: &quot;9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80&quot;,
-    &quot;reservation_uuid&quot;: &quot;9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70&quot;,
-    &quot;reservation_status&quot;: &quot;paid&quot;
-}</code>
- </pre>
-            <blockquote>
-            <p>Example response (400, No transaction reference):</p>
-        </blockquote>
-                <pre>
-
-<code class="language-json" style="max-height: 300px;">{
-    &quot;error&quot;: &quot;No transaction reference found in callback.&quot;
-}</code>
- </pre>
-            <blockquote>
-            <p>Example response (404, Payment not found):</p>
-        </blockquote>
-                <pre>
-
-<code class="language-json" style="max-height: 300px;">{
-    &quot;error&quot;: &quot;Payment not found.&quot;
-}</code>
- </pre>
-    </span>
-<span id="execution-results-POSTapi-v1-payments-callback-fedapay" hidden>
-    <blockquote>Received response<span
-                id="execution-response-status-POSTapi-v1-payments-callback-fedapay"></span>:
-    </blockquote>
-    <pre class="json"><code id="execution-response-content-POSTapi-v1-payments-callback-fedapay"
-      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
-</span>
-<span id="execution-error-POSTapi-v1-payments-callback-fedapay" hidden>
-    <blockquote>Request failed with error:</blockquote>
-    <pre><code id="execution-error-message-POSTapi-v1-payments-callback-fedapay">
-
-Tip: Check that you&#039;re properly connected to the network.
-If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
-You can check the Dev Tools console for debugging information.</code></pre>
-</span>
-<form id="form-POSTapi-v1-payments-callback-fedapay" data-method="POST"
-      data-path="api/v1/payments/callback/fedapay"
-      data-authed="0"
-      data-hasfiles="0"
-      data-isarraybody="0"
-      autocomplete="off"
-      onsubmit="event.preventDefault(); executeTryOut('POSTapi-v1-payments-callback-fedapay', this);">
-    <h3>
-        Request&nbsp;&nbsp;&nbsp;
-                    <button type="button"
-                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
-                    id="btn-tryout-POSTapi-v1-payments-callback-fedapay"
-                    onclick="tryItOut('POSTapi-v1-payments-callback-fedapay');">Try it out ⚡
-            </button>
-            <button type="button"
-                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
-                    id="btn-canceltryout-POSTapi-v1-payments-callback-fedapay"
-                    onclick="cancelTryOut('POSTapi-v1-payments-callback-fedapay');" hidden>Cancel 🛑
-            </button>&nbsp;&nbsp;
-            <button type="submit"
-                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
-                    id="btn-executetryout-POSTapi-v1-payments-callback-fedapay"
-                    data-initial-text="Send Request 💥"
-                    data-loading-text="⏱ Sending..."
-                    hidden>Send Request 💥
-            </button>
-            </h3>
-            <p>
-            <small class="badge badge-black">POST</small>
-            <b><code>api/v1/payments/callback/fedapay</code></b>
-        </p>
-                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
-                                <div style="padding-left: 28px; clear: unset;">
-                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
-&nbsp;
- &nbsp;
- &nbsp;
-                <input type="text" style="display: none"
-                              name="Content-Type"                data-endpoint="POSTapi-v1-payments-callback-fedapay"
-               value="application/json"
-               data-component="header">
-    <br>
-<p>Example: <code>application/json</code></p>
-            </div>
-                                <div style="padding-left: 28px; clear: unset;">
-                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
-&nbsp;
- &nbsp;
- &nbsp;
-                <input type="text" style="display: none"
-                              name="Accept"                data-endpoint="POSTapi-v1-payments-callback-fedapay"
                value="application/json"
                data-component="header">
     <br>

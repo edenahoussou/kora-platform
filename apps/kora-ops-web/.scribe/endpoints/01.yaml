@@ -46,7 +46,7 @@ endpoints:
         name: purpose
         description: ''
         required: true
-        example: registration
+        example: login_new_device
         type: string
         enumValues:
           - registration
@@ -58,7 +58,7 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       email: gbailey@example.net
-      purpose: registration
+      purpose: login_new_device
     fileParameters: []
     responses:
       -
@@ -142,7 +142,7 @@ endpoints:
         name: purpose
         description: ''
         required: true
-        example: pin_reset
+        example: login_new_device
         type: string
         enumValues:
           - registration
@@ -165,7 +165,7 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       otp_challenge_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-      purpose: pin_reset
+      purpose: login_new_device
       code: '569775'
     fileParameters: []
     responses:
@@ -614,7 +614,7 @@ endpoints:
         name: platform
         description: ''
         required: true
-        example: unknown
+        example: web
         type: string
         enumValues:
           - android
@@ -672,7 +672,7 @@ endpoints:
       email: gbailey@example.net
       pin: '9775'
       device_name: 'n'
-      platform: unknown
+      platform: web
       device_fingerprint: g
       push_token: z
       otp_challenge_uuid: 977e5426-8d13-3824-86aa-b092f8ae52c5
@@ -806,7 +806,7 @@ endpoints:
         name: provider
         description: ''
         required: true
-        example: google
+        example: tiktok
         type: string
         enumValues:
           - google
@@ -875,7 +875,7 @@ endpoints:
         nullable: true
         deprecated: false
     cleanBodyParameters:
-      provider: google
+      provider: tiktok
       provider_token: b
       device_name: 'n'
       platform: web
@@ -1367,7 +1367,7 @@ endpoints:
         name: push_notifications
         description: ''
         required: false
-        example: true
+        example: false
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -1389,7 +1389,7 @@ endpoints:
         name: email_notifications
         description: ''
         required: false
-        example: false
+        example: true
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -1400,7 +1400,7 @@ endpoints:
         name: locale
         description: ''
         required: false
-        example: en
+        example: fr
         type: string
         enumValues:
           - fr
@@ -1413,7 +1413,7 @@ endpoints:
         name: theme
         description: ''
         required: false
-        example: dark
+        example: system
         type: string
         enumValues:
           - light
@@ -1423,11 +1423,11 @@ endpoints:
         nullable: true
         deprecated: false
     cleanBodyParameters:
-      push_notifications: true
+      push_notifications: false
       whatsapp_notifications: false
-      email_notifications: false
-      locale: en
-      theme: dark
+      email_notifications: true
+      locale: fr
+      theme: system
     fileParameters: []
     responses:
       -

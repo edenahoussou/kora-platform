@@ -116,7 +116,7 @@ endpoints:
         name: type
         description: ''
         required: true
-        example: ngo
+        example: company
         type: string
         enumValues:
           - company
@@ -171,7 +171,7 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       name: b
-      type: ngo
+      type: company
       reference: 'n'
       phone: g
       email: rowan.gulgowski@example.com
@@ -548,7 +548,7 @@ endpoints:
         name: role
         description: ''
         required: true
-        example: member
+        example: referent
         type: string
         enumValues:
           - referent
@@ -558,7 +558,7 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       user_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-      role: member
+      role: referent
     fileParameters: []
     responses:
       -
