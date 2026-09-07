@@ -4,17 +4,20 @@ import type { SyntheticEvent } from 'react';
 import { toast } from 'sonner';
 import { sale } from '@/routes';
 import {
+    confirm as saleConfirm,
     draft,
     hold,
     passengers,
     payment,
     quote,
     release,
+    seats as saleSeats,
 } from '@/routes/sale';
 import type { CounterSalePaymentPayload } from './payment-step';
 import type {
-    SaleDeparture,
+    SaleItinerary,
     SalePassengerForm,
+    SalePayerType,
     SaleProps,
     SaleSearch,
 } from './sale-types';
@@ -29,43 +32,105 @@ function passengerToSnakeCase(passenger: SalePassengerForm) {
         document_number: passenger.documentNumber,
         nationality: passenger.nationality,
         birth_date: passenger.birthDate,
+        passenger_index: passenger.passengerIndex,
+        yellow_fever_vaccinated: passenger.yellowFeverVaccinated,
         seat_uuid: passenger.seatUuid,
     };
 }
 
-function queryFrom(search: SaleSearch, departure?: SaleDeparture | null) {
-    return {
-        date: search.date ?? departure?.departureDate ?? null,
-        from: search.from ?? undefined,
-        to: search.to ?? undefined,
-        departure_uuid: departure?.uuid,
-        origin_stop_uuid: departure?.originStop.uuid,
-        destination_stop_uuid: departure?.destinationStop.uuid,
-    };
+function firstErrorMessage(
+    errors: Record<string, string>,
+    fallback: string,
+): string {
+    return (
+        Object.values(errors).find((value) => typeof value === 'string') ??
+        fallback
+    );
 }
+
+export type ItinerarySeatAssignment = {
+    passenger_index: number;
+    seat_assignments: Array<{
+        leg_order: number;
+        direction?: 'outbound' | 'inbound';
+        seat_uuid: string;
+    }>;
+};
 
 export function useCounterSale(props: SaleProps) {
     const searchForm = useForm<SaleSearch>({ ...props.search });
     const quoteForm = useForm({
-        ...queryFrom(props.search, props.selectedDeparture),
+        date: searchForm.data.date ?? null,
+        from: searchForm.data.from ?? undefined,
+        to: searchForm.data.to ?? undefined,
+        trip_type: searchForm.data.tripType,
+        return_date:
+            searchForm.data.tripType === 'round_trip'
+                ? searchForm.data.returnDate
+                : null,
         passenger_count: 1,
+        outbound_legs: [] as Array<{
+            departure_uuid: string;
+            origin_stop_uuid: string;
+            destination_stop_uuid: string;
+        }>,
+        inbound_legs: [] as Array<{
+            departure_uuid: string;
+            origin_stop_uuid: string;
+            destination_stop_uuid: string;
+        }>,
     });
     const holdForm = useForm({
-        ...queryFrom(props.search, props.selectedDeparture),
-        price_quote_uuid: props.quote?.uuid ?? '',
-        seats: [] as Array<{ seat_uuid: string }>,
+        date: searchForm.data.date ?? null,
+        from: searchForm.data.from ?? undefined,
+        to: searchForm.data.to ?? undefined,
+        trip_type: searchForm.data.tripType,
+        return_date:
+            searchForm.data.tripType === 'round_trip'
+                ? searchForm.data.returnDate
+                : null,
+        itinerary_quote_uuid: props.itineraryQuote?.uuid ?? '',
+        passengers: [] as ItinerarySeatAssignment[],
+    });
+    const confirmForm = useForm({
+        date: searchForm.data.date ?? null,
+        from: searchForm.data.from ?? undefined,
+        to: searchForm.data.to ?? undefined,
+        trip_type: searchForm.data.tripType,
+        return_date:
+            searchForm.data.tripType === 'round_trip'
+                ? searchForm.data.returnDate
+                : null,
+        passenger_count: 1,
+        outbound_legs: [] as Array<{
+            departure_uuid: string;
+            origin_stop_uuid: string;
+            destination_stop_uuid: string;
+        }>,
+        inbound_legs: [] as Array<{
+            departure_uuid: string;
+            origin_stop_uuid: string;
+            destination_stop_uuid: string;
+        }>,
+        passengers: [] as ItinerarySeatAssignment[],
+        idempotency_key: '',
+        payer: null as {
+            type: SalePayerType;
+            company_account_uuid?: string;
+        } | null,
     });
     const passengersForm = useForm<{
         date: string | null;
         from: string | undefined;
         to: string | undefined;
-        departure_uuid: string | undefined;
-        origin_stop_uuid: string | undefined;
-        destination_stop_uuid: string | undefined;
         passengers: SalePassengerForm[];
+        information_confirmed: boolean;
     }>({
-        ...queryFrom(searchForm.data, props.selectedDeparture),
+        date: searchForm.data.date ?? null,
+        from: searchForm.data.from ?? undefined,
+        to: searchForm.data.to ?? undefined,
         passengers: [],
+        information_confirmed: false,
     });
     const draftForm = useForm<{
         passengers: ReturnType<typeof passengerToSnakeCase>[];
@@ -75,8 +140,10 @@ export function useCounterSale(props: SaleProps) {
     const transformDraft = draftForm.transform;
     const patchDraft = draftForm.patch;
     const releaseForm = useForm({
-        ...queryFrom(props.search, props.selectedDeparture),
-        quote_uuid: props.quote?.uuid ?? undefined,
+        date: searchForm.data.date ?? null,
+        from: searchForm.data.from ?? undefined,
+        to: searchForm.data.to ?? undefined,
+        itinerary_quote_uuid: props.itineraryQuote?.uuid ?? undefined,
     });
     const paymentForm = useForm<CounterSalePaymentPayload>({
         method: 'cash',
@@ -94,14 +161,24 @@ export function useCounterSale(props: SaleProps) {
         event.preventDefault();
         router.get(
             sale.url(),
-            { ...searchForm.data },
+            {
+                date: searchForm.data.date,
+                from: searchForm.data.from,
+                to: searchForm.data.to,
+                trip_type: searchForm.data.tripType,
+                return_date:
+                    searchForm.data.tripType === 'round_trip'
+                        ? searchForm.data.returnDate
+                        : null,
+                service_class: searchForm.data.serviceClass ?? null,
+            },
             {
                 only: [
                     'search',
-                    'departures',
-                    'selectedDeparture',
-                    'seats',
-                    'quote',
+                    'outboundItineraries',
+                    'inboundItineraries',
+                    'itineraryQuote',
+                    'itineraryLegSeats',
                     'reservation',
                 ],
                 preserveState: true,
@@ -109,39 +186,184 @@ export function useCounterSale(props: SaleProps) {
             },
         );
     };
-    const selectDeparture = (
-        departure: SaleDeparture,
-        options?: { onStart?: () => void; onFinish?: () => void },
-    ) =>
-        router.get(sale.url(), queryFrom(searchForm.data, departure), {
-            only: ['selectedDeparture', 'seats', 'quote', 'reservation'],
-            preserveState: true,
-            preserveScroll: true,
-            ...options,
-        });
-    const calculateQuote = (
+    const calculateItineraryQuote = (
         passengerCount: number,
-        selectedDeparture: SaleDeparture,
+        outbound: SaleItinerary,
+        inbound: SaleItinerary | null,
         onSuccess?: () => void,
     ) => {
+        const toLegPayload = (leg: SaleItinerary['legs'][number]) => ({
+            departure_uuid: leg.departureUuid,
+            origin_stop_uuid: leg.originStop.uuid,
+            destination_stop_uuid: leg.destinationStop.uuid,
+        });
         quoteForm.transform(() => ({
-            ...queryFrom(searchForm.data, selectedDeparture),
+            date:
+                searchForm.data.date ?? outbound.legs[0]?.departureDate ?? null,
+            from: searchForm.data.from ?? undefined,
+            to: searchForm.data.to ?? undefined,
+            trip_type: inbound ? 'round_trip' : 'one_way',
+            return_date: inbound
+                ? (searchForm.data.returnDate ??
+                  inbound.legs[0]?.departureDate ??
+                  null)
+                : null,
             passenger_count: passengerCount,
+            outbound_legs: outbound.legs.map(toLegPayload),
+            inbound_legs: inbound ? inbound.legs.map(toLegPayload) : [],
         }));
-        quoteForm.post(quote.url(), { preserveScroll: true, onSuccess });
+        quoteForm.post(quote.url(), {
+            preserveScroll: true,
+            onSuccess,
+            onError: (errors) => {
+                toast.error(
+                    firstErrorMessage(
+                        errors as Record<string, string>,
+                        'Le devis n’a pas pu être calculé. Vérifiez votre sélection et réessayez.',
+                    ),
+                );
+            },
+        });
     };
-    const holdSeats = (
-        selectedDeparture: SaleDeparture,
-        quoteUuid: string,
-        seatUuids: string[],
+    const holdItinerarySeats = (
+        itineraryQuoteUuid: string,
+        seatAssignments: ItinerarySeatAssignment[],
         onSuccess?: () => void,
+        payer?: {
+            type: SalePayerType;
+            company_account_uuid?: string;
+        },
     ) => {
         holdForm.transform(() => ({
-            ...queryFrom(searchForm.data, selectedDeparture),
-            price_quote_uuid: quoteUuid,
-            seats: seatUuids.map((seatUuid) => ({ seat_uuid: seatUuid })),
+            date: searchForm.data.date,
+            from: searchForm.data.from ?? undefined,
+            to: searchForm.data.to ?? undefined,
+            trip_type: searchForm.data.tripType,
+            return_date:
+                searchForm.data.tripType === 'round_trip'
+                    ? searchForm.data.returnDate
+                    : null,
+            itinerary_quote_uuid: itineraryQuoteUuid,
+            passengers: seatAssignments,
+            ...(payer
+                ? {
+                      payer: {
+                          type: payer.type,
+                          ...(payer.company_account_uuid
+                              ? {
+                                    company_account_uuid:
+                                        payer.company_account_uuid,
+                                }
+                              : {}),
+                      },
+                  }
+                : {}),
         }));
-        holdForm.post(hold.url(), { preserveScroll: true, onSuccess });
+        holdForm.post(hold.url(), {
+            preserveScroll: true,
+            onSuccess,
+            onError: (errors) => {
+                toast.error(
+                    firstErrorMessage(
+                        errors as Record<string, string>,
+                        'Le blocage des places a échoué. Vérifiez votre sélection et réessayez.',
+                    ),
+                );
+            },
+        });
+    };
+    const fetchSeats = (
+        outbound: SaleItinerary,
+        inbound: SaleItinerary | null,
+        onSuccess?: () => void,
+    ) => {
+        const toLegPayload = (leg: SaleItinerary['legs'][number]) => ({
+            departure_uuid: leg.departureUuid,
+            origin_stop_uuid: leg.originStop.uuid,
+            destination_stop_uuid: leg.destinationStop.uuid,
+        });
+
+        router.post(
+            saleSeats.url(),
+            {
+                date:
+                    searchForm.data.date ??
+                    outbound.legs[0]?.departureDate ??
+                    null,
+                from: searchForm.data.from ?? undefined,
+                to: searchForm.data.to ?? undefined,
+                trip_type: inbound ? 'round_trip' : 'one_way',
+                return_date: inbound
+                    ? (searchForm.data.returnDate ??
+                      inbound.legs[0]?.departureDate ??
+                      null)
+                    : null,
+                outbound_legs: outbound.legs.map(toLegPayload),
+                inbound_legs: inbound ? inbound.legs.map(toLegPayload) : [],
+            },
+            {
+                only: ['itineraryLegSeats'],
+                preserveState: true,
+                preserveScroll: true,
+                onSuccess,
+                onError: (errors) => {
+                    toast.error(
+                        firstErrorMessage(
+                            errors as Record<string, string>,
+                            'Impossible de charger les places. Vérifiez votre sélection et réessayez.',
+                        ),
+                    );
+                },
+            },
+        );
+    };
+    const confirmSale = (
+        outbound: SaleItinerary,
+        inbound: SaleItinerary | null,
+        passengerCount: number,
+        seatAssignments: ItinerarySeatAssignment[],
+        onSuccess?: () => void,
+        payer?: {
+            type: SalePayerType;
+            company_account_uuid?: string;
+        },
+    ) => {
+        const toLegPayload = (leg: SaleItinerary['legs'][number]) => ({
+            departure_uuid: leg.departureUuid,
+            origin_stop_uuid: leg.originStop.uuid,
+            destination_stop_uuid: leg.destinationStop.uuid,
+        });
+
+        confirmForm.transform(() => ({
+            date:
+                searchForm.data.date ?? outbound.legs[0]?.departureDate ?? null,
+            from: searchForm.data.from ?? undefined,
+            to: searchForm.data.to ?? undefined,
+            trip_type: inbound ? 'round_trip' : 'one_way',
+            return_date: inbound
+                ? (searchForm.data.returnDate ??
+                  inbound.legs[0]?.departureDate ??
+                  null)
+                : null,
+            passenger_count: passengerCount,
+            outbound_legs: outbound.legs.map(toLegPayload),
+            inbound_legs: inbound ? inbound.legs.map(toLegPayload) : [],
+            passengers: seatAssignments,
+            idempotency_key: '',
+            payer: payer ?? null,
+        }));
+        confirmForm.post(saleConfirm.url(), {
+            preserveScroll: true,
+            onSuccess,
+            onError: (errors) => {
+                toast.error(
+                    firstErrorMessage(
+                        errors as Record<string, string>,
+                        'La confirmation de la vente a échoué. Vérifiez votre sélection et réessayez.',
+                    ),
+                );
+            },
+        });
     };
     const savePassengers = (
         reservationUuid: string,
@@ -149,8 +371,11 @@ export function useCounterSale(props: SaleProps) {
         onSuccess?: () => void,
     ) => {
         passengersForm.transform(() => ({
-            ...queryFrom(searchForm.data, props.selectedDeparture),
+            date: searchForm.data.date ?? null,
+            from: searchForm.data.from ?? undefined,
+            to: searchForm.data.to ?? undefined,
             passengers: passengerData.map(passengerToSnakeCase),
+            information_confirmed: true,
         }));
         passengersForm.post(passengers.url(reservationUuid), {
             preserveScroll: true,
@@ -182,10 +407,12 @@ export function useCounterSale(props: SaleProps) {
         } = {},
     ) => {
         releaseForm.transform(() => ({
-            ...queryFrom(searchForm.data, props.selectedDeparture),
-            quote_uuid: options.clearQuote
+            date: searchForm.data.date ?? null,
+            from: searchForm.data.from ?? undefined,
+            to: searchForm.data.to ?? undefined,
+            itinerary_quote_uuid: options.clearQuote
                 ? undefined
-                : (props.quote?.uuid ?? undefined),
+                : (props.itineraryQuote?.uuid ?? undefined),
         }));
         releaseForm.post(release.url(reservationUuid), {
             preserveScroll: true,
@@ -226,14 +453,16 @@ export function useCounterSale(props: SaleProps) {
         searchForm,
         quoteForm,
         holdForm,
+        confirmForm,
         passengersForm,
         draftForm,
         releaseForm,
         paymentForm,
         search,
-        selectDeparture,
-        calculateQuote,
-        holdSeats,
+        calculateItineraryQuote,
+        holdItinerarySeats,
+        fetchSeats,
+        confirmSale,
         savePassengers,
         saveDraft,
         releaseHold,

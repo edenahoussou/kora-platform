@@ -1,8 +1,34 @@
-export type SaleStage = 'search' | 'seats' | 'passengers' | 'payment';
+export type SaleStage =
+    'search' | 'seats' | 'passengers' | 'payment' | 'tickets';
 
-export type SalePaymentMethod = 'cash' | 'mobile_money';
+export type SalePaymentMethod = 'cash' | 'mobile_money' | 'company_credit';
+
+export type SaleBusAmenity = {
+    code: string;
+    label: string;
+    icon: string | null;
+};
 
 export type SaleMobileMoneyNetwork = 'mtn_momo' | 'moov_flooz' | 'celtiis_cash';
+
+export type SaleCompanyAccount = {
+    uuid: string;
+    name: string;
+    type: 'company' | 'ngo' | 'embassy';
+    reference: string;
+    phone: string | null;
+    email: string | null;
+    monthlyCreditLimit: number;
+    availableCredit: number;
+    referent: { uuid: string; name: string } | null;
+};
+
+export type SaleGroupBookingSettings = {
+    minimumPassengers: number;
+    maximumPassengers: number;
+};
+
+export type SalePayerType = 'personal' | 'company';
 
 export type SaleMobileMoneyAccount = {
     uuid: string;
@@ -85,6 +111,17 @@ export type SaleTicket = {
     qrCode: string;
     seatCode: string | null;
     passengerUuid: string | null;
+    passengerIndex: number | null;
+    passengerName: string | null;
+    allocationAmount: number;
+    transactionReference: string;
+    status: string;
+    legs: Array<{
+        legOrder: number;
+        originStop: string | null;
+        destinationStop: string | null;
+        seatCode: string | null;
+    }>;
 };
 
 export type SaleCity = {
@@ -93,10 +130,22 @@ export type SaleCity = {
     stopsCount: number;
 };
 
+export type SaleTripType = 'one_way' | 'round_trip';
+
+export type SaleServiceClass = {
+    uuid: string;
+    code: string;
+    name: string;
+};
+
 export type SaleSearch = {
     date: string | null;
     from: string | null;
     to: string | null;
+    tripType: SaleTripType;
+    returnDate: string | null;
+    serviceClass: string | null;
+    hasDate?: boolean;
 };
 
 export type SaleSellabilityReason =
@@ -124,11 +173,14 @@ export type SalePassenger = {
     documentNumber: string | null;
     nationality: string | null;
     birthDate: string | null;
+    passengerIndex: number | null;
+    yellowFeverVaccinated: boolean | null;
     seatUuid: string | null;
     seatCode: string | null;
 };
 
 export type SalePassengerForm = {
+    passengerIndex: number;
     firstName: string;
     lastName: string;
     phone: string;
@@ -137,11 +189,13 @@ export type SalePassengerForm = {
     documentNumber: string;
     nationality: string;
     birthDate: string;
+    yellowFeverVaccinated: boolean | null;
     seatUuid: string;
     seatCode: string;
 };
 
 export type SalePassengerDraft = {
+    passengerIndex: number;
     firstName: string;
     lastName: string;
     phone: string;
@@ -150,6 +204,7 @@ export type SalePassengerDraft = {
     documentNumber: string;
     nationality: string;
     birthDate: string;
+    yellowFeverVaccinated: boolean | null;
     seatUuid: string | null;
     seatCode: string | null;
 };
@@ -181,17 +236,66 @@ export type SaleDeparture = {
         brand: string | null;
         model: string | null;
         seatCount: number;
+        amenities?: SaleBusAmenity[];
     };
     originStop: SaleStop;
     destinationStop: SaleStop;
     availableSeatsCount: number;
     sellability: SaleDepartureSellability;
     farePreview: {
+        base_amount?: number;
         final_amount?: number;
+        coefficient?: number;
+        dynamic_adjustment_amount?: number;
+        pricing_rule_uuid?: string | null;
+        fill_rate?: number;
+        hours_before_departure?: number;
         currency?: string;
         service_class_code?: string | null;
         service_class_name?: string | null;
     } | null;
+};
+
+export type SaleItineraryLeg = {
+    direction?: 'outbound' | 'inbound';
+    legOrder: number;
+    departureUuid: string;
+    departureDate: string;
+    departureTime: string;
+    line: {
+        uuid: string;
+        code: string;
+        name: string;
+        estimatedDurationMinutes?: number | null;
+        isInternational: boolean;
+    };
+    bus: {
+        uuid: string;
+        registrationNumber: string;
+        brand?: string | null;
+        model?: string | null;
+        seatCount?: number;
+        amenities?: SaleBusAmenity[];
+    };
+    originStop: SaleStop;
+    destinationStop: SaleStop;
+    amount: number;
+    availableSeatsCount: number;
+    serviceClassCode: string | null;
+    serviceClassName: string | null;
+    departureAt: string;
+    arrivalAt: string;
+};
+
+export type SaleItinerary = {
+    isDirect: boolean;
+    connectionsCount: number;
+    totalAmount: number;
+    currency: string;
+    departureAt: string;
+    arrivalAt: string;
+    connectionMarginMinutes: number;
+    legs: SaleItineraryLeg[];
 };
 
 export type SaleSeat = {
@@ -210,8 +314,43 @@ export type SaleQuote = {
     finalAmount: number;
     currency: string;
     passengerCount: number;
+    subtotalAmount: number;
+    adjustedSubtotalAmount: number;
+    dynamicAdjustmentAmount: number;
+    groupDiscount: {
+        applied: boolean;
+        threshold: number | null;
+        percentage: number;
+        amount: number;
+    };
+    isGroup: boolean;
+    promotions?: Array<Record<string, unknown>>;
+    promotionDiscountAmount?: number;
+    passengerAllocations: number[];
     totalAmount: number;
     expiresAt: string | null;
+};
+
+export type SaleItineraryQuoteLeg = SaleItineraryLeg & {
+    amount: number;
+    currency: string;
+};
+
+export type SaleItineraryQuote = SaleQuote & {
+    groupDiscountAmount: number;
+    legs: SaleItineraryQuoteLeg[];
+};
+
+export type SaleItineraryLegSeat = {
+    legOrder: number;
+    direction: 'outbound' | 'inbound';
+    seats: SaleSeat[];
+};
+
+export type SaleSelectedItineraryLeg = {
+    direction: 'outbound' | 'inbound';
+    legOrder: number;
+    departureUuid: string;
 };
 
 export type SaleReservation = {
@@ -221,6 +360,32 @@ export type SaleReservation = {
     totalAmount: number;
     currency: string;
     channel: string | null;
+    purchaseType: string | null;
+    groupSize: number | null;
+    payerType: string | null;
+    payerSnapshot: {
+        type: string;
+        display_name: string;
+        phone: string | null;
+        account_uuid: string;
+        company_reference?: string | null;
+        referent_uuid?: string | null;
+        referent_name?: string | null;
+        captured_at: string;
+    } | null;
+    ticketIssuance: {
+        status: 'not_started' | 'pending' | 'processing' | 'failed' | 'issued';
+        error: string | null;
+        startedAt: string | null;
+        issuedAt: string | null;
+    };
+    companyAccount: {
+        uuid: string;
+        name: string;
+        type: string;
+        reference: string;
+    } | null;
+    passengerAllocations: number[];
     departureUuid: string | null;
     payment: SalePayment | null;
     qrPayload: SaleReceiptQrPayload | null;
@@ -229,6 +394,14 @@ export type SaleReservation = {
         koraReference: string | null;
         mecefUid: string | null;
     } | null;
+    refunds?: Array<{
+        uuid: string;
+        amount: number;
+        currency: string;
+        destination: string;
+        status: string;
+        reference: string;
+    }>;
     tickets: SaleTicket[];
     passengers: SalePassenger[];
     draftPassengers: SalePassengerDraft[];
@@ -238,19 +411,37 @@ export type SaleReservation = {
         seatCode: string | null;
         originStop: string | null;
         destinationStop: string | null;
+        originStopCity?: string | null;
+        destinationStopCity?: string | null;
+        departureDate?: string | null;
+        lineCode?: string | null;
+        lineName?: string | null;
+        busRegistration?: string | null;
+        departureAt?: string | null;
+        arrivalAt?: string | null;
         status: string;
+        passengerIndex?: number | null;
+        legOrder?: number;
+        direction?: 'outbound' | 'inbound';
     }>;
 };
 
 export type SaleProps = {
     cities: SaleCity[];
+    serviceClasses: SaleServiceClass[];
     search: SaleSearch;
-    departures: SaleDeparture[];
-    selectedDeparture: SaleDeparture | null;
+    outboundItineraries: SaleItinerary[];
+    inboundItineraries?: SaleItinerary[];
+    selectedOutboundItinerary?: SaleItinerary | null;
+    selectedInboundItinerary?: SaleItinerary | null;
     seats: SaleSeat[];
+    itineraryLegSeats?: SaleItineraryLegSeat[];
     quote: SaleQuote | null;
+    itineraryQuote?: SaleItineraryQuote | null;
     reservation: SaleReservation | null;
     cashSession: SaleCashSession;
     mobileMoneyAccounts: SaleMobileMoneyAccount[];
+    companyAccounts: SaleCompanyAccount[];
+    groupBookingSettings: SaleGroupBookingSettings;
     permissions: { canCreate: boolean };
 };

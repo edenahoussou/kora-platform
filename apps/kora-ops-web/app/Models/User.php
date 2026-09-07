@@ -96,7 +96,7 @@ class User extends Authenticatable implements HasMedia, PasskeyUser
      */
     public function reservations(): HasMany
     {
-        return $this->hasMany(Reservation::class);
+        return $this->hasMany(Reservation::class, 'created_by_user_id');
     }
 
     /**

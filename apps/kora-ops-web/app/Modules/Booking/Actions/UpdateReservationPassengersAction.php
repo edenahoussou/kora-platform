@@ -8,32 +8,24 @@ use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationPassenger;
 use App\Modules\Booking\Models\ReservationSegment;
+use App\Modules\IdentityAccess\Contracts\PassengerIdentityResolver;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class UpdateReservationPassengersAction
 {
+    public function __construct(private readonly PassengerIdentityResolver $identityResolver) {}
+
     /**
-     * @param  list<array{
-     *     first_name: string,
-     *     last_name: string,
-     *     phone?: string|null,
-     *     email?: string|null,
-     *     document_type?: string|null,
-     *     document_number?: string|null,
-     *     nationality?: string|null,
-     *     birth_date?: string|null,
-     *     passenger_index?: int|null,
-     *     seat_uuid?: string|null
-     * }>  $passengersData
+     * @param  list<array<string, mixed>>  $passengersData
      *
      * @throws AuthorizationException
      * @throws ValidationException
      */
     public function handle(Reservation $reservation, ?User $user, array $passengersData): Reservation
     {
-        if ($user && $reservation->user_id && $reservation->user_id !== $user->id) {
+        if ($user && $reservation->created_by_user_id && $reservation->created_by_user_id !== $user->id) {
             throw new AuthorizationException('Vous n\'êtes pas autorisé à modifier cette réservation.');
         }
 
@@ -92,23 +84,13 @@ class UpdateReservationPassengersAction
             }
         }
 
-        $isInternational = false;
-        foreach ($segments as $segment) {
-            $countriesCrossed = $segment->departure?->line?->countries_crossed;
-            if (is_array($countriesCrossed) && count($countriesCrossed) > 1) {
-                $isInternational = true;
-                break;
-            }
-        }
-
-        if ($isInternational) {
-            foreach ($passengersData as $index => $p) {
-                if (empty($p['document_type']) || empty($p['document_number']) || empty($p['nationality'])) {
-                    throw ValidationException::withMessages([
-                        "passengers.{$index}.document_number" => 'Le type de document, numéro et nationalité sont obligatoires pour les trajets internationaux.',
-                    ]);
-                }
-            }
+        $normalizedPhones = collect($passengersData)
+            ->map(fn (array $passenger): ?string => $this->identityResolver->normalizePhone($passenger['phone'] ?? null))
+            ->filter();
+        if ($normalizedPhones->unique()->count() !== $normalizedPhones->count()) {
+            throw ValidationException::withMessages([
+                'passengers' => 'Un même numéro personnel ne peut identifier qu’un seul voyageur du groupe.',
+            ]);
         }
 
         return DB::transaction(function () use ($reservation, $segments, $passengersData, $isMultiSegmentMatrix): Reservation {
@@ -121,20 +103,29 @@ class UpdateReservationPassengersAction
             $unassignedSegments = $segments->values();
 
             foreach ($passengersData as $index => $pData) {
+                $normalizedPhone = $this->identityResolver->normalizePhone($pData['phone'] ?? null);
                 $docType = ! empty($pData['document_type'])
                     ? PassengerDocumentType::tryFrom($pData['document_type'])
                     : null;
 
                 $passenger = ReservationPassenger::create([
                     'reservation_id' => $reservation->id,
+                    'passenger_index' => (int) ($pData['passenger_index'] ?? $index),
+                    'user_id' => $normalizedPhone === null
+                        ? null
+                        : $this->identityResolver->resolveOrCreateByPhone(
+                            $normalizedPhone,
+                            trim($pData['first_name'].' '.$pData['last_name']),
+                        )->getKey(),
                     'first_name' => $pData['first_name'],
                     'last_name' => $pData['last_name'],
-                    'phone' => $pData['phone'] ?? null,
+                    'phone' => $normalizedPhone,
                     'email' => $pData['email'] ?? null,
                     'document_type' => $docType,
                     'document_number' => $pData['document_number'] ?? null,
                     'nationality' => ! empty($pData['nationality']) ? strtoupper($pData['nationality']) : null,
                     'birth_date' => $pData['birth_date'] ?? null,
+                    'yellow_fever_vaccinated' => $pData['yellow_fever_vaccinated'] ?? null,
                 ]);
 
                 if ($isMultiSegmentMatrix) {

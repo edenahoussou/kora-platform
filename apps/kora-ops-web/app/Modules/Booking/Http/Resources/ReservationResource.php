@@ -29,6 +29,13 @@ class ReservationResource extends JsonResource
             'total_amount' => $this->total_amount,
             'currency' => $this->currency,
             'channel' => $this->channel?->value,
+            'purchase_type' => $this->purchase_type->value,
+            'group_size' => $this->group_size,
+            'payer' => [
+                'type' => $this->payer_type->value,
+                'user_uuid' => $this->payer?->uuid,
+                'company_account_uuid' => $this->companyAccount?->uuid,
+            ],
             'departure_uuid' => $this->segments->first()?->departure?->uuid,
             'itinerary_quote_uuid' => $this->itineraryQuote?->uuid,
             'segments' => ReservationSegmentResource::collection($this->whenLoaded('segments')),

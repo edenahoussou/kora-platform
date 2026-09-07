@@ -10,6 +10,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "barryvdh/laravel-dompdf": "^3.1",
         "fedapay/fedapay-php": "^0.4.8",
         "inertiajs/inertia-laravel": "^3.0",
         "laravel/chisel": "^0.1.0",
@@ -93,7 +94,8 @@
         "docs:generate": [
             "@php artisan scribe:generate --force",
             "@php -r \"@mkdir(__DIR__.'/../docs/mintlify/api', 0775, true);\"",
-            "cp storage/app/private/scribe/openapi.yaml ../docs/mintlify/api/openapi.yaml"
+            "cp storage/app/private/scribe/openapi.yaml ../docs/mintlify/api/openapi.yaml",
+            "@php scripts/normalize-mintlify-openapi.php"
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",

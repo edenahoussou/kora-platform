@@ -3,6 +3,7 @@
 namespace App\Modules\Booking\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreSeatHoldRequest extends FormRequest
 {
@@ -24,6 +25,11 @@ class StoreSeatHoldRequest extends FormRequest
             'seats' => ['required', 'array', 'min:1'],
             'seats.*.seat_uuid' => ['required', 'uuid', 'exists:seats,uuid'],
             'seats.*.passenger_index' => ['nullable', 'integer'],
+            'idempotency_key' => ['required', 'string', 'max:100'],
+            'payer' => ['sometimes', 'array'],
+            'payer.type' => ['required_with:payer', Rule::in(['personal', 'company'])],
+            'payer.user_uuid' => ['nullable', 'uuid'],
+            'payer.company_account_uuid' => ['required_if:payer.type,company', 'uuid', 'exists:company_accounts,uuid'],
         ];
     }
 
@@ -33,7 +39,9 @@ class StoreSeatHoldRequest extends FormRequest
      *     origin_stop_uuid: string,
      *     destination_stop_uuid: string,
      *     price_quote_uuid: string,
-     *     seat_uuids: list<string>
+     *     seat_uuids: list<string>,
+     *     idempotency_key: string,
+     *     payer: array<string, mixed>
      * }
      */
     public function holdData(): array
@@ -48,6 +56,8 @@ class StoreSeatHoldRequest extends FormRequest
             'destination_stop_uuid' => $this->string('destination_stop_uuid')->value(),
             'price_quote_uuid' => $this->string('price_quote_uuid')->value(),
             'seat_uuids' => $seatUuids,
+            'idempotency_key' => $this->string('idempotency_key')->trim()->value(),
+            'payer' => $this->input('payer', ['type' => 'personal']),
         ];
     }
 }

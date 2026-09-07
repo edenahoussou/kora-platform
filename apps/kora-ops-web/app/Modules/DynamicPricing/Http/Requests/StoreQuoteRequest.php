@@ -2,6 +2,7 @@
 
 namespace App\Modules\DynamicPricing\Http\Requests;
 
+use App\Modules\Booking\Models\GroupBookingSetting;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreQuoteRequest extends FormRequest
@@ -21,7 +22,7 @@ class StoreQuoteRequest extends FormRequest
             'origin_stop_uuid' => ['required', 'uuid', 'exists:stops,uuid'],
             'destination_stop_uuid' => ['required', 'uuid', 'exists:stops,uuid'],
             'service_class_uuid' => ['nullable', 'uuid', 'exists:service_classes,uuid'],
-            'passenger_count' => ['nullable', 'integer', 'min:1', 'max:10'],
+            'passenger_count' => ['nullable', 'integer', 'min:1', 'max:'.GroupBookingSetting::current()->maximum_passengers],
         ];
     }
 

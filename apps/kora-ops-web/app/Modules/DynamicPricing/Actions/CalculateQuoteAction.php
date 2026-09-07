@@ -2,10 +2,13 @@
 
 namespace App\Modules\DynamicPricing\Actions;
 
+use App\Modules\Booking\Services\GroupPricingService;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Actions\ResolveDepartureSellabilityAction;
 use App\Modules\Departures\Models\Departure;
+use App\Modules\DynamicPricing\Data\FareDirection;
 use App\Modules\DynamicPricing\Data\FareStatus;
+use App\Modules\DynamicPricing\Data\PricingBreakdownData;
 use App\Modules\DynamicPricing\Data\PricingRuleStatus;
 use App\Modules\DynamicPricing\Data\PricingRuleType;
 use App\Modules\DynamicPricing\Models\Fare;
@@ -23,6 +26,7 @@ class CalculateQuoteAction
     public function __construct(
         private ResolveDepartureSellabilityAction $resolveSellability,
         private BuildSeatAvailabilityAction $buildSeatAvailability,
+        private GroupPricingService $groupPricing,
     ) {}
 
     /**
@@ -50,28 +54,20 @@ class CalculateQuoteAction
             ]);
         }
 
-        if ($originStop->stop_order >= $destinationStop->stop_order) {
+        // Validate that the origin precedes the destination in the departure's
+        // actual circulation order (stop_times when available, stop_order otherwise).
+        if (! $this->isValidSegmentOrder($departure, $originStop, $destinationStop)) {
             throw ValidationException::withMessages([
-                'destination_stop_uuid' => 'L\'arrêt de destination doit être situé après l\'arrêt d\'origine.',
+                'destination_stop_uuid' => 'L\'arrêt de destination doit être situé après l\'arrêt d\'origine dans le sens de circulation de ce départ.',
             ]);
         }
 
-        $fareQuery = Fare::query()
-            ->with(['serviceClass'])
-            ->whereBelongsTo($departure->line)
-            ->whereBelongsTo($originStop, 'originStop')
-            ->whereBelongsTo($destinationStop, 'destinationStop')
-            ->where('status', FareStatus::Active->value)
-            ->whereDate('effective_from', '<=', $departure->departure_date)
-            ->where(fn ($query) => $query
-                ->whereNull('effective_until')
-                ->orWhereDate('effective_until', '>=', $departure->departure_date));
+        // Determine the circulation direction from the departure's stop_times.
+        // stop_times defines the actual order of stops for this departure,
+        // which may be reversed for return trips.
+        $direction = $this->resolveDirection($departure, $originStop, $destinationStop);
 
-        if ($serviceClass) {
-            $fareQuery->where('service_class_id', $serviceClass->id);
-        }
-
-        $fare = $fareQuery->orderByDesc('effective_from')->first();
+        $fare = $this->resolveFare($departure, $originStop, $destinationStop, $serviceClass, $direction);
 
         if (! $fare) {
             throw ValidationException::withMessages([
@@ -97,7 +93,13 @@ class CalculateQuoteAction
 
         $baseAmount = (int) $fare->base_amount;
         $finalAmount = (int) round($baseAmount * $coefficient);
-        $totalAmount = $finalAmount * $passengerCount;
+        $pricing = $this->groupPricing->calculate(
+            unitAmounts: [$finalAmount],
+            passengerCount: $passengerCount,
+            currency: $fare->currency,
+            dynamicAdjustments: [$finalAmount - $baseAmount],
+        );
+        $breakdown = PricingBreakdownData::fromGroupPricing($pricing);
 
         $snapshot = [
             'fare_uuid' => $fare->uuid,
@@ -106,7 +108,13 @@ class CalculateQuoteAction
             'destination_stop' => $destinationStop->name,
             'service_class' => $fare->serviceClass->name ?? 'Standard',
             'passenger_count' => $passengerCount,
-            'total_amount' => $totalAmount,
+            'subtotal_amount' => $pricing['subtotal_amount'],
+            'dynamic_adjustment_amount' => $pricing['dynamic_adjustment_amount'],
+            'group' => $pricing['group'],
+            'group_discount' => $pricing['group_discount'],
+            'passenger_allocations' => $pricing['passenger_allocations'],
+            'total_amount' => $pricing['total_amount'],
+            'pricing_breakdown' => $breakdown->toArray(),
             // Traçabilité de la décision de tarification dynamique — utile en support/litige,
             // même si ces champs ne sont pas exposés tels quels sur le contrat public de devis.
             'pricing_rule_uuid' => $rule?->uuid,
@@ -123,6 +131,10 @@ class CalculateQuoteAction
             'base_amount' => $baseAmount,
             'coefficient' => $coefficient,
             'final_amount' => $finalAmount,
+            'passenger_count' => $passengerCount,
+            'subtotal_amount' => $pricing['subtotal_amount'],
+            'group_discount_amount' => $pricing['group_discount']['amount'],
+            'total_amount' => $pricing['total_amount'],
             'currency' => $fare->currency,
             'snapshot' => $snapshot,
             'expires_at' => now()->addMinutes(10),
@@ -237,5 +249,109 @@ class CalculateQuoteAction
         }
 
         return round($coefficient, 4);
+    }
+
+    /**
+     * Determine the pricing direction (outbound/return) from the line's
+     * stop_order. Outbound means travelling in the line's defined direction
+     * (stop_order ascending); return means travelling in the opposite
+     * direction (stop_order descending). This is independent of the
+     * departure's circulation order — a return departure has reversed
+     * stop_times but the pricing direction is still based on the line's
+     * stop_order.
+     */
+    private function resolveDirection(Departure $departure, Stop $originStop, Stop $destinationStop): string
+    {
+        return $originStop->stop_order < $destinationStop->stop_order
+            ? FareDirection::Outbound->value
+            : FareDirection::Return->value;
+    }
+
+    /**
+     * Check if the origin stop precedes the destination stop in the
+     * departure's actual circulation order. Uses stop_times when available,
+     * falls back to the line's stop_order otherwise.
+     */
+    private function isValidSegmentOrder(Departure $departure, Stop $originStop, Stop $destinationStop): bool
+    {
+        $stopTimes = $departure->stop_times ?? [];
+
+        if ($stopTimes === []) {
+            return $originStop->stop_order < $destinationStop->stop_order;
+        }
+
+        $originIndex = null;
+        $destinationIndex = null;
+
+        foreach ($stopTimes as $index => $stopTime) {
+            if (($stopTime['stop_uuid'] ?? null) === $originStop->uuid) {
+                $originIndex = $index;
+            }
+            if (($stopTime['stop_uuid'] ?? null) === $destinationStop->uuid) {
+                $destinationIndex = $index;
+            }
+        }
+
+        if ($originIndex === null || $destinationIndex === null) {
+            return $originStop->stop_order < $destinationStop->stop_order;
+        }
+
+        return $originIndex < $destinationIndex;
+    }
+
+    /**
+     * Resolve a fare for the requested direction with fallback to the
+     * reverse segment if no direct fare is found.
+     */
+    private function resolveFare(Departure $departure, Stop $originStop, Stop $destinationStop, ?ServiceClass $serviceClass, string $direction): ?Fare
+    {
+        // 1a. Direct search: origin → destination with the exact direction.
+        $fare = $this->queryFare($departure, $originStop, $destinationStop, $serviceClass, [$direction]);
+        if ($fare) {
+            return $fare;
+        }
+
+        // 1b. Direct search: origin → destination with 'both' direction.
+        $fare = $this->queryFare($departure, $originStop, $destinationStop, $serviceClass, [FareDirection::Both->value]);
+        if ($fare) {
+            return $fare;
+        }
+
+        // 2. Fallback: reverse search (destination → origin) with the
+        //    opposite direction or 'both'.
+        $reverseDirection = $direction === FareDirection::Outbound->value
+            ? FareDirection::Return->value
+            : FareDirection::Outbound->value;
+
+        $fare = $this->queryFare($departure, $destinationStop, $originStop, $serviceClass, [$reverseDirection]);
+        if ($fare) {
+            return $fare;
+        }
+
+        return $this->queryFare($departure, $destinationStop, $originStop, $serviceClass, [FareDirection::Both->value]);
+    }
+
+    /**
+     * @param  list<string>  $directions
+     */
+    private function queryFare(Departure $departure, Stop $originStop, Stop $destinationStop, ?ServiceClass $serviceClass, array $directions): ?Fare
+    {
+        $fareQuery = Fare::query()
+            ->with(['serviceClass'])
+            ->whereBelongsTo($departure->line)
+            ->whereBelongsTo($originStop, 'originStop')
+            ->whereBelongsTo($destinationStop, 'destinationStop')
+            ->where('status', FareStatus::Active->value)
+            ->whereIn('direction', $directions)
+            ->whereDate('effective_from', '<=', $departure->departure_date)
+            ->where(fn ($query) => $query
+                ->whereNull('effective_until')
+                ->orWhereDate('effective_until', '>=', $departure->departure_date));
+
+        if ($serviceClass) {
+            $fareQuery->where('service_class_id', $serviceClass->id);
+        }
+
+        return $fareQuery->orderByDesc('effective_from')->first();
     }
 }

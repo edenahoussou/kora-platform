@@ -9,15 +9,15 @@ A terme, KORA comprend une application client multi-service, une application con
 _Avoid_: MVP super-app
 
 **MVP KORA BUS**:
-Plateforme Bus exploitable de bout en bout en 12 semaines, couvrant vente, paiement, billet, fiscalisation, exploitation, embarquement hors ligne et revente de segments liberes.
-_Avoid_: MVP super-app, MVP Colis, MVP Wallet
+Plateforme Bus exploitable de bout en bout en 12 semaines, couvrant vente, paiement, billet, fiscalisation, exploitation, embarquement hors ligne et revente de segments liberes. Le perimetre produit inclut desormais le Wallet et la fidelite Bus selon [MEZ-49](docs/mez-49-compte-voyageur-wallet-fidelite.md), sans signifier que ces fonctions sont deja implementees.
+_Avoid_: MVP super-app, MVP Colis, portefeuille multi-service generaliste
 
 **KORA App**:
-Application mobile client cible. A terme elle portera Bus, Ride, Colis et Wallet. Dans le MVP, elle ne porte que le parcours passager Bus.
-_Avoid_: Creer Ride, Colis ou Wallet dans le MVP
+Application mobile client cible. A terme elle portera Bus, Ride, Colis et Wallet. Dans le MVP, elle porte le parcours passager Bus et l'acces au Wallet Bus defini par MEZ-49.
+_Avoid_: Creer Ride ou Colis dans le MVP
 
 **KORA App Passager Bus**:
-Perimetre MVP de KORA App : rechercher un depart, reserver, payer, consulter un billet et suivre le bus.
+Perimetre MVP de KORA App : rechercher un depart, reserver, payer, consulter un billet, suivre le bus et acceder a son compte et a son Wallet Bus.
 _Avoid_: App client generique
 
 **KORA OPS Web**:
@@ -56,9 +56,33 @@ _Avoid_: Annulation
 Integration de fiscalisation normalisee associee a chaque vente confirmee, avec reprise idempotente en cas d'indisponibilite.
 _Avoid_: Facture billet
 
+**Compte voyageur**:
+Identite client KORA retrouvee ou creee automatiquement a partir d'un telephone personnel normalise lors de l'achat ou de l'emission d'un billet. Elle existe avec son Wallet meme sans acces active a l'application ; son titulaire peut voyager, payer pour un tiers ou faire les deux.
+_Avoid_: Inscription obligatoire dans l'application, fiche voyageur sans telephone personnel
+
+**Fiche voyageur**:
+Informations de la personne transportee associees a son billet, distinctes du payeur. Une personne sans telephone personnel conserve sa fiche et son billet sans disposer d'un compte de fidelite ; un telephone de contact tiers ne prouve pas qu'elle est titulaire de ce compte.
+_Avoid_: Compte du parent, compte du payeur, compte partage par plusieurs voyageurs
+
+**Activation de l'acces**:
+Ouverture de l'acces a l'application sur un compte existant, apres verification du telephone par SMS et definition d'un PIN.
+_Avoid_: Creation du compte, creation du Wallet, condition pour voyager
+
+**Payeur**:
+Personne ou compte entreprise qui finance l'achat, distinct du voyageur et de l'agent qui enregistre la vente. Le payeur personnel est identifie par son propre telephone, meme lorsqu'il ne voyage pas.
+_Avoid_: Voyageur par defaut, agent de guichet, proprietaire des points gagnes par tous les voyageurs
+
 **Wallet**:
-Solde ou credit interne KORA pour paiements, avoirs et remboursements client. Il est hors MVP Bus.
-_Avoid_: Mobile Money, registre de remboursement MVP
+Portefeuille rattache au compte voyageur, compose de deux soldes distincts : cash en FCFA et points de fidelite utilisables pour les achats KORA BUS. Son inclusion au perimetre produit est actee par [l'ADR 0004](docs/adr/0004-wallet-fidelite-bus.md).
+_Avoid_: Solde unique melant argent et points, credit entreprise, portefeuille de transfert entre utilisateurs
+
+**Wallet cash**:
+Solde monetaire en FCFA du Wallet, alimente par les recharges numeriques et les remboursements personnels, utilisable pour les achats Bus. Il est distinct des points et ne suit pas leur expiration.
+_Avoid_: Points convertibles en argent, caisse de l'agent, credit entreprise
+
+**Points de fidelite**:
+Unites de recompense propres au voyageur eligible, acquises par les voyages effectues et les bonus, utilisables pour payer des billets Bus. Leur valeur d'usage est de 1 point pour 1 FCFA ; ils ne constituent pas du cash retirable ou transferable.
+_Avoid_: Argent disponible, remise immediate sur le voyage qui les genere, KORA POINT
 
 **KORA POINT**:
 Point physique ou relais partenaire susceptible de vendre ou supporter les services KORA dans une phase ulterieure. Hors MVP Bus.

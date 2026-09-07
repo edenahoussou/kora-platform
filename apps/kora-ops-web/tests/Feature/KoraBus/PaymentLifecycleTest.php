@@ -368,6 +368,35 @@ it('fails payment via webhook and releases segments/expires reservation', functi
     expect($scenario['segment']->fresh()->released_at)->not->toBeNull();
 });
 
+it('does not downgrade a terminal payment after a later webhook replay', function (): void {
+    $scenario = paymentTestScenario();
+
+    $payment = Payment::create([
+        'reservation_id' => $scenario['reservation']->id,
+        'provider' => 'mtn_momo',
+        'provider_reference' => 'MM-REPLAY1',
+        'idempotency_key' => (string) Str::uuid(),
+        'amount' => 15000,
+        'currency' => 'XOF',
+        'status' => PaymentStatus::Pending,
+    ]);
+
+    FakePaymentProvider::$nextStatus = PaymentStatus::Confirmed;
+    $this->postJson("/api/v1/payments/{$payment->uuid}/confirm", [
+        'status' => 'success',
+        'provider_reference' => 'MM-REPLAY1',
+    ])->assertOk();
+
+    FakePaymentProvider::$nextStatus = PaymentStatus::Failed;
+    $this->postJson("/api/v1/payments/{$payment->uuid}/confirm", [
+        'status' => 'failed',
+        'provider_reference' => 'MM-REPLAY1',
+    ])->assertOk();
+
+    expect($payment->fresh()->status)->toBe(PaymentStatus::Confirmed)
+        ->and($scenario['reservation']->fresh()->status)->toBe(ReservationStatus::Paid);
+});
+
 it('hides numeric IDs in payment responses', function (): void {
     $scenario = paymentTestScenario();
     Sanctum::actingAs($scenario['user']);
@@ -598,7 +627,7 @@ function paymentTestScenario(): array
     );
 
     $reservation = Reservation::create([
-        'user_id' => $user->id,
+        'created_by_user_id' => $user->id,
         'status' => ReservationStatus::Held,
         'total_amount' => 15000,
         'currency' => 'XOF',

@@ -3,6 +3,7 @@
 namespace App\Modules\Booking\Models;
 
 use App\Models\Concerns\HasPublicUuid;
+use App\Models\User;
 use App\Modules\Booking\Data\PassengerDocumentType;
 use App\Modules\Support\Models\KoraModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,6 +14,9 @@ use Illuminate\Support\Carbon;
  * @property PassengerDocumentType|null $document_type
  * @property Carbon|null $birth_date
  * @property string|null $email
+ * @property string $status
+ * @property int|null $passenger_index
+ * @property bool|null $yellow_fever_vaccinated
  */
 class ReservationPassenger extends KoraModel
 {
@@ -21,6 +25,10 @@ class ReservationPassenger extends KoraModel
     protected $fillable = [
         'uuid',
         'reservation_id',
+        'user_id',
+        'status',
+        'passenger_index',
+        'refunded_amount',
         'first_name',
         'last_name',
         'phone',
@@ -29,6 +37,7 @@ class ReservationPassenger extends KoraModel
         'document_number',
         'nationality',
         'birth_date',
+        'yellow_fever_vaccinated',
     ];
 
     /**
@@ -37,6 +46,12 @@ class ReservationPassenger extends KoraModel
     public function reservation(): BelongsTo
     {
         return $this->belongsTo(Reservation::class);
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     /**
@@ -52,6 +67,9 @@ class ReservationPassenger extends KoraModel
         return [
             'document_type' => PassengerDocumentType::class,
             'birth_date' => 'date',
+            'refunded_amount' => 'integer',
+            'passenger_index' => 'integer',
+            'yellow_fever_vaccinated' => 'boolean',
         ];
     }
 }

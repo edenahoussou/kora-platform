@@ -31,7 +31,12 @@ class Departure extends KoraModel
     use SoftDeletes;
 
     protected $fillable = [
-        'uuid', 'scheduled_at', 'departure_timezone', 'stop_times', 'secondary_driver_id', 'mechanic_id',
+        'uuid',
+        'scheduled_at',
+        'departure_timezone',
+        'stop_times',
+        'secondary_driver_id',
+        'mechanic_id',
         'line_id',
         'bus_id',
         'departure_date',

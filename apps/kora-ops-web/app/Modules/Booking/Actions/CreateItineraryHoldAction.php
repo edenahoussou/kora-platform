@@ -3,6 +3,7 @@
 namespace App\Modules\Booking\Actions;
 
 use App\Models\User;
+use App\Modules\Booking\Data\PayerContext;
 use App\Modules\Booking\Data\ReservationChannel;
 use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\Booking\Data\ReservationStatus;
@@ -14,6 +15,7 @@ use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\Booking\Services\DepartureStopTimeResolver;
 use App\Modules\BusNetwork\Data\SeatStatus;
 use App\Modules\BusNetwork\Models\Seat;
+use App\Modules\CompanyAccounts\Services\CompanyCreditService;
 use App\Modules\Departures\Actions\ResolveDepartureSellabilityAction;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\SeatInventory\Actions\FindOccupiedSeatIdsAction;
@@ -35,6 +37,7 @@ class CreateItineraryHoldAction
         private FindOccupiedSeatIdsAction $findOccupiedSeatIds,
         private ResolveDepartureSellabilityAction $resolveSellability,
         private DepartureStopTimeResolver $stopTimeResolver,
+        private CompanyCreditService $companyCredit,
     ) {}
 
     /**
@@ -49,6 +52,7 @@ class CreateItineraryHoldAction
         array $seatAssignments,
         ReservationChannel $channel = ReservationChannel::Mobile,
         ?string $idempotencyKey = null,
+        ?PayerContext $payer = null,
     ): Reservation {
         if ($user !== null && $itineraryQuote->user_id !== null && $itineraryQuote->user_id !== $user->id) {
             throw ValidationException::withMessages([
@@ -62,8 +66,10 @@ class CreateItineraryHoldAction
             ]);
         }
 
+        $payer ??= PayerContext::personal($user?->id);
+
         try {
-            return DB::transaction(function () use ($user, $itineraryQuote, $seatAssignments, $channel, $idempotencyKey): Reservation {
+            return DB::transaction(function () use ($user, $itineraryQuote, $seatAssignments, $channel, $idempotencyKey, $payer): Reservation {
                 $quote = ItineraryQuote::query()
                     ->whereKey($itineraryQuote->getKey())
                     ->lockForUpdate()
@@ -71,7 +77,7 @@ class CreateItineraryHoldAction
 
                 $existingReservation = Reservation::query()
                     ->where('idempotency_key', $idempotencyKey)
-                    ->where('user_id', $user?->id)
+                    ->where('created_by_user_id', $user?->id)
                     ->lockForUpdate()
                     ->first();
 
@@ -174,7 +180,13 @@ class CreateItineraryHoldAction
                 }
 
                 $reservation = Reservation::create([
-                    'user_id' => $user?->id,
+                    'created_by_user_id' => $user?->id,
+                    'payer_type' => $payer->type,
+                    'payer_user_id' => $payer->payerUserId,
+                    'company_account_id' => $payer->companyAccount?->getKey(),
+                    'purchase_type' => $quote->passenger_count >= 5 ? 'group' : 'individual',
+                    'group_size' => $quote->passenger_count,
+                    'payer_snapshot' => $payer->snapshot,
                     'itinerary_quote_id' => $quote->id,
                     'idempotency_key' => $idempotencyKey,
                     'status' => ReservationStatus::Held,
@@ -237,16 +249,21 @@ class CreateItineraryHoldAction
                         ReservationSegment::create([
                             'reservation_id' => $reservation->id,
                             'leg_order' => $quoteLeg->leg_order,
+                            'direction' => $quoteLeg->direction,
                             'passenger_index' => $assignment['passenger_index'],
                             'departure_id' => $departure->id,
                             'seat_id' => $seat->id,
                             'origin_stop_id' => $quoteLeg->origin_stop_id,
                             'destination_stop_id' => $quoteLeg->destination_stop_id,
-                            'origin_stop_order' => $quoteLeg->originStop->stop_order,
-                            'destination_stop_order' => $quoteLeg->destinationStop->stop_order,
+                            'origin_stop_order' => $this->stopTimeResolver->circulationIndexOf($departure, $quoteLeg->originStop),
+                            'destination_stop_order' => $this->stopTimeResolver->circulationIndexOf($departure, $quoteLeg->destinationStop),
                             'status' => ReservationSegmentStatus::Held,
                         ]);
                     }
+                }
+
+                if ($payer->companyAccount !== null) {
+                    $this->companyCredit->reserve($reservation, $payer->companyAccount);
                 }
 
                 return $this->loadReservation($reservation);
@@ -257,6 +274,12 @@ class CreateItineraryHoldAction
                     message: 'Un des sièges sélectionnés vient d’être réservé par un autre utilisateur.',
                     previous: $exception,
                 );
+            }
+
+            if (str_contains($exception->getMessage(), 'reservation_segments_valid_stop_order') || $exception->getCode() === '23514') {
+                throw ValidationException::withMessages([
+                    'itinerary_quote_uuid' => 'La séquence des arrêts de ce départ est incompatible. Demandez un nouveau devis.',
+                ]);
             }
 
             throw $exception;

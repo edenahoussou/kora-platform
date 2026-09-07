@@ -38,7 +38,7 @@ it('lists pricing rules without exposing numeric ids, with settings and conditio
         ->get(route('pricing-rules.index'))
         ->assertSuccessful()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('pricing-rules')
+            ->component('dynamic-pricing')
             ->where('rules.data.0.uuid', $rule->uuid)
             ->where('rules.data.0.lineCode', $line->code)
             ->where('rules.data.0.type', 'increase')

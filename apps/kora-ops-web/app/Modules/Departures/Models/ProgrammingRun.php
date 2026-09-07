@@ -10,7 +10,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class ProgrammingRun extends KoraModel
 {
-    protected $fillable = ['uuid', 'programme_id', 'operation', 'status', 'processed', 'result', 'created_by'];
+    protected $fillable = [
+        'uuid',
+        'programme_id',
+        'operation',
+        'status',
+        'processed',
+        'result',
+        'created_by',
+    ];
 
     protected function casts(): array
     {

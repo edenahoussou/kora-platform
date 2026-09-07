@@ -16,8 +16,10 @@ endpoints:
         OTP challenge request and verification for registration, login, PIN reset and account unlock.
       subgroup: ''
       subgroupDescription: ''
-      title: ''
-      description: ''
+      title: 'Request an OTP challenge for registration, login, PIN reset or account unlock.'
+      description: |-
+        Sends a one-time code to the user's email. The returned `otp_challenge_uuid` must
+        be submitted to the verify endpoint.
       authenticated: false
       deprecated: false
     headers:
@@ -58,7 +60,40 @@ endpoints:
       email: gbailey@example.net
       purpose: pin_reset
     fileParameters: []
-    responses: []
+    responses:
+      -
+        custom: []
+        status: 202
+        content: |-
+          {
+            "data": {
+              "otp_challenge_uuid": "b1234567-89ab-cdef-0123-456789abcdef",
+              "purpose": "registration",
+              "email": "aicha.hounkpe@gmail.com",
+              "expires_at": "2026-08-20T13:10:00.000Z"
+            }
+          }
+        headers: []
+        description: 'OTP sent'
+      -
+        custom: []
+        status: 422
+        content: |-
+          {
+            "message": "The given data was invalid.",
+            "errors": {"email": ["The email field is required."]}
+          }
+        headers: []
+        description: 'Validation error'
+      -
+        custom: []
+        status: 429
+        content: |-
+          {
+            "message": "Too many requests. Please try again later."
+          }
+        headers: []
+        description: 'Too many requests'
     responseFields: []
     auth: []
     controller: null
@@ -77,8 +112,10 @@ endpoints:
         OTP challenge request and verification for registration, login, PIN reset and account unlock.
       subgroup: ''
       subgroupDescription: ''
-      title: ''
-      description: ''
+      title: 'Verify an OTP code and obtain a verification token.'
+      description: |-
+        The `verification_token` is used to complete registration, reset PIN, or unlock
+        an account via the corresponding endpoints.
       authenticated: false
       deprecated: false
     headers:
@@ -105,7 +142,7 @@ endpoints:
         name: purpose
         description: ''
         required: true
-        example: registration
+        example: account_unlock
         type: string
         enumValues:
           - registration
@@ -128,10 +165,34 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       otp_challenge_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-      purpose: registration
+      purpose: account_unlock
       code: '569775'
     fileParameters: []
-    responses: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": {
+              "otp_challenge_uuid": "b1234567-89ab-cdef-0123-456789abcdef",
+              "purpose": "registration",
+              "verification_token": "vrf_aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789",
+              "verified_at": "2026-08-20T13:07:00.000Z"
+            }
+          }
+        headers: []
+        description: 'OTP verified'
+      -
+        custom: []
+        status: 422
+        content: |-
+          {
+            "message": "The given data was invalid.",
+            "errors": {"code": ["The OTP code is invalid or expired."]}
+          }
+        headers: []
+        description: 'Invalid code'
     responseFields: []
     auth: []
     controller: null
@@ -150,7 +211,7 @@ endpoints:
         Authentication session management: registration, login, PIN, profile and logout.
       subgroup: ''
       subgroupDescription: ''
-      title: ''
+      title: "Reset the user's PIN after OTP verification."
       description: ''
       authenticated: false
       deprecated: false
@@ -200,7 +261,38 @@ endpoints:
       verification_token: gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn
       pin: '9775'
     fileParameters: []
-    responses: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": {
+              "user": {
+                "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
+                "name": "Aïcha Hounkpè",
+                "email": "aicha.hounkpe@gmail.com",
+                "phone": "+22901000000",
+                "country_code": "BJ",
+                "birth_date": "1990-05-15",
+                "avatar_url": null,
+                "status": "active",
+                "permissions": ["bookings.create", "bookings.view-own", "tickets.view"]
+              }
+            }
+          }
+        headers: []
+        description: 'PIN reset'
+      -
+        custom: []
+        status: 422
+        content: |-
+          {
+            "message": "The given data was invalid.",
+            "errors": {"verification_token": ["The verification token is invalid or expired."]}
+          }
+        headers: []
+        description: 'Validation error'
     responseFields: []
     auth: []
     controller: null
@@ -219,7 +311,7 @@ endpoints:
         Authentication session management: registration, login, PIN, profile and logout.
       subgroup: ''
       subgroupDescription: ''
-      title: ''
+      title: 'Unlock a locked account after OTP verification.'
       description: ''
       authenticated: false
       deprecated: false
@@ -257,7 +349,38 @@ endpoints:
       otp_challenge_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
       verification_token: gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn
     fileParameters: []
-    responses: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": {
+              "user": {
+                "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
+                "name": "Aïcha Hounkpè",
+                "email": "aicha.hounkpe@gmail.com",
+                "phone": "+22901000000",
+                "country_code": "BJ",
+                "birth_date": "1990-05-15",
+                "avatar_url": null,
+                "status": "active",
+                "permissions": ["bookings.create", "bookings.view-own", "tickets.view"]
+              }
+            }
+          }
+        headers: []
+        description: 'Account unlocked'
+      -
+        custom: []
+        status: 422
+        content: |-
+          {
+            "message": "The given data was invalid.",
+            "errors": {"verification_token": ["The verification token is invalid or expired."]}
+          }
+        headers: []
+        description: 'Validation error'
     responseFields: []
     auth: []
     controller: null
@@ -276,8 +399,8 @@ endpoints:
         Authentication session management: registration, login, PIN, profile and logout.
       subgroup: ''
       subgroupDescription: ''
-      title: ''
-      description: ''
+      title: 'Complete a registration started via OTP verification.'
+      description: 'Creates the user account from a verified OTP challenge and returns a Sanctum session token.'
       authenticated: false
       deprecated: false
     headers:
@@ -305,6 +428,160 @@ endpoints:
         description: 'Le champ value doit contenir 64 caractères.'
         required: true
         example: gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      pin:
+        custom: []
+        name: pin
+        description: 'Le champ value doit contenir 4 chiffres.'
+        required: true
+        example: '9775'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      device_name:
+        custom: []
+        name: device_name
+        description: 'Le champ value ne doit pas dépasser 120 caractères.'
+        required: true
+        example: 'n'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      platform:
+        custom: []
+        name: platform
+        description: ''
+        required: true
+        example: unknown
+        type: string
+        enumValues:
+          - android
+          - ios
+          - web
+          - unknown
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      device_fingerprint:
+        custom: []
+        name: device_fingerprint
+        description: 'Le champ value doit contenir au moins 16 caractères. Le champ value ne doit pas dépasser 255 caractères.'
+        required: true
+        example: g
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      push_token:
+        custom: []
+        name: push_token
+        description: 'Le champ value ne doit pas dépasser 512 caractères.'
+        required: false
+        example: z
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+    cleanBodyParameters:
+      otp_challenge_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      verification_token: gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn
+      pin: '9775'
+      device_name: 'n'
+      platform: unknown
+      device_fingerprint: g
+      push_token: z
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 201
+        content: |-
+          {
+            "data": {
+              "token": "3|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef",
+              "token_type": "Bearer",
+              "expires_at": "2026-08-27T13:05:00.000Z",
+              "user": {
+                "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
+                "name": "Aïcha Hounkpè",
+                "email": "aicha.hounkpe@gmail.com",
+                "phone": "+22901000000",
+                "country_code": "BJ",
+                "birth_date": "1990-05-15",
+                "avatar_url": null,
+                "status": "active",
+                "permissions": ["bookings.create", "bookings.view-own", "tickets.view"]
+              },
+              "device": {
+                "uuid": "a3091549-9179-454e-8440-58179f2208df",
+                "name": "iPhone 15 Pro",
+                "platform": "ios",
+                "trusted_at": "2026-08-20T13:05:00.000Z",
+                "last_seen_at": "2026-08-20T13:05:00.000Z",
+                "status": "trusted"
+              }
+            }
+          }
+        headers: []
+        description: 'Registration completed'
+      -
+        custom: []
+        status: 422
+        content: |-
+          {
+            "message": "The given data was invalid.",
+            "errors": {"verification_token": ["The verification token is invalid or expired."]}
+          }
+        headers: []
+        description: 'Validation error'
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/auth/login
+    metadata:
+      custom: []
+      groupName: Auth
+      groupDescription: |-
+
+        Authentication session management: registration, login, PIN, profile and logout.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Authenticate a user with email/phone and PIN.'
+      description: |-
+        Returns a Sanctum session token. If OTP is required, returns a 202 with an OTP challenge
+        instead of a token.
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      email:
+        custom: []
+        name: email
+        description: 'Le champ value doit être une adresse e-mail valide. Le champ value ne doit pas dépasser 255 caractères.'
+        required: true
+        example: gbailey@example.net
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -369,116 +646,6 @@ endpoints:
         exampleWasSpecified: false
         nullable: true
         deprecated: false
-    cleanBodyParameters:
-      otp_challenge_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
-      verification_token: gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn
-      pin: '9775'
-      device_name: 'n'
-      platform: ios
-      device_fingerprint: g
-      push_token: z
-    fileParameters: []
-    responses: []
-    responseFields: []
-    auth: []
-    controller: null
-    method: null
-    route: null
-  -
-    custom: []
-    httpMethods:
-      - POST
-    uri: api/v1/auth/login
-    metadata:
-      custom: []
-      groupName: Auth
-      groupDescription: |-
-
-        Authentication session management: registration, login, PIN, profile and logout.
-      subgroup: ''
-      subgroupDescription: ''
-      title: ''
-      description: ''
-      authenticated: false
-      deprecated: false
-    headers:
-      Content-Type: application/json
-      Accept: application/json
-    urlParameters: []
-    cleanUrlParameters: []
-    queryParameters: []
-    cleanQueryParameters: []
-    bodyParameters:
-      email:
-        custom: []
-        name: email
-        description: 'Le champ value doit être une adresse e-mail valide. Le champ value ne doit pas dépasser 255 caractères.'
-        required: true
-        example: gbailey@example.net
-        type: string
-        enumValues: []
-        exampleWasSpecified: false
-        nullable: false
-        deprecated: false
-      pin:
-        custom: []
-        name: pin
-        description: 'Le champ value doit contenir 4 chiffres.'
-        required: true
-        example: '9775'
-        type: string
-        enumValues: []
-        exampleWasSpecified: false
-        nullable: false
-        deprecated: false
-      device_name:
-        custom: []
-        name: device_name
-        description: 'Le champ value ne doit pas dépasser 120 caractères.'
-        required: true
-        example: 'n'
-        type: string
-        enumValues: []
-        exampleWasSpecified: false
-        nullable: false
-        deprecated: false
-      platform:
-        custom: []
-        name: platform
-        description: ''
-        required: true
-        example: android
-        type: string
-        enumValues:
-          - android
-          - ios
-          - web
-          - unknown
-        exampleWasSpecified: false
-        nullable: false
-        deprecated: false
-      device_fingerprint:
-        custom: []
-        name: device_fingerprint
-        description: 'Le champ value doit contenir au moins 16 caractères. Le champ value ne doit pas dépasser 255 caractères.'
-        required: true
-        example: g
-        type: string
-        enumValues: []
-        exampleWasSpecified: false
-        nullable: false
-        deprecated: false
-      push_token:
-        custom: []
-        name: push_token
-        description: 'Le champ value ne doit pas dépasser 512 caractères.'
-        required: false
-        example: z
-        type: string
-        enumValues: []
-        exampleWasSpecified: false
-        nullable: true
-        deprecated: false
       otp_challenge_uuid:
         custom: []
         name: otp_challenge_uuid
@@ -505,13 +672,96 @@ endpoints:
       email: gbailey@example.net
       pin: '9775'
       device_name: 'n'
-      platform: android
+      platform: ios
       device_fingerprint: g
       push_token: z
       otp_challenge_uuid: 977e5426-8d13-3824-86aa-b092f8ae52c5
       verification_token: yvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtnnoqi
     fileParameters: []
-    responses: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": {
+              "token": "3|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef",
+              "token_type": "Bearer",
+              "expires_at": "2026-08-27T13:05:00.000Z",
+              "user": {
+                "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
+                "name": "Aïcha Hounkpè",
+                "email": "aicha.hounkpe@gmail.com",
+                "phone": "+22901000000",
+                "country_code": "BJ",
+                "birth_date": "1990-05-15",
+                "avatar_url": null,
+                "status": "active",
+                "permissions": ["bookings.create", "bookings.view-own", "tickets.view"]
+              },
+              "device": {
+                "uuid": "a3091549-9179-454e-8440-58179f2208df",
+                "name": "iPhone 15 Pro",
+                "platform": "ios",
+                "trusted_at": "2026-08-20T13:05:00.000Z",
+                "last_seen_at": "2026-08-20T13:05:00.000Z",
+                "status": "trusted"
+              }
+            }
+          }
+        headers: []
+        description: 'Login successful'
+      -
+        custom: []
+        status: 202
+        content: |-
+          {
+            "data": {
+              "requires_otp": true,
+              "otp_challenge_uuid": "b1234567-89ab-cdef-0123-456789abcdef",
+              "purpose": "login",
+              "expires_at": "2026-08-20T13:10:00.000Z"
+            }
+          }
+        headers: []
+        description: 'OTP required'
+      -
+        custom: []
+        status: 403
+        content: |-
+          {
+            "error": {
+              "code": "account_suspended",
+              "message": "Le compte est suspendu. Contactez le support."
+            }
+          }
+        headers: []
+        description: 'Account suspended'
+      -
+        custom: []
+        status: 422
+        content: |-
+          {
+            "error": {
+              "code": "invalid_credentials",
+              "message": "Identifiants invalides."
+            }
+          }
+        headers: []
+        description: 'Invalid credentials'
+      -
+        custom: []
+        status: 423
+        content: |-
+          {
+            "error": {
+              "code": "account_locked",
+              "message": "Le compte est temporairement bloqué après plusieurs tentatives incorrectes.",
+              "locked_until": "2026-08-20T13:15:00.000Z"
+            }
+          }
+        headers: []
+        description: 'Account locked'
     responseFields: []
     auth: []
     controller: null
@@ -592,7 +842,7 @@ endpoints:
         name: platform
         description: ''
         required: true
-        example: web
+        example: android
         type: string
         enumValues:
           - android
@@ -628,7 +878,7 @@ endpoints:
       provider: tiktok
       provider_token: b
       device_name: 'n'
-      platform: web
+      platform: android
       device_fingerprint: g
       push_token: z
     fileParameters: []
@@ -733,11 +983,12 @@ endpoints:
         Authentication session management: registration, login, PIN, profile and logout.
       subgroup: ''
       subgroupDescription: ''
-      title: ''
+      title: "Get the authenticated user's profile."
       description: ''
-      authenticated: false
+      authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
       Content-Type: application/json
       Accept: application/json
     urlParameters: []
@@ -747,9 +998,42 @@ endpoints:
     bodyParameters: []
     cleanBodyParameters: []
     fileParameters: []
-    responses: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": {
+              "user": {
+                "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
+                "name": "Aïcha Hounkpè",
+                "email": "aicha.hounkpe@gmail.com",
+                "phone": "+22901000000",
+                "country_code": "BJ",
+                "birth_date": "1990-05-15",
+                "avatar_url": null,
+                "status": "active",
+                "permissions": ["bookings.create", "bookings.view-own", "tickets.view"]
+              }
+            }
+          }
+        headers: []
+        description: 'Current user'
+      -
+        custom: []
+        status: 401
+        content: |-
+          {
+            "message": "Unauthenticated."
+          }
+        headers: []
+        description: Unauthenticated
     responseFields: []
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null
@@ -766,11 +1050,12 @@ endpoints:
         Authentication session management: registration, login, PIN, profile and logout.
       subgroup: ''
       subgroupDescription: ''
-      title: ''
+      title: "Update the authenticated user's profile."
       description: ''
-      authenticated: false
+      authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
       Content-Type: application/json
       Accept: application/json
     urlParameters: []
@@ -827,7 +1112,7 @@ endpoints:
         name: birth_date
         description: 'Le champ value doit être une date valide. Le champ value doit être une date antérieure à <code>today</code>.'
         required: false
-        example: '2022-09-24'
+        example: '2022-09-27'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -838,11 +1123,54 @@ endpoints:
       email: zbailey@example.net
       phone: iyvdljnikhwaykcm
       country_code: yuwp
-      birth_date: '2022-09-24'
+      birth_date: '2022-09-27'
     fileParameters: []
-    responses: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": {
+              "user": {
+                "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
+                "name": "Aïcha Hounkpè",
+                "email": "aicha.hounkpe@gmail.com",
+                "phone": "+22901000000",
+                "country_code": "BJ",
+                "birth_date": "1990-05-15",
+                "avatar_url": null,
+                "status": "active",
+                "permissions": ["bookings.create", "bookings.view-own", "tickets.view"]
+              }
+            }
+          }
+        headers: []
+        description: 'Profile updated'
+      -
+        custom: []
+        status: 401
+        content: |-
+          {
+            "message": "Unauthenticated."
+          }
+        headers: []
+        description: Unauthenticated
+      -
+        custom: []
+        status: 422
+        content: |-
+          {
+            "message": "The given data was invalid.",
+            "errors": {"email": ["The email has already been taken."]}
+          }
+        headers: []
+        description: 'Validation error'
     responseFields: []
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null
@@ -859,11 +1187,12 @@ endpoints:
         Authentication session management: registration, login, PIN, profile and logout.
       subgroup: ''
       subgroupDescription: ''
-      title: ''
+      title: "Change the authenticated user's PIN."
       description: ''
-      authenticated: false
+      authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
       Content-Type: application/json
       Accept: application/json
     urlParameters: []
@@ -897,9 +1226,52 @@ endpoints:
       current_pin: '9775'
       new_pin: '9775'
     fileParameters: []
-    responses: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": {
+              "user": {
+                "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5",
+                "name": "Aïcha Hounkpè",
+                "email": "aicha.hounkpe@gmail.com",
+                "phone": "+22901000000",
+                "country_code": "BJ",
+                "birth_date": "1990-05-15",
+                "avatar_url": null,
+                "status": "active",
+                "permissions": ["bookings.create", "bookings.view-own", "tickets.view"]
+              }
+            }
+          }
+        headers: []
+        description: 'PIN changed'
+      -
+        custom: []
+        status: 401
+        content: |-
+          {
+            "message": "Unauthenticated."
+          }
+        headers: []
+        description: Unauthenticated
+      -
+        custom: []
+        status: 422
+        content: |-
+          {
+            "message": "The given data was invalid.",
+            "errors": {"current_pin": ["The current PIN is incorrect."]}
+          }
+        headers: []
+        description: 'Validation error'
     responseFields: []
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null
@@ -916,11 +1288,12 @@ endpoints:
         User preferences: notification channels, locale and theme.
       subgroup: ''
       subgroupDescription: ''
-      title: ''
+      title: "Get the authenticated user's notification and display preferences."
       description: ''
-      authenticated: false
+      authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
       Content-Type: application/json
       Accept: application/json
     urlParameters: []
@@ -930,9 +1303,36 @@ endpoints:
     bodyParameters: []
     cleanBodyParameters: []
     fileParameters: []
-    responses: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": {
+              "push_notifications": true,
+              "whatsapp_notifications": true,
+              "email_notifications": true,
+              "locale": "fr",
+              "theme": "light"
+            }
+          }
+        headers: []
+        description: 'User preferences'
+      -
+        custom: []
+        status: 401
+        content: |-
+          {
+            "message": "Unauthenticated."
+          }
+        headers: []
+        description: Unauthenticated
     responseFields: []
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null
@@ -949,11 +1349,12 @@ endpoints:
         User preferences: notification channels, locale and theme.
       subgroup: ''
       subgroupDescription: ''
-      title: ''
+      title: "Update the authenticated user's notification and display preferences."
       description: ''
-      authenticated: false
+      authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
       Content-Type: application/json
       Accept: application/json
     urlParameters: []
@@ -966,7 +1367,7 @@ endpoints:
         name: push_notifications
         description: ''
         required: false
-        example: false
+        example: true
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -977,7 +1378,7 @@ endpoints:
         name: whatsapp_notifications
         description: ''
         required: false
-        example: true
+        example: false
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -988,7 +1389,7 @@ endpoints:
         name: email_notifications
         description: ''
         required: false
-        example: true
+        example: false
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -1022,15 +1423,52 @@ endpoints:
         nullable: true
         deprecated: false
     cleanBodyParameters:
-      push_notifications: false
-      whatsapp_notifications: true
-      email_notifications: true
+      push_notifications: true
+      whatsapp_notifications: false
+      email_notifications: false
       locale: fr
       theme: dark
     fileParameters: []
-    responses: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": {
+              "push_notifications": false,
+              "whatsapp_notifications": true,
+              "email_notifications": true,
+              "locale": "en",
+              "theme": "dark"
+            }
+          }
+        headers: []
+        description: 'Preferences updated'
+      -
+        custom: []
+        status: 401
+        content: |-
+          {
+            "message": "Unauthenticated."
+          }
+        headers: []
+        description: Unauthenticated
+      -
+        custom: []
+        status: 422
+        content: |-
+          {
+            "message": "The given data was invalid.",
+            "errors": {"locale": ["The selected locale is invalid."]}
+          }
+        headers: []
+        description: 'Validation error'
     responseFields: []
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null
@@ -1047,11 +1485,12 @@ endpoints:
         Trusted device management for the authenticated user.
       subgroup: ''
       subgroupDescription: ''
-      title: ''
+      title: "List the authenticated user's trusted devices."
       description: ''
-      authenticated: false
+      authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
       Content-Type: application/json
       Accept: application/json
     urlParameters: []
@@ -1061,9 +1500,39 @@ endpoints:
     bodyParameters: []
     cleanBodyParameters: []
     fileParameters: []
-    responses: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": [
+              {
+                "uuid": "a3091549-9179-454e-8440-58179f2208df",
+                "name": "iPhone 15 Pro",
+                "platform": "ios",
+                "trusted_at": "2026-08-20T13:05:00.000Z",
+                "last_seen_at": "2026-08-20T13:05:00.000Z",
+                "status": "trusted"
+              }
+            ]
+          }
+        headers: []
+        description: 'Device list'
+      -
+        custom: []
+        status: 401
+        content: |-
+          {
+            "message": "Unauthenticated."
+          }
+        headers: []
+        description: Unauthenticated
     responseFields: []
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null
@@ -1080,11 +1549,12 @@ endpoints:
         Trusted device management for the authenticated user.
       subgroup: ''
       subgroupDescription: ''
-      title: ''
+      title: 'Revoke a trusted device.'
       description: ''
-      authenticated: false
+      authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
       Content-Type: application/json
       Accept: application/json
     urlParameters:
@@ -1106,9 +1576,36 @@ endpoints:
     bodyParameters: []
     cleanBodyParameters: []
     fileParameters: []
-    responses: []
+    responses:
+      -
+        custom: []
+        status: 204
+        content: ''
+        headers: []
+        description: 'Device revoked'
+      -
+        custom: []
+        status: 401
+        content: |-
+          {
+            "message": "Unauthenticated."
+          }
+        headers: []
+        description: Unauthenticated
+      -
+        custom: []
+        status: 404
+        content: |-
+          {
+            "message": "No query results for model [App\\Modules\\IdentityAccess\\Models\\UserDevice]."
+          }
+        headers: []
+        description: 'Device not found'
     responseFields: []
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null
@@ -1125,11 +1622,12 @@ endpoints:
         Authentication session management: registration, login, PIN, profile and logout.
       subgroup: ''
       subgroupDescription: ''
-      title: ''
+      title: 'Revoke the current access token.'
       description: ''
-      authenticated: false
+      authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
       Content-Type: application/json
       Accept: application/json
     urlParameters: []
@@ -1139,9 +1637,27 @@ endpoints:
     bodyParameters: []
     cleanBodyParameters: []
     fileParameters: []
-    responses: []
+    responses:
+      -
+        custom: []
+        status: 204
+        content: ''
+        headers: []
+        description: 'Logged out'
+      -
+        custom: []
+        status: 401
+        content: |-
+          {
+            "message": "Unauthenticated."
+          }
+        headers: []
+        description: Unauthenticated
     responseFields: []
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null

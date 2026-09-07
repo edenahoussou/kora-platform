@@ -10,6 +10,10 @@ use Illuminate\Support\Str;
 
 class IssueCounterSaleTicketsAction
 {
+    public function __construct(
+        private readonly BuildTicketQrPayloadAction $buildQrPayload,
+    ) {}
+
     /**
      * @return Collection<int, Ticket>
      */
@@ -17,8 +21,8 @@ class IssueCounterSaleTicketsAction
     {
         $tickets = new Collection;
 
-        foreach ($reservation->passengers()->orderBy('id')->get() as $passenger) {
-            $tickets->push(Ticket::query()->firstOrCreate(
+        foreach ($reservation->passengers()->where('status', 'active')->orderBy('passenger_index')->orderBy('id')->get() as $passenger) {
+            $ticket = Ticket::query()->firstOrCreate(
                 ['reservation_passenger_id' => $passenger->getKey()],
                 [
                     'reservation_id' => $reservation->getKey(),
@@ -27,7 +31,15 @@ class IssueCounterSaleTicketsAction
                     'status' => TicketStatus::Issued,
                     'issued_at' => now(),
                 ],
-            ));
+            );
+
+            if ($ticket->wasRecentlyCreated) {
+                $ticket->forceFill([
+                    'qr_code' => $this->buildQrPayload->execute($reservation, $ticket),
+                ])->save();
+            }
+
+            $tickets->push($ticket);
         }
 
         return $tickets;

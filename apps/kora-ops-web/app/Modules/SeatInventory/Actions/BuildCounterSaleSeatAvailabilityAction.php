@@ -4,6 +4,7 @@ namespace App\Modules\SeatInventory\Actions;
 
 use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\Booking\Models\ReservationSegment;
+use App\Modules\Booking\Services\DepartureStopTimeResolver;
 use App\Modules\BusNetwork\Data\SeatStatus;
 use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
@@ -17,6 +18,10 @@ use function Illuminate\Support\enum_value;
 
 class BuildCounterSaleSeatAvailabilityAction
 {
+    public function __construct(
+        private DepartureStopTimeResolver $stopTimeResolver,
+    ) {}
+
     /**
      * @return Collection<int, CounterSaleSeatAvailabilityData>
      */
@@ -24,11 +29,14 @@ class BuildCounterSaleSeatAvailabilityAction
     {
         $departure->loadMissing(['bus.seats']);
 
+        $originOrder = $this->stopTimeResolver->circulationIndexOf($departure, $originStop);
+        $destinationOrder = $this->stopTimeResolver->circulationIndexOf($departure, $destinationStop);
+
         $segments = ReservationSegment::query()
             ->whereBelongsTo($departure)
             ->whereIn('status', ReservationSegmentStatus::occupyingValues())
-            ->where('origin_stop_order', '<', $destinationStop->stop_order)
-            ->where('destination_stop_order', '>', $originStop->stop_order)
+            ->where('origin_stop_order', '<', $destinationOrder)
+            ->where('destination_stop_order', '>', $originOrder)
             ->with(['reservation:id,expires_at'])
             ->get(['id', 'reservation_id', 'seat_id', 'status'])
             ->keyBy('seat_id');

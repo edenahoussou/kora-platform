@@ -16,6 +16,7 @@ use App\Modules\DynamicPricing\Http\Controllers\TaxRuleController;
 use App\Modules\IdentityAccess\Http\Controllers\AgencyController;
 use App\Modules\Payments\Http\Controllers\AgencyPaymentAccountController;
 use App\Modules\Ticketing\Http\Controllers\TicketsController;
+use App\Modules\Ticketing\Http\Controllers\TicketViewController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -34,10 +35,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('sale', [CounterSaleController::class, 'index'])->name('sale');
     Route::post('sale/quote', [CounterSaleController::class, 'quote'])->name('sale.quote');
     Route::post('sale/hold', [CounterSaleController::class, 'hold'])->name('sale.hold');
+    Route::post('sale/seats', [CounterSaleController::class, 'seats'])->name('sale.seats');
+    Route::post('sale/confirm', [CounterSaleController::class, 'confirm'])->name('sale.confirm');
     Route::post('sale/{reservation:uuid}/release', [CounterSaleController::class, 'releaseHold'])->name('sale.release');
     Route::patch('sale/{reservation:uuid}/draft', [CounterSaleController::class, 'saveDraft'])->name('sale.draft');
     Route::post('sale/{reservation:uuid}/passengers', [CounterSaleController::class, 'storePassengers'])->name('sale.passengers');
     Route::post('sale/{reservation:uuid}/payment', [CounterSaleController::class, 'storePayment'])->name('sale.payment');
+    Route::post('sale/{reservation:uuid}/tickets/retry', [CounterSaleController::class, 'retryTicketIssuance'])->name('sale.tickets.retry');
     Route::get('cash', [CashSessionController::class, 'index'])->name('cash');
     Route::post('cash/open', [CashSessionController::class, 'store'])->name('cash.open');
     Route::post('cash/{cashSession:uuid}/close', [CashSessionController::class, 'close'])->name('cash.close');
@@ -80,11 +84,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('fares/{fare:uuid}/status', [FareController::class, 'changeStatus'])->name('fares.status');
 
     // Règles de pricing dynamique (CDC §3.1.3.4, §9.2)
-    Route::get('pricing-rules', [PricingRuleController::class, 'index'])->name('pricing-rules.index');
-    Route::post('pricing-rules', [PricingRuleController::class, 'store'])->name('pricing-rules.store');
-    Route::put('pricing-rules/{pricingRule:uuid}', [PricingRuleController::class, 'update'])->name('pricing-rules.update');
-    Route::patch('pricing-rules/{pricingRule:uuid}/status', [PricingRuleController::class, 'changeStatus'])->name('pricing-rules.status');
-    Route::patch('pricing-rules/settings', [PricingRuleController::class, 'updateSettings'])->name('pricing-rules.settings');
+    Route::get('dynamic-pricing', [PricingRuleController::class, 'index'])->name('pricing-rules.index');
+    Route::post('dynamic-pricing', [PricingRuleController::class, 'store'])->name('pricing-rules.store');
+    Route::put('dynamic-pricing/{pricingRule:uuid}', [PricingRuleController::class, 'update'])->name('pricing-rules.update');
+    Route::patch('dynamic-pricing/{pricingRule:uuid}/status', [PricingRuleController::class, 'changeStatus'])->name('pricing-rules.status');
+    Route::patch('dynamic-pricing/settings', [PricingRuleController::class, 'updateSettings'])->name('pricing-rules.settings');
 
     // Taux fiscaux paramétrables (CDC §9.8) — configuration uniquement, non câblé
     // au calcul de devis public (hors périmètre) ; alimentera la facturation MECeF.
@@ -94,6 +98,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('tax-rules/{taxRule:uuid}/status', [TaxRuleController::class, 'changeStatus'])->name('tax-rules.status');
     Route::inertia('passengers', 'passengers')->name('passengers');
     Route::get('tickets', [TicketsController::class, 'index'])->name('tickets.index');
+    Route::inertia('tickets', 'tickets')->name('tickets');
+    Route::get('tickets/{ticket:uuid}', [TicketViewController::class, 'show'])->name('tickets.show');
+    Route::get('tickets/{ticket:uuid}/pdf', [TicketViewController::class, 'pdf'])->name('tickets.pdf');
 
     // V1 MVP — Réseau (Lignes & arrêts)
     Route::get('network', [LineController::class, 'index'])->name('network.index');
@@ -130,9 +137,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('agencies/{agency:uuid}/status', [AgencyController::class, 'changeStatus'])->name('agencies.status');
     Route::post('agencies/{agency:uuid}/payment-accounts', [AgencyPaymentAccountController::class, 'store'])->name('agencies.payment-accounts.store');
     Route::patch('agencies/{agency:uuid}/payment-accounts/{account:uuid}/status', [AgencyPaymentAccountController::class, 'changeStatus'])->name('agencies.payment-accounts.status');
-
-    // V1 MVP — Tarification dynamique (Réseau commercial)
-    Route::inertia('dynamic-pricing', 'dynamic-pricing')->name('dynamic-pricing');
 
     // =========================================================
     // V1 secondary — Colis & Wallet Lite (stubs)

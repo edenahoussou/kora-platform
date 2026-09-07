@@ -22,11 +22,6 @@ $openApi = preg_replace(
     $openApi,
     1,
 );
-$openApi = str_replace(
-    '      responses: {}',
-    "      responses:\n        default:\n          description: Response documented by the endpoint annotations.",
-    $openApi,
-);
 $openApi = preg_replace_callback(
     '/^(\s+example: )[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/mi',
     static fn (array $matches): string => $matches[1].'00000000-0000-4000-8000-000000000000',
@@ -47,7 +42,7 @@ $openApi = preg_replace(
     $openApi,
 );
 
-if (! str_contains($openApi, "  securitySchemes:\n    sanctum:")) {
+if (! str_contains($openApi, 'securitySchemes:')) {
     $openApi = preg_replace(
         '/^tags:\n/m',
         "components:\n  securitySchemes:\n    sanctum:\n      type: http\n      scheme: bearer\ntags:\n",

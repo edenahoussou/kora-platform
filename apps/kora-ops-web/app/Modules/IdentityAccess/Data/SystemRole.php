@@ -16,6 +16,7 @@ enum SystemRole: string
     case AgencyManager = 'agency_manager';
     case OperationsDirector = 'operations_director';
     case CommercialDirector = 'commercial_director';
+    case Daf = 'daf';
     case GeneralManagement = 'general_management';
     case SystemAdmin = 'system_admin';
 
@@ -30,7 +31,9 @@ enum SystemRole: string
             self::Passenger => [
                 'bookings.create',
                 'bookings.view-own',
+                'bookings.cancel',
                 'tickets.view',
+                'company-accounts.view',
             ],
             self::BusDriver => [
                 'departures.view',
@@ -45,6 +48,7 @@ enum SystemRole: string
             ],
             self::AgencyAgent => [
                 'bookings.view',
+                'company-accounts.view',
                 'counter-sales.create',
                 'cash.open',
                 'cash.close',
@@ -60,6 +64,7 @@ enum SystemRole: string
                 'fleet.view',
                 'network.view',
                 'bookings.view',
+                'company-accounts.view',
                 'cash.view',
                 'cash.approve-variance',
                 'cash.transfer.create',
@@ -111,7 +116,18 @@ enum SystemRole: string
                 'bookings.view',
                 'pricing.view',
                 'pricing.manage',
+                'group-discounts.view',
+                'group-discounts.manage',
                 'seat-releases.view',
+                'tickets.view',
+            ],
+            self::Daf => [
+                'bookings.view',
+                'company-accounts.view',
+                'company-accounts.manage',
+                'company-credit.view',
+                'company-credit.manage',
+                'company-reports.export',
                 'tickets.view',
             ],
             self::GeneralManagement => [
@@ -135,7 +151,7 @@ enum SystemRole: string
                 'seat-releases.view',
                 'tickets.view',
             ],
-            self::SystemAdmin => [],
+            self::SystemAdmin => self::allPermissions(),
         };
     }
 
@@ -190,6 +206,13 @@ enum SystemRole: string
             'tickets.issue',
             'tickets.view',
             'tickets.cancel',
+            'group-discounts.view',
+            'group-discounts.manage',
+            'company-accounts.view',
+            'company-accounts.manage',
+            'company-credit.view',
+            'company-credit.manage',
+            'company-reports.export',
         ];
     }
 
@@ -229,6 +252,7 @@ enum SystemRole: string
         return [
             self::OperationsDirector,
             self::CommercialDirector,
+            self::Daf,
             self::GeneralManagement,
         ];
     }

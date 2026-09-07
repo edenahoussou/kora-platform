@@ -1,8 +1,8 @@
-import type { SaleDeparture } from './sale-types';
-import { formatShortDate, formatTime } from './sale-utils';
+import type { SaleItineraryLeg } from './sale-types';
+import { formatIsoDate, formatIsoTime, formatShortDate } from './sale-utils';
 
 type Props = {
-    departure: SaleDeparture;
+    leg: SaleItineraryLeg;
     availableCount: number;
 };
 
@@ -15,28 +15,28 @@ function stopCode(city: string): string {
         .toUpperCase();
 }
 
-export function SeatPickerTripSummary({ departure, availableCount }: Props) {
+export function SeatPickerTripSummary({ leg, availableCount }: Props) {
     return (
         <div className="seat-trip-summary">
             <div className="seat-trip-route">
                 <div>
-                    <strong>{stopCode(departure.originStop.city)}</strong>
-                    <span>{departure.originStop.city}</span>
-                    <small>{departure.originStop.name}</small>
+                    <strong>{stopCode(leg.originStop.city)}</strong>
+                    <span>{leg.originStop.city}</span>
+                    <small>{leg.originStop.name}</small>
                 </div>
                 <div className="seat-trip-route-line" aria-hidden="true">
                     <i />
                 </div>
                 <div className="seat-trip-destination">
-                    <strong>{stopCode(departure.destinationStop.city)}</strong>
-                    <span>{departure.destinationStop.city}</span>
-                    <small>{departure.destinationStop.name}</small>
+                    <strong>{stopCode(leg.destinationStop.city)}</strong>
+                    <span>{leg.destinationStop.city}</span>
+                    <small>{leg.destinationStop.name}</small>
                 </div>
             </div>
             <div className="seat-trip-details">
                 <span>
-                    {formatShortDate(departure.departureDate)} ·{' '}
-                    {formatTime(departure.departureTime)}
+                    {formatShortDate(formatIsoDate(leg.departureAt))} ·{' '}
+                    {formatIsoTime(leg.departureAt)}
                 </span>
                 <strong>{availableCount} places disponibles</strong>
             </div>

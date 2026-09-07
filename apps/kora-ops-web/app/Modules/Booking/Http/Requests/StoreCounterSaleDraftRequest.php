@@ -14,7 +14,7 @@ class StoreCounterSaleDraftRequest extends StorePassengersRequest
 
         return $reservation instanceof Reservation
             && $user instanceof User
-            && $reservation->user_id === $user->getKey()
+            && $reservation->created_by_user_id === $user->getKey()
             && $user->can('createCounterSale', Reservation::class);
     }
 
@@ -29,11 +29,13 @@ class StoreCounterSaleDraftRequest extends StorePassengersRequest
             'passengers.*.last_name' => ['nullable', 'string', 'max:120'],
             'passengers.*.phone' => ['nullable', 'string', 'max:32'],
             'passengers.*.email' => ['nullable', 'email', 'max:255'],
-            'passengers.*.document_type' => ['nullable', 'string', 'in:national_id,biometric_card,passport,consular_card,cip'],
+            'passengers.*.document_type' => ['nullable', 'string', 'in:national_id,biometric_card,passport,consular_card'],
             'passengers.*.document_number' => ['nullable', 'string', 'max:64'],
             'passengers.*.nationality' => ['nullable', 'string', 'size:2'],
             'passengers.*.birth_date' => ['nullable', 'date_format:Y-m-d'],
-            'passengers.*.seat_uuid' => ['required', 'uuid'],
+            'passengers.*.passenger_index' => ['nullable', 'integer', 'min:0', 'max:9', 'distinct'],
+            'passengers.*.seat_uuid' => ['nullable', 'uuid'],
+            'passengers.*.yellow_fever_vaccinated' => ['nullable', 'boolean'],
         ];
     }
 }

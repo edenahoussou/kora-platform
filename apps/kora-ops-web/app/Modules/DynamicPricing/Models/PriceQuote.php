@@ -30,6 +30,10 @@ class PriceQuote extends KoraModel
         'base_amount',
         'coefficient',
         'final_amount',
+        'passenger_count',
+        'subtotal_amount',
+        'group_discount_amount',
+        'total_amount',
         'currency',
         'snapshot',
         'expires_at',
@@ -83,6 +87,10 @@ class PriceQuote extends KoraModel
             'coefficient' => 'decimal:4',
             'base_amount' => 'integer',
             'final_amount' => 'integer',
+            'passenger_count' => 'integer',
+            'subtotal_amount' => 'integer',
+            'group_discount_amount' => 'integer',
+            'total_amount' => 'integer',
         ];
     }
 }

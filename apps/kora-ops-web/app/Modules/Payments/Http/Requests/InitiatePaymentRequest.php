@@ -20,7 +20,7 @@ class InitiatePaymentRequest extends FormRequest
     {
         return [
             'reservation_uuid' => ['required', 'uuid', 'exists:reservations,uuid'],
-            'method' => ['required', 'string', Rule::in(['mobile_money'])],
+            'method' => ['required', 'string', Rule::in(['mobile_money', 'company_credit'])],
             'provider' => ['required', 'string', 'max:64'],
             'idempotency_key' => ['required', 'string', 'max:255'],
             // The action performs these checks after ownership/hold validation so

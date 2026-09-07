@@ -34,7 +34,41 @@ endpoints:
     bodyParameters: []
     cleanBodyParameters: []
     fileParameters: []
-    responses: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "status": "ok",
+            "service": "kora-ops-web",
+            "scope": "bus",
+            "version": "v1",
+            "timestamp": "2026-09-02T10:00:00.000Z",
+            "checks": {
+              "database": {"status": "ok", "latency_ms": 3},
+              "cache": {"status": "ok", "latency_ms": 1}
+            }
+          }
+        headers: []
+        description: Healthy
+      -
+        custom: []
+        status: 503
+        content: |-
+          {
+            "status": "degraded",
+            "service": "kora-ops-web",
+            "scope": "bus",
+            "version": "v1",
+            "timestamp": "2026-09-02T10:00:00.000Z",
+            "checks": {
+              "database": {"status": "error", "latency_ms": null},
+              "cache": {"status": "ok", "latency_ms": 1}
+            }
+          }
+        headers: []
+        description: Degraded
     responseFields: []
     auth: []
     controller: null
@@ -69,7 +103,13 @@ endpoints:
     bodyParameters: []
     cleanBodyParameters: []
     fileParameters: []
-    responses: []
+    responses:
+      -
+        custom: []
+        status: 204
+        content: ''
+        headers: []
+        description: Pong
     responseFields: []
     auth: []
     controller: null

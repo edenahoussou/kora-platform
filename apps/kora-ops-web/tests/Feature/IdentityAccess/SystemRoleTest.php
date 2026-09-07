@@ -4,8 +4,8 @@ use App\Modules\IdentityAccess\Data\SystemRole;
 use App\Modules\IdentityAccess\Data\TerminalP501Status;
 
 describe('SystemRole enum', function (): void {
-    it('has all ten system roles', function (): void {
-        expect(SystemRole::cases())->toHaveCount(10)
+    it('has all eleven system roles', function (): void {
+        expect(SystemRole::cases())->toHaveCount(11)
             ->and(array_column(SystemRole::cases(), 'value'))->toBe([
                 'passenger',
                 'bus_driver',
@@ -15,17 +15,18 @@ describe('SystemRole enum', function (): void {
                 'agency_manager',
                 'operations_director',
                 'commercial_director',
+                'daf',
                 'general_management',
                 'system_admin',
             ]);
     });
 
     it('returns permissions for each role', function (): void {
-        expect(SystemRole::Passenger->permissions())->toBe(['bookings.create', 'bookings.view-own', 'tickets.view'])
+        expect(SystemRole::Passenger->permissions())->toBe(['bookings.create', 'bookings.view-own', 'bookings.cancel', 'tickets.view', 'company-accounts.view'])
             ->and(SystemRole::BusDriver->permissions())->toBe(['departures.view'])
             ->and(SystemRole::Conductor->permissions())->toContain('boarding.scan', 'seat-releases.create')
             ->and(SystemRole::CommercialDirector->permissions())->toContain('agencies.view', 'agencies.create', 'agencies.update', 'agencies.deactivate')
-            ->and(SystemRole::SystemAdmin->permissions())->toBe([]);
+            ->and(SystemRole::SystemAdmin->permissions())->toBe(SystemRole::allPermissions());
     });
 
     it('differentiates bus_driver from conductor', function (): void {
@@ -44,13 +45,13 @@ describe('SystemRole enum', function (): void {
             ->and($all)->toContain('bookings.create', 'boarding.scan', 'tickets.cancel', 'fiscalization.view')
             ->and($all)->toContain('network.view', 'network.create', 'network.update', 'network.deactivate')
             ->and($all)->toContain('cash.transfer.create', 'cash.transfer.approve', 'cash.media.view', 'cash.adjust')
-            ->and($all)->toHaveCount(43)
-            ->and(count(array_unique($all)))->toBe(43);
+            ->and($all)->toHaveCount(50)
+            ->and(count(array_unique($all)))->toBe(50);
     });
 
     it('separates internal, field and management roles', function (): void {
         expect(SystemRole::internalRoles())
-            ->toHaveCount(9)
+            ->toHaveCount(10)
             ->not->toContain(SystemRole::Passenger)
             ->and(SystemRole::fieldRoles())
             ->toBe([SystemRole::BusDriver, SystemRole::Mechanic, SystemRole::Conductor, SystemRole::AgencyAgent, SystemRole::AgencyManager])
@@ -58,6 +59,7 @@ describe('SystemRole enum', function (): void {
             ->toBe([
                 SystemRole::OperationsDirector,
                 SystemRole::CommercialDirector,
+                SystemRole::Daf,
                 SystemRole::GeneralManagement,
             ]);
     });
@@ -95,7 +97,7 @@ describe('SystemRole enum', function (): void {
         expect($options)->toHaveKey('passenger')
             ->and($options['passenger'])->toBe('Passager')
             ->and($options['bus_driver'])->toBe('Chauffeur de bus')
-            ->and($options)->toHaveCount(10);
+            ->and($options)->toHaveCount(11);
     });
 
     it('falls back to headline label when translation key is missing', function (): void {

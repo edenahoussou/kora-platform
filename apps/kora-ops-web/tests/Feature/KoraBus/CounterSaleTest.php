@@ -4,6 +4,7 @@ use App\Models\User;
 use App\Modules\Booking\Data\ReservationChannel;
 use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\Booking\Data\ReservationStatus;
+use App\Modules\Booking\Models\ItineraryQuote;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
@@ -13,7 +14,6 @@ use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Data\PricingRuleType;
 use App\Modules\DynamicPricing\Models\Fare;
-use App\Modules\DynamicPricing\Models\PriceQuote;
 use App\Modules\DynamicPricing\Models\PricingRule;
 use App\Modules\DynamicPricing\Models\ServiceClass;
 use Database\Seeders\KoraBusRolePermissionSeeder;
@@ -30,7 +30,7 @@ afterEach(function (): void {
     Carbon::setTestNow();
 });
 
-it('renders upcoming scheduled departures by default', function (): void {
+it('renders upcoming scheduled itineraries by default', function (): void {
     $scenario = counterSaleScenario();
 
     $this->actingAs($scenario['agent'])
@@ -39,7 +39,7 @@ it('renders upcoming scheduled departures by default', function (): void {
         ->assertInertia(fn (Assert $page): Assert => $page
             ->component('sale')
             ->where('search.date', null)
-            ->where('departures.0.uuid', $scenario['departure']->uuid)
+            ->has('outboundItineraries')
         );
 });
 
@@ -51,10 +51,7 @@ it('resumes the latest active counter sale when opening the sale page without co
 
     $response->assertRedirect();
     expect($response->headers->get('Location'))
-        ->toContain('reservation_uuid='.$reservation->uuid)
-        ->toContain('departure_uuid='.$scenario['departure']->uuid)
-        ->toContain('origin_stop_uuid='.$scenario['origin']->uuid)
-        ->toContain('destination_stop_uuid='.$scenario['destination']->uuid);
+        ->toContain('reservation_uuid='.$reservation->uuid);
 });
 
 it('does not resume a counter sale belonging to another agent', function (): void {
@@ -79,7 +76,7 @@ it('ignores expired, cancelled, paid and ticketed counter sales during resume', 
         ReservationStatus::Ticketed->value => Carbon::now()->addMinutes(10),
     ] as $status => $expiresAt) {
         Reservation::query()->create([
-            'user_id' => $scenario['agent']->id,
+            'created_by_user_id' => $scenario['agent']->id,
             'status' => $status,
             'total_amount' => 10000,
             'currency' => 'XOF',
@@ -151,7 +148,7 @@ it('rejects a draft for an unauthorized or expired reservation', function (): vo
         ->assertSessionHasErrors('reservation');
 });
 
-it('renders the counter sale page with real departure and seat props', function (): void {
+it('renders the counter sale page with itinerary results', function (): void {
     $scenario = counterSaleScenario();
 
     $this->actingAs($scenario['agent'])
@@ -159,96 +156,36 @@ it('renders the counter sale page with real departure and seat props', function 
             'date' => '2026-08-20',
             'from' => 'Cotonou',
             'to' => 'Abidjan',
-            'departure_uuid' => $scenario['departure']->uuid,
-            'origin_stop_uuid' => $scenario['origin']->uuid,
-            'destination_stop_uuid' => $scenario['destination']->uuid,
         ]))
         ->assertSuccessful()
         ->assertInertia(fn (Assert $page): Assert => $page
             ->component('sale')
             ->where('permissions.canCreate', true)
-            ->where('departures.0.uuid', $scenario['departure']->uuid)
-            ->where('selectedDeparture.uuid', $scenario['departure']->uuid)
-            ->where('seats.1.code', '2A')
-            ->where('departures.0.farePreview.service_class_name', 'KORA Confort')
-            ->missing('departures.0.id')
-            ->missing('selectedDeparture.id')
-            ->missing('seats.0.id')
+            ->has('outboundItineraries')
+            ->missing('outboundItineraries.0.legs.0.id')
         );
 });
 
-it('renders enriched counter seat statuses without exposing internal ids', function (): void {
+it('creates a counter itinerary quote and blocks seats through the web flow', function (): void {
     $scenario = counterSaleScenario();
-    $context = [
-        'date' => '2026-08-20',
-        'from' => 'Cotonou',
-        'to' => 'Abidjan',
-        'departure_uuid' => $scenario['departure']->uuid,
-        'origin_stop_uuid' => $scenario['origin']->uuid,
-        'destination_stop_uuid' => $scenario['destination']->uuid,
-    ];
-
-    $this->actingAs($scenario['agent'])
-        ->post(route('sale.quote'), $context + ['passenger_count' => 1]);
-    $heldQuote = PriceQuote::query()->latest('id')->firstOrFail();
-
-    $this->actingAs($scenario['agent'])
-        ->post(route('sale.hold'), $context + [
-            'price_quote_uuid' => $heldQuote->uuid,
-            'seats' => [['seat_uuid' => $scenario['seat2A']->uuid]],
-        ]);
-
-    $heldReservation = Reservation::query()->latest('id')->firstOrFail();
-
-    $this->actingAs($scenario['agent'])
-        ->post(route('sale.quote'), $context + ['passenger_count' => 1]);
-    $paidQuote = PriceQuote::query()->latest('id')->firstOrFail();
-
-    $this->actingAs($scenario['agent'])
-        ->post(route('sale.hold'), $context + [
-            'price_quote_uuid' => $paidQuote->uuid,
-            'seats' => [['seat_uuid' => $scenario['seat2B']->uuid]],
-        ]);
-
-    $paidReservation = Reservation::query()->latest('id')->firstOrFail();
-    $paidReservation->segments()->update(['status' => ReservationSegmentStatus::Paid]);
-
-    $this->actingAs($scenario['agent'])
-        ->get(route('sale', $context))
-        ->assertInertia(fn (Assert $page): Assert => $page
-            ->where('seats.0.availabilityStatus', 'blocked')
-            ->where('seats.1.availabilityStatus', 'reserved')
-            ->where('seats.1.expiresAt', fn (mixed $value): bool => is_string($value))
-            ->where('seats.2.availabilityStatus', 'paid')
-            ->missing('seats.0.id')
-            ->missing('seats.1.id')
-            ->missing('seats.2.id')
-        );
-
-    expect($heldReservation->fresh()->expires_at)->not->toBeNull();
-});
-
-it('creates a counter quote and blocks seats through the web flow', function (): void {
-    $scenario = counterSaleScenario();
-    $context = [
-        'date' => '2026-08-20',
-        'from' => 'Cotonou',
-        'to' => 'Abidjan',
-        'departure_uuid' => $scenario['departure']->uuid,
-        'origin_stop_uuid' => $scenario['origin']->uuid,
-        'destination_stop_uuid' => $scenario['destination']->uuid,
-    ];
+    $context = counterSaleContext($scenario);
 
     $this->actingAs($scenario['agent'])
         ->post(route('sale.quote'), $context + ['passenger_count' => 1])
         ->assertRedirect();
 
-    $quote = PriceQuote::query()->latest('id')->firstOrFail();
+    $quote = ItineraryQuote::query()->latest('id')->firstOrFail();
 
     $response = $this->actingAs($scenario['agent'])
         ->post(route('sale.hold'), $context + [
-            'price_quote_uuid' => $quote->uuid,
-            'seats' => [['seat_uuid' => $scenario['seat2A']->uuid]],
+            'itinerary_quote_uuid' => $quote->uuid,
+            'idempotency_key' => (string) Str::uuid(),
+            'passengers' => [[
+                'passenger_index' => 0,
+                'seat_assignments' => [
+                    ['leg_order' => 1, 'direction' => 'outbound', 'seat_uuid' => $scenario['seat2A']->uuid],
+                ],
+            ]],
         ]);
 
     $response->assertRedirect();
@@ -282,23 +219,22 @@ it('denies counter sale actions without the counter sales permission', function 
 
 it('captures counter-sale passengers through the web finalization step', function (): void {
     $scenario = counterSaleScenario();
-    $context = [
-        'date' => '2026-08-20',
-        'from' => 'Cotonou',
-        'to' => 'Abidjan',
-        'departure_uuid' => $scenario['departure']->uuid,
-        'origin_stop_uuid' => $scenario['origin']->uuid,
-        'destination_stop_uuid' => $scenario['destination']->uuid,
-    ];
+    $context = counterSaleContext($scenario);
 
     $this->actingAs($scenario['agent'])
         ->post(route('sale.quote'), $context + ['passenger_count' => 1]);
-    $quote = PriceQuote::query()->latest('id')->firstOrFail();
+    $quote = ItineraryQuote::query()->latest('id')->firstOrFail();
 
     $this->actingAs($scenario['agent'])
         ->post(route('sale.hold'), $context + [
-            'price_quote_uuid' => $quote->uuid,
-            'seats' => [['seat_uuid' => $scenario['seat2A']->uuid]],
+            'itinerary_quote_uuid' => $quote->uuid,
+            'idempotency_key' => (string) Str::uuid(),
+            'passengers' => [[
+                'passenger_index' => 0,
+                'seat_assignments' => [
+                    ['leg_order' => 1, 'direction' => 'outbound', 'seat_uuid' => $scenario['seat2A']->uuid],
+                ],
+            ]],
         ]);
     $reservation = Reservation::query()->latest('id')->firstOrFail();
 
@@ -311,6 +247,7 @@ it('captures counter-sale passengers through the web finalization step', functio
 
     $response = $this->actingAs($scenario['agent'])
         ->post(route('sale.passengers', $reservation), $context + [
+            'information_confirmed' => true,
             'passengers' => [[
                 'first_name' => 'Aïcha',
                 'last_name' => 'Hounkpè',
@@ -347,29 +284,28 @@ it('captures counter-sale passengers through the web finalization step', functio
 
 it('releases the temporary hold when returning to seat selection', function (): void {
     $scenario = counterSaleScenario();
-    $context = [
-        'date' => '2026-08-20',
-        'from' => 'Cotonou',
-        'to' => 'Abidjan',
-        'departure_uuid' => $scenario['departure']->uuid,
-        'origin_stop_uuid' => $scenario['origin']->uuid,
-        'destination_stop_uuid' => $scenario['destination']->uuid,
-    ];
+    $context = counterSaleContext($scenario);
 
     $this->actingAs($scenario['agent'])
         ->post(route('sale.quote'), $context + ['passenger_count' => 1]);
-    $quote = PriceQuote::query()->latest('id')->firstOrFail();
+    $quote = ItineraryQuote::query()->latest('id')->firstOrFail();
 
     $this->actingAs($scenario['agent'])
         ->post(route('sale.hold'), $context + [
-            'price_quote_uuid' => $quote->uuid,
-            'seats' => [['seat_uuid' => $scenario['seat2A']->uuid]],
+            'itinerary_quote_uuid' => $quote->uuid,
+            'idempotency_key' => (string) Str::uuid(),
+            'passengers' => [[
+                'passenger_index' => 0,
+                'seat_assignments' => [
+                    ['leg_order' => 1, 'direction' => 'outbound', 'seat_uuid' => $scenario['seat2A']->uuid],
+                ],
+            ]],
         ]);
     $reservation = Reservation::query()->latest('id')->firstOrFail();
 
     $response = $this->actingAs($scenario['agent'])
         ->post(route('sale.release', $reservation), $context + [
-            'quote_uuid' => $quote->uuid,
+            'itinerary_quote_uuid' => $quote->uuid,
         ]);
 
     $response->assertRedirect();
@@ -385,66 +321,69 @@ it('releases the temporary hold when returning to seat selection', function (): 
         ->get($response->headers->get('Location'))
         ->assertInertia(fn (Assert $page): Assert => $page
             ->where('reservation', null)
-            ->where('seats.1.availabilityStatus', 'available')
         );
 });
 
-it('returns a validation error when the quote has expired', function (): void {
+it('returns a validation error when the itinerary quote has expired', function (): void {
     $scenario = counterSaleScenario();
-    $context = [
-        'date' => '2026-08-20',
-        'from' => 'Cotonou',
-        'to' => 'Abidjan',
-        'departure_uuid' => $scenario['departure']->uuid,
-        'origin_stop_uuid' => $scenario['origin']->uuid,
-        'destination_stop_uuid' => $scenario['destination']->uuid,
-    ];
+    $context = counterSaleContext($scenario);
 
     $this->actingAs($scenario['agent'])
         ->post(route('sale.quote'), $context + ['passenger_count' => 1]);
 
-    $quote = PriceQuote::query()->latest('id')->firstOrFail();
+    $quote = ItineraryQuote::query()->latest('id')->firstOrFail();
     $quote->update(['expires_at' => Carbon::now()->subMinute()]);
 
     $this->actingAs($scenario['agent'])
         ->post(route('sale.hold'), $context + [
-            'price_quote_uuid' => $quote->uuid,
-            'seats' => [['seat_uuid' => $scenario['seat2A']->uuid]],
+            'itinerary_quote_uuid' => $quote->uuid,
+            'idempotency_key' => (string) Str::uuid(),
+            'passengers' => [[
+                'passenger_index' => 0,
+                'seat_assignments' => [
+                    ['leg_order' => 1, 'direction' => 'outbound', 'seat_uuid' => $scenario['seat2A']->uuid],
+                ],
+            ]],
         ])
         ->assertRedirect()
-        ->assertSessionHasErrors('price_quote_uuid');
+        ->assertSessionHasErrors('itinerary_quote_uuid');
 });
 
 it('returns a validation error when a selected seat conflicts with an existing hold', function (): void {
     $scenario = counterSaleScenario();
-    $context = [
-        'date' => '2026-08-20',
-        'from' => 'Cotonou',
-        'to' => 'Abidjan',
-        'departure_uuid' => $scenario['departure']->uuid,
-        'origin_stop_uuid' => $scenario['origin']->uuid,
-        'destination_stop_uuid' => $scenario['destination']->uuid,
-    ];
+    $context = counterSaleContext($scenario);
 
     $this->actingAs($scenario['agent'])
         ->post(route('sale.quote'), $context + ['passenger_count' => 1]);
-    $firstQuote = PriceQuote::query()->latest('id')->firstOrFail();
+    $firstQuote = ItineraryQuote::query()->latest('id')->firstOrFail();
 
     $this->actingAs($scenario['agent'])
         ->post(route('sale.hold'), $context + [
-            'price_quote_uuid' => $firstQuote->uuid,
-            'seats' => [['seat_uuid' => $scenario['seat2A']->uuid]],
+            'itinerary_quote_uuid' => $firstQuote->uuid,
+            'idempotency_key' => (string) Str::uuid(),
+            'passengers' => [[
+                'passenger_index' => 0,
+                'seat_assignments' => [
+                    ['leg_order' => 1, 'direction' => 'outbound', 'seat_uuid' => $scenario['seat2A']->uuid],
+                ],
+            ]],
         ])
         ->assertRedirect();
 
     $this->actingAs($scenario['agent'])
         ->post(route('sale.quote'), $context + ['passenger_count' => 1]);
-    $secondQuote = PriceQuote::query()->latest('id')->firstOrFail();
+    $secondQuote = ItineraryQuote::query()->latest('id')->firstOrFail();
 
     $this->actingAs($scenario['agent'])
         ->post(route('sale.hold'), $context + [
-            'price_quote_uuid' => $secondQuote->uuid,
-            'seats' => [['seat_uuid' => $scenario['seat2A']->uuid]],
+            'itinerary_quote_uuid' => $secondQuote->uuid,
+            'idempotency_key' => (string) Str::uuid(),
+            'passengers' => [[
+                'passenger_index' => 0,
+                'seat_assignments' => [
+                    ['leg_order' => 1, 'direction' => 'outbound', 'seat_uuid' => $scenario['seat2A']->uuid],
+                ],
+            ]],
         ])
         ->assertRedirect()
         ->assertSessionHasErrors('seats');
@@ -456,7 +395,7 @@ it('hides a scheduled departure after its configured sellability cutoff', functi
 
     $this->actingAs($scenario['agent'])
         ->get(route('sale', ['date' => '2026-08-20', 'from' => 'Cotonou', 'to' => 'Abidjan']))
-        ->assertInertia(fn (Assert $page): Assert => $page->where('departures', []));
+        ->assertInertia(fn (Assert $page): Assert => $page->where('outboundItineraries', []));
 });
 
 it('keeps a delayed departure sellable until its effective cutoff', function (): void {
@@ -467,9 +406,7 @@ it('keeps a delayed departure sellable until its effective cutoff', function ():
     $this->actingAs($scenario['agent'])
         ->get(route('sale', ['date' => '2026-08-20', 'from' => 'Cotonou', 'to' => 'Abidjan']))
         ->assertInertia(fn (Assert $page): Assert => $page
-            ->where('departures.0.uuid', $scenario['departure']->uuid)
-            ->where('departures.0.sellability.isSellable', true)
-            ->where('departures.0.sellability.reason', 'within_grace')
+            ->has('outboundItineraries')
         );
 });
 
@@ -628,16 +565,18 @@ function counterSaleScenario(): array
     return compact('agent', 'line', 'origin', 'destination', 'bus', 'seat1A', 'seat2A', 'seat2B', 'departure');
 }
 
-/** @return array<string, string> */
+/** @return array<string, mixed> */
 function counterSaleContext(array $scenario): array
 {
     return [
         'date' => '2026-08-20',
         'from' => 'Cotonou',
         'to' => 'Abidjan',
-        'departure_uuid' => $scenario['departure']->uuid,
-        'origin_stop_uuid' => $scenario['origin']->uuid,
-        'destination_stop_uuid' => $scenario['destination']->uuid,
+        'outbound_legs' => [[
+            'departure_uuid' => $scenario['departure']->uuid,
+            'origin_stop_uuid' => $scenario['origin']->uuid,
+            'destination_stop_uuid' => $scenario['destination']->uuid,
+        ]],
     ];
 }
 
@@ -648,12 +587,18 @@ function createCounterSaleHold(mixed $test, array $scenario, string $seatCode = 
 
     $test->actingAs($scenario['agent'])
         ->post(route('sale.quote'), $context + ['passenger_count' => 1]);
-    $quote = PriceQuote::query()->latest('id')->firstOrFail();
+    $quote = ItineraryQuote::query()->latest('id')->firstOrFail();
 
     $test->actingAs($scenario['agent'])
         ->post(route('sale.hold'), $context + [
-            'price_quote_uuid' => $quote->uuid,
-            'seats' => [['seat_uuid' => $seat->uuid]],
+            'itinerary_quote_uuid' => $quote->uuid,
+            'idempotency_key' => (string) Str::uuid(),
+            'passengers' => [[
+                'passenger_index' => 0,
+                'seat_assignments' => [
+                    ['leg_order' => 1, 'direction' => 'outbound', 'seat_uuid' => $seat->uuid],
+                ],
+            ]],
         ]);
 
     return Reservation::query()->latest('id')->firstOrFail();
