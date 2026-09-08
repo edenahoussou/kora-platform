@@ -66,8 +66,17 @@ class HomeState extends Equatable {
 
   /// La recherche n'est lançable que si le trajet est complet et cohérent
   /// (on ne cherche pas un Cotonou → Cotonou).
-  bool get canSearch =>
-      origin != null && destination != null && origin != destination;
+  ///
+  /// Un aller-retour exige en plus sa date de retour : le serveur la
+  /// réclame, et en deviner une ferait chercher un retour que personne n'a
+  /// demandé.
+  bool get canSearch {
+    if (origin == null || destination == null || origin == destination) {
+      return false;
+    }
+
+    return tripType == TripType.oneway || returnDate != null;
+  }
 
   /// Les critères prêts à être passés à l'écran de résultats, ou `null`
   /// tant que le formulaire est incomplet.
@@ -78,6 +87,9 @@ class HomeState extends Equatable {
       destination: destination!,
       date: date ?? DateTime.now(),
       passengers: passengers,
+      // Tue sur un aller simple : c'est son absence qui distingue les deux
+      // formes de recherche jusqu'au data source.
+      returnDate: tripType == TripType.roundtrip ? returnDate : null,
     );
   }
 
@@ -94,6 +106,7 @@ class HomeState extends Equatable {
     UpcomingTrip? nextTrip,
     DateTime? today,
     String? errorMessage,
+    bool clearReturnDate = false,
   }) {
     return HomeState(
       status: status ?? this.status,
@@ -104,7 +117,10 @@ class HomeState extends Equatable {
       date: date ?? this.date,
       passengers: passengers ?? this.passengers,
       tripType: tripType ?? this.tripType,
-      returnDate: returnDate ?? this.returnDate,
+      // `??` ne sait pas rendre une valeur à `null` : repasser en aller
+      // simple doit pourtant oublier le retour, sinon il ressurgirait à la
+      // bascule suivante.
+      returnDate: clearReturnDate ? null : (returnDate ?? this.returnDate),
       nextTrip: nextTrip ?? this.nextTrip,
       today: today ?? this.today,
       errorMessage: errorMessage ?? this.errorMessage,

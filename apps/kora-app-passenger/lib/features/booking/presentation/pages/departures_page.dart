@@ -35,6 +35,7 @@ class DeparturesPage extends StatelessWidget {
     this.destinationId,
     this.date,
     this.passengers,
+    this.returnDate,
   });
 
   /// Paramètres bruts de l'URL — voir `AppRouter.departuresUrlFor`.
@@ -42,6 +43,9 @@ class DeparturesPage extends StatelessWidget {
   final String? destinationId;
   final String? date;
   final String? passengers;
+
+  /// Absent sur un aller simple.
+  final String? returnDate;
 
   @override
   Widget build(BuildContext context) {
@@ -53,6 +57,7 @@ class DeparturesPage extends StatelessWidget {
             destinationId: destinationId,
             date: date,
             passengers: passengers,
+            returnDate: returnDate,
           ),
         ),
       child: const _DeparturesView(),

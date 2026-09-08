@@ -10,6 +10,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_app_passenger/core/constants/api_constants.dart';
+import 'package:kora_app_passenger/core/error/exceptions.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/reservation_remote_data_source.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/city.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
@@ -116,6 +117,107 @@ void main() {
     });
   });
 
+  group('aller-retour', () {
+    final returnDeparture = Departure(
+      id: '9a1b2c3d-4e5f-6071-8293-a4b5c6d7e8f9',
+      line: const Line(
+        id: 'l-1',
+        code: 'L1',
+        origin: City(id: 'Abidjan', name: 'Abidjan', code: 'ABI'),
+        destination: City(id: 'Cotonou', name: 'Cotonou', code: 'COT'),
+        duration: Duration(minutes: 1110),
+        distanceKm: 0,
+      ),
+      departsAt: DateTime(2026, 9, 12, 7),
+      comfort: BusComfort.confort,
+      price: const Price(31600),
+      seatsTotal: 55,
+      seatsAvailable: 30,
+      originStopId: '6b0c1666-6eaa-4b67-a216-df1667ae6be1',
+      destinationStopId: 'd27a305c-4a4b-405c-9ba6-0371e69024dd',
+    );
+
+    test('envoie les deux sens dans un seul devis', () async {
+      // La convention du guichet : aller puis retour dans un seul tableau,
+      // `leg_order` suivant cette liste, `direction` les distinguant.
+      // C'est elle qui permet un blocage et un paiement uniques.
+      await dataSource.groupQuote(
+        departure: departure,
+        passengers: 2,
+        returnDeparture: returnDeparture,
+      );
+
+      final sent = verify(
+        () => dio.post<dynamic>(
+          ApiConstants.itineraryQuotes,
+          data: captureAny(named: 'data'),
+        ),
+      ).captured.single;
+
+      expect(sent, {
+        'passenger_count': 2,
+        'legs': [
+          {
+            'leg_order': 1,
+            'departure_uuid': '56f674c2-7795-4427-9839-ff5de7345ade',
+            'origin_stop_uuid': 'd27a305c-4a4b-405c-9ba6-0371e69024dd',
+            'destination_stop_uuid': '6b0c1666-6eaa-4b67-a216-df1667ae6be1',
+            'direction': 'outbound',
+          },
+          {
+            'leg_order': 2,
+            'departure_uuid': '9a1b2c3d-4e5f-6071-8293-a4b5c6d7e8f9',
+            'origin_stop_uuid': '6b0c1666-6eaa-4b67-a216-df1667ae6be1',
+            'destination_stop_uuid': 'd27a305c-4a4b-405c-9ba6-0371e69024dd',
+            'direction': 'inbound',
+          },
+        ],
+      });
+    });
+
+    test('le retour repart d’où l’aller arrive', () async {
+      // Le serveur refuse un retour qui ne revient pas au point de départ.
+      // Inverser les deux arrêts ici casserait le devis entier.
+      await dataSource.groupQuote(
+        departure: departure,
+        passengers: 1,
+        returnDeparture: returnDeparture,
+      );
+
+      final sent =
+          verify(
+                () => dio.post<dynamic>(any(), data: captureAny(named: 'data')),
+              ).captured.single
+              as Map<String, dynamic>;
+
+      final legs = (sent['legs'] as List).cast<Map<String, dynamic>>();
+      expect(
+        legs.first['destination_stop_uuid'],
+        legs.last['origin_stop_uuid'],
+      );
+      expect(
+        legs.first['origin_stop_uuid'],
+        legs.last['destination_stop_uuid'],
+      );
+    });
+
+    test('un aller simple ne déclare aucune direction', () async {
+      // Le serveur la tient pour facultative et retombe sur `outbound` :
+      // la taire garde à l'aller simple la requête vérifiée en ligne.
+      await dataSource.groupQuote(departure: departure, passengers: 1);
+
+      final sent =
+          verify(
+                () => dio.post<dynamic>(any(), data: captureAny(named: 'data')),
+              ).captured.single
+              as Map<String, dynamic>;
+
+      final legs = (sent['legs'] as List).cast<Map<String, dynamic>>();
+      expect(legs, hasLength(1));
+      expect(legs.single.containsKey('direction'), isFalse);
+    });
+  });
+
   group('holdGroup', () {
     /// La réservation retenue, telle que la rend `ReservationResource`.
     Map<String, dynamic> holdResponse() => {
@@ -198,6 +300,71 @@ void main() {
           ],
         },
       ]);
+    });
+
+    test('chaque voyageur garde un siège dans les deux sens', () async {
+      // Les deux trajets partent dans le même blocage : c'est ce qui rend
+      // le paiement unique, et ce qui évite de retenir l'aller sans le
+      // retour.
+      const outboundSeats = [
+        Seat(id: 'st-1', label: '4A', row: 4, column: 1),
+        Seat(id: 'st-2', label: '4B', row: 4, column: 2),
+      ];
+      const inboundSeats = [
+        Seat(id: 'st-9', label: '2C', row: 2, column: 3),
+        Seat(id: 'st-10', label: '2D', row: 2, column: 4),
+      ];
+
+      await dataSource.holdGroup(
+        quote: quote,
+        seats: outboundSeats,
+        returnSeats: inboundSeats,
+        payer: const GroupPayer.personal(),
+        idempotencyKey: 'kora-1',
+      );
+
+      final sent =
+          verify(
+                () => dio.post<dynamic>(any(), data: captureAny(named: 'data')),
+              ).captured.single
+              as Map<String, dynamic>;
+
+      expect(sent['passengers'], [
+        {
+          'passenger_index': 0,
+          'seat_assignments': [
+            {'leg_order': 1, 'seat_uuid': 'st-1'},
+            {'leg_order': 2, 'seat_uuid': 'st-9'},
+          ],
+        },
+        {
+          'passenger_index': 1,
+          'seat_assignments': [
+            {'leg_order': 1, 'seat_uuid': 'st-2'},
+            {'leg_order': 2, 'seat_uuid': 'st-10'},
+          ],
+        },
+      ]);
+    });
+
+    test('un retour incomplet est refusé avant l’envoi', () async {
+      // Le serveur rejetterait le blocage entier ; échouer ici nomme la
+      // cause au lieu de laisser remonter une erreur de validation.
+      await expectLater(
+        dataSource.holdGroup(
+          quote: quote,
+          seats: const [
+            Seat(id: 'st-1', label: '4A', row: 4, column: 1),
+            Seat(id: 'st-2', label: '4B', row: 4, column: 2),
+          ],
+          returnSeats: const [Seat(id: 'st-9', label: '2C', row: 2, column: 3)],
+          payer: const GroupPayer.personal(),
+          idempotencyKey: 'kora-1',
+        ),
+        throwsA(isA<ServerException>()),
+      );
+
+      verifyNever(() => dio.post<dynamic>(any(), data: any(named: 'data')));
     });
 
     test('un compte entreprise part comme payeur', () async {

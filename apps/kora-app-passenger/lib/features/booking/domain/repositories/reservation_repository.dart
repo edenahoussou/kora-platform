@@ -41,11 +41,16 @@ abstract class ReservationRepository {
   /// Un siège pris entre l'affichage du plan et la confirmation donne un
   /// [SeatUnavailableFailure], porteur du siège fautif : c'est lui qu'il
   /// faut montrer, pas un message générique.
+  ///
+  /// Sur un aller-retour, [returnSeats] porte le siège de retour de chaque
+  /// voyageur, dans le même ordre : les deux trajets tiennent dans un seul
+  /// blocage, donc un seul paiement.
   Future<Either<Failure, SeatHold>> holdGroup({
     required GroupQuote quote,
     required List<Seat> seats,
     required GroupPayer payer,
     required String idempotencyKey,
+    List<Seat>? returnSeats,
   });
 
   /// Fige le prix du trajet pour [passengers] voyageurs, remise comprise.
@@ -55,9 +60,13 @@ abstract class ReservationRepository {
   /// `bus/quotes`, et `bus/itinerary-quotes` sert désormais le voyageur
   /// seul comme le groupe, un voyageur seul étant un groupe d'un que le
   /// barème laisse au plein tarif.
+  ///
+  /// Un aller-retour tient dans le même devis : [returnDeparture] en est
+  /// le second tronçon, et son total couvre les deux trajets.
   Future<Either<Failure, GroupQuote>> groupQuote({
     required Departure departure,
     required int passengers,
+    Departure? returnDeparture,
   });
 
   /// Enregistre les identités des voyageurs sur la réservation retenue.

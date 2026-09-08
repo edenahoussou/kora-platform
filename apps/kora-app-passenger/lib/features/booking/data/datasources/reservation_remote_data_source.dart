@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../../../../core/constants/api_constants.dart';
+import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/api_json.dart';
 import '../../domain/entities/company_account.dart';
 import '../../domain/entities/departure.dart';
@@ -31,23 +32,31 @@ class ReservationRemoteDataSource {
   /// Seul devis qui reste : MEZ-63 a retiré `POST bus/quotes`, et
   /// `itinerary-quotes` le remplace pour tout le monde — un voyageur seul
   /// est un groupe d'un, que le barème laissera simplement au plein tarif.
-  /// Un seul tronçon ici ; les correspondances viendront avec le parcours
-  /// multi-lignes, que ce point d'entrée sait déjà traiter.
+  ///
+  /// Un aller-retour tient dans **le même devis** : aller puis retour dans
+  /// un seul tableau `legs`, `leg_order` suivant cette liste concaténée et
+  /// `direction` distinguant les deux sens. C'est la convention du guichet
+  /// (`CounterSaleController::buildItineraryLegs`), et c'est elle qui
+  /// permet un seul blocage et un seul paiement pour les deux trajets.
   Future<GroupQuote> groupQuote({
     required Departure departure,
     required int passengers,
+    Departure? returnDeparture,
   }) async {
     final response = await _dio.post<dynamic>(
       ApiConstants.itineraryQuotes,
       data: {
         'passenger_count': passengers,
         'legs': [
-          {
-            'leg_order': 1,
-            'departure_uuid': departure.id,
-            'origin_stop_uuid': departure.originStopId,
-            'destination_stop_uuid': departure.destinationStopId,
-          },
+          // `direction` reste tu sur un aller simple : le serveur retombe
+          // sur `outbound`, et la requête garde la forme éprouvée en ligne.
+          _legJson(
+            departure,
+            order: 1,
+            direction: returnDeparture == null ? null : 'outbound',
+          ),
+          if (returnDeparture != null)
+            _legJson(returnDeparture, order: 2, direction: 'inbound'),
         ],
       },
     );
@@ -95,13 +104,24 @@ class ReservationRemoteDataSource {
   ///
   /// L'ordre des sièges fait foi : le voyageur d'indice `i` occupe le
   /// i-ième siège choisi, et c'est ce même ordre que suivra le formulaire
-  /// des identités.
+  /// des identités. Sur un aller-retour il occupe aussi le i-ième siège de
+  /// [returnSeats] — les deux trajets partent dans le même blocage, chacun
+  /// sous son `leg_order`.
   Future<SeatHold> holdGroup({
     required GroupQuote quote,
     required List<Seat> seats,
     required GroupPayer payer,
     required String idempotencyKey,
+    List<Seat>? returnSeats,
   }) async {
+    // Un siège de retour par voyageur, sinon le serveur refuserait le
+    // blocage entier — autant le dire ici, où la cause est lisible.
+    if (returnSeats != null && returnSeats.length != seats.length) {
+      throw const ServerException(
+        'Chaque voyageur doit avoir un siège au retour.',
+      );
+    }
+
     final response = await _dio.post<dynamic>(
       ApiConstants.itineraryHolds,
       data: {
@@ -115,6 +135,8 @@ class ReservationRemoteDataSource {
               'passenger_index': index,
               'seat_assignments': [
                 {'leg_order': 1, 'seat_uuid': seats[index].id},
+                if (returnSeats != null)
+                  {'leg_order': 2, 'seat_uuid': returnSeats[index].id},
               ],
             },
         ],
@@ -159,6 +181,25 @@ class ReservationRemoteDataSource {
 
   Future<void> release(String reservationId) =>
       _dio.delete<dynamic>(ApiConstants.booking(reservationId));
+}
+
+/// Un tronçon de `POST bus/itinerary-quotes`.
+///
+/// `direction` n'est envoyé que sur un aller-retour : le serveur le
+/// considère facultatif et retombe sur `outbound`, et le taire garde à
+/// l'aller simple la requête vérifiée sur la staging.
+Map<String, dynamic> _legJson(
+  Departure departure, {
+  required int order,
+  String? direction,
+}) {
+  return <String, dynamic>{
+    'leg_order': order,
+    'departure_uuid': departure.id,
+    'origin_stop_uuid': departure.originStopId,
+    'destination_stop_uuid': departure.destinationStopId,
+    'direction': ?direction,
+  };
 }
 
 /// Un voyageur, tel que l'attend `POST bookings/{uuid}/passengers`.

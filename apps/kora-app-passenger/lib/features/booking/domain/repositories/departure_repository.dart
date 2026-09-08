@@ -2,7 +2,7 @@ import 'package:dartz/dartz.dart';
 
 import '../../../../core/error/failures.dart';
 import '../entities/city.dart';
-import '../entities/departure.dart';
+import '../entities/departure_search.dart';
 import '../entities/search_criteria.dart';
 
 /// Couche DOMAIN : la recherche de départs, isolée du reste du parcours.
@@ -23,8 +23,8 @@ abstract class DepartureRepository {
   /// [City] choisie sur l'accueil porte. Réduire une ville à son nom la
   /// dépouillait de son arrêt, et aucune requête n'aurait pu être bâtie.
   ///
-  /// Une liste vide est un **succès** — la liaison n'est pas desservie ce
-  /// jour-là — et non un [Failure] : l'écran a un état « aucun départ »
+  /// Un résultat vide est un **succès** — la liaison n'est pas desservie
+  /// ce jour-là — et non un [Failure] : l'écran a un état « aucun départ »
   /// dédié, distinct de l'état d'erreur.
-  Future<Either<Failure, List<Departure>>> search(SearchCriteria criteria);
+  Future<Either<Failure, DepartureSearch>> search(SearchCriteria criteria);
 }

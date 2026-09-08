@@ -5,6 +5,7 @@ import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/api_json.dart';
 import '../../domain/entities/city.dart';
 import '../../domain/entities/departure.dart';
+import '../../domain/entities/departure_search.dart';
 import '../../domain/entities/search_criteria.dart';
 import '../../domain/entities/seat.dart';
 import '../../domain/entities/ticket.dart';
@@ -69,8 +70,12 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
   /// travaille sur des **arrêts physiques** et non sur des noms de villes,
   /// et elle rend des itinéraires — dont les trajets à correspondance, que
   /// [ItineraryModel] écarte tant que l'app ne sait pas les afficher.
+  ///
+  /// Un aller-retour change la forme de la réponse : le serveur rend
+  /// `{outbound, inbound}` là où un aller simple rend `{data}`. Deux
+  /// enveloppes, un seul point d'entrée.
   @override
-  Future<List<Departure>> searchDepartures(SearchCriteria criteria) async {
+  Future<DepartureSearch> searchDepartures(SearchCriteria criteria) async {
     final from = criteria.origin.physicalStopId;
     final to = criteria.destination.physicalStopId;
 
@@ -81,6 +86,8 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
       throw const ServerException('Ville sans arrêt desservi.');
     }
 
+    final returnDate = criteria.returnDate;
+
     final response = await _dio.get<dynamic>(
       ApiConstants.busItineraries,
       queryParameters: {
@@ -88,16 +95,35 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
         'to_physical_stop_uuid': to,
         'date': _apiDate(criteria.date),
         'passenger_count': criteria.passengers,
+        if (returnDate != null) ...{
+          'trip_type': 'round_trip',
+          'return_date': _apiDate(returnDate),
+        },
       },
     );
 
-    return [
-      for (final json in ApiJson.list(response.data))
-        // Écarté plutôt qu'inventé : un itinéraire sans date lisible, ou
-        // qui impose une correspondance.
-        ?ItineraryModel.fromJson(json).toEntity(),
-    ];
+    final body = response.data;
+
+    if (returnDate == null) {
+      return DepartureSearch.oneWay(_departuresIn(body));
+    }
+
+    // Les deux sens ne sont pas sous `data` : le serveur les nomme.
+    final map = ApiJson.map(body);
+    return DepartureSearch(
+      outbound: _departuresIn(map['outbound']),
+      inbound: _departuresIn(map['inbound']),
+    );
   }
+
+  /// Les départs lisibles d'une liste d'itinéraires.
+  ///
+  /// Écarte plutôt qu'invente : un itinéraire sans date exploitable, ou
+  /// qui impose une correspondance, ne donne pas de départ.
+  List<Departure> _departuresIn(Object? json) => [
+    for (final itinerary in ApiJson.list(json))
+      ?ItineraryModel.fromJson(itinerary).toEntity(),
+  ];
 
   /// Aucun historique de recherche n'est stocké pour l'instant : la liste
   /// vide fait simplement disparaître la section « Recherches récentes »

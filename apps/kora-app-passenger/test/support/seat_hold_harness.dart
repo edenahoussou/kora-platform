@@ -70,8 +70,13 @@ class StubReservationRepository implements ReservationRepository {
   Future<Either<Failure, GroupQuote>> groupQuote({
     required Departure departure,
     required int passengers,
+    Departure? returnDeparture,
   }) async {
-    calls.add('groupQuote:$passengers');
+    calls.add(
+      returnDeparture == null
+          ? 'groupQuote:$passengers'
+          : 'groupQuote:$passengers:aller-retour',
+    );
     final failure = this.failure;
     if (failure != null) return Left(failure);
 
@@ -137,15 +142,25 @@ class StubReservationRepository implements ReservationRepository {
   /// compte entreprise.
   GroupPayer? groupPayer;
 
+  /// Les sièges de retour reçus par [holdGroup], `null` sur un aller
+  /// simple.
+  List<Seat>? groupReturnSeats;
+
   @override
   Future<Either<Failure, SeatHold>> holdGroup({
     required GroupQuote quote,
     required List<Seat> seats,
     required GroupPayer payer,
     required String idempotencyKey,
+    List<Seat>? returnSeats,
   }) async {
-    calls.add('holdGroup:${seats.length}');
+    calls.add(
+      returnSeats == null
+          ? 'holdGroup:${seats.length}'
+          : 'holdGroup:${seats.length}+${returnSeats.length}',
+    );
     groupPayer = payer;
+    groupReturnSeats = returnSeats;
 
     final failure = this.failure;
     if (failure != null) return Left(failure);

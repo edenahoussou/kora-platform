@@ -5,6 +5,7 @@ import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../booking/domain/entities/city.dart';
 import '../../../booking/domain/entities/group_booking_limits.dart';
+import '../bloc/home_bloc.dart';
 
 /// Carte de recherche de l'accueil — équivalent `.floating-search` de la
 /// maquette : bandeau bleu « Où souhaitez-vous voyager ? », champs départ /
@@ -29,6 +30,10 @@ class HomeSearchCard extends StatelessWidget {
     required this.onDateTap,
     required this.onPassengersTap,
     required this.onSearch,
+    this.tripType = TripType.oneway,
+    this.returnDate,
+    this.onTripTypeChanged,
+    this.onReturnDateTap,
   });
 
   final City? origin;
@@ -36,11 +41,23 @@ class HomeSearchCard extends StatelessWidget {
   final DateTime? date;
   final int passengers;
 
+  final TripType tripType;
+
+  /// Date du retour, seulement en aller-retour. `null` tant qu'elle n'a
+  /// pas été choisie.
+  final DateTime? returnDate;
+
   final VoidCallback onOriginTap;
   final VoidCallback onDestinationTap;
   final VoidCallback onSwapTap;
   final VoidCallback onDateTap;
   final VoidCallback onPassengersTap;
+
+  /// `null` retire la bascule : l’écran de résultats réaffiche cette carte
+  /// sans laisser rechanger le type de voyage.
+  final ValueChanged<TripType>? onTripTypeChanged;
+
+  final VoidCallback? onReturnDateTap;
 
   /// `null` désactive le bouton — trajet incomplet ou identique.
   final VoidCallback? onSearch;
@@ -50,6 +67,10 @@ class HomeSearchCard extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        if (onTripTypeChanged != null) ...[
+          _TripTypeSwitch(value: tripType, onChanged: onTripTypeChanged!),
+          const SizedBox(height: 12),
+        ],
         const _SearchCardLabel(),
         // Le bandeau bleu déborde de 12px sous la carte blanche
         // (`.search-card-label { margin-bottom: -12px }`) : on remonte donc
@@ -91,9 +112,16 @@ class HomeSearchCard extends StatelessWidget {
                   ),
                 ],
               ),
+              if (tripType == TripType.roundtrip && onReturnDateTap != null)
+                _ReturnDateCard(date: returnDate, onTap: onReturnDateTap!),
               const SizedBox(height: 10),
               KoraButton(
-                label: context.l10n.homeSearchSubmit,
+                // Le bouton nomme ce qu'il rapporte : un aller-retour rend
+                // deux listes, et l’écran suivant ne montre que la
+                // première.
+                label: tripType == TripType.roundtrip
+                    ? context.l10n.homeSearchSubmitRoundTrip
+                    : context.l10n.homeSearchSubmit,
                 onPressed: onSearch,
               ),
             ],
@@ -474,6 +502,190 @@ class _MetaTile extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// `.trip-type-switch` : deux segments, celui qui est actif se détache en
+/// blanc sur le fond translucide.
+///
+/// Posé au-dessus du trajet, comme dans la maquette : le type de voyage
+/// décide de ce que le formulaire demande ensuite (une date, ou deux).
+class _TripTypeSwitch extends StatelessWidget {
+  const _TripTypeSwitch({required this.value, required this.onChanged});
+
+  final TripType value;
+  final ValueChanged<TripType> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 11),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.kora.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(13),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _TripTypeSegment(
+              label: l10n.homeTripTypeOneWay,
+              isActive: value == TripType.oneway,
+              onTap: () => onChanged(TripType.oneway),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: _TripTypeSegment(
+              label: l10n.homeTripTypeRoundTrip,
+              isActive: value == TripType.roundtrip,
+              onTap: () => onChanged(TripType.roundtrip),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TripTypeSegment extends StatelessWidget {
+  const _TripTypeSegment({
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      selected: isActive,
+      button: true,
+      child: Material(
+        color: isActive ? AppColors.white : Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+        // L'ombre ne se pose que sous le segment actif : c'est elle qui le
+        // fait flotter au-dessus du rail.
+        elevation: isActive ? 3 : 0,
+        shadowColor: _shadowColor(context, 0.08),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 34),
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: isActive ? AppColors.kora : AppColors.mutedLight,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// `.return-date-card` : la date du retour, sous la ligne date /
+/// passagers.
+///
+/// N'apparaît qu'en aller-retour. Tant qu'elle n'est pas choisie, elle
+/// invite à la remplir plutôt que d'en deviner une : partir sur une date
+/// devinée ferait chercher un retour que personne n'a demandé.
+class _ReturnDateCard extends StatelessWidget {
+  const _ReturnDateCard({required this.date, required this.onTap});
+
+  final DateTime? date;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final isEmpty = date == null;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8, left: 11, right: 11),
+      child: Material(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(15),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(15),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 55),
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.lineLight),
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Row(
+              children: [
+                const SizedBox(
+                  width: 32,
+                  child: Icon(
+                    Icons.event_repeat_rounded,
+                    size: 20,
+                    color: AppColors.kora,
+                  ),
+                ),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        l10n.homeSearchReturnDate.toUpperCase(),
+                        style: const TextStyle(
+                          color: AppColors.mutedLight,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.64,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        isEmpty
+                            ? l10n.homeSearchReturnDateEmpty
+                            : KoraDateFormats.dayMonthYearIn(
+                                date!,
+                                Localizations.localeOf(context).languageCode,
+                              ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: isEmpty
+                              ? AppColors.mutedLight
+                              : AppColors.kora,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  size: 18,
+                  color: AppColors.mutedLight,
+                ),
+              ],
+            ),
           ),
         ),
       ),

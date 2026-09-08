@@ -37,6 +37,7 @@ class ReservationRepositoryImpl
     required List<Seat> seats,
     required GroupPayer payer,
     required String idempotencyKey,
+    List<Seat>? returnSeats,
   }) async {
     SeatUnavailableFailure? conflict;
 
@@ -47,6 +48,7 @@ class ReservationRepositoryImpl
           seats: seats,
           payer: payer,
           idempotencyKey: idempotencyKey,
+          returnSeats: returnSeats,
         );
       } on DioException catch (error) {
         // Le 409 est relevé ici, avant que le mapper commun ne le réduise
@@ -66,10 +68,14 @@ class ReservationRepositoryImpl
   Future<Either<Failure, GroupQuote>> groupQuote({
     required Departure departure,
     required int passengers,
+    Departure? returnDeparture,
   }) {
     return attempt(
-      () =>
-          _dataSource.groupQuote(departure: departure, passengers: passengers),
+      () => _dataSource.groupQuote(
+        departure: departure,
+        passengers: passengers,
+        returnDeparture: returnDeparture,
+      ),
     );
   }
 

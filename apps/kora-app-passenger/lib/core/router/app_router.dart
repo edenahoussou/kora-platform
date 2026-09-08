@@ -184,6 +184,11 @@ class AppRouter {
   /// que [originPath] : écrans pleins, ouverts avec `push`, qui renvoient
   /// respectivement une `DateTime` et un `int`.
   static const String datePath = '/date';
+
+  /// Le calendrier du retour. Même écran que [datePath], titre et plancher
+  /// différents : une route à part garde les deux étapes distinctes dans
+  /// la pile, donc chacune revient sur la bonne.
+  static const String returnDatePath = '/return-date';
   static const String passengersPath = '/passengers';
 
   /// `group-booking` de la maquette (BUS-15) : le devis du groupe et le
@@ -203,6 +208,8 @@ class AppRouter {
   /// c'est l'écran de destination qui les résout, comme il devra le faire
   /// avec l'API au Sprint 2.
   static String departuresUrlFor(SearchCriteria criteria) {
+    final returnDate = criteria.returnDate;
+
     return Uri(
       path: departuresPath,
       queryParameters: <String, String>{
@@ -212,6 +219,10 @@ class AppRouter {
         // seule la journée de départ compte.
         'date': _formatDay(criteria.date),
         'passengers': '${criteria.passengers}',
+        // Absente sur un aller simple : c'est elle qui fait de la recherche
+        // un aller-retour, jusqu'au data source. L'oublier ici perdrait le
+        // retour entre l'accueil et les résultats.
+        if (returnDate != null) 'return_date': _formatDay(returnDate),
       },
     ).toString();
   }
@@ -496,6 +507,21 @@ class AppRouter {
           },
         ),
         GoRoute(
+          path: returnDatePath,
+          builder: (context, state) {
+            final args = state.extra as DatePickerArgs?;
+            // Le plancher est le jour du départ, pas aujourd'hui : on ne
+            // rentre pas avant d'être parti.
+            final earliest = args?.today ?? DateTime.now();
+
+            return DatePickerPage(
+              selected: args?.selected ?? earliest,
+              today: earliest,
+              title: context.l10n.homeReturnDateTitle,
+            );
+          },
+        ),
+        GoRoute(
           path: passengersPath,
           builder: (context, state) =>
               PassengersPickerPage(selected: (state.extra as int?) ?? 1),
@@ -508,6 +534,7 @@ class AppRouter {
             destinationId: state.uri.queryParameters['destination'],
             date: state.uri.queryParameters['date'],
             passengers: state.uri.queryParameters['passengers'],
+            returnDate: state.uri.queryParameters['return_date'],
           ),
         ),
         // Les trois écrans du tunnel partagent un seul [SeatHoldBloc].

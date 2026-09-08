@@ -1,5 +1,6 @@
 import '../../domain/entities/city.dart';
 import '../../domain/entities/departure.dart';
+import '../../domain/entities/departure_search.dart';
 import '../../domain/entities/search_criteria.dart';
 import '../../domain/entities/seat.dart';
 import '../../domain/entities/ticket.dart';
@@ -22,9 +23,12 @@ abstract class BookingDataSource {
   /// Dernières villes recherchées, mises en avant dans le sélecteur.
   Future<List<City>> getRecentCities();
 
-  /// Départs correspondant à une recherche. Liste vide si la liaison n'est
-  /// pas desservie ce jour-là : c'est un résultat, pas une erreur.
-  Future<List<Departure>> searchDepartures(SearchCriteria criteria);
+  /// Départs correspondant à une recherche, un sens ou deux selon que le
+  /// voyageur a demandé un retour.
+  ///
+  /// Un résultat vide est un **résultat**, pas une erreur : la liaison
+  /// n'est pas desservie ce jour-là.
+  Future<DepartureSearch> searchDepartures(SearchCriteria criteria);
 
   /// Plan des sièges d'un départ, dans l'ordre de lecture du bus.
   Future<List<Seat>> getSeats(Departure departure);
@@ -70,12 +74,28 @@ class BookingMockDataSource implements BookingDataSource {
   }
 
   @override
-  Future<List<Departure>> searchDepartures(SearchCriteria criteria) async {
+  Future<DepartureSearch> searchDepartures(SearchCriteria criteria) async {
     // Une recherche est plus longue qu'une simple lecture : la maquette
     // lui consacre un écran entier (`searching`), qu'on n'aurait jamais le
     // temps de voir avec le délai standard.
     await Future<void>.delayed(latency * 2);
-    return mockDeparturesFor(criteria);
+
+    final outbound = mockDeparturesFor(criteria);
+    final returnDate = criteria.returnDate;
+    if (returnDate == null) return DepartureSearch.oneWay(outbound);
+
+    // Le retour, c'est la même liaison prise à l'envers.
+    return DepartureSearch(
+      outbound: outbound,
+      inbound: mockDeparturesFor(
+        SearchCriteria(
+          origin: criteria.destination,
+          destination: criteria.origin,
+          date: returnDate,
+          passengers: criteria.passengers,
+        ),
+      ),
+    );
   }
 
   @override

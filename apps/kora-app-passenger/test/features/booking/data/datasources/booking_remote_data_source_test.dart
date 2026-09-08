@@ -252,17 +252,20 @@ void main() {
         'data': [kItinerary],
       });
 
-      final departures = await dataSource.searchDepartures(criteria);
+      final search = await dataSource.searchDepartures(criteria);
 
-      expect(departures, hasLength(1));
-      expect(departures.single.id, '56f674c2-7795-4427-9839-ff5de7345ade');
-      expect(departures.single.price.amount, 31600);
+      expect(search.outbound, hasLength(1));
+      expect(search.outbound.single.id, '56f674c2-7795-4427-9839-ff5de7345ade');
+      expect(search.outbound.single.price.amount, 31600);
+      // Aucun retour demandé : il n'y a pas d'étape de retour du tout.
+      expect(search.inbound, isNull);
+      expect(search.isRoundTrip, isFalse);
     });
 
     test('aucun itinéraire n’est un résultat, pas une erreur', () async {
       stubGet(const {'data': <dynamic>[]});
 
-      expect(await dataSource.searchDepartures(criteria), isEmpty);
+      expect((await dataSource.searchDepartures(criteria)).outbound, isEmpty);
     });
 
     test('écarte les correspondances sans perdre les directs', () async {
@@ -279,7 +282,112 @@ void main() {
         ],
       });
 
-      expect(await dataSource.searchDepartures(criteria), hasLength(1));
+      expect(
+        (await dataSource.searchDepartures(criteria)).outbound,
+        hasLength(1),
+      );
+    });
+  });
+
+  group('aller-retour', () {
+    /// La réponse d'un aller-retour : deux listes nommées, et pas
+    /// d'enveloppe `data`.
+    Map<String, dynamic> roundTripResponse({
+      List<dynamic> outbound = const [kItinerary],
+      List<dynamic> inbound = const [kItinerary],
+    }) => {'outbound': outbound, 'inbound': inbound};
+
+    SearchCriteria roundTrip({DateTime? returnDate}) => SearchCriteria(
+      origin: cotonou,
+      destination: abidjan,
+      date: DateTime(2026, 8, 20),
+      returnDate: returnDate ?? DateTime(2026, 8, 24),
+    );
+
+    test('déclare le type de trajet et la date de retour', () async {
+      stubGet(roundTripResponse());
+
+      await dataSource.searchDepartures(roundTrip());
+
+      final captured = verify(
+        () => dio.get<dynamic>(
+          ApiConstants.busItineraries,
+          queryParameters: captureAny(named: 'queryParameters'),
+        ),
+      ).captured.single;
+
+      expect(captured, {
+        'from_physical_stop_uuid': '74703fce-3358-429d-9994-6b323664a419',
+        'to_physical_stop_uuid': 'f2b528f4-3c99-461f-ac4e-a10f0721b388',
+        'date': '2026-08-20',
+        'passenger_count': 1,
+        'trip_type': 'round_trip',
+        'return_date': '2026-08-24',
+      });
+    });
+
+    test('lit les deux sens, que le serveur nomme', () async {
+      // Un aller-retour ne rend pas `{data}` mais `{outbound, inbound}` :
+      // lire l'enveloppe habituelle rendrait deux listes vides.
+      stubGet(roundTripResponse());
+
+      final search = await dataSource.searchDepartures(roundTrip());
+
+      expect(search.isRoundTrip, isTrue);
+      expect(search.outbound, hasLength(1));
+      expect(search.inbound, hasLength(1));
+      expect(search.outbound.single.price.amount, 31600);
+    });
+
+    test('un retour sans départ reste un aller-retour, mais vide', () async {
+      // Distinct d'un aller simple : l'étape de retour existe, et c'est
+      // elle qui n'a rien à proposer. Le voyageur doit l'apprendre.
+      stubGet(roundTripResponse(inbound: const []));
+
+      final search = await dataSource.searchDepartures(roundTrip());
+
+      expect(search.isRoundTrip, isTrue);
+      expect(search.inbound, isEmpty);
+      expect(search.isEmpty, isTrue);
+    });
+
+    test('sans date de retour, rien n’est déclaré au serveur', () async {
+      // L'aller simple garde la requête vérifiée sur la staging : ni
+      // `trip_type` ni `return_date`.
+      stubGet(const {'data': <dynamic>[]});
+
+      await dataSource.searchDepartures(criteria);
+
+      final captured =
+          verify(
+                () => dio.get<dynamic>(
+                  any(),
+                  queryParameters: captureAny(named: 'queryParameters'),
+                ),
+              ).captured.single
+              as Map<String, dynamic>;
+
+      expect(captured.containsKey('trip_type'), isFalse);
+      expect(captured.containsKey('return_date'), isFalse);
+    });
+
+    test('écarte les correspondances dans les deux sens', () async {
+      final connecting = {
+        ...kItinerary,
+        'connections_count': 1,
+        'legs': [kItineraryLeg, kItineraryLeg],
+      };
+      stubGet(
+        roundTripResponse(
+          outbound: [kItinerary, connecting],
+          inbound: [connecting],
+        ),
+      );
+
+      final search = await dataSource.searchDepartures(roundTrip());
+
+      expect(search.outbound, hasLength(1));
+      expect(search.inbound, isEmpty);
     });
   });
 
