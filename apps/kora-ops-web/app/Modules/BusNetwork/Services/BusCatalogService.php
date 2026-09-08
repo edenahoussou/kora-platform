@@ -16,7 +16,7 @@ class BusCatalogService
     ) {}
 
     /**
-     * @return Collection<int, array{city: string, country: string, stops_count: int}>
+     * @return Collection<int, array{city: string, country: string, physical_stops: array<int, array{uuid: string, name: string}>}>
      */
     public function cities(): Collection
     {

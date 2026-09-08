@@ -13,6 +13,7 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../payment/presentation/pages/payment_args.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/passenger.dart';
+import '../bloc/group_quote_cubit.dart';
 import '../widgets/booking_progress.dart';
 import '../widgets/hold_countdown.dart';
 import '../widgets/state_view.dart';
@@ -32,7 +33,7 @@ class SummaryArgs {
 /// Écran de vérification : il n'affiche que ce qui a été choisi aux étapes
 /// précédentes, sans rien recharger. D'où l'absence de Bloc — il n'y a
 /// aucun état à gérer, seulement des totaux à calculer.
-class SummaryPage extends StatelessWidget {
+class SummaryPage extends StatefulWidget {
   const SummaryPage({
     super.key,
     required this.departure,
@@ -45,8 +46,31 @@ class SummaryPage extends StatelessWidget {
   final List<Passenger> passengers;
 
   @override
+  State<SummaryPage> createState() => _SummaryPageState();
+}
+
+class _SummaryPageState extends State<SummaryPage> {
+  @override
+  void initState() {
+    super.initState();
+
+    // Le devis du serveur : lui seul connaît le barème de la remise de
+    // groupe. Demandé une fois à l'ouverture, et non dans `build` — un
+    // écran qui émet un état pendant sa construction fait sauter Flutter,
+    // et celui-ci se reconstruit à chaque battement du décompte.
+    final departure = widget.departure;
+    if (departure == null || widget.passengers.isEmpty) return;
+
+    context.read<GroupQuoteCubit>().load(
+      departure: departure,
+      passengers: widget.passengers.length,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final departure = this.departure;
+    final departure = widget.departure;
+    final passengers = widget.passengers;
 
     if (departure == null || passengers.isEmpty) {
       return const Scaffold(
@@ -287,6 +311,13 @@ class _PassengersCard extends StatelessWidget {
 }
 
 /// Le détail du prix, ligne à ligne, jusqu'au total à payer.
+///
+/// Les montants viennent du **serveur** dès que son devis est là : lui
+/// seul connaît le barème de la remise de groupe. Tant qu'il n'a pas
+/// répondu — ou s'il a échoué —, l'écran retombe sur le tarif de la
+/// recherche, juste à la remise près. Faire attendre le voyageur devant un
+/// écran vide pour une ligne de détail coûterait plus que de lui montrer
+/// un total sans son détail.
 class _PriceCard extends StatelessWidget {
   const _PriceCard({required this.departure, required this.passengers});
 
@@ -297,30 +328,59 @@ class _PriceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final count = passengers.length;
-    final total = departure.price * count;
 
-    return KoraCard(
-      child: Column(
-        children: [
-          _PriceRow(
-            label: count > 1
-                ? '$count billets ${departure.comfort.label}'
-                : '1 billet ${departure.comfort.label}',
-            value: total.formatted,
+    return BlocBuilder<GroupQuoteCubit, GroupQuoteState>(
+      builder: (context, state) {
+        final quote = state.matches(departure.id, count) ? state.quote : null;
+
+        // Le tarif unitaire du serveur s'il l'a donné, celui de la
+        // recherche sinon.
+        final unit = quote?.unitPrice ?? departure.price;
+        final subtotal = quote?.subtotal ?? departure.price * count;
+        final total = quote?.total ?? subtotal;
+        final discount = quote?.discount;
+
+        return KoraCard(
+          child: Column(
+            children: [
+              _PriceRow(
+                label: count > 1
+                    ? '$count billets ${departure.comfort.label}'
+                    : '1 billet ${departure.comfort.label}',
+                value: subtotal.formatted,
+              ),
+              if (count > 1) ...[
+                const Divider(height: 26),
+                _PriceRow(label: l10n.summaryUnitPrice, value: unit.formatted),
+              ],
+              if (discount != null && discount.isVisible) ...[
+                const Divider(height: 26),
+                _PriceRow(
+                  // Le seuil vient du serveur : l'annoncer de mémoire
+                  // exposerait à promettre une remise à partir d'un nombre
+                  // que l'exploitation aurait changé.
+                  label: discount.threshold != null
+                      ? l10n.summaryGroupDiscountFrom(discount.threshold!)
+                      : l10n.summaryGroupDiscount,
+                  value: '−${discount.amount.formatted}',
+                  isCredit: true,
+                ),
+              ],
+              const Divider(height: 26),
+              _PriceRow(
+                label: l10n.summaryServiceFee,
+                value: l10n.summaryServiceFeeValue,
+              ),
+              const Divider(height: 26),
+              _PriceRow(
+                label: l10n.summaryTotal,
+                value: total.formatted,
+                isTotal: true,
+              ),
+            ],
           ),
-          const Divider(height: 26),
-          _PriceRow(
-            label: l10n.summaryServiceFee,
-            value: l10n.summaryServiceFeeValue,
-          ),
-          const Divider(height: 26),
-          _PriceRow(
-            label: l10n.summaryTotal,
-            value: total.formatted,
-            isTotal: true,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -330,11 +390,17 @@ class _PriceRow extends StatelessWidget {
     required this.label,
     required this.value,
     this.isTotal = false,
+    this.isCredit = false,
   });
 
   final String label;
   final String value;
   final bool isTotal;
+
+  /// Une somme retirée du total — la remise de groupe. Peinte en vert
+  /// plutôt qu'en bleu : un montant négatif se lit trop vite comme une
+  /// ligne de plus à payer.
+  final bool isCredit;
 
   @override
   Widget build(BuildContext context) {
@@ -368,7 +434,7 @@ class _PriceRow extends StatelessWidget {
                   letterSpacing: -0.69,
                 )
               : TextStyle(
-                  color: context.koraTitleColor,
+                  color: isCredit ? AppColors.success : context.koraTitleColor,
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
                 ),

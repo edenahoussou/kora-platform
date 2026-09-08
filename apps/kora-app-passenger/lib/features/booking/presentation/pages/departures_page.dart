@@ -12,6 +12,7 @@ import '../../domain/entities/departure.dart';
 import '../../domain/entities/price.dart';
 import '../../domain/entities/search_criteria.dart';
 import '../bloc/departures_bloc.dart';
+import '../widgets/amenity_view.dart';
 import '../widgets/departure_filter_bar.dart';
 import '../widgets/departure_skeleton.dart';
 import '../widgets/price_assurance_banner.dart';
@@ -448,6 +449,19 @@ class _DepartureTile extends StatelessWidget {
   final Departure departure;
   final int passengers;
 
+  /// Le pied de carte n'a qu'une ligne, et le serveur peut annoncer
+  /// vingt-huit services : on n'en montre que les premiers. L'ordre est
+  /// celui du serveur — c'est lui qui range son catalogue, pas l'app.
+  static const int _maxServices = 3;
+
+  /// Les services à bord, en une ligne. Vide quand aucun bus n'est encore
+  /// affecté au départ : la carte ne montre alors rien plutôt que de
+  /// promettre un confort inconnu.
+  String _servicesLabel(BuildContext context) => departure.amenities
+      .take(_maxServices)
+      .map((amenity) => amenity.displayLabel(context))
+      .join(' · ');
+
   @override
   Widget build(BuildContext context) {
     return DepartureCard(
@@ -458,7 +472,7 @@ class _DepartureTile extends StatelessWidget {
       duration: KoraDateFormats.approximateDuration(departure.line.duration),
       price: departure.price.formatted,
       vehicleLabel: departure.vehicleLabel,
-      servicesLabel: departure.amenities.join(' · '),
+      servicesLabel: _servicesLabel(context),
       seatsAvailable: departure.seatsAvailable,
       // Le total donne au badge sa couleur : 12 places sur 55, c'est
       // orange ; sur 20, c'est vert.

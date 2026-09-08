@@ -109,6 +109,28 @@ class ApiConstants {
   /// rebours ; le choix sur le plan n'engage rien.
   static const String busHolds = '$_v1/bus/holds';
 
+  /// `POST` : le devis d'un itinéraire, un ou plusieurs tronçons, pour un
+  /// nombre de voyageurs donné.
+  ///
+  /// C'est le seul point d'entrée qui rend la remise de groupe au
+  /// passager : `group-discounts` et `group-booking-settings` sont fermés
+  /// par la permission `group-discounts.view`, réservée à
+  /// l'administration.
+  static const String itineraryQuotes = '$_v1/bus/itinerary-quotes';
+
+  /// `POST` : le blocage atomique de tous les sièges d'un groupe.
+  static const String itineraryHolds = '$_v1/bus/itinerary-holds';
+
+  /// `GET` : les comptes entreprise dont le voyageur est membre actif.
+  ///
+  /// Ouvert à tous : sans la permission `company-credit.view`, la réponse
+  /// se limite aux comptes du demandeur — et masque leurs plafonds.
+  static const String companyAccounts = '$_v1/company-accounts';
+
+  /// `GET` : les billets émis d'une réservation, un par voyageur.
+  static String bookingTickets(String reservationUuid) =>
+      '$_v1/bookings/$reservationUuid/tickets';
+
   /// Libération d'un blocage avant son échéance (`DELETE`, authentifié).
   /// La clé est l'identifiant de la **réservation**, pas du départ.
   ///
@@ -141,6 +163,21 @@ class ApiConstants {
   /// retard sur la page de référence, qui, elle, annonce correctement
   /// « Authentification `Bearer` requise ».
   static const String paymentMethods = '$_v1/payments/methods';
+
+  /// `POST` : lance un paiement pour une réservation retenue.
+  static const String paymentInitiate = '$_v1/payments/initiate';
+
+  /// `GET` : l'état d'un paiement, interrogé à la cadence que le serveur
+  /// annonce (`polling_interval_seconds`).
+  static String payment(String paymentUuid) => '$_v1/payments/$paymentUuid';
+
+  /// `POST` : demande au serveur de vérifier lui-même auprès du provider.
+  ///
+  /// Distinct de [payment], qui ne fait que relire l'état connu : c'est
+  /// l'app qui décide quand forcer une vérification, jamais l'app qui
+  /// conclut le paiement.
+  static String paymentVerify(String paymentUuid) =>
+      '$_v1/payments/$paymentUuid/verify';
 
   // --- Reste de l'API : pas encore documenté ---
 

@@ -8,6 +8,7 @@ use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
 use FedaPay\FedaPay;
 use FedaPay\Transaction;
+use FedaPay\Webhook;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -101,6 +102,20 @@ final class FedaPayAdapter implements PaymentProvider
             /** @var mixed $transaction */
             $transaction = Transaction::create($transactionData);
 
+            // Capture transaction id and reference before sendNow — the
+            // object returned by sendNow is a different FedaPayObject that
+            // does not expose these properties.
+            $reference = '';
+            $transactionId = null;
+            try {
+                $reference = (string) $transaction->reference;
+            } catch (Throwable) {
+            }
+            try {
+                $transactionId = (string) $transaction->id;
+            } catch (Throwable) {
+            }
+
             if (($payload['method'] ?? null) === 'mobile_money') {
                 $network = (string) ($payload['mobile_money_network'] ?? '');
                 $mode = $this->mobileMoneyModes[$network] ?? null;
@@ -109,26 +124,21 @@ final class FedaPayAdapter implements PaymentProvider
                     throw new \InvalidArgumentException('Le réseau et le numéro sont nécessaires pour initier FedaPay.');
                 }
 
-                $transaction = $transaction->sendNow($mode, [
+                $transaction->sendNow($mode, [
                     'number' => $phone['number'],
                     'country' => $phone['country'],
                 ]);
             }
 
             /** @var array<string, mixed> $transactionArray */
-            $transactionArray = is_object($transaction) && method_exists($transaction, 'toArray') ? $transaction->toArray() : [];
-            $reference = '';
-            $transactionId = null;
-            if (is_object($transaction) && property_exists($transaction, 'reference')) {
-                $reference = (string) $transaction->reference;
-            }
-            if (is_object($transaction) && property_exists($transaction, 'id')) {
-                $transactionId = (string) $transaction->id;
-            }
+            $transactionArray = is_object($transaction) && method_exists($transaction, 'toArray')
+                ? $transaction->toArray()
+                : [];
 
             return new ProviderResponse(
                 status: PaymentStatus::Pending,
                 providerReference: $reference,
+                providerTransactionId: $transactionId,
                 payload: array_merge($transactionArray, array_filter(['id' => $transactionId])),
                 message: 'Transaction created on FedaPay.',
             );
@@ -148,7 +158,7 @@ final class FedaPayAdapter implements PaymentProvider
 
     public function verify(Payment $payment): ProviderResponse
     {
-        if ($payment->provider_reference === null) {
+        if ($payment->provider_reference === null && $payment->provider_transaction_id === null) {
             return new ProviderResponse(
                 status: PaymentStatus::Pending,
                 message: 'No provider reference available for polling.',
@@ -164,22 +174,22 @@ final class FedaPayAdapter implements PaymentProvider
                 : null;
 
             if ($transaction === null) {
-                /** @var mixed $transactions */
-                $transactions = Transaction::all(['reference' => $payment->provider_reference]);
-                /** @var array<int, mixed> $transactionList */
-                $transactionList = is_iterable($transactions) ? iterator_to_array($transactions) : [];
-
-                if (count($transactionList) === 0) {
-                    return new ProviderResponse(
-                        status: PaymentStatus::Pending,
-                        message: 'Transaction not found on FedaPay.',
-                    );
-                }
-
-                $transaction = $transactionList[0];
+                return new ProviderResponse(
+                    status: PaymentStatus::Pending,
+                    message: 'Transaction not found on FedaPay.',
+                );
             }
-            $status = is_object($transaction) && property_exists($transaction, 'status') ? (string) $transaction->status : 'pending';
-            $reference = is_object($transaction) && property_exists($transaction, 'reference') ? (string) $transaction->reference : $payment->provider_reference;
+
+            $status = 'pending';
+            $reference = $payment->provider_reference;
+            try {
+                $status = (string) $transaction->status;
+            } catch (Throwable) {
+            }
+            try {
+                $reference = (string) $transaction->reference;
+            } catch (Throwable) {
+            }
             /** @var array<string, mixed> $payloadArray */
             $payloadArray = is_object($transaction) && method_exists($transaction, 'toArray') ? $transaction->toArray() : [];
 
@@ -221,23 +231,20 @@ final class FedaPayAdapter implements PaymentProvider
             return null;
         }
 
-        $computed = hash_hmac('sha256', $body, $this->webhookSecret);
-
-        if (! hash_equals($computed, $signature)) {
-            Log::warning('FedaPay webhook signature mismatch');
-
-            return null;
-        }
-
-        $payload = json_decode($body, true);
-
-        if (! is_array($payload)) {
-            Log::warning('FedaPay webhook invalid JSON');
+        try {
+            Webhook::constructEvent($body, $signature, $this->webhookSecret);
+        } catch (Throwable $e) {
+            Log::warning('FedaPay webhook signature mismatch', [
+                'error' => $e->getMessage(),
+            ]);
 
             return null;
         }
 
-        return $payload;
+        /** @var array<string, mixed> $data */
+        $data = json_decode($body, true) ?? [];
+
+        return $data;
     }
 
     public function supports(string $method, string $provider): bool

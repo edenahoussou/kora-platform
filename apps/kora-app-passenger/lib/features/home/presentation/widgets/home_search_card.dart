@@ -4,6 +4,7 @@ import 'package:flutter_design_system/flutter_design_system.dart';
 import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../booking/domain/entities/city.dart';
+import '../../../booking/domain/entities/group_booking_limits.dart';
 
 /// Carte de recherche de l'accueil — équivalent `.floating-search` de la
 /// maquette : bandeau bleu « Où souhaitez-vous voyager ? », champs départ /
@@ -406,7 +407,15 @@ class _SearchMeta extends StatelessWidget {
             Expanded(
               child: _MetaTile(
                 label: context.l10n.homeSearchPassengers,
-                value: context.l10n.homeSearchPassengersCount(passengers),
+                // Au-delà du seuil, ce n'est plus un nombre d'adultes mais
+                // une réservation de groupe : le compte exact se règle sur
+                // l'écran dédié, une fois le départ choisi.
+                value: passengers >= kGroupMinimumPassengers
+                    ? context.l10n.homePassengersGroup(
+                        kGroupMinimumPassengers,
+                        kGroupMaximumPassengers,
+                      )
+                    : context.l10n.homeSearchPassengersCount(passengers),
                 onTap: onPassengersTap,
               ),
             ),

@@ -141,6 +141,15 @@ class AppLocalization {
     return value ?? key;
   }
 
+  /// La traduction de [key], ou `null` si l'app ne la connaît pas.
+  ///
+  /// Contrairement à [translate], n'accuse pas la clé manquante : elle sert
+  /// aux libellés dont la liste est décidée par le **serveur** — les
+  /// services à bord, par exemple. Un équipement ajouté côté back après la
+  /// sortie de cette version n'est pas un oubli de traduction, et ne doit
+  /// pas faire sauter l'assertion en développement.
+  String? maybeTranslate(String key) => _strings[key] ?? _fallbackStrings[key];
+
   /// Remplace les jetons `{nom}` d'un texte par leur valeur — les langues
   /// ne placent pas leurs variables au même endroit dans la phrase, une
   /// concaténation en Dart figerait l'ordre français.
@@ -155,6 +164,14 @@ class AppLocalization {
   }
 
   // ---------------------------------------------------------------- commun
+  String get paymentMethodLoading => translate('payment_method_loading');
+  String get paymentMethodFailed => translate('payment_method_failed');
+  String get paymentMethodRetry => translate('payment_method_retry');
+  String get paymentMethodNone => translate('payment_method_none');
+  String get paymentMethodOutOfMvp => translate('payment_method_out_of_mvp');
+  String get paymentMethodUnavailable =>
+      translate('payment_method_unavailable');
+
   String get appTagline => translate('app_tagline');
   String get actionRetry => translate('action_retry');
   String get actionContinue => translate('action_continue');
@@ -559,11 +576,15 @@ class AppLocalization {
   String get homePassengersTitle => translate('home_passengers_title');
   String get homePassengersLabel => translate('home_passengers_label');
   String get homePassengersNotice => translate('home_passengers_notice');
-  String get homePassengersGroup => translate('home_passengers_group');
-  String get homePassengersGroupSoon => translate('home_passengers_group_soon');
+  String homePassengersRange(int max, int min) =>
+      _withArgs('home_passengers_range', {'max': max, 'min': min});
+  String homePassengersGroup(int min, int max) =>
+      _withArgs('home_passengers_group', {'min': min, 'max': max});
+  String homePassengersGroupApplies(int min) =>
+      _withArgs('home_passengers_group_applies', {'min': min});
+  String get homePassengersBusinessPayer =>
+      translate('home_passengers_business_payer');
   String get homePassengersBusiness => translate('home_passengers_business');
-  String get homePassengersBusinessSoon =>
-      translate('home_passengers_business_soon');
   String homePassengersConfirm(int count) => _withArgs(
     count > 1 ? 'home_passengers_confirm_plural' : 'home_passengers_confirm',
     {'count': count},
@@ -593,7 +614,6 @@ class AppLocalization {
   String get passengersEyebrowInternational =>
       translate('passengers_eyebrow_international');
   String get passengersStep => translate('passengers_step');
-  String get passengersIncomplete => translate('passengers_incomplete');
   String get passengersNotice => translate('passengers_notice');
   String get passengersNoticeInternational =>
       translate('passengers_notice_international');
@@ -616,6 +636,21 @@ class AppLocalization {
       _withArgs('passengers_phone_length', {'digits': digits});
   String get passengersEmail => translate('passengers_email');
   String get passengersEmailInvalid => translate('passengers_email_invalid');
+  String passengersIncompleteDetail(String details) =>
+      _withArgs('passengers_incomplete_detail', {'details': details});
+  String passengersIncompletePassenger(int index, String fields) => _withArgs(
+    'passengers_incomplete_passenger',
+    {'index': index, 'fields': fields},
+  );
+  String get passengersDocumentTypeOptional =>
+      translate('passengers_document_type_optional');
+  String get passengersDocumentNumberOptional =>
+      translate('passengers_document_number_optional');
+  String get passengersDocumentNone => translate('passengers_document_none');
+  String get passengersYellowFever => translate('passengers_yellow_fever');
+  String get passengersAccuracy => translate('passengers_accuracy');
+  String get passengersAccuracyRequired =>
+      translate('passengers_accuracy_required');
   String get passengersDocumentType => translate('passengers_document_type');
   String get passengersDocumentNumber =>
       translate('passengers_document_number');
@@ -635,12 +670,74 @@ class AppLocalization {
   String get passengersDocNationalId => translate('passengers_doc_national_id');
   String get passengersDocBiometric => translate('passengers_doc_biometric');
   String get passengersDocConsular => translate('passengers_doc_consular');
-  String get passengersDocCip => translate('passengers_doc_cip');
   String get summaryEyebrow => translate('summary_eyebrow');
   String get summaryTitle => translate('summary_title');
   String get summaryPassengers => translate('summary_passengers');
   String get summaryEdit => translate('summary_edit');
   String get summaryPriceDetail => translate('summary_price_detail');
+  String groupBookingEyebrow(int min, int max) =>
+      _withArgs('group_booking_eyebrow', {'min': min, 'max': max});
+  String get groupBookingTitle => translate('group_booking_title');
+  String get groupPayerTitle => translate('group_payer_title');
+  String get groupPayerHint => translate('group_payer_hint');
+  String get groupPayerPersonal => translate('group_payer_personal');
+  String groupPayerCredit(String amount) =>
+      _withArgs('group_payer_credit', {'amount': amount});
+  String get groupBookingRowPassengers =>
+      translate('group_booking_row_passengers');
+  String get groupBookingRowSubtotal => translate('group_booking_row_subtotal');
+  String get groupBookingRowTotal => translate('group_booking_row_total');
+  String get groupBookingHeroTitle => translate('group_booking_hero_title');
+  String groupBookingHeroText(int max) =>
+      _withArgs('group_booking_hero_text', {'max': max});
+  String get groupBookingCountLabel => translate('group_booking_count_label');
+  String groupBookingCountHint(int min, int max) =>
+      _withArgs('group_booking_count_hint', {'min': min, 'max': max});
+  String get groupBookingDiscountNotice =>
+      translate('group_booking_discount_notice');
+  String groupBookingConfirm(int count) =>
+      _withArgs('group_booking_confirm', {'count': count});
+  String groupTicketsEyebrow(int count) =>
+      _withArgs('group_tickets_eyebrow', {'count': count});
+  String get groupTicketsTitle => translate('group_tickets_title');
+  String get groupTicketsNotice => translate('group_tickets_notice');
+  String get groupTicketsPending => translate('group_tickets_pending');
+  String get groupTicketsDone => translate('group_tickets_done');
+  String get groupTicketsStatusReady => translate('group_tickets_status_ready');
+  String get groupTicketsStatusBoarded =>
+      translate('group_tickets_status_boarded');
+  String get groupTicketsStatusCancelled =>
+      translate('group_tickets_status_cancelled');
+  String get groupTicketsStatusUnknown =>
+      translate('group_tickets_status_unknown');
+  String get groupDiscountEyebrow => translate('group_discount_eyebrow');
+  String get groupDiscountPendingEyebrow =>
+      translate('group_discount_pending_eyebrow');
+  String get groupDiscountPendingTitle =>
+      translate('group_discount_pending_title');
+  String get groupDiscountPendingCaption =>
+      translate('group_discount_pending_caption');
+  String groupDiscountPendingFooter(int missing) =>
+      _withArgs('group_discount_pending_footer', {'missing': missing});
+  String get groupDiscountPendingUnknown =>
+      translate('group_discount_pending_unknown');
+  String get groupDiscountTitle => translate('group_discount_title');
+  String get groupDiscountSaved => translate('group_discount_saved');
+  String get groupDiscountAutomatic => translate('group_discount_automatic');
+  String groupDiscountAutomaticPercent(String percent) =>
+      _withArgs('group_discount_automatic_percent', {'percent': percent});
+  String groupDiscountStepSeats(int count) =>
+      _withArgs('group_discount_step_seats', {'count': count});
+  String groupDiscountStepPassengers(int count) =>
+      _withArgs('group_discount_step_passengers', {'count': count});
+  String get groupDiscountStepPayment =>
+      translate('group_discount_step_payment');
+  String get groupDiscountChooseSeats =>
+      translate('group_discount_choose_seats');
+  String get summaryUnitPrice => translate('summary_unit_price');
+  String get summaryGroupDiscount => translate('summary_group_discount');
+  String summaryGroupDiscountFrom(int min) =>
+      _withArgs('summary_group_discount_from', {'min': min});
   String get summaryServiceFee => translate('summary_service_fee');
   String get summaryServiceFeeValue => translate('summary_service_fee_value');
   String get summaryTotal => translate('summary_total');

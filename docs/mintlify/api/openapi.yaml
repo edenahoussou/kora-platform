@@ -5,7 +5,7 @@ info:
   version: 1.0.0
 servers:
   -
-    url: 'http://kora-ops-web.local'
+    url: 'https://staging.koraexpress.app'
 tags:
   -
     name: Bus
@@ -42,7 +42,7 @@ paths:
     get:
       summary: 'List served cities.'
       operationId: listServedCities
-      description: 'Returns active cities derived from active Bus stops.'
+      description: "Returns active cities with their physical stops, ready for itinerary search.\nEach physical stop exposes its UUID, which the mobile uses as\n`from_physical_stop_uuid` / `to_physical_stop_uuid` in `GET /bus/itineraries`."
       parameters: []
       responses:
         200:
@@ -56,11 +56,20 @@ paths:
                     -
                       city: Cotonou
                       country: BJ
-                      stops_count: 4
+                      physical_stops:
+                        -
+                          uuid: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21
+                          name: 'Cotonou · St Michel'
+                        -
+                          uuid: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22
+                          name: 'Cotonou · Dantokpa'
                     -
                       city: Abidjan
                       country: CI
-                      stops_count: 2
+                      physical_stops:
+                        -
+                          uuid: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e23
+                          name: 'Abidjan · Adjamé'
                 properties:
                   data:
                     type: array
@@ -68,11 +77,20 @@ paths:
                       -
                         city: Cotonou
                         country: BJ
-                        stops_count: 4
+                        physical_stops:
+                          -
+                            uuid: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21
+                            name: 'Cotonou · St Michel'
+                          -
+                            uuid: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22
+                            name: 'Cotonou · Dantokpa'
                       -
                         city: Abidjan
                         country: CI
-                        stops_count: 2
+                        physical_stops:
+                          -
+                            uuid: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e23
+                            name: 'Abidjan · Adjamé'
                     items:
                       type: object
                       properties:
@@ -82,9 +100,24 @@ paths:
                         country:
                           type: string
                           example: BJ
-                        stops_count:
-                          type: integer
-                          example: 4
+                        physical_stops:
+                          type: array
+                          example:
+                            -
+                              uuid: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21
+                              name: 'Cotonou · St Michel'
+                            -
+                              uuid: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22
+                              name: 'Cotonou · Dantokpa'
+                          items:
+                            type: object
+                            properties:
+                              uuid:
+                                type: string
+                                example: 00000000-0000-4000-8000-000000000000
+                              name:
+                                type: string
+                                example: 'Cotonou · St Michel'
       tags:
         - Bus
       security: []
@@ -357,979 +390,6 @@ paths:
         required: true
         schema:
           type: string
-  /api/v1/bus/departures:
-    get:
-      summary: 'List departures.'
-      operationId: listDepartures
-      description: 'Paginated list of scheduled departures (15 per page by default).'
-      parameters:
-        -
-          in: query
-          name: date
-          description: 'Travel date in YYYY-MM-DD format.'
-          example: '2026-08-15'
-          required: true
-          schema:
-            type: string
-            description: 'Travel date in YYYY-MM-DD format.'
-            example: '2026-08-15'
-        -
-          in: query
-          name: line
-          description: 'Optional line UUID filter.'
-          example: 00000000-0000-4000-8000-000000000000
-          required: false
-          schema:
-            type: string
-            description: 'Optional line UUID filter.'
-            example: 00000000-0000-4000-8000-000000000000
-        -
-          in: query
-          name: origin_city
-          description: 'Optional origin city filter (alias of from).'
-          example: Cotonou
-          required: false
-          schema:
-            type: string
-            description: 'Optional origin city filter (alias of from).'
-            example: Cotonou
-        -
-          in: query
-          name: destination_city
-          description: 'Optional destination city filter (alias of to).'
-          example: Abidjan
-          required: false
-          schema:
-            type: string
-            description: 'Optional destination city filter (alias of to).'
-            example: Abidjan
-        -
-          in: query
-          name: from
-          description: 'Optional origin city filter.'
-          example: Cotonou
-          required: false
-          schema:
-            type: string
-            description: 'Optional origin city filter.'
-            example: Cotonou
-        -
-          in: query
-          name: to
-          description: 'Optional destination city filter.'
-          example: Abidjan
-          required: false
-          schema:
-            type: string
-            description: 'Optional destination city filter.'
-            example: Abidjan
-        -
-          in: query
-          name: per_page
-          description: 'Optional page size (max 50, default 15).'
-          example: 15
-          required: false
-          schema:
-            type: integer
-            description: 'Optional page size (max 50, default 15).'
-            example: 15
-        -
-          in: query
-          name: page
-          description: 'Optional page number.'
-          example: 1
-          required: false
-          schema:
-            type: integer
-            description: 'Optional page number.'
-            example: 1
-      responses:
-        200:
-          description: 'Departures list'
-          content:
-            application/json:
-              schema:
-                type: object
-                example:
-                  data:
-                    -
-                      uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
-                      departure_date: '2026-08-15'
-                      departure_time: '07:30'
-                      estimated_arrival_at: '2026-08-16T04:30:00.000000Z'
-                      status: scheduled
-                      line:
-                        uuid: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
-                        code: L1
-                        name: 'Cotonou - Abidjan'
-                        type: internationale
-                        countries_crossed:
-                          - BJ
-                          - TG
-                          - GH
-                          - CI
-                        distance_km: 1020
-                        estimated_duration_minutes: 1260
-                        status: active
-                        stops: []
-                      bus:
-                        uuid: 3a2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e30
-                        registration_number: BJ-9254-RB
-                        brand: KORA
-                        model: 'Coach 55'
-                        seat_count: 55
-                        layout:
-                          -
-                            type: standard
-                            codes:
-                              - 1A
-                              - 1B
-                              - 1C
-                              - 1D
-                          -
-                            type: standard
-                            codes:
-                              - 2A
-                              - 2B
-                              - 2C
-                              - 2D
-                        amenities:
-                          -
-                            uuid: a1b2c3d4-0000-0000-0000-000000000001
-                            code: wifi
-                            label: 'Wi-Fi à bord'
-                            icon: wifi
-                          -
-                            uuid: a1b2c3d4-0000-0000-0000-000000000002
-                            code: air_conditioning
-                            label: Climatisation
-                            icon: snowflake
-                          -
-                            uuid: a1b2c3d4-0000-0000-0000-000000000003
-                            code: usb_charging
-                            label: 'Prises USB'
-                            icon: usb
-                      origin_stop:
-                        uuid: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21
-                        name: 'Cotonou · St Michel'
-                        city: Cotonou
-                        country: BJ
-                        stop_order: 1
-                        km_from_origin: 0
-                      destination_stop:
-                        uuid: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22
-                        name: 'Abidjan · Adjamé'
-                        city: Abidjan
-                        country: CI
-                        stop_order: 2
-                        km_from_origin: 1020
-                      available_seats_count: 41
-                      fare_preview:
-                        fare_uuid: 7d2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e40
-                        base_amount: 12500
-                        final_amount: 12500
-                        currency: XOF
-                        service_class_code: STD
-                        service_class_name: Standard
-                        service_class_description: 'Sièges inclinables, climatisation, prise USB.'
-                        is_quote: false
-                  links:
-                    first: 'http://kora-ops-web.local/api/v1/bus/departures?page=1'
-                    last: 'http://kora-ops-web.local/api/v1/bus/departures?page=1'
-                    prev: null
-                    next: null
-                  meta:
-                    current_page: 1
-                    from: 1
-                    last_page: 1
-                    path: 'http://kora-ops-web.local/api/v1/bus/departures'
-                    per_page: 15
-                    to: 1
-                    total: 1
-                properties:
-                  data:
-                    type: array
-                    example:
-                      -
-                        uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
-                        departure_date: '2026-08-15'
-                        departure_time: '07:30'
-                        estimated_arrival_at: '2026-08-16T04:30:00.000000Z'
-                        status: scheduled
-                        line:
-                          uuid: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
-                          code: L1
-                          name: 'Cotonou - Abidjan'
-                          type: internationale
-                          countries_crossed:
-                            - BJ
-                            - TG
-                            - GH
-                            - CI
-                          distance_km: 1020
-                          estimated_duration_minutes: 1260
-                          status: active
-                          stops: []
-                        bus:
-                          uuid: 3a2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e30
-                          registration_number: BJ-9254-RB
-                          brand: KORA
-                          model: 'Coach 55'
-                          seat_count: 55
-                          layout:
-                            -
-                              type: standard
-                              codes:
-                                - 1A
-                                - 1B
-                                - 1C
-                                - 1D
-                            -
-                              type: standard
-                              codes:
-                                - 2A
-                                - 2B
-                                - 2C
-                                - 2D
-                          amenities:
-                            -
-                              uuid: a1b2c3d4-0000-0000-0000-000000000001
-                              code: wifi
-                              label: 'Wi-Fi à bord'
-                              icon: wifi
-                            -
-                              uuid: a1b2c3d4-0000-0000-0000-000000000002
-                              code: air_conditioning
-                              label: Climatisation
-                              icon: snowflake
-                            -
-                              uuid: a1b2c3d4-0000-0000-0000-000000000003
-                              code: usb_charging
-                              label: 'Prises USB'
-                              icon: usb
-                        origin_stop:
-                          uuid: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21
-                          name: 'Cotonou · St Michel'
-                          city: Cotonou
-                          country: BJ
-                          stop_order: 1
-                          km_from_origin: 0
-                        destination_stop:
-                          uuid: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22
-                          name: 'Abidjan · Adjamé'
-                          city: Abidjan
-                          country: CI
-                          stop_order: 2
-                          km_from_origin: 1020
-                        available_seats_count: 41
-                        fare_preview:
-                          fare_uuid: 7d2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e40
-                          base_amount: 12500
-                          final_amount: 12500
-                          currency: XOF
-                          service_class_code: STD
-                          service_class_name: Standard
-                          service_class_description: 'Sièges inclinables, climatisation, prise USB.'
-                          is_quote: false
-                    items:
-                      type: object
-                      properties:
-                        uuid:
-                          type: string
-                          example: 00000000-0000-4000-8000-000000000000
-                        departure_date:
-                          type: string
-                          example: '2026-08-15'
-                        departure_time:
-                          type: string
-                          example: '07:30'
-                        estimated_arrival_at:
-                          type: string
-                          example: '2026-08-16T04:30:00.000000Z'
-                        status:
-                          type: string
-                          example: scheduled
-                        line:
-                          type: object
-                          properties:
-                            uuid:
-                              type: string
-                              example: 00000000-0000-4000-8000-000000000000
-                            code:
-                              type: string
-                              example: L1
-                            name:
-                              type: string
-                              example: 'Cotonou - Abidjan'
-                            type:
-                              type: string
-                              example: internationale
-                            countries_crossed:
-                              type: array
-                              example:
-                                - BJ
-                                - TG
-                                - GH
-                                - CI
-                              items:
-                                type: string
-                            distance_km:
-                              type: integer
-                              example: 1020
-                            estimated_duration_minutes:
-                              type: integer
-                              example: 1260
-                            status:
-                              type: string
-                              example: active
-                            stops:
-                              type: array
-                              example: []
-                        bus:
-                          type: object
-                          properties:
-                            uuid:
-                              type: string
-                              example: 00000000-0000-4000-8000-000000000000
-                            registration_number:
-                              type: string
-                              example: BJ-9254-RB
-                            brand:
-                              type: string
-                              example: KORA
-                            model:
-                              type: string
-                              example: 'Coach 55'
-                            seat_count:
-                              type: integer
-                              example: 55
-                            layout:
-                              type: array
-                              example:
-                                -
-                                  type: standard
-                                  codes:
-                                    - 1A
-                                    - 1B
-                                    - 1C
-                                    - 1D
-                                -
-                                  type: standard
-                                  codes:
-                                    - 2A
-                                    - 2B
-                                    - 2C
-                                    - 2D
-                              items:
-                                type: object
-                                properties:
-                                  type:
-                                    type: string
-                                    example: standard
-                                  codes:
-                                    type: array
-                                    example:
-                                      - 1A
-                                      - 1B
-                                      - 1C
-                                      - 1D
-                                    items:
-                                      type: string
-                            amenities:
-                              type: array
-                              example:
-                                -
-                                  uuid: a1b2c3d4-0000-0000-0000-000000000001
-                                  code: wifi
-                                  label: 'Wi-Fi à bord'
-                                  icon: wifi
-                                -
-                                  uuid: a1b2c3d4-0000-0000-0000-000000000002
-                                  code: air_conditioning
-                                  label: Climatisation
-                                  icon: snowflake
-                                -
-                                  uuid: a1b2c3d4-0000-0000-0000-000000000003
-                                  code: usb_charging
-                                  label: 'Prises USB'
-                                  icon: usb
-                              items:
-                                type: object
-                                properties:
-                                  uuid:
-                                    type: string
-                                    example: 00000000-0000-4000-8000-000000000000
-                                  code:
-                                    type: string
-                                    example: wifi
-                                  label:
-                                    type: string
-                                    example: 'Wi-Fi à bord'
-                                  icon:
-                                    type: string
-                                    example: wifi
-                        origin_stop:
-                          type: object
-                          properties:
-                            uuid:
-                              type: string
-                              example: 00000000-0000-4000-8000-000000000000
-                            name:
-                              type: string
-                              example: 'Cotonou · St Michel'
-                            city:
-                              type: string
-                              example: Cotonou
-                            country:
-                              type: string
-                              example: BJ
-                            stop_order:
-                              type: integer
-                              example: 1
-                            km_from_origin:
-                              type: integer
-                              example: 0
-                        destination_stop:
-                          type: object
-                          properties:
-                            uuid:
-                              type: string
-                              example: 00000000-0000-4000-8000-000000000000
-                            name:
-                              type: string
-                              example: 'Abidjan · Adjamé'
-                            city:
-                              type: string
-                              example: Abidjan
-                            country:
-                              type: string
-                              example: CI
-                            stop_order:
-                              type: integer
-                              example: 2
-                            km_from_origin:
-                              type: integer
-                              example: 1020
-                        available_seats_count:
-                          type: integer
-                          example: 41
-                        fare_preview:
-                          type: object
-                          properties:
-                            fare_uuid:
-                              type: string
-                              example: 00000000-0000-4000-8000-000000000000
-                            base_amount:
-                              type: integer
-                              example: 12500
-                            final_amount:
-                              type: integer
-                              example: 12500
-                            currency:
-                              type: string
-                              example: XOF
-                            service_class_code:
-                              type: string
-                              example: STD
-                            service_class_name:
-                              type: string
-                              example: Standard
-                            service_class_description:
-                              type: string
-                              example: 'Sièges inclinables, climatisation, prise USB.'
-                            is_quote:
-                              type: boolean
-                              example: false
-                  links:
-                    type: object
-                    properties:
-                      first:
-                        type: string
-                        example: 'http://kora-ops-web.local/api/v1/bus/departures?page=1'
-                      last:
-                        type: string
-                        example: 'http://kora-ops-web.local/api/v1/bus/departures?page=1'
-                      prev:
-                        type: string
-                        example: null
-                        nullable: true
-                      next:
-                        type: string
-                        example: null
-                        nullable: true
-                  meta:
-                    type: object
-                    properties:
-                      current_page:
-                        type: integer
-                        example: 1
-                      from:
-                        type: integer
-                        example: 1
-                      last_page:
-                        type: integer
-                        example: 1
-                      path:
-                        type: string
-                        example: 'http://kora-ops-web.local/api/v1/bus/departures'
-                      per_page:
-                        type: integer
-                        example: 15
-                      to:
-                        type: integer
-                        example: 1
-                      total:
-                        type: integer
-                        example: 1
-        422:
-          description: 'Missing required date'
-          content:
-            application/json:
-              schema:
-                type: object
-                example:
-                  message: 'The date field is required.'
-                  errors:
-                    date:
-                      - 'The date field is required.'
-                properties:
-                  message:
-                    type: string
-                    example: 'The date field is required.'
-                  errors:
-                    type: object
-                    properties:
-                      date:
-                        type: array
-                        example:
-                          - 'The date field is required.'
-                        items:
-                          type: string
-      tags:
-        - Bus
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                date:
-                  type: string
-                  description: 'Must be a valid date in the format <code>Y-m-d</code>.'
-                  example: '2026-09-02'
-                line:
-                  type: string
-                  description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
-                  example: 00000000-0000-4000-8000-000000000000
-                  nullable: true
-                from:
-                  type: string
-                  description: 'Le champ value ne doit pas dépasser 120 caractères.'
-                  example: g
-                  nullable: true
-                to:
-                  type: string
-                  description: 'Le champ value ne doit pas dépasser 120 caractères.'
-                  example: z
-                  nullable: true
-                origin_city:
-                  type: string
-                  description: 'Le champ value ne doit pas dépasser 120 caractères.'
-                  example: m
-                  nullable: true
-                destination_city:
-                  type: string
-                  description: 'Le champ value ne doit pas dépasser 120 caractères.'
-                  example: i
-                  nullable: true
-                per_page:
-                  type: integer
-                  description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 50.'
-                  example: 8
-                  nullable: true
-                page:
-                  type: integer
-                  description: 'Le champ value doit être au moins 1.'
-                  example: 16
-                  nullable: true
-              required:
-                - date
-      security: []
-  '/api/v1/bus/departures/{uuid}':
-    get:
-      summary: 'Show a departure.'
-      operationId: showADeparture
-      description: ''
-      parameters:
-        -
-          in: query
-          name: from
-          description: 'Optional origin city.'
-          example: Cotonou
-          required: false
-          schema:
-            type: string
-            description: 'Optional origin city.'
-            example: Cotonou
-        -
-          in: query
-          name: to
-          description: 'Optional destination city.'
-          example: Abidjan
-          required: false
-          schema:
-            type: string
-            description: 'Optional destination city.'
-            example: Abidjan
-      responses:
-        200:
-          description: 'Departure detail'
-          content:
-            application/json:
-              schema:
-                type: object
-                example:
-                  data:
-                    uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
-                    departure_date: '2026-08-15'
-                    departure_time: '07:30'
-                    estimated_arrival_at: '2026-08-16T04:30:00.000000Z'
-                    status: scheduled
-                    line:
-                      uuid: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
-                      code: L1
-                      name: 'Cotonou - Abidjan'
-                      type: internationale
-                      countries_crossed:
-                        - BJ
-                        - TG
-                        - GH
-                        - CI
-                      distance_km: 1020
-                      estimated_duration_minutes: 1260
-                      status: active
-                      stops: []
-                    bus:
-                      uuid: 3a2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e30
-                      registration_number: BJ-9254-RB
-                      brand: KORA
-                      model: 'Coach 55'
-                      seat_count: 55
-                      layout:
-                        -
-                          type: standard
-                          codes:
-                            - 1A
-                            - 1B
-                            - 1C
-                            - 1D
-                        -
-                          type: standard
-                          codes:
-                            - 2A
-                            - 2B
-                            - 2C
-                            - 2D
-                      amenities:
-                        -
-                          uuid: a1b2c3d4-0000-0000-0000-000000000001
-                          code: wifi
-                          label: 'Wi-Fi à bord'
-                          icon: wifi
-                        -
-                          uuid: a1b2c3d4-0000-0000-0000-000000000002
-                          code: air_conditioning
-                          label: Climatisation
-                          icon: snowflake
-                        -
-                          uuid: a1b2c3d4-0000-0000-0000-000000000003
-                          code: usb_charging
-                          label: 'Prises USB'
-                          icon: usb
-                    origin_stop:
-                      uuid: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21
-                      name: 'Cotonou · St Michel'
-                      city: Cotonou
-                      country: BJ
-                      stop_order: 1
-                      km_from_origin: 0
-                    destination_stop:
-                      uuid: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22
-                      name: 'Abidjan · Adjamé'
-                      city: Abidjan
-                      country: CI
-                      stop_order: 2
-                      km_from_origin: 1020
-                    available_seats_count: 41
-                    fare_preview:
-                      fare_uuid: 7d2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e40
-                      base_amount: 12500
-                      final_amount: 12500
-                      currency: XOF
-                      service_class_code: STD
-                      service_class_name: Standard
-                      service_class_description: 'Sièges inclinables, climatisation, prise USB.'
-                      is_quote: false
-                properties:
-                  data:
-                    type: object
-                    properties:
-                      uuid:
-                        type: string
-                        example: 00000000-0000-4000-8000-000000000000
-                      departure_date:
-                        type: string
-                        example: '2026-08-15'
-                      departure_time:
-                        type: string
-                        example: '07:30'
-                      estimated_arrival_at:
-                        type: string
-                        example: '2026-08-16T04:30:00.000000Z'
-                      status:
-                        type: string
-                        example: scheduled
-                      line:
-                        type: object
-                        properties:
-                          uuid:
-                            type: string
-                            example: 00000000-0000-4000-8000-000000000000
-                          code:
-                            type: string
-                            example: L1
-                          name:
-                            type: string
-                            example: 'Cotonou - Abidjan'
-                          type:
-                            type: string
-                            example: internationale
-                          countries_crossed:
-                            type: array
-                            example:
-                              - BJ
-                              - TG
-                              - GH
-                              - CI
-                            items:
-                              type: string
-                          distance_km:
-                            type: integer
-                            example: 1020
-                          estimated_duration_minutes:
-                            type: integer
-                            example: 1260
-                          status:
-                            type: string
-                            example: active
-                          stops:
-                            type: array
-                            example: []
-                      bus:
-                        type: object
-                        properties:
-                          uuid:
-                            type: string
-                            example: 00000000-0000-4000-8000-000000000000
-                          registration_number:
-                            type: string
-                            example: BJ-9254-RB
-                          brand:
-                            type: string
-                            example: KORA
-                          model:
-                            type: string
-                            example: 'Coach 55'
-                          seat_count:
-                            type: integer
-                            example: 55
-                          layout:
-                            type: array
-                            example:
-                              -
-                                type: standard
-                                codes:
-                                  - 1A
-                                  - 1B
-                                  - 1C
-                                  - 1D
-                              -
-                                type: standard
-                                codes:
-                                  - 2A
-                                  - 2B
-                                  - 2C
-                                  - 2D
-                            items:
-                              type: object
-                              properties:
-                                type:
-                                  type: string
-                                  example: standard
-                                codes:
-                                  type: array
-                                  example:
-                                    - 1A
-                                    - 1B
-                                    - 1C
-                                    - 1D
-                                  items:
-                                    type: string
-                          amenities:
-                            type: array
-                            example:
-                              -
-                                uuid: a1b2c3d4-0000-0000-0000-000000000001
-                                code: wifi
-                                label: 'Wi-Fi à bord'
-                                icon: wifi
-                              -
-                                uuid: a1b2c3d4-0000-0000-0000-000000000002
-                                code: air_conditioning
-                                label: Climatisation
-                                icon: snowflake
-                              -
-                                uuid: a1b2c3d4-0000-0000-0000-000000000003
-                                code: usb_charging
-                                label: 'Prises USB'
-                                icon: usb
-                            items:
-                              type: object
-                              properties:
-                                uuid:
-                                  type: string
-                                  example: 00000000-0000-4000-8000-000000000000
-                                code:
-                                  type: string
-                                  example: wifi
-                                label:
-                                  type: string
-                                  example: 'Wi-Fi à bord'
-                                icon:
-                                  type: string
-                                  example: wifi
-                      origin_stop:
-                        type: object
-                        properties:
-                          uuid:
-                            type: string
-                            example: 00000000-0000-4000-8000-000000000000
-                          name:
-                            type: string
-                            example: 'Cotonou · St Michel'
-                          city:
-                            type: string
-                            example: Cotonou
-                          country:
-                            type: string
-                            example: BJ
-                          stop_order:
-                            type: integer
-                            example: 1
-                          km_from_origin:
-                            type: integer
-                            example: 0
-                      destination_stop:
-                        type: object
-                        properties:
-                          uuid:
-                            type: string
-                            example: 00000000-0000-4000-8000-000000000000
-                          name:
-                            type: string
-                            example: 'Abidjan · Adjamé'
-                          city:
-                            type: string
-                            example: Abidjan
-                          country:
-                            type: string
-                            example: CI
-                          stop_order:
-                            type: integer
-                            example: 2
-                          km_from_origin:
-                            type: integer
-                            example: 1020
-                      available_seats_count:
-                        type: integer
-                        example: 41
-                      fare_preview:
-                        type: object
-                        properties:
-                          fare_uuid:
-                            type: string
-                            example: 00000000-0000-4000-8000-000000000000
-                          base_amount:
-                            type: integer
-                            example: 12500
-                          final_amount:
-                            type: integer
-                            example: 12500
-                          currency:
-                            type: string
-                            example: XOF
-                          service_class_code:
-                            type: string
-                            example: STD
-                          service_class_name:
-                            type: string
-                            example: Standard
-                          service_class_description:
-                            type: string
-                            example: 'Sièges inclinables, climatisation, prise USB.'
-                          is_quote:
-                            type: boolean
-                            example: false
-        404:
-          description: 'Departure not found'
-          content:
-            application/json:
-              schema:
-                type: object
-                example:
-                  message: 'No query results for model [App\Modules\Departures\Models\Departure].'
-                properties:
-                  message:
-                    type: string
-                    example: 'No query results for model [App\Modules\Departures\Models\Departure].'
-      tags:
-        - Bus
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                from:
-                  type: string
-                  description: 'Le champ value ne doit pas dépasser 120 caractères.'
-                  example: b
-                  nullable: true
-                to:
-                  type: string
-                  description: 'Le champ value ne doit pas dépasser 120 caractères.'
-                  example: 'n'
-                  nullable: true
-      security: []
-    parameters:
-      -
-        in: path
-        name: uuid
-        description: ''
-        example: 00000000-0000-4000-8000-000000000000
-        required: true
-        schema:
-          type: string
-      -
-        in: path
-        name: departure
-        description: 'Public UUID of the departure.'
-        example: 00000000-0000-4000-8000-000000000000
-        required: true
-        schema:
-          type: string
   '/api/v1/bus/departures/{departure_uuid}/seats':
     get:
       summary: 'List departure seats.'
@@ -1499,7 +559,7 @@ paths:
     get:
       summary: 'Search for multi-line itineraries (direct and with connections).'
       operationId: searchForMultiLineItinerariesdirectAndWithConnections
-      description: ''
+      description: "Returns rich leg data (line, bus with amenities, origin/destination stops\nwith city and country, available seats count, service class) so the\nmobile client can render search results without extra calls."
       parameters:
         -
           in: query
@@ -1531,9 +591,69 @@ paths:
             type: string
             description: 'Travel date (Y-m-d).'
             example: architecto
+        -
+          in: query
+          name: passenger_count
+          description: 'Number of passengers. Defaults to 1.'
+          example: 16
+          required: false
+          schema:
+            type: integer
+            description: 'Number of passengers. Defaults to 1.'
+            example: 16
+        -
+          in: query
+          name: sort
+          description: 'Sort key: departure_time, arrival_time, price, duration, connections. Defaults to connections.'
+          example: architecto
+          required: false
+          schema:
+            type: string
+            description: 'Sort key: departure_time, arrival_time, price, duration, connections. Defaults to connections.'
+            example: architecto
+        -
+          in: query
+          name: sort_direction
+          description: 'Sort direction: asc or desc. Defaults to asc.'
+          example: architecto
+          required: false
+          schema:
+            type: string
+            description: 'Sort direction: asc or desc. Defaults to asc.'
+            example: architecto
+        -
+          in: query
+          name: service_class_code
+          description: 'Filter by service class code (e.g. standard, confort).'
+          example: architecto
+          required: false
+          schema:
+            type: string
+            description: 'Filter by service class code (e.g. standard, confort).'
+            example: architecto
+        -
+          in: query
+          name: trip_type
+          description: 'Trip type: one_way or round_trip. Defaults to one_way. When round_trip, return_date is required and the response shape changes to { outbound: [...], inbound: [...] }.'
+          example: architecto
+          required: false
+          schema:
+            type: string
+            description: 'Trip type: one_way or round_trip. Defaults to one_way. When round_trip, return_date is required and the response shape changes to { outbound: [...], inbound: [...] }.'
+            example: architecto
+        -
+          in: query
+          name: return_date
+          description: 'Return date (Y-m-d). Required when trip_type is round_trip.'
+          example: architecto
+          required: false
+          schema:
+            type: string
+            description: 'Return date (Y-m-d). Required when trip_type is round_trip.'
+            example: architecto
       responses:
         200:
-          description: 'Itineraries found'
+          description: 'One-way itineraries'
           content:
             application/json:
               schema:
@@ -1541,61 +661,119 @@ paths:
                 example:
                   data:
                     -
-                      connections_count: 1
-                      total_amount: 27500
+                      connections_count: 0
+                      total_amount: 15600
                       currency: XOF
-                      departure_at: '2026-09-10T06:00:00Z'
-                      arrival_at: '2026-09-10T19:30:00Z'
+                      departure_at: '2026-09-07T13:00:00+00:00'
+                      arrival_at: '2026-09-07T23:00:00+00:00'
                       connection_margin_minutes: 45
                       legs:
                         -
                           leg_order: 1
-                          departure_uuid: dep-l1-uuid
-                          line_code: L1
-                          origin_stop_uuid: stop-malanville-uuid
-                          destination_stop_uuid: stop-cotonou-gare-uuid
-                          departure_at: '2026-09-10T06:00:00Z'
-                          arrival_at: '2026-09-10T13:00:00Z'
-                          amount: 15000
+                          departure_uuid: eaaf800b-90b6-4334-b840-7122d9ed65ac
+                          line:
+                            uuid: line-uuid
+                            code: L2
+                            name: 'Cotonou - Malanville'
+                            estimated_duration_minutes: 600
+                            is_international: false
+                          bus:
+                            uuid: bus-uuid
+                            registration_number: BJ-1234-AA
+                            brand: Toyota
+                            model: Coaster
+                            seat_count: 30
+                            amenities:
+                              -
+                                code: wifi
+                                label: Wi-Fi
+                                icon: wifi
+                          origin_stop:
+                            uuid: stop-uuid
+                            name: Cotonou
+                            city: Cotonou
+                            country: BJ
+                            stop_order: 1
+                          destination_stop:
+                            uuid: stop-uuid
+                            name: Malanville
+                            city: Malanville
+                            country: BJ
+                            stop_order: 7
+                          amount: 15600
+                          available_seats_count: 28
+                          service_class_code: standard
+                          service_class_name: Standard
+                          departure_at: '2026-09-07T13:00:00+00:00'
+                          arrival_at: '2026-09-07T23:00:00+00:00'
                 properties:
                   data:
                     type: array
                     example:
                       -
-                        connections_count: 1
-                        total_amount: 27500
+                        connections_count: 0
+                        total_amount: 15600
                         currency: XOF
-                        departure_at: '2026-09-10T06:00:00Z'
-                        arrival_at: '2026-09-10T19:30:00Z'
+                        departure_at: '2026-09-07T13:00:00+00:00'
+                        arrival_at: '2026-09-07T23:00:00+00:00'
                         connection_margin_minutes: 45
                         legs:
                           -
                             leg_order: 1
-                            departure_uuid: dep-l1-uuid
-                            line_code: L1
-                            origin_stop_uuid: stop-malanville-uuid
-                            destination_stop_uuid: stop-cotonou-gare-uuid
-                            departure_at: '2026-09-10T06:00:00Z'
-                            arrival_at: '2026-09-10T13:00:00Z'
-                            amount: 15000
+                            departure_uuid: eaaf800b-90b6-4334-b840-7122d9ed65ac
+                            line:
+                              uuid: line-uuid
+                              code: L2
+                              name: 'Cotonou - Malanville'
+                              estimated_duration_minutes: 600
+                              is_international: false
+                            bus:
+                              uuid: bus-uuid
+                              registration_number: BJ-1234-AA
+                              brand: Toyota
+                              model: Coaster
+                              seat_count: 30
+                              amenities:
+                                -
+                                  code: wifi
+                                  label: Wi-Fi
+                                  icon: wifi
+                            origin_stop:
+                              uuid: stop-uuid
+                              name: Cotonou
+                              city: Cotonou
+                              country: BJ
+                              stop_order: 1
+                            destination_stop:
+                              uuid: stop-uuid
+                              name: Malanville
+                              city: Malanville
+                              country: BJ
+                              stop_order: 7
+                            amount: 15600
+                            available_seats_count: 28
+                            service_class_code: standard
+                            service_class_name: Standard
+                            departure_at: '2026-09-07T13:00:00+00:00'
+                            arrival_at: '2026-09-07T23:00:00+00:00'
                     items:
                       type: object
                       properties:
                         connections_count:
                           type: integer
-                          example: 1
+                          example: 0
                         total_amount:
                           type: integer
-                          example: 27500
+                          example: 15600
                         currency:
                           type: string
                           example: XOF
                         departure_at:
                           type: string
-                          example: '2026-09-10T06:00:00Z'
+                          example: '2026-09-07T13:00:00+00:00'
                         arrival_at:
                           type: string
-                          example: '2026-09-10T19:30:00Z'
+                          example: '2026-09-07T23:00:00+00:00'
                         connection_margin_minutes:
                           type: integer
                           example: 45
@@ -1604,13 +782,42 @@ paths:
                           example:
                             -
                               leg_order: 1
-                              departure_uuid: dep-l1-uuid
-                              line_code: L1
-                              origin_stop_uuid: stop-malanville-uuid
-                              destination_stop_uuid: stop-cotonou-gare-uuid
-                              departure_at: '2026-09-10T06:00:00Z'
-                              arrival_at: '2026-09-10T13:00:00Z'
-                              amount: 15000
+                              departure_uuid: eaaf800b-90b6-4334-b840-7122d9ed65ac
+                              line:
+                                uuid: line-uuid
+                                code: L2
+                                name: 'Cotonou - Malanville'
+                                estimated_duration_minutes: 600
+                                is_international: false
+                              bus:
+                                uuid: bus-uuid
+                                registration_number: BJ-1234-AA
+                                brand: Toyota
+                                model: Coaster
+                                seat_count: 30
+                                amenities:
+                                  -
+                                    code: wifi
+                                    label: Wi-Fi
+                                    icon: wifi
+                              origin_stop:
+                                uuid: stop-uuid
+                                name: Cotonou
+                                city: Cotonou
+                                country: BJ
+                                stop_order: 1
+                              destination_stop:
+                                uuid: stop-uuid
+                                name: Malanville
+                                city: Malanville
+                                country: BJ
+                                stop_order: 7
+                              amount: 15600
+                              available_seats_count: 28
+                              service_class_code: standard
+                              service_class_name: Standard
+                              departure_at: '2026-09-07T13:00:00+00:00'
+                              arrival_at: '2026-09-07T23:00:00+00:00'
                           items:
                             type: object
                             properties:
@@ -1619,25 +826,104 @@ paths:
                                 example: 1
                               departure_uuid:
                                 type: string
-                                example: dep-l1-uuid
-                              line_code:
-                                type: string
-                                example: L1
-                              origin_stop_uuid:
-                                type: string
-                                example: stop-malanville-uuid
-                              destination_stop_uuid:
-                                type: string
-                                example: stop-cotonou-gare-uuid
-                              departure_at:
-                                type: string
-                                example: '2026-09-10T06:00:00Z'
-                              arrival_at:
-                                type: string
-                                example: '2026-09-10T13:00:00Z'
+                                example: 00000000-0000-4000-8000-000000000000
+                              line:
+                                type: object
+                                properties:
+                                  uuid:
+                                    type: string
+                                    example: line-uuid
+                                  code:
+                                    type: string
+                                    example: L2
+                                  name:
+                                    type: string
+                                    example: 'Cotonou - Malanville'
+                                  estimated_duration_minutes:
+                                    type: integer
+                                    example: 600
+                                  is_international:
+                                    type: boolean
+                                    example: false
+                              bus:
+                                type: object
+                                properties:
+                                  uuid:
+                                    type: string
+                                    example: bus-uuid
+                                  registration_number:
+                                    type: string
+                                    example: BJ-1234-AA
+                                  brand:
+                                    type: string
+                                    example: Toyota
+                                  model:
+                                    type: string
+                                    example: Coaster
+                                  seat_count:
+                                    type: integer
+                                    example: 30
+                                  amenities:
+                                    type: array
+                                    example:
+                                      - { code: wifi, label: Wi-Fi, icon: wifi }
+                                    items:
+                                      type: object
+                                      properties: { code: { type: string, example: wifi }, label: { type: string, example: Wi-Fi }, icon: { type: string, example: wifi } }
+                              origin_stop:
+                                type: object
+                                properties:
+                                  uuid:
+                                    type: string
+                                    example: stop-uuid
+                                  name:
+                                    type: string
+                                    example: Cotonou
+                                  city:
+                                    type: string
+                                    example: Cotonou
+                                  country:
+                                    type: string
+                                    example: BJ
+                                  stop_order:
+                                    type: integer
+                                    example: 1
+                              destination_stop:
+                                type: object
+                                properties:
+                                  uuid:
+                                    type: string
+                                    example: stop-uuid
+                                  name:
+                                    type: string
+                                    example: Malanville
+                                  city:
+                                    type: string
+                                    example: Malanville
+                                  country:
+                                    type: string
+                                    example: BJ
+                                  stop_order:
+                                    type: integer
+                                    example: 7
                               amount:
                                 type: integer
-                                example: 15000
+                                example: 15600
+                              available_seats_count:
+                                type: integer
+                                example: 28
+                              service_class_code:
+                                type: string
+                                example: standard
+                              service_class_name:
+                                type: string
+                                example: Standard
+                              departure_at:
+                                type: string
+                                example: '2026-09-07T13:00:00+00:00'
+                              arrival_at:
+                                type: string
+                                example: '2026-09-07T23:00:00+00:00'
       tags:
         - Bus
       requestBody:
@@ -1658,384 +944,53 @@ paths:
                 date:
                   type: string
                   description: 'Must be a valid date in the format <code>Y-m-d</code>.'
-                  example: '2026-09-02'
+                  example: '2026-09-07'
                 passenger_count:
                   type: integer
                   description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 10.'
                   example: 7
+                sort:
+                  type: string
+                  description: ''
+                  example: departure_time
+                  enum:
+                    - departure_time
+                    - arrival_time
+                    - price
+                    - duration
+                    - connections
+                sort_direction:
+                  type: string
+                  description: ''
+                  example: asc
+                  enum:
+                    - asc
+                    - desc
+                service_class_code:
+                  type: string
+                  description: 'Must match an existing stored value.'
+                  example: architecto
+                trip_type:
+                  type: string
+                  description: ''
+                  example: one_way
+                  enum:
+                    - one_way
+                    - round_trip
+                return_date:
+                  type: string
+                  description: 'Must be a valid date in the format <code>Y-m-d</code>.'
+                  example: '2026-09-07'
               required:
                 - from_physical_stop_uuid
                 - to_physical_stop_uuid
                 - date
       security: []
-  /api/v1/bus/quotes:
-    post:
-      summary: 'Create a fixed price quote.'
-      operationId: createAFixedPriceQuote
-      description: 'Requires a Sanctum bearer token.'
-      parameters: []
-      responses:
-        201:
-          description: 'Quote created'
-          content:
-            application/json:
-              schema:
-                type: object
-                example:
-                  data:
-                    uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d
-                    departure_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
-                    base_amount: 12500
-                    coefficient: 1.0
-                    final_amount: 12500
-                    currency: XOF
-                    passenger_count: 1
-                    total_amount: 12500
-                    expires_at: '2026-08-20T08:10:00Z'
-                    snapshot:
-                      fare_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6f
-                      line_code: L2
-                      origin_stop: 'Cotonou · St Michel'
-                      destination_stop: Malanville
-                      service_class: Standard
-                      passenger_count: 1
-                      total_amount: 12500
-                properties:
-                  data:
-                    type: object
-                    properties:
-                      uuid:
-                        type: string
-                        example: 00000000-0000-4000-8000-000000000000
-                      departure_uuid:
-                        type: string
-                        example: 00000000-0000-4000-8000-000000000000
-                      base_amount:
-                        type: integer
-                        example: 12500
-                      coefficient:
-                        type: number
-                        example: 1.0
-                      final_amount:
-                        type: integer
-                        example: 12500
-                      currency:
-                        type: string
-                        example: XOF
-                      passenger_count:
-                        type: integer
-                        example: 1
-                      total_amount:
-                        type: integer
-                        example: 12500
-                      expires_at:
-                        type: string
-                        example: '2026-08-20T08:10:00Z'
-                      snapshot:
-                        type: object
-                        properties:
-                          fare_uuid:
-                            type: string
-                            example: 00000000-0000-4000-8000-000000000000
-                          line_code:
-                            type: string
-                            example: L2
-                          origin_stop:
-                            type: string
-                            example: 'Cotonou · St Michel'
-                          destination_stop:
-                            type: string
-                            example: Malanville
-                          service_class:
-                            type: string
-                            example: Standard
-                          passenger_count:
-                            type: integer
-                            example: 1
-                          total_amount:
-                            type: integer
-                            example: 12500
-      tags:
-        - Bus
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                departure_uuid:
-                  type: string
-                  description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
-                  example: 00000000-0000-4000-8000-000000000000
-                origin_stop_uuid:
-                  type: string
-                  description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
-                  example: 00000000-0000-4000-8000-000000000000
-                destination_stop_uuid:
-                  type: string
-                  description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
-                  example: 00000000-0000-4000-8000-000000000000
-                service_class_uuid:
-                  type: string
-                  description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
-                  example: 00000000-0000-4000-8000-000000000000
-                  nullable: true
-                passenger_count:
-                  type: integer
-                  description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 10.'
-                  example: 6
-                  nullable: true
-              required:
-                - departure_uuid
-                - origin_stop_uuid
-                - destination_stop_uuid
-      security:
-        - sanctum: []
-  /api/v1/bus/holds:
-    post:
-      summary: 'Hold seats for 15 minutes.'
-      operationId: holdSeatsFor15Minutes
-      description: 'Requires a Sanctum bearer token.'
-      parameters: []
-      responses:
-        201:
-          description: 'Seats held'
-          content:
-            application/json:
-              schema:
-                type: object
-                example:
-                  data:
-                    uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
-                    status: held
-                    expires_at: '2026-08-20T08:15:00Z'
-                    total_amount: 12500
-                    currency: XOF
-                    channel: mobile
-                    departure_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
-                    segments:
-                      -
-                        uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb71
-                        seat_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb72
-                        seat_code: 4A
-                        origin_stop: 'Cotonou · St Michel'
-                        destination_stop: Malanville
-                        status: held
-                properties:
-                  data:
-                    type: object
-                    properties:
-                      uuid:
-                        type: string
-                        example: 00000000-0000-4000-8000-000000000000
-                      status:
-                        type: string
-                        example: held
-                      expires_at:
-                        type: string
-                        example: '2026-08-20T08:15:00Z'
-                      total_amount:
-                        type: integer
-                        example: 12500
-                      currency:
-                        type: string
-                        example: XOF
-                      channel:
-                        type: string
-                        example: mobile
-                      departure_uuid:
-                        type: string
-                        example: 00000000-0000-4000-8000-000000000000
-                      segments:
-                        type: array
-                        example:
-                          -
-                            uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb71
-                            seat_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb72
-                            seat_code: 4A
-                            origin_stop: 'Cotonou · St Michel'
-                            destination_stop: Malanville
-                            status: held
-                        items:
-                          type: object
-                          properties:
-                            uuid:
-                              type: string
-                              example: 00000000-0000-4000-8000-000000000000
-                            seat_uuid:
-                              type: string
-                              example: 00000000-0000-4000-8000-000000000000
-                            seat_code:
-                              type: string
-                              example: 4A
-                            origin_stop:
-                              type: string
-                              example: 'Cotonou · St Michel'
-                            destination_stop:
-                              type: string
-                              example: Malanville
-                            status:
-                              type: string
-                              example: held
-        409:
-          description: 'Seat unavailable'
-          content:
-            application/json:
-              schema:
-                type: object
-                example:
-                  message: "Le siège 4A n'est plus disponible sur ce segment."
-                  conflicting_seat_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb72
-                  seat_code: 4A
-                properties:
-                  message:
-                    type: string
-                    example: "Le siège 4A n'est plus disponible sur ce segment."
-                  conflicting_seat_uuid:
-                    type: string
-                    example: 00000000-0000-4000-8000-000000000000
-                  seat_code:
-                    type: string
-                    example: 4A
-      tags:
-        - Bus
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                departure_uuid:
-                  type: string
-                  description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
-                  example: 00000000-0000-4000-8000-000000000000
-                origin_stop_uuid:
-                  type: string
-                  description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
-                  example: 00000000-0000-4000-8000-000000000000
-                destination_stop_uuid:
-                  type: string
-                  description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
-                  example: 00000000-0000-4000-8000-000000000000
-                price_quote_uuid:
-                  type: string
-                  description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
-                  example: 00000000-0000-4000-8000-000000000000
-                seats:
-                  type: array
-                  description: 'Le champ value doit contenir au moins 1 éléments.'
-                  example:
-                    - []
-                  items:
-                    type: object
-                    properties:
-                      seat_uuid:
-                        type: string
-                        description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
-                        example: 00000000-0000-4000-8000-000000000000
-                      passenger_index:
-                        type: integer
-                        description: ''
-                        example: 16
-                        nullable: true
-                    required:
-                      - seat_uuid
-                idempotency_key:
-                  type: string
-                  description: 'Le champ value ne doit pas dépasser 100 caractères.'
-                  example: b
-                payer:
-                  type: object
-                  description: ''
-                  example: null
-                  properties:
-                    type:
-                      type: string
-                      description: 'This field is required when <code>payer</code> is present.'
-                      example: personal
-                      enum:
-                        - personal
-                        - company
-                    user_uuid:
-                      type: string
-                      description: 'Le champ value doit être un UUID valide.'
-                      example: 00000000-0000-4000-8000-000000000000
-                      nullable: true
-                    company_account_uuid:
-                      type: string
-                      description: 'This field is required when <code>payer.type</code> is <code>company</code>. Le champ value doit être un UUID valide. Must match an existing stored value.'
-                      example: 00000000-0000-4000-8000-000000000000
-              required:
-                - departure_uuid
-                - origin_stop_uuid
-                - destination_stop_uuid
-                - price_quote_uuid
-                - seats
-                - idempotency_key
-  '/api/v1/bus/holds/{reservation_uuid}':
-    delete:
-      summary: 'Release a seat hold.'
-      operationId: releaseASeatHold
-      description: "Cancels a held reservation and frees its seats immediately, before the\n15-minute hold expiry. Only the user who created the hold may release it.\nReleasing an already-released or expired hold is a no-op and still\nreturns 204.\n\nRequires a Sanctum bearer token."
-      parameters: []
-      responses:
-        204:
-          description: 'Hold released'
-          content:
-            text/plain:
-              schema:
-                type: string
-                example: ''
-        403:
-          description: 'Reservation belongs to another user'
-          content:
-            application/json:
-              schema:
-                type: object
-                example:
-                  message: 'This action is unauthorized.'
-                properties:
-                  message:
-                    type: string
-                    example: 'This action is unauthorized.'
-        404:
-          description: 'Reservation not found'
-          content:
-            application/json:
-              schema:
-                type: object
-                example:
-                  message: 'No query results for model [App\Modules\Booking\Models\Reservation].'
-                properties:
-                  message:
-                    type: string
-                    example: 'No query results for model [App\Modules\Booking\Models\Reservation].'
-      tags:
-        - Bus
-    parameters:
-      -
-        in: path
-        name: reservation_uuid
-        description: ''
-        example: 00000000-0000-4000-8000-000000000000
-        required: true
-        schema:
-          type: string
-      -
-        in: path
-        name: reservation
-        description: 'Public UUID of the held reservation.'
-        example: 00000000-0000-4000-8000-000000000000
-        required: true
-        schema:
-          type: string
   /api/v1/bus/itinerary-quotes:
     post:
       summary: 'Calculate an aggregated quote for a multi-leg itinerary.'
       operationId: calculateAnAggregatedQuoteForAMultiLegItinerary
-      description: ''
+      description: 'Requires a Sanctum bearer token.'
       parameters: []
       responses:
         200:
@@ -2045,43 +1000,102 @@ paths:
               schema:
                 type: object
                 example:
-                  total_amount: 27500
-                  currency: XOF
-                  expires_at: '2026-09-10T08:00:00Z'
-                  legs:
-                    -
-                      leg_order: 1
-                      quote_uuid: quote-uuid-1
-                      final_amount: 15000
-                properties:
-                  total_amount:
-                    type: integer
-                    example: 27500
-                  currency:
-                    type: string
-                    example: XOF
-                  expires_at:
-                    type: string
-                    example: '2026-09-10T08:00:00Z'
-                  legs:
-                    type: array
-                    example:
+                  data:
+                    itinerary_quote_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
+                    trip_type: round_trip
+                    total_amount: 27500
+                    currency: XOF
+                    expires_at: '2026-09-10T08:00:00Z'
+                    legs:
                       -
                         leg_order: 1
+                        direction: outbound
                         quote_uuid: quote-uuid-1
                         final_amount: 15000
-                    items:
-                      type: object
-                      properties:
-                        leg_order:
-                          type: integer
-                          example: 1
-                        quote_uuid:
-                          type: string
-                          example: quote-uuid-1
-                        final_amount:
-                          type: integer
-                          example: 15000
+                      -
+                        leg_order: 2
+                        direction: inbound
+                        quote_uuid: quote-uuid-2
+                        final_amount: 12500
+                    pricing:
+                      subtotal_amount: 27500
+                      dynamic_adjustment_amount: 0
+                      group_discount: {}
+                      passenger_allocations:
+                        - 27500
+                      total_amount: 27500
+                      currency: XOF
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      itinerary_quote_uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      trip_type:
+                        type: string
+                        example: round_trip
+                      total_amount:
+                        type: integer
+                        example: 27500
+                      currency:
+                        type: string
+                        example: XOF
+                      expires_at:
+                        type: string
+                        example: '2026-09-10T08:00:00Z'
+                      legs:
+                        type: array
+                        example:
+                          -
+                            leg_order: 1
+                            direction: outbound
+                            quote_uuid: quote-uuid-1
+                            final_amount: 15000
+                          -
+                            leg_order: 2
+                            direction: inbound
+                            quote_uuid: quote-uuid-2
+                            final_amount: 12500
+                        items:
+                          type: object
+                          properties:
+                            leg_order:
+                              type: integer
+                              example: 1
+                            direction:
+                              type: string
+                              example: outbound
+                            quote_uuid:
+                              type: string
+                              example: quote-uuid-1
+                            final_amount:
+                              type: integer
+                              example: 15000
+                      pricing:
+                        type: object
+                        properties:
+                          subtotal_amount:
+                            type: integer
+                            example: 27500
+                          dynamic_adjustment_amount:
+                            type: integer
+                            example: 0
+                          group_discount:
+                            type: object
+                            properties: {}
+                          passenger_allocations:
+                            type: array
+                            example:
+                              - 27500
+                            items:
+                              type: integer
+                          total_amount:
+                            type: integer
+                            example: 27500
+                          currency:
+                            type: string
+                            example: XOF
       tags:
         - Bus
       requestBody:
@@ -2093,43 +1107,22 @@ paths:
               properties:
                 passenger_count:
                   type: integer
-                  description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 10.'
-                  example: 6
+                  description: 'Number of passengers. Defaults to 1.'
+                  example: 16
                 legs:
                   type: array
-                  description: 'Le champ value doit contenir au moins 1 éléments. Le champ value ne doit pas contenir plus de 3 éléments.'
+                  description: 'Ordered itinerary legs, including a direct itinerary with one leg. For a round trip, include outbound legs first, then inbound legs.'
                   example:
-                    - []
+                    - architecto
                   items:
-                    type: object
-                    properties:
-                      departure_uuid:
-                        type: string
-                        description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
-                        example: 00000000-0000-4000-8000-000000000000
-                      origin_stop_uuid:
-                        type: string
-                        description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
-                        example: 00000000-0000-4000-8000-000000000000
-                      destination_stop_uuid:
-                        type: string
-                        description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
-                        example: 00000000-0000-4000-8000-000000000000
-                      leg_order:
-                        type: integer
-                        description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 3.'
-                        example: 1
-                    required:
-                      - departure_uuid
-                      - origin_stop_uuid
-                      - destination_stop_uuid
+                    type: string
               required:
                 - legs
   /api/v1/bus/itinerary-holds:
     post:
       summary: 'Create an atomic seat hold for a multi-leg itinerary.'
       operationId: createAnAtomicSeatHoldForAMultiLegItinerary
-      description: ''
+      description: 'Requires a Sanctum bearer token.'
       parameters: []
       responses:
         201:
@@ -2163,16 +1156,16 @@ paths:
               properties:
                 itinerary_quote_uuid:
                   type: string
-                  description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
+                  description: 'Immutable itinerary quote UUID.'
                   example: 00000000-0000-4000-8000-000000000000
                 idempotency_key:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 100 caractères.'
-                  example: g
+                  description: 'Client-generated key for safe retries.'
+                  example: architecto
                 payer:
                   type: object
-                  description: ''
-                  example: null
+                  description: 'Optional personal or company payer context.'
+                  example: []
                   properties:
                     type:
                       type: string
@@ -2192,49 +1185,157 @@ paths:
                       example: 00000000-0000-4000-8000-000000000000
                 passengers:
                   type: array
-                  description: 'Le champ value doit contenir au moins 1 éléments. Le champ value ne doit pas contenir plus de 10 éléments.'
+                  description: 'Passenger-to-leg seat assignment matrix.'
                   example:
-                    - []
+                    - architecto
                   items:
-                    type: object
-                    properties:
-                      passenger_index:
-                        type: integer
-                        description: 'Le champ value doit être au moins 0. Le champ value ne doit pas être supérieur à 9.'
-                        example: 7
-                      seat_assignments:
-                        type: array
-                        description: 'Le champ value doit contenir au moins 1 éléments. Le champ value ne doit pas contenir plus de 3 éléments.'
-                        example:
-                          - []
-                        items:
-                          type: object
-                          properties:
-                            leg_order:
-                              type: integer
-                              description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 3.'
-                              example: 1
-                            seat_uuid:
-                              type: string
-                              description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
-                              example: 00000000-0000-4000-8000-000000000000
-                          required:
-                            - leg_order
-                            - seat_uuid
-                    required:
-                      - passenger_index
-                      - seat_assignments
+                    type: string
               required:
                 - itinerary_quote_uuid
                 - idempotency_key
                 - passengers
-      security:
-        - sanctum: []
+  '/api/v1/bookings/{reservation_uuid}':
+    get:
+      summary: 'Retrieve a reservation and its current booking state.'
+      operationId: retrieveAReservationAndItsCurrentBookingState
+      description: "This endpoint is safe to call after a mobile session is restored. It returns the\nserver-side reservation state instead of requiring the client to rebuild it locally."
+      parameters: []
+      responses:
+        200:
+          description: 'Reservation details'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
+                    status: held
+                    expires_at: '2026-08-20T08:15:00Z'
+                    total_amount: 25000
+                    currency: XOF
+                    channel: mobile
+                    departure_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                    price_quote_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6f
+                    passenger_count: 2
+                    segments: []
+                    passengers: []
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      status:
+                        type: string
+                        example: held
+                      expires_at:
+                        type: string
+                        example: '2026-08-20T08:15:00Z'
+                      total_amount:
+                        type: integer
+                        example: 25000
+                      currency:
+                        type: string
+                        example: XOF
+                      channel:
+                        type: string
+                        example: mobile
+                      departure_uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      price_quote_uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      passenger_count:
+                        type: integer
+                        example: 2
+                      segments:
+                        type: array
+                        example: []
+                      passengers:
+                        type: array
+                        example: []
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'This action is unauthorized.'
+                properties:
+                  message:
+                    type: string
+                    example: 'This action is unauthorized.'
+      tags:
+        - Bus
+    delete:
+      summary: 'Release a held reservation and make its seats available again.'
+      operationId: releaseAHeldReservationAndMakeItsSeatsAvailableAgain
+      description: "The operation is explicit and idempotent for a reservation that is no longer held.\nIt never releases a paid or ticketed reservation."
+      parameters: []
+      responses:
+        204:
+          description: 'Hold released'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ''
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'This action is unauthorized.'
+                properties:
+                  message:
+                    type: string
+                    example: 'This action is unauthorized.'
+      tags:
+        - Bus
+    parameters:
+      -
+        in: path
+        name: reservation_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
   '/api/v1/bookings/{reservation_uuid}/passengers':
     post:
       summary: 'Store passenger details for a reservation.'
       operationId: storePassengerDetailsForAReservation
-      description: ''
+      description: 'Requires a Sanctum bearer token.'
       parameters: []
       responses:
         200:
@@ -2255,6 +1356,7 @@ paths:
                     passengers:
                       -
                         uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb73
+                        passenger_index: 0
                         first_name: Aïcha
                         last_name: HOUNKPÈ
                         phone: '+2290197421860'
@@ -2293,6 +1395,7 @@ paths:
                         example:
                           -
                             uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb73
+                            passenger_index: 0
                             first_name: Aïcha
                             last_name: HOUNKPÈ
                             phone: '+2290197421860'
@@ -2307,6 +1410,9 @@ paths:
                             uuid:
                               type: string
                               example: 00000000-0000-4000-8000-000000000000
+                            passenger_index:
+                              type: integer
+                              example: 0
                             first_name:
                               type: string
                               example: Aïcha
@@ -2342,71 +1448,13 @@ paths:
               properties:
                 passengers:
                   type: array
-                  description: 'Le champ value doit contenir au moins 1 éléments.'
+                  description: 'Passenger identity data, one item per passenger.'
                   example:
-                    - []
+                    - architecto
                   items:
-                    type: object
-                    properties:
-                      first_name:
-                        type: string
-                        description: 'Le champ value ne doit pas dépasser 120 caractères.'
-                        example: b
-                      last_name:
-                        type: string
-                        description: 'Le champ value ne doit pas dépasser 120 caractères.'
-                        example: 'n'
-                      phone:
-                        type: string
-                        description: 'Le champ value ne doit pas dépasser 32 caractères.'
-                        example: g
-                        nullable: true
-                      email:
-                        type: string
-                        description: 'Le champ value doit être une adresse e-mail valide. Le champ value ne doit pas dépasser 255 caractères.'
-                        example: rowan.gulgowski@example.com
-                        nullable: true
-                      document_type:
-                        type: string
-                        description: ''
-                        example: national_id
-                        enum:
-                          - national_id
-                          - biometric_card
-                          - passport
-                          - consular_card
-                        nullable: true
-                      document_number:
-                        type: string
-                        description: 'Le champ value ne doit pas dépasser 64 caractères.'
-                        example: d
-                        nullable: true
-                      nationality:
-                        type: string
-                        description: 'Le champ value doit contenir 2 caractères.'
-                        example: lj
-                        nullable: true
-                      birth_date:
-                        type: string
-                        description: 'Must be a valid date in the format <code>Y-m-d</code>.'
-                        example: '2026-09-02'
-                        nullable: true
-                      passenger_index:
-                        type: integer
-                        description: 'Le champ value doit être au moins 0. Le champ value ne doit pas être supérieur à 9.'
-                        example: 2
-                        nullable: true
-                      seat_uuid:
-                        type: string
-                        description: 'Le champ value doit être un UUID valide.'
-                        example: 00000000-0000-4000-8000-000000000000
-                        nullable: true
-                    required:
-                      - first_name
-                      - last_name
+                    type: string
               required:
                 - passengers
-      security: []
     parameters:
       -
         in: path
@@ -3987,7 +3035,7 @@ paths:
                 birth_date:
                   type: string
                   description: 'Le champ value doit être une date valide. Le champ value doit être une date antérieure à <code>today</code>.'
-                  example: '2022-09-27'
+                  example: '2022-10-02'
                   nullable: true
               required:
                 - name
@@ -5238,28 +4286,25 @@ paths:
               properties:
                 status:
                   type: string
-                  description: ''
+                  description: 'Rule status.'
                   example: active
-                  enum:
-                    - active
-                    - inactive
                 passenger_threshold:
                   type: integer
-                  description: 'Le champ value doit être au moins 1.'
-                  example: 16
+                  description: 'Minimum passenger count for the rule.'
+                  example: 5
                 percentage:
                   type: number
-                  description: 'Le champ value doit être au moins 0. Le champ value ne doit pas être supérieur à 100.'
-                  example: 22
+                  description: 'Discount percentage.'
+                  example: 10.0
                 starts_at:
                   type: string
-                  description: 'Le champ value doit être une date valide.'
-                  example: '2026-09-02T15:34:20'
+                  description: 'Start of the validity period.'
+                  example: '2026-09-01T00:00:00+00:00'
                   nullable: true
                 ends_at:
                   type: string
-                  description: 'Le champ value doit être une date valide. Le champ value doit être une date postérieure ou égale à <code>starts_at</code>.'
-                  example: '2052-09-25'
+                  description: 'End of the validity period.'
+                  example: '2026-12-31T00:00:00+00:00'
                   nullable: true
               required:
                 - status
@@ -5367,28 +4412,25 @@ paths:
               properties:
                 status:
                   type: string
-                  description: ''
+                  description: 'Rule status.'
                   example: active
-                  enum:
-                    - active
-                    - inactive
                 passenger_threshold:
                   type: integer
-                  description: 'Le champ value doit être au moins 1.'
-                  example: 16
+                  description: 'Minimum passenger count for the rule.'
+                  example: 8
                 percentage:
                   type: number
-                  description: 'Le champ value doit être au moins 0. Le champ value ne doit pas être supérieur à 100.'
-                  example: 22
+                  description: 'Discount percentage.'
+                  example: 15.0
                 starts_at:
                   type: string
-                  description: 'Le champ value doit être une date valide.'
-                  example: '2026-09-02T15:34:20'
+                  description: 'Start of the validity period.'
+                  example: '2026-09-01T00:00:00+00:00'
                   nullable: true
                 ends_at:
                   type: string
-                  description: 'Le champ value doit être une date valide. Le champ value doit être une date postérieure ou égale à <code>starts_at</code>.'
-                  example: '2052-09-25'
+                  description: 'End of the validity period.'
+                  example: '2026-12-31T00:00:00+00:00'
                   nullable: true
               required:
                 - status
@@ -5682,7 +4724,7 @@ paths:
     get:
       summary: 'List available payment methods and providers.'
       operationId: listAvailablePaymentMethodsAndProviders
-      description: "Returns the catalog of payment methods configured for the mobile app\n(MTN MoMo, FedaPay, cash, etc.)."
+      description: "Returns the catalog of payment methods and providers configured for the mobile app.\n\nRequires a Sanctum bearer token."
       parameters: []
       responses:
         200:
@@ -5693,45 +4735,133 @@ paths:
                 type: object
                 example:
                   data:
-                    -
-                      method: mobile_money
-                      provider: mtn_momo
-                      label: 'MTN Mobile Money'
-                      enabled: true
-                    -
-                      method: card
-                      provider: fedapay
-                      label: 'Carte bancaire (FedaPay)'
-                      enabled: true
+                    country: BJ
+                    currency: XOF
+                    methods:
+                      -
+                        code: mobile_money
+                        label: 'Mobile Money'
+                        enabled: true
+                        providers:
+                          -
+                            code: mtn_momo
+                            label: 'MTN MoMo'
+                            enabled: true
+                            networks:
+                              - mtn_momo
+                            requires:
+                              - phone
+                              - mobile_money_network
+                            interaction: push
+                            polling_interval_seconds: 10
+                            verification: server_verify
+                      -
+                        code: wallet
+                        label: 'Wallet KORA BUS'
+                        enabled: false
+                        availability: disabled_until_wallet_ledger
+                        providers: []
+                        requires:
+                          - wallet_amount
                 properties:
                   data:
-                    type: array
-                    example:
-                      -
-                        method: mobile_money
-                        provider: mtn_momo
-                        label: 'MTN Mobile Money'
-                        enabled: true
-                      -
-                        method: card
-                        provider: fedapay
-                        label: 'Carte bancaire (FedaPay)'
-                        enabled: true
-                    items:
-                      type: object
-                      properties:
-                        method:
-                          type: string
-                          example: mobile_money
-                        provider:
-                          type: string
-                          example: mtn_momo
-                        label:
-                          type: string
-                          example: 'MTN Mobile Money'
-                        enabled:
-                          type: boolean
-                          example: false
+                    type: object
+                    properties:
+                      country:
+                        type: string
+                        example: BJ
+                      currency:
+                        type: string
+                        example: XOF
+                      methods:
+                        type: array
+                        example:
+                          -
+                            code: mobile_money
+                            label: 'Mobile Money'
+                            enabled: true
+                            providers:
+                              -
+                                code: mtn_momo
+                                label: 'MTN MoMo'
+                                enabled: true
+                                networks:
+                                  - mtn_momo
+                                requires:
+                                  - phone
+                                  - mobile_money_network
+                                interaction: push
+                                polling_interval_seconds: 10
+                                verification: server_verify
+                          -
+                            code: wallet
+                            label: 'Wallet KORA BUS'
+                            enabled: false
+                            availability: disabled_until_wallet_ledger
+                            providers: []
+                            requires:
+                              - wallet_amount
+                        items:
+                          type: object
+                          properties:
+                            code:
+                              type: string
+                              example: mobile_money
+                            label:
+                              type: string
+                              example: 'Mobile Money'
+                            enabled:
+                              type: boolean
+                              example: false
+                            providers:
+                              type: array
+                              example:
+                                -
+                                  code: mtn_momo
+                                  label: 'MTN MoMo'
+                                  enabled: true
+                                  networks:
+                                    - mtn_momo
+                                  requires:
+                                    - phone
+                                    - mobile_money_network
+                                  interaction: push
+                                  polling_interval_seconds: 10
+                                  verification: server_verify
+                              items:
+                                type: object
+                                properties:
+                                  code:
+                                    type: string
+                                    example: mtn_momo
+                                  label:
+                                    type: string
+                                    example: 'MTN MoMo'
+                                  enabled:
+                                    type: boolean
+                                    example: false
+                                  networks:
+                                    type: array
+                                    example:
+                                      - mtn_momo
+                                    items:
+                                      type: string
+                                  requires:
+                                    type: array
+                                    example:
+                                      - phone
+                                      - mobile_money_network
+                                    items:
+                                      type: string
+                                  interaction:
+                                    type: string
+                                    example: push
+                                  polling_interval_seconds:
+                                    type: integer
+                                    example: 10
+                                  verification:
+                                    type: string
+                                    example: server_verify
         401:
           description: Unauthenticated
           content:
@@ -5750,7 +4880,7 @@ paths:
     post:
       summary: 'Initiate a payment for a held reservation.'
       operationId: initiateAPaymentForAHeldReservation
-      description: ''
+      description: 'Requires a Sanctum bearer token.'
       parameters: []
       responses:
         201:
@@ -5765,8 +4895,17 @@ paths:
                     status: pending
                     amount: 12500
                     currency: XOF
+                    method: mobile_money
                     provider: mtn_momo
+                    provider_currency: EUR
+                    provider_amount: 12500
                     provider_reference: MM-98270341
+                    provider_transaction_id: null
+                    mobile_money_network: mtn_momo
+                    payer_phone: '+2290197421860'
+                    confirmed_at: null
+                    last_verified_at: null
+                    next_action: verify
                     expires_at: '2026-08-20T08:15:00Z'
                     polling_interval_seconds: 10
                 properties:
@@ -5785,12 +4924,42 @@ paths:
                       currency:
                         type: string
                         example: XOF
+                      method:
+                        type: string
+                        example: mobile_money
                       provider:
                         type: string
                         example: mtn_momo
+                      provider_currency:
+                        type: string
+                        example: EUR
+                      provider_amount:
+                        type: integer
+                        example: 12500
                       provider_reference:
                         type: string
                         example: MM-98270341
+                      provider_transaction_id:
+                        type: string
+                        example: null
+                        nullable: true
+                      mobile_money_network:
+                        type: string
+                        example: mtn_momo
+                      payer_phone:
+                        type: string
+                        example: '+2290197421860'
+                      confirmed_at:
+                        type: string
+                        example: null
+                        nullable: true
+                      last_verified_at:
+                        type: string
+                        example: null
+                        nullable: true
+                      next_action:
+                        type: string
+                        example: verify
                       expires_at:
                         type: string
                         example: '2026-08-20T08:15:00Z'
@@ -5808,48 +4977,50 @@ paths:
               properties:
                 reservation_uuid:
                   type: string
-                  description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
+                  description: 'UUID of the held reservation.'
                   example: 00000000-0000-4000-8000-000000000000
                 method:
                   type: string
-                  description: ''
-                  example: mobile_money
-                  enum:
-                    - mobile_money
-                    - company_credit
+                  description: 'Payment method: `mobile_money` or `wallet`. Wallet is currently disabled.'
+                  example: architecto
                 provider:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 64 caractères.'
-                  example: g
+                  description: 'Provider from the server catalog: `fedapay` or `mtn_momo`. Required for `mobile_money`.'
+                  example: architecto
+                  nullable: true
                 idempotency_key:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 255 caractères.'
-                  example: z
+                  description: 'Client-generated key, scoped to the reservation and request payload.'
+                  example: architecto
                 phone:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 32 caractères.'
-                  example: m
+                  description: 'Mobile Money phone number. Required for `mobile_money`.'
+                  example: architecto
                   nullable: true
                 mobile_money_network:
                   type: string
-                  description: ''
-                  example: mtn_momo
-                  enum:
-                    - mtn_momo
-                    - moov_flooz
-                    - celtiis_cash
+                  description: 'Mobile Money network supported by the selected provider.'
+                  example: architecto
+                  nullable: true
+                wallet_amount:
+                  type: integer
+                  description: 'Amount allocated to Wallet. Reserved for the disabled Wallet contract.'
+                  example: 16
+                  nullable: true
+                mobile_money_amount:
+                  type: integer
+                  description: 'Amount allocated to Mobile Money. Must equal the server quote total in this iteration.'
+                  example: 16
                   nullable: true
               required:
                 - reservation_uuid
                 - method
-                - provider
                 - idempotency_key
-      security: []
   '/api/v1/payments/{uuid}':
     get:
       summary: 'Get payment status (polling).'
       operationId: getPaymentStatuspolling
-      description: ''
+      description: 'Requires a Sanctum bearer token.'
       parameters: []
       responses:
         200:
@@ -5910,7 +5081,6 @@ paths:
                             example: 00000000-0000-4000-8000-000000000000
       tags:
         - Payments
-      security: []
     parameters:
       -
         in: path
@@ -6419,6 +5589,64 @@ paths:
       tags:
         - Payments
       security: []
+  /api/v1/payments/callback/fedapay:
+    get:
+      summary: 'FedaPay callback endpoint.'
+      operationId: fedaPayCallbackEndpoint
+      description: "Fedapay redirects/posts the transaction result to this URL after\nprocessing. The transaction is then verified via the FedaPay API\n(server-side) to confirm the real status — the callback itself is\nnot trusted as a source of truth."
+      parameters: []
+      responses:
+        200:
+          description: 'Callback processed'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: confirmed
+                  payment_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80
+                  reservation_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
+                  reservation_status: paid
+                properties:
+                  status:
+                    type: string
+                    example: confirmed
+                  payment_uuid:
+                    type: string
+                    example: 00000000-0000-4000-8000-000000000000
+                  reservation_uuid:
+                    type: string
+                    example: 00000000-0000-4000-8000-000000000000
+                  reservation_status:
+                    type: string
+                    example: paid
+        400:
+          description: 'No transaction reference'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error: 'No transaction reference found in callback.'
+                properties:
+                  error:
+                    type: string
+                    example: 'No transaction reference found in callback.'
+        404:
+          description: 'Payment not found'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error: 'Payment not found.'
+                properties:
+                  error:
+                    type: string
+                    example: 'Payment not found.'
+      tags:
+        - Payments
+      security: []
   '/api/v1/bookings/{reservation_uuid}/tickets':
     get:
       summary: 'List all tickets for a reservation.'
@@ -6447,7 +5675,7 @@ paths:
                         last_name: Hounkpè
                       segments:
                         -
-                          leg_order: 0
+                          leg_order: 1
                           departure_uuid: dep12345-6789-abcd-ef01-23456789abcd
                           origin_stop_uuid: stp12345-6789-abcd-ef01-23456789abcd
                           destination_stop_uuid: stp23456-6789-abcd-ef01-23456789abcd
@@ -6471,7 +5699,7 @@ paths:
                           last_name: Hounkpè
                         segments:
                           -
-                            leg_order: 0
+                            leg_order: 1
                             departure_uuid: dep12345-6789-abcd-ef01-23456789abcd
                             origin_stop_uuid: stp12345-6789-abcd-ef01-23456789abcd
                             destination_stop_uuid: stp23456-6789-abcd-ef01-23456789abcd
@@ -6515,7 +5743,7 @@ paths:
                           type: array
                           example:
                             -
-                              leg_order: 0
+                              leg_order: 1
                               departure_uuid: dep12345-6789-abcd-ef01-23456789abcd
                               origin_stop_uuid: stp12345-6789-abcd-ef01-23456789abcd
                               destination_stop_uuid: stp23456-6789-abcd-ef01-23456789abcd
@@ -6527,7 +5755,7 @@ paths:
                             properties:
                               leg_order:
                                 type: integer
-                                example: 0
+                                example: 1
                               departure_uuid:
                                 type: string
                                 example: dep12345-6789-abcd-ef01-23456789abcd
@@ -6608,7 +5836,7 @@ paths:
                       last_name: Hounkpè
                     segments:
                       -
-                        leg_order: 0
+                        leg_order: 1
                         departure_uuid: dep12345-6789-abcd-ef01-23456789abcd
                         origin_stop_uuid: stp12345-6789-abcd-ef01-23456789abcd
                         destination_stop_uuid: stp23456-6789-abcd-ef01-23456789abcd
@@ -6653,7 +5881,7 @@ paths:
                         type: array
                         example:
                           -
-                            leg_order: 0
+                            leg_order: 1
                             departure_uuid: dep12345-6789-abcd-ef01-23456789abcd
                             origin_stop_uuid: stp12345-6789-abcd-ef01-23456789abcd
                             destination_stop_uuid: stp23456-6789-abcd-ef01-23456789abcd
@@ -6665,7 +5893,7 @@ paths:
                           properties:
                             leg_order:
                               type: integer
-                              example: 0
+                              example: 1
                             departure_uuid:
                               type: string
                               example: dep12345-6789-abcd-ef01-23456789abcd

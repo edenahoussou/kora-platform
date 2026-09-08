@@ -24,6 +24,36 @@ class SeatHoldRequested extends SeatHoldEvent {
 
 /// Le voyageur revient sur ses choix. Rend les sièges à la vente et coupe
 /// le décompte.
+/// Retient d'un coup tous les sièges d'un groupe.
+///
+/// Distinct de [SeatHoldRequested] : le groupe passe par le devis
+/// d'itinéraire, seul à porter la remise, et par un blocage atomique. Un
+/// événement à part plutôt qu'un drapeau sur l'autre — les deux chemins
+/// n'appellent ni les mêmes routes ni les mêmes règles.
+class SeatHoldGroupRequested extends SeatHoldEvent {
+  const SeatHoldGroupRequested({
+    required this.departure,
+    required this.quote,
+    required this.seats,
+    this.payer = const GroupPayer.personal(),
+  });
+
+  final Departure departure;
+
+  /// Le devis déjà obtenu : c'est son `itinerary_quote_uuid` que réclame le
+  /// blocage.
+  final GroupQuote quote;
+
+  /// Dans l'ordre de sélection : le voyageur d'indice `i` occupera le
+  /// i-ième siège, et le formulaire des identités suivra le même ordre.
+  final List<Seat> seats;
+
+  final GroupPayer payer;
+
+  @override
+  List<Object?> get props => [departure, quote, seats, payer];
+}
+
 class SeatHoldReleased extends SeatHoldEvent {
   const SeatHoldReleased();
 }

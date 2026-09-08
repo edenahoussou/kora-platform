@@ -1,4 +1,5 @@
 import '../../../../core/network/api_json.dart';
+import '../../domain/entities/amenity.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/price.dart';
 import 'line_model.dart';
@@ -109,10 +110,10 @@ class DepartureModel {
       price: price,
       seatsTotal: bus?.seatCount ?? 0,
       seatsAvailable: availableSeatsCount,
-      // Les services à bord ne figurent pas dans la réponse : mieux vaut
-      // une liste vide (l'écran n'affiche alors rien) qu'un Wi-Fi promis
+      // Un bus non encore affecté ne dit rien de son confort : la liste
+      // vide laisse les écrans muets, ce qui vaut mieux qu'un Wi-Fi promis
       // par défaut.
-      amenities: const [],
+      amenities: bus?.amenities ?? const [],
     );
   }
 
@@ -143,6 +144,7 @@ class BusModel {
     required this.brand,
     required this.model,
     required this.seatCount,
+    this.amenities = const [],
   });
 
   factory BusModel.fromJson(Map<String, dynamic> json) {
@@ -152,6 +154,14 @@ class BusModel {
       brand: ApiJson.string(json['brand']),
       model: ApiJson.string(json['model']),
       seatCount: ApiJson.intOrNull(json['seat_count']) ?? 0,
+      amenities: [
+        for (final amenity in ApiJson.list(json['amenities']))
+          if (ApiJson.string(amenity['code']).isNotEmpty)
+            Amenity(
+              code: ApiJson.string(amenity['code']),
+              label: ApiJson.string(amenity['label']),
+            ),
+      ],
     );
   }
 
@@ -160,6 +170,9 @@ class BusModel {
   final String brand;
   final String model;
   final int seatCount;
+
+  /// Services à bord, déjà filtrés sur les actifs par le serveur.
+  final List<Amenity> amenities;
 
   /// `Mercedes O500`, ou `null` si l'API ne dit rien du véhicule.
   String? get label {

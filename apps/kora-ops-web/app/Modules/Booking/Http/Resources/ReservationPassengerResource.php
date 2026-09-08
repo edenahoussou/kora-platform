@@ -20,6 +20,7 @@ class ReservationPassengerResource extends JsonResource
 
         return [
             'uuid' => $this->uuid,
+            'passenger_index' => $this->passenger_index,
             'first_name' => $this->first_name,
             'last_name' => $this->last_name,
             'phone' => $this->phone,

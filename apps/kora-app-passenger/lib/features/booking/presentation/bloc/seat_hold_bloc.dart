@@ -7,6 +7,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/error/failures.dart';
 
 import '../../domain/entities/departure.dart';
+import '../../domain/entities/group_payer.dart';
+import '../../domain/entities/group_quote.dart';
 import '../../domain/entities/passenger.dart';
 import '../../domain/entities/seat.dart';
 import '../../domain/entities/seat_hold.dart';
@@ -27,6 +29,7 @@ class SeatHoldBloc extends Bloc<SeatHoldEvent, SeatHoldState> {
     : _clock = clock ?? DateTime.now,
       super(const SeatHoldState()) {
     on<SeatHoldRequested>(_onRequested);
+    on<SeatHoldGroupRequested>(_onGroupRequested);
     on<SeatHoldReleased>(_onReleased);
     on<SeatHoldSettled>(_onSettled);
     on<SeatHoldPassengersSubmitted>(_onPassengersSubmitted);
@@ -75,6 +78,52 @@ class SeatHoldBloc extends Bloc<SeatHoldEvent, SeatHoldState> {
         quote: quote,
         seats: event.seats,
       ),
+    );
+
+    held.fold(
+      (failure) => emit(
+        state.copyWith(status: SeatHoldStatus.failure, errorMessage: failure),
+      ),
+      (hold) {
+        emit(
+          SeatHoldState(
+            status: SeatHoldStatus.held,
+            hold: hold,
+            remaining: hold.remaining(_clock()),
+            departure: event.departure,
+            passengers: event.seats.length,
+          ),
+        );
+        _startTicking();
+      },
+    );
+  }
+
+  Future<void> _onGroupRequested(
+    SeatHoldGroupRequested event,
+    Emitter<SeatHoldState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        status: SeatHoldStatus.holding,
+        departure: event.departure,
+        passengers: event.seats.length,
+        clearError: true,
+      ),
+    );
+
+    // Pas de devis à demander ici : le groupe l'a déjà obtenu en amont, sur
+    // l'écran qui lui a montré la remise. Le redemander risquerait d'en
+    // rendre un autre — le barème peut bouger entre deux appels — et le
+    // voyageur paierait un prix qu'il n'a pas vu.
+    final held = await _repository.holdGroup(
+      quote: event.quote,
+      seats: event.seats,
+      payer: event.payer,
+      // Déterministe : un réseau qui coupe après l'envoi laisse le voyageur
+      // réappuyer, et le serveur rend alors le blocage déjà créé plutôt que
+      // d'en ouvrir un second sur d'autres sièges.
+      idempotencyKey: 'kora-groupe-${event.quote.id}',
     );
 
     held.fold(

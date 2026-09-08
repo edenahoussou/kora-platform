@@ -14,10 +14,16 @@ import '../../features/auth/presentation/pages/otp_page.dart';
 import '../../features/auth/presentation/pages/permissions_page.dart';
 import '../../features/auth/presentation/pages/signup_email_page.dart';
 import '../../features/booking/domain/entities/search_criteria.dart';
+import '../../features/booking/presentation/bloc/group_payer_cubit.dart';
+import '../../features/booking/presentation/bloc/group_quote_cubit.dart';
+import '../../features/booking/presentation/bloc/group_tickets_cubit.dart';
 import '../../features/booking/presentation/bloc/seat_hold_bloc.dart';
 import '../../features/booking/presentation/pages/bus_search_page.dart';
 import '../../features/booking/presentation/pages/departure_detail_page.dart';
 import '../../features/booking/presentation/pages/departures_page.dart';
+import '../../features/booking/presentation/pages/group_booking_page.dart';
+import '../../features/booking/presentation/pages/group_discount_page.dart';
+import '../../features/booking/presentation/pages/group_tickets_page.dart';
 import '../../features/booking/presentation/pages/hold_expired_page.dart';
 import '../../features/booking/presentation/pages/passenger_form_page.dart';
 import '../../features/booking/presentation/pages/seats_page.dart';
@@ -32,6 +38,8 @@ import '../../features/home/presentation/pages/date_picker_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/home/presentation/pages/passengers_picker_page.dart';
 import '../../features/notifications/presentation/pages/notifications_page.dart';
+import '../../features/payment/presentation/bloc/payment_catalog_bloc.dart';
+import '../../features/payment/presentation/bloc/payment_flow_bloc.dart';
 import '../../features/payment/presentation/pages/booking_success_page.dart';
 import '../../features/payment/presentation/pages/card_payment_page.dart';
 import '../../features/payment/presentation/pages/mobile_money_page.dart';
@@ -154,6 +162,10 @@ class AppRouter {
   /// Le billet numérique, celui qu'on présente à l'embarquement.
   static const String ticketPath = '/billet';
 
+  /// `multi-tickets` de la maquette (BUS-17) : un billet par voyageur du
+  /// groupe.
+  static const String groupTicketsPath = '/groupe/billets';
+
   /// Sélection de la ville de départ / d'arrivée.
   ///
   /// Déclarées **hors** de la bottom nav, contrairement à
@@ -173,6 +185,14 @@ class AppRouter {
   /// respectivement une `DateTime` et un `int`.
   static const String datePath = '/date';
   static const String passengersPath = '/passengers';
+
+  /// `group-booking` de la maquette (BUS-15) : le devis du groupe et le
+  /// nombre exact de voyageurs, une fois le départ choisi.
+  static const String groupBookingPath = '/groupe';
+
+  /// `group-discount` (BUS-16) : la remise obtenue, une fois le départ
+  /// choisi et le devis rendu.
+  static const String groupDiscountPath = '/groupe/remise';
 
   /// Construit l'URL de la liste des départs à partir des critères saisis
   /// sur l'accueil.
@@ -480,6 +500,7 @@ class AppRouter {
           builder: (context, state) =>
               PassengersPickerPage(selected: (state.extra as int?) ?? 1),
         ),
+
         GoRoute(
           path: departuresPath,
           builder: (context, state) => DeparturesPage(
@@ -497,11 +518,66 @@ class AppRouter {
         // à zéro à chaque navigation — et les sièges resteraient retenus
         // côté serveur sans que l'app le sache.
         ShellRoute(
-          builder: (context, state, child) => BlocProvider<SeatHoldBloc>(
-            create: (_) => getIt<SeatHoldBloc>(),
+          builder: (context, state, child) => MultiBlocProvider(
+            providers: [
+              BlocProvider<SeatHoldBloc>(create: (_) => getIt<SeatHoldBloc>()),
+              // Le devis du serveur suit le tunnel : le récapitulatif le
+              // détaille, et demain le plan des sièges l'affichera pendant
+              // le choix. Le fournir par écran rappellerait l'API pour un
+              // prix qui n'a pas bougé.
+              BlocProvider<GroupQuoteCubit>(
+                create: (_) => getIt<GroupQuoteCubit>(),
+              ),
+              // Le payeur se choisit sur l'écran de groupe et sert au
+              // blocage, deux écrans plus loin : porté par le tunnel, il
+              // survit aux retours en arrière.
+              BlocProvider<GroupPayerCubit>(
+                create: (_) => getIt<GroupPayerCubit>(),
+              ),
+              // Les billets du groupe, listés après paiement.
+              BlocProvider<GroupTicketsCubit>(
+                create: (_) => getIt<GroupTicketsCubit>(),
+              ),
+              // Le catalogue des moyens de paiement est demandé dès
+              // l'entrée du tunnel, pas à l'ouverture de l'écran de
+              // paiement : la réponse est ainsi déjà là quand le voyageur
+              // arrive au choix du moyen, après avoir rempli ses
+              // formulaires. Le charger plus tard ferait clignoter le
+              // dernier écran du parcours, celui où l'hésitation coûte le
+              // plus cher.
+              BlocProvider<PaymentCatalogBloc>(
+                create: (_) =>
+                    getIt<PaymentCatalogBloc>()
+                      ..add(const PaymentCatalogRequested()),
+              ),
+              // Le paiement lui-même vit au même niveau : lancé depuis
+              // l'écran Mobile Money, il est attendu par l'écran de
+              // validation puis par celui de confirmation. Le fournir par
+              // écran le remettrait à zéro à chaque navigation — et la
+              // relecture d'état s'arrêterait au moment précis où le
+              // voyageur compose son code.
+              BlocProvider<PaymentFlowBloc>(
+                create: (_) => getIt<PaymentFlowBloc>(),
+              ),
+            ],
             child: SeatHoldWatcher(child: child),
           ),
           routes: [
+            GoRoute(
+              path: groupTicketsPath,
+              builder: (context, state) =>
+                  GroupTicketsPage(args: state.extra as GroupTicketsArgs?),
+            ),
+            GoRoute(
+              path: groupBookingPath,
+              builder: (context, state) =>
+                  GroupBookingPage(args: state.extra as GroupBookingArgs?),
+            ),
+            GoRoute(
+              path: groupDiscountPath,
+              builder: (context, state) =>
+                  GroupDiscountPage(args: state.extra as GroupDiscountArgs?),
+            ),
             GoRoute(
               path: seatsPath,
               builder: (context, state) {

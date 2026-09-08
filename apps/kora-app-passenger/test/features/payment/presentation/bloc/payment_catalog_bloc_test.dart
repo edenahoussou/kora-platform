@@ -6,13 +6,12 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_app_passenger/core/error/failures.dart';
 import 'package:kora_app_passenger/features/payment/domain/entities/payment_catalog.dart';
-import 'package:kora_app_passenger/features/payment/domain/repositories/payment_repository.dart';
 import 'package:kora_app_passenger/features/payment/presentation/bloc/payment_catalog_bloc.dart';
 
 import '../../../../support/seat_hold_harness.dart';
 
 /// Dépôt qui compte ses appels — c'est justement ce qu'on vérifie ici.
-class CountingPaymentRepository implements PaymentRepository {
+class CountingPaymentRepository with PaymentCatalogOnly {
   CountingPaymentRepository({this.failure});
 
   final Failure? failure;
@@ -27,7 +26,7 @@ class CountingPaymentRepository implements PaymentRepository {
 }
 
 /// Dépôt hors ligne au premier appel, en ligne dès qu'on le rebranche.
-class FlakyPaymentRepository implements PaymentRepository {
+class FlakyPaymentRepository with PaymentCatalogOnly {
   bool online = false;
 
   @override
@@ -41,7 +40,7 @@ class FlakyPaymentRepository implements PaymentRepository {
 void main() {
   blocTest<PaymentCatalogBloc, PaymentCatalogState>(
     'charge le catalogue et le rend disponible aux écrans',
-    build: () => PaymentCatalogBloc(const StubPaymentRepository()),
+    build: () => PaymentCatalogBloc(StubPaymentRepository()),
     act: (bloc) => bloc.add(const PaymentCatalogRequested()),
     verify: (bloc) {
       expect(bloc.state.status, PaymentCatalogStatus.success);
@@ -57,7 +56,7 @@ void main() {
   blocTest<PaymentCatalogBloc, PaymentCatalogState>(
     'remonte le message d’échec pour que l’écran puisse le dire',
     build: () => PaymentCatalogBloc(
-      const StubPaymentRepository(failure: AuthFailure('Unauthenticated.')),
+      StubPaymentRepository(failure: AuthFailure('Unauthenticated.')),
     ),
     act: (bloc) => bloc.add(const PaymentCatalogRequested()),
     verify: (bloc) {

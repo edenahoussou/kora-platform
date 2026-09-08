@@ -118,6 +118,20 @@ void main() {
       .map((card) => card.departureTime)
       .toList();
 
+  testWidgets('la carte nomme les services du bus, traduits', (tester) async {
+    // Le serveur envoie des codes (`usb_charging`) et un libellé français.
+    // La carte doit montrer le libellé de l'app, pas le code — et pas le
+    // français quand le voyageur lit en anglais.
+    await pumpPage(tester);
+    await tester.pumpAndSettle();
+
+    final card = tester
+        .widgetList<DepartureCard>(find.byType(DepartureCard))
+        .first;
+
+    expect(card.servicesLabel, 'Wi-Fi · Climatisation · Prises USB');
+  });
+
   testWidgets('affiche l’écran de recherche et ses squelettes', (tester) async {
     // Recherche volontairement lente : sans ça l'écran serait déjà sur les
     // résultats à la première frame.

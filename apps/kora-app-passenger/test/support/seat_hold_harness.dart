@@ -10,16 +10,25 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kora_app_passenger/core/error/failures.dart';
 import 'package:kora_app_passenger/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/company_account.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/group_payer.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/group_quote.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/group_ticket.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/passenger.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/price.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/quote.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/seat.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/seat_hold.dart';
 import 'package:kora_app_passenger/features/booking/domain/repositories/reservation_repository.dart';
+import 'package:kora_app_passenger/features/booking/presentation/bloc/group_payer_cubit.dart';
+import 'package:kora_app_passenger/features/booking/presentation/bloc/group_quote_cubit.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/seat_hold_bloc.dart';
+import 'package:kora_app_passenger/features/payment/domain/entities/payment_attempt.dart';
 import 'package:kora_app_passenger/features/payment/domain/entities/payment_catalog.dart';
 import 'package:kora_app_passenger/features/payment/domain/repositories/payment_repository.dart';
+import 'package:kora_app_passenger/features/payment/presentation/bloc/payment_catalog_bloc.dart';
+import 'package:kora_app_passenger/features/payment/presentation/bloc/payment_flow_bloc.dart';
 
 import 'stub_auth_repository.dart';
 
@@ -29,6 +38,9 @@ class StubReservationRepository implements ReservationRepository {
     this.failure,
     this.holdDuration = const Duration(minutes: 7),
     this.passengersFailure,
+    this.groupQuoteValue,
+    this.accounts = const [],
+    this.tickets = const [],
     DateTime? now,
   }) : now = now ?? DateTime.now().toUtc();
 
@@ -51,6 +63,53 @@ class StubReservationRepository implements ReservationRepository {
 
   final List<String> calls = [];
 
+  /// Le devis groupé rendu par le stub : sous-total pour tous, et une
+  /// remise seulement au-delà du seuil.
+  final GroupQuote? groupQuoteValue;
+
+  @override
+  Future<Either<Failure, GroupQuote>> groupQuote({
+    required Departure departure,
+    required int passengers,
+  }) async {
+    calls.add('groupQuote:$passengers');
+    final failure = this.failure;
+    if (failure != null) return Left(failure);
+
+    final value = groupQuoteValue;
+    if (value != null) return Right(value);
+
+    // Le barème du staging : 10 % à partir de cinq voyageurs.
+    final subtotal = 12500 * passengers;
+    final applies = passengers >= 5;
+    final discount = applies ? subtotal ~/ 10 : 0;
+
+    return Right(
+      GroupQuote(
+        id: 'itinerary-quote-1',
+        subtotal: Price(subtotal),
+        total: Price(subtotal - discount),
+        passengerCount: passengers,
+        discount: applies
+            ? GroupDiscount(
+                applied: true,
+                threshold: 5,
+                percentage: 10,
+                amount: Price(discount),
+              )
+            : GroupDiscount.none,
+        expiresAt: now.add(holdDuration),
+      ),
+    );
+  }
+
+  /// Les voyageurs reçus par [savePassengers], tels quels.
+  ///
+  /// [calls] n'en retient que le nombre ; un test qui vérifie ce que porte
+  /// chaque voyageur — sa déclaration de vaccination, par exemple — a
+  /// besoin des objets eux-mêmes.
+  final List<Passenger> savedPassengers = [];
+
   @override
   Future<Either<Failure, Quote>> quote({
     required Departure departure,
@@ -66,6 +125,57 @@ class StubReservationRepository implements ReservationRepository {
         total: Price(12500 * passengers),
         passengerCount: passengers,
         expiresAt: now.add(holdDuration),
+      ),
+    );
+  }
+
+  /// Les billets rendus par [bookingTickets]. Vide par défaut : l'émission
+  /// suit le paiement, et un écran ouvert trop tôt n'en voit aucun.
+  final List<GroupTicket> tickets;
+
+  @override
+  Future<Either<Failure, List<GroupTicket>>> bookingTickets(
+    String reservationId,
+  ) async {
+    calls.add('bookingTickets');
+    final failure = this.failure;
+    return failure != null ? Left(failure) : Right(tickets);
+  }
+
+  /// Les comptes entreprise rendus par [companyAccounts]. Vide par défaut :
+  /// la plupart des voyageurs n'appartiennent à aucune entreprise.
+  final List<CompanyAccount> accounts;
+
+  @override
+  Future<Either<Failure, List<CompanyAccount>>> companyAccounts() async {
+    calls.add('companyAccounts');
+    final failure = this.failure;
+    return failure != null ? Left(failure) : Right(accounts);
+  }
+
+  /// Le payeur reçu par [holdGroup] : c'est lui que vérifient les tests du
+  /// compte entreprise.
+  GroupPayer? groupPayer;
+
+  @override
+  Future<Either<Failure, SeatHold>> holdGroup({
+    required GroupQuote quote,
+    required List<Seat> seats,
+    required GroupPayer payer,
+    required String idempotencyKey,
+  }) async {
+    calls.add('holdGroup:${seats.length}');
+    groupPayer = payer;
+
+    final failure = this.failure;
+    if (failure != null) return Left(failure);
+
+    return Right(
+      SeatHold(
+        id: 'hold-groupe-1',
+        expiresAt: now.add(holdDuration),
+        seatLabels: [for (final seat in seats) seat.label],
+        total: quote.total,
       ),
     );
   }
@@ -96,6 +206,9 @@ class StubReservationRepository implements ReservationRepository {
     required List<Passenger> passengers,
   }) async {
     calls.add('passengers:${passengers.length}');
+    savedPassengers
+      ..clear()
+      ..addAll(passengers);
     final failure = passengersFailure ?? this.failure;
     if (failure != null) return Left(failure);
 
@@ -150,20 +263,107 @@ const PaymentCatalog kStubPaymentCatalog = PaymentCatalog(
   ],
 );
 
+/// Ce qu'un double de [PaymentRepository] doit fournir quand il ne teste
+/// que le catalogue.
+///
+/// Le contrat porte aussi l'initiation et la relecture d'un paiement ;
+/// les refuser franchement vaut mieux que de rendre un faux succès, qui
+/// laisserait passer un test appelant une méthode qu'il n'a pas préparée.
+mixin PaymentCatalogOnly implements PaymentRepository {
+  @override
+  Future<Either<Failure, PaymentAttempt>> initiate({
+    required String reservationId,
+    required String provider,
+    required String network,
+    required String phone,
+    required String idempotencyKey,
+  }) => throw UnimplementedError('Ce double ne sert que pour le catalogue.');
+
+  @override
+  Future<Either<Failure, PaymentAttempt>> status(String paymentId) =>
+      throw UnimplementedError('Ce double ne sert que pour le catalogue.');
+
+  @override
+  Future<Either<Failure, PaymentAttempt>> verify(String paymentId) =>
+      throw UnimplementedError('Ce double ne sert que pour le catalogue.');
+}
+
 /// Dépôt de paiement réglable : rend le catalogue du staging par défaut,
 /// échoue sur demande.
 class StubPaymentRepository implements PaymentRepository {
-  const StubPaymentRepository({this.failure, this.value = kStubPaymentCatalog});
+  StubPaymentRepository({
+    this.failure,
+    this.value = kStubPaymentCatalog,
+    this.attempt = kStubPaymentAttempt,
+    this.initiateFailure,
+    this.statuses = const [],
+  });
 
   final Failure? failure;
   final PaymentCatalog value;
 
+  /// Ce que rend [initiate], et [status] quand [statuses] est épuisée.
+  final PaymentAttempt attempt;
+
+  /// Échec réservé à [initiate] : le catalogue arrive, seul le lancement
+  /// du paiement échoue.
+  final Failure? initiateFailure;
+
+  /// États successifs rendus par [status], dans l'ordre — de quoi jouer un
+  /// paiement qui reste en attente puis se confirme, sans horloge réelle.
+  final List<PaymentAttempt> statuses;
+
+  final List<String> calls = [];
+  int _statusReads = 0;
+
   @override
   Future<Either<Failure, PaymentCatalog>> catalog() async {
+    calls.add('catalog');
     final failure = this.failure;
     return failure != null ? Left(failure) : Right(value);
   }
+
+  @override
+  Future<Either<Failure, PaymentAttempt>> initiate({
+    required String reservationId,
+    required String provider,
+    required String network,
+    required String phone,
+    required String idempotencyKey,
+  }) async {
+    calls.add('initiate:$provider/$network');
+    final failure = initiateFailure ?? this.failure;
+    return failure != null ? Left(failure) : Right(attempt);
+  }
+
+  @override
+  Future<Either<Failure, PaymentAttempt>> status(String paymentId) async {
+    calls.add('status');
+    final failure = this.failure;
+    if (failure != null) return Left(failure);
+
+    if (_statusReads < statuses.length) return Right(statuses[_statusReads++]);
+    return Right(statuses.isEmpty ? attempt : statuses.last);
+  }
+
+  @override
+  Future<Either<Failure, PaymentAttempt>> verify(String paymentId) async {
+    calls.add('verify');
+    final failure = this.failure;
+    if (failure != null) return Left(failure);
+
+    return Right(statuses.isEmpty ? attempt : statuses.last);
+  }
 }
+
+/// Un paiement lancé, en attente de confirmation chez l'opérateur.
+const PaymentAttempt kStubPaymentAttempt = PaymentAttempt(
+  id: 'pay-1',
+  status: PaymentAttemptStatus.pending,
+  reference: 'FEDA-AB12CD34',
+  nextAction: 'verify',
+  pollingInterval: Duration(seconds: 10),
+);
 
 /// Un [AuthBloc] dont la session est **déjà ouverte**.
 ///
@@ -180,25 +380,70 @@ Future<AuthBloc> openedSession([StubAuthRepository? repository]) async {
   return bloc;
 }
 
-/// Enveloppe [child] des deux Blocs que l'app fournit au-dessus du
-/// tunnel : le blocage des sièges, et la session — le formulaire
-/// voyageurs pré-remplit le premier bloc avec le titulaire du compte.
+/// Un [PaymentCatalogBloc] dont le catalogue est **déjà chargé**.
 ///
-/// Le catalogue des moyens de paiement n'y figure plus : l'écran Mobile
-/// Money affiche une liste écrite en dur le temps que l'endpoint soit
-/// réparé côté serveur (voir `kMobileMoneyProviders`). Le
-/// [StubPaymentRepository] ci-dessus reste, lui, utilisé par les tests du
-/// Bloc — la chaîne est prête à rebrancher.
+/// Comme [openedSession], l'attente est nécessaire : le chargement passe
+/// par un événement, et sans elle l'écran de paiement se construit sur un
+/// catalogue vide — donc sans aucun moyen à proposer. Dans l'app la
+/// demande part à l'entrée du tunnel, bien avant l'écran de paiement.
+///
+/// Passer [failure] simule un serveur injoignable ; passer [catalog]
+/// simule un serveur qui n'annonce pas les mêmes moyens.
+Future<PaymentCatalogBloc> loadedCatalog({
+  PaymentCatalog catalog = kStubPaymentCatalog,
+  Failure? failure,
+}) async {
+  final bloc = PaymentCatalogBloc(
+    StubPaymentRepository(value: catalog, failure: failure),
+  )..add(const PaymentCatalogRequested());
+
+  await bloc.stream.firstWhere(
+    (state) => state.status != PaymentCatalogStatus.loading,
+  );
+  return bloc;
+}
+
+/// Enveloppe [child] des trois Blocs que l'app fournit au-dessus du
+/// tunnel : le blocage des sièges, la session — le formulaire voyageurs
+/// pré-remplit le premier bloc avec le titulaire du compte — et le
+/// catalogue des moyens de paiement.
+///
+/// Le catalogue est fourni **chargé** par défaut, parce que c'est l'état
+/// normal quand on arrive au paiement : il est demandé à l'entrée du
+/// tunnel, plusieurs écrans plus tôt. Les tests qui veulent éprouver le
+/// chargement ou l'échec passent leur propre [catalog].
 Widget withSeatHold(
   Widget child, {
   required SeatHoldBloc bloc,
   AuthBloc? auth,
+  GroupQuoteCubit? groupQuote,
+  GroupPayerCubit? groupPayer,
+  PaymentCatalogBloc? catalog,
+  PaymentFlowBloc? flow,
 }) {
   return MultiBlocProvider(
     providers: [
       BlocProvider<SeatHoldBloc>.value(value: bloc),
       BlocProvider<AuthBloc>.value(
         value: auth ?? AuthBloc(StubAuthRepository()),
+      ),
+      // Le récapitulatif détaille le prix depuis le devis du serveur : le
+      // tunnel le fournit dans l'app, le harnais doit en faire autant.
+      BlocProvider<GroupQuoteCubit>.value(
+        value: groupQuote ?? GroupQuoteCubit(StubReservationRepository()),
+      ),
+      // Le payeur du groupe : choisi sur l'écran de groupe, lu au blocage.
+      BlocProvider<GroupPayerCubit>.value(
+        value: groupPayer ?? GroupPayerCubit(StubReservationRepository()),
+      ),
+      BlocProvider<PaymentCatalogBloc>.value(
+        value:
+            catalog ??
+            (PaymentCatalogBloc(StubPaymentRepository())
+              ..add(const PaymentCatalogRequested())),
+      ),
+      BlocProvider<PaymentFlowBloc>.value(
+        value: flow ?? PaymentFlowBloc(StubPaymentRepository()),
       ),
     ],
     child: child,

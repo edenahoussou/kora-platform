@@ -29,6 +29,9 @@ import '../../features/booking/domain/usecases/get_seats_usecase.dart';
 import '../../features/booking/domain/usecases/get_tickets_usecase.dart';
 import '../../features/booking/domain/usecases/search_departures_usecase.dart';
 import '../../features/booking/presentation/bloc/departures_bloc.dart';
+import '../../features/booking/presentation/bloc/group_payer_cubit.dart';
+import '../../features/booking/presentation/bloc/group_quote_cubit.dart';
+import '../../features/booking/presentation/bloc/group_tickets_cubit.dart';
 import '../../features/booking/presentation/bloc/seat_hold_bloc.dart';
 import '../../features/booking/presentation/bloc/seats_bloc.dart';
 import '../../features/booking/presentation/bloc/tickets_bloc.dart';
@@ -41,6 +44,7 @@ import '../../features/payment/data/datasources/payment_remote_data_source.dart'
 import '../../features/payment/data/repositories/payment_repository_impl.dart';
 import '../../features/payment/domain/repositories/payment_repository.dart';
 import '../../features/payment/presentation/bloc/payment_catalog_bloc.dart';
+import '../../features/payment/presentation/bloc/payment_flow_bloc.dart';
 import '../../features/theme/data/datasources/theme_local_data_source.dart';
 import '../../features/theme/data/repositories/theme_repository_impl.dart';
 import '../../features/theme/domain/repositories/theme_repository.dart';
@@ -221,6 +225,12 @@ void _registerBookingFeature() {
   getIt.registerFactory<SeatsBloc>(() => SeatsBloc(getIt()));
   getIt.registerFactory<SeatHoldBloc>(() => SeatHoldBloc(getIt()));
   getIt.registerFactory<TicketsBloc>(() => TicketsBloc(getIt()));
+
+  getIt.registerFactory<GroupQuoteCubit>(() => GroupQuoteCubit(getIt()));
+
+  getIt.registerFactory<GroupPayerCubit>(() => GroupPayerCubit(getIt()));
+
+  getIt.registerFactory<GroupTicketsCubit>(() => GroupTicketsCubit(getIt()));
 }
 
 /// Feature `payment` : le catalogue des moyens de paiement.
@@ -238,6 +248,8 @@ void _registerPaymentFeature() {
   );
 
   getIt.registerFactory<PaymentCatalogBloc>(() => PaymentCatalogBloc(getIt()));
+
+  getIt.registerFactory<PaymentFlowBloc>(() => PaymentFlowBloc(getIt()));
 }
 
 /// Feature `language` : même chaîne que le thème — un data source

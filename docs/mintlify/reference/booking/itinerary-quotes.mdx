@@ -1,0 +1,86 @@
+---
+title: Devis d'itinéraire
+description: "POST /api/v1/bus/itinerary-quotes calcule le prix serveur d'un trajet direct, multi-leg ou aller-retour."
+api: POST /api/v1/bus/itinerary-quotes
+---
+
+# Devis d'itinéraire
+
+Crée un devis serveur pour un itinéraire direct, avec correspondances, ou aller-retour. Pour un trajet direct, envoyez un seul leg. Pour un aller-retour, envoyez les legs `outbound` puis les legs `inbound` avec le champ `direction`. Le devis est lié à l'utilisateur authentifié et doit être utilisé avant son expiration.
+
+## Requête
+
+```json
+{
+  "passenger_count": 2,
+  "legs": [
+    {
+      "leg_order": 1,
+      "direction": "outbound",
+      "departure_uuid": "departure-outbound-uuid",
+      "origin_stop_uuid": "origin-stop-uuid",
+      "destination_stop_uuid": "destination-stop-uuid"
+    },
+    {
+      "leg_order": 2,
+      "direction": "inbound",
+      "departure_uuid": "departure-inbound-uuid",
+      "origin_stop_uuid": "destination-stop-uuid",
+      "destination_stop_uuid": "origin-stop-uuid"
+    }
+  ]
+}
+```
+
+| Champ | Type | Requis | Description |
+|---|---|---:|---|
+| `passenger_count` | integer | non | Nombre de passagers, de 1 à 10. |
+| `legs` | array | oui | Un à six legs ordonnés (max 3 par direction). |
+| `legs[].leg_order` | integer | non | Ordre 1-based ; l'ordre du tableau reste la référence. |
+| `legs[].direction` | string | non | `outbound` (défaut) ou `inbound`. Requis pour les legs de retour d'un aller-retour. |
+| `legs[].departure_uuid` | UUID | oui | Départ sélectionné. |
+| `legs[].origin_stop_uuid` | UUID | oui | Arrêt origine du segment. |
+| `legs[].destination_stop_uuid` | UUID | oui | Arrêt destination du segment. |
+
+## Réponse
+
+```json
+{
+  "data": {
+    "itinerary_quote_uuid": "itinerary-quote-uuid",
+    "trip_type": "round_trip",
+    "total_amount": 27500,
+    "currency": "XOF",
+    "expires_at": "2026-09-10T08:00:00Z",
+    "legs": [
+      { "leg_order": 1, "direction": "outbound", "quote_uuid": "quote-leg-1-uuid", "final_amount": 15000 },
+      { "leg_order": 2, "direction": "inbound", "quote_uuid": "quote-leg-2-uuid", "final_amount": 12500 }
+    ],
+    "pricing": {
+      "subtotal_amount": 27500,
+      "dynamic_adjustment_amount": 0,
+      "group_discount": {},
+      "passenger_allocations": [13750, 13750],
+      "total_amount": 27500,
+      "currency": "XOF"
+    }
+  }
+}
+```
+
+Le montant et l'expiration retournés par le serveur sont la référence du hold. Le mobile ne doit pas reconstruire le snapshot tarifaire.
+
+## Règles de validation aller-retour
+
+- Le retour doit partir du point d'arrivée de l'aller.
+- Le retour doit ramener le passager à son point de départ.
+- Le retour ne peut pas partir avant l'arrivée de l'aller.
+- Les legs `outbound` et `inbound` sont validés indépendamment (continuité, marge de correspondance).
+
+## Codes de réponse
+
+| Code | Description |
+|---|---|
+| `200` | Devis créé. |
+| `401` | Authentification absente ou invalide. |
+| `422` | Leg invalide, itinéraire discontinu, aller-retour incohérent, vente fermée ou devise incohérente. |
