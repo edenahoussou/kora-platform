@@ -3035,7 +3035,7 @@ paths:
                 birth_date:
                   type: string
                   description: 'Le champ value doit être une date valide. Le champ value doit être une date antérieure à <code>today</code>.'
-                  example: '2022-10-02'
+                  example: '2022-10-03'
                   nullable: true
               required:
                 - name
