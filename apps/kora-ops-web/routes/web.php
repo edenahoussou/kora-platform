@@ -98,7 +98,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('tax-rules/{taxRule:uuid}/status', [TaxRuleController::class, 'changeStatus'])->name('tax-rules.status');
     Route::inertia('passengers', 'passengers')->name('passengers');
     Route::get('tickets', [TicketsController::class, 'index'])->name('tickets.index');
-    Route::inertia('tickets', 'tickets')->name('tickets');
     Route::get('tickets/{ticket:uuid}', [TicketViewController::class, 'show'])->name('tickets.show');
     Route::get('tickets/{ticket:uuid}/pdf', [TicketViewController::class, 'pdf'])->name('tickets.pdf');
 
