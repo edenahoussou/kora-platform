@@ -81,6 +81,17 @@ return [
         'refunded' => 'Remboursé',
     ],
 
+    'passenger_journey_status' => [
+        'hold_pending' => 'Réservation en attente',
+        'hold_expired' => 'Hold expiré',
+        'payment_pending' => 'Paiement en attente',
+        'payment_confirmed' => 'Paiement confirmé',
+        'ticket_issued' => 'Billet émis',
+        'boarded' => 'Embarqué',
+        'absent' => 'Absent',
+        'cancelled' => 'Annulé',
+    ],
+
     'payment_status' => [
         'pending' => 'En attente',
         'completed' => 'Complété',

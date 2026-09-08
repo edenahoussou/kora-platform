@@ -10,6 +10,11 @@ class TicketPolicy
 {
     use AuthorizesPermissions;
 
+    public function viewAny(User $user): bool
+    {
+        return $this->allows($user, 'tickets.view');
+    }
+
     public function view(User $user, Ticket $ticket): bool
     {
         return $this->allows($user, 'tickets.view');

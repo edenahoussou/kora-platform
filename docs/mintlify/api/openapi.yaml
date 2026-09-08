@@ -944,7 +944,7 @@ paths:
                 date:
                   type: string
                   description: 'Must be a valid date in the format <code>Y-m-d</code>.'
-                  example: '2026-09-07'
+                  example: '2026-09-08'
                 passenger_count:
                   type: integer
                   description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 10.'
@@ -980,7 +980,7 @@ paths:
                 return_date:
                   type: string
                   description: 'Must be a valid date in the format <code>Y-m-d</code>.'
-                  example: '2026-09-07'
+                  example: '2026-09-08'
               required:
                 - from_physical_stop_uuid
                 - to_physical_stop_uuid
@@ -3035,7 +3035,7 @@ paths:
                 birth_date:
                   type: string
                   description: 'Le champ value doit être une date valide. Le champ value doit être une date antérieure à <code>today</code>.'
-                  example: '2022-10-02'
+                  example: '2022-10-03'
                   nullable: true
               required:
                 - name

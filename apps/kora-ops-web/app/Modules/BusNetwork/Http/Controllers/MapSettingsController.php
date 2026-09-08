@@ -15,13 +15,10 @@ class MapSettingsController
 {
     public function edit(Request $request): Response
     {
-        abort_unless($request->user()?->can('network.manage') ?? false, 403);
+        abort_unless($request->user()?->can('network.view') ?? false, 403);
 
         $setting = MapSetting::current();
-
-        $adminProvider = $setting !== null
-            ? $setting->providerEnum()
-            : null;
+        $adminProvider = $setting !== null ? $setting->providerEnum() : null;
 
         return Inertia::render('network/map-settings', [
             'envDefaultProvider' => config('services.maps.default_provider'),
@@ -36,10 +33,7 @@ class MapSettingsController
     {
         app(UpdateMapSettingAction::class)->execute($request->payload(), $request->user()->id);
 
-        Inertia::flash('toast', [
-            'type' => 'success',
-            'message' => __('Fournisseur cartographique mis à jour.'),
-        ]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Fournisseur cartographique mis à jour.')]);
 
         return to_route('network.map-settings.edit');
     }
