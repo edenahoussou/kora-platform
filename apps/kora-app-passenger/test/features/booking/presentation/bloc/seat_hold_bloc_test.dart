@@ -51,8 +51,10 @@ void main() {
       (state) => state.status == SeatHoldStatus.held,
     );
 
-    // Le devis d'abord : le blocage réclame son identifiant.
-    expect(repository.calls, ['quote', 'hold']);
+    // Le devis d'abord : le blocage réclame son identifiant. Les deux
+    // passent par les points d'entrée d'itinéraire depuis MEZ-63, y
+    // compris pour un voyageur seul — un groupe d'un.
+    expect(repository.calls, ['groupQuote:2', 'holdGroup:2']);
     expect(bloc.state.isHeld, isTrue);
     expect(bloc.state.hold!.seatLabels, ['4A', '4B']);
   });
@@ -88,7 +90,7 @@ void main() {
 
     // On s'arrête au devis : appeler le blocage sans lui aurait été refusé
     // par le serveur de toute façon.
-    expect(repository.calls, ['quote']);
+    expect(repository.calls, ['groupQuote:2']);
     expect(bloc.state.isHeld, isFalse);
     expect(bloc.state.failure, isA<NetworkFailure>());
   });
@@ -108,7 +110,11 @@ void main() {
       (state) => state.status == SeatHoldStatus.idle,
     );
 
-    expect(repository.calls, ['quote', 'hold', 'release:hold-1']);
+    expect(repository.calls, [
+      'groupQuote:2',
+      'holdGroup:2',
+      'release:hold-groupe-1',
+    ]);
     expect(bloc.state.isHeld, isFalse);
     // Le départ survit : le voyageur reste sur le plan et peut rechoisir.
     expect(bloc.state.departure, isNotNull);
@@ -126,7 +132,7 @@ void main() {
       (state) => state.status == SeatHoldStatus.expired,
     );
 
-    expect(repository.calls, ['quote', 'hold']);
+    expect(repository.calls, ['groupQuote:2', 'holdGroup:2']);
     expect(bloc.state.isHeld, isFalse);
     // L'écran de fin de délai en a besoin pour renvoyer au bon plan.
     expect(bloc.state.departure, isNotNull);
@@ -180,7 +186,7 @@ void main() {
         (state) => state.passengersStatus == PassengersStatus.saved,
       );
 
-      expect(repository.calls, ['quote', 'hold', 'passengers:2']);
+      expect(repository.calls, ['groupQuote:2', 'holdGroup:2', 'passengers:2']);
     });
 
     test('le blocage reste actif pendant l’envoi', () async {

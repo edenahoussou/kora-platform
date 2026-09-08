@@ -66,17 +66,26 @@ class SeatHoldBloc extends Bloc<SeatHoldEvent, SeatHoldState> {
     // Le devis d'abord : le blocage réclame son identifiant, et il fige le
     // tarif pour que le montant vu au moment du choix soit celui qu'on
     // paiera.
-    final quote = await _repository.quote(
+    //
+    // Par `bus/itinerary-quotes` puis `bus/itinerary-holds`, comme un
+    // groupe : MEZ-63 a retiré `bus/quotes` et `bus/holds`, et il ne reste
+    // donc qu'un seul chemin. Un voyageur seul est simplement un groupe
+    // d'un.
+    final quote = await _repository.groupQuote(
       departure: event.departure,
       passengers: event.seats.length,
     );
 
     final held = await quote.fold(
       (failure) async => Left<Failure, SeatHold>(failure),
-      (quote) => _repository.hold(
-        departure: event.departure,
+      (quote) => _repository.holdGroup(
         quote: quote,
         seats: event.seats,
+        payer: const GroupPayer.personal(),
+        // Déterministe : un réseau qui coupe après l'envoi laisse le
+        // voyageur réappuyer, et le serveur rend alors le blocage déjà
+        // ouvert plutôt que d'en créer un second sur d'autres sièges.
+        idempotencyKey: 'kora-${quote.id}',
       ),
     );
 

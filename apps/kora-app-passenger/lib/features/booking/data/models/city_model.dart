@@ -4,26 +4,41 @@ import '../../domain/entities/city.dart';
 /// Couche DATA : une ville telle que la renvoie `GET /api/v1/bus/cities`.
 ///
 /// ```json
-/// { "city": "Cotonou", "country": "BJ", "stops_count": 3 }
+/// {
+///   "city": "Cotonou",
+///   "country": "BJ",
+///   "physical_stops": [{ "uuid": "74703fce-…", "name": "Cotonou" }]
+/// }
 /// ```
 ///
-/// L'API ne renvoie **ni identifiant, ni code de ville** : c'est le nom
-/// qui sert de clé, et c'est lui qu'attendent les filtres `from` / `to`
-/// des endpoints lignes et départs. [toEntity] en fait donc l'identifiant
-/// de la [City] du domaine — ce qui garantit qu'une ville choisie dans le
-/// sélecteur peut être renvoyée telle quelle à l'API.
+/// L'API ne renvoie **ni identifiant, ni code de ville** : le nom sert de
+/// clé d'affichage, et [toEntity] en fait l'identifiant de la [City] du
+/// domaine.
+///
+/// Depuis MEZ-63, elle rend en revanche les **arrêts physiques**, et c'est
+/// leur `uuid` que réclame `bus/itineraries`. Le premier est retenu : une
+/// ville en a presque toujours un seul, et rien dans le contrat ne permet
+/// de préférer l'un des autres. Le jour où une ville en desservira
+/// plusieurs pour de bon, il faudra les proposer au voyageur plutôt que
+/// d'en choisir un à sa place.
 class CityModel {
   const CityModel({
     required this.city,
     required this.country,
     required this.stopsCount,
+    this.physicalStopId,
   });
 
   factory CityModel.fromJson(Map<String, dynamic> json) {
+    final stops = ApiJson.list(json['physical_stops']);
+
     return CityModel(
       city: ApiJson.string(json['city']),
       country: ApiJson.string(json['country']),
-      stopsCount: ApiJson.intOrNull(json['stops_count']) ?? 0,
+      stopsCount: ApiJson.intOrNull(json['stops_count']) ?? stops.length,
+      physicalStopId: stops.isEmpty
+          ? null
+          : ApiJson.stringOrNull(stops.first['uuid']),
     );
   }
 
@@ -36,6 +51,10 @@ class CityModel {
   /// Nombre d'arrêts KORA actifs dans cette ville.
   final int stopsCount;
 
+  /// L'arrêt physique retenu pour chercher un itinéraire depuis ou vers
+  /// cette ville. `null` si le serveur n'en annonce aucun.
+  final String? physicalStopId;
+
   City toEntity() => City(
     id: city,
     name: city,
@@ -45,6 +64,7 @@ class CityModel {
     // départ précis, via `origin_stop` / `destination_stop` (voir
     // `StopModel`).
     station: null,
+    physicalStopId: physicalStopId,
   );
 
   /// Code à trois lettres affiché sur un billet (`Cotonou` → `COT`).

@@ -26,10 +26,6 @@ abstract class BookingDataSource {
   /// pas desservie ce jour-là : c'est un résultat, pas une erreur.
   Future<List<Departure>> searchDepartures(SearchCriteria criteria);
 
-  /// Un départ rechargé par son identifiant, pour rafraîchir un détail
-  /// affiché depuis la liste.
-  Future<Departure> getDeparture(String departureId);
-
   /// Plan des sièges d'un départ, dans l'ordre de lecture du bus.
   Future<List<Seat>> getSeats(Departure departure);
 
@@ -80,17 +76,6 @@ class BookingMockDataSource implements BookingDataSource {
     // temps de voir avec le délai standard.
     await Future<void>.delayed(latency * 2);
     return mockDeparturesFor(criteria);
-  }
-
-  @override
-  Future<Departure> getDeparture(String departureId) async {
-    await Future<void>.delayed(latency);
-
-    // Le jeu de démonstration ne s'indexe pas par identifiant : il produit
-    // des départs à la demande, pour une recherche. Rien à rafraîchir ici.
-    throw UnimplementedError(
-      'Le jeu de démonstration ne recharge pas un départ isolé.',
-    );
   }
 
   @override

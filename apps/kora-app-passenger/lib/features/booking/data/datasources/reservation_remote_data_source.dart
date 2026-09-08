@@ -8,18 +8,16 @@ import '../../domain/entities/group_payer.dart';
 import '../../domain/entities/group_quote.dart';
 import '../../domain/entities/group_ticket.dart';
 import '../../domain/entities/passenger.dart';
-import '../../domain/entities/quote.dart';
 import '../../domain/entities/seat.dart';
 import '../../domain/entities/seat_hold.dart';
 import '../models/company_account_model.dart';
 import '../models/group_quote_model.dart';
 import '../models/group_ticket_model.dart';
-import '../models/quote_model.dart';
 import '../models/seat_hold_model.dart';
 
 /// Couche DATA : devis, blocage et libération des sièges.
 ///
-/// Les trois endpoints exigent une session (`auth:sanctum`) — contrairement
+/// Tous ces endpoints exigent une session (`auth:sanctum`) — contrairement
 /// au catalogue, qui est public. Comme les autres data sources, celui-ci
 /// laisse remonter les `DioException` : c'est le repository qui les traduit
 /// en `Failure`.
@@ -28,29 +26,13 @@ class ReservationRemoteDataSource {
 
   final Dio _dio;
 
-  Future<Quote> quote({
-    required Departure departure,
-    required int passengers,
-  }) async {
-    final response = await _dio.post<dynamic>(
-      ApiConstants.busQuotes,
-      data: {
-        'departure_uuid': departure.id,
-        'origin_stop_uuid': departure.originStopId,
-        'destination_stop_uuid': departure.destinationStopId,
-        'passenger_count': passengers,
-      },
-    );
-
-    return QuoteModel.fromJson(ApiJson.map(_payload(response.data))).toEntity();
-  }
-
-  /// Le devis d'un groupe, avec sa remise.
+  /// Le devis d'un trajet, remise de groupe comprise.
   ///
-  /// Passe par `bus/itinerary-quotes` et non par `bus/quotes` : c'est le
-  /// seul point d'entrée qui applique la remise de groupe et la détaille
-  /// au passager. Un seul tronçon ici — les correspondances viendront avec
-  /// le parcours multi-lignes, que ce point d'entrée sait déjà traiter.
+  /// Seul devis qui reste : MEZ-63 a retiré `POST bus/quotes`, et
+  /// `itinerary-quotes` le remplace pour tout le monde — un voyageur seul
+  /// est un groupe d'un, que le barème laissera simplement au plein tarif.
+  /// Un seul tronçon ici ; les correspondances viendront avec le parcours
+  /// multi-lignes, que ce point d'entrée sait déjà traiter.
   Future<GroupQuote> groupQuote({
     required Departure departure,
     required int passengers,
@@ -70,36 +52,14 @@ class ReservationRemoteDataSource {
       },
     );
 
-    // Réponse à plat, sans enveloppe `data`, contrairement au reste.
+    // Enveloppée dans `data` comme le reste : `ItineraryController::quote`
+    // rend `response()->json(['data' => [...]])`. La lire à plat donnait un
+    // devis vide — dont un `itinerary_quote_uuid` absent, que le blocage
+    // réclame ensuite (422 « le champ itinerary quote uuid est
+    // obligatoire »).
     return GroupQuoteModel.fromJson(
-      ApiJson.map(response.data),
-    ).toEntity(passengerCount: passengers);
-  }
-
-  Future<SeatHold> hold({
-    required Departure departure,
-    required Quote quote,
-    required List<Seat> seats,
-  }) async {
-    final response = await _dio.post<dynamic>(
-      ApiConstants.busHolds,
-      data: {
-        'departure_uuid': departure.id,
-        'origin_stop_uuid': departure.originStopId,
-        'destination_stop_uuid': departure.destinationStopId,
-        'price_quote_uuid': quote.id,
-        // `passenger_index` suit l'ordre de sélection : le premier siège
-        // choisi ira au premier voyageur du formulaire suivant.
-        'seats': [
-          for (final (index, seat) in seats.indexed)
-            {'seat_uuid': seat.id, 'passenger_index': index},
-        ],
-      },
-    );
-
-    return SeatHoldModel.fromJson(
       ApiJson.map(_payload(response.data)),
-    ).toEntity();
+    ).toEntity(passengerCount: passengers);
   }
 
   /// Enregistre les identités et rend la réservation rafraîchie.
@@ -198,7 +158,7 @@ class ReservationRemoteDataSource {
   }
 
   Future<void> release(String reservationId) =>
-      _dio.delete<dynamic>(ApiConstants.hold(reservationId));
+      _dio.delete<dynamic>(ApiConstants.booking(reservationId));
 }
 
 /// Un voyageur, tel que l'attend `POST bookings/{uuid}/passengers`.

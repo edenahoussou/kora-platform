@@ -16,13 +16,14 @@ class City extends Equatable {
     required this.name,
     required this.code,
     this.station,
+    this.physicalStopId,
   });
 
-  /// Ville désignée par son seul nom.
+  /// Ville désignée par son seul nom, sans arrêt physique.
   ///
-  /// L'API filtre les départs sur `from` et `to`, qui sont des noms :
-  /// c'est tout ce qu'une recherche a besoin de connaître d'une ville.
-  /// Le code à trois lettres s'en déduit, faute d'être exposé.
+  /// Sert aux jeux de démonstration et aux villes reconstruites depuis un
+  /// billet : sans [physicalStopId] elles ne peuvent pas servir de départ
+  /// à une recherche, puisque `bus/itineraries` travaille sur des arrêts.
   factory City.named(String name) => City(
     id: name,
     name: name,
@@ -42,10 +43,22 @@ class City extends Equatable {
   /// Gare KORA desservie dans cette ville (ex: `St Michel`), ou `null`.
   final String? station;
 
+  /// L'arrêt physique par lequel on cherche un itinéraire.
+  ///
+  /// `bus/itineraries` exige `from_physical_stop_uuid` et
+  /// `to_physical_stop_uuid` : depuis MEZ-63, le nom de la ville ne suffit
+  /// plus. `null` pour une ville qui n'en a pas — jeu de démonstration, ou
+  /// ville relue d'un billet —, et la recherche est alors impossible.
+  final String? physicalStopId;
+
+  /// Vrai quand cette ville peut servir de point de départ ou d'arrivée à
+  /// une recherche.
+  bool get isSearchable => physicalStopId != null && physicalStopId!.isNotEmpty;
+
   /// Libellé complet tel qu'affiché dans le champ de recherche :
   /// `Cotonou · St Michel`, ou simplement `Malanville` sans gare.
   String get label => station == null ? name : '$name · $station';
 
   @override
-  List<Object?> get props => [id, name, code, station];
+  List<Object?> get props => [id, name, code, station, physicalStopId];
 }
