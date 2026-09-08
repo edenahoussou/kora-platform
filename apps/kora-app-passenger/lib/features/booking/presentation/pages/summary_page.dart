@@ -13,6 +13,7 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../payment/presentation/pages/payment_args.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/passenger.dart';
+import '../../domain/entities/price.dart';
 import '../bloc/group_quote_cubit.dart';
 import '../widgets/booking_progress.dart';
 import '../widgets/hold_countdown.dart';
@@ -138,8 +139,14 @@ class _SummaryContent extends StatelessWidget {
               // Le total est arrêté ici, puis transporté : le recalculer
               // sur chaque écran de paiement ferait dépendre la somme du
               // chemin emprunté.
+              //
+              // Celui du serveur quand il l'a donné — c'est le seul qui
+              // porte la remise de groupe. Le produit local ne sert que de
+              // repli : afficher 280 000 au paiement après 252 000 au
+              // récapitulatif suffit à faire abandonner un achat, alors
+              // même que le serveur débitera le bon montant.
               extra: PaymentArgs(
-                total: departure.price * passengers.length.clamp(1, 99),
+                total: _payableTotal(context, departure, passengers.length),
                 // Le numéro du compte, proposé au débit Mobile Money :
                 // c'est celui que le voyageur a sous la main, et le
                 // retaper à ce stade n'apporte rien.
@@ -155,6 +162,23 @@ class _SummaryContent extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Le montant à afficher sur les écrans de paiement.
+///
+/// Le devis du serveur s'il est là, le tarif de la recherche multiplié
+/// sinon. La somme réellement débitée reste celle que le serveur arrête à
+/// partir du `reservation_uuid` : ce total-ci ne sert qu'à l'affichage, et
+/// c'est justement pour cela qu'il doit s'accorder avec le récapitulatif
+/// que le voyageur vient de lire.
+Price _payableTotal(BuildContext context, Departure departure, int count) {
+  final state = context.read<GroupQuoteCubit>().state;
+  if (state.matches(departure.id, count)) {
+    final quote = state.quote;
+    if (quote != null) return quote.total;
+  }
+
+  return departure.price * count.clamp(1, 99);
 }
 
 /// `.card.navy` : le voyage tel qu'il a été choisi.
