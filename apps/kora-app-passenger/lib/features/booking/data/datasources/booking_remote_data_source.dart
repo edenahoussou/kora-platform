@@ -10,7 +10,7 @@ import '../../domain/entities/seat.dart';
 import '../../domain/entities/ticket.dart';
 import '../../domain/entities/upcoming_trip.dart';
 import '../models/city_model.dart';
-import '../models/departure_model.dart';
+import '../models/itinerary_model.dart';
 import '../models/seat_model.dart';
 import 'booking_data_source.dart';
 
@@ -50,32 +50,52 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
     final cities = [
       for (final json in ApiJson.list(response.data))
         CityModel.fromJson(json).toEntity(),
-    ]..removeWhere((city) => city.name.isEmpty);
+    ]..removeWhere((city) => city.name.isEmpty || !city.isSearchable);
 
+    // Une ville sans arrêt physique est écartée : depuis MEZ-63 la
+    // recherche interroge des arrêts, et la proposer mènerait le voyageur
+    // à une impasse plutôt qu'à un résultat.
+    //
     // L'API ne garantit pas d'ordre ; le sélecteur, lui, est une liste
     // qu'on parcourt des yeux.
     cities.sort((a, b) => a.name.compareTo(b.name));
     return cities;
   }
 
+  /// Cherche les trajets d'une ville à une autre, à une date donnée.
+  ///
+  /// Passe par `bus/itineraries` depuis MEZ-63, qui a retiré
+  /// `bus/departures`. Deux conséquences pour l'appelant : la recherche
+  /// travaille sur des **arrêts physiques** et non sur des noms de villes,
+  /// et elle rend des itinéraires — dont les trajets à correspondance, que
+  /// [ItineraryModel] écarte tant que l'app ne sait pas les afficher.
   @override
   Future<List<Departure>> searchDepartures(SearchCriteria criteria) async {
+    final from = criteria.origin.physicalStopId;
+    final to = criteria.destination.physicalStopId;
+
+    // Une ville sans arrêt physique ne peut pas être cherchée : le serveur
+    // refuserait (422). Le cas vient d'une ville reconstruite ailleurs que
+    // depuis `bus/cities` — un billet relu, un jeu de démonstration.
+    if (from == null || to == null) {
+      throw const ServerException('Ville sans arrêt desservi.');
+    }
+
     final response = await _dio.get<dynamic>(
-      ApiConstants.busDepartures,
+      ApiConstants.busItineraries,
       queryParameters: {
+        'from_physical_stop_uuid': from,
+        'to_physical_stop_uuid': to,
         'date': _apiDate(criteria.date),
-        // L'API filtre sur des **noms de villes**, pas sur des
-        // identifiants — c'est pour ça que `City.id` est le nom lui-même
-        // (voir `CityModel.toEntity`).
-        'from': criteria.origin.name,
-        'to': criteria.destination.name,
+        'passenger_count': criteria.passengers,
       },
     );
 
     return [
       for (final json in ApiJson.list(response.data))
-        // Un départ que l'API ne date pas est écarté, pas inventé.
-        ?DepartureModel.fromJson(json).toEntity(),
+        // Écarté plutôt qu'inventé : un itinéraire sans date lisible, ou
+        // qui impose une correspondance.
+        ?ItineraryModel.fromJson(json).toEntity(),
     ];
   }
 
@@ -88,32 +108,6 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
   /// une ville inconnue du serveur mènerait à une recherche vide.
   @override
   Future<List<City>> getRecentCities() async => const [];
-
-  /// Recharge un départ affiché depuis la liste.
-  ///
-  /// Ce n'est pas plus de données qu'on vient chercher, ce sont les
-  /// mêmes, fraîches : entre la recherche et l'ouverture du détail, les
-  /// places restantes et le tarif ont pu bouger.
-  @override
-  Future<Departure> getDeparture(String departureId) async {
-    final response = await _dio.get<dynamic>(
-      ApiConstants.busDeparture(departureId),
-    );
-
-    final body = response.data;
-    final payload = body is Map && body['data'] != null ? body['data'] : body;
-
-    final departure = DepartureModel.fromJson(ApiJson.map(payload)).toEntity();
-
-    // `toEntity` rend `null` quand la date est illisible. Dans une liste
-    // on écarte la ligne ; ici il n'y en a qu'une, et rendre un départ
-    // sans horaire serait pire que de ne rien rendre.
-    if (departure == null) {
-      throw const ServerException('Départ illisible.');
-    }
-
-    return departure;
-  }
 
   /// Pas encore servi par l'API — voir la note de classe.
   @override

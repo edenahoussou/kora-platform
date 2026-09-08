@@ -182,62 +182,27 @@ void main() {
   });
 
   group('rafraîchissement', () {
-    test('recharge le départ par son identifiant', () async {
-      final repository = StubDepartureRepository();
-      final cubit = DepartureDetailCubit(repository, departure: departure);
-      addTearDown(cubit.close);
-
-      await cubit.refresh();
-
-      expect(repository.calls, ['byId:${departure.id}']);
-    });
-
-    test('remplace ce que la liste affichait', () async {
-      // Les places restantes ont bougé depuis la recherche : c'est tout
-      // l'intérêt de recharger juste avant de choisir un siège.
-      final fresher = Departure(
-        id: departure.id,
-        line: departure.line,
-        departsAt: departure.departsAt,
-        comfort: departure.comfort,
-        price: departure.price,
-        seatsTotal: departure.seatsTotal,
-        seatsAvailable: 3,
-      );
-      final cubit = DepartureDetailCubit(
-        StubDepartureRepository(refreshed: fresher),
-        departure: departure,
-      );
-      addTearDown(cubit.close);
-
-      await cubit.refresh();
-
-      expect(cubit.state.departure.seatsAvailable, 3);
-      expect(cubit.state.isStale, isFalse);
-    });
-
-    test('un échec garde le départ affiché et le signale', () async {
-      // Vider l'écran priverait le voyageur d'informations qu'il avait
-      // déjà sous les yeux.
-      final cubit = DepartureDetailCubit(
-        StubDepartureRepository(),
-        departure: departure,
-      );
+    test('ne rappelle plus le serveur pour un départ isolé', () async {
+      // MEZ-63 a retiré `GET bus/departures/{uuid}` : il n'existe plus de
+      // route pour relire un départ seul. Continuer à l'appeler marquerait
+      // l'écran « périmé » en permanence, ce qui est pire que de ne pas
+      // rafraîchir.
+      final cubit = DepartureDetailCubit(departure: departure);
       addTearDown(cubit.close);
 
       await cubit.refresh();
 
       expect(cubit.state.departure, departure);
-      expect(cubit.state.isStale, isTrue);
+      expect(cubit.state.isStale, isFalse);
       expect(cubit.state.isRefreshing, isFalse);
     });
 
-    testWidgets('l’écran prévient quand les données ont vieilli', (
-      tester,
-    ) async {
+    testWidgets('l’écran n’annonce plus de données vieillies', (tester) async {
+      // L'avertissement n'avait de sens que face à un rafraîchissement qui
+      // échoue. Sans rafraîchissement, il inquiéterait pour rien.
       await pumpDetail(tester);
 
-      expect(find.textContaining('non actualisés'), findsOneWidget);
+      expect(find.textContaining('non actualisés'), findsNothing);
     });
   });
 }

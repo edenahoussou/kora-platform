@@ -17,7 +17,6 @@ import 'package:kora_app_passenger/features/booking/domain/entities/group_quote.
 import 'package:kora_app_passenger/features/booking/domain/entities/group_ticket.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/passenger.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/price.dart';
-import 'package:kora_app_passenger/features/booking/domain/entities/quote.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/seat.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/seat_hold.dart';
 import 'package:kora_app_passenger/features/booking/domain/repositories/reservation_repository.dart';
@@ -110,25 +109,6 @@ class StubReservationRepository implements ReservationRepository {
   /// besoin des objets eux-mêmes.
   final List<Passenger> savedPassengers = [];
 
-  @override
-  Future<Either<Failure, Quote>> quote({
-    required Departure departure,
-    required int passengers,
-  }) async {
-    calls.add('quote');
-    final failure = this.failure;
-    if (failure != null) return Left(failure);
-
-    return Right(
-      Quote(
-        id: 'quote-1',
-        total: Price(12500 * passengers),
-        passengerCount: passengers,
-        expiresAt: now.add(holdDuration),
-      ),
-    );
-  }
-
   /// Les billets rendus par [bookingTickets]. Vide par défaut : l'émission
   /// suit le paiement, et un écran ouvert trop tôt n'en voit aucun.
   final List<GroupTicket> tickets;
@@ -173,26 +153,6 @@ class StubReservationRepository implements ReservationRepository {
     return Right(
       SeatHold(
         id: 'hold-groupe-1',
-        expiresAt: now.add(holdDuration),
-        seatLabels: [for (final seat in seats) seat.label],
-        total: quote.total,
-      ),
-    );
-  }
-
-  @override
-  Future<Either<Failure, SeatHold>> hold({
-    required Departure departure,
-    required Quote quote,
-    required List<Seat> seats,
-  }) async {
-    calls.add('hold');
-    final failure = this.failure;
-    if (failure != null) return Left(failure);
-
-    return Right(
-      SeatHold(
-        id: 'hold-1',
         expiresAt: now.add(holdDuration),
         seatLabels: [for (final seat in seats) seat.label],
         total: quote.total,

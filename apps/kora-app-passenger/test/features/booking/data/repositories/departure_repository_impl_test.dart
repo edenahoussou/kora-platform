@@ -65,11 +65,7 @@ void main() {
       () => dataSource.searchDepartures(criteria),
     ).thenAnswer((_) async => const <Departure>[]);
 
-    final result = await repository.search(
-      originCity: 'Cotonou',
-      destinationCity: 'Abidjan',
-      date: DateTime(2026, 8, 20),
-    );
+    final result = await repository.search(criteria);
 
     expect(result.isRight(), isTrue);
     expect(result.getOrElse(() => const <Departure>[]), isEmpty);

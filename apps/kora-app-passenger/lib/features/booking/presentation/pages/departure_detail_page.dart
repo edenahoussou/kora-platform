@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/di/injector.dart';
 import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/date_formats.dart';
@@ -69,8 +68,7 @@ class DepartureDetailPage extends StatelessWidget {
               ? const _MissingDeparture()
               : BlocProvider<DepartureDetailCubit>(
                   create: (_) =>
-                      DepartureDetailCubit(getIt(), departure: departure)
-                        ..refresh(),
+                      DepartureDetailCubit(departure: departure)..refresh(),
                   child:
                       BlocBuilder<DepartureDetailCubit, DepartureDetailState>(
                         builder: (context, state) => _DetailContent(

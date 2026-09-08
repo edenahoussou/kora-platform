@@ -2,7 +2,6 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/departure.dart';
-import '../../domain/repositories/departure_repository.dart';
 
 /// Le détail d'un départ, rafraîchi en arrière-plan.
 ///
@@ -20,26 +19,23 @@ import '../../domain/repositories/departure_repository.dart';
 /// discrètement. Vider l'écran parce qu'un rafraîchissement a échoué
 /// priverait le voyageur d'informations qu'il avait déjà sous les yeux.
 class DepartureDetailCubit extends Cubit<DepartureDetailState> {
-  DepartureDetailCubit(this._repository, {required Departure departure})
+  DepartureDetailCubit({required Departure departure})
     : super(DepartureDetailState(departure: departure));
 
-  final DepartureRepository _repository;
-
-  Future<void> refresh() async {
-    if (state.isRefreshing) return;
-
-    emit(state.copyWith(isRefreshing: true, clearStale: true));
-
-    final result = await _repository.byId(state.departure.id);
-
-    emit(
-      result.fold(
-        (failure) => state.copyWith(isRefreshing: false, isStale: true),
-        (departure) =>
-            DepartureDetailState(departure: departure, isRefreshing: false),
-      ),
-    );
-  }
+  /// Rafraîchit le départ affiché.
+  ///
+  /// **Ne fait plus rien depuis MEZ-63**, qui a retiré
+  /// `GET bus/departures/{uuid}` : il n'existe plus de route pour relire un
+  /// départ isolé. Continuer à l'appeler marquerait l'écran « périmé » en
+  /// permanence, ce qui est pire que de ne pas rafraîchir.
+  ///
+  /// L'absence coûte peu : le détail s'ouvre quelques secondes après la
+  /// recherche, et c'est le plan des sièges — servi par une route bien
+  /// vivante — qui fait autorité sur les places restantes.
+  ///
+  /// À rebrancher le jour où le back exposera de nouveau un départ seul,
+  /// ou un itinéraire par identifiant.
+  Future<void> refresh() async {}
 }
 
 class DepartureDetailState extends Equatable {

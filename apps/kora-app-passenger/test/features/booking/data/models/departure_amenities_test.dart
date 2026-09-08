@@ -1,7 +1,7 @@
 // Les services à bord, du JSON du serveur jusqu'au libellé affiché.
 //
-// Le contrat est celui de `DepartureResource` : `bus.amenities` est une
-// liste d'objets `{uuid, code, label, icon}`, déjà filtrée sur les
+// Le contrat est celui du tronçon d'un itinéraire : `bus.amenities` est
+// une liste d'objets `{code, label, icon}`, déjà filtrée sur les
 // équipements actifs. L'app n'en retient que le code — qui fait autorité —
 // et le libellé, qui sert de repli.
 
@@ -9,35 +9,40 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_app_passenger/core/l10n/app_localization.dart';
-import 'package:kora_app_passenger/features/booking/data/models/departure_model.dart';
+import 'package:kora_app_passenger/features/booking/data/models/itinerary_model.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/amenity.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
 import 'package:kora_app_passenger/features/booking/presentation/widgets/amenity_view.dart';
 
 /// Le départ construit depuis [json], dont on sait qu'il est valide :
-/// `toEntity` ne rend `null` que sans date de départ exploitable, et
-/// chaque cas ci-dessous en fournit une.
+/// `toEntity` ne rend `null` que sur un itinéraire à correspondance ou
+/// sans date exploitable, et chaque cas ci-dessous en est exempt.
 Departure entityFrom(Map<String, dynamic> json) {
-  final departure = DepartureModel.fromJson(json).toEntity();
-  expect(departure, isNotNull, reason: 'départ illisible : $json');
+  final departure = ItineraryModel.fromJson(json).toEntity();
+  expect(departure, isNotNull, reason: 'itinéraire illisible : $json');
   return departure!;
 }
 
-/// Un départ minimal, dont seul le bloc `bus` nous intéresse ici.
+/// Un itinéraire direct minimal, dont seul le bloc `bus` nous intéresse.
 Map<String, dynamic> departureJson(Object? amenities) => {
-  'uuid': 'dep-1',
-  'departure_date': '2026-09-01',
-  'departure_time': '20:00',
-  'status': 'scheduled',
-  'bus': {
-    'uuid': 'bus-1',
-    'registration_number': 'AA-123-RB',
-    'brand': 'Mercedes',
-    'model': 'O500',
-    'seat_count': 55,
-    'amenities': ?amenities,
-  },
-  'available_seats_count': 12,
+  'connections_count': 0,
+  'legs': [
+    {
+      'leg_order': 1,
+      'departure_uuid': 'dep-1',
+      'departure_at': '2026-09-01T20:00:00+00:00',
+      'available_seats_count': 12,
+      'service_class_code': 'confort',
+      'bus': {
+        'uuid': 'bus-1',
+        'registration_number': 'AA-123-RB',
+        'brand': 'Mercedes',
+        'model': 'O500',
+        'seat_count': 55,
+        'amenities': ?amenities,
+      },
+    },
+  ],
 };
 
 void main() {

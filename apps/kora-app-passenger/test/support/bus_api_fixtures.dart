@@ -8,8 +8,18 @@
 /// La réponse de `GET /api/v1/bus/cities`, telle quelle.
 const Map<String, dynamic> kCitiesResponse = {
   'data': [
-    {'city': 'Cotonou', 'country': 'BJ', 'stops_count': 3},
-    {'city': 'Abidjan', 'country': 'CI', 'stops_count': 2},
+    {
+      'city': 'Cotonou',
+      'country': 'BJ',
+      'stops_count': 3,
+      'physical_stops': [kCotonouPhysicalStop],
+    },
+    {
+      'city': 'Abidjan',
+      'country': 'CI',
+      'stops_count': 2,
+      'physical_stops': [kAbidjanPhysicalStop],
+    },
     {'city': 'Bohicon', 'country': 'BJ', 'stops_count': 1},
   ],
 };
@@ -51,32 +61,86 @@ const Map<String, dynamic> kLine = {
   'status': 'active',
 };
 
-/// Un départ de `GET /api/v1/bus/departures`, tel quel.
-const Map<String, dynamic> kDeparture = {
-  'uuid': 'a3091549-9179-454e-8440-58179f2208df',
-  'departure_date': '2026-08-20',
-  'departure_time': '06:00',
-  'estimated_arrival_at': '2026-08-20T14:00:00.000Z',
-  'status': 'scheduled',
-  'line': kLine,
+/// Une ville de `GET /api/v1/bus/cities` avec ses arrêts physiques.
+///
+/// C'est `physical_stops[].uuid` — et non l'arrêt de ligne porté par un
+/// itinéraire — que `bus/itineraries` attend en paramètre : les deux tables
+/// sont distinctes côté serveur, et confondre les identifiants rend un 422.
+const Map<String, dynamic> kCotonouPhysicalStop = {
+  'uuid': '74703fce-3358-429d-9994-6b323664a419',
+  'name': 'Cotonou',
+};
+
+const Map<String, dynamic> kAbidjanPhysicalStop = {
+  'uuid': 'f2b528f4-3c99-461f-ac4e-a10f0721b388',
+  'name': 'Abidjan',
+};
+
+/// Un itinéraire direct de `GET /api/v1/bus/itineraries`, recopié de la
+/// staging le 8 septembre 2026 (Cotonou → Abidjan).
+///
+/// Deux détails que seule la vraie réponse apprend, et qu'une fixture
+/// écrite de mémoire aurait manqués : `line` **ne porte pas** de
+/// `distance_km`, et l'arrêt d'un tronçon a un `uuid` différent de l'arrêt
+/// physique interrogé par la recherche.
+const Map<String, dynamic> kItinerary = {
+  'connections_count': 0,
+  'total_amount': 31600,
+  'currency': 'XOF',
+  'departure_at': '2026-09-09T06:00:00+00:00',
+  'arrival_at': '2026-09-10T00:30:00+00:00',
+  'connection_margin_minutes': 45,
+  'legs': [kItineraryLeg],
+};
+
+const Map<String, dynamic> kItineraryLeg = {
+  'leg_order': 1,
+  'departure_uuid': '56f674c2-7795-4427-9839-ff5de7345ade',
+  'line': {
+    'uuid': '6c10d2f6-a930-42b8-8464-97bbec4411a9',
+    'code': 'L1',
+    'name': 'Corridor',
+    'estimated_duration_minutes': 1110,
+    'is_international': true,
+  },
   'bus': {
-    'uuid': 'b4102650-a280-4655-9551-69280321aaef',
-    'registration_number': 'BJ-2024-AB-1234',
-    'brand': 'Mercedes',
-    'model': 'O500',
-    'seat_count': 49,
+    'uuid': 'd0dd8f1a-cf65-4cf7-8bdd-156d4ff6678d',
+    'registration_number': 'KORA-L1-001',
+    'brand': 'KORA',
+    'model': 'Coach 55',
+    'seat_count': 55,
+    'amenities': [
+      {'code': 'wifi', 'label': 'Wi-Fi à bord', 'icon': 'wifi'},
+      {
+        'code': 'air_conditioning',
+        'label': 'Climatisation',
+        'icon': 'snowflake',
+      },
+      {
+        'code': 'reclining_seats',
+        'label': 'Sièges inclinables',
+        'icon': 'armchair',
+      },
+    ],
   },
-  'origin_stop': kCotonouStop,
-  'destination_stop': kAbidjanStop,
+  'origin_stop': {
+    'uuid': 'd27a305c-4a4b-405c-9ba6-0371e69024dd',
+    'name': 'Cotonou',
+    'city': 'Cotonou',
+    'country': 'BJ',
+    'stop_order': 1,
+  },
+  'destination_stop': {
+    'uuid': '6b0c1666-6eaa-4b67-a216-df1667ae6be1',
+    'name': 'Abidjan',
+    'city': 'Abidjan',
+    'country': 'CI',
+    'stop_order': 8,
+  },
+  'amount': 31600,
   'available_seats_count': 32,
-  // Forme exacte renvoyée par la staging : deux montants, et aucun
-  // libellé pré-formaté. Une fixture inventée avait laissé passer une
-  // lecture sur `amount`, qui n'existe pas — l'app affichait 0 FCFA.
-  'fare_preview': {
-    'fare_uuid': 'ae8feee9-1a78-4745-83f1-f12817bbcb46',
-    'base_amount': 15000,
-    'final_amount': 15000,
-    'currency': 'XOF',
-    'is_quote': false,
-  },
+  'service_class_code': 'confort',
+  'service_class_name': 'KORA Confort',
+  'departure_at': '2026-09-09T06:00:00+00:00',
+  'arrival_at': '2026-09-10T00:30:00+00:00',
 };

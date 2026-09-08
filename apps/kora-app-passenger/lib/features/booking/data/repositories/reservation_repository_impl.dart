@@ -10,7 +10,6 @@ import '../../domain/entities/group_payer.dart';
 import '../../domain/entities/group_quote.dart';
 import '../../domain/entities/group_ticket.dart';
 import '../../domain/entities/passenger.dart';
-import '../../domain/entities/quote.dart';
 import '../../domain/entities/seat.dart';
 import '../../domain/entities/seat_hold.dart';
 import '../../domain/repositories/reservation_repository.dart';
@@ -38,50 +37,16 @@ class ReservationRepositoryImpl
     required List<Seat> seats,
     required GroupPayer payer,
     required String idempotencyKey,
-  }) {
-    return attempt(
-      () => _dataSource.holdGroup(
-        quote: quote,
-        seats: seats,
-        payer: payer,
-        idempotencyKey: idempotencyKey,
-      ),
-    );
-  }
-
-  @override
-  Future<Either<Failure, GroupQuote>> groupQuote({
-    required Departure departure,
-    required int passengers,
-  }) {
-    return attempt(
-      () =>
-          _dataSource.groupQuote(departure: departure, passengers: passengers),
-    );
-  }
-
-  @override
-  Future<Either<Failure, Quote>> quote({
-    required Departure departure,
-    required int passengers,
-  }) => attempt(
-    () => _dataSource.quote(departure: departure, passengers: passengers),
-  );
-
-  @override
-  Future<Either<Failure, SeatHold>> hold({
-    required Departure departure,
-    required Quote quote,
-    required List<Seat> seats,
   }) async {
     SeatUnavailableFailure? conflict;
 
     final result = await attempt(() async {
       try {
-        return await _dataSource.hold(
-          departure: departure,
+        return await _dataSource.holdGroup(
           quote: quote,
           seats: seats,
+          payer: payer,
+          idempotencyKey: idempotencyKey,
         );
       } on DioException catch (error) {
         // Le 409 est relevé ici, avant que le mapper commun ne le réduise
@@ -95,6 +60,17 @@ class ReservationRepositoryImpl
 
     final captured = conflict;
     return captured == null ? result : Left(captured);
+  }
+
+  @override
+  Future<Either<Failure, GroupQuote>> groupQuote({
+    required Departure departure,
+    required int passengers,
+  }) {
+    return attempt(
+      () =>
+          _dataSource.groupQuote(departure: departure, passengers: passengers),
+    );
   }
 
   @override

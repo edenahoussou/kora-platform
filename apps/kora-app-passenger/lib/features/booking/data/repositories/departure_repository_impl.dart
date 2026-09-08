@@ -26,26 +26,6 @@ class DepartureRepositoryImpl
       attempt(_dataSource.getCities);
 
   @override
-  Future<Either<Failure, Departure>> byId(String departureId) =>
-      attempt(() => _dataSource.getDeparture(departureId));
-
-  @override
-  Future<Either<Failure, List<Departure>>> search({
-    required String originCity,
-    required String destinationCity,
-    required DateTime date,
-  }) {
-    // L'API filtre les départs sur le **nom** des villes (`from`, `to`) :
-    // elle n'expose aucun identifiant, et `City.id` porte donc ce nom.
-    // Une recherche n'a pas besoin d'en savoir plus sur la ville que ça.
-    return attempt(
-      () => _dataSource.searchDepartures(
-        SearchCriteria(
-          origin: City.named(originCity),
-          destination: City.named(destinationCity),
-          date: date,
-        ),
-      ),
-    );
-  }
+  Future<Either<Failure, List<Departure>>> search(SearchCriteria criteria) =>
+      attempt(() => _dataSource.searchDepartures(criteria));
 }
