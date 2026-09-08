@@ -34,6 +34,7 @@ type Summary = {
     absent: number;
     ticketIssued: number;
     paymentPending: number;
+    holdExpired: number;
     cancelled: number;
 };
 

@@ -3,6 +3,7 @@
 namespace App\Modules\Departures\Http\Controllers;
 
 use App\Modules\Booking\Actions\ResolvePassengerJourneyStatusAction;
+use App\Modules\Booking\Data\PassengerJourneyStatus;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\Departures\Data\DepartureStatus;
@@ -141,9 +142,6 @@ class ManifestController
                 'isGroupPurchase' => $reservation->passengers->count() > 1,
                 'passengerCount' => $reservation->passengers->count(),
             ],
-            // `departure_id` is a required column on reservation_segments,
-            // so the relation is never null here — no nullsafe/fallback
-            // needed (PHPStan flags it as dead code otherwise).
             'passengers' => $reservation->segments->map(fn (ReservationSegment $segment): array => $this->serializeManifestRow($segment, $ticketsByPassengerId, $canViewTickets, $segment->departure->status, includeDeparture: true))->values(),
             'permissions' => [
                 'canViewTickets' => $canViewTickets,
@@ -238,6 +236,7 @@ class ManifestController
             'absent' => 0,
             'ticketIssued' => 0,
             'paymentPending' => 0,
+            'holdExpired' => 0,
             'cancelled' => 0,
         ];
 
@@ -245,12 +244,13 @@ class ManifestController
             $latestPayment = $segment->reservation->payments->first();
             $status = $this->resolveJourneyStatus->execute($segment, $latestPayment, $departureStatus);
 
-            match ($status->value) {
-                'boarded' => $counts['boarded']++,
-                'absent' => $counts['absent']++,
-                'ticket_issued' => $counts['ticketIssued']++,
-                'hold_pending', 'payment_pending' => $counts['paymentPending']++,
-                'cancelled' => $counts['cancelled']++,
+            match ($status) {
+                PassengerJourneyStatus::Boarded => $counts['boarded']++,
+                PassengerJourneyStatus::Absent => $counts['absent']++,
+                PassengerJourneyStatus::TicketIssued => $counts['ticketIssued']++,
+                PassengerJourneyStatus::HoldPending, PassengerJourneyStatus::PaymentPending => $counts['paymentPending']++,
+                PassengerJourneyStatus::HoldExpired => $counts['holdExpired']++,
+                PassengerJourneyStatus::Cancelled => $counts['cancelled']++,
                 default => null,
             };
         }
