@@ -17,6 +17,9 @@ tags:
     name: 'Company Accounts'
     description: "\nCompany account management for group purchases and credit-based billing."
   -
+    name: Endpoints
+    description: ''
+  -
     name: 'Group Discounts'
     description: "\nGroup discount rule management and group booking settings."
   -
@@ -944,7 +947,7 @@ paths:
                 date:
                   type: string
                   description: 'Must be a valid date in the format <code>Y-m-d</code>.'
-                  example: '2026-09-08'
+                  example: '2026-09-09'
                 passenger_count:
                   type: integer
                   description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 10.'
@@ -980,7 +983,7 @@ paths:
                 return_date:
                   type: string
                   description: 'Must be a valid date in the format <code>Y-m-d</code>.'
-                  example: '2026-09-08'
+                  example: '2026-09-09'
               required:
                 - from_physical_stop_uuid
                 - to_physical_stop_uuid
@@ -3024,18 +3027,18 @@ paths:
                   example: zbailey@example.net
                 phone:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 20 caractères.'
+                  description: 'Must match the regex /^\+?[\d\s\-.()]{6,20}$/. Le champ value ne doit pas dépasser 20 caractères.'
                   example: iyvdljnikhwaykcm
                   nullable: true
                 country_code:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 4 caractères.'
+                  description: 'Must match the regex /^\+?[\d\s\-.()]{1,7}$/. Le champ value ne doit pas dépasser 4 caractères.'
                   example: yuwp
                   nullable: true
                 birth_date:
                   type: string
                   description: 'Le champ value doit être une date valide. Le champ value doit être une date antérieure à <code>today</code>.'
-                  example: '2022-10-03'
+                  example: '2022-10-04'
                   nullable: true
               required:
                 - name
@@ -4079,6 +4082,228 @@ paths:
         required: true
         schema:
           type: string
+  /api/user:
+    get:
+      summary: ''
+      operationId: getApiUser
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Endpoints
+      security: []
+  /api/emecf/status:
+    get:
+      summary: "Obtenir le statut de l'API de facturation."
+      operationId: obtenirLeStatutDeLAPIDeFacturation
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Endpoints
+      security: []
+  /api/emecf/taxpayer:
+    get:
+      summary: 'Obtenir les informations du contribuable.'
+      operationId: obtenirLesInformationsDuContribuable
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Endpoints
+      security: []
+  /api/emecf/invoices:
+    post:
+      summary: 'Soumettre une nouvelle facture.'
+      operationId: soumettreUneNouvelleFacture
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Endpoints
+      security: []
+    get:
+      summary: 'Lister les factures locales.'
+      operationId: listerLesFacturesLocales
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Endpoints
+      security: []
+  '/api/emecf/invoices/{uid}/finalize':
+    put:
+      summary: 'Finaliser une facture (confirmer ou annuler).'
+      operationId: finaliserUneFactureconfirmerOuAnnuler
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Endpoints
+      security: []
+    parameters:
+      -
+        in: path
+        name: uid
+        description: ''
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/emecf/invoices/{id}':
+    get:
+      summary: "Obtenir les détails d'une facture locale."
+      operationId: obtenirLesDtailsDuneFactureLocale
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Endpoints
+      security: []
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the invoice.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  /api/emecf/info/tax-groups:
+    get:
+      summary: 'Obtenir les groupes de taxation.'
+      operationId: obtenirLesGroupesDeTaxation
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Endpoints
+      security: []
+  /api/emecf/info/invoice-types:
+    get:
+      summary: 'Obtenir les types de factures.'
+      operationId: obtenirLesTypesDeFactures
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Endpoints
+      security: []
+  /api/emecf/info/payment-types:
+    get:
+      summary: 'Obtenir les types de paiement.'
+      operationId: obtenirLesTypesDePaiement
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Endpoints
+      security: []
+  /api/emecf/api/invoice:
+    get:
+      summary: "Obtenir le statut de l'API de facturation."
+      operationId: obtenirLeStatutDeLAPIDeFacturation
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Endpoints
+      security: []
+    post:
+      summary: 'Soumettre une nouvelle facture.'
+      operationId: soumettreUneNouvelleFacture
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Endpoints
+      security: []
+  '/api/emecf/api/invoice/{uid}/{action}':
+    put:
+      summary: ''
+      operationId: putApiEmecfApiInvoiceUidAction
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Endpoints
+      security: []
+    parameters:
+      -
+        in: path
+        name: uid
+        description: ''
+        example: architecto
+        required: true
+        schema:
+          type: string
+      -
+        in: path
+        name: action
+        description: ''
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/emecf/api/invoice/{uid}':
+    get:
+      summary: "Obtenir les détails d'une facture."
+      operationId: obtenirLesDtailsDuneFacture
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Endpoints
+      security: []
+    parameters:
+      -
+        in: path
+        name: uid
+        description: ''
+        example: architecto
+        required: true
+        schema:
+          type: string
+  /api/emecf/api/info/status:
+    get:
+      summary: "Obtenir le statut de l'API de facturation."
+      operationId: obtenirLeStatutDeLAPIDeFacturation
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Endpoints
+      security: []
+  /api/emecf/api/info/taxGroups:
+    get:
+      summary: 'Obtenir les groupes de taxation.'
+      operationId: obtenirLesGroupesDeTaxation
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Endpoints
+      security: []
+  /api/emecf/api/info/invoiceTypes:
+    get:
+      summary: 'Obtenir les types de factures.'
+      operationId: obtenirLesTypesDeFactures
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Endpoints
+      security: []
+  /api/emecf/api/info/paymentTypes:
+    get:
+      summary: 'Obtenir les types de paiement.'
+      operationId: obtenirLesTypesDePaiement
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Endpoints
+      security: []
   /api/v1/group-discounts:
     get:
       summary: 'List all group discount rules ordered by start date.'
