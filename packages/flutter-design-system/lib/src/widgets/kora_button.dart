@@ -165,9 +165,14 @@ class KoraButton extends StatelessWidget {
           foreground: AppColors.kora,
         );
       case KoraButtonVariant.secondary:
-        return const _KoraButtonStyle(
+        // Le navy de la maquette n'existe qu'en thème clair, où il tranche
+        // sur la page. En sombre, le fond d'écran EST ce navy : le bouton
+        // s'y dissolvait, et il ne restait que son libellé flottant. Un
+        // filet lui rend ses bords, comme à `KoraCard.navy`.
+        return _KoraButtonStyle(
           background: AppColors.kora,
           foreground: AppColors.white,
+          border: isDark ? BorderSide(color: koraColors.line) : null,
         );
       case KoraButtonVariant.ghost:
         // `.ghost { color: var(--kora) }` : le libellé est en bleu KORA,

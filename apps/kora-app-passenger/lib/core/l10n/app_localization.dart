@@ -858,11 +858,6 @@ class AppLocalization {
   String get homeSearchPickCity => translate('home_search_pick_city');
   String get homeSearchDate => translate('home_search_date');
   String get homeSearchDateEmpty => translate('home_search_date_empty');
-
-  String get homeSearchReturnDate => translate('home_search_return_date');
-
-  String get homeSearchReturnDateEmpty =>
-      translate('home_search_return_date_empty');
   String get homeSearchPassengers => translate('home_search_passengers');
 
   /// « 1 adulte » / « 3 adultes » — le pluriel se joue sur la clé, les
@@ -875,14 +870,6 @@ class AppLocalization {
   );
   String get homeSearchSubmit => translate('home_search_submit');
 
-  /// Le bouton nomme ce qu’il va chercher : un aller-retour en ramène
-  /// deux listes, et le dire évite la surprise de l’écran suivant.
-  String get homeSearchSubmitRoundTrip =>
-      translate('home_search_submit_roundtrip');
-
-  String get homeTripTypeOneWay => translate('home_trip_type_oneway');
-
-  String get homeTripTypeRoundTrip => translate('home_trip_type_roundtrip');
   String get homeQuickTitle => translate('home_quick_title');
   String get homeQuickRide => translate('home_quick_ride');
   String get homeQuickParcels => translate('home_quick_parcels');

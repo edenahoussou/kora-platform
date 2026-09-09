@@ -115,6 +115,15 @@ class _Form extends StatelessWidget {
 
   void _search(BuildContext context) {
     final l10n = context.l10n;
+
+    // La date de retour d'abord : sans elle les critères sont `null` sur un
+    // aller-retour, et parler de villes manquantes désignerait le mauvais
+    // champ.
+    if (state.tripType == TripType.roundtrip && state.returnDate == null) {
+      KoraToaster.show(context, l10n.searchMissingReturn);
+      return;
+    }
+
     final criteria = state.criteria;
 
     // Le trajet n'est pas complet : on le dit plutôt que de laisser le
@@ -124,15 +133,10 @@ class _Form extends StatelessWidget {
       return;
     }
 
-    if (state.tripType == TripType.roundtrip) {
-      if (state.returnDate == null) {
-        KoraToaster.show(context, l10n.searchMissingReturn);
-        return;
-      }
-
-      // L'aller part quand même : c'est la première moitié du voyage, et
-      // elle se cherche exactement pareil. Seul l'écran `return-results`,
-      // qui enchaînerait sur le retour, n'existe pas encore.
+    if (criteria.isRoundTrip) {
+      // Les deux sens partent bien au serveur — c'est un seul appel qui
+      // les rend tous les deux. Seul l'écran qui listerait les retours
+      // n'existe pas encore, et la liste montre donc l'aller.
       KoraToaster.show(context, l10n.searchReturnResultsSoon);
     }
 
@@ -887,7 +891,7 @@ class _ReturnDateCard extends StatelessWidget {
     final outbound = state.date ?? state.today ?? DateTime.now();
 
     final picked = await context.push<DateTime>(
-      AppRouter.datePath,
+      AppRouter.returnDatePath,
       extra: DatePickerArgs(
         selected: state.returnDate ?? outbound,
         today: outbound,

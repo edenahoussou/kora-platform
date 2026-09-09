@@ -23,7 +23,6 @@ import 'package:kora_app_passenger/features/booking/domain/usecases/get_next_tri
 import 'package:kora_app_passenger/features/booking/domain/usecases/get_recent_cities_usecase.dart';
 import 'package:kora_app_passenger/features/home/presentation/bloc/home_bloc.dart';
 import 'package:kora_app_passenger/features/home/presentation/pages/city_picker_page.dart';
-import 'package:kora_app_passenger/features/home/presentation/pages/date_picker_page.dart';
 import 'package:kora_app_passenger/features/home/presentation/pages/home_page.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -97,19 +96,6 @@ void main() {
               cities: args.cities,
               recentCities: args.recentCities,
               selected: args.selected,
-            );
-          },
-        ),
-        // Le calendrier du retour : son plancher vient de l’accueil, et
-        // c’est justement ce que vérifie le test.
-        GoRoute(
-          path: AppRouter.returnDatePath,
-          builder: (context, state) {
-            final args = state.extra! as DatePickerArgs;
-            return DatePickerPage(
-              selected: args.selected,
-              today: args.today,
-              title: context.l10n.homeReturnDateTitle,
             );
           },
         ),
@@ -245,65 +231,5 @@ void main() {
     expect(find.byType(CityPickerPage), findsNothing);
     expect(find.text('Parakou · Zongo'), findsOneWidget);
     expect(find.text('Choisir une ville'), findsOneWidget);
-  });
-
-  group('aller-retour', () {
-    testWidgets('l’accueil ouvre sur l’aller simple', (tester) async {
-      await pumpHome(tester);
-      await tester.pumpAndSettle();
-
-      expect(find.text('Aller simple'), findsOneWidget);
-      expect(find.text('Aller-retour'), findsOneWidget);
-      // Rien ne demande de retour tant qu'on n'en a pas choisi un.
-      expect(find.text('DATE DU RETOUR'), findsNothing);
-      expect(find.text('Rechercher un voyage'), findsOneWidget);
-    });
-
-    testWidgets('la bascule fait apparaître la date du retour', (tester) async {
-      await pumpHome(tester);
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Aller-retour'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('DATE DU RETOUR'), findsOneWidget);
-      // Le bouton annonce ce qu'il rapporte : deux listes, pas une.
-      expect(find.text('Rechercher l’aller et le retour'), findsOneWidget);
-      expect(find.text('Rechercher un voyage'), findsNothing);
-    });
-
-    testWidgets('le calendrier du retour ne remonte pas avant le départ', (
-      tester,
-    ) async {
-      // On ne rentre pas avant d'être parti : le plancher du calendrier
-      // est le jour du départ, pas aujourd'hui.
-      await pumpHome(tester);
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Aller-retour'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('DATE DU RETOUR'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Quand rentrez-vous ?'), findsOneWidget);
-
-      final calendar = tester.widget<DatePickerPage>(
-        find.byType(DatePickerPage),
-      );
-      expect(calendar.today, DateTime(2026, 8, 13));
-    });
-
-    testWidgets('revenir à l’aller simple retire la carte', (tester) async {
-      await pumpHome(tester);
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Aller-retour'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Aller simple'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('DATE DU RETOUR'), findsNothing);
-      expect(find.text('Rechercher un voyage'), findsOneWidget);
-    });
   });
 }

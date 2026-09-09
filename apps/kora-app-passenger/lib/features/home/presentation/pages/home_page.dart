@@ -138,11 +138,6 @@ class _HomeContent extends StatelessWidget {
           onDateTap: () => _pickDate(context),
           onPassengersTap: () => _pickPassengers(context),
           onSearch: state.canSearch ? () => _search(context) : null,
-          tripType: state.tripType,
-          returnDate: state.returnDate,
-          onTripTypeChanged: (tripType) =>
-              context.read<HomeBloc>().add(HomeTripTypeChanged(tripType)),
-          onReturnDateTap: () => _pickReturnDate(context),
         ),
         SectionTitle(title: context.l10n.homeQuickTitle),
         HomeQuickGrid(
@@ -249,28 +244,6 @@ class _HomeContent extends StatelessWidget {
     if (picked == null) return;
 
     bloc.add(HomeDateSelected(picked));
-  }
-
-  /// Le calendrier du retour, borné au jour du départ.
-  ///
-  /// C'est le même écran que pour l'aller, avec deux différences : son
-  /// plancher n'est plus aujourd'hui mais la date choisie à l'aller — on
-  /// ne rentre pas avant d'être parti —, et son titre le dit.
-  Future<void> _pickReturnDate(BuildContext context) async {
-    final bloc = context.read<HomeBloc>();
-    final today = state.today ?? DateTime.now();
-    final departure = state.date ?? today;
-
-    final picked = await context.push<DateTime>(
-      AppRouter.returnDatePath,
-      extra: DatePickerArgs(
-        selected: state.returnDate ?? departure,
-        today: departure,
-      ),
-    );
-    if (picked == null) return;
-
-    bloc.add(HomeReturnDateSelected(picked));
   }
 
   Future<void> _pickPassengers(BuildContext context) async {

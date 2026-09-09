@@ -64,6 +64,49 @@ void main() {
       expect(find.byIcon(Icons.lock_outline), findsOneWidget);
     });
 
+    /// Le contour effectivement peint par le bouton, ou `null`.
+    BorderSide? sideOf(WidgetTester tester) {
+      final button = tester.widget<ElevatedButton>(find.byType(ElevatedButton));
+      return button.style?.side?.resolve(const <WidgetState>{});
+    }
+
+    testWidgets('le bouton secondaire prend un filet en thème sombre', (
+      tester,
+    ) async {
+      // Le fond d'écran sombre EST le navy du bouton : sans filet il perd
+      // ses bords, et il ne reste que son libellé flottant. C'est le
+      // traitement que `KoraCard.navy` s'applique déjà.
+      await pumpKoraWidget(
+        tester,
+        KoraButton(
+          label: 'Voir les détails',
+          variant: KoraButtonVariant.secondary,
+          onPressed: () {},
+        ),
+        dark: true,
+      );
+
+      expect(sideOf(tester)?.color, isNotNull);
+      expect(sideOf(tester)!.color.a, greaterThan(0));
+    });
+
+    testWidgets('en thème clair il garde son aplat sans contour', (
+      tester,
+    ) async {
+      // Le navy y tranche déjà sur la page : un filet alourdirait le
+      // bouton pour rien.
+      await pumpKoraWidget(
+        tester,
+        KoraButton(
+          label: 'Voir les détails',
+          variant: KoraButtonVariant.secondary,
+          onPressed: () {},
+        ),
+      );
+
+      expect(sideOf(tester), isNull);
+    });
+
     for (final variant in KoraButtonVariant.values) {
       testWidgets('variante $variant se construit sans erreur', (tester) async {
         await pumpKoraWidget(
