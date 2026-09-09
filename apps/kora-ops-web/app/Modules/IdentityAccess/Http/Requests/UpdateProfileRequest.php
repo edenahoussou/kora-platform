@@ -22,8 +22,8 @@ class UpdateProfileRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email:rfc', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
-            'phone' => ['nullable', 'string', 'max:20'],
-            'country_code' => ['nullable', 'string', 'max:4'],
+            'phone' => ['nullable', 'string', 'max:20', 'regex:/^\+?[\d\s\-.()]{6,20}$/'],
+            'country_code' => ['nullable', 'string', 'max:4', 'regex:/^\+?[\d\s\-.()]{1,7}$/'],
             'birth_date' => ['nullable', 'date', 'before:today'],
         ];
     }
@@ -41,7 +41,9 @@ class UpdateProfileRequest extends FormRequest
             'email.max' => "L'adresse email ne peut pas dépasser 255 caractères.",
             'email.unique' => 'Cette adresse email est déjà utilisée.',
             'phone.max' => 'Le numéro de téléphone ne peut pas dépasser 20 caractères.',
+            'phone.regex' => 'Le numéro de téléphone doit être au format international (ex: +2290191003606) ou local (ex: 0191003606).',
             'country_code.max' => "L'indicatif pays ne peut pas dépasser 4 caractères.",
+            'country_code.regex' => "L'indicatif pays doit contenir uniquement des chiffres (ex: +229).",
             'birth_date.date' => "La date de naissance n'est pas valide.",
             'birth_date.before' => "La date de naissance doit être antérieure à aujourd'hui.",
         ];

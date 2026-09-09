@@ -6,7 +6,7 @@ use App\Models\User;
 
 interface PassengerIdentityResolver
 {
-    public function normalizePhone(?string $phone): ?string;
+    public function normalizePhone(?string $phone, ?string $countryCode = null): ?string;
 
     public function resolveByPhone(string $normalizedPhone): ?User;
 
