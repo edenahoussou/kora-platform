@@ -9,7 +9,7 @@ use Illuminate\Validation\ValidationException;
 
 class PhonePassengerIdentityResolver implements PassengerIdentityResolver
 {
-    public function normalizePhone(?string $phone): ?string
+    public function normalizePhone(?string $phone, ?string $countryCode = null): ?string
     {
         $normalized = preg_replace('/[^0-9+]/', '', trim((string) $phone));
 
@@ -22,7 +22,10 @@ class PhonePassengerIdentityResolver implements PassengerIdentityResolver
         }
 
         if (! str_starts_with($normalized, '+')) {
-            $normalized = '+229'.$normalized;
+            $dialCode = $countryCode !== null && $countryCode !== ''
+                ? preg_replace('/[^0-9]/', '', $countryCode)
+                : '229';
+            $normalized = '+'.$dialCode.$normalized;
         }
 
         return $normalized;

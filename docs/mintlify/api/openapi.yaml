@@ -944,7 +944,7 @@ paths:
                 date:
                   type: string
                   description: 'Must be a valid date in the format <code>Y-m-d</code>.'
-                  example: '2026-09-08'
+                  example: '2026-09-09'
                 passenger_count:
                   type: integer
                   description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 10.'
@@ -980,7 +980,7 @@ paths:
                 return_date:
                   type: string
                   description: 'Must be a valid date in the format <code>Y-m-d</code>.'
-                  example: '2026-09-08'
+                  example: '2026-09-09'
               required:
                 - from_physical_stop_uuid
                 - to_physical_stop_uuid
@@ -3024,18 +3024,18 @@ paths:
                   example: zbailey@example.net
                 phone:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 20 caractères.'
+                  description: 'Must match the regex /^\+?[\d\s\-.()]{6,20}$/. Le champ value ne doit pas dépasser 20 caractères.'
                   example: iyvdljnikhwaykcm
                   nullable: true
                 country_code:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 4 caractères.'
+                  description: 'Must match the regex /^\+?[\d\s\-.()]{1,7}$/. Le champ value ne doit pas dépasser 4 caractères.'
                   example: yuwp
                   nullable: true
                 birth_date:
                   type: string
                   description: 'Le champ value doit être une date valide. Le champ value doit être une date antérieure à <code>today</code>.'
-                  example: '2022-10-03'
+                  example: '2022-10-04'
                   nullable: true
               required:
                 - name
