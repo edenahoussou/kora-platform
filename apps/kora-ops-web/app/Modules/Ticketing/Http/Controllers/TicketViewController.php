@@ -4,17 +4,14 @@ namespace App\Modules\Ticketing\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Booking\Models\Reservation;
-use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\Booking\Services\DepartureStopTimeResolver;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
+use App\Modules\Ticketing\Actions\GenerateTicketPdfAction;
 use App\Modules\Ticketing\Actions\GenerateTicketQrCodeAction;
 use App\Modules\Ticketing\Models\Ticket;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Carbon;
 
 /**
  * Renders a single ticket as a standalone Blade page (no dashboard layout)
@@ -25,6 +22,7 @@ class TicketViewController extends Controller
     public function __construct(
         private readonly DepartureStopTimeResolver $stopTimeResolver,
         private readonly GenerateTicketQrCodeAction $generateQr,
+        private readonly GenerateTicketPdfAction $generatePdf,
     ) {}
 
     public function show(Ticket $ticket, Request $request): Response
@@ -40,23 +38,22 @@ class TicketViewController extends Controller
         $this->loadRelations($ticket);
         $this->authorizeOwner($ticket->reservation, $request);
 
-        return $this->renderPdf($ticket);
+        $pdf = $this->generatePdf->execute($ticket);
+
+        return response($pdf['content'], 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$pdf['filename'].'"',
+        ]);
     }
 
     public function signedPdf(Ticket $ticket): Response
     {
-        $this->loadRelations($ticket);
+        $pdf = $this->generatePdf->execute($ticket);
 
-        return $this->renderPdf($ticket);
-    }
-
-    private function renderPdf(Ticket $ticket): Response
-    {
-        $data = $this->viewData($ticket, isPdf: true);
-        $pdf = Pdf::loadView('tickets.show', $data)
-            ->setPaper([0, 0, 226.77, 600], 'portrait'); // 80mm width, auto height
-
-        return $pdf->download("billet-{$ticket->short_code}.pdf");
+        return response($pdf['content'], 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$pdf['filename'].'"',
+        ]);
     }
 
     private function loadRelations(Ticket $ticket): void
@@ -81,11 +78,9 @@ class TicketViewController extends Controller
         $passenger = $ticket->reservationPassenger;
         $segments = $passenger?->segments?->sortBy('leg_order') ?? collect();
 
-        $legs = $segments->map(fn (ReservationSegment $segment): array => $this->legData($segment))->values()->all();
+        $legs = $segments->map(fn ($segment): array => $this->legData($segment))->values()->all();
 
-        /** @var ReservationSegment|null $firstLeg */
         $firstLeg = $segments->first();
-        /** @var ReservationSegment|null $lastLeg */
         $lastLeg = $segments->last();
         $originCity = $this->stopCity($firstLeg?->originStop) ?? '—';
         $destinationCity = $this->stopCity($lastLeg?->destinationStop) ?? '—';
@@ -132,7 +127,7 @@ class TicketViewController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function legData(ReservationSegment $segment): array
+    private function legData($segment): array
     {
         $departure = $segment->departure;
         $originStop = $segment->originStop;
@@ -196,7 +191,7 @@ class TicketViewController extends Controller
         return $formatted.' '.$currency;
     }
 
-    private function formatDate(Carbon|CarbonImmutable|null $date): string
+    private function formatDate($date): string
     {
         if ($date === null) {
             return '—';

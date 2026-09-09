@@ -10,6 +10,7 @@ use Codianselme\LaraSygmef\Models\EmecfInvoice;
 use Codianselme\LaraSygmef\Services\EmecfService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class FiscalizeReservationInvoiceJob implements ShouldQueue
@@ -26,7 +27,7 @@ class FiscalizeReservationInvoiceJob implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(FiscalInvoicePayloadBuilder $payloadBuilder, EmecfService $emecf): void
+    public function handle(FiscalInvoicePayloadBuilder $payloadBuilder): void
     {
         $reservation = Reservation::query()->findOrFail($this->reservationId);
         $payment = $reservation->payments()->where('status', 'confirmed')->latest('id')->firstOrFail();
@@ -47,7 +48,16 @@ class FiscalizeReservationInvoiceJob implements ShouldQueue
             $invoice->update(['status' => FiscalInvoiceStatus::Pending]);
         }
 
+        if (! $this->isEmecfConfigured()) {
+            $message = 'e-MECeF non configuré : EMECF_TOKEN ou SGMEF_DEFAULT_IFU manquant dans l’environnement.';
+            $invoice->update(['status' => FiscalInvoiceStatus::Failed, 'last_error' => $message]);
+            Log::warning($message, ['reservation_id' => $this->reservationId]);
+
+            return;
+        }
+
         try {
+            $emecf = app(EmecfService::class);
             $submission = $emecf->submitInvoice($payloadBuilder->build($reservation));
             if (($submission['success'] ?? false) !== true || empty($submission['data']['uid'])) {
                 throw new \RuntimeException((string) ($submission['error'] ?? 'Soumission e-MECeF échouée.'));
@@ -60,8 +70,16 @@ class FiscalizeReservationInvoiceJob implements ShouldQueue
             }
             $invoice->update(['status' => FiscalInvoiceStatus::Certified, 'fiscalized_at' => now()]);
         } catch (Throwable $exception) {
-            $invoice->update(['status' => FiscalInvoiceStatus::Failed]);
+            $invoice->update(['status' => FiscalInvoiceStatus::Failed, 'last_error' => $exception->getMessage()]);
             throw $exception;
         }
+    }
+
+    private function isEmecfConfigured(): bool
+    {
+        $token = (string) config('emecf.token');
+        $ifu = (string) config('emecf.default_ifu');
+
+        return $token !== '' && $ifu !== '' && $ifu !== '0000000000000';
     }
 }

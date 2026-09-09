@@ -45,7 +45,7 @@ class IssueReservationTicketsJob implements ShouldQueue
         try {
             DB::transaction(function () use ($issueTickets, &$ticketed): void {
                 $reservation = Reservation::query()
-                    ->with(['passengers', 'segments'])
+                    ->with(['passengers', 'segments', 'tickets'])
                     ->whereKey($this->reservationId)
                     ->lockForUpdate()
                     ->firstOrFail();
@@ -92,8 +92,9 @@ class IssueReservationTicketsJob implements ShouldQueue
             });
 
             if ($ticketed) {
+                $ticketedReservation = Reservation::query()->with(['tickets'])->findOrFail($this->reservationId);
                 FiscalizeReservationInvoiceJob::dispatch($this->reservationId)->onConnection('database')->afterCommit();
-                foreach (Reservation::query()->findOrFail($this->reservationId)->tickets as $ticket) {
+                foreach ($ticketedReservation->tickets as $ticket) {
                     SendReservationWhatsAppNotificationJob::dispatch($this->reservationId, $ticket->id)->onConnection('database')->afterCommit();
                 }
             }

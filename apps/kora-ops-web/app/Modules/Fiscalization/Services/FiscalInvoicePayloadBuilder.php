@@ -11,26 +11,36 @@ class FiscalInvoicePayloadBuilder
     /** @return array<string, mixed> */
     public function build(Reservation $reservation): array
     {
-        $reservation->loadMissing(['passengers', 'payments', 'payer', 'companyAccount']);
+        $reservation->loadMissing(['passengers', 'payments', 'payer', 'companyAccount', 'creator.agency']);
         $payment = $reservation->payments->firstWhere('status', 'confirmed') ?? $reservation->payments->first();
         $passengers = $reservation->passengers->where('status', 'active')->values();
-        $unitPrice = intdiv((int) $reservation->total_amount, max(1, $passengers->count()));
-        $payer = $reservation->payer_type->value === 'company' ? $reservation->companyAccount : $reservation->payer;
+        $passengerCount = max(1, $passengers->count());
+        $total = (int) $reservation->total_amount;
+        $unitPrice = intdiv($total, $passengerCount);
+        $remainder = $total - ($unitPrice * $passengerCount);
+
+        $client = $reservation->payer_type->value === 'company' ? $reservation->companyAccount : $reservation->payer;
+        $creator = $reservation->creator;
+
+        $items = $passengers->map(fn ($passenger, int $index): array => [
+            'name' => 'Billet de transport KORA BUS - '.Str::limit(trim($passenger->first_name.' '.$passenger->last_name), 70, ''),
+            'price' => $unitPrice + ($index < $remainder ? 1 : 0),
+            'quantity' => 1,
+            'taxGroup' => 'A',
+        ])->all();
 
         return [
             'ifu' => (string) config('emecf.default_ifu'),
             'type' => 'FV',
-            'operator' => ['name' => (string) ($payer === null ? 'KORA BUS' : $payer->name)],
+            'operator' => array_filter([
+                'id' => $creator?->getKey(),
+                'name' => $creator === null ? 'KORA BUS' : $creator->name,
+            ], fn ($value): bool => $value !== null && $value !== ''),
             'client' => array_filter([
-                'name' => $payer === null ? null : $payer->name,
-                'contact' => $payment->payer_phone ?? ($payer === null ? null : $payer->phone),
+                'name' => $client === null ? null : $client->name,
+                'contact' => $payment->payer_phone ?? ($client === null ? null : $client->phone),
             ]),
-            'items' => $passengers->map(fn ($passenger): array => [
-                'name' => 'Billet de transport KORA BUS - '.Str::limit(trim($passenger->first_name.' '.$passenger->last_name), 70, ''),
-                'price' => $unitPrice,
-                'quantity' => 1,
-                'taxGroup' => 'A',
-            ])->all(),
+            'items' => $items,
             'payment' => $payment === null ? [] : [[
                 'name' => $this->paymentType($payment->method),
                 'amount' => (int) $payment->amount,
