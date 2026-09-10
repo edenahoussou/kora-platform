@@ -56,6 +56,21 @@ class TicketViewController extends Controller
         ]);
     }
 
+    public function sendWhatsApp(Ticket $ticket, Request $request): RedirectResponse
+    {
+        $this->loadRelations($ticket);
+        $this->authorizeOwner($ticket->reservation, $request);
+
+        $delivery = WhatsAppDelivery::query()->where('ticket_id', $ticket->id)->first();
+        $alreadySent = $delivery !== null && $delivery->getRawOriginal('status') === 'sent';
+
+        if (! $alreadySent) {
+            SendReservationWhatsAppNotificationJob::dispatch($ticket->reservation_id, $ticket->id);
+        }
+
+        return back()->with('whatsapp_status', $alreadySent ? 'already_sent' : 'dispatched');
+    }
+
     private function loadRelations(Ticket $ticket): void
     {
         $ticket->loadMissing([
@@ -105,6 +120,7 @@ class TicketViewController extends Controller
 
         return [
             'isPdf' => $isPdf,
+            'ticketUuid' => $ticket->uuid,
             'shortCode' => $ticket->short_code,
             'statusLabel' => 'Payé',
             'originCity' => $originCity,

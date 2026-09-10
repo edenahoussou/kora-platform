@@ -14,6 +14,7 @@ use App\Modules\DynamicPricing\Http\Controllers\PricingRuleController;
 use App\Modules\DynamicPricing\Http\Controllers\TaxRuleController;
 use App\Modules\IdentityAccess\Http\Controllers\AgencyController;
 use App\Modules\Payments\Http\Controllers\AgencyPaymentAccountController;
+use App\Modules\Ticketing\Http\Controllers\TicketPreviewController;
 use App\Modules\Ticketing\Http\Controllers\TicketViewController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -26,6 +27,10 @@ Route::get('/', fn () => Auth::check()
 Route::get('tickets/{ticket:uuid}/pdf/signed', [TicketViewController::class, 'signedPdf'])
     ->middleware('signed')
     ->name('tickets.signed-pdf');
+
+// Ticket preview — static mock data for visual validation
+Route::get('tickets/preview/{scenario}', [TicketPreviewController::class, 'show'])
+    ->name('tickets.preview');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     // Dashboard
@@ -103,6 +108,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('tickets', 'tickets')->name('tickets');
     Route::get('tickets/{ticket:uuid}', [TicketViewController::class, 'show'])->name('tickets.show');
     Route::get('tickets/{ticket:uuid}/pdf', [TicketViewController::class, 'pdf'])->name('tickets.pdf');
+    Route::post('tickets/{ticket:uuid}/whatsapp', [TicketViewController::class, 'sendWhatsApp'])->name('tickets.whatsapp');
 
     // V1 MVP — Réseau (Lignes & arrêts)
     Route::get('network', [LineController::class, 'index'])->name('network.index');
