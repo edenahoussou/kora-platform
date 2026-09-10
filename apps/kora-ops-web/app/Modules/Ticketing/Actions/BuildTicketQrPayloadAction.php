@@ -6,14 +6,13 @@ use App\Modules\Booking\Models\Reservation;
 use App\Modules\Ticketing\Models\Ticket;
 
 /**
- * Builds the signed QR payload for a ticket.
+ * Builds the signed QR payload for a ticket using Ed25519.
  *
  * The payload is a compact JSON document containing the essential boarding
- * information (passenger, legs, seat, agency) plus an HMAC-SHA256 signature
- * derived from the `KORA_TICKET_SIGNING_KEY` environment variable. The
- * resulting token follows a JWT-like `payload.signature` format encoded as
- * base64url, so the KORA P501 boarding app can validate tickets offline
- * without calling the server.
+ * information (passenger, legs, seat, agency) plus an Ed25519 signature.
+ * The resulting token follows a JWT-like `payload.signature` format encoded
+ * as base64url, so the KORA P501 boarding app can validate tickets offline
+ * using only the public key — no shared secret required.
  */
 final class BuildTicketQrPayloadAction
 {
@@ -39,7 +38,7 @@ final class BuildTicketQrPayloadAction
         ])->values()->all();
 
         $payload = [
-            'v' => 1,
+            'v' => 2, // Ed25519 signature (v1 was HMAC-SHA256)
             't' => $ticket->uuid,
             's' => $ticket->short_code,
             'p' => $passenger !== null
@@ -51,7 +50,7 @@ final class BuildTicketQrPayloadAction
         ];
 
         $payloadJson = (string) json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        $signature = hash_hmac('sha256', $payloadJson, $this->signingKey(), true);
+        $signature = sodium_crypto_sign_detached($payloadJson, $this->signingPrivateKey());
 
         return $this->base64UrlEncode($payloadJson).'.'.$this->base64UrlEncode((string) $signature);
     }
@@ -65,17 +64,25 @@ final class BuildTicketQrPayloadAction
         return $agency?->code;
     }
 
-    private function signingKey(): string
+    private function signingPrivateKey(): string
     {
-        $key = config('tickets.signing_key');
+        $key = config('tickets.signing_private_key');
 
         if ($key === null || $key === '') {
             throw new \RuntimeException(
-                'KORA_TICKET_SIGNING_KEY is not configured. Set it in .env to issue verifiable ticket QR codes.',
+                'KORA_TICKET_SIGNING_PRIVATE_KEY is not configured. Set it in .env to issue verifiable ticket QR codes.',
             );
         }
 
-        return (string) $key;
+        $decoded = base64_decode((string) $key, true);
+
+        if ($decoded === false || strlen($decoded) !== SODIUM_CRYPTO_SIGN_SECRETKEYBYTES) {
+            throw new \RuntimeException(
+                'KORA_TICKET_SIGNING_PRIVATE_KEY is invalid. Expected a base64-encoded '.SODIUM_CRYPTO_SIGN_SECRETKEYBYTES.'-byte Ed25519 secret key.',
+            );
+        }
+
+        return $decoded;
     }
 
     private function base64UrlEncode(string $data): string

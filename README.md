@@ -29,3 +29,11 @@ php artisan migrate
 npm run build
 php artisan test
 ```
+
+## Signature des billets (Ed25519)
+
+Les QR codes des billets sont signes avec **Ed25519** (libsodium, asymetrique). Le serveur signe avec la cle privee (`KORA_TICKET_SIGNING_PRIVATE_KEY`), le P501 verifie hors ligne avec la cle publique (`KORA_TICKET_SIGNING_PUBLIC_KEY`). La cle publique peut etre distribuee ouvertement sans risque.
+
+- Exporter la cle publique pour le P501 : `php artisan tickets:public-key`
+- Generer une nouvelle paire de cles : voir `AGENTS.md` > Ticket QR Signing.
+- Implementation : `apps/kora-ops-web/app/Modules/Ticketing/Actions/BuildTicketQrPayloadAction.php`

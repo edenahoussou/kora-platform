@@ -47,6 +47,34 @@ The PostgreSQL workflow creates a temporary `kora_test_*` database, runs migrati
 
 Use PostgreSQL locally with `.env`; keep `.env.example` generic. Never commit real passwords, payment credentials, MECeF credentials, Firebase keys, or P501 device secrets.
 
+## Ticket QR Signing (Ed25519)
+
+Ticket QR codes are signed with **Ed25519 asymmetric cryptography** via libsodium (`sodium_crypto_sign_detached`). The server holds the private key and signs; the KORA P501 boarding app holds only the public key and verifies offline. Even if the P501 device is compromised, no one can forge tickets without the private key.
+
+- **Private key** (`KORA_TICKET_SIGNING_PRIVATE_KEY`): signs on the server, never shared, never committed.
+- **Public key** (`KORA_TICKET_SIGNING_PUBLIC_KEY`): safe to distribute openly, embedded in the P501 app.
+- **Payload format**: `base64url(json).base64url(ed25519_signature)`, JWT-like, version `v: 2`.
+- **Implementation**: `app/Modules/Ticketing/Actions/BuildTicketQrPayloadAction.php`.
+- **Config**: `config/tickets.php` reads both keys from `.env`.
+- **Export public key for P501**: `php artisan tickets:public-key` (outputs base64, base64url, and hex).
+- **Generate a new keypair**:
+  ```bash
+  php -r '$kp=sodium_crypto_sign_keypair(); echo "PRIVATE=".base64_encode(sodium_crypto_sign_secretkey($kp))."\n"; echo "PUBLIC=".base64_encode(sodium_crypto_sign_publickey($kp))."\n";'
+  ```
+- **Column**: `tickets.qr_code` is `TEXT` (not `VARCHAR(255)`) because the signed payload exceeds 255 characters.
+- **Rotation**: rotating the keypair requires re-issuing all outstanding tickets with the new private key and distributing the new public key to all P501 devices.
+
+## PDF Generation (Browsershot + Chromium)
+
+Ticket PDFs are rendered with **Spatie Browsershot** (Puppeteer/Chromium headless), not DomPDF. This gives pixel-perfect rendering of icons, fonts, and CSS.
+
+- **Config**: `config/pdf.php` reads `BROWSERSHOT_CHROME_PATH` and `BROWSERSHOT_NODE_BINARY` from `.env`.
+- **Implementation**: `app/Modules/Ticketing/Actions/GenerateTicketPdfAction.php`.
+- **Local dev**: Chromium is downloaded by `npm install puppeteer` to `~/.cache/puppeteer/chrome/*/chrome-linux64/chrome`. Set `BROWSERSHOT_CHROME_PATH` in `.env` to that path. The web server user (`www-data`) must be able to traverse `~/.cache` — run `sudo chmod 755 /home/<user> /home/<user>/.cache` if needed.
+- **Docker prod**: `Dockerfile.prod` installs `chromium` via apt. `BROWSERSHOT_CHROME_PATH` defaults to `/usr/bin/chromium`. `puppeteer-core` (kept in `node_modules`) is used by Browsershot to drive the system Chromium.
+- **Fonts**: `fonts-liberation` and `fonts-noto-cjk` are installed in the Docker image for correct text rendering.
+- **Paper size**: 80mm thermal ticket format (`paperSize(80, 297)`), zero margins, `deviceScaleFactor: 2`.
+
 ===
 
 <laravel-boost-guidelines>
