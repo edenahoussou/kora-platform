@@ -10,6 +10,9 @@ RUN apt-get update \
     libzip-dev \
     unzip \
     git \
+    chromium \
+    fonts-liberation \
+    fonts-noto-cjk \
     && docker-php-ext-install \
     bcmath \
     exif \
@@ -45,8 +48,8 @@ RUN mkdir -p storage/app/private storage/app/public storage/framework/cache/data
 # Build frontend (Wayfinder necessite PHP + artisan)
 RUN php artisan wayfinder:generate --with-form && npm run build
 
-# Nettoyer Node (non necessaire en production)
-RUN rm -rf node_modules
+# Nettoyer Node (puppeteer-core est requis par Browsershot en production)
+# puppeteer-core ne télécharge pas Chrome — on utilise le chromium système.
 
 # Permissions Laravel
 RUN mkdir -p /app/storage/app/private /app/storage/app/public /app/storage/framework/cache/data /app/storage/framework/sessions /app/storage/framework/views /app/storage/logs \

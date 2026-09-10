@@ -7,8 +7,8 @@ use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\Booking\Services\DepartureStopTimeResolver;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
 use App\Modules\Ticketing\Models\Ticket;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonImmutable;
+use Spatie\Browsershot\Browsershot;
 
 /**
  * Generates the ticket PDF as raw binary content.
@@ -90,11 +90,37 @@ class GenerateTicketPdfAction
             'pdfUrl' => route('tickets.pdf', $ticket),
         ];
 
-        $pdf = Pdf::loadView('tickets.show', $data)
-            ->setPaper([0, 0, 226.77, 600], 'portrait'); // 80mm width, auto height
+        $html = view('tickets.show', $data)->render();
+        $profile = config('pdf.profiles.ticket', []);
+
+        $browsershot = Browsershot::html($html)
+            ->noSandbox()
+            ->showBackground()
+            ->emulateMedia($profile['emulate_media'] ?? 'print')
+            ->windowSize(...($profile['window_size'] ?? [302, 1200]))
+            ->deviceScaleFactor($profile['device_scale_factor'] ?? 2)
+            ->paperSize(...($profile['paper_size'] ?? [80, 297]))
+            ->margins(...($profile['margins'] ?? [0, 0, 0, 0]))
+            ->timeout(config('pdf.timeout', 60000));
+
+        $chromePath = config('pdf.chrome_path');
+        if (is_string($chromePath) && $chromePath !== '') {
+            $browsershot->setChromePath($chromePath);
+        }
+
+        $nodeBinary = config('pdf.node_binary');
+        if (is_string($nodeBinary) && $nodeBinary !== '') {
+            $browsershot->setNodeBinary($nodeBinary);
+        }
+
+        if ($profile['wait_until_network_idle'] ?? false) {
+            $browsershot->waitUntilNetworkIdle();
+        }
+
+        $content = $browsershot->pdf();
 
         return [
-            'content' => $pdf->output(),
+            'content' => $content,
             'filename' => "billet-{$ticket->short_code}.pdf",
         ];
     }
