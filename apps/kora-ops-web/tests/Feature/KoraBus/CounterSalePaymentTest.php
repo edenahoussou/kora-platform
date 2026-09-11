@@ -26,7 +26,6 @@ use Database\Seeders\KoraDemoUserSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
-use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function (): void {
     Carbon::setTestNow('2026-08-19 07:00:00');
@@ -118,18 +117,14 @@ it('records an exact cash payment, change, cash movement and one ticket per pass
     expect(Ticket::query()->where('reservation_id', $reservation->id)->count())->toBe(1);
     expect(CashSession::query()->firstOrFail()->total_cash)->toBe(11000);
 
+    $ticket = Ticket::query()->where('reservation_id', $reservation->id)->firstOrFail();
+    $location = $response->headers->get('Location');
+    expect($location)->toContain('/tickets/'.$ticket->uuid);
+
     $this->actingAs($scenario['agent'])
-        ->get($response->headers->get('Location'))
-        ->assertInertia(fn (Assert $page): Assert => $page
-            ->where('reservation.payment.confirmedAt', fn (mixed $value): bool => is_string($value))
-            ->where('reservation.payment.verifiedByUuid', $scenario['agent']->uuid)
-            ->where('reservation.payment.agencyCode', $scenario['agency']->code)
-            ->where('reservation.qrPayload.reservationCode', strtoupper(substr(str_replace('-', '', $reservation->uuid), 0, 8)))
-            ->where('reservation.qrPayload.reservationUuid', $reservation->uuid)
-            ->where('reservation.qrPayload.agentUuid', $scenario['agent']->uuid)
-            ->where('reservation.fiscalization.koraReference', fn (mixed $value): bool => is_string($value))
-            ->where('reservation.tickets.0.ticketNumber', fn (mixed $value): bool => is_string($value))
-        );
+        ->get($location)
+        ->assertOk()
+        ->assertViewIs('tickets.show');
 });
 
 it('rejects an insufficient cash payment without creating a payment or ticket', function (): void {

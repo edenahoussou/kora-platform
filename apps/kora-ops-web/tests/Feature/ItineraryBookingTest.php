@@ -20,7 +20,7 @@ it('searches, quotes and holds a two-leg itinerary without trusting client prici
 
     $search = $this->getJson('/api/v1/bus/itineraries?from_physical_stop_uuid='.$scenario['originPhysical']->uuid
         .'&to_physical_stop_uuid='.$scenario['destinationPhysical']->uuid
-        .'&date=2026-09-10&passenger_count=1');
+        .'&date='.$scenario['departureDate'].'&passenger_count=1');
 
     $search->assertOk()->assertJsonCount(1, 'data');
     $legs = $search->json('data.0.legs');
@@ -131,6 +131,7 @@ it('rejects an itinerary quote with disconnected legs', function (): void {
 /** @return array<string, mixed> */
 function itineraryTestScenario(): array
 {
+    $departureDate = now()->addDays(7)->toDateString();
     $user = User::factory()->create();
     $originPhysical = PhysicalStop::create(['name' => 'Itinerary Origin', 'city' => 'Cotonou', 'country' => 'BJ', 'status' => 'active']);
     $connectionPhysical = PhysicalStop::create(['name' => 'Itinerary Connection', 'city' => 'Lome', 'country' => 'TG', 'status' => 'active']);
@@ -152,34 +153,34 @@ function itineraryTestScenario(): array
     $firstDeparture = Departure::create([
         'line_id' => $firstLine->id,
         'bus_id' => $firstBus->id,
-        'departure_date' => '2026-09-10',
+        'departure_date' => $departureDate,
         'departure_time' => '08:00',
-        'scheduled_at' => CarbonImmutable::parse('2026-09-10 08:00', 'Africa/Porto-Novo'),
+        'scheduled_at' => CarbonImmutable::parse($departureDate.' 08:00', 'Africa/Porto-Novo'),
         'departure_timezone' => 'Africa/Porto-Novo',
         'stop_times' => [
             ['stop_uuid' => $origin->uuid, 'departure_minutes' => 0, 'arrival_minutes' => null, 'timezone' => 'Africa/Porto-Novo'],
             ['stop_uuid' => $connection->uuid, 'departure_minutes' => null, 'arrival_minutes' => 120, 'timezone' => 'Africa/Lome'],
         ],
-        'estimated_arrival_at' => CarbonImmutable::parse('2026-09-10 10:00', 'Africa/Lome'),
+        'estimated_arrival_at' => CarbonImmutable::parse($departureDate.' 10:00', 'Africa/Lome'),
         'status' => 'scheduled',
     ]);
     $secondDeparture = Departure::create([
         'line_id' => $secondLine->id,
         'bus_id' => $secondBus->id,
-        'departure_date' => '2026-09-10',
+        'departure_date' => $departureDate,
         'departure_time' => '11:00',
-        'scheduled_at' => CarbonImmutable::parse('2026-09-10 11:00', 'Africa/Lome'),
+        'scheduled_at' => CarbonImmutable::parse($departureDate.' 11:00', 'Africa/Lome'),
         'departure_timezone' => 'Africa/Lome',
         'stop_times' => [
             ['stop_uuid' => $secondConnection->uuid, 'departure_minutes' => 0, 'arrival_minutes' => null, 'timezone' => 'Africa/Lome'],
             ['stop_uuid' => $destination->uuid, 'departure_minutes' => null, 'arrival_minutes' => 180, 'timezone' => 'Africa/Accra'],
         ],
-        'estimated_arrival_at' => CarbonImmutable::parse('2026-09-10 14:00', 'Africa/Accra'),
+        'estimated_arrival_at' => CarbonImmutable::parse($departureDate.' 14:00', 'Africa/Accra'),
         'status' => 'scheduled',
     ]);
 
     Fare::create(['line_id' => $firstLine->id, 'origin_stop_id' => $origin->id, 'destination_stop_id' => $connection->id, 'base_amount' => 10000, 'currency' => 'XOF', 'effective_from' => '2026-01-01', 'status' => 'active']);
     Fare::create(['line_id' => $secondLine->id, 'origin_stop_id' => $secondConnection->id, 'destination_stop_id' => $destination->id, 'base_amount' => 5000, 'currency' => 'XOF', 'effective_from' => '2026-01-01', 'status' => 'active']);
 
-    return compact('user', 'originPhysical', 'connectionPhysical', 'destinationPhysical', 'origin', 'connection', 'secondConnection', 'destination', 'firstDeparture', 'secondDeparture', 'firstSeat', 'secondSeat');
+    return compact('user', 'originPhysical', 'connectionPhysical', 'destinationPhysical', 'origin', 'connection', 'secondConnection', 'destination', 'firstDeparture', 'secondDeparture', 'firstSeat', 'secondSeat', 'departureDate');
 }
