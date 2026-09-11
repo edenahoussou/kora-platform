@@ -3,7 +3,7 @@ import 'package:dartz/dartz.dart';
 import '../../../../core/error/api_failure_mapper.dart';
 import '../../../../core/error/failures.dart';
 import '../../domain/entities/city.dart';
-import '../../domain/entities/departure.dart';
+import '../../domain/entities/departure_search.dart';
 import '../../domain/entities/search_criteria.dart';
 import '../../domain/repositories/departure_repository.dart';
 import '../datasources/booking_data_source.dart';
@@ -26,6 +26,6 @@ class DepartureRepositoryImpl
       attempt(_dataSource.getCities);
 
   @override
-  Future<Either<Failure, List<Departure>>> search(SearchCriteria criteria) =>
+  Future<Either<Failure, DepartureSearch>> search(SearchCriteria criteria) =>
       attempt(() => _dataSource.searchDepartures(criteria));
 }

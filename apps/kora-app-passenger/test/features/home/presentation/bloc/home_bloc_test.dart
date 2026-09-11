@@ -172,6 +172,102 @@ void main() {
       },
     );
 
+    group('aller-retour', () {
+      HomeState roundTrip({DateTime? returnDate}) => HomeState(
+        status: HomeStatus.success,
+        origin: cotonou,
+        destination: parakou,
+        date: DateTime(2026, 9, 1),
+        tripType: TripType.roundtrip,
+        returnDate: returnDate,
+      );
+
+      test('sans date de retour, cela reste un aller-retour', () {
+        // La date est facultative, l'intention ne l'est pas : le serveur
+        // cherche un aller-retour sans date et propose les retours des
+        // jours qui suivent. Ramener la recherche à un aller simple
+        // faisait disparaître des retours qu'il avait bel et bien rendus.
+        final state = roundTrip();
+
+        expect(state.canSearch, isTrue);
+        expect(state.criteria, isNotNull);
+        expect(state.criteria!.returnDate, isNull);
+        expect(state.criteria!.isRoundTrip, isTrue);
+      });
+
+      test('avec sa date, les critères la portent', () {
+        final state = roundTrip(returnDate: DateTime(2026, 9, 8));
+
+        expect(state.canSearch, isTrue);
+        expect(state.criteria!.returnDate, DateTime(2026, 9, 8));
+        expect(state.criteria!.isRoundTrip, isTrue);
+      });
+
+      test('un aller simple ne transmet aucune date de retour', () {
+        // Même si une date traîne dans l'état : c'est le type de voyage qui
+        // décide, pas un reste de saisie.
+        final state = HomeState(
+          status: HomeStatus.success,
+          origin: cotonou,
+          destination: parakou,
+          date: DateTime(2026, 9, 1),
+          returnDate: DateTime(2026, 9, 8),
+        );
+
+        expect(state.criteria!.returnDate, isNull);
+        expect(state.criteria!.isRoundTrip, isFalse);
+      });
+
+      blocTest<HomeBloc, HomeState>(
+        'revenir à l’aller simple oublie le retour',
+        build: buildBloc,
+        seed: () => roundTrip(returnDate: DateTime(2026, 9, 8)),
+        act: (bloc) => bloc.add(const HomeTripTypeChanged(TripType.oneway)),
+        verify: (bloc) {
+          // Le garder le ferait réapparaître tel quel à la bascule
+          // suivante, alors qu'entre-temps le départ a pu passer devant lui.
+          expect(bloc.state.returnDate, isNull);
+          expect(bloc.state.tripType, TripType.oneway);
+        },
+      );
+
+      blocTest<HomeBloc, HomeState>(
+        'un départ repoussé après le retour efface le retour',
+        build: buildBloc,
+        seed: () => roundTrip(returnDate: DateTime(2026, 9, 8)),
+        act: (bloc) => bloc.add(HomeDateSelected(DateTime(2026, 9, 20))),
+        verify: (bloc) {
+          // Le serveur refuserait un retour antérieur à l'aller : mieux vaut
+          // redemander la date que partir sur un voyage impossible.
+          expect(bloc.state.date, DateTime(2026, 9, 20));
+          expect(bloc.state.returnDate, isNull);
+          // La recherche reste possible, et reste un aller-retour : c'est
+          // la date qui est tombée, pas l'intention.
+          expect(bloc.state.criteria!.isRoundTrip, isTrue);
+          expect(bloc.state.criteria!.returnDate, isNull);
+        },
+      );
+
+      blocTest<HomeBloc, HomeState>(
+        'un départ avancé laisse le retour en place',
+        build: buildBloc,
+        seed: () => roundTrip(returnDate: DateTime(2026, 9, 8)),
+        act: (bloc) => bloc.add(HomeDateSelected(DateTime(2026, 9, 3))),
+        verify: (bloc) {
+          expect(bloc.state.returnDate, DateTime(2026, 9, 8));
+          expect(bloc.state.canSearch, isTrue);
+        },
+      );
+
+      blocTest<HomeBloc, HomeState>(
+        'partir le jour du retour reste possible',
+        build: buildBloc,
+        seed: () => roundTrip(returnDate: DateTime(2026, 9, 8)),
+        act: (bloc) => bloc.add(HomeDateSelected(DateTime(2026, 9, 8))),
+        verify: (bloc) => expect(bloc.state.returnDate, DateTime(2026, 9, 8)),
+      );
+    });
+
     test('canSearch reste faux tant que le trajet est incomplet', () {
       const empty = HomeState(status: HomeStatus.success);
       expect(empty.canSearch, isFalse);

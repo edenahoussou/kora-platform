@@ -77,6 +77,11 @@ void main() {
     ).where((seat) => seat.status == SeatStatus.free).take(2).toList();
   });
 
+  /// Laisse le toast finir sa course : il porte un timer, et le laisser
+  /// pendre ferait échouer le test à la destruction de l'arbre.
+  Future<void> settleToast(WidgetTester tester) =>
+      tester.pump(const Duration(seconds: 4));
+
   Future<void> pumpForm(
     WidgetTester tester, {
     int passengers = 1,
@@ -200,30 +205,35 @@ void main() {
     // signalés » laissait croire, sur le formulaire international, que la
     // pièce d'identité bloquait encore.
     expect(
-      find.textContaining('Passager 2 — Prénom, Nom, Téléphone'),
+      find.textContaining('Passager 2 : Prénom, Nom, Téléphone'),
       findsOneWidget,
     );
+    await settleToast(tester);
   });
 
-  testWidgets('le blocage nomme la naissance, pas le document', (tester) async {
-    // Le cas signalé au test terrain : sur un trajet international, seule
-    // la naissance manque, et le message générique se lisait comme si le
-    // document — devenu facultatif — retenait encore.
+  testWidgets('le formulaire international ne retient plus aucun champ', (
+    tester,
+  ) async {
+    // La naissance a rejoint la pièce d'identité du côté des champs
+    // facultatifs : le manifeste de frontière la réclame toujours, mais
+    // c'est au comptoir de la compléter. Bloquer l'achat sur une date que
+    // le voyageur ne sait pas toujours de tête coûtait des réservations
+    // qu'aucune règle ne refusait.
     await pumpForm(tester, international: true);
 
     await tester.tap(find.text('Enregistrer et continuer'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Passager 1 — Naissance'), findsOneWidget);
-    // Le bandeau seul : « document » figure par ailleurs dans l'intitulé
-    // des deux champs facultatifs, qui restent affichés.
     expect(
-      find.descendant(
-        of: find.byType(SnackBar),
-        matching: find.textContaining('document'),
-      ),
+      find.textContaining('Vérifiez ces champs avant de continuer'),
       findsNothing,
     );
+    // Seule la case de confirmation retient encore.
+    expect(
+      find.text('Cochez la case de confirmation pour continuer.'),
+      findsWidgets,
+    );
+    await settleToast(tester);
   });
 
   testWidgets('signale une adresse e-mail mal formée', (tester) async {
@@ -235,6 +245,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Adresse e-mail invalide'), findsOneWidget);
+    await settleToast(tester);
   });
 
   testWidgets('accepte un formulaire complet', (tester) async {
@@ -273,7 +284,7 @@ void main() {
       expect(find.text('Type de document (facultatif)'), findsOneWidget);
       expect(find.text('Numéro du document (facultatif)'), findsOneWidget);
       expect(find.text('Nationalité'), findsOneWidget);
-      expect(find.text('Naissance'), findsOneWidget);
+      expect(find.text('Naissance (facultatif)'), findsOneWidget);
       // Le courriel facultatif cède la place : la maquette ne l'affiche
       // pas sur ce formulaire-là.
       expect(find.text('E-mail (optionnel)'), findsNothing);
@@ -283,16 +294,23 @@ void main() {
       );
     });
 
-    testWidgets('retient encore sur la date de naissance', (tester) async {
+    testWidgets('laisse passer sans date de naissance', (tester) async {
       await pumpForm(tester, international: true);
 
-      // Identité déjà pré-remplie : seule la naissance manque, et elle
-      // reste due au manifeste de frontière.
+      // Identité déjà pré-remplie, naissance vide : il ne reste que la
+      // case de confirmation à cocher, et le parcours continue.
+      await tester.tap(
+        find.text(
+          'Je confirme l’exactitude des informations '
+          'saisies.',
+        ),
+      );
+      await tester.pumpAndSettle();
+
       await tester.tap(find.text('Enregistrer et continuer'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Date requise'), findsOneWidget);
-      expect(find.text('Récapitulatif'), findsNothing);
+      expect(find.text('Vérifiez votre voyage'), findsOneWidget);
     });
 
     testWidgets('ne réclame plus la pièce d’identité', (tester) async {
@@ -304,6 +322,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Numéro requis'), findsNothing);
+      await settleToast(tester);
     });
 
     testWidgets('ne propose plus le CIP', (tester) async {
@@ -333,10 +352,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Confirmez l’exactitude des informations pour continuer.'),
+        find.text('Cochez la case de confirmation pour continuer.'),
         findsWidgets,
       );
       expect(find.text('Vérifiez votre voyage'), findsNothing);
+      await settleToast(tester);
     });
 
     testWidgets('sans document mais avec la confirmation, le parcours passe', (

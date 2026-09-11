@@ -14,9 +14,11 @@ import '../../../../core/l10n/app_localization.dart';
 /// reprend l'échelle typographique du design system à la place, la
 /// composition (grille, couleurs, trait doré incliné) restant identique.
 class HomeRideBanner extends StatefulWidget {
-  const HomeRideBanner({super.key, required this.onTap});
+  const HomeRideBanner({super.key, this.onTap});
 
-  final VoidCallback onTap;
+  /// `null` tant que KORA Ride n'a pas d'écran : le bandeau annonce le
+  /// service, il ne prétend pas y mener.
+  final VoidCallback? onTap;
 
   @override
   State<HomeRideBanner> createState() => _HomeRideBannerState();
@@ -77,9 +79,11 @@ class _HomeRideBannerState extends State<HomeRideBanner>
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: widget.onTap,
-          onTapDown: (_) => _startBounce(),
-          onTapUp: (_) => _stopBounce(),
-          onTapCancel: _stopBounce,
+          // Le rebond de la pastille suit l'appui, et l'appui n'existe que
+          // s'il mène quelque part.
+          onTapDown: widget.onTap == null ? null : (_) => _startBounce(),
+          onTapUp: widget.onTap == null ? null : (_) => _stopBounce(),
+          onTapCancel: widget.onTap == null ? null : _stopBounce,
           child: Stack(
             children: [
               // `radial-gradient(circle at 92% 0, rgba(0,87,184,.48), transparent 38%)`

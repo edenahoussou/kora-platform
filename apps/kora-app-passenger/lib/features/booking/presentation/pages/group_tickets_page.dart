@@ -1,24 +1,41 @@
+import 'dart:typed_data';
+
+import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:go_router/go_router.dart';
+import 'package:printing/printing.dart';
 
 import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
+import '../../domain/entities/departure.dart';
 import '../../domain/entities/group_ticket.dart';
 import '../bloc/group_tickets_cubit.dart';
+import '../pdf/ticket_pdf.dart';
 import '../widgets/kora_qr.dart';
 
 /// Ce qu'attend [GroupTicketsPage] : la réservation dont on liste les
 /// billets.
 class GroupTicketsArgs {
-  const GroupTicketsArgs({required this.reservationId, this.passengers = 0});
+  const GroupTicketsArgs({
+    required this.reservationId,
+    this.passengers = 0,
+    this.departure,
+  });
 
   final String reservationId;
 
   /// Le nombre attendu, pour l'annoncer avant même que le serveur réponde.
   final int passengers;
+
+  /// Le départ payé, pour l'imprimer sur le billet exporté.
+  ///
+  /// `bookings/{uuid}/tickets` ne rend que des identifiants de gares et de
+  /// départs — de quoi valider, pas de quoi écrire « Cotonou -> Abidjan »
+  /// sur un PDF. L'écran de confirmation, lui, a le départ sous la main.
+  final Departure? departure;
 }
 
 /// Écran `multi-tickets` de la maquette (BUS-17) : un billet et un QR par
@@ -56,34 +73,61 @@ class _GroupTicketsPageState extends State<GroupTicketsPage> {
 
     if (args == null) return const _MissingBooking();
 
-    return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18),
-          child: BlocBuilder<GroupTicketsCubit, GroupTicketsState>(
-            builder: (context, state) {
-              final count = state.tickets.isNotEmpty
-                  ? state.tickets.length
-                  : args.passengers;
+    // Le parcours d'achat s'arrête ici. Derrière cet écran il y a le
+    // paiement, l'attente, le plan des sièges — des étapes qu'on ne
+    // repasse pas une fois le billet émis, et que le geste « retour »
+    // rouvrait pourtant une à une. On sort donc vers l'accueil, que le
+    // voyageur revienne par la flèche ou par le geste du système.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go('/home');
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            child: BlocBuilder<GroupTicketsCubit, GroupTicketsState>(
+              builder: (context, state) {
+                final count = state.tickets.isNotEmpty
+                    ? state.tickets.length
+                    : args.passengers;
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ScreenHeader(
-                    eyebrow: l10n.groupTicketsEyebrow(count),
-                    title: l10n.groupTicketsTitle,
-                  ),
-                  Expanded(child: _Content(state: state)),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                    child: KoraButton(
-                      label: l10n.groupTicketsDone,
-                      onPressed: () => context.go('/voyages'),
+                // Le même écran sert le voyageur seul, qui vient d'ici depuis
+                // que « Afficher mon billet » y mène : lui parler de « groupe »
+                // et de « chaque QR » devant son unique billet sonnerait faux.
+                final isAlone = count <= 1;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ScreenHeader(
+                      eyebrow: isAlone
+                          ? l10n.ticketsOneEyebrow
+                          : l10n.groupTicketsEyebrow(count),
+                      title: isAlone
+                          ? l10n.ticketsOneTitle
+                          : l10n.groupTicketsTitle,
+                      onBack: () => context.go('/home'),
                     ),
-                  ),
-                ],
-              );
-            },
+                    Expanded(
+                      child: _Content(
+                        state: state,
+                        isAlone: isAlone,
+                        departure: args.departure,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                      child: KoraButton(
+                        label: l10n.groupTicketsDone,
+                        onPressed: () => context.go('/voyages'),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -93,9 +137,16 @@ class _GroupTicketsPageState extends State<GroupTicketsPage> {
 
 /// Le corps de l'écran : la liste, l'attente, ou l'échec.
 class _Content extends StatelessWidget {
-  const _Content({required this.state});
+  const _Content({required this.state, required this.isAlone, this.departure});
 
   final GroupTicketsState state;
+
+  /// Voir [GroupTicketsArgs.departure].
+  final Departure? departure;
+
+  /// Un seul billet : les textes qui parlent du groupe n'ont plus lieu
+  /// d'être.
+  final bool isAlone;
 
   @override
   Widget build(BuildContext context) {
@@ -112,21 +163,27 @@ class _Content extends StatelessWidget {
     // Le serveur a répondu sans billet : l'émission suit le paiement et
     // prend un instant. Dire « aucun billet » ferait croire à une perte.
     if (state.isPending) {
-      return _Notice(message: l10n.groupTicketsPending);
+      return _Notice(
+        message: isAlone ? l10n.ticketsOnePending : l10n.groupTicketsPending,
+      );
     }
 
     return ListView(
       padding: EdgeInsets.zero,
       children: [
         for (var i = 0; i < state.tickets.length; i++) ...[
-          _TicketRow(ticket: state.tickets[i], index: i + 1),
+          _TicketRow(
+            ticket: state.tickets[i],
+            index: i + 1,
+            departure: departure,
+          ),
           const SizedBox(height: 9),
         ],
         const SizedBox(height: AppSpacing.sm),
         KoraCard(
           variant: KoraCardVariant.mist,
           child: Text(
-            l10n.groupTicketsNotice,
+            isAlone ? l10n.ticketsOneNotice : l10n.groupTicketsNotice,
             style: AppTextStyles.body(context.koraColors.textMuted),
           ),
         ),
@@ -139,10 +196,13 @@ class _Content extends StatelessWidget {
 /// `.multi-ticket-list button` : la pastille numérotée, le voyageur et sa
 /// référence, puis le chevron.
 class _TicketRow extends StatelessWidget {
-  const _TicketRow({required this.ticket, required this.index});
+  const _TicketRow({required this.ticket, required this.index, this.departure});
 
   final GroupTicket ticket;
   final int index;
+
+  /// Voir [GroupTicketsArgs.departure].
+  final Departure? departure;
 
   @override
   Widget build(BuildContext context) {
@@ -214,41 +274,130 @@ class _TicketRow extends StatelessWidget {
 
   /// Montre le QR de ce voyageur, en grand.
   ///
-  /// Une feuille plutôt qu'un écran : le contrôleur scanne, puis on
-  /// revient à la liste pour le voyageur suivant. Ouvrir et refermer dix
-  /// écrans à la file, à l'embarquement, ferait perdre le fil.
+  /// Une boîte plutôt qu'un écran : le contrôleur scanne, puis on revient
+  /// à la liste pour le voyageur suivant. Ouvrir et refermer dix écrans à
+  /// la file, à l'embarquement, ferait perdre le fil.
+  ///
+  /// Centrée, et non posée en bas comme la feuille d'avant : c'est un
+  /// téléphone qu'on tend à bout de bras devant une douchette, et un code
+  /// collé au bord bas oblige à incliner l'appareil pour le présenter.
   void _showQr(BuildContext context) {
     final l10n = context.l10n;
 
-    showModalBottomSheet<void>(
+    showDialog<void>(
       context: context,
-      backgroundColor: context.koraColors.surface,
-      showDragHandle: true,
-      builder: (sheetContext) => Padding(
-        padding: const EdgeInsets.fromLTRB(18, 0, 18, 28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              ticket.label,
-              style: AppTextStyles.titleMedium(sheetContext.koraTitleColor),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              ticket.seatCode.isEmpty
-                  ? ticket.shortCode
-                  : '${l10n.passengersSeat(ticket.seatCode)} · '
-                        '${ticket.shortCode}',
-              style: AppTextStyles.body(sheetContext.koraColors.textMuted),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            // La charge du serveur, jamais la référence : c'est elle que
-            // la douchette du convoyeur attend.
-            KoraQr(payload: ticket.qrCode, size: 190),
-          ],
+      builder: (dialogContext) => Dialog(
+        backgroundColor: dialogContext.koraColors.surface,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 22, 18, 22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                ticket.label,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.titleMedium(dialogContext.koraTitleColor),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                ticket.seatCode.isEmpty
+                    ? ticket.shortCode
+                    : '${l10n.passengersSeat(ticket.seatCode)} · '
+                          '${ticket.shortCode}',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.body(dialogContext.koraColors.textMuted),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              // La charge du serveur, jamais la référence : c'est elle que
+              // la douchette du convoyeur attend.
+              KoraQr(payload: ticket.qrCode, size: 190),
+              const SizedBox(height: AppSpacing.md),
+              // Deux gestes, et non un : enregistrer le billet chez soi
+              // n'est pas l'envoyer à quelqu'un. Le partage seul obligeait
+              // à passer par une application tierce pour garder son propre
+              // billet.
+              KoraButton(
+                label: l10n.ticketsDownload,
+                variant: KoraButtonVariant.ghost,
+                icon: Icons.file_download_outlined,
+                onPressed: () => _save(dialogContext, l10n),
+              ),
+              const SizedBox(height: 8),
+              KoraButton(
+                label: l10n.ticketsShare,
+                variant: KoraButtonVariant.ghost,
+                icon: Icons.ios_share_rounded,
+                onPressed: () => _share(dialogContext, l10n),
+              ),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  /// Enregistre le billet dans les téléchargements du téléphone.
+  ///
+  /// Le fichier part chez le voyageur, pas chez un tiers : c'est tout
+  /// l'écart avec [_share], que le bouton unique d'avant confondait — il
+  /// ouvrait le sélecteur de partage, et garder son propre billet
+  /// obligeait à passer par une application tierce.
+  ///
+  /// `FileSaver` s'adresse au MediaStore d'Android : le dossier public
+  /// Téléchargements n'est plus accessible en écriture directe depuis le
+  /// stockage cloisonné, et cette voie-là ne réclame aucune permission.
+  Future<void> _save(BuildContext context, AppLocalization l10n) async {
+    await _export(context, l10n, (bytes) async {
+      await FileSaver.instance.saveFile(
+        name: 'KORA-${ticket.shortCode}',
+        bytes: bytes,
+        fileExtension: 'pdf',
+        mimeType: MimeType.pdf,
+      );
+
+      if (!context.mounted) return;
+      KoraToaster.show(context, l10n.ticketsDownloadDone);
+    });
+  }
+
+  /// Envoie le billet ailleurs : WhatsApp, Drive, courriel — Android
+  /// présente son sélecteur et le voyageur choisit.
+  Future<void> _share(BuildContext context, AppLocalization l10n) async {
+    await _export(context, l10n, (bytes) async {
+      await Printing.sharePdf(
+        bytes: bytes,
+        filename: 'KORA-${ticket.shortCode}.pdf',
+      );
+    });
+  }
+
+  /// Fabrique le PDF, puis confie les octets à [deliver].
+  ///
+  /// Le document se fabrique ici plutôt que de se demander au serveur :
+  /// l'API ne publie pas de route PDF — celle de `kora-ops-web` vit derrière
+  /// la session des agents — et le QR signé, lui, est déjà là. C'est lui qui
+  /// vaut billet ; le reste n'est que mise en page.
+  Future<void> _export(
+    BuildContext context,
+    AppLocalization l10n,
+    Future<void> Function(Uint8List bytes) deliver,
+  ) async {
+    try {
+      final bytes = await buildTicketPdf(
+        ticket: ticket,
+        l10n: l10n,
+        departure: departure,
+      );
+
+      await deliver(bytes);
+    } on Object {
+      if (!context.mounted) return;
+      KoraToaster.show(context, l10n.ticketsDownloadFailed);
+    }
   }
 
   /// Le statut en clair. Un statut inconnu de cette version garde son nom

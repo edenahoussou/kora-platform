@@ -3,7 +3,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:kora_app_passenger/core/error/failures.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/city.dart';
-import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/departure_search.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
 import 'package:kora_app_passenger/features/booking/domain/repositories/departure_repository.dart';
 
@@ -19,10 +19,10 @@ class StubDepartureRepository implements DepartureRepository {
   Future<Either<Failure, List<City>>> getCities() async => const Right([]);
 
   @override
-  Future<Either<Failure, List<Departure>>> search(
+  Future<Either<Failure, DepartureSearch>> search(
     SearchCriteria criteria,
   ) async {
     calls.add('search:${criteria.origin.name}-${criteria.destination.name}');
-    return const Right([]);
+    return const Right(DepartureSearch.oneWay([]));
   }
 }

@@ -47,6 +47,8 @@ class DepartureCard extends StatelessWidget {
     required this.duration,
     required this.price,
     this.vehicleLabel = 'KORA Confort',
+    this.directionLabel,
+    this.dateLabel,
     this.servicesLabel = 'Wi-Fi · Climatisation · USB',
     this.seatsAvailable,
     this.seatsTotal,
@@ -67,6 +69,17 @@ class DepartureCard extends StatelessWidget {
 
   /// Type de véhicule affiché dans le badge (ex: `'KORA Confort'`).
   final String vehicleLabel;
+
+  /// Le sens du trajet (`'Aller'`, `'Retour'`), posé après le badge du
+  /// véhicule. `null` sur un aller simple : il n'y a alors rien à
+  /// distinguer, et un badge « Aller » solitaire ferait chercher un
+  /// retour qui n'existe pas.
+  final String? directionLabel;
+
+  /// Le jour du départ, sous la ligne de trajet. `null` quand l'écran
+  /// l'annonce déjà en surtitre — la liste d'un aller simple porte sa
+  /// date en en-tête, la répéter sur chaque carte ne dit rien de plus.
+  final String? dateLabel;
 
   /// Équivalent `.trip-foot .tiny.muted` (`'Wi-Fi · Climatisation · USB'`
   /// par défaut dans le prototype).
@@ -115,6 +128,7 @@ class DepartureCard extends StatelessWidget {
         children: [
           _Head(
             vehicleLabel: vehicleLabel,
+            directionLabel: directionLabel,
             seatsAvailable: seatsAvailable,
             seatsTotal: seatsTotal,
             isSoldOut: isSoldOut,
@@ -126,6 +140,7 @@ class DepartureCard extends StatelessWidget {
             origin: origin,
             destination: destination,
             duration: duration,
+            dateLabel: dateLabel,
           ),
           const SizedBox(height: AppSpacing.lg),
           _Foot(
@@ -160,42 +175,69 @@ class DepartureCard extends StatelessWidget {
 class _Head extends StatelessWidget {
   const _Head({
     required this.vehicleLabel,
+    required this.directionLabel,
     required this.seatsAvailable,
     required this.seatsTotal,
     required this.isSoldOut,
   });
 
   final String vehicleLabel;
+  final String? directionLabel;
   final int? seatsAvailable;
   final int? seatsTotal;
   final bool isSoldOut;
 
   @override
   Widget build(BuildContext context) {
+    final directionLabel = this.directionLabel;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // Sold-out : le badge perd son icône et devient "outline" — reprise
-        // littérale du markup sold-out du prototype (`js/app.js`, L540),
-        // qui n'inclut pas `trip-mode-icon` dans ce cas précis.
-        KoraTag(
-          label: vehicleLabel,
-          variant: isSoldOut ? KoraTagVariant.outline : KoraTagVariant.gold,
-          leading: isSoldOut
-              ? null
-              : KoraVehicleIcon(
-                  type: KoraVehicleType.bus,
-                  size: 19,
-                  // Le SVG a des traits blancs en dur (fond navy/digital
-                  // habituel) ; ici le badge est doré donc le texte est
-                  // navy (`--kora`) — on reteinte l'icône pour matcher
-                  // `.trip-mode-icon svg { stroke: currentColor }`.
-                  colorFilter: ColorFilter.mode(
-                    _titleColor(context),
-                    BlendMode.srcIn,
-                  ),
+        // Les badges de gauche vont ensemble dans leur propre rangée :
+        // `spaceBetween` répartirait sinon le sens, le véhicule et les
+        // places sur toute la largeur, et le véhicule finirait au milieu.
+        Flexible(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Sold-out : le badge perd son icône et devient "outline" —
+              // reprise littérale du markup sold-out du prototype
+              // (`js/app.js`, L540), qui n'inclut pas `trip-mode-icon`
+              // dans ce cas précis.
+              Flexible(
+                child: KoraTag(
+                  label: vehicleLabel,
+                  variant: isSoldOut
+                      ? KoraTagVariant.outline
+                      : KoraTagVariant.gold,
+                  leading: isSoldOut
+                      ? null
+                      : KoraVehicleIcon(
+                          type: KoraVehicleType.bus,
+                          size: 19,
+                          // Le SVG a des traits blancs en dur (fond
+                          // navy/digital habituel) ; ici le badge est doré
+                          // donc le texte est navy (`--kora`) — on
+                          // reteinte l'icône pour matcher
+                          // `.trip-mode-icon svg { stroke: currentColor }`.
+                          colorFilter: ColorFilter.mode(
+                            _titleColor(context),
+                            BlendMode.srcIn,
+                          ),
+                        ),
                 ),
+              ),
+              // Le sens vient après le véhicule : c'est le bus qu'on
+              // identifie d'abord, le sens qui le qualifie ensuite.
+              if (directionLabel != null) ...[
+                const SizedBox(width: 6),
+                KoraTag(label: directionLabel, variant: KoraTagVariant.navy),
+              ],
+            ],
+          ),
         ),
+        const SizedBox(width: AppSpacing.sm),
         if (isSoldOut)
           const KoraTag(label: 'Complet', variant: KoraTagVariant.danger)
         else if (seatsAvailable != null)
@@ -217,6 +259,7 @@ class _Route extends StatelessWidget {
     required this.origin,
     required this.destination,
     required this.duration,
+    required this.dateLabel,
   });
 
   final String departureTime;
@@ -224,6 +267,7 @@ class _Route extends StatelessWidget {
   final String origin;
   final String destination;
   final String duration;
+  final String? dateLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -232,7 +276,9 @@ class _Route extends StatelessWidget {
       children: [
         _TimePoint(time: departureTime, city: origin, alignEnd: false),
         const SizedBox(width: AppSpacing.md),
-        Expanded(child: _RouteLine(duration: duration)),
+        Expanded(
+          child: _RouteLine(duration: duration, dateLabel: dateLabel),
+        ),
         const SizedBox(width: AppSpacing.md),
         _TimePoint(time: arrivalTime, city: destination, alignEnd: true),
       ],
@@ -285,9 +331,12 @@ class _TimePoint extends StatelessWidget {
 /// Ligne pointant de l'origine (point navy) vers la destination (point
 /// doré), avec la durée centrée au-dessus — `.route-line`.
 class _RouteLine extends StatelessWidget {
-  const _RouteLine({required this.duration});
+  const _RouteLine({required this.duration, this.dateLabel});
 
   final String duration;
+
+  /// Voir [DepartureCard.dateLabel] : le jour du départ, sous le trait.
+  final String? dateLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -309,6 +358,20 @@ class _RouteLine extends StatelessWidget {
             const _RouteDot(color: AppColors.gold),
           ],
         ),
+        // Sur un aller-retour, les deux sens se lisent l'un sous l'autre :
+        // sans le jour, il ne reste que l'heure pour les distinguer.
+        if (dateLabel != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            dateLabel!,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: context.koraColors.textMuted,
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ],
     );
   }

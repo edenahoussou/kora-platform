@@ -2,6 +2,8 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/departure.dart';
+import '../../domain/entities/line_stop.dart';
+import '../../domain/repositories/booking_repository.dart';
 
 /// Le détail d'un départ, rafraîchi en arrière-plan.
 ///
@@ -19,8 +21,31 @@ import '../../domain/entities/departure.dart';
 /// discrètement. Vider l'écran parce qu'un rafraîchissement a échoué
 /// priverait le voyageur d'informations qu'il avait déjà sous les yeux.
 class DepartureDetailCubit extends Cubit<DepartureDetailState> {
-  DepartureDetailCubit({required Departure departure})
-    : super(DepartureDetailState(departure: departure));
+  DepartureDetailCubit({
+    required Departure departure,
+    required BookingRepository repository,
+  }) : _repository = repository, // ignore: prefer_initializing_formals
+       super(DepartureDetailState(departure: departure));
+
+  final BookingRepository _repository;
+
+  /// Charge les arrêts de la ligne — `GET bus/lines/{uuid}`.
+  ///
+  /// Ils ne viennent pas avec le départ : `bus/itineraries` décrit le
+  /// trajet demandé, pas la ligne entière. Un échec est silencieux, comme
+  /// le reste de cet écran : la section « Les étapes » se tait, et tout ce
+  /// qui est déjà affiché reste utilisable.
+  Future<void> loadStops() async {
+    final lineId = state.departure.line.id;
+    if (lineId.isEmpty) return;
+
+    final result = await _repository.getLineStops(lineId);
+
+    result.fold((_) {}, (stops) {
+      if (isClosed) return;
+      emit(state.copyWith(stops: stops));
+    });
+  }
 
   /// Rafraîchit le départ affiché.
   ///
@@ -41,6 +66,7 @@ class DepartureDetailCubit extends Cubit<DepartureDetailState> {
 class DepartureDetailState extends Equatable {
   const DepartureDetailState({
     required this.departure,
+    this.stops = const [],
     this.isRefreshing = false,
     this.isStale = false,
   });
@@ -48,6 +74,10 @@ class DepartureDetailState extends Equatable {
   /// Ce que l'écran affiche : le départ de la liste au départ, celui du
   /// serveur une fois rechargé.
   final Departure departure;
+
+  /// Les arrêts de la ligne, dans l'ordre. Vide tant qu'ils n'ont pas
+  /// été chargés, et vide pour de bon si la ligne n'en publie aucun.
+  final List<LineStop> stops;
 
   final bool isRefreshing;
 
@@ -57,17 +87,19 @@ class DepartureDetailState extends Equatable {
 
   DepartureDetailState copyWith({
     Departure? departure,
+    List<LineStop>? stops,
     bool? isRefreshing,
     bool? isStale,
     bool clearStale = false,
   }) {
     return DepartureDetailState(
       departure: departure ?? this.departure,
+      stops: stops ?? this.stops,
       isRefreshing: isRefreshing ?? this.isRefreshing,
       isStale: clearStale ? false : (isStale ?? this.isStale),
     );
   }
 
   @override
-  List<Object?> get props => [departure, isRefreshing, isStale];
+  List<Object?> get props => [departure, stops, isRefreshing, isStale];
 }

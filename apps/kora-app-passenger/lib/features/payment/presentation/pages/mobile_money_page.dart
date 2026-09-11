@@ -1,10 +1,7 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/router/app_router.dart';
@@ -13,6 +10,7 @@ import '../../../../core/widgets/screen_header.dart';
 import '../../../auth/domain/entities/phone_country.dart';
 import '../../../booking/presentation/bloc/seat_hold_bloc.dart';
 import '../../../booking/presentation/widgets/hold_countdown.dart';
+import '../../domain/entities/payment_attempt.dart';
 import '../bloc/payment_catalog_bloc.dart';
 import '../bloc/payment_flow_bloc.dart';
 import '../widgets/labelled_field.dart';
@@ -187,197 +185,246 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
     );
   }
 
-  /// Ce que devient l'écran une fois la demande partie.
+  /// Ce que devient l'écran une fois la demande résolue.
+  ///
+  /// Rien tant qu'elle vole : l'écran reste en place, sous son voile
+  /// d'attente, et dit au voyageur de confirmer sur son téléphone. Les
+  /// deux écrans intermédiaires d'avant — « confirmez » puis « vérification
+  /// en cours » — n'apprenaient rien de plus, et le second offrait un
+  /// bouton « Actualiser » qui menait au succès **sans rien vérifier**.
   void _onFlowChanged(BuildContext context, PaymentFlowState flow) {
     if (flow.hasFailed) {
-      KoraToaster.show(
-        context,
-        flow.errorMessage ?? context.l10n.paymentMethodFailed,
+      context.push(AppRouter.paymentFailedPath, extra: _flowArgs(flow.attempt));
+      return;
+    }
+
+    // La demande est partie : l'écran d'attente prend le relais et suivra
+    // le paiement jusqu'au verdict.
+    if (flow.isPending) {
+      context.push(
+        AppRouter.paymentPendingPath,
+        extra: _flowArgs(flow.attempt),
       );
       return;
     }
 
-    if (!flow.isPending && !flow.isConfirmed) return;
-
-    final attempt = flow.attempt;
-
-    // Si le serveur venait un jour à rendre un lien de paiement — il
-    // faudrait pour cela qu'il appelle `generateToken()`, ce qu'il ne fait
-    // pas aujourd'hui —, il s'ouvre dans le **navigateur du système**.
-    // Jamais dans un WebView embarqué : un tunnel de paiement encapsulé
-    // dans l'app est précisément ce que la revue Apple examine, alors
-    // qu'un renvoi vers le navigateur ne pose aucune question. Le
-    // paiement reste ainsi hors de l'application, comme la fenêtre USSD
-    // de l'opérateur l'est déjà.
-    final checkout = attempt?.checkoutUrl;
-    if (checkout != null && checkout.isNotEmpty) {
-      unawaited(
-        launchUrl(Uri.parse(checkout), mode: LaunchMode.externalApplication),
+    // Confirmé dès la première réponse — rare, mais possible.
+    if (flow.isConfirmed) {
+      context.push(
+        AppRouter.paymentSuccessPath,
+        extra: _flowArgs(flow.attempt),
       );
     }
+  }
 
-    context.push(
-      AppRouter.paymentValidationPath,
-      extra: PaymentFlowArgs(
-        total: widget.args!.total,
-        providerLabel: mobileMoneyLabel(_operator ?? ''),
-        reference: attempt?.reference,
-        expiresAt: attempt?.expiresAt,
-        pollingInterval: attempt?.pollingInterval,
-        departure: widget.args!.departure,
-        seatLabel: widget.args!.seatLabel,
-      ),
+  PaymentFlowArgs _flowArgs(PaymentAttempt? attempt) {
+    return PaymentFlowArgs(
+      total: widget.args!.total,
+      providerLabel: mobileMoneyLabel(_operator ?? ''),
+      reference: attempt?.reference,
+      expiresAt: attempt?.expiresAt,
+      pollingInterval: attempt?.pollingInterval,
+      departure: widget.args!.departure,
+      seatLabel: widget.args!.seatLabel,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final koraColors = context.koraColors;
     final args = widget.args;
 
     if (args == null) return const PaymentMissingArgs();
 
-    return BlocListener<PaymentFlowBloc, PaymentFlowState>(
+    return BlocConsumer<PaymentFlowBloc, PaymentFlowState>(
       // Seuls les changements d'état comptent : sans ce filtre, le drapeau
       // de vérification manuelle rejouerait la navigation.
       listenWhen: (previous, current) => previous.status != current.status,
       listener: _onFlowChanged,
-      child: Scaffold(
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                ScreenHeader(
-                  eyebrow: l10n.paymentMomoEyebrow(args.total.formatted),
-                  title: l10n.paymentMomoTitle,
-                ),
-                Expanded(
-                  child: ListView(
-                    padding: EdgeInsets.zero,
-                    children: [
-                      const HoldCountdown(margin: EdgeInsets.only(bottom: 11)),
-                      LabelledField(
-                        label: l10n.paymentMomoOperator,
-                        // `DropdownMenu` et non `DropdownButtonFormField` :
-                        // le second aligne l'élément choisi sur le champ,
-                        // donc recouvre le champ et son intitulé. Celui-ci
-                        // s'ancre **sous** le champ, comme le `<select>` de
-                        // la maquette — on garde sous les yeux ce qu'on est
-                        // en train de renseigner.
-                        child:
-                            BlocBuilder<
-                              PaymentCatalogBloc,
-                              PaymentCatalogState
-                            >(
-                              builder: (context, catalog) => LayoutBuilder(
-                                builder: (context, constraints) =>
-                                    DropdownMenu<String>(
-                                      width: constraints.maxWidth,
-                                      initialSelection: _operator,
-                                      // Rien à choisir tant que le serveur
-                                      // n'a pas répondu : un menu vide qui
-                                      // s'ouvre sur rien vaut moins qu'un
-                                      // champ visiblement inerte.
-                                      enabled: catalog.hasMobileMoney,
-                                      hintText: _hint(context, catalog),
-                                      errorText: _showErrors
-                                          ? _operatorError
-                                          : null,
-                                      textStyle: AppTextStyles.body(
+      // Le bouton porte déjà le chargement de l'appel ; dès qu'il répond,
+      // l'écran d'attente prend la suite.
+      builder: (context, flow) => _form(context, args, l10n),
+    );
+  }
+
+  /// Le bas de l'écran : « Payer », ou la sortie qui le remplace.
+  ///
+  /// Un paiement déjà ouvert ne se relance pas — [PaymentFlowBloc] refuse
+  /// la seconde demande pour ne pas débiter deux fois. Le bouton « Payer »
+  /// n'aurait donc plus aucun effet, et c'est ce qui arrivait au voyageur
+  /// revenu ici par le geste « retour » depuis l'écran d'échec : il
+  /// appuyait dans le vide. On le retire, et on met à sa place ce qui,
+  /// lui, mène quelque part.
+  ///
+  /// Les deux boutons de l'écran d'échec continuent de fonctionner : ils
+  /// remettent le paiement à zéro avant de revenir, si bien qu'on retrouve
+  /// ici un « Payer » vivant.
+  Widget _payButton(BuildContext context, PaymentFlowState flow) {
+    final l10n = context.l10n;
+
+    // Le paiement suit son cours ailleurs : on y ramène plutôt que de
+    // laisser croire qu'il faut recommencer.
+    if (flow.isPending) {
+      return KoraButton(
+        label: l10n.paymentMomoResume,
+        variant: KoraButtonVariant.ghost,
+        onPressed: () => context.push(
+          AppRouter.paymentPendingPath,
+          extra: _flowArgs(flow.attempt),
+        ),
+      );
+    }
+
+    // Refusé : réessayer suppose de repartir d'une demande neuve, et cela
+    // se décide sur l'écran des moyens de paiement.
+    if (flow.attempt != null) {
+      return KoraButton(
+        label: l10n.paymentFailedSwitch,
+        variant: KoraButtonVariant.ghost,
+        onPressed: () {
+          context.read<PaymentFlowBloc>().add(const PaymentFlowReset());
+          context.go(AppRouter.paymentMethodPath);
+        },
+      );
+    }
+
+    return KoraButton(
+      label: l10n.paymentMomoPay(widget.args!.total.formatted),
+      // Le bouton se verrouille le temps de l'appel : deux appuis pendant
+      // que la demande vole ouvriraient deux paiements, et la clé
+      // d'idempotence n'est qu'un filet — mieux vaut ne pas avoir à s'en
+      // servir.
+      isLoading: flow.isStarting,
+      onPressed: flow.isStarting ? null : _pay,
+    );
+  }
+
+  Widget _form(BuildContext context, PaymentArgs args, AppLocalization l10n) {
+    final koraColors = context.koraColors;
+
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ScreenHeader(
+                eyebrow: l10n.paymentMomoEyebrow(args.total.formatted),
+                title: l10n.paymentMomoTitle,
+              ),
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
+                    const HoldCountdown(margin: EdgeInsets.only(bottom: 11)),
+                    LabelledField(
+                      label: l10n.paymentMomoOperator,
+                      // `DropdownMenu` et non `DropdownButtonFormField` :
+                      // le second aligne l'élément choisi sur le champ,
+                      // donc recouvre le champ et son intitulé. Celui-ci
+                      // s'ancre **sous** le champ, comme le `<select>` de
+                      // la maquette — on garde sous les yeux ce qu'on est
+                      // en train de renseigner.
+                      child:
+                          BlocBuilder<PaymentCatalogBloc, PaymentCatalogState>(
+                            builder: (context, catalog) => LayoutBuilder(
+                              builder: (context, constraints) =>
+                                  DropdownMenu<String>(
+                                    width: constraints.maxWidth,
+                                    initialSelection: _operator,
+                                    // Rien à choisir tant que le serveur
+                                    // n'a pas répondu : un menu vide qui
+                                    // s'ouvre sur rien vaut moins qu'un
+                                    // champ visiblement inerte.
+                                    enabled: catalog.hasMobileMoney,
+                                    hintText: _hint(context, catalog),
+                                    errorText: _showErrors
+                                        ? _operatorError
+                                        : null,
+                                    textStyle: AppTextStyles.body(
+                                      koraColors.textPrimary,
+                                    ),
+                                    menuStyle: MenuStyle(
+                                      backgroundColor: WidgetStatePropertyAll(
+                                        koraColors.surface,
+                                      ),
+                                    ),
+                                    onSelected: (value) =>
+                                        setState(() => _operator = value),
+                                    dropdownMenuEntries: [
+                                      for (final network
+                                          in catalog.mobileMoneyNetworks)
+                                        DropdownMenuEntry(
+                                          value: network,
+                                          label: mobileMoneyLabel(network),
+                                        ),
+                                    ],
+                                  ),
+                            ),
+                          ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    LabelledField(
+                      label: l10n.paymentMomoPhone,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Même paire indicatif + numéro que l'écran des
+                          // permissions : le voyageur qui débite un compte
+                          // togolais depuis le Bénin doit pouvoir le dire.
+                          SizedBox(
+                            width: 124,
+                            child: DropdownButtonFormField<PhoneCountry>(
+                              initialValue: _country,
+                              isExpanded: true,
+                              onChanged: _onCountryChanged,
+                              items: [
+                                for (final item in PhoneCountry.all)
+                                  DropdownMenuItem(
+                                    value: item,
+                                    child: Text(
+                                      '${item.flag}  ${item.code}',
+                                      style: AppTextStyles.body(
                                         koraColors.textPrimary,
                                       ),
-                                      menuStyle: MenuStyle(
-                                        backgroundColor: WidgetStatePropertyAll(
-                                          koraColors.surface,
-                                        ),
-                                      ),
-                                      onSelected: (value) =>
-                                          setState(() => _operator = value),
-                                      dropdownMenuEntries: [
-                                        for (final network
-                                            in catalog.mobileMoneyNetworks)
-                                          DropdownMenuEntry(
-                                            value: network,
-                                            label: mobileMoneyLabel(network),
-                                          ),
-                                      ],
                                     ),
-                              ),
+                                  ),
+                              ],
                             ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      LabelledField(
-                        label: l10n.paymentMomoPhone,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Même paire indicatif + numéro que l'écran des
-                            // permissions : le voyageur qui débite un compte
-                            // togolais depuis le Bénin doit pouvoir le dire.
-                            SizedBox(
-                              width: 124,
-                              child: DropdownButtonFormField<PhoneCountry>(
-                                initialValue: _country,
-                                isExpanded: true,
-                                onChanged: _onCountryChanged,
-                                items: [
-                                  for (final item in PhoneCountry.all)
-                                    DropdownMenuItem(
-                                      value: item,
-                                      child: Text(
-                                        '${item.flag}  ${item.code}',
-                                        style: AppTextStyles.body(
-                                          koraColors.textPrimary,
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: KoraInput(
+                              hint: _country.example,
+                              controller: _phone,
+                              keyboardType: TextInputType.phone,
+                              errorText: _showErrors ? _phoneError : null,
+                              onChanged: (_) => setState(() {}),
                             ),
-                            const SizedBox(width: AppSpacing.sm),
-                            Expanded(
-                              child: KoraInput(
-                                hint: _country.example,
-                                controller: _phone,
-                                keyboardType: TextInputType.phone,
-                                errorText: _showErrors ? _phoneError : null,
-                                onChanged: (_) => setState(() {}),
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: AppSpacing.md),
-                      KoraCard(
-                        variant: KoraCardVariant.mist,
-                        child: Text(
-                          l10n.paymentMomoNotice,
-                          style: AppTextStyles.body(koraColors.textMuted),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.xl),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                  child: BlocBuilder<PaymentFlowBloc, PaymentFlowState>(
-                    builder: (context, flow) => KoraButton(
-                      label: l10n.paymentMomoPay(args.total.formatted),
-                      // Le bouton se verrouille le temps de l'appel : deux
-                      // appuis pendant que la demande vole ouvriraient deux
-                      // paiements, et la clé d'idempotence n'est qu'un
-                      // filet — mieux vaut ne pas avoir à s'en servir.
-                      isLoading: flow.isStarting,
-                      onPressed: flow.isStarting ? null : _pay,
                     ),
-                  ),
+                    const SizedBox(height: AppSpacing.md),
+                    KoraCard(
+                      variant: KoraCardVariant.mist,
+                      child: Text(
+                        l10n.paymentMomoNotice,
+                        style: AppTextStyles.body(koraColors.textMuted),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                child: BlocBuilder<PaymentFlowBloc, PaymentFlowState>(
+                  builder: _payButton,
+                ),
+              ),
+            ],
           ),
         ),
       ),

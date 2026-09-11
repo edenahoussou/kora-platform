@@ -15,6 +15,7 @@ class ScreenHeader extends StatelessWidget {
     required this.title,
     this.action,
     this.showBack = true,
+    this.onBack,
     this.leading,
   });
 
@@ -32,6 +33,14 @@ class ScreenHeader extends StatelessWidget {
   /// À couper sur les écrans racines d'un onglet de la bottom nav : il n'y
   /// a rien derrière eux, un retour n'aurait nulle part où aller.
   final bool showBack;
+
+  /// Où mène le bouton retour, quand ce n'est pas l'écran précédent.
+  ///
+  /// Un écran atteint au bout d'un parcours qui s'achève — le billet, une
+  /// fois le paiement passé — ne se quitte pas en remontant la pile : le
+  /// voyageur retomberait sur son propre paiement. Ces écrans-là disent
+  /// eux-mêmes par où l'on sort.
+  final VoidCallback? onBack;
 
   /// Ce qui prend la place du bouton retour quand [showBack] est faux.
   ///
@@ -71,7 +80,7 @@ class ScreenHeader extends StatelessWidget {
             if (showBack) ...[
               KoraIconButton(
                 icon: Icons.chevron_left_rounded,
-                onTap: () => Navigator.of(context).pop(),
+                onTap: onBack ?? () => Navigator.of(context).pop(),
               ),
               const SizedBox(width: AppSpacing.md),
             ] else if (leading != null) ...[

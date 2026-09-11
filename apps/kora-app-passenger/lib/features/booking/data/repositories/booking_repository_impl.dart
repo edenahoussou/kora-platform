@@ -4,6 +4,7 @@ import '../../../../core/error/api_failure_mapper.dart';
 import '../../../../core/error/failures.dart';
 import '../../domain/entities/city.dart';
 import '../../domain/entities/departure.dart';
+import '../../domain/entities/line_stop.dart';
 import '../../domain/entities/seat.dart';
 import '../../domain/entities/ticket.dart';
 import '../../domain/entities/upcoming_trip.dart';
@@ -35,6 +36,10 @@ class BookingRepositoryImpl with ApiFailureMapper implements BookingRepository {
   @override
   Future<Either<Failure, List<City>>> getRecentCities() =>
       attempt(_dataSource.getRecentCities);
+
+  @override
+  Future<Either<Failure, List<LineStop>>> getLineStops(String lineId) =>
+      attempt(() => _dataSource.getLineStops(lineId));
 
   @override
   Future<Either<Failure, List<Seat>>> getSeats(Departure departure) =>

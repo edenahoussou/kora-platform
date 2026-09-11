@@ -76,6 +76,10 @@ void main() {
   });
 
   test('la relecture confirme le paiement sans que l’app en décide', () async {
+    // Elle passe par `verify` et non par `status` : le premier interroge le
+    // fournisseur, le second se contente de relire ce que la base dit déjà.
+    // Sans webhook, cette base reste à `pending`, et la relecture tournait
+    // sur une valeur figée jusqu'à l'expiration du blocage.
     final repository = StubPaymentRepository(
       attempt: const PaymentAttempt(
         id: 'pay-1',
@@ -92,7 +96,8 @@ void main() {
     bloc.add(started);
     await bloc.stream.firstWhere((state) => state.isConfirmed);
 
-    expect(repository.calls, contains('status'));
+    expect(repository.calls, contains('verify'));
+    expect(repository.calls, isNot(contains('status')));
     expect(bloc.state.attempt!.hasTickets, isTrue);
   });
 

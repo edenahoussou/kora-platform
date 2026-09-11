@@ -296,8 +296,6 @@ class AppLocalization {
   String get searchCtaRoundtrip => translate('search_cta_roundtrip');
   String get searchReturnDate => translate('search_return_date');
   String get searchReturnPick => translate('search_return_pick');
-  String get searchMissingReturn => translate('search_missing_return');
-  String get searchReturnResultsSoon => translate('search_return_results_soon');
   String get searchRecent => translate('search_recent');
   String get searchMissingCities => translate('search_missing_cities');
   String get searchRoundtripSoon => translate('search_roundtrip_soon');
@@ -424,6 +422,12 @@ class AppLocalization {
   String cityPickerNoResult(String query) =>
       _withArgs('city_picker_no_result', {'query': query});
   String get departuresEyebrow => translate('departures_eyebrow');
+
+  String get departuresDirectionOutbound =>
+      translate('departures_direction_outbound');
+
+  String get departuresDirectionInbound =>
+      translate('departures_direction_inbound');
   String get departuresSearchingTitle =>
       translate('departures_searching_title');
   String get departuresSearchingLead => translate('departures_searching_lead');
@@ -458,6 +462,8 @@ class AppLocalization {
       translate('payment_momo_phone_required');
   String get paymentMomoPhoneShort => translate('payment_momo_phone_short');
   String get paymentMomoNotice => translate('payment_momo_notice');
+  String get paymentMomoResume => translate('payment_momo_resume');
+
   String paymentMomoPay(String amount) =>
       _withArgs('payment_momo_pay', {'amount': amount});
   String get paymentWalletTitle => translate('payment_wallet_title');
@@ -500,20 +506,33 @@ class AppLocalization {
       _withArgs('payment_card_pay', {'amount': amount});
   String get paymentCardSwitch => translate('payment_card_switch');
   String get paymentSoon => translate('payment_soon');
-  String get paymentValidationTitle => translate('payment_validation_title');
-  String get paymentValidationLead => translate('payment_validation_lead');
-  String get paymentValidationText => translate('payment_validation_text');
-  String get paymentValidationConfirmed =>
-      translate('payment_validation_confirmed');
-  String get paymentValidationExpiresIn =>
-      translate('payment_validation_expires_in');
   String get paymentSwitchMethod => translate('payment_switch_method');
+  // --- Attente et échec du paiement ---
+
+  /// L'écran d'attente, seul écran entre la demande et le verdict.
   String get paymentPendingTitle => translate('payment_pending_title');
+
   String get paymentPendingText => translate('payment_pending_text');
+
+  String get paymentPendingSlow => translate('payment_pending_slow');
+
   String get paymentPendingRefresh => translate('payment_pending_refresh');
+
   String get paymentPendingReport => translate('payment_pending_report');
+
   String paymentPendingPolling(int seconds) =>
       _withArgs('payment_pending_polling', {'seconds': seconds});
+
+  String get paymentFailedEyebrow => translate('payment_failed_eyebrow');
+
+  String get paymentFailedTitle => translate('payment_failed_title');
+
+  String get paymentFailedText => translate('payment_failed_text');
+
+  String get paymentFailedRetry => translate('payment_failed_retry');
+
+  String get paymentFailedSwitch => translate('payment_failed_switch');
+
   String get paymentReference => translate('payment_reference');
   String get bookingSuccessTitle => translate('booking_success_title');
   String get bookingSuccessText => translate('booking_success_text');
@@ -532,6 +551,7 @@ class AppLocalization {
   String get ticketFieldDate => translate('ticket_field_date');
   String get ticketFieldDeparture => translate('ticket_field_departure');
   String get ticketFieldSeat => translate('ticket_field_seat');
+  String get ticketFieldPassenger => translate('ticket_field_passenger');
   String get ticketQrSemantics => translate('ticket_qr_semantics');
   String get ticketTrackTitle => translate('ticket_track_title');
   String get ticketTrackSubtitle => translate('ticket_track_subtitle');
@@ -568,6 +588,10 @@ class AppLocalization {
   String get onboardingTicketPillLead =>
       translate('onboarding_ticket_pill_lead');
   String get homeDateTitle => translate('home_date_title');
+
+  /// Titre du calendrier quand on choisit le retour : le voyageur ne
+  /// part plus, il rentre.
+  String get homeReturnDateTitle => translate('home_return_date_title');
   String homeDateNotice(int months) =>
       _withArgs('home_date_notice', {'months': months});
   String homeDateConfirm(String date) =>
@@ -592,7 +616,24 @@ class AppLocalization {
   String get priceAssuranceTitle => translate('price_assurance_title');
   String get priceAssuranceText => translate('price_assurance_text');
   String get seatsTitle => translate('seats_title');
+
+  /// Le titre du plan des sièges sur un aller-retour : il dit quel trajet
+  /// on pourvoit, et pour combien de voyageurs.
+  String seatsTitleFor({required bool isOutbound, required int passengers}) {
+    final many = passengers > 1;
+
+    return translate(
+      isOutbound
+          ? (many ? 'seats_title_outbound_many' : 'seats_title_outbound_one')
+          : (many ? 'seats_title_inbound_many' : 'seats_title_inbound_one'),
+    );
+  }
+
   String get seatsStep => translate('seats_step');
+
+  String get seatsLegOutbound => translate('seats_leg_outbound');
+
+  String get seatsLegInbound => translate('seats_leg_inbound');
   String get seatsSelectedOne => translate('seats_selected_one');
   String get seatsSelectedMany => translate('seats_selected_many');
   String seatsNone(int total) => _withArgs('seats_none', {'total': total});
@@ -646,6 +687,9 @@ class AppLocalization {
       translate('passengers_document_type_optional');
   String get passengersDocumentNumberOptional =>
       translate('passengers_document_number_optional');
+
+  String get passengersBirthDateOptional =>
+      translate('passengers_birth_date_optional');
   String get passengersDocumentNone => translate('passengers_document_none');
   String get passengersYellowFever => translate('passengers_yellow_fever');
   String get passengersAccuracy => translate('passengers_accuracy');
@@ -660,8 +704,6 @@ class AppLocalization {
   String get passengersBirthDate => translate('passengers_birth_date');
   String get passengersBirthDateChoose =>
       translate('passengers_birth_date_choose');
-  String get passengersBirthDateRequired =>
-      translate('passengers_birth_date_required');
   String passengersSeat(String seat) =>
       _withArgs('passengers_seat', {'seat': seat});
   String passengersLine(String code) =>
@@ -703,6 +745,8 @@ class AppLocalization {
   String get groupTicketsNotice => translate('group_tickets_notice');
   String get groupTicketsPending => translate('group_tickets_pending');
   String get groupTicketsDone => translate('group_tickets_done');
+
+  String get groupTicketsQrClose => translate('group_tickets_qr_close');
   String get groupTicketsStatusReady => translate('group_tickets_status_ready');
   String get groupTicketsStatusBoarded =>
       translate('group_tickets_status_boarded');
@@ -710,6 +754,54 @@ class AppLocalization {
       translate('group_tickets_status_cancelled');
   String get groupTicketsStatusUnknown =>
       translate('group_tickets_status_unknown');
+
+  /// Les mêmes écrans servent un voyageur seul : parler de « groupe » et
+  /// de « chaque QR » devant un unique billet sonnerait faux.
+  String get ticketsOneEyebrow => translate('tickets_one_eyebrow');
+
+  String get ticketsOneTitle => translate('tickets_one_title');
+
+  String get ticketsOneNotice => translate('tickets_one_notice');
+
+  String get ticketsDownload => translate('tickets_download');
+
+  String get ticketsShare => translate('tickets_share');
+
+  String get ticketsDownloadDone => translate('tickets_download_done');
+
+  String get ticketsDownloadFailed => translate('tickets_download_failed');
+
+  String get ticketsOnePending => translate('tickets_one_pending');
+
+  // --- Choix du retour (aller-retour) ---
+
+  /// « Retour » seul, quand aucune date n'a été demandée : le serveur
+  /// propose alors les jours qui suivent, et le surtitre n'a pas de date
+  /// à annoncer.
+  String get returnResultsEyebrowUndated =>
+      translate('return_results_eyebrow_undated');
+
+  String returnResultsEyebrow(String date) =>
+      _withArgs('return_results_eyebrow', {'date': date});
+
+  /// « 2 retours disponibles » : le pluriel se joue sur la clé.
+  String returnResultsTitle(int count) => count > 1
+      ? _withArgs('return_results_title_many', {'count': count})
+      : translate('return_results_title_one');
+
+  String get returnResultsOutbound => translate('return_results_outbound');
+
+  /// Le titre de l'en-tête. Distinct de celui de l'état vide juste en
+  /// dessous : les répéter mot pour mot donnait deux fois la même phrase
+  /// à l'écran.
+  String get returnResultsEmptyHeading =>
+      translate('return_results_empty_heading');
+
+  String get returnResultsEmptyTitle => translate('return_results_empty_title');
+
+  String get returnResultsEmptyText => translate('return_results_empty_text');
+
+  String get returnResultsEmptyCta => translate('return_results_empty_cta');
   String get groupDiscountEyebrow => translate('group_discount_eyebrow');
   String get groupDiscountPendingEyebrow =>
       translate('group_discount_pending_eyebrow');
@@ -740,6 +832,18 @@ class AppLocalization {
       _withArgs('summary_group_discount_from', {'min': min});
   String get summaryServiceFee => translate('summary_service_fee');
   String get summaryServiceFeeValue => translate('summary_service_fee_value');
+  // --- Aller-retour ---
+
+  String get summaryOutbound => translate('summary_outbound');
+
+  String get summaryReturn => translate('summary_return');
+
+  /// Les deux sièges d’un voyageur : « 5A · 2C », l’aller puis le retour.
+  String summarySeatsRound(String outbound, String inbound) => _withArgs(
+    'summary_seats_round',
+    {'outbound': outbound, 'inbound': inbound},
+  );
+
   String get summaryTotal => translate('summary_total');
   String get summaryContinue => translate('summary_continue');
   String summarySeatOne(String seats) =>
@@ -820,6 +924,15 @@ class AppLocalization {
   String get departureDetailEyebrow => translate('departure_detail_eyebrow');
   String get departureDetailComfort => translate('departure_detail_comfort');
   String get departureDetailStops => translate('departure_detail_stops');
+
+  String departureDetailStopDeparture(String time) =>
+      _withArgs('departure_detail_stop_departure', {'time': time});
+
+  String departureDetailStopArrival(String time) =>
+      _withArgs('departure_detail_stop_arrival', {'time': time});
+
+  String departureDetailStopDistance(int km) =>
+      _withArgs('departure_detail_stop_distance', {'km': '$km'});
   String get departureDetailSegmentPrice =>
       translate('departure_detail_segment_price');
   String get departureDetailEstimates =>
@@ -865,6 +978,7 @@ class AppLocalization {
     {'count': count},
   );
   String get homeSearchSubmit => translate('home_search_submit');
+
   String get homeQuickTitle => translate('home_quick_title');
   String get homeQuickRide => translate('home_quick_ride');
   String get homeQuickParcels => translate('home_quick_parcels');
@@ -873,12 +987,17 @@ class AppLocalization {
   String get homeRideEyebrow => translate('home_ride_eyebrow');
   String get homeRideTitle => translate('home_ride_title');
   String get homeRideText => translate('home_ride_text');
-  String get homeRideSoon => translate('home_ride_soon');
   String get homeNextTrip => translate('home_next_trip');
   String get homeNextTripEmptyTitle => translate('home_next_trip_empty_title');
   String get homeNextTripEmptyText => translate('home_next_trip_empty_text');
   String get homeReminderTitle => translate('home_reminder_title');
   String get homeReminderText => translate('home_reminder_text');
+
+  String get homeRoundTripSection => translate('home_roundtrip_section');
+
+  String get homeRoundTripTitle => translate('home_roundtrip_title');
+
+  String get homeRoundTripText => translate('home_roundtrip_text');
   String get homeErrorTitle => translate('home_error_title');
   String get homeErrorText => translate('home_error_text');
 

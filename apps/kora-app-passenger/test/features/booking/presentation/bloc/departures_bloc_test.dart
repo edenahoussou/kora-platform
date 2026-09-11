@@ -11,6 +11,7 @@ import 'package:kora_app_passenger/core/usecases/usecase.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/city.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/departure_search.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/line.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/price.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
@@ -62,7 +63,7 @@ void main() {
     when(() => getCities(any())).thenAnswer((_) async => Right(kMockCities));
     when(
       () => searchDepartures(any()),
-    ).thenAnswer((_) async => Right(departures));
+    ).thenAnswer((_) async => Right(DepartureSearch.oneWay(departures)));
   });
 
   DeparturesBloc buildBloc() => DeparturesBloc(getCities, searchDepartures);
@@ -107,9 +108,10 @@ void main() {
     blocTest<DeparturesBloc, DeparturesState>(
       'traite une liaison non desservie comme un résultat vide',
       build: () {
-        when(
-          () => searchDepartures(any()),
-        ).thenAnswer((_) async => const Right<Failure, List<Departure>>([]));
+        when(() => searchDepartures(any())).thenAnswer(
+          (_) async =>
+              const Right<Failure, DepartureSearch>(DepartureSearch.oneWay([])),
+        );
         return buildBloc();
       },
       act: (bloc) => bloc.add(requested),
@@ -413,7 +415,7 @@ void main() {
         when(() => searchDepartures(any())).thenAnswer((_) async {
           attempt += 1;
           return attempt == 1
-              ? Right(departures)
+              ? Right(DepartureSearch.oneWay(departures))
               : const Left(NetworkFailure());
         });
         return buildBloc();
@@ -443,7 +445,7 @@ void main() {
         when(() => searchDepartures(any())).thenAnswer((_) async {
           attempt += 1;
           return attempt == 1
-              ? Right(departures)
+              ? Right(DepartureSearch.oneWay(departures))
               : const Left(NetworkFailure());
         });
         return buildBloc();
@@ -478,7 +480,7 @@ void main() {
           attempt += 1;
           return attempt == 1
               ? const Left(NetworkFailure())
-              : Right(departures);
+              : Right(DepartureSearch.oneWay(departures));
         });
         return buildBloc();
       },
@@ -510,7 +512,7 @@ void main() {
         when(() => searchDepartures(any())).thenAnswer((_) async {
           attempt += 1;
           return attempt == 1
-              ? Right(departures)
+              ? Right(DepartureSearch.oneWay(departures))
               : const Left(NetworkFailure());
         });
         return buildBloc();
@@ -571,6 +573,81 @@ void main() {
         expect(bloc.state.criteria?.origin, porto);
         expect(bloc.state.criteria?.destination, save);
       },
+    );
+    blocTest<DeparturesBloc, DeparturesState>(
+      'l’aller-retour survit au passage par l’URL',
+      build: () {
+        when(
+          () => getCities(any()),
+        ).thenAnswer((_) async => const Right([porto, save]));
+        return buildBloc();
+      },
+      act: (bloc) {
+        // Le maillon fragile du parcours : l'accueil compose les critères,
+        // mais c'est une URL qui les transporte jusqu'ici. Une date de
+        // retour absente du lien transformerait silencieusement
+        // l'aller-retour en aller simple.
+        final url = Uri.parse(
+          AppRouter.departuresUrlFor(
+            SearchCriteria(
+              origin: porto,
+              destination: save,
+              date: DateTime(2026, 8, 14),
+              returnDate: DateTime(2026, 8, 21),
+            ),
+          ),
+        );
+
+        expect(url.queryParameters['return_date'], '2026-08-21');
+
+        bloc.add(
+          DeparturesRequested(
+            originId: url.queryParameters['origin'],
+            destinationId: url.queryParameters['destination'],
+            date: url.queryParameters['date'],
+            passengers: url.queryParameters['passengers'],
+            returnDate: url.queryParameters['return_date'],
+          ),
+        );
+      },
+      verify: (bloc) {
+        expect(bloc.state.criteria?.returnDate, DateTime(2026, 8, 21));
+        expect(bloc.state.criteria?.isRoundTrip, isTrue);
+      },
+    );
+
+    blocTest<DeparturesBloc, DeparturesState>(
+      'un aller simple ne met aucune date de retour dans le lien',
+      build: () {
+        when(
+          () => getCities(any()),
+        ).thenAnswer((_) async => const Right([porto, save]));
+        return buildBloc();
+      },
+      act: (bloc) {
+        final url = Uri.parse(
+          AppRouter.departuresUrlFor(
+            SearchCriteria(
+              origin: porto,
+              destination: save,
+              date: DateTime(2026, 8, 14),
+            ),
+          ),
+        );
+
+        expect(url.queryParameters.containsKey('return_date'), isFalse);
+
+        bloc.add(
+          DeparturesRequested(
+            originId: url.queryParameters['origin'],
+            destinationId: url.queryParameters['destination'],
+            date: url.queryParameters['date'],
+            passengers: url.queryParameters['passengers'],
+            returnDate: url.queryParameters['return_date'],
+          ),
+        );
+      },
+      verify: (bloc) => expect(bloc.state.criteria?.isRoundTrip, isFalse),
     );
   });
 }

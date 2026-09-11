@@ -62,9 +62,22 @@ class PinDots extends StatelessWidget {
 /// `.pin-keypad` : les douze touches, effacement (`⌫`) et validation (`✓`)
 /// comprises.
 class PinKeypad extends StatelessWidget {
-  const PinKeypad({super.key, required this.onKey, this.onNavy = false});
+  const PinKeypad({
+    super.key,
+    required this.onKey,
+    this.onNavy = false,
+    this.isSubmitting = false,
+  });
 
   final ValueChanged<String> onKey;
+
+  /// La demande est partie : la touche de validation tourne à sa place et
+  /// le clavier cesse de répondre.
+  ///
+  /// Le serveur met parfois deux bonnes secondes à répondre, et sans ce
+  /// signal le voyageur croyait son appui perdu — il retapait, ce qui
+  /// n'ouvrait rien de plus mais consommait un essai de PIN.
+  final bool isSubmitting;
 
   /// Sur fond navy, les touches restent blanches quel que soit le thème —
   /// c'est le contraste de l'écran de connexion. Ailleurs, elles suivent
@@ -106,20 +119,34 @@ class PinKeypad extends StatelessWidget {
       childAspectRatio: 118 / 55,
       children: [
         for (final key in _keys)
-          Material(
-            color: background,
-            borderRadius: BorderRadius.circular(17),
-            child: InkWell(
-              onTap: () => onKey(key),
+          Opacity(
+            // Le clavier s'efface pendant l'attente, sauf la touche qui
+            // porte le compte à rebours.
+            opacity: isSubmitting && key != validate ? 0.45 : 1,
+            child: Material(
+              color: background,
               borderRadius: BorderRadius.circular(17),
-              child: Center(
-                child: Text(
-                  key,
-                  style: TextStyle(
-                    color: foreground,
-                    fontSize: 19,
-                    fontWeight: FontWeight.w800,
-                  ),
+              child: InkWell(
+                onTap: isSubmitting ? null : () => onKey(key),
+                borderRadius: BorderRadius.circular(17),
+                child: Center(
+                  child: isSubmitting && key == validate
+                      ? SizedBox(
+                          width: 19,
+                          height: 19,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.4,
+                            color: foreground,
+                          ),
+                        )
+                      : Text(
+                          key,
+                          style: TextStyle(
+                            color: foreground,
+                            fontSize: 19,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                 ),
               ),
             ),

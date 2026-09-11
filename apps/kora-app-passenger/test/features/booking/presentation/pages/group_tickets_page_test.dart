@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:kora_app_passenger/core/error/failures.dart';
 import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/group_ticket.dart';
@@ -143,6 +144,59 @@ void main() {
   testWidgets('sans réservation, l’écran ne fabrique rien', (tester) async {
     await pump(tester, repository: StubReservationRepository(), args: null);
 
+    expect(find.text('Billets du groupe'), findsNothing);
+  });
+
+  testWidgets('le retour quitte le tunnel et rend l’accueil', (tester) async {
+    // On n'arrive ici qu'au bout d'un achat. Derrière l'écran il y a le
+    // paiement, l'attente, le plan des sièges — des étapes qu'on ne
+    // repasse pas une fois le billet émis, et que la flèche rouvrait une
+    // à une.
+    tester.view.physicalSize = const Size(390 * 3, 900 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    final router = GoRouter(
+      initialLocation: '/billets',
+      routes: [
+        GoRoute(
+          path: '/home',
+          builder: (context, state) => const Scaffold(body: Text('Accueil')),
+        ),
+        GoRoute(
+          path: '/billets',
+          builder: (context, state) => BlocProvider<GroupTicketsCubit>(
+            create: (_) =>
+                GroupTicketsCubit(StubReservationRepository(tickets: tickets)),
+            child: const GroupTicketsPage(
+              args: GroupTicketsArgs(reservationId: 'res-1', passengers: 2),
+            ),
+          ),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp.router(
+        theme: AppTheme.light,
+        locale: const Locale('fr'),
+        supportedLocales: const [Locale('fr'), Locale('en')],
+        localizationsDelegates: const [
+          AppLocalization.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        routerConfig: router,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.chevron_left_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Accueil'), findsOneWidget);
     expect(find.text('Billets du groupe'), findsNothing);
   });
 }

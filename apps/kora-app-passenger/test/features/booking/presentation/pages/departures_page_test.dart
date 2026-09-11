@@ -15,7 +15,7 @@ import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/core/usecases/usecase.dart';
 import 'package:kora_app_passenger/core/utils/date_formats.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
-import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/departure_search.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
 import 'package:kora_app_passenger/features/booking/domain/usecases/get_cities_usecase.dart';
 import 'package:kora_app_passenger/features/booking/domain/usecases/search_departures_usecase.dart';
@@ -59,7 +59,7 @@ void main() {
     when(() => getCities(any())).thenAnswer((_) async => Right(kMockCities));
     when(
       () => searchDepartures(any()),
-    ).thenAnswer((_) async => Right(departures));
+    ).thenAnswer((_) async => Right(DepartureSearch.oneWay(departures)));
 
     getIt.registerFactory<DeparturesBloc>(
       () => DeparturesBloc(getCities, searchDepartures),
@@ -138,7 +138,7 @@ void main() {
     when(() => searchDepartures(any())).thenAnswer(
       (_) => Future.delayed(
         const Duration(milliseconds: 400),
-        () => Right(departures),
+        () => Right(DepartureSearch.oneWay(departures)),
       ),
     );
 
@@ -386,7 +386,11 @@ void main() {
       var attempt = 0;
       when(() => searchDepartures(any())).thenAnswer((_) async {
         attempt += 1;
-        return Right(attempt == 1 ? departures : departures.take(2).toList());
+        return Right(
+          DepartureSearch.oneWay(
+            attempt == 1 ? departures : departures.take(2).toList(),
+          ),
+        );
       });
 
       await pumpPage(tester);
@@ -408,7 +412,9 @@ void main() {
       var attempt = 0;
       when(() => searchDepartures(any())).thenAnswer((_) async {
         attempt += 1;
-        return attempt == 1 ? Right(departures) : const Left(NetworkFailure());
+        return attempt == 1
+            ? Right(DepartureSearch.oneWay(departures))
+            : const Left(NetworkFailure());
       });
 
       await pumpPage(tester);
@@ -430,9 +436,10 @@ void main() {
   });
 
   testWidgets('affiche l’état « aucun départ »', (tester) async {
-    when(
-      () => searchDepartures(any()),
-    ).thenAnswer((_) async => const Right<Failure, List<Departure>>([]));
+    when(() => searchDepartures(any())).thenAnswer(
+      (_) async =>
+          const Right<Failure, DepartureSearch>(DepartureSearch.oneWay([])),
+    );
 
     await pumpPage(tester);
     await tester.pumpAndSettle();
@@ -465,7 +472,9 @@ void main() {
     var attempt = 0;
     when(() => searchDepartures(any())).thenAnswer((_) async {
       attempt += 1;
-      return attempt == 1 ? const Left(NetworkFailure()) : Right(departures);
+      return attempt == 1
+          ? const Left(NetworkFailure())
+          : Right(DepartureSearch.oneWay(departures));
     });
 
     await pumpPage(tester);

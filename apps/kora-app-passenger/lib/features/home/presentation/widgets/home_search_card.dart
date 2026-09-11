@@ -11,6 +11,11 @@ import '../../../booking/domain/entities/group_booking_limits.dart';
 /// arrivée avec bouton d'inversion, ligne date / passagers, puis le bouton
 /// de recherche.
 ///
+/// Elle ne compose qu'un **aller simple** : l'accueil sert à partir vite.
+/// Un aller-retour se prépare sur `BusSearchPage`, atteint depuis
+/// « Réserver un voyage », où le formulaire a la place de demander une
+/// seconde date.
+///
 /// C'est un widget **purement présentationnel** : il reçoit les valeurs
 /// affichées et remonte les intentions de l'utilisateur via ses callbacks.
 /// Il ne connaît ni le Bloc, ni la navigation, ce qui le rend réutilisable

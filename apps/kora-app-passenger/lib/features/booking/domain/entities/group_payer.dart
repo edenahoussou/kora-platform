@@ -19,6 +19,24 @@ enum GroupPayerType {
   final String wire;
 }
 
+/// Le crédit entreprise est-il proposé au voyageur ?
+///
+/// **Non, et c'est délibéré.** Le serveur sait réserver le crédit d'un
+/// compte entreprise au blocage des sièges — `CompanyCreditService::reserve`
+/// — et il sait le convertir en dépense à la confirmation du paiement. Mais
+/// `POST payments/initiate` n'accepte que `mobile_money` et `wallet` : un
+/// paiement `company_credit` ne naît qu'au guichet.
+///
+/// Offrir le choix quand même menait à ceci : le crédit de l'entreprise
+/// était bloqué, le voyageur payait de sa poche en Mobile Money, et la
+/// réservation de crédit expirait sans avoir servi. Le bouton promettait
+/// une facturation entreprise et livrait un débit personnel.
+///
+/// Remettre à `true` le jour où `initiate` accepte `company_credit` : tout
+/// le reste — le choix, l'envoi au blocage, l'affichage du crédit restant —
+/// est déjà en place et attend derrière.
+const bool kCompanyPayerEnabled = false;
+
 /// Couche DOMAIN : le payeur d'une réservation de groupe.
 class GroupPayer extends Equatable {
   const GroupPayer._(this.type, this.companyAccountId, this.companyName);

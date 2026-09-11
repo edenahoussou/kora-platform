@@ -36,6 +36,9 @@ class MockGetRecentCitiesUseCase extends Mock
 class MockGetNextTripUseCase extends Mock implements GetNextTripUseCase {}
 
 void main() {
+  /// Ce que l'accueil transmet au formulaire complet quand il l'ouvre.
+  late List<Object?> opened;
+
   late MockGetCitiesUseCase getCities;
   late MockGetRecentCitiesUseCase getRecentCities;
   late MockGetNextTripUseCase getNextTrip;
@@ -55,6 +58,7 @@ void main() {
   });
 
   setUp(() {
+    opened = [];
     getCities = MockGetCitiesUseCase();
     getRecentCities = MockGetRecentCitiesUseCase();
     getNextTrip = MockGetNextTripUseCase();
@@ -87,6 +91,15 @@ void main() {
     final router = GoRouter(
       routes: [
         GoRoute(path: '/', builder: (_, _) => const HomePage()),
+        // Le formulaire complet n'est pas monté : ce qui compte, c'est
+        // qu'on y arrive avec le bon type de trajet.
+        GoRoute(
+          path: AppRouter.busSearchPath,
+          builder: (context, state) {
+            opened.add(state.extra);
+            return const Scaffold(body: Text('formulaire'));
+          },
+        ),
         GoRoute(
           path: AppRouter.originPath,
           builder: (context, state) {
@@ -231,5 +244,26 @@ void main() {
     expect(find.byType(CityPickerPage), findsNothing);
     expect(find.text('Parakou · Zongo'), findsOneWidget);
     expect(find.text('Choisir une ville'), findsOneWidget);
+  });
+
+  testWidgets('l’aller-retour a sa porte, et elle ouvre le bon onglet', (
+    tester,
+  ) async {
+    // L'accueil ne compose qu'un aller : son formulaire n'a ni date de
+    // retour ni bascule. Sans cette carte, l'aller-retour n'était
+    // atteignable que par « Mes voyages ».
+    await pumpHome(tester);
+    await tester.pumpAndSettle();
+
+    // La carte est en bas de l'accueil : sans l'amener à l'écran, le tap
+    // porte à vide.
+    final card = find.text('Réserver un aller-retour');
+    await tester.ensureVisible(card);
+    await tester.pumpAndSettle();
+
+    await tester.tap(card);
+    await tester.pumpAndSettle();
+
+    expect(opened, [TripType.roundtrip]);
   });
 }

@@ -19,6 +19,8 @@ class DeparturesRequested extends DeparturesEvent {
     this.destinationId,
     this.date,
     this.passengers,
+    this.returnDate,
+    this.tripType,
   });
 
   final String? originId;
@@ -29,8 +31,22 @@ class DeparturesRequested extends DeparturesEvent {
 
   final String? passengers;
 
+  /// Jour du retour au même format, absent sur un aller simple.
+  final String? returnDate;
+
+  /// `round_trip` quand le voyageur a demandé un aller-retour, même sans
+  /// date de retour. Absent sur un aller simple.
+  final String? tripType;
+
   @override
-  List<Object?> get props => [originId, destinationId, date, passengers];
+  List<Object?> get props => [
+    originId,
+    destinationId,
+    date,
+    passengers,
+    returnDate,
+    tripType,
+  ];
 }
 
 /// Bouton « Réessayer » de l'écran d'erreur : rejoue la dernière

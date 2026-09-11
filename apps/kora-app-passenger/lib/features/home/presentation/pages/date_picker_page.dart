@@ -38,6 +38,7 @@ class DatePickerPage extends StatefulWidget {
     required this.selected,
     required this.today,
     this.monthsAhead = 6,
+    this.title,
   });
 
   /// Date actuellement renseignée dans le champ.
@@ -49,6 +50,10 @@ class DatePickerPage extends StatefulWidget {
   /// Profondeur du calendrier — au-delà, les départs ne sont pas encore
   /// ouverts à la vente.
   final int monthsAhead;
+
+  /// Titre de l'écran. Par défaut celui du départ ; le retour a le sien,
+  /// parce qu'à ce moment-là le voyageur ne part plus, il rentre.
+  final String? title;
 
   @override
   State<DatePickerPage> createState() => _DatePickerPageState();
@@ -77,7 +82,7 @@ class _DatePickerPageState extends State<DatePickerPage> {
                 eyebrow: KoraDateFormats.capitalize(
                   KoraDateFormats.monthYear.format(_visibleMonth),
                 ),
-                title: context.l10n.homeDateTitle,
+                title: widget.title ?? context.l10n.homeDateTitle,
               ),
               Expanded(
                 child: ListView(
