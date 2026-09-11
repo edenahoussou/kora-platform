@@ -23,7 +23,11 @@ class SendReservationWhatsAppNotificationJob implements ShouldQueue
     /** @var array<int, int> */
     public array $backoff = [15, 90, 300];
 
-    public function __construct(public readonly int $reservationId, public readonly int $ticketId) {}
+    public function __construct(
+        public readonly int $reservationId,
+        public readonly int $ticketId,
+        public readonly ?string $phoneOverride = null,
+    ) {}
 
     /**
      * Execute the job.
@@ -36,7 +40,8 @@ class SendReservationWhatsAppNotificationJob implements ShouldQueue
             return;
         }
         $payment = $reservation->payments->firstWhere('status', 'confirmed') ?? $reservation->payments->first();
-        $phone = $payment->payer_phone ?? ($reservation->payer_type->value === 'company' ? $reservation->companyAccount?->phone : $reservation->payer?->phone);
+        $defaultPhone = $payment->payer_phone ?? ($reservation->payer_type->value === 'company' ? $reservation->companyAccount?->phone : $reservation->payer?->phone);
+        $phone = $this->phoneOverride ?? $defaultPhone;
 
         $delivery = WhatsAppDelivery::query()->firstOrCreate(
             ['ticket_id' => $ticket->id],
@@ -48,6 +53,10 @@ class SendReservationWhatsAppNotificationJob implements ShouldQueue
                 'status' => WhatsAppDeliveryStatus::Pending,
             ],
         );
+
+        if ($this->phoneOverride !== null && $delivery->recipient_phone !== $this->phoneOverride) {
+            $delivery->update(['recipient_phone' => $this->phoneOverride, 'status' => WhatsAppDeliveryStatus::Pending, 'last_error' => null]);
+        }
 
         if ($phone === null || trim($phone) === '') {
             $delivery->update(['status' => WhatsAppDeliveryStatus::Skipped, 'last_error' => 'Aucun numéro WhatsApp valide pour le payeur.']);

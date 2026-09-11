@@ -3,13 +3,18 @@
 namespace App\Modules\Ticketing\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendReservationWhatsAppNotificationJob;
 use App\Modules\Booking\Models\Reservation;
+use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\Booking\Services\DepartureStopTimeResolver;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
+use App\Modules\Notifications\Models\WhatsAppDelivery;
 use App\Modules\Ticketing\Actions\GenerateTicketPdfAction;
 use App\Modules\Ticketing\Actions\GenerateTicketQrCodeAction;
 use App\Modules\Ticketing\Models\Ticket;
+use Carbon\CarbonInterface;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
@@ -61,11 +66,24 @@ class TicketViewController extends Controller
         $this->loadRelations($ticket);
         $this->authorizeOwner($ticket->reservation, $request);
 
+        $validated = $request->validate([
+            'phone' => ['nullable', 'string', 'max:32'],
+        ]);
+
+        $phoneOverride = $request->string('phone')->trim()->value();
+        if ($phoneOverride !== '' && ! str_starts_with($phoneOverride, '+')) {
+            return back()->withErrors(['phone' => 'Le numéro doit être au format international (ex: +2290197421860).'])->withInput();
+        }
+
         $delivery = WhatsAppDelivery::query()->where('ticket_id', $ticket->id)->first();
         $alreadySent = $delivery !== null && $delivery->getRawOriginal('status') === 'sent';
 
         if (! $alreadySent) {
-            SendReservationWhatsAppNotificationJob::dispatch($ticket->reservation_id, $ticket->id);
+            SendReservationWhatsAppNotificationJob::dispatch(
+                $ticket->reservation_id,
+                $ticket->id,
+                $phoneOverride !== '' ? $phoneOverride : null,
+            );
         }
 
         return back()->with('whatsapp_status', $alreadySent ? 'already_sent' : 'dispatched');
@@ -143,7 +161,7 @@ class TicketViewController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function legData($segment): array
+    private function legData(ReservationSegment $segment): array
     {
         $departure = $segment->departure;
         $originStop = $segment->originStop;
@@ -207,7 +225,7 @@ class TicketViewController extends Controller
         return $formatted.' '.$currency;
     }
 
-    private function formatDate($date): string
+    private function formatDate(?CarbonInterface $date): string
     {
         if ($date === null) {
             return '—';

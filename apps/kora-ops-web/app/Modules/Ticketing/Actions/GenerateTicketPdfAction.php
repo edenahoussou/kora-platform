@@ -7,7 +7,7 @@ use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\Booking\Services\DepartureStopTimeResolver;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
 use App\Modules\Ticketing\Models\Ticket;
-use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Spatie\Browsershot\Browsershot;
 
 /**
@@ -192,7 +192,7 @@ class GenerateTicketPdfAction
         return $formatted.' '.$currency;
     }
 
-    private function formatDate(?CarbonImmutable $date): string
+    private function formatDate(?CarbonInterface $date): string
     {
         if ($date === null) {
             return '—';

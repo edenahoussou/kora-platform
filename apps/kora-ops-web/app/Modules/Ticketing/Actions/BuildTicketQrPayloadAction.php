@@ -64,6 +64,9 @@ final class BuildTicketQrPayloadAction
         return $agency?->code;
     }
 
+    /**
+     * @phpstan-return non-empty-string
+     */
     private function signingPrivateKey(): string
     {
         $key = config('tickets.signing_private_key');
