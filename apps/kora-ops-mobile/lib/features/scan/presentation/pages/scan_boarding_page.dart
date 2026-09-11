@@ -11,6 +11,7 @@ import '../../../../app/theme/app_spacing.dart';
 import '../../../../core/services/kora_dialogs.dart';
 import '../../../../core/widgets/kora_button.dart';
 import '../../../../core/widgets/main_app_bar.dart';
+import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../ops/domain/entities/depart.dart';
 import '../../../ops/presentation/cubit/selected_depart_cubit.dart';
 import '../../../synchro/presentation/widgets/sync_status_banner.dart';
@@ -103,6 +104,15 @@ class _ScanBoardingPageState extends State<ScanBoardingPage>
 
   @override
   Widget build(BuildContext context) {
+    // Contrôle d'accès par permission : un profil sans `boarding.scan`
+    // (ex. agent d'agence) ne doit jamais atteindre la caméra — masquer la
+    // fonction plutôt que de la laisser échouer en 403 au premier scan.
+    final AuthState authState = context.watch<AuthCubit>().state;
+    if (authState is AuthAuthenticated &&
+        !authState.user.can('boarding.scan')) {
+      return const _ScanNotAuthorized();
+    }
+
     final Depart? depart = context.watch<SelectedDepartCubit>().state;
 
     return Scaffold(
@@ -239,6 +249,40 @@ class _CameraError extends StatelessWidget {
               style: const TextStyle(color: Colors.white70, fontSize: 12),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Affiché à la place du scanner pour un profil sans la permission
+/// `boarding.scan` (ex. agent d'agence) — voir périmètre du ticket
+/// "empêcher l'accès aux fonctions et aux données qui ne sont pas
+/// autorisées pour le profil connecté".
+class _ScanNotAuthorized extends StatelessWidget {
+  const _ScanNotAuthorized();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      appBar: MainAppBar(
+        eyebrow: 'Embarquement',
+        title: 'Scan boarding',
+      ),
+      body: Center(
+        child: Padding(
+          padding: EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Icon(Icons.lock_outline, size: 40),
+              SizedBox(height: AppSpacing.sm),
+              Text(
+                'Votre profil n\'est pas autorisé à scanner les embarquements.',
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ),
     );

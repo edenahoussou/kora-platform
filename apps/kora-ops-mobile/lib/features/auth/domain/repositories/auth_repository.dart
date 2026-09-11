@@ -1,43 +1,74 @@
 import '../../../../core/result/result.dart';
-import '../entities/user_entity.dart';
+import '../entities/auth_device.dart';
+import '../entities/auth_session.dart';
+import '../entities/auth_user.dart';
+import '../entities/otp_challenge.dart';
+import '../entities/otp_purpose.dart';
 
-/// Contrat du flux d'authentification KORA OPS (voir document.md § Flux
-/// d'authentification) :
+/// Couche DOMAIN : tout ce que l'app sait faire en matière de comptes.
 ///
-///   Première connexion sur un appareil :
-///     email + mot de passe → PIN → OTP d'activation → connecté
-///   Appareil déjà reconnu (email déjà activé une fois sur cet appareil) :
-///     PIN seul → connecté (pas d'email, pas d'OTP)
-abstract interface class AuthRepository {
-  /// Email déjà activé sur cet appareil (a terminé le parcours OTP au
-  /// moins une fois), ou `null` si c'est la première utilisation —
-  /// détermine le premier écran affiché (email+mot de passe vs PIN direct).
-  Future<Result<String?>> getSavedEmail();
+/// Porté du contrat de kora-app-passenger
+/// (apps/kora-app-passenger/lib/features/auth/domain/repositories/auth_repository.dart),
+/// avec [Result] à la place d'`Either<Failure, T>` — kora-ops-mobile
+/// utilise déjà [Result] partout ailleurs (scan, impression...), et
+/// changer ça pour l'auth seule aurait introduit une incohérence de style
+/// pour un ticket qui ne porte pas dessus.
+///
+/// Le `verification_token` circule d'une étape à l'autre — il est à usage
+/// unique et ne vaut que pour le motif ([OtpPurpose]) demandé.
+abstract class AuthRepository {
+  /// Envoie un code à six chiffres à [email] pour [purpose].
+  Future<Result<OtpChallenge>> requestOtp({
+    required String email,
+    required OtpPurpose purpose,
+  });
 
-  /// Vérifie l'email et le mot de passe saisis (première connexion sur cet
-  /// appareil). Ne marque pas encore l'appareil comme reconnu — cela
-  /// n'arrive qu'après l'OTP d'activation, voir [verifyOtp].
-  Future<Result<void>> login({required String email, required String password});
+  /// Vérifie le code saisi et rend le jeton à usage unique.
+  Future<Result<OtpVerification>> verifyOtp({
+    required String challengeUuid,
+    required OtpPurpose purpose,
+    required String code,
+  });
 
-  /// Déclenche l'envoi (simulé) d'un lien/code de réinitialisation à
-  /// [email] — écran "Mot de passe oublié".
-  Future<Result<void>> forgotPassword({required String email});
+  /// Connecte un compte existant (email + PIN).
+  ///
+  /// Rend un [LoginNeedsOtp] — pas une erreur — quand le serveur ne
+  /// reconnaît pas l'appareil : il faut alors vérifier un code et rappeler
+  /// cette méthode avec [verification].
+  Future<Result<LoginOutcome>> login({
+    required String email,
+    required String pin,
+    OtpVerification? verification,
+  });
 
-  /// Déclenche l'envoi (simulé) d'un code OTP à 6 chiffres à [email].
-  Future<Result<void>> sendOtp({required String email});
+  /// Session en cours, ou `null` si personne n'est connecté. Ne contacte
+  /// pas le réseau : relit le stockage sécurisé, purge si le token est
+  /// expiré (pas de rafraîchissement possible côté API).
+  Future<Result<AuthSession?>> currentSession();
 
-  /// Vérifie le code OTP saisi. En cas de succès, marque [email] comme
-  /// activé sur cet appareil (les connexions suivantes n'auront plus qu'à
-  /// saisir le PIN) et retourne l'utilisateur authentifié.
-  Future<Result<UserEntity>> verifyOtp(
-      {required String email, required String code});
+  /// Adresse du dernier compte connecté sur cet appareil, ou `null` — sert
+  /// à l'écran PIN, qui ne redemande pas l'e-mail sur un appareil déjà
+  /// reconnu.
+  Future<String?> lastEmail();
 
-  /// Vérifie le PIN à 4 chiffres pour [email] (celui saisi à l'étape
-  /// précédente pour une première connexion, ou l'email déjà enregistré
-  /// sur l'appareil pour une reconnexion).
-  Future<Result<UserEntity>> verifyPin(
-      {required String email, required String pin});
+  /// L'appareil courant, tel qu'il est déclaré à l'API.
+  Future<DeviceRegistration> currentDevice();
 
+  /// Rafraîchit le profil (permissions incluses) depuis `auth/me`.
+  Future<Result<AuthUser>> refreshUser();
+
+  /// Révoque le token courant et purge le stockage local. Purge **même si
+  /// l'appel réseau échoue** : une déconnexion demandée par
+  /// l'utilisateur ne doit jamais le laisser connecté localement parce que
+  /// le serveur était injoignable.
   Future<Result<void>> logout();
-  Future<Result<UserEntity?>> getCurrentUser();
+
+  /// Choisit un nouveau PIN après un OTP `pin_reset`.
+  Future<Result<void>> resetPin({
+    required OtpVerification verification,
+    required String pin,
+  });
+
+  /// Déverrouille un compte bloqué après un OTP `account_unlock`.
+  Future<Result<void>> unlockAccount(OtpVerification verification);
 }

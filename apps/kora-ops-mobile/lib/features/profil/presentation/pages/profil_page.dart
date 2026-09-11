@@ -11,8 +11,8 @@ import '../../../../app/theme/kora_colors.dart';
 import '../../../../core/services/kora_dialogs.dart';
 import '../../../../core/widgets/notification_button.dart';
 import '../../../../injection/injection.dart';
+import '../../../auth/presentation/bloc/auth_flow_bloc.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
-import '../../../auth/presentation/cubit/login_cubit.dart';
 
 /// Onglet Profil — reproduit trait pour trait l'écran Profil de
 /// `kora-passager` (voir échange du 18/08/2026) : en-tête marine incurvé
@@ -36,9 +36,13 @@ class ProfilPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final AuthState authState = context.watch<AuthCubit>().state;
     final String fullName =
-        authState is AuthAuthenticated ? authState.user.fullName : 'Agent';
-    final String role =
-        authState is AuthAuthenticated ? authState.user.role : '';
+        authState is AuthAuthenticated ? authState.user.name : 'Agent';
+    // Le backend ne renvoie plus de libellé de rôle (ex. « Convoyeur »),
+    // seulement des permissions (`boarding.scan`...) — voir AuthUser.
+    // Pas de règle fiable pour en déduire un libellé sans risquer de
+    // l'afficher faux ; laissé vide, le sous-titre retombe alors sur
+    // « Agent KORA » seul (voir plus bas).
+    const String role = '';
 
     return Scaffold(
       backgroundColor: context.koraColors.background,
@@ -119,7 +123,7 @@ class ProfilPage extends StatelessWidget {
                             cancelLabel: 'Non',
                           );
                           if (confirmed && context.mounted) {
-                            getIt<LoginCubit>().reset();
+                            getIt<AuthFlowBloc>().add(const AuthFlowReset());
                             await context.read<AuthCubit>().logout();
                           }
                         },

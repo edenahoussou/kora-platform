@@ -18,7 +18,7 @@ class AuthLoading extends AuthState {
 class AuthAuthenticated extends AuthState {
   const AuthAuthenticated(this.user);
 
-  final UserEntity user;
+  final AuthUser user;
 
   @override
   List<Object?> get props => <Object?>[user];
@@ -26,7 +26,7 @@ class AuthAuthenticated extends AuthState {
 
 /// [savedEmail] non nul si un email est déjà enregistré sur l'appareil —
 /// [AuthGuard] s'en sert pour rediriger vers l'écran PIN plutôt que l'écran
-/// email (voir document.md § Flux d'authentification).
+/// email.
 class AuthUnauthenticated extends AuthState {
   const AuthUnauthenticated({this.savedEmail});
 
@@ -34,4 +34,18 @@ class AuthUnauthenticated extends AuthState {
 
   @override
   List<Object?> get props => <Object?>[savedEmail];
+}
+
+/// Absence de réseau détectée au démarrage/retour au premier plan, sans
+/// session locale valide pour trancher : l'écran ne doit ni afficher
+/// "déconnecté" à tort, ni bloquer indéfiniment sur un chargement — voir
+/// périmètre du ticket "absence de réseau".
+class AuthCheckFailed extends AuthState {
+  const AuthCheckFailed(this.message, {this.savedEmail});
+
+  final String message;
+  final String? savedEmail;
+
+  @override
+  List<Object?> get props => <Object?>[message, savedEmail];
 }

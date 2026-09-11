@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/widgets/kora_bottom_nav.dart';
-import '../../features/auth/presentation/cubit/login_cubit.dart';
+import '../../features/auth/presentation/bloc/auth_flow_bloc.dart';
 import '../../features/auth/presentation/pages/forgot_password_page.dart';
 import '../../features/auth/presentation/pages/login_email_page.dart';
+import '../../features/auth/presentation/pages/new_pin_page.dart';
 import '../../features/auth/presentation/pages/otp_invalid_page.dart';
 import '../../features/auth/presentation/pages/otp_verification_page.dart';
 import '../../features/auth/presentation/pages/pin_entry_page.dart';
@@ -33,11 +34,11 @@ class AppRouter {
   final AuthGuard _authGuard;
 
   /// Enveloppe une page du flux `/login/*` avec l'instance partagée de
-  /// [LoginCubit] (singleton GetIt) afin que l'email/le contexte OTP
+  /// [AuthFlowBloc] (singleton GetIt) afin que l'email/le contexte OTP
   /// survivent à la navigation entre écrans.
-  Widget _withLoginCubit(Widget child) {
-    return BlocProvider<LoginCubit>.value(
-        value: getIt<LoginCubit>(), child: child);
+  Widget _withAuthFlow(Widget child) {
+    return BlocProvider<AuthFlowBloc>.value(
+        value: getIt<AuthFlowBloc>(), child: child);
   }
 
   late final GoRouter router = GoRouter(
@@ -50,25 +51,27 @@ class AppRouter {
           builder: (context, state) => const SplashPage()),
       GoRoute(
         path: AppRoutes.loginEmail,
-        builder: (context, state) => _withLoginCubit(const LoginEmailPage()),
+        builder: (context, state) => _withAuthFlow(const LoginEmailPage()),
       ),
       GoRoute(
         path: AppRoutes.loginForgotPassword,
-        builder: (context, state) =>
-            _withLoginCubit(const ForgotPasswordPage()),
+        builder: (context, state) => _withAuthFlow(const ForgotPasswordPage()),
       ),
       GoRoute(
         path: AppRoutes.loginPin,
-        builder: (context, state) => _withLoginCubit(const PinEntryPage()),
+        builder: (context, state) => _withAuthFlow(const PinEntryPage()),
       ),
       GoRoute(
         path: AppRoutes.loginOtp,
-        builder: (context, state) =>
-            _withLoginCubit(const OtpVerificationPage()),
+        builder: (context, state) => _withAuthFlow(const OtpVerificationPage()),
       ),
       GoRoute(
         path: AppRoutes.loginOtpInvalid,
-        builder: (context, state) => _withLoginCubit(const OtpInvalidPage()),
+        builder: (context, state) => _withAuthFlow(const OtpInvalidPage()),
+      ),
+      GoRoute(
+        path: AppRoutes.loginNewPin,
+        builder: (context, state) => _withAuthFlow(const NewPinPage()),
       ),
       GoRoute(
         path: AppRoutes.manifeste,

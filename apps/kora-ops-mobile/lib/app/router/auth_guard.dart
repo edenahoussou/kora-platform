@@ -36,6 +36,7 @@ class AuthGuard extends ChangeNotifier {
     AppRoutes.loginPin,
     AppRoutes.loginOtp,
     AppRoutes.loginOtpInvalid,
+    AppRoutes.loginNewPin,
   };
 
   String? redirect(String currentLocation) {
@@ -57,7 +58,11 @@ class AuthGuard extends ChangeNotifier {
     // parcours `/login/*` — la déconnexion peut être déclenchée depuis
     // n'importe quel onglet (ex. `/profil`, voir document.md § Profil).
     if (!isInLoginFlow) {
-      final String? savedEmail = (state as AuthUnauthenticated).savedEmail;
+      final String? savedEmail = switch (state) {
+        AuthUnauthenticated(:final savedEmail) => savedEmail,
+        AuthCheckFailed(:final savedEmail) => savedEmail,
+        _ => null,
+      };
       return savedEmail == null ? AppRoutes.loginEmail : AppRoutes.loginPin;
     }
 
