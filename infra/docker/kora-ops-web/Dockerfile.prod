@@ -27,6 +27,8 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 # Installer Node 22 (necessaire pour le build Vite)
 COPY --from=node:22-bookworm-slim /usr/local/bin /usr/local/bin
 COPY --from=node:22-bookworm-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
+# Browsershot cherche /usr/bin/node par defaut ; on symlink le binaire Node 22.
+RUN ln -sf /usr/local/bin/node /usr/bin/node
 
 WORKDIR /app
 
