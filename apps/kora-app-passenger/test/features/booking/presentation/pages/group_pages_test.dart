@@ -184,9 +184,12 @@ void main() {
       expect(find.text('Qui paie ?'), findsNothing);
     });
 
-    testWidgets('avec un compte entreprise, le payeur se choisit', (
-      tester,
-    ) async {
+    testWidgets('un compte entreprise ne s’offre pas non plus', (tester) async {
+      // Le serveur sait réserver le crédit d'une entreprise au blocage,
+      // mais `POST payments/initiate` n'accepte que `mobile_money` et
+      // `wallet` : le crédit réservé n'était jamais dépensé, et le
+      // voyageur payait de sa poche après qu'on lui eut promis l'inverse.
+      // Voir [kCompanyPayerEnabled].
       final repository = StubReservationRepository(
         accounts: const [
           CompanyAccount(
@@ -205,40 +208,32 @@ void main() {
         payer: GroupPayerCubit(repository),
       );
 
-      expect(find.text('Qui paie ?'), findsOneWidget);
-      expect(find.text('Moi-même'), findsOneWidget);
-      expect(find.text('STB SARL'), findsOneWidget);
-      // Le crédit n'est visible que si le serveur l'a rendu.
-      expect(
-        find.text('Crédit disponible · ${const Price(500000).formatted}'),
-        findsOneWidget,
-      );
+      expect(find.text('Qui paie ?'), findsNothing);
+      expect(find.text('STB SARL'), findsNothing);
+      // Rien n'est même demandé au serveur tant que le choix est fermé.
+      expect(repository.calls, isNot(contains('companyAccounts')));
     });
 
-    testWidgets('le compte entreprise choisi devient le payeur', (
-      tester,
-    ) async {
+    test('le choix du payeur reste branché, prêt à rouvrir', () async {
+      // La couche métier ne bouge pas : le jour où `initiate` accepte
+      // `company_credit`, il n'y a qu'un drapeau à relever.
       final cubit = GroupPayerCubit(
         StubReservationRepository(
           accounts: const [CompanyAccount(id: 'ca-1', name: 'STB SARL')],
         ),
       );
+      addTearDown(cubit.close);
 
-      await pumpInFunnel(
-        tester,
-        GroupBookingPage(
-          args: GroupBookingArgs(departure: departure, passengers: 5),
-        ),
-        payer: cubit,
-      );
-
-      // Personnel par défaut : le cas ordinaire, qui n'exige rien du serveur.
+      await cubit.loadAccounts();
       expect(cubit.state.payer.isCompany, isFalse);
 
-      await tester.tap(find.text('STB SARL'));
-      await tester.pumpAndSettle();
+      cubit.chooseCompany(cubit.state.accounts.single);
 
       expect(cubit.state.payer.companyAccountId, 'ca-1');
+      expect(cubit.state.payer.toJson(), {
+        'type': 'company',
+        'company_account_uuid': 'ca-1',
+      });
     });
 
     testWidgets('sans départ, l’écran ne fabrique rien', (tester) async {

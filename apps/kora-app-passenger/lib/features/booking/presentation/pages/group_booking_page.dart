@@ -9,6 +9,7 @@ import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/group_booking_limits.dart';
+import '../../domain/entities/group_payer.dart';
 import '../bloc/group_payer_cubit.dart';
 import '../bloc/group_quote_cubit.dart';
 import 'group_discount_page.dart';
@@ -51,9 +52,11 @@ class _GroupBookingPageState extends State<GroupBookingPage> {
   void initState() {
     super.initState();
     _loadQuote();
-    // Les comptes entreprise du voyageur : c'est ici qu'il désigne qui
-    // paie, et le blocage s'en servira deux écrans plus loin.
-    context.read<GroupPayerCubit>().loadAccounts();
+    // Les comptes entreprise du voyageur : c'est ici qu'il désignerait qui
+    // paie, et le blocage s'en servirait deux écrans plus loin. Rien à
+    // demander au serveur tant que le choix n'est pas offert — voir
+    // [kCompanyPayerEnabled].
+    if (kCompanyPayerEnabled) context.read<GroupPayerCubit>().loadAccounts();
   }
 
   void _change(int delta) {
@@ -480,7 +483,11 @@ class _PayerCard extends StatelessWidget {
 
     return BlocBuilder<GroupPayerCubit, GroupPayerState>(
       builder: (context, state) {
-        if (!state.hasChoice) return const SizedBox.shrink();
+        // Le crédit entreprise n'aboutit pas au paiement : le proposer
+        // bloquerait l'argent de l'entreprise sans jamais le dépenser.
+        if (!kCompanyPayerEnabled || !state.hasChoice) {
+          return const SizedBox.shrink();
+        }
 
         final cubit = context.read<GroupPayerCubit>();
 

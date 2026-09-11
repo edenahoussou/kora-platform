@@ -351,6 +351,53 @@ void main() {
       expect(search.isEmpty, isTrue);
     });
 
+    test('un aller-retour sans date déclare quand même son type', () async {
+      // Le serveur accepte `trip_type` seul : il rend alors les retours
+      // des jours qui suivent. Ne l'envoyer qu'avec une date ramenait la
+      // recherche à un aller simple, et jetait les retours rendus.
+      stubGet(roundTripResponse());
+
+      await dataSource.searchDepartures(
+        SearchCriteria(
+          origin: cotonou,
+          destination: abidjan,
+          date: DateTime(2026, 8, 20),
+          roundTrip: true,
+        ),
+      );
+
+      final captured =
+          verify(
+                () => dio.get<dynamic>(
+                  any(),
+                  queryParameters: captureAny(named: 'queryParameters'),
+                ),
+              ).captured.single
+              as Map<String, dynamic>;
+
+      expect(captured['trip_type'], 'round_trip');
+      expect(captured.containsKey('return_date'), isFalse);
+    });
+
+    test('un aller-retour sans date lit bien les deux sens', () async {
+      // Le piège : la forme de la réponse suit `trip_type`, pas la date.
+      // S'y fier rendait « aucun départ » alors que le serveur avait
+      // renvoyé les allers sous `outbound`.
+      stubGet(roundTripResponse());
+
+      final search = await dataSource.searchDepartures(
+        SearchCriteria(
+          origin: cotonou,
+          destination: abidjan,
+          date: DateTime(2026, 8, 20),
+          roundTrip: true,
+        ),
+      );
+
+      expect(search.outbound, hasLength(1));
+      expect(search.inbound, hasLength(1));
+    });
+
     test('sans date de retour, rien n’est déclaré au serveur', () async {
       // L'aller simple garde la requête vérifiée sur la staging : ni
       // `trip_type` ni `return_date`.

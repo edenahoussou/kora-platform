@@ -182,11 +182,17 @@ void main() {
         returnDate: returnDate,
       );
 
-      test('sans date de retour, la recherche reste bloquée', () {
-        // Le serveur la réclame, et en deviner une ferait chercher un
-        // retour que personne n'a demandé.
-        expect(roundTrip().canSearch, isFalse);
-        expect(roundTrip().criteria, isNull);
+      test('sans date de retour, cela reste un aller-retour', () {
+        // La date est facultative, l'intention ne l'est pas : le serveur
+        // cherche un aller-retour sans date et propose les retours des
+        // jours qui suivent. Ramener la recherche à un aller simple
+        // faisait disparaître des retours qu'il avait bel et bien rendus.
+        final state = roundTrip();
+
+        expect(state.canSearch, isTrue);
+        expect(state.criteria, isNotNull);
+        expect(state.criteria!.returnDate, isNull);
+        expect(state.criteria!.isRoundTrip, isTrue);
       });
 
       test('avec sa date, les critères la portent', () {
@@ -235,7 +241,10 @@ void main() {
           // redemander la date que partir sur un voyage impossible.
           expect(bloc.state.date, DateTime(2026, 9, 20));
           expect(bloc.state.returnDate, isNull);
-          expect(bloc.state.canSearch, isFalse);
+          // La recherche reste possible, et reste un aller-retour : c'est
+          // la date qui est tombée, pas l'intention.
+          expect(bloc.state.criteria!.isRoundTrip, isTrue);
+          expect(bloc.state.criteria!.returnDate, isNull);
         },
       );
 

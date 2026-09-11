@@ -140,28 +140,15 @@ class _Form extends StatelessWidget {
   void _search(BuildContext context) {
     final l10n = context.l10n;
 
-    // La date de retour d'abord : sans elle les critères sont `null` sur un
-    // aller-retour, et parler de villes manquantes désignerait le mauvais
-    // champ.
-    if (state.tripType == TripType.roundtrip && state.returnDate == null) {
-      KoraToaster.show(context, l10n.searchMissingReturn);
-      return;
-    }
-
     final criteria = state.criteria;
 
     // Le trajet n'est pas complet : on le dit plutôt que de laisser le
-    // bouton sans effet apparent.
+    // bouton sans effet apparent. Seules les villes retiennent désormais —
+    // la date de retour est facultative, et son absence ramène simplement
+    // la recherche à l'aller.
     if (criteria == null) {
       KoraToaster.show(context, l10n.searchMissingCities);
       return;
-    }
-
-    if (criteria.isRoundTrip) {
-      // Les deux sens partent bien au serveur — c'est un seul appel qui
-      // les rend tous les deux. Seul l'écran qui listerait les retours
-      // n'existe pas encore, et la liste montre donc l'aller.
-      KoraToaster.show(context, l10n.searchReturnResultsSoon);
     }
 
     context.push(AppRouter.departuresUrlFor(criteria));

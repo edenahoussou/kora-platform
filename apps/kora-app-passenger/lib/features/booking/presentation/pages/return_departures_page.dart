@@ -66,14 +66,17 @@ class ReturnDeparturesPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               ScreenHeader(
-                eyebrow: l10n.returnResultsEyebrow(
-                  returnDate == null
-                      ? ''
-                      : KoraDateFormats.weekdayDayMonthIn(
+                // Sans date demandée, le surtitre n'en annonce pas : le
+                // gabarit « Retour · {date} » laissait un séparateur
+                // orphelin quand le serveur propose les jours qui suivent.
+                eyebrow: returnDate == null
+                    ? l10n.returnResultsEyebrowUndated
+                    : l10n.returnResultsEyebrow(
+                        KoraDateFormats.weekdayDayMonthIn(
                           returnDate,
                           l10n.languageCode,
                         ),
-                ),
+                      ),
                 title: departures.isEmpty
                     ? l10n.returnResultsEmptyHeading
                     : l10n.returnResultsTitle(departures.length),
@@ -106,6 +109,7 @@ class _List extends StatelessWidget {
         for (final departure in args.departures) ...[
           DepartureTile(
             departure: departure,
+            direction: TripDirection.inbound,
             // Le détail reçoit les deux trajets : c'est à partir de là
             // que le devis couvre l'aller-retour entier.
             onTap: () => context.push(

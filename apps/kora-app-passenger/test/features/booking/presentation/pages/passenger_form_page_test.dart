@@ -211,29 +211,27 @@ void main() {
     await settleToast(tester);
   });
 
-  testWidgets('le blocage nomme la naissance, pas le document', (tester) async {
-    // Le cas signalé au test terrain : sur un trajet international, seule
-    // la naissance manque, et le message générique se lisait comme si le
-    // document — devenu facultatif — retenait encore.
+  testWidgets('le formulaire international ne retient plus aucun champ', (
+    tester,
+  ) async {
+    // La naissance a rejoint la pièce d'identité du côté des champs
+    // facultatifs : le manifeste de frontière la réclame toujours, mais
+    // c'est au comptoir de la compléter. Bloquer l'achat sur une date que
+    // le voyageur ne sait pas toujours de tête coûtait des réservations
+    // qu'aucune règle ne refusait.
     await pumpForm(tester, international: true);
 
     await tester.tap(find.text('Enregistrer et continuer'));
     await tester.pumpAndSettle();
 
-    // Un seul voyageur : le message nomme le champ, pas son rang — « Passager
-    // 1 » devant un formulaire unique ferait chercher un passager 2.
     expect(
-      find.textContaining('Vérifiez ces champs avant de continuer : Naissance'),
-      findsOneWidget,
-    );
-    // Le toast seul : « document » figure par ailleurs dans l'intitulé
-    // des deux champs facultatifs, qui restent affichés.
-    expect(
-      find.descendant(
-        of: find.byType(KoraToast),
-        matching: find.textContaining('document'),
-      ),
+      find.textContaining('Vérifiez ces champs avant de continuer'),
       findsNothing,
+    );
+    // Seule la case de confirmation retient encore.
+    expect(
+      find.text('Cochez la case de confirmation pour continuer.'),
+      findsWidgets,
     );
     await settleToast(tester);
   });
@@ -286,7 +284,7 @@ void main() {
       expect(find.text('Type de document (facultatif)'), findsOneWidget);
       expect(find.text('Numéro du document (facultatif)'), findsOneWidget);
       expect(find.text('Nationalité'), findsOneWidget);
-      expect(find.text('Naissance'), findsOneWidget);
+      expect(find.text('Naissance (facultatif)'), findsOneWidget);
       // Le courriel facultatif cède la place : la maquette ne l'affiche
       // pas sur ce formulaire-là.
       expect(find.text('E-mail (optionnel)'), findsNothing);
@@ -296,17 +294,23 @@ void main() {
       );
     });
 
-    testWidgets('retient encore sur la date de naissance', (tester) async {
+    testWidgets('laisse passer sans date de naissance', (tester) async {
       await pumpForm(tester, international: true);
 
-      // Identité déjà pré-remplie : seule la naissance manque, et elle
-      // reste due au manifeste de frontière.
+      // Identité déjà pré-remplie, naissance vide : il ne reste que la
+      // case de confirmation à cocher, et le parcours continue.
+      await tester.tap(
+        find.text(
+          'Je confirme l’exactitude des informations '
+          'saisies.',
+        ),
+      );
+      await tester.pumpAndSettle();
+
       await tester.tap(find.text('Enregistrer et continuer'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Date requise'), findsOneWidget);
-      expect(find.text('Récapitulatif'), findsNothing);
-      await settleToast(tester);
+      expect(find.text('Vérifiez votre voyage'), findsOneWidget);
     });
 
     testWidgets('ne réclame plus la pièce d’identité', (tester) async {

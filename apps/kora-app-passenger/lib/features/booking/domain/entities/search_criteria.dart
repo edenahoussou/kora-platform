@@ -18,6 +18,7 @@ class SearchCriteria extends Equatable {
     required this.date,
     this.passengers = 1,
     this.returnDate,
+    this.roundTrip = false,
   });
 
   final City origin;
@@ -28,15 +29,26 @@ class SearchCriteria extends Equatable {
 
   final int passengers;
 
-  /// Jour du retour, ou `null` pour un aller simple.
+  /// Jour du retour souhaité, ou `null` quand le voyageur ne l'a pas
+  /// encore arrêté.
   ///
-  /// Le serveur sait aussi chercher un aller-retour **sans** date de
-  /// retour — il propose alors les départs de la semaine qui suit. L'app
-  /// ne s'en sert pas : son formulaire demande toujours une date, et un
-  /// chemin que rien n'emprunte ne se teste pas.
+  /// **Son absence ne fait pas un aller simple** : le serveur cherche un
+  /// aller-retour sans date, et propose alors les retours des jours qui
+  /// suivent. C'est [roundTrip] qui tranche, et lui seul.
   final DateTime? returnDate;
 
-  bool get isRoundTrip => returnDate != null;
+  /// Le voyageur a demandé un aller-retour.
+  ///
+  /// Distinct de [returnDate] : on choisit souvent son aller avant de
+  /// savoir quand on rentre. Confondre les deux ramenait la recherche à
+  /// un aller simple dès que la date manquait — sans le dire, et en
+  /// faisant disparaître les retours que le serveur avait pourtant
+  /// renvoyés.
+  final bool roundTrip;
+
+  /// Vrai dès que l'un des deux le dit : l'intention, ou une date de
+  /// retour venue d'ailleurs (un lien profond, un billet relu).
+  bool get isRoundTrip => roundTrip || returnDate != null;
 
   @override
   List<Object?> get props => [
@@ -45,5 +57,6 @@ class SearchCriteria extends Equatable {
     date,
     passengers,
     returnDate,
+    roundTrip,
   ];
 }

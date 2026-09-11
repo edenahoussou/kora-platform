@@ -169,7 +169,7 @@ void main() {
 
     expect(find.text('Aller simple'), findsOneWidget);
     expect(find.text('Aller-retour'), findsOneWidget);
-    expect(find.text('Date du retour'), findsNothing);
+    expect(find.text('Date du retour (facultatif)'), findsNothing);
     expect(find.text('Rechercher les départs'), findsOneWidget);
   });
 
@@ -179,27 +179,30 @@ void main() {
     await tester.tap(find.text('Aller-retour'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Date du retour'), findsOneWidget);
+    expect(find.text('Date du retour (facultatif)'), findsOneWidget);
     expect(find.text('Choisir une date'), findsOneWidget);
     expect(find.text('Rechercher l’aller et le retour'), findsOneWidget);
   });
 
-  testWidgets('sans date de retour, le formulaire nomme ce qui manque', (
+  testWidgets('sans date de retour, la recherche part sur l’aller', (
     tester,
   ) async {
-    // Le piège : les critères rendent `null` sur un aller-retour incomplet,
-    // et parler de villes manquantes désignerait le mauvais champ.
+    // La date de retour est facultative : on choisit souvent son aller
+    // avant de savoir quand on rentre. Le formulaire ne retient plus, il
+    // cherche l'aller et le retour se rajoutera ensuite.
     await pumpSearch(tester);
+    await pickRoute(tester);
 
     await tester.tap(find.text('Aller-retour'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Rechercher l’aller et le retour'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Choisissez la date de votre retour.'), findsOneWidget);
-    expect(pushed, isEmpty);
-
-    await settleToast(tester);
+    expect(pushed, hasLength(1));
+    expect(
+      Uri.parse(pushed.single).queryParameters.containsKey('return_date'),
+      isFalse,
+    );
   });
 
   testWidgets('le calendrier du retour ne remonte pas avant le départ', (
@@ -209,7 +212,7 @@ void main() {
 
     await tester.tap(find.text('Aller-retour'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Date du retour'));
+    await tester.tap(find.text('Date du retour (facultatif)'));
     await tester.pumpAndSettle();
 
     expect(find.text('Quand rentrez-vous ?'), findsOneWidget);
@@ -228,7 +231,7 @@ void main() {
 
     await tester.tap(find.text('Aller-retour'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Date du retour'));
+    await tester.tap(find.text('Date du retour (facultatif)'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('20'));
     await tester.pumpAndSettle();
@@ -271,7 +274,7 @@ void main() {
     // l'onglet d'à côté — le détour serait absurde.
     await pumpSearch(tester, tripType: TripType.roundtrip);
 
-    expect(find.text('Date du retour'), findsOneWidget);
+    expect(find.text('Date du retour (facultatif)'), findsOneWidget);
     expect(find.text('Rechercher l’aller et le retour'), findsOneWidget);
   });
 

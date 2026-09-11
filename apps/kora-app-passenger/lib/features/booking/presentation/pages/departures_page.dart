@@ -37,6 +37,7 @@ class DeparturesPage extends StatelessWidget {
     this.date,
     this.passengers,
     this.returnDate,
+    this.tripType,
   });
 
   /// Paramètres bruts de l'URL — voir `AppRouter.departuresUrlFor`.
@@ -45,8 +46,11 @@ class DeparturesPage extends StatelessWidget {
   final String? date;
   final String? passengers;
 
-  /// Absent sur un aller simple.
+  /// Absents sur un aller simple. La date peut manquer sur un
+  /// aller-retour dont le retour n'est pas encore arrêté ; le type, lui,
+  /// est toujours là dès que le voyageur a demandé un aller-retour.
   final String? returnDate;
+  final String? tripType;
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +63,7 @@ class DeparturesPage extends StatelessWidget {
             date: date,
             passengers: passengers,
             returnDate: returnDate,
+            tripType: tripType,
           ),
         ),
       child: const _DeparturesView(),
@@ -212,6 +217,11 @@ class _ResultsView extends StatelessWidget {
         for (final departure in departures) ...[
           DepartureTile(
             departure: departure,
+            // Seulement sur un aller-retour : un badge « Aller » solitaire
+            // ferait chercher un retour qui n'existe pas.
+            direction: state.criteria?.isRoundTrip ?? false
+                ? TripDirection.outbound
+                : null,
             onTap: () => _openDeparture(context, state, departure),
           ),
           const SizedBox(height: 10),

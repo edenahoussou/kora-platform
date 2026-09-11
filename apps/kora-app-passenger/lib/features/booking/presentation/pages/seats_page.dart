@@ -116,6 +116,10 @@ class _SeatsView extends StatelessWidget {
           builder: (context, state) {
             final departure = state.departure;
 
+            // Un retour reste à choisir, ou un aller l'a déjà été : dans
+            // les deux cas le voyageur pourvoit un aller-retour.
+            final isRoundTrip = returnDeparture != null || outbound != null;
+
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 18),
               child: Column(
@@ -130,8 +134,26 @@ class _SeatsView extends StatelessWidget {
                         ? 'KORA BUS'
                         : '${departure.vehicleLabel} · '
                               '${departure.seatsTotal} places',
-                    title: context.l10n.seatsTitle,
+                    // Sur un aller-retour, le titre nomme le trajet : deux
+                    // plans de bus identiques à la file, le second passage
+                    // ressemblait sinon à un retour en arrière du premier.
+                    title: isRoundTrip
+                        ? context.l10n.seatsTitleFor(
+                            isOutbound: returnDeparture != null,
+                            passengers: state.passengers,
+                          )
+                        : context.l10n.seatsTitle,
                   ),
+                  // Le badge redit le sens à hauteur du plan, avec le
+                  // trajet concerné : « Retour » seul obligerait à se
+                  // souvenir d'où l'on revient.
+                  if (isRoundTrip) ...[
+                    _LegBadge(
+                      isOutbound: returnDeparture != null,
+                      departure: departure,
+                    ),
+                    const SizedBox(height: 11),
+                  ],
                   Expanded(
                     child: switch (state.status) {
                       SeatsStatus.loading => const Center(
@@ -153,6 +175,46 @@ class _SeatsView extends StatelessWidget {
           },
         ),
       ),
+    );
+  }
+}
+
+/// Quel trajet on est en train de pourvoir, sur un aller-retour.
+///
+/// Le badge navy porte le sens ; la ligne à côté rappelle le trajet
+/// concerné, parce que « Retour » seul oblige à se souvenir d'où l'on
+/// revient.
+class _LegBadge extends StatelessWidget {
+  const _LegBadge({required this.isOutbound, required this.departure});
+
+  /// Vrai quand un retour reste à choisir : c'est donc l'aller qui est à
+  /// l'écran.
+  final bool isOutbound;
+
+  final Departure? departure;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final line = departure?.line;
+
+    return Row(
+      children: [
+        KoraTag(
+          label: isOutbound ? l10n.seatsLegOutbound : l10n.seatsLegInbound,
+          variant: KoraTagVariant.navy,
+        ),
+        if (line != null) ...[
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              '${line.origin.name} → ${line.destination.name}',
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.caption(context.koraColors.textMuted),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

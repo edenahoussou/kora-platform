@@ -67,16 +67,15 @@ class HomeState extends Equatable {
   /// La recherche n'est lançable que si le trajet est complet et cohérent
   /// (on ne cherche pas un Cotonou → Cotonou).
   ///
-  /// Un aller-retour exige en plus sa date de retour : le serveur la
-  /// réclame, et en deviner une ferait chercher un retour que personne n'a
-  /// demandé.
-  bool get canSearch {
-    if (origin == null || destination == null || origin == destination) {
-      return false;
-    }
-
-    return tripType == TripType.oneway || returnDate != null;
-  }
+  /// Deux villes distinctes suffisent à chercher.
+  ///
+  /// La date de retour, elle, est facultative même sur un aller-retour :
+  /// on choisit souvent son aller avant de savoir quand on rentre, et
+  /// retenir la recherche pour ça faisait abandonner le formulaire. Sans
+  /// elle, [criteria] ne porte pas de retour et la recherche se ramène à
+  /// l'aller — le retour se rajoutera plus tard.
+  bool get canSearch =>
+      origin != null && destination != null && origin != destination;
 
   /// Les critères prêts à être passés à l'écran de résultats, ou `null`
   /// tant que le formulaire est incomplet.
@@ -87,9 +86,10 @@ class HomeState extends Equatable {
       destination: destination!,
       date: date ?? DateTime.now(),
       passengers: passengers,
-      // Tue sur un aller simple : c'est son absence qui distingue les deux
-      // formes de recherche jusqu'au data source.
+      // Tue sur un aller simple : une date de retour qui traîne dans
+      // l'état ne doit pas ressurgir après la bascule.
       returnDate: tripType == TripType.roundtrip ? returnDate : null,
+      roundTrip: tripType == TripType.roundtrip,
     );
   }
 

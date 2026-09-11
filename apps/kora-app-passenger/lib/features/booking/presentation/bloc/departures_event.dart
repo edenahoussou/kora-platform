@@ -20,6 +20,7 @@ class DeparturesRequested extends DeparturesEvent {
     this.date,
     this.passengers,
     this.returnDate,
+    this.tripType,
   });
 
   final String? originId;
@@ -33,6 +34,10 @@ class DeparturesRequested extends DeparturesEvent {
   /// Jour du retour au même format, absent sur un aller simple.
   final String? returnDate;
 
+  /// `round_trip` quand le voyageur a demandé un aller-retour, même sans
+  /// date de retour. Absent sur un aller simple.
+  final String? tripType;
+
   @override
   List<Object?> get props => [
     originId,
@@ -40,6 +45,7 @@ class DeparturesRequested extends DeparturesEvent {
     date,
     passengers,
     returnDate,
+    tripType,
   ];
 }
 

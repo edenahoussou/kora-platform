@@ -1,6 +1,7 @@
 import '../../domain/entities/city.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/departure_search.dart';
+import '../../domain/entities/line_stop.dart';
 import '../../domain/entities/search_criteria.dart';
 import '../../domain/entities/seat.dart';
 import '../../domain/entities/ticket.dart';
@@ -29,6 +30,13 @@ abstract class BookingDataSource {
   /// Un résultat vide est un **résultat**, pas une erreur : la liaison
   /// n'est pas desservie ce jour-là.
   Future<DepartureSearch> searchDepartures(SearchCriteria criteria);
+
+  /// Les arrêts d'une ligne, dans l'ordre du trajet.
+  ///
+  /// `GET bus/lines/{uuid}` les rend avec la ligne. Une liste vide est un
+  /// résultat : une ligne directe n'a que ses deux terminus, que l'écran
+  /// de détail affiche déjà par ailleurs.
+  Future<List<LineStop>> getLineStops(String lineId);
 
   /// Plan des sièges d'un départ, dans l'ordre de lecture du bus.
   Future<List<Seat>> getSeats(Departure departure);
@@ -96,6 +104,26 @@ class BookingMockDataSource implements BookingDataSource {
         ),
       ),
     );
+  }
+
+  /// Le jeu de démonstration décrit ses lignes par tronçons : les arrêts
+  /// s'en déduisent — une origine par tronçon, plus le terminus.
+  @override
+  Future<List<LineStop>> getLineStops(String lineId) async {
+    await Future<void>.delayed(latency);
+
+    final line = kMockLines.where((line) => line.id == lineId).firstOrNull;
+    final segments = line?.segments ?? const [];
+    if (segments.isEmpty) return const [];
+
+    return [
+      for (var i = 0; i < segments.length; i++)
+        LineStop(order: i + 1, name: segments[i].origin.name),
+      LineStop(
+        order: segments.length + 1,
+        name: segments.last.destination.name,
+      ),
+    ];
   }
 
   @override

@@ -296,8 +296,6 @@ class AppLocalization {
   String get searchCtaRoundtrip => translate('search_cta_roundtrip');
   String get searchReturnDate => translate('search_return_date');
   String get searchReturnPick => translate('search_return_pick');
-  String get searchMissingReturn => translate('search_missing_return');
-  String get searchReturnResultsSoon => translate('search_return_results_soon');
   String get searchRecent => translate('search_recent');
   String get searchMissingCities => translate('search_missing_cities');
   String get searchRoundtripSoon => translate('search_roundtrip_soon');
@@ -424,6 +422,12 @@ class AppLocalization {
   String cityPickerNoResult(String query) =>
       _withArgs('city_picker_no_result', {'query': query});
   String get departuresEyebrow => translate('departures_eyebrow');
+
+  String get departuresDirectionOutbound =>
+      translate('departures_direction_outbound');
+
+  String get departuresDirectionInbound =>
+      translate('departures_direction_inbound');
   String get departuresSearchingTitle =>
       translate('departures_searching_title');
   String get departuresSearchingLead => translate('departures_searching_lead');
@@ -547,6 +551,7 @@ class AppLocalization {
   String get ticketFieldDate => translate('ticket_field_date');
   String get ticketFieldDeparture => translate('ticket_field_departure');
   String get ticketFieldSeat => translate('ticket_field_seat');
+  String get ticketFieldPassenger => translate('ticket_field_passenger');
   String get ticketQrSemantics => translate('ticket_qr_semantics');
   String get ticketTrackTitle => translate('ticket_track_title');
   String get ticketTrackSubtitle => translate('ticket_track_subtitle');
@@ -611,7 +616,24 @@ class AppLocalization {
   String get priceAssuranceTitle => translate('price_assurance_title');
   String get priceAssuranceText => translate('price_assurance_text');
   String get seatsTitle => translate('seats_title');
+
+  /// Le titre du plan des sièges sur un aller-retour : il dit quel trajet
+  /// on pourvoit, et pour combien de voyageurs.
+  String seatsTitleFor({required bool isOutbound, required int passengers}) {
+    final many = passengers > 1;
+
+    return translate(
+      isOutbound
+          ? (many ? 'seats_title_outbound_many' : 'seats_title_outbound_one')
+          : (many ? 'seats_title_inbound_many' : 'seats_title_inbound_one'),
+    );
+  }
+
   String get seatsStep => translate('seats_step');
+
+  String get seatsLegOutbound => translate('seats_leg_outbound');
+
+  String get seatsLegInbound => translate('seats_leg_inbound');
   String get seatsSelectedOne => translate('seats_selected_one');
   String get seatsSelectedMany => translate('seats_selected_many');
   String seatsNone(int total) => _withArgs('seats_none', {'total': total});
@@ -665,6 +687,9 @@ class AppLocalization {
       translate('passengers_document_type_optional');
   String get passengersDocumentNumberOptional =>
       translate('passengers_document_number_optional');
+
+  String get passengersBirthDateOptional =>
+      translate('passengers_birth_date_optional');
   String get passengersDocumentNone => translate('passengers_document_none');
   String get passengersYellowFever => translate('passengers_yellow_fever');
   String get passengersAccuracy => translate('passengers_accuracy');
@@ -679,8 +704,6 @@ class AppLocalization {
   String get passengersBirthDate => translate('passengers_birth_date');
   String get passengersBirthDateChoose =>
       translate('passengers_birth_date_choose');
-  String get passengersBirthDateRequired =>
-      translate('passengers_birth_date_required');
   String passengersSeat(String seat) =>
       _withArgs('passengers_seat', {'seat': seat});
   String passengersLine(String code) =>
@@ -740,9 +763,23 @@ class AppLocalization {
 
   String get ticketsOneNotice => translate('tickets_one_notice');
 
+  String get ticketsDownload => translate('tickets_download');
+
+  String get ticketsShare => translate('tickets_share');
+
+  String get ticketsDownloadDone => translate('tickets_download_done');
+
+  String get ticketsDownloadFailed => translate('tickets_download_failed');
+
   String get ticketsOnePending => translate('tickets_one_pending');
 
   // --- Choix du retour (aller-retour) ---
+
+  /// « Retour » seul, quand aucune date n'a été demandée : le serveur
+  /// propose alors les jours qui suivent, et le surtitre n'a pas de date
+  /// à annoncer.
+  String get returnResultsEyebrowUndated =>
+      translate('return_results_eyebrow_undated');
 
   String returnResultsEyebrow(String date) =>
       _withArgs('return_results_eyebrow', {'date': date});
@@ -887,6 +924,15 @@ class AppLocalization {
   String get departureDetailEyebrow => translate('departure_detail_eyebrow');
   String get departureDetailComfort => translate('departure_detail_comfort');
   String get departureDetailStops => translate('departure_detail_stops');
+
+  String departureDetailStopDeparture(String time) =>
+      _withArgs('departure_detail_stop_departure', {'time': time});
+
+  String departureDetailStopArrival(String time) =>
+      _withArgs('departure_detail_stop_arrival', {'time': time});
+
+  String departureDetailStopDistance(int km) =>
+      _withArgs('departure_detail_stop_distance', {'km': '$km'});
   String get departureDetailSegmentPrice =>
       translate('departure_detail_segment_price');
   String get departureDetailEstimates =>

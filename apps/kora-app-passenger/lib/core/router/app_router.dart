@@ -234,9 +234,11 @@ class AppRouter {
         // seule la journée de départ compte.
         'date': _formatDay(criteria.date),
         'passengers': '${criteria.passengers}',
-        // Absente sur un aller simple : c'est elle qui fait de la recherche
-        // un aller-retour, jusqu'au data source. L'oublier ici perdrait le
-        // retour entre l'accueil et les résultats.
+        // L'intention d'abord, la date ensuite : un aller-retour dont le
+        // retour n'est pas encore daté reste un aller-retour, et l'oublier
+        // ici le ramènerait à un aller simple entre le formulaire et les
+        // résultats.
+        if (criteria.isRoundTrip) 'trip_type': 'round_trip',
         if (returnDate != null) 'return_date': _formatDay(returnDate),
       },
     ).toString();
@@ -556,6 +558,7 @@ class AppRouter {
             date: state.uri.queryParameters['date'],
             passengers: state.uri.queryParameters['passengers'],
             returnDate: state.uri.queryParameters['return_date'],
+            tripType: state.uri.queryParameters['trip_type'],
           ),
         ),
         // Les trois écrans du tunnel partagent un seul [SeatHoldBloc].

@@ -1,24 +1,41 @@
+import 'dart:typed_data';
+
+import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:go_router/go_router.dart';
+import 'package:printing/printing.dart';
 
 import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
+import '../../domain/entities/departure.dart';
 import '../../domain/entities/group_ticket.dart';
 import '../bloc/group_tickets_cubit.dart';
+import '../pdf/ticket_pdf.dart';
 import '../widgets/kora_qr.dart';
 
 /// Ce qu'attend [GroupTicketsPage] : la réservation dont on liste les
 /// billets.
 class GroupTicketsArgs {
-  const GroupTicketsArgs({required this.reservationId, this.passengers = 0});
+  const GroupTicketsArgs({
+    required this.reservationId,
+    this.passengers = 0,
+    this.departure,
+  });
 
   final String reservationId;
 
   /// Le nombre attendu, pour l'annoncer avant même que le serveur réponde.
   final int passengers;
+
+  /// Le départ payé, pour l'imprimer sur le billet exporté.
+  ///
+  /// `bookings/{uuid}/tickets` ne rend que des identifiants de gares et de
+  /// départs — de quoi valider, pas de quoi écrire « Cotonou -> Abidjan »
+  /// sur un PDF. L'écran de confirmation, lui, a le départ sous la main.
+  final Departure? departure;
 }
 
 /// Écran `multi-tickets` de la maquette (BUS-17) : un billet et un QR par
@@ -94,7 +111,11 @@ class _GroupTicketsPageState extends State<GroupTicketsPage> {
                       onBack: () => context.go('/home'),
                     ),
                     Expanded(
-                      child: _Content(state: state, isAlone: isAlone),
+                      child: _Content(
+                        state: state,
+                        isAlone: isAlone,
+                        departure: args.departure,
+                      ),
                     ),
                     Padding(
                       padding: const EdgeInsets.only(bottom: AppSpacing.lg),
@@ -116,9 +137,12 @@ class _GroupTicketsPageState extends State<GroupTicketsPage> {
 
 /// Le corps de l'écran : la liste, l'attente, ou l'échec.
 class _Content extends StatelessWidget {
-  const _Content({required this.state, required this.isAlone});
+  const _Content({required this.state, required this.isAlone, this.departure});
 
   final GroupTicketsState state;
+
+  /// Voir [GroupTicketsArgs.departure].
+  final Departure? departure;
 
   /// Un seul billet : les textes qui parlent du groupe n'ont plus lieu
   /// d'être.
@@ -148,7 +172,11 @@ class _Content extends StatelessWidget {
       padding: EdgeInsets.zero,
       children: [
         for (var i = 0; i < state.tickets.length; i++) ...[
-          _TicketRow(ticket: state.tickets[i], index: i + 1),
+          _TicketRow(
+            ticket: state.tickets[i],
+            index: i + 1,
+            departure: departure,
+          ),
           const SizedBox(height: 9),
         ],
         const SizedBox(height: AppSpacing.sm),
@@ -168,10 +196,13 @@ class _Content extends StatelessWidget {
 /// `.multi-ticket-list button` : la pastille numérotée, le voyageur et sa
 /// référence, puis le chevron.
 class _TicketRow extends StatelessWidget {
-  const _TicketRow({required this.ticket, required this.index});
+  const _TicketRow({required this.ticket, required this.index, this.departure});
 
   final GroupTicket ticket;
   final int index;
+
+  /// Voir [GroupTicketsArgs.departure].
+  final Departure? departure;
 
   @override
   Widget build(BuildContext context) {
@@ -284,11 +315,89 @@ class _TicketRow extends StatelessWidget {
               // La charge du serveur, jamais la référence : c'est elle que
               // la douchette du convoyeur attend.
               KoraQr(payload: ticket.qrCode, size: 190),
+              const SizedBox(height: AppSpacing.md),
+              // Deux gestes, et non un : enregistrer le billet chez soi
+              // n'est pas l'envoyer à quelqu'un. Le partage seul obligeait
+              // à passer par une application tierce pour garder son propre
+              // billet.
+              KoraButton(
+                label: l10n.ticketsDownload,
+                variant: KoraButtonVariant.ghost,
+                icon: Icons.file_download_outlined,
+                onPressed: () => _save(dialogContext, l10n),
+              ),
+              const SizedBox(height: 8),
+              KoraButton(
+                label: l10n.ticketsShare,
+                variant: KoraButtonVariant.ghost,
+                icon: Icons.ios_share_rounded,
+                onPressed: () => _share(dialogContext, l10n),
+              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  /// Enregistre le billet dans les téléchargements du téléphone.
+  ///
+  /// Le fichier part chez le voyageur, pas chez un tiers : c'est tout
+  /// l'écart avec [_share], que le bouton unique d'avant confondait — il
+  /// ouvrait le sélecteur de partage, et garder son propre billet
+  /// obligeait à passer par une application tierce.
+  ///
+  /// `FileSaver` s'adresse au MediaStore d'Android : le dossier public
+  /// Téléchargements n'est plus accessible en écriture directe depuis le
+  /// stockage cloisonné, et cette voie-là ne réclame aucune permission.
+  Future<void> _save(BuildContext context, AppLocalization l10n) async {
+    await _export(context, l10n, (bytes) async {
+      await FileSaver.instance.saveFile(
+        name: 'KORA-${ticket.shortCode}',
+        bytes: bytes,
+        fileExtension: 'pdf',
+        mimeType: MimeType.pdf,
+      );
+
+      if (!context.mounted) return;
+      KoraToaster.show(context, l10n.ticketsDownloadDone);
+    });
+  }
+
+  /// Envoie le billet ailleurs : WhatsApp, Drive, courriel — Android
+  /// présente son sélecteur et le voyageur choisit.
+  Future<void> _share(BuildContext context, AppLocalization l10n) async {
+    await _export(context, l10n, (bytes) async {
+      await Printing.sharePdf(
+        bytes: bytes,
+        filename: 'KORA-${ticket.shortCode}.pdf',
+      );
+    });
+  }
+
+  /// Fabrique le PDF, puis confie les octets à [deliver].
+  ///
+  /// Le document se fabrique ici plutôt que de se demander au serveur :
+  /// l'API ne publie pas de route PDF — celle de `kora-ops-web` vit derrière
+  /// la session des agents — et le QR signé, lui, est déjà là. C'est lui qui
+  /// vaut billet ; le reste n'est que mise en page.
+  Future<void> _export(
+    BuildContext context,
+    AppLocalization l10n,
+    Future<void> Function(Uint8List bytes) deliver,
+  ) async {
+    try {
+      final bytes = await buildTicketPdf(
+        ticket: ticket,
+        l10n: l10n,
+        departure: departure,
+      );
+
+      await deliver(bytes);
+    } on Object {
+      if (!context.mounted) return;
+      KoraToaster.show(context, l10n.ticketsDownloadFailed);
+    }
   }
 
   /// Le statut en clair. Un statut inconnu de cette version garde son nom

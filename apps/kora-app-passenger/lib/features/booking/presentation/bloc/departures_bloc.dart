@@ -204,6 +204,7 @@ class DeparturesBloc extends Bloc<DeparturesEvent, DeparturesState> {
       // Illisible vaut absent : mieux vaut chercher un aller simple que
       // refuser la recherche entière sur un paramètre abîmé.
       returnDate: DateTime.tryParse(event.returnDate ?? ''),
+      roundTrip: event.tripType == 'round_trip',
     );
   }
 

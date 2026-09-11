@@ -675,7 +675,7 @@ class _BirthDateField extends StatelessWidget {
     final date = fields.birthDate;
 
     return _LabelledField(
-      label: context.l10n.passengersBirthDate,
+      label: context.l10n.passengersBirthDateOptional,
       child: InkWell(
         onTap: () => _pick(context),
         borderRadius: BorderRadius.circular(AppRadius.input),
@@ -899,14 +899,15 @@ class _PassengerFields {
 
     if (!international) return errors;
 
-    // La pièce d'identité ne bloque plus : type et numéro sont
-    // facultatifs depuis la revue Kora du 29 août 2026, pour le voyageur
-    // dont le document est expiré, perdu ou en cours de renouvellement.
-    // La date de naissance, elle, reste due au manifeste de frontière.
-    if (birthDate == null) {
-      errors['birthDate'] = l10n.passengersBirthDateRequired;
-    }
-
+    // Sur une liaison internationale, rien de plus n'est exigé : ni la
+    // pièce d'identité — facultative depuis la revue Kora du 29 août 2026,
+    // pour le voyageur dont le document est expiré, perdu ou en cours de
+    // renouvellement — ni la date de naissance, qui la rejoint.
+    //
+    // Le manifeste de frontière la réclame toujours, mais c'est au comptoir
+    // de la compléter : bloquer l'achat sur un champ que le voyageur ne
+    // sait pas toujours renseigner de tête coûtait des réservations
+    // qu'aucune règle ne refusait.
     return errors;
   }
 

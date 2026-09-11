@@ -77,6 +77,9 @@ class _BookingSuccessPageState extends State<BookingSuccessPage> {
       extra: GroupTicketsArgs(
         reservationId: reservationId,
         passengers: _passengers,
+        // De quoi écrire le trajet sur le billet exporté : les billets du
+        // serveur ne rendent que des identifiants de gares.
+        departure: widget.args?.departure,
       ),
     );
   }

@@ -14,7 +14,25 @@ import '../dimens/app_dimens.dart';
 /// [danger] pour les badges qui gradent une valeur plutôt que d'annoncer
 /// un incident (places restantes d'un départ, voir [KoraSeatsBadge]). Un
 /// feu tricolore sans vert n'en est pas un.
-enum KoraTagVariant { neutral, gold, blue, outline, danger, success }
+enum KoraTagVariant {
+  neutral,
+  gold,
+
+  /// `--digital` : le bleu vif des statuts en cours.
+  blue,
+
+  /// `--kora` sur texte blanc : le navy de la marque, pour qualifier un
+  /// élément sans le mettre en avant comme le doré.
+  ///
+  /// En thème sombre il se pose sur une surface plus foncée encore
+  /// (`#00153E` contre `#001D4E`) : l'écart suffit à peine, d'où le filet
+  /// qui vient alors en dessiner les bords.
+  navy,
+
+  outline,
+  danger,
+  success,
+}
 
 /// Petit badge en forme de pilule, utilisé pour les statuts
 /// (ex: "Livré", "En cours", "VIP"). Équivalent `.tag` / `.status`.
@@ -70,6 +88,13 @@ class KoraTag extends StatelessWidget {
         background = AppColors.digital;
         foreground = AppColors.white;
         break;
+      case KoraTagVariant.navy:
+        background = AppColors.kora;
+        foreground = AppColors.white;
+        if (Theme.of(context).brightness == Brightness.dark) {
+          border = Border.all(color: koraColors.line);
+        }
+        break;
       case KoraTagVariant.outline:
         background = Colors.transparent;
         foreground = koraColors.textPrimary;
@@ -96,13 +121,20 @@ class KoraTag extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (leading != null) ...[leading!, const SizedBox(width: 4)],
-          Text(
-            label.toUpperCase(),
-            style: TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0.54,
-              color: foreground,
+          // Compressible : le badge se pose parfois dans une rangée trop
+          // étroite pour son libellé — deux badges côte à côte sur une
+          // carte de départ, par exemple. Sans ça la rangée déborde au
+          // lieu de rogner le texte.
+          Flexible(
+            child: Text(
+              label.toUpperCase(),
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.54,
+                color: foreground,
+              ),
             ),
           ),
         ],

@@ -6,12 +6,14 @@ import '../../../../core/network/api_json.dart';
 import '../../domain/entities/city.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/departure_search.dart';
+import '../../domain/entities/line_stop.dart';
 import '../../domain/entities/search_criteria.dart';
 import '../../domain/entities/seat.dart';
 import '../../domain/entities/ticket.dart';
 import '../../domain/entities/upcoming_trip.dart';
 import '../models/city_model.dart';
 import '../models/itinerary_model.dart';
+import '../models/line_stop_model.dart';
 import '../models/seat_model.dart';
 import 'booking_data_source.dart';
 
@@ -95,16 +97,25 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
         'to_physical_stop_uuid': to,
         'date': _apiDate(criteria.date),
         'passenger_count': criteria.passengers,
-        if (returnDate != null) ...{
+        // `trip_type` porte l'intention, `return_date` la précise. Le
+        // serveur accepte le premier sans le second : il rend alors les
+        // retours des jours qui suivent, et c'est ce qui permet de choisir
+        // son aller avant de savoir quand on rentre.
+        if (criteria.isRoundTrip) ...{
           'trip_type': 'round_trip',
-          'return_date': _apiDate(returnDate),
+          if (returnDate != null) 'return_date': _apiDate(returnDate),
         },
       },
     );
 
     final body = response.data;
 
-    if (returnDate == null) {
+    // La forme de la réponse suit `trip_type`, pas la date : c'est
+    // l'intention qu'on a envoyée, et le serveur enveloppe les deux sens
+    // dès qu'il la reçoit. Se fier à la date ici rendait « aucun départ »
+    // sur un aller-retour sans retour daté — les cinq allers étaient bien
+    // là, sous une clé qu'on n'ouvrait pas.
+    if (!criteria.isRoundTrip) {
       return DepartureSearch.oneWay(_departuresIn(body));
     }
 
@@ -136,6 +147,33 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
   Future<List<City>> getRecentCities() async => const [];
 
   /// Pas encore servi par l'API — voir la note de classe.
+  /// `GET bus/lines/{uuid}` : la ligne et ses arrêts actifs, triés.
+  ///
+  /// Route publique, comme le reste du catalogue Bus. Le serveur ne donne
+  /// aucune heure de passage — seulement `km_from_origin` — et l'écran
+  /// s'en tient donc là plutôt que d'interpoler des horaires.
+  @override
+  Future<List<LineStop>> getLineStops(String lineId) async {
+    if (lineId.isEmpty) return const [];
+
+    final response = await _dio.get<dynamic>(
+      '${ApiConstants.busLines}/$lineId',
+    );
+
+    // `stops` vit dans l'objet `data`, pas à la racine : `ApiJson.list`
+    // déballerait ici la mauvaise enveloppe.
+    final line = ApiJson.map(
+      response.data is Map ? (response.data as Map)['data'] : response.data,
+    );
+
+    final stops = [
+      for (final json in ApiJson.list(line['stops']))
+        LineStopModel(json).toEntity(),
+    ]..sort((a, b) => a.order.compareTo(b.order));
+
+    return stops;
+  }
+
   @override
   Future<List<Seat>> getSeats(Departure departure) async {
     final origin = departure.originStopId;
