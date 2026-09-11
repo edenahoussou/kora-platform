@@ -44,20 +44,22 @@ jobs:
 
       - name: Install Chromium for Browsershot (PDF tests)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y chromium-browser
+          # Install puppeteer which downloads a compatible Chromium binary
+          # that Browsershot can use without snap sandbox restrictions.
+          npm install puppeteer --no-save
           # Browsershot looks for node at /usr/bin/node by default;
           # symlink the setup-node binary so the path resolves.
           sudo ln -sf "$(which node)" /usr/bin/node
-          # Install puppeteer so puppeteer-core can find a Chromium binary.
-          npm install puppeteer --no-save
 
       - name: Prepare Laravel
         run: |
           cp .env.example .env
           php artisan key:generate
-          # Point Browsershot at the system Chromium installed via apt.
-          echo "BROWSERSHOT_CHROME_PATH=$(which chromium-browser)" >> .env
+          # Point Browsershot at the puppeteer-downloaded Chromium.
+          CHROME_PATH=$(node -e "const p=require('puppeteer');console.log(p.executablePath())")
+          echo "BROWSERSHOT_CHROME_PATH=$CHROME_PATH" >> .env
+          # Browsershot temp dir must exist before writing HTML files.
+          mkdir -p storage/app/temp/chrome
 
       - name: Generate Wayfinder routes/actions
         run: php artisan wayfinder:generate --with-form
