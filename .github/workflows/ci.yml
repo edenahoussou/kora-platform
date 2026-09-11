@@ -56,7 +56,7 @@ jobs:
           cp .env.example .env
           php artisan key:generate
           # Point Browsershot at the puppeteer-downloaded Chromium.
-          CHROME_PATH=$(node -p "require('puppeteer').executablePath()")
+          CHROME_PATH=$(find ~/.cache/puppeteer/chrome -name chrome -type f 2>/dev/null | head -1)
           printf "BROWSERSHOT_CHROME_PATH=%s\n" "$CHROME_PATH" >> .env
           # Browsershot temp dir must exist before writing HTML files.
           mkdir -p storage/app/temp/chrome
