@@ -165,8 +165,8 @@ export function PaymentStep({
         () =>
             network
                 ? mobileMoneyAccounts.filter(
-                    (account) => account.network === network,
-                )
+                      (account) => account.network === network,
+                  )
                 : [],
         [mobileMoneyAccounts, network],
     );
@@ -174,7 +174,8 @@ export function PaymentStep({
         () => networkAccounts.find((account) => account.uuid === accountUuid),
         [networkAccounts, accountUuid],
     );
-    const cashReady = cashSession.isOpen && isCashSufficient && payerName.trim() !== '';
+    const cashReady =
+        cashSession.isOpen && isCashSufficient && payerName.trim() !== '';
     const phoneValid =
         payerPhone.trim() !== '' && isValidPhoneNumber(payerPhone);
     const mobileReady =
@@ -194,10 +195,10 @@ export function PaymentStep({
         (method === 'cash'
             ? cashReady
             : method === 'mobile_money'
-                ? mobileReady
-                : method === 'company_credit'
-                    ? companyCreditReady
-                    : false);
+              ? mobileReady
+              : method === 'company_credit'
+                ? companyCreditReady
+                : false);
 
     const mobileChecklist = useMemo(
         () => [
@@ -244,8 +245,18 @@ export function PaymentStep({
                 method === 'mobile_money' && network ? network : null,
             agency_payment_account_uuid:
                 method === 'mobile_money' ? accountUuid : null,
-            payer_phone: method === 'mobile_money' ? payerPhone.trim() : (method === 'cash' ? payerPhone.trim() : ''),
-            payer_name: method === 'mobile_money' ? payerName.trim() : (method === 'cash' ? payerName.trim() : ''),
+            payer_phone:
+                method === 'mobile_money'
+                    ? payerPhone.trim()
+                    : method === 'cash'
+                      ? payerPhone.trim()
+                      : '',
+            payer_name:
+                method === 'mobile_money'
+                    ? payerName.trim()
+                    : method === 'cash'
+                      ? payerName.trim()
+                      : '',
             provider_reference:
                 method === 'mobile_money' ? reference.trim() : '',
             verified_manually: method === 'mobile_money' ? verified : true,
@@ -255,10 +266,10 @@ export function PaymentStep({
     const submitLabel = processing
         ? 'Confirmation…'
         : method === 'cash'
-            ? 'Encaisser les espèces'
-            : method === 'mobile_money'
-                ? 'Confirmer le transfert Mobile Money'
-                : 'Imputer le crédit entreprise';
+          ? 'Encaisser les espèces'
+          : method === 'mobile_money'
+            ? 'Confirmer le transfert Mobile Money'
+            : 'Imputer le crédit entreprise';
 
     return (
         <>
@@ -449,9 +460,9 @@ export function PaymentStep({
                     selectedNetwork={
                         network
                             ? {
-                                label: networkMeta[network].label,
-                                color: networkMeta[network].color,
-                            }
+                                  label: networkMeta[network].label,
+                                  color: networkMeta[network].color,
+                              }
                             : null
                     }
                     selectedAccount={selectedAccount ?? null}
@@ -680,8 +691,8 @@ function CompanyCreditFields({
                             {account?.type === 'ngo'
                                 ? 'ONG'
                                 : account?.type === 'embassy'
-                                    ? 'Ambassade'
-                                    : 'Entreprise'}{' '}
+                                  ? 'Ambassade'
+                                  : 'Entreprise'}{' '}
                             · Réf {account?.reference ?? '—'}
                         </small>
                     </div>
@@ -767,9 +778,9 @@ function MobileMoneyFields({
                                     style={
                                         isActive
                                             ? {
-                                                borderColor: meta.color,
-                                                background: meta.bg,
-                                            }
+                                                  borderColor: meta.color,
+                                                  background: meta.bg,
+                                              }
                                             : undefined
                                     }
                                     onClick={() => onNetworkChange(value)}
