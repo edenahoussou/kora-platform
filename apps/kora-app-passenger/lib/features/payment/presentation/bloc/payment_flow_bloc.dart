@@ -82,7 +82,12 @@ class PaymentFlowBloc extends Bloc<PaymentFlowEvent, PaymentFlowState> {
     final attempt = state.attempt;
     if (attempt == null || !attempt.isPending) return;
 
-    final result = await _repository.status(attempt.id);
+    // `verify` et non `status` : le premier interroge le fournisseur et met
+    // l'état à jour, le second se contente de relire ce que la base dit
+    // déjà. Tant qu'aucun webhook n'arrive, cette base reste à `pending`
+    // — et la relecture tournait donc indéfiniment sur une valeur qui ne
+    // bougeait pas, jusqu'à l'expiration du blocage.
+    final result = await _repository.verify(attempt.id);
 
     result.fold(
       // Une relecture qui échoue n'est pas un paiement qui échoue : le

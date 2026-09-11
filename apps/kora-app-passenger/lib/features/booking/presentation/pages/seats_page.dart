@@ -26,22 +26,57 @@ import 'passenger_form_page.dart';
 /// Données passées à [SeatsPage] par `go_router` (`extra`) — même principe
 /// que le détail : le départ vient d'être affiché, on le transmet.
 class SeatsArgs {
-  const SeatsArgs({required this.departure, this.passengers = 1});
+  const SeatsArgs({
+    required this.departure,
+    this.passengers = 1,
+    this.returnDeparture,
+    this.outbound,
+  });
 
   final Departure departure;
   final int passengers;
+
+  /// Le retour à pourvoir après celui-ci, sur un aller-retour dont on
+  /// choisit l'aller.
+  final Departure? returnDeparture;
+
+  /// L'aller déjà pourvu, quand cet écran sert le **retour**.
+  final OutboundLeg? outbound;
+}
+
+/// L'aller d'un aller-retour, une fois ses sièges choisis.
+///
+/// Les deux trajets partent ensemble au serveur : il faut donc garder
+/// l'aller sous la main pendant qu'on choisit le retour.
+class OutboundLeg {
+  const OutboundLeg({required this.departure, required this.seats});
+
+  final Departure departure;
+  final List<Seat> seats;
 }
 
 /// Choix du siège — écran `seats` de la maquette : progression de la
 /// réservation, rappel de la protection de la sélection, plan du bus, puis
 /// la barre de validation.
 class SeatsPage extends StatelessWidget {
-  const SeatsPage({super.key, required this.departure, this.passengers = 1});
+  const SeatsPage({
+    super.key,
+    required this.departure,
+    this.passengers = 1,
+    this.returnDeparture,
+    this.outbound,
+  });
 
   /// `null` si l'écran est ouvert sans données (lien profond).
   final Departure? departure;
 
   final int passengers;
+
+  /// Voir [SeatsArgs.returnDeparture].
+  final Departure? returnDeparture;
+
+  /// Voir [SeatsArgs.outbound].
+  final OutboundLeg? outbound;
 
   @override
   Widget build(BuildContext context) {
@@ -62,13 +97,16 @@ class SeatsPage extends StatelessWidget {
       create: (_) =>
           getIt<SeatsBloc>()
             ..add(SeatsRequested(departure: departure, passengers: passengers)),
-      child: const _SeatsView(),
+      child: _SeatsView(returnDeparture: returnDeparture, outbound: outbound),
     );
   }
 }
 
 class _SeatsView extends StatelessWidget {
-  const _SeatsView();
+  const _SeatsView({this.returnDeparture, this.outbound});
+
+  final Departure? returnDeparture;
+  final OutboundLeg? outbound;
 
   @override
   Widget build(BuildContext context) {
@@ -104,7 +142,11 @@ class _SeatsView extends StatelessWidget {
                     },
                   ),
                   if (state.status == SeatsStatus.success)
-                    _Checkout(state: state),
+                    _Checkout(
+                      state: state,
+                      returnDeparture: returnDeparture,
+                      outbound: outbound,
+                    ),
                 ],
               ),
             );
@@ -169,9 +211,11 @@ class _SeatsContent extends StatelessWidget {
 
 /// `.seat-checkout` : la barre de validation, toujours visible en bas.
 class _Checkout extends StatelessWidget {
-  const _Checkout({required this.state});
+  const _Checkout({required this.state, this.returnDeparture, this.outbound});
 
   final SeatsState state;
+  final Departure? returnDeparture;
+  final OutboundLeg? outbound;
 
   @override
   Widget build(BuildContext context) {
@@ -218,7 +262,11 @@ class _Checkout extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-          _ContinueButton(state: state),
+          _ContinueButton(
+            state: state,
+            returnDeparture: returnDeparture,
+            outbound: outbound,
+          ),
         ],
       ),
     );
@@ -237,7 +285,14 @@ class _Checkout extends StatelessWidget {
 ///   actif aurait bloqué une seconde fois les mêmes places, ou d'autres,
 ///   sans jamais rendre les premières.
 class _ContinueButton extends StatelessWidget {
-  const _ContinueButton({required this.state});
+  const _ContinueButton({
+    required this.state,
+    this.returnDeparture,
+    this.outbound,
+  });
+
+  final Departure? returnDeparture;
+  final OutboundLeg? outbound;
 
   final SeatsState state;
 
@@ -246,12 +301,23 @@ class _ContinueButton extends StatelessWidget {
     return BlocConsumer<SeatHoldBloc, SeatHoldState>(
       listenWhen: (previous, current) => previous.status != current.status,
       listener: (context, hold) {
+        // Les deux plans d'un aller-retour écoutent le même bloc : sans ce
+        // garde-fou, celui de l'aller — resté dans la pile — naviguerait
+        // lui aussi au blocage déclenché depuis le retour.
+        if (returnDeparture != null) return;
+
         if (hold.status == SeatHoldStatus.held) {
+          // Sur un aller-retour, cet écran-ci montrait le retour : le
+          // voyage se raconte au départ de l'aller.
+          final leg = outbound;
+
           context.push(
             AppRouter.passengerInfoPath,
             extra: PassengerFormArgs(
-              departure: state.departure!,
-              seats: state.selectedSeats,
+              departure: leg?.departure ?? state.departure!,
+              seats: leg?.seats ?? state.selectedSeats,
+              returnDeparture: leg == null ? null : state.departure,
+              returnSeats: leg == null ? null : state.selectedSeats,
             ),
           );
           return;
@@ -304,7 +370,9 @@ class _ContinueButton extends StatelessWidget {
           // Désactivé tant qu'il manque un siège : la maquette laisse le
           // bouton actif et affiche un message d'erreur au clic, ce qui
           // fait faire un aller-retour pour rien.
-          onPressed: state.canContinue ? () => _hold(context, state) : null,
+          onPressed: state.canContinue
+              ? () => _continue(context, state, returnDeparture, outbound)
+              : null,
         );
       },
     );
@@ -337,7 +405,38 @@ Price _payableTotal(SeatsState state, GroupQuoteState quote) {
   return state.total;
 }
 
-void _hold(BuildContext context, SeatsState state) {
+/// Poursuit le parcours : le plan du retour s'il en reste un à pourvoir,
+/// le blocage sinon.
+///
+/// Un aller-retour demande deux plans — les sièges d'un bus ne valent
+/// pas pour l'autre — mais un seul blocage : le serveur réclame un siège
+/// par tronçon du devis, et c'est ce qui donne au voyageur un paiement
+/// unique.
+void _continue(
+  BuildContext context,
+  SeatsState state,
+  Departure? returnDeparture,
+  OutboundLeg? outbound,
+) {
+  if (returnDeparture != null) {
+    context.push(
+      AppRouter.seatsPath,
+      extra: SeatsArgs(
+        departure: returnDeparture,
+        passengers: state.passengers,
+        outbound: OutboundLeg(
+          departure: state.departure!,
+          seats: state.selectedSeats,
+        ),
+      ),
+    );
+    return;
+  }
+
+  _hold(context, state, outbound);
+}
+
+void _hold(BuildContext context, SeatsState state, OutboundLeg? outbound) {
   final departure = state.departure!;
   final quoteState = context.read<GroupQuoteCubit>().state;
   final quote = quoteState.matches(departure.id, state.passengers)
@@ -359,7 +458,19 @@ void _hold(BuildContext context, SeatsState state) {
     return;
   }
 
-  bloc.add(SeatHoldRequested(departure: departure, seats: state.selectedSeats));
+  // Sur un aller-retour, le départ qui compte est l'aller : c'est lui que
+  // porteront le devis et les écrans suivants. Cet écran-ci montrait le
+  // retour.
+  bloc.add(
+    outbound == null
+        ? SeatHoldRequested(departure: departure, seats: state.selectedSeats)
+        : SeatHoldRequested(
+            departure: outbound.departure,
+            seats: outbound.seats,
+            returnDeparture: departure,
+            returnSeats: state.selectedSeats,
+          ),
+  );
 }
 
 class _CheckoutSlot extends StatelessWidget {

@@ -20,6 +20,7 @@ class StateView extends StatelessWidget {
     this.showLoader = false,
     this.primaryLabel,
     this.onPrimary,
+    this.isPrimaryLoading = false,
     this.secondaryLabel,
     this.onSecondary,
   });
@@ -34,6 +35,12 @@ class StateView extends StatelessWidget {
 
   final String? primaryLabel;
   final VoidCallback? onPrimary;
+
+  /// L'action principale est en cours : le bouton prend le relais du
+  /// libellé pour le dire, faute de quoi un appui sur une vérification qui
+  /// dure semble n'avoir rien déclenché — et le voyageur réappuie.
+  final bool isPrimaryLoading;
+
   final String? secondaryLabel;
   final VoidCallback? onSecondary;
 
@@ -78,7 +85,11 @@ class StateView extends StatelessWidget {
         ],
         const SizedBox(height: 24),
         if (primaryLabel != null)
-          KoraButton(label: primaryLabel!, onPressed: onPrimary),
+          KoraButton(
+            label: primaryLabel!,
+            onPressed: isPrimaryLoading ? null : onPrimary,
+            isLoading: isPrimaryLoading,
+          ),
         if (secondaryLabel != null) ...[
           const SizedBox(height: 10),
           KoraButton(

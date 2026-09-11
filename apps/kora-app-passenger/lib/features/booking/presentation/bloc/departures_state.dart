@@ -45,6 +45,7 @@ class DeparturesState extends Equatable {
     this.isRefreshing = false,
     this.errorMessage,
     this.refreshError,
+    this.returnDepartures,
   });
 
   final DeparturesStatus status;
@@ -55,8 +56,19 @@ class DeparturesState extends Equatable {
   final SearchCriteria? criteria;
 
   /// Tous les départs rendus par la recherche, filtres et tri non
-  /// appliqués — voir [visibleDepartures].
+  /// appliqués — voir [visibleDepartures]. Sur un aller-retour, ceux de
+  /// l'aller.
   final List<Departure> departures;
+
+  /// Les départs du retour, ou `null` sur un aller simple.
+  ///
+  /// Rendus par la même recherche que l'aller — le serveur les donne
+  /// ensemble — mais listés sur leur propre écran : le voyageur choisit
+  /// son aller, puis son retour. Une liste vide n'est pas `null` : il y a
+  /// bien une étape de retour, et elle n'a rien à proposer.
+  final List<Departure>? returnDepartures;
+
+  bool get isRoundTrip => returnDepartures != null;
 
   final DepartureSortField sortField;
 
@@ -168,6 +180,7 @@ class DeparturesState extends Equatable {
     bool? isRefreshing,
     String? errorMessage,
     String? refreshError,
+    List<Departure>? returnDepartures,
   }) {
     return DeparturesState(
       status: status ?? this.status,
@@ -183,11 +196,13 @@ class DeparturesState extends Equatable {
       // consommé une fois puis disparaît ; le reconduire d'un état à
       // l'autre le ferait réapparaître au moindre changement de tri.
       refreshError: refreshError,
+      returnDepartures: returnDepartures ?? this.returnDepartures,
     );
   }
 
   @override
   List<Object?> get props => [
+    returnDepartures,
     status,
     criteria,
     departures,

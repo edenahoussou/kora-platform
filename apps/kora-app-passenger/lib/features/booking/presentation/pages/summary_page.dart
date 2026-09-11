@@ -14,6 +14,7 @@ import '../../../payment/presentation/pages/payment_args.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/passenger.dart';
 import '../../domain/entities/price.dart';
+import '../../domain/entities/seat.dart';
 import '../bloc/group_quote_cubit.dart';
 import '../widgets/booking_progress.dart';
 import '../widgets/hold_countdown.dart';
@@ -21,10 +22,21 @@ import '../widgets/state_view.dart';
 
 /// Données passées à [SummaryPage] par `go_router` (`extra`).
 class SummaryArgs {
-  const SummaryArgs({required this.departure, required this.passengers});
+  const SummaryArgs({
+    required this.departure,
+    required this.passengers,
+    this.returnDeparture,
+    this.returnSeats,
+  });
 
   final Departure departure;
   final List<Passenger> passengers;
+
+  /// Le retour d’un aller-retour, porté jusqu’au devis.
+  final Departure? returnDeparture;
+
+  /// Les sièges du retour, un par voyageur et dans le même ordre.
+  final List<Seat>? returnSeats;
 }
 
 /// Récapitulatif avant paiement — écran `summary` de la maquette : rappel
@@ -39,12 +51,22 @@ class SummaryPage extends StatefulWidget {
     super.key,
     required this.departure,
     this.passengers = const [],
+    this.returnDeparture,
+    this.returnSeats,
   });
 
   /// `null` si l'écran est ouvert sans données (lien profond).
   final Departure? departure;
 
   final List<Passenger> passengers;
+
+  /// Le retour d'un aller-retour. Le devis doit le porter, sinon le prix
+  /// affiché ne couvre que la moitié du voyage.
+  final Departure? returnDeparture;
+
+  /// Les sièges du retour : le voyageur en a deux, et n'en montrer qu'un
+  /// laisserait croire que le retour n'a pas de place attribuée.
+  final List<Seat>? returnSeats;
 
   @override
   State<SummaryPage> createState() => _SummaryPageState();
@@ -65,6 +87,9 @@ class _SummaryPageState extends State<SummaryPage> {
     context.read<GroupQuoteCubit>().load(
       departure: departure,
       passengers: widget.passengers.length,
+      // Sans le retour, le devis ne couvrirait que l'aller : l'écran
+      // annoncerait la moitié du prix, et le serveur débiterait le tout.
+      returnDeparture: widget.returnDeparture,
     );
   }
 
@@ -88,7 +113,12 @@ class _SummaryPageState extends State<SummaryPage> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18),
-          child: _SummaryContent(departure: departure, passengers: passengers),
+          child: _SummaryContent(
+            departure: departure,
+            passengers: passengers,
+            returnDeparture: widget.returnDeparture,
+            returnSeats: widget.returnSeats,
+          ),
         ),
       ),
     );
@@ -96,10 +126,17 @@ class _SummaryPageState extends State<SummaryPage> {
 }
 
 class _SummaryContent extends StatelessWidget {
-  const _SummaryContent({required this.departure, required this.passengers});
+  const _SummaryContent({
+    required this.departure,
+    required this.passengers,
+    this.returnDeparture,
+    this.returnSeats,
+  });
 
   final Departure departure;
   final List<Passenger> passengers;
+  final Departure? returnDeparture;
+  final List<Seat>? returnSeats;
 
   @override
   Widget build(BuildContext context) {
@@ -115,7 +152,12 @@ class _SummaryContent extends StatelessWidget {
               BookingProgress(step: 5, label: l10n.summaryEyebrow),
               const SizedBox(height: 11),
               const HoldCountdown(margin: EdgeInsets.only(bottom: 11)),
-              _TripCard(departure: departure, passengers: passengers),
+              _TripCard(
+                departure: departure,
+                passengers: passengers,
+                returnDeparture: returnDeparture,
+                returnSeats: returnSeats,
+              ),
               SectionTitle(
                 title: l10n.summaryPassengers,
                 actionLabel: l10n.summaryEdit,
@@ -183,18 +225,33 @@ Price _payableTotal(BuildContext context, Departure departure, int count) {
 
 /// `.card.navy` : le voyage tel qu'il a été choisi.
 class _TripCard extends StatelessWidget {
-  const _TripCard({required this.departure, required this.passengers});
+  const _TripCard({
+    required this.departure,
+    required this.passengers,
+    this.returnDeparture,
+    this.returnSeats,
+  });
 
   final Departure departure;
   final List<Passenger> passengers;
+  final Departure? returnDeparture;
+  final List<Seat>? returnSeats;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final line = departure.line;
-    final seats = passengers
-        .map((passenger) => passenger.seat.label)
-        .join(', ');
+    final returnSeats = this.returnSeats;
+
+    // Les sièges du voyageur : le sien à l'aller, et celui du retour quand
+    // il y en a un.
+    final seats = [
+      for (final (index, passenger) in passengers.indexed)
+        if (returnSeats != null && index < returnSeats.length)
+          l10n.summarySeatsRound(passenger.seat.label, returnSeats[index].label)
+        else
+          passenger.seat.label,
+    ].join(', ');
 
     return KoraCard(
       variant: KoraCardVariant.navy,
@@ -254,6 +311,39 @@ class _TripCard extends StatelessWidget {
               fontSize: 12,
             ),
           ),
+          // Le retour a son propre bus et son propre horaire : le taire
+          // laisserait le voyageur vérifier la moitié de ce qu'il paie.
+          if (returnDeparture != null) ...[
+            const Divider(height: 26, color: Colors.white24),
+            Text(
+              l10n.summaryReturn.toUpperCase(),
+              style: TextStyle(
+                color: AppColors.gold.withValues(alpha: 0.9),
+                fontSize: 9,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.9,
+              ),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              '${returnDeparture!.line.origin.name} → '
+              '${returnDeparture!.line.destination.name}',
+              style: const TextStyle(
+                color: AppColors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${KoraDateFormats.capitalize(KoraDateFormats.weekdayDayMonth.format(returnDeparture!.departsAt))} · '
+              '${KoraDateFormats.time.format(returnDeparture!.departsAt)}',
+              style: TextStyle(
+                color: AppColors.white.withValues(alpha: 0.7),
+                fontSize: 12,
+              ),
+            ),
+          ],
         ],
       ),
     );

@@ -73,6 +73,8 @@ void main() {
     WidgetTester tester, {
     int passengers = 1,
     StubReservationRepository? repository,
+    Departure? returnDeparture,
+    List<Seat>? returnSeats,
   }) async {
     tester.view.physicalSize = const Size(390 * 3, 1000 * 3);
     tester.view.devicePixelRatio = 3;
@@ -89,6 +91,8 @@ void main() {
             SummaryPage(
               departure: departure,
               passengers: passengersOf(passengers),
+              returnDeparture: returnDeparture,
+              returnSeats: returnSeats,
             ),
             bloc: holdBloc,
             groupQuote: quote,
@@ -296,5 +300,45 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Rien à récapituler'), findsOneWidget);
+  });
+
+  testWidgets('un aller-retour montre ses deux trajets et ses deux sièges', (
+    tester,
+  ) async {
+    // Le voyageur vérifie ici ce qu'il paie. Ne montrer que l'aller
+    // laisserait croire que le retour n'a ni bus ni place attribuée, alors
+    // qu'il est déjà retenu et compté dans le total.
+    final inbound = mockDeparturesFor(
+      SearchCriteria(
+        origin: kMockCities.firstWhere((city) => city.id == 'mlv'),
+        destination: kMockCities.firstWhere((city) => city.id == 'ctn'),
+        date: DateTime(2026, 8, 20),
+      ),
+    ).first;
+
+    await pumpSummary(
+      tester,
+      returnDeparture: inbound,
+      returnSeats: [freeSeats[3]],
+    );
+
+    expect(find.text('RETOUR'), findsOneWidget);
+    expect(
+      find.text(
+        '${inbound.line.origin.name} → ${inbound.line.destination.name}',
+      ),
+      findsOneWidget,
+    );
+    // Les deux sièges du voyageur, l'aller puis le retour.
+    expect(
+      find.textContaining('${freeSeats[0].label} · ${freeSeats[3].label}'),
+      findsWidgets,
+    );
+  });
+
+  testWidgets('un aller simple ne parle d’aucun retour', (tester) async {
+    await pumpSummary(tester);
+
+    expect(find.text('RETOUR'), findsNothing);
   });
 }

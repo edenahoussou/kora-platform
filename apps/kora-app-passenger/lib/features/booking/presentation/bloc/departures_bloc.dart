@@ -81,13 +81,14 @@ class DeparturesBloc extends Bloc<DeparturesEvent, DeparturesState> {
     final result = await _searchDepartures(criteria);
     result.fold(
       (failure) => emit(_failed(failure.message)),
-      // Seul l'aller est listé ici : l'étape de retour a son propre écran,
-      // et la couche data rend déjà les deux sens.
+      // Cet écran ne liste que l'aller ; le retour a le sien, et c'est la
+      // même recherche qui l'a rapporté.
       (search) => emit(
         state.copyWith(
           status: DeparturesStatus.success,
           criteria: criteria,
           departures: search.outbound,
+          returnDepartures: search.inbound,
         ),
       ),
     );
@@ -169,6 +170,7 @@ class DeparturesBloc extends Bloc<DeparturesEvent, DeparturesState> {
         state.copyWith(
           status: DeparturesStatus.success,
           departures: search.outbound,
+          returnDepartures: search.inbound,
           isRefreshing: false,
         ),
       ),

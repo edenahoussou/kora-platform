@@ -74,6 +74,7 @@ class SeatHoldBloc extends Bloc<SeatHoldEvent, SeatHoldState> {
     final quote = await _repository.groupQuote(
       departure: event.departure,
       passengers: event.seats.length,
+      returnDeparture: event.returnDeparture,
     );
 
     final held = await quote.fold(
@@ -81,6 +82,10 @@ class SeatHoldBloc extends Bloc<SeatHoldEvent, SeatHoldState> {
       (quote) => _repository.holdGroup(
         quote: quote,
         seats: event.seats,
+        // Le devis d'un aller-retour porte deux tronçons, et le serveur
+        // exige un siège pour chacun : taire les sièges du retour ferait
+        // refuser le blocage entier.
+        returnSeats: event.returnSeats,
         payer: const GroupPayer.personal(),
         // Déterministe : un réseau qui coupe après l'envoi laisse le
         // voyageur réappuyer, et le serveur rend alors le blocage déjà

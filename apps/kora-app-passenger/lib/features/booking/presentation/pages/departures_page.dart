@@ -12,12 +12,13 @@ import '../../domain/entities/departure.dart';
 import '../../domain/entities/price.dart';
 import '../../domain/entities/search_criteria.dart';
 import '../bloc/departures_bloc.dart';
-import '../widgets/amenity_view.dart';
 import '../widgets/departure_filter_bar.dart';
 import '../widgets/departure_skeleton.dart';
+import '../widgets/departure_tile.dart';
 import '../widgets/price_assurance_banner.dart';
 import '../widgets/state_view.dart';
 import 'departure_detail_page.dart';
+import 'return_departures_page.dart';
 
 /// Liste des départs — écrans `searching`, `results` et `no-results` de la
 /// maquette.
@@ -209,9 +210,9 @@ class _ResultsView extends StatelessWidget {
         ],
         const SizedBox(height: AppSpacing.md),
         for (final departure in departures) ...[
-          _DepartureTile(
+          DepartureTile(
             departure: departure,
-            passengers: state.criteria?.passengers ?? 1,
+            onTap: () => _openDeparture(context, state, departure),
           ),
           const SizedBox(height: 10),
         ],
@@ -445,53 +446,36 @@ class _FiltersSheet extends StatelessWidget {
   }
 }
 
-/// Une carte de résultat. Toutes les mises en forme (heures, durée, prix)
-/// se font ici : `DepartureCard` du design system ne reçoit que du texte
-/// déjà prêt, ce qui la garde utilisable par n'importe quelle app.
-class _DepartureTile extends StatelessWidget {
-  const _DepartureTile({required this.departure, required this.passengers});
+/// Ouvre la suite du parcours pour le départ choisi.
+///
+/// Sur un aller simple, c'est le détail du départ. Sur un aller-retour,
+/// c'est le choix du retour : réserver l'aller sans son retour laisserait
+/// le voyageur à mi-chemin, alors qu'il a demandé les deux.
+void _openDeparture(
+  BuildContext context,
+  DeparturesState state,
+  Departure departure,
+) {
+  final passengers = state.criteria?.passengers ?? 1;
+  final returnDepartures = state.returnDepartures;
 
-  final Departure departure;
-  final int passengers;
-
-  /// Le pied de carte n'a qu'une ligne, et le serveur peut annoncer
-  /// vingt-huit services : on n'en montre que les premiers. L'ordre est
-  /// celui du serveur — c'est lui qui range son catalogue, pas l'app.
-  static const int _maxServices = 3;
-
-  /// Les services à bord, en une ligne. Vide quand aucun bus n'est encore
-  /// affecté au départ : la carte ne montre alors rien plutôt que de
-  /// promettre un confort inconnu.
-  String _servicesLabel(BuildContext context) => departure.amenities
-      .take(_maxServices)
-      .map((amenity) => amenity.displayLabel(context))
-      .join(' · ');
-
-  @override
-  Widget build(BuildContext context) {
-    return DepartureCard(
-      departureTime: KoraDateFormats.time.format(departure.departsAt),
-      arrivalTime: KoraDateFormats.time.format(departure.arrivesAt),
-      origin: departure.line.origin.name,
-      destination: departure.line.destination.name,
-      duration: KoraDateFormats.approximateDuration(departure.line.duration),
-      price: departure.price.formatted,
-      vehicleLabel: departure.vehicleLabel,
-      servicesLabel: _servicesLabel(context),
-      seatsAvailable: departure.seatsAvailable,
-      // Le total donne au badge sa couleur : 12 places sur 55, c'est
-      // orange ; sur 20, c'est vert.
-      seatsTotal: departure.seatsTotal,
-      isSoldOut: departure.isSoldOut,
-      onTap: () => context.push(
-        AppRouter.departureDetailPath,
-        extra: DepartureDetailArgs(
-          departure: departure,
-          passengers: passengers,
-        ),
-      ),
+  if (returnDepartures == null) {
+    context.push(
+      AppRouter.departureDetailPath,
+      extra: DepartureDetailArgs(departure: departure, passengers: passengers),
     );
+    return;
   }
+
+  context.push(
+    AppRouter.returnDeparturesPath,
+    extra: ReturnDeparturesArgs(
+      outbound: departure,
+      departures: returnDepartures,
+      passengers: passengers,
+      returnDate: state.criteria?.returnDate,
+    ),
+  );
 }
 
 /// Écran `no-results` : la liaison n'est pas desservie ce jour-là.

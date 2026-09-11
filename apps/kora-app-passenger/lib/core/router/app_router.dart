@@ -26,6 +26,7 @@ import '../../features/booking/presentation/pages/group_discount_page.dart';
 import '../../features/booking/presentation/pages/group_tickets_page.dart';
 import '../../features/booking/presentation/pages/hold_expired_page.dart';
 import '../../features/booking/presentation/pages/passenger_form_page.dart';
+import '../../features/booking/presentation/pages/return_departures_page.dart';
 import '../../features/booking/presentation/pages/seats_page.dart';
 import '../../features/booking/presentation/pages/summary_page.dart';
 import '../../features/booking/presentation/pages/ticket_detail_page.dart';
@@ -33,6 +34,7 @@ import '../../features/booking/presentation/pages/ticket_page.dart';
 import '../../features/booking/presentation/pages/tickets_page.dart';
 import '../../features/booking/presentation/widgets/seat_hold_watcher.dart';
 import '../../features/colis/presentation/pages/colis_page.dart';
+import '../../features/home/presentation/bloc/home_bloc.dart';
 import '../../features/home/presentation/pages/city_picker_page.dart';
 import '../../features/home/presentation/pages/date_picker_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
@@ -44,10 +46,10 @@ import '../../features/payment/presentation/pages/booking_success_page.dart';
 import '../../features/payment/presentation/pages/card_payment_page.dart';
 import '../../features/payment/presentation/pages/mobile_money_page.dart';
 import '../../features/payment/presentation/pages/payment_args.dart';
+import '../../features/payment/presentation/pages/payment_failed_page.dart';
 import '../../features/payment/presentation/pages/payment_flow_args.dart';
 import '../../features/payment/presentation/pages/payment_method_page.dart';
 import '../../features/payment/presentation/pages/payment_pending_page.dart';
-import '../../features/payment/presentation/pages/payment_validation_page.dart';
 import '../../features/payment/presentation/pages/wallet_payment_page.dart';
 import '../../features/profil/presentation/pages/birth_date_picker_page.dart';
 import '../../features/profil/presentation/pages/change_pin_page.dart';
@@ -133,6 +135,12 @@ class AppRouter {
   /// une fois la recherche lancée, l'utilisateur est dans un tunnel de
   /// réservation, pas en train de naviguer entre les rubriques de l'app.
   static const String departuresPath = '/departures';
+
+  /// Le choix du retour, deuxième temps d'un aller-retour. Une route à
+  /// part : le voyageur doit pouvoir y revenir depuis le détail sans
+  /// perdre son aller.
+  static const String returnDeparturesPath = '/departures/return';
+
   static const String departureDetailPath = '/departure';
   static const String seatsPath = '/seats';
   static const String passengerInfoPath = '/passenger-info';
@@ -147,8 +155,15 @@ class AppRouter {
   static const String paymentMobileMoneyPath = '/payment/mobile-money';
   static const String paymentWalletPath = '/payment/wallet';
   static const String paymentCardPath = '/payment/card';
-  static const String paymentValidationPath = '/payment/validation';
+
+  /// L'attente entre la demande et le verdict. Seul écran intermédiaire du
+  /// paiement : on y arrive dès que la demande part, on en sort quand le
+  /// serveur a tranché.
   static const String paymentPendingPath = '/payment/pending';
+
+  /// Le paiement refusé. Un écran, et non un message : le refus arrête le
+  /// parcours, et il faut dire ce qui reste possible.
+  static const String paymentFailedPath = '/payment/failed';
   static const String paymentSuccessPath = '/payment/success';
 
   /// Formulaire de réservation en grand (`bus-search`), ouvert depuis
@@ -440,7 +455,13 @@ class AppRouter {
         ),
         GoRoute(
           path: busSearchPath,
-          builder: (context, state) => const BusSearchPage(),
+          builder: (context, state) => BusSearchPage(
+            // L'accueil passe `TripType.roundtrip` depuis sa carte dédiée ;
+            // les autres entrées n'envoient rien et gardent l'aller simple.
+            tripType: state.extra is TripType
+                ? state.extra! as TripType
+                : TripType.oneway,
+          ),
         ),
         GoRoute(
           path: ticketPath,
@@ -613,6 +634,8 @@ class AppRouter {
                 return SeatsPage(
                   departure: args?.departure,
                   passengers: args?.passengers ?? 1,
+                  returnDeparture: args?.returnDeparture,
+                  outbound: args?.outbound,
                 );
               },
             ),
@@ -624,6 +647,8 @@ class AppRouter {
                 return PassengerFormPage(
                   departure: args?.departure,
                   seats: args?.seats ?? const [],
+                  returnDeparture: args?.returnDeparture,
+                  returnSeats: args?.returnSeats,
                 );
               },
             ),
@@ -635,6 +660,8 @@ class AppRouter {
                 return SummaryPage(
                   departure: args?.departure,
                   passengers: args?.passengers ?? const [],
+                  returnDeparture: args?.returnDeparture,
+                  returnSeats: args?.returnSeats,
                 );
               },
             ),
@@ -663,14 +690,14 @@ class AppRouter {
                   CardPaymentPage(args: state.extra as PaymentArgs?),
             ),
             GoRoute(
-              path: paymentValidationPath,
-              builder: (context, state) =>
-                  PaymentValidationPage(args: state.extra as PaymentFlowArgs?),
-            ),
-            GoRoute(
               path: paymentPendingPath,
               builder: (context, state) =>
                   PaymentPendingPage(args: state.extra as PaymentFlowArgs?),
+            ),
+            GoRoute(
+              path: paymentFailedPath,
+              builder: (context, state) =>
+                  PaymentFailedPage(args: state.extra as PaymentFlowArgs?),
             ),
             GoRoute(
               path: paymentSuccessPath,
@@ -680,6 +707,11 @@ class AppRouter {
           ],
         ),
         GoRoute(
+          path: returnDeparturesPath,
+          builder: (context, state) =>
+              ReturnDeparturesPage(args: state.extra as ReturnDeparturesArgs?),
+        ),
+        GoRoute(
           path: departureDetailPath,
           builder: (context, state) {
             final args = state.extra as DepartureDetailArgs?;
@@ -687,6 +719,7 @@ class AppRouter {
             return DepartureDetailPage(
               departure: args?.departure,
               passengers: args?.passengers ?? 1,
+              returnDeparture: args?.returnDeparture,
             );
           },
         ),

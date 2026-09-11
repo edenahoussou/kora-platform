@@ -87,14 +87,28 @@ void main() {
   Future<void> settleToast(WidgetTester tester) =>
       tester.pump(const Duration(seconds: 4));
 
-  Future<void> pumpSearch(WidgetTester tester) async {
+  Future<void> pumpSearch(
+    WidgetTester tester, {
+    TripType tripType = TripType.oneway,
+  }) async {
     tester.view.physicalSize = const Size(390 * 3, 844 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
 
     final router = GoRouter(
       routes: [
-        GoRoute(path: '/', builder: (_, _) => const BusSearchPage()),
+        GoRoute(
+          path: '/',
+          builder: (_, _) => BusSearchPage(tripType: tripType),
+        ),
+        // Le centre d'aide n'est pas monté : seul le fait d'y aller compte.
+        GoRoute(
+          path: AppRouter.helpPath,
+          builder: (context, state) {
+            pushed.add(state.uri.toString());
+            return const Scaffold(body: Text('centre d’aide'));
+          },
+        ),
         GoRoute(
           path: AppRouter.returnDatePath,
           builder: (context, state) {
@@ -247,5 +261,44 @@ void main() {
       Uri.parse(pushed.single).queryParameters.containsKey('return_date'),
       isFalse,
     );
+  });
+
+  testWidgets('l’accueil peut ouvrir le formulaire sur l’aller-retour', (
+    tester,
+  ) async {
+    // La carte « Réserver un aller-retour » de l'accueil mène ici. Y
+    // déposer le voyageur sur « Aller simple » lui ferait recliquer sur
+    // l'onglet d'à côté — le détour serait absurde.
+    await pumpSearch(tester, tripType: TripType.roundtrip);
+
+    expect(find.text('Date du retour'), findsOneWidget);
+    expect(find.text('Rechercher l’aller et le retour'), findsOneWidget);
+  });
+
+  testWidgets('sans historique, « Trajets récents » ne coiffe pas le vide', (
+    tester,
+  ) async {
+    when(() => getRecentCities(any())).thenAnswer((_) async => const Right([]));
+
+    await pumpSearch(tester);
+
+    expect(find.text('Trajets récents'), findsNothing);
+  });
+
+  testWidgets('avec un historique, la section paraît', (tester) async {
+    await pumpSearch(tester);
+
+    expect(find.text('Trajets récents'), findsOneWidget);
+  });
+
+  testWidgets('le bouton d’aide ouvre le centre d’aide', (tester) async {
+    // Il annonçait « Aide » dans un toast, et c'est tout : le voyageur
+    // bloqué sur ce formulaire y restait.
+    await pumpSearch(tester);
+
+    await tester.tap(find.byIcon(Icons.help_outline_rounded));
+    await tester.pumpAndSettle();
+
+    expect(pushed, [AppRouter.helpPath]);
   });
 }

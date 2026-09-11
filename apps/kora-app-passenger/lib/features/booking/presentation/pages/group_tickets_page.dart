@@ -56,34 +56,57 @@ class _GroupTicketsPageState extends State<GroupTicketsPage> {
 
     if (args == null) return const _MissingBooking();
 
-    return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18),
-          child: BlocBuilder<GroupTicketsCubit, GroupTicketsState>(
-            builder: (context, state) {
-              final count = state.tickets.isNotEmpty
-                  ? state.tickets.length
-                  : args.passengers;
+    // Le parcours d'achat s'arrête ici. Derrière cet écran il y a le
+    // paiement, l'attente, le plan des sièges — des étapes qu'on ne
+    // repasse pas une fois le billet émis, et que le geste « retour »
+    // rouvrait pourtant une à une. On sort donc vers l'accueil, que le
+    // voyageur revienne par la flèche ou par le geste du système.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go('/home');
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            child: BlocBuilder<GroupTicketsCubit, GroupTicketsState>(
+              builder: (context, state) {
+                final count = state.tickets.isNotEmpty
+                    ? state.tickets.length
+                    : args.passengers;
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ScreenHeader(
-                    eyebrow: l10n.groupTicketsEyebrow(count),
-                    title: l10n.groupTicketsTitle,
-                  ),
-                  Expanded(child: _Content(state: state)),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                    child: KoraButton(
-                      label: l10n.groupTicketsDone,
-                      onPressed: () => context.go('/voyages'),
+                // Le même écran sert le voyageur seul, qui vient d'ici depuis
+                // que « Afficher mon billet » y mène : lui parler de « groupe »
+                // et de « chaque QR » devant son unique billet sonnerait faux.
+                final isAlone = count <= 1;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ScreenHeader(
+                      eyebrow: isAlone
+                          ? l10n.ticketsOneEyebrow
+                          : l10n.groupTicketsEyebrow(count),
+                      title: isAlone
+                          ? l10n.ticketsOneTitle
+                          : l10n.groupTicketsTitle,
+                      onBack: () => context.go('/home'),
                     ),
-                  ),
-                ],
-              );
-            },
+                    Expanded(
+                      child: _Content(state: state, isAlone: isAlone),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                      child: KoraButton(
+                        label: l10n.groupTicketsDone,
+                        onPressed: () => context.go('/voyages'),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -93,9 +116,13 @@ class _GroupTicketsPageState extends State<GroupTicketsPage> {
 
 /// Le corps de l'écran : la liste, l'attente, ou l'échec.
 class _Content extends StatelessWidget {
-  const _Content({required this.state});
+  const _Content({required this.state, required this.isAlone});
 
   final GroupTicketsState state;
+
+  /// Un seul billet : les textes qui parlent du groupe n'ont plus lieu
+  /// d'être.
+  final bool isAlone;
 
   @override
   Widget build(BuildContext context) {
@@ -112,7 +139,9 @@ class _Content extends StatelessWidget {
     // Le serveur a répondu sans billet : l'émission suit le paiement et
     // prend un instant. Dire « aucun billet » ferait croire à une perte.
     if (state.isPending) {
-      return _Notice(message: l10n.groupTicketsPending);
+      return _Notice(
+        message: isAlone ? l10n.ticketsOnePending : l10n.groupTicketsPending,
+      );
     }
 
     return ListView(
@@ -126,7 +155,7 @@ class _Content extends StatelessWidget {
         KoraCard(
           variant: KoraCardVariant.mist,
           child: Text(
-            l10n.groupTicketsNotice,
+            isAlone ? l10n.ticketsOneNotice : l10n.groupTicketsNotice,
             style: AppTextStyles.body(context.koraColors.textMuted),
           ),
         ),
@@ -214,38 +243,49 @@ class _TicketRow extends StatelessWidget {
 
   /// Montre le QR de ce voyageur, en grand.
   ///
-  /// Une feuille plutôt qu'un écran : le contrôleur scanne, puis on
-  /// revient à la liste pour le voyageur suivant. Ouvrir et refermer dix
-  /// écrans à la file, à l'embarquement, ferait perdre le fil.
+  /// Une boîte plutôt qu'un écran : le contrôleur scanne, puis on revient
+  /// à la liste pour le voyageur suivant. Ouvrir et refermer dix écrans à
+  /// la file, à l'embarquement, ferait perdre le fil.
+  ///
+  /// Centrée, et non posée en bas comme la feuille d'avant : c'est un
+  /// téléphone qu'on tend à bout de bras devant une douchette, et un code
+  /// collé au bord bas oblige à incliner l'appareil pour le présenter.
   void _showQr(BuildContext context) {
     final l10n = context.l10n;
 
-    showModalBottomSheet<void>(
+    showDialog<void>(
       context: context,
-      backgroundColor: context.koraColors.surface,
-      showDragHandle: true,
-      builder: (sheetContext) => Padding(
-        padding: const EdgeInsets.fromLTRB(18, 0, 18, 28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              ticket.label,
-              style: AppTextStyles.titleMedium(sheetContext.koraTitleColor),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              ticket.seatCode.isEmpty
-                  ? ticket.shortCode
-                  : '${l10n.passengersSeat(ticket.seatCode)} · '
-                        '${ticket.shortCode}',
-              style: AppTextStyles.body(sheetContext.koraColors.textMuted),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            // La charge du serveur, jamais la référence : c'est elle que
-            // la douchette du convoyeur attend.
-            KoraQr(payload: ticket.qrCode, size: 190),
-          ],
+      builder: (dialogContext) => Dialog(
+        backgroundColor: dialogContext.koraColors.surface,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 22, 18, 22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                ticket.label,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.titleMedium(dialogContext.koraTitleColor),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                ticket.seatCode.isEmpty
+                    ? ticket.shortCode
+                    : '${l10n.passengersSeat(ticket.seatCode)} · '
+                          '${ticket.shortCode}',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.body(dialogContext.koraColors.textMuted),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              // La charge du serveur, jamais la référence : c'est elle que
+              // la douchette du convoyeur attend.
+              KoraQr(payload: ticket.qrCode, size: 190),
+            ],
+          ),
         ),
       ),
     );

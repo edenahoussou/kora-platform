@@ -11,6 +11,7 @@ import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/core/utils/date_formats.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/line.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
 import 'package:kora_app_passenger/features/booking/domain/repositories/departure_repository.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/departure_detail_cubit.dart';
@@ -135,6 +136,40 @@ void main() {
     expect(firstSegment.distanceKm, 128);
     expect(firstSegment.price.amount, 2000);
     expect(find.text(firstSegment.price.formatted), findsWidgets);
+  });
+
+  testWidgets('masque les étapes quand la ligne n’en publie aucune', (
+    tester,
+  ) async {
+    // `bus/itineraries` ne renvoie pas les tronçons d'une ligne : une
+    // ligne sans tronçon n'a donc aucun arrêt à montrer. L'intertitre
+    // « Les étapes » coiffait pourtant une carte vide, suivie d'une note
+    // qui parlait d'heures que rien n'affichait.
+    final bare = Departure(
+      id: departure.id,
+      line: Line(
+        id: departure.line.id,
+        code: departure.line.code,
+        origin: departure.line.origin,
+        destination: departure.line.destination,
+        duration: departure.line.duration,
+        distanceKm: departure.line.distanceKm,
+      ),
+      departsAt: departure.departsAt,
+      comfort: departure.comfort,
+      price: departure.price,
+      seatsTotal: departure.seatsTotal,
+      seatsAvailable: departure.seatsAvailable,
+    );
+
+    await pumpDetail(tester, value: bare);
+
+    expect(find.text('Les étapes'), findsNothing);
+    expect(find.text('Prix par tronçon'), findsNothing);
+    expect(
+      find.textContaining('Les heures de passage sont des estimations'),
+      findsNothing,
+    );
   });
 
   testWidgets('masque les tronçons sur une liaison directe', (tester) async {

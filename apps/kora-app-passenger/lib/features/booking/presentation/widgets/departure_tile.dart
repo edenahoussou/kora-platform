@@ -1,0 +1,59 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_design_system/flutter_design_system.dart';
+
+import '../../../../core/utils/date_formats.dart';
+import '../../domain/entities/departure.dart';
+import 'amenity_view.dart';
+
+/// Une carte de résultat de recherche.
+///
+/// Toutes les mises en forme (heures, durée, prix) se font ici :
+/// `DepartureCard` du design system ne reçoit que du texte déjà prêt, ce
+/// qui la garde utilisable par n'importe quelle app.
+///
+/// Elle ne connaît pas sa destination : la liste de l'aller ouvre le
+/// choix du retour, celle du retour ouvre le détail. Le geste appartient
+/// à l'écran, la mise en forme à la carte.
+class DepartureTile extends StatelessWidget {
+  const DepartureTile({
+    super.key,
+    required this.departure,
+    required this.onTap,
+  });
+
+  final Departure departure;
+  final VoidCallback onTap;
+
+  /// Le pied de carte n'a qu'une ligne, et le serveur peut annoncer
+  /// vingt-huit services : on n'en montre que les premiers. L'ordre est
+  /// celui du serveur — c'est lui qui range son catalogue, pas l'app.
+  static const int _maxServices = 3;
+
+  /// Les services à bord, en une ligne. Vide quand aucun bus n'est encore
+  /// affecté au départ : la carte ne montre alors rien plutôt que de
+  /// promettre un confort inconnu.
+  String _servicesLabel(BuildContext context) => departure.amenities
+      .take(_maxServices)
+      .map((amenity) => amenity.displayLabel(context))
+      .join(' · ');
+
+  @override
+  Widget build(BuildContext context) {
+    return DepartureCard(
+      departureTime: KoraDateFormats.time.format(departure.departsAt),
+      arrivalTime: KoraDateFormats.time.format(departure.arrivesAt),
+      origin: departure.line.origin.name,
+      destination: departure.line.destination.name,
+      duration: KoraDateFormats.approximateDuration(departure.line.duration),
+      price: departure.price.formatted,
+      vehicleLabel: departure.vehicleLabel,
+      servicesLabel: _servicesLabel(context),
+      seatsAvailable: departure.seatsAvailable,
+      // Le total donne au badge sa couleur : 12 places sur 55, c'est
+      // orange ; sur 20, c'est vert.
+      seatsTotal: departure.seatsTotal,
+      isSoldOut: departure.isSoldOut,
+      onTap: onTap,
+    );
+  }
+}

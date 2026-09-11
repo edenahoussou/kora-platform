@@ -29,10 +29,20 @@ import 'seats_page.dart';
 /// Cette route n'est pas prévue pour un lien profond : elle est une étape
 /// du tunnel de réservation.
 class DepartureDetailArgs {
-  const DepartureDetailArgs({required this.departure, this.passengers = 1});
+  const DepartureDetailArgs({
+    required this.departure,
+    this.passengers = 1,
+    this.returnDeparture,
+  });
 
   final Departure departure;
   final int passengers;
+
+  /// Le retour choisi, sur un aller-retour. `null` sur un aller simple.
+  ///
+  /// Porté jusqu'au devis : les deux trajets tiennent dans un seul devis,
+  /// donc un seul blocage et un seul paiement.
+  final Departure? returnDeparture;
 }
 
 /// Détail d'un départ — écran `departure` de la maquette : bandeau navy du
@@ -48,6 +58,7 @@ class DepartureDetailPage extends StatelessWidget {
     super.key,
     required this.departure,
     this.passengers = 1,
+    this.returnDeparture,
   });
 
   /// `null` si l'écran a été ouvert sans données (lien profond,
@@ -55,6 +66,10 @@ class DepartureDetailPage extends StatelessWidget {
   final Departure? departure;
 
   final int passengers;
+
+  /// Le retour déjà choisi, sur un aller-retour. Transmis au plan des
+  /// sièges, qui en pourvoira un second.
+  final Departure? returnDeparture;
 
   @override
   Widget build(BuildContext context) {
@@ -74,6 +89,7 @@ class DepartureDetailPage extends StatelessWidget {
                         builder: (context, state) => _DetailContent(
                           departure: state.departure,
                           passengers: passengers,
+                          returnDeparture: returnDeparture,
                           isStale: state.isStale,
                         ),
                       ),
@@ -88,11 +104,15 @@ class _DetailContent extends StatelessWidget {
   const _DetailContent({
     required this.departure,
     required this.passengers,
+    this.returnDeparture,
     this.isStale = false,
   });
 
   final Departure departure;
   final int passengers;
+
+  /// Voir [DepartureDetailPage.returnDeparture].
+  final Departure? returnDeparture;
 
   /// Le rafraîchissement a échoué : ce qui est affiché vient de la
   /// recherche.
@@ -102,6 +122,12 @@ class _DetailContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final koraColors = context.koraColors;
     final segments = departure.line.segments;
+
+    // Les arrêts tels qu'ils seront dessinés, et non les tronçons dont on
+    // les déduit : c'est cette liste-là qui décide d'afficher la section,
+    // pour que l'intertitre ne puisse pas coiffer une carte que la frise
+    // aurait laissée vide.
+    final stops = _stopsOf(departure);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -147,20 +173,28 @@ class _DetailContent extends StatelessWidget {
                 SectionTitle(title: context.l10n.departureDetailComfort),
                 _ServiceGrid(amenities: departure.amenities),
               ],
-              SectionTitle(title: context.l10n.departureDetailStops),
-              KoraCard(child: _StopsTimeline(departure: departure)),
-              if (segments.length > 1) ...[
-                SectionTitle(title: context.l10n.departureDetailSegmentPrice),
-                _SegmentPrices(segments: segments),
-              ],
-              const SizedBox(height: 11),
-              KoraCard(
-                variant: KoraCardVariant.mist,
-                child: Text(
-                  context.l10n.departureDetailEstimates,
-                  style: AppTextStyles.body(koraColors.textMuted),
+              // Même règle que pour les services : sans arrêt connu, le
+              // serveur n'a pas encore d'étapes à donner. L'intertitre
+              // « Les étapes » coiffait alors une carte vide, et la note
+              // sur les heures de passage parlait d'heures que rien
+              // n'affichait — un bas de page qui annonçait une ligne sans
+              // arrêts plutôt qu'une donnée manquante.
+              if (stops.isNotEmpty) ...[
+                SectionTitle(title: context.l10n.departureDetailStops),
+                KoraCard(child: _StopsTimeline(stops: stops)),
+                if (segments.length > 1) ...[
+                  SectionTitle(title: context.l10n.departureDetailSegmentPrice),
+                  _SegmentPrices(segments: segments),
+                ],
+                const SizedBox(height: 11),
+                KoraCard(
+                  variant: KoraCardVariant.mist,
+                  child: Text(
+                    context.l10n.departureDetailEstimates,
+                    style: AppTextStyles.body(koraColors.textMuted),
+                  ),
                 ),
-              ),
+              ],
               const SizedBox(height: AppSpacing.lg),
             ],
           ),
@@ -188,6 +222,7 @@ class _DetailContent extends StatelessWidget {
                         : SeatsArgs(
                             departure: departure,
                             passengers: passengers,
+                            returnDeparture: returnDeparture,
                           ),
                   ),
           ),
@@ -416,32 +451,43 @@ class _ServiceTile extends StatelessWidget {
   }
 }
 
+/// Les arrêts d'un départ, avec l'heure de passage de chacun.
+///
+/// Ils se déduisent des tronçons de la ligne : un arrêt par origine de
+/// tronçon, plus le terminus. Une ligne dont le serveur n'a pas publié les
+/// tronçons n'a donc aucun arrêt à montrer — c'est le cas courant tant que
+/// `bus/itineraries` ne les renvoie pas.
+List<({String label, DateTime time})> _stopsOf(Departure departure) {
+  final segments = departure.line.segments;
+  if (segments.isEmpty) return const [];
+
+  return [
+    for (final segment in segments)
+      (
+        label: segment.origin.name,
+        time: departure.departsAt.add(segment.departureOffset),
+      ),
+    (
+      label: segments.last.destination.name,
+      time: departure.departsAt.add(segments.last.arrivalOffset),
+    ),
+  ];
+}
+
 /// `miniTimeline` : les arrêts de la ligne avec leur heure de passage.
 class _StopsTimeline extends StatelessWidget {
-  const _StopsTimeline({required this.departure});
+  const _StopsTimeline({required this.stops});
 
-  final Departure departure;
+  final List<({String label, DateTime time})> stops;
 
   @override
   Widget build(BuildContext context) {
-    final segments = departure.line.segments;
-    if (segments.isEmpty) return const SizedBox.shrink();
-
-    // Un arrêt par origine de tronçon, plus le terminus.
-    final stops = <(String, Duration)>[
-      for (final segment in segments)
-        (segment.origin.name, segment.departureOffset),
-      (segments.last.destination.name, segments.last.arrivalOffset),
-    ];
-
     return Column(
       children: [
         for (var i = 0; i < stops.length; i++)
           _TimelineItem(
-            label: stops[i].$1,
-            time: KoraDateFormats.time.format(
-              departure.departsAt.add(stops[i].$2),
-            ),
+            label: stops[i].label,
+            time: KoraDateFormats.time.format(stops[i].time),
             // Seule l'heure de départ est ferme ; les suivantes sont
             // estimées, ce que dit aussi la note en bas d'écran.
             isFirst: i == 0,
