@@ -18,6 +18,7 @@ use App\Modules\DynamicPricing\Models\ServiceClass;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\Payments\Models\AgencyPaymentAccount;
 use App\Modules\Payments\Models\Payment;
+use App\Modules\Ticketing\Data\TicketIssuanceStatus;
 use App\Modules\Ticketing\Models\Ticket;
 use Database\Seeders\KoraBusReferenceSeeder;
 use Database\Seeders\KoraBusRolePermissionSeeder;
@@ -100,6 +101,7 @@ it('records an exact cash payment, change, cash movement and one ticket per pass
 
     $response->assertRedirect();
     expect($reservation->fresh()->status)->toBe(ReservationStatus::Ticketed);
+    expect($reservation->fresh()->ticket_issuance_status)->toBe(TicketIssuanceStatus::Issued);
     expect($reservation->fresh()->draft_data)->toBeNull();
     $this->assertDatabaseHas('payments', [
         'reservation_id' => $reservation->id,
