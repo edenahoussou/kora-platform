@@ -35,6 +35,18 @@ return [
         ],
     ],
 
+    'genuka' => [
+        'url' => env('GENUKA_URL', 'https://wa.genuka.com'),
+        'token' => env('GENUKA_TOKEN'),
+        'connection_id' => env('GENUKA_CONNECTION_ID'),
+    ],
+
+    'waha' => [
+        'url' => env('WAHA_URL', 'http://waha:3000'),
+        'token' => env('WAHA_TOKEN'),
+        'session' => env('WAHA_SESSION', 'default'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | OAuth Social Providers (Laravel Socialite)

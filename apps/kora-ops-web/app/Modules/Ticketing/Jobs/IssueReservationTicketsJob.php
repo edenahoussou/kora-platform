@@ -2,6 +2,8 @@
 
 namespace App\Modules\Ticketing\Jobs;
 
+use App\Jobs\FiscalizeReservationInvoiceJob;
+use App\Jobs\SendReservationWhatsAppNotificationJob;
 use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Models\Reservation;
@@ -39,10 +41,11 @@ class IssueReservationTicketsJob implements ShouldQueue
             return;
         }
 
+        $ticketed = false;
         try {
-            DB::transaction(function () use ($issueTickets): void {
+            DB::transaction(function () use ($issueTickets, &$ticketed): void {
                 $reservation = Reservation::query()
-                    ->with(['passengers', 'segments'])
+                    ->with(['passengers', 'segments', 'tickets'])
                     ->whereKey($this->reservationId)
                     ->lockForUpdate()
                     ->firstOrFail();
@@ -85,7 +88,16 @@ class IssueReservationTicketsJob implements ShouldQueue
                     'ticket_issuance_error' => null,
                 ]);
                 $reservation->segments()->update(['status' => ReservationSegmentStatus::Ticketed]);
+                $ticketed = true;
             });
+
+            if ($ticketed) {
+                $ticketedReservation = Reservation::query()->with(['tickets'])->findOrFail($this->reservationId);
+                FiscalizeReservationInvoiceJob::dispatch($this->reservationId)->onConnection('database')->afterCommit();
+                foreach ($ticketedReservation->tickets as $ticket) {
+                    SendReservationWhatsAppNotificationJob::dispatch($this->reservationId, $ticket->id)->onConnection('database')->afterCommit();
+                }
+            }
         } catch (Throwable $exception) {
             Reservation::query()->whereKey($this->reservationId)->update([
                 'ticket_issuance_status' => TicketIssuanceStatus::Failed->value,

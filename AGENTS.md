@@ -49,3 +49,16 @@ GitHub Actions secrets: `DEPLOY_SSH_KEY`, `DEPLOY_HOST`, `DEPLOY_PORT`, `DEPLOY_
 ## Configuration
 
 Keep secrets in local `.env` files only. Do not commit real database passwords, API keys, fiscalization credentials, payment credentials, or P501 device secrets.
+
+## Ticket QR Signing (Ed25519)
+
+Ticket QR codes are signed with **Ed25519 asymmetric cryptography** (libsodium, native to PHP). The server holds the private key and signs; the KORA P501 boarding app holds only the public key and verifies offline. Even if the P501 device is compromised, no one can forge tickets without the private key.
+
+- **Private key** (`KORA_TICKET_SIGNING_PRIVATE_KEY`): signs on the server, never shared.
+- **Public key** (`KORA_TICKET_SIGNING_PUBLIC_KEY`): safe to distribute openly, embedded in the P501 app.
+- **Payload format**: `base64url(json).base64url(ed25519_signature)`, JWT-like, version `v: 2`.
+- **Implementation**: `app/Modules/Ticketing/Actions/BuildTicketQrPayloadAction.php`.
+- **Export public key for P501**: `php artisan tickets:public-key` (outputs base64, base64url, and hex).
+- **Generate a new keypair**: `php -r '$kp=sodium_crypto_sign_keypair(); echo "PRIVATE=".base64_encode(sodium_crypto_sign_secretkey($kp))."\n"; echo "PUBLIC=".base64_encode(sodium_crypto_sign_publickey($kp))."\n";'`
+
+Never commit the private key. Rotate the keypair only with a migration plan to re-issue outstanding tickets.
