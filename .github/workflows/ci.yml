@@ -42,6 +42,16 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Install Chromium for Browsershot (PDF tests)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser
+          # Browsershot looks for node at /usr/bin/node by default;
+          # symlink the setup-node binary so the path resolves.
+          sudo ln -sf "$(which node)" /usr/bin/node
+          # Install puppeteer so puppeteer-core can find a Chromium binary.
+          npm install puppeteer --no-save
+
       - name: Prepare Laravel
         run: |
           cp .env.example .env
