@@ -13,12 +13,6 @@ import 'package:mocktail/mocktail.dart';
 class MockAuthRepository extends Mock implements AuthRepository {}
 
 void main() {
-  // Fallback values requis par mocktail pour `any()` sur des types non
-  // primitifs (OtpPurpose, OtpVerification). Sans ça, le premier when()
-  // qui les utilise plante et corrompt la pile de matchers pour les tests
-  // suivants — c'est la cause des erreurs "type 'Null' is not a subtype
-  // of Future<Result<LoginOutcome>>" observées plus haut (le stub échoue
-  // avant d'être posé, donc login() non stubbé renvoie null).
   setUpAll(() {
     registerFallbackValue(OtpPurpose.loginNewDevice);
     registerFallbackValue(const OtpVerification(
@@ -196,20 +190,32 @@ void main() {
       ),
       act: (AuthFlowBloc bloc) =>
           bloc.add(const AuthFlowCodeSubmitted('654321')),
+      // Comportement volontaire (voir commentaire "Bug corrigé" dans
+      // AuthFlowBloc._onCodeSubmitted) : entre la vérification du code et
+      // le rejeu de login, le bloc NE repasse PAS par isSubmitting:false —
+      // sinon la page capte cet état intermédiaire comme "fin de
+      // soumission" avant que la connexion soit réellement terminée.
+      // 3 émissions seulement : Bloc ignore par ailleurs l'émission
+      // isSubmitting:true du rejeu, identique à l'état déjà courant.
       expect: () => <dynamic>[
+        // 1. isSubmitting pendant verifyOtp
         isA<AuthFlowState>()
-            .having((s) => s.isSubmitting, 'isSubmitting', isTrue),
+            .having((s) => s.isSubmitting, 'isSubmitting', isTrue)
+            .having((s) => s.verification, 'verification', isNull),
+        // 2. verification obtenue, toujours isSubmitting=true (le rejeu
+        //    de login s'enchaîne sans passage intermédiaire à false)
         isA<AuthFlowState>()
-            .having((s) => s.isSubmitting, 'isSubmitting', isFalse)
+            .having((s) => s.isSubmitting, 'isSubmitting', isTrue)
             .having((s) => s.verification?.verificationToken, 'token',
                 'verif-token'),
-        isA<AuthFlowState>()
-            .having((s) => s.isSubmitting, 'isSubmitting', isTrue),
+        // 3. terminé, connecté
         isA<AuthFlowState>()
             .having((s) => s.step, 'step', AuthFlowStep.done)
             .having((s) => s.session, 'session', session),
       ],
       verify: (_) {
+        // La preuve que le rejeu se fait "en ligne" et non via un nouvel
+        // événement : un seul appel à verifyOtp, un seul à login.
         verify(() => repository.verifyOtp(
               challengeUuid: any(named: 'challengeUuid'),
               purpose: any(named: 'purpose'),
@@ -281,14 +287,19 @@ void main() {
       ),
       act: (AuthFlowBloc bloc) =>
           bloc.add(const AuthFlowCodeSubmitted('111111')),
+      // Pour le motif pin_reset, le bloc émet verification + step:newPin
+      // + isSubmitting:false en un seul état combiné (une seule ligne
+      // `emit` dans le case OtpPurpose.pinReset) : 2 émissions au total.
       expect: () => <dynamic>[
+        // 1. isSubmitting pendant verifyOtp
         isA<AuthFlowState>()
             .having((s) => s.isSubmitting, 'isSubmitting', isTrue),
+        // 2. verification obtenue ET passage à newPin en même temps
         isA<AuthFlowState>()
+            .having((s) => s.step, 'step', AuthFlowStep.newPin)
             .having((s) => s.isSubmitting, 'isSubmitting', isFalse)
             .having((s) => s.verification?.verificationToken, 'token',
                 'verif-token-2'),
-        isA<AuthFlowState>().having((s) => s.step, 'step', AuthFlowStep.newPin),
       ],
       verify: (_) {
         verifyNever(() => repository.login(
