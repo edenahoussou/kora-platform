@@ -6,8 +6,10 @@ use App\Modules\Booking\Models\Reservation;
 use App\Modules\Notifications\Data\WhatsAppDeliveryStatus;
 use App\Modules\Notifications\Models\WhatsAppDelivery;
 use App\Modules\Notifications\Services\WhatsApp\GenukaWhatsAppSender;
+use App\Modules\Notifications\Services\WhatsApp\WahaReachoutBlockedException;
 use App\Modules\Notifications\Services\WhatsApp\WahaWhatsAppSender;
 use App\Modules\Ticketing\Actions\GenerateTicketPdfAction;
+use App\Modules\Ticketing\Models\Ticket;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Http\Client\RequestException;
@@ -68,7 +70,10 @@ class SendReservationWhatsAppNotificationJob implements ShouldQueue
             return;
         }
 
-        $text = "KORA BUS — billet {$ticket->short_code}\nPassager : {$ticket->reservationPassenger?->first_name} {$ticket->reservationPassenger?->last_name}\nRéservation : {$reservation->uuid}\nMontant payé : {$reservation->total_amount} XOF";
+        $text = $this->buildMessage($reservation, $ticket);
+
+        // Délai anti-blocage WAHA pour les contacts nouveaux.
+        $this->throttleIfNewContact((string) $phone);
 
         $pdf = $generatePdf->execute($ticket);
         $documentData = base64_encode($pdf['content']);
@@ -76,29 +81,99 @@ class SendReservationWhatsAppNotificationJob implements ShouldQueue
 
         $delivery->increment('attempts');
 
-        try {
-            $result = $genuka->send($phone, $text, $documentData, $documentFilename);
-            $delivery->update(['provider' => 'genuka', 'status' => WhatsAppDeliveryStatus::Sent, 'provider_message_id' => $result['message_id'], 'sent_at' => now(), 'last_error' => null]);
-        } catch (Throwable $exception) {
-            if (! $this->shouldFallback($exception)) {
-                $delivery->update(['status' => WhatsAppDeliveryStatus::Failed, 'last_error' => $exception->getMessage()]);
-                throw $exception;
-            }
-
+        // Genuka primaire, fallback WAHA si non configuré.
+        if ($this->isGenukaConfigured()) {
             try {
-                $result = $waha->send($phone, $text, $documentData, $documentFilename);
-                $delivery->update(['provider' => 'waha', 'status' => WhatsAppDeliveryStatus::Sent, 'provider_message_id' => $result['message_id'], 'sent_at' => now(), 'last_error' => $exception->getMessage()]);
-            } catch (Throwable $fallbackException) {
-                $delivery->update(['provider' => 'waha', 'status' => WhatsAppDeliveryStatus::Failed, 'last_error' => $fallbackException->getMessage()]);
-                throw $fallbackException;
+                $result = $genuka->send($phone, $text, $documentData, $documentFilename);
+                $delivery->update(['provider' => 'genuka', 'status' => WhatsAppDeliveryStatus::Sent, 'provider_message_id' => $result['message_id'], 'sent_at' => now(), 'last_error' => null]);
+
+                return;
+            } catch (Throwable $exception) {
+                if (! $this->shouldFallback($exception)) {
+                    $delivery->update(['status' => WhatsAppDeliveryStatus::Failed, 'last_error' => $exception->getMessage()]);
+                    throw $exception;
+                }
+                $genukaError = $exception->getMessage();
             }
+        } else {
+            $genukaError = 'Genuka non configuré (GENUKA_TOKEN manquant) — bascule directe vers WAHA.';
         }
+
+        try {
+            $result = $waha->send($phone, $text, $documentData, $documentFilename);
+            $delivery->update(['provider' => 'waha', 'status' => WhatsAppDeliveryStatus::Sent, 'provider_message_id' => $result['message_id'], 'sent_at' => now(), 'last_error' => $genukaError]);
+        } catch (WahaReachoutBlockedException $blockedException) {
+            $delivery->update([
+                'provider' => 'waha',
+                'status' => WhatsAppDeliveryStatus::Skipped,
+                'last_error' => $blockedException->getMessage(),
+            ]);
+        } catch (Throwable $fallbackException) {
+            $delivery->update(['provider' => 'waha', 'status' => WhatsAppDeliveryStatus::Failed, 'last_error' => $fallbackException->getMessage()]);
+            throw $fallbackException;
+        }
+    }
+
+    private function buildMessage(Reservation $reservation, Ticket $ticket): string
+    {
+        $firstName = trim((string) $ticket->reservationPassenger?->first_name);
+        $fullName = trim($ticket->reservationPassenger?->first_name.' '.$ticket->reservationPassenger?->last_name);
+        $greeting = $firstName !== '' ? "Bonjour {$firstName}," : 'Bonjour,';
+
+        $lines = [
+            $greeting,
+            "votre billet KORA BUS {$ticket->short_code} est confirmé.",
+            "Passager : {$fullName}",
+            "Réservation : {$reservation->uuid}",
+            "Montant payé : {$reservation->total_amount} XOF",
+            'Merci de voyager avec KORA BUS.',
+        ];
+
+        return collect($lines)
+            ->map(fn (string $line): string => $this->jitterSpaces($line))
+            ->implode("\n");
+    }
+
+    private function jitterSpaces(string $line): string
+    {
+        if (random_int(1, 100) <= 30) {
+            $line = preg_replace('/([,:]) /', '$1  ', $line, 1) ?? $line;
+        }
+
+        return $line;
+    }
+
+    private function isGenukaConfigured(): bool
+    {
+        $token = (string) config('services.genuka.token');
+        $connectionId = (string) config('services.genuka.connection_id');
+
+        return $token !== '' && $connectionId !== '';
     }
 
     private function shouldFallback(Throwable $exception): bool
     {
         $status = $exception instanceof RequestException ? $exception->response->status() : null;
 
-        return $status === null || $status >= 500 || $status === 408 || $status === 429;
+        return $status === null || $status === 401 || $status === 403 || $status === 408 || $status === 429 || $status >= 500;
+    }
+
+    private function throttleIfNewContact(string $phone): void
+    {
+        $delaySeconds = (int) config('services.waha.new_contact_delay_seconds', 30);
+
+        if ($delaySeconds <= 0) {
+            return;
+        }
+
+        $alreadyContacted = WhatsAppDelivery::query()
+            ->where('recipient_phone', $phone)
+            ->where('status', WhatsAppDeliveryStatus::Sent->value)
+            ->where('sent_at', '>=', now()->subDay())
+            ->exists();
+
+        if (! $alreadyContacted) {
+            sleep(random_int($delaySeconds, $delaySeconds * 2));
+        }
     }
 }

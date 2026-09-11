@@ -95,6 +95,8 @@ it('records an exact cash payment, change, cash movement and one ticket per pass
         'method' => 'cash',
         'amount' => 11000,
         'cash_received_amount' => 12000,
+        'payer_name' => 'AHOUSSOU EDEN',
+        'payer_phone' => '+2290166877345',
         'idempotency_key' => (string) Str::uuid(),
         'verified_manually' => true,
     ]);
@@ -109,6 +111,8 @@ it('records an exact cash payment, change, cash movement and one ticket per pass
         'amount' => 11000,
         'cash_received_amount' => 12000,
         'change_amount' => 1000,
+        'payer_name' => 'AHOUSSOU EDEN',
+        'payer_phone' => '+2290166877345',
     ]);
     $this->assertDatabaseHas('cash_movements', [
         'type' => 'counter_sale_cash',
@@ -139,6 +143,7 @@ it('rejects an insufficient cash payment without creating a payment or ticket', 
             'method' => 'cash',
             'amount' => 11000,
             'cash_received_amount' => 10000,
+            'payer_name' => 'Test Payer',
             'idempotency_key' => (string) Str::uuid(),
             'verified_manually' => true,
         ])
@@ -237,6 +242,8 @@ it('is idempotent when the same request is submitted twice', function (): void {
         'method' => 'cash',
         'amount' => 11000,
         'cash_received_amount' => 11000,
+        'payer_name' => 'AHOUSSOU EDEN',
+        'payer_phone' => '+2290166877345',
         'idempotency_key' => (string) Str::uuid(),
         'verified_manually' => true,
     ];

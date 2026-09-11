@@ -19,8 +19,26 @@ class FiscalInvoicePayloadBuilder
         $unitPrice = intdiv($total, $passengerCount);
         $remainder = $total - ($unitPrice * $passengerCount);
 
-        $client = $reservation->payer_type->value === 'company' ? $reservation->companyAccount : $reservation->payer;
         $creator = $reservation->creator;
+
+        // Client fiscal : utiliser le payeur du paiement (nom + téléphone),
+        // pas le payer de la réservation (qui est l'agent guichet).
+        // Pour les ventes entreprise, utiliser le compte entreprise.
+        // En fallback, utiliser le premier passager.
+        if ($reservation->payer_type->value === 'company') {
+            $clientName = $reservation->companyAccount?->name;
+            $clientContact = $payment?->payer_phone;
+        } else {
+            $clientName = $payment?->payer_name;
+            $clientContact = $payment?->payer_phone;
+
+            // Fallback : premier passager si pas de payeur sur le paiement
+            if ($clientName === null && $passengers->isNotEmpty()) {
+                $firstPassenger = $passengers->first();
+                $clientName = trim($firstPassenger->first_name.' '.$firstPassenger->last_name);
+                $clientContact = $clientContact ?? $firstPassenger->phone;
+            }
+        }
 
         $items = $passengers->map(fn ($passenger, int $index): array => [
             'name' => 'Billet de transport KORA BUS - '.Str::limit(trim($passenger->first_name.' '.$passenger->last_name), 70, ''),
@@ -37,8 +55,8 @@ class FiscalInvoicePayloadBuilder
                 'name' => $creator === null ? 'KORA BUS' : $creator->name,
             ], fn ($value): bool => $value !== null && $value !== ''),
             'client' => array_filter([
-                'name' => $client === null ? null : $client->name,
-                'contact' => $payment->payer_phone ?? ($client === null ? null : $client->phone),
+                'name' => $clientName,
+                'contact' => $clientContact,
             ]),
             'items' => $items,
             'payment' => $payment === null ? [] : [[
