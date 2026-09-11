@@ -61,6 +61,9 @@ jobs:
           printf "BROWSERSHOT_CHROME_PATH=%s\n" "$CHROME_PATH" >> .env
           # Browsershot temp dir must exist before writing HTML files.
           mkdir -p storage/app/temp/chrome
+          # Ticket QR signing keys (test keypair, safe for CI).
+          echo "KORA_TICKET_SIGNING_PRIVATE_KEY=I6KFQT1V89kAkMD6j9tF6V/I6Ij5uH0aomSdMNy/phRMOMFt06hCiB+GO9hsZ0w/KOwnsHsB1AC5OSgh/AOsMQ=" >> .env
+          echo "KORA_TICKET_SIGNING_PUBLIC_KEY=TDjBbdOoQogfhjvYbGdMPyjsJ7B7AdQAuTkoIfwDrDE=" >> .env
 
       - name: Generate Wayfinder routes/actions
         run: php artisan wayfinder:generate --with-form
