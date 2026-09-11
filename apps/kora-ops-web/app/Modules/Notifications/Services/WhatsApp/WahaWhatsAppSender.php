@@ -49,9 +49,11 @@ class WahaWhatsAppSender implements WhatsAppSender
 
     private function throwIfBlocked(Response $response): void
     {
+        $code = $response->status();
         $body = $response->body();
-        if (preg_match('/\b(463|475)\b/', $body, $match)) {
-            throw new WahaReachoutBlockedException((int) $match[1], "WhatsApp a temporairement restreint l'envoi (code {$match[1]}).");
+        if (in_array($code, [463, 475], true) || preg_match('/\b(463|475)\b/', $body, $match)) {
+            $wahaCode = (int) ($match[1] ?? $code);
+            throw new WahaReachoutBlockedException($wahaCode, "WhatsApp a temporairement restreint l'envoi (code {$wahaCode}).");
         }
         $response->throw();
     }
@@ -59,7 +61,7 @@ class WahaWhatsAppSender implements WhatsAppSender
     private function http(): PendingRequest
     {
         return Http::baseUrl((string) config('services.waha.url'))
-            ->withToken((string) config('services.waha.token'))
+            ->withHeaders(['X-Api-Key' => (string) config('services.waha.token')])
             ->timeout(30)
             ->connectTimeout(5);
     }

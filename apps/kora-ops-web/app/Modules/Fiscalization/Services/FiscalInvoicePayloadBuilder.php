@@ -21,23 +21,12 @@ class FiscalInvoicePayloadBuilder
 
         $creator = $reservation->creator;
 
-        // Client fiscal : utiliser le payeur du paiement (nom + téléphone),
-        // pas le payer de la réservation (qui est l'agent guichet).
-        // Pour les ventes entreprise, utiliser le compte entreprise.
-        // En fallback, utiliser le premier passager.
         if ($reservation->payer_type->value === 'company') {
             $clientName = $reservation->companyAccount?->name;
             $clientContact = $payment?->payer_phone;
         } else {
             $clientName = $payment?->payer_name;
             $clientContact = $payment?->payer_phone;
-
-            // Fallback : premier passager si pas de payeur sur le paiement
-            if ($clientName === null && $passengers->isNotEmpty()) {
-                $firstPassenger = $passengers->first();
-                $clientName = trim($firstPassenger->first_name.' '.$firstPassenger->last_name);
-                $clientContact = $clientContact ?? $firstPassenger->phone;
-            }
         }
 
         $items = $passengers->map(fn ($passenger, int $index): array => [

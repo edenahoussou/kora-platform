@@ -1,4 +1,5 @@
 # Staging environment - deploiement automatique sur merge vers main
+# Le container app tourne sous Supervisor : php-fpm + queue worker + scheduler.
 services:
   app: &application
     image: ghcr.io/edenahoussou/kora-ops-web:staging
@@ -28,7 +29,7 @@ services:
       MAIL_FROM_ADDRESS: no-reply@kora.demo
       MAIL_FROM_NAME: KORA Staging
       LOG_STACK: docker
-    command: [ "sh", "-c", "chown -R www-data:www-data /app/storage /app/bootstrap/cache && exec php-fpm" ]
+    command: [ "sh", "-c", "chown -R www-data:www-data /app/storage /app/bootstrap/cache && exec supervisord -c /etc/supervisor/conf.d/supervisord.conf" ]
     volumes:
       - staging-storage:/app/storage
     depends_on:
@@ -41,17 +42,6 @@ services:
     networks:
       - kora-staging
     restart: unless-stopped
-
-  queue:
-    <<: *application
-    container_name: kora-staging-queue
-    command: ["php", "artisan", "queue:work", "--sleep=1", "--tries=3", "--timeout=60", "--max-time=3600"]
-    stop_grace_period: 90s
-
-  scheduler:
-    <<: *application
-    container_name: kora-staging-scheduler
-    command: ["php", "artisan", "schedule:work"]
     stop_grace_period: 90s
 
   nginx:

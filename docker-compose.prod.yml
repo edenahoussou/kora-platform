@@ -1,4 +1,5 @@
 # Production environment - deploiement manuel sur tag v*
+# Le container app tourne sous Supervisor : php-fpm + queue worker + scheduler.
 services:
   app: &application
     image: ghcr.io/edenahoussou/kora-ops-web:latest
@@ -30,17 +31,6 @@ services:
     networks:
       - kora-prod
     restart: unless-stopped
-
-  queue:
-    <<: *application
-    container_name: kora-prod-queue
-    command: ["php", "artisan", "queue:work", "--sleep=1", "--tries=3", "--timeout=60", "--max-time=3600"]
-    stop_grace_period: 90s
-
-  scheduler:
-    <<: *application
-    container_name: kora-prod-scheduler
-    command: ["php", "artisan", "schedule:work"]
     stop_grace_period: 90s
 
   nginx:

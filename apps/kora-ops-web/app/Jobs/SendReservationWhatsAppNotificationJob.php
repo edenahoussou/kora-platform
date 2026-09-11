@@ -10,9 +10,11 @@ use App\Modules\Notifications\Services\WhatsApp\WahaReachoutBlockedException;
 use App\Modules\Notifications\Services\WhatsApp\WahaWhatsAppSender;
 use App\Modules\Ticketing\Actions\GenerateTicketPdfAction;
 use App\Modules\Ticketing\Models\Ticket;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -21,6 +23,8 @@ class SendReservationWhatsAppNotificationJob implements ShouldQueue
     use Queueable;
 
     public int $tries = 3;
+
+    public int $timeout = 120;
 
     /** @var array<int, int> */
     public array $backoff = [15, 90, 300];
@@ -36,6 +40,16 @@ class SendReservationWhatsAppNotificationJob implements ShouldQueue
      */
     public function handle(GenukaWhatsAppSender $genuka, WahaWhatsAppSender $waha, GenerateTicketPdfAction $generatePdf): void
     {
+        try {
+            Cache::lock("whatsapp-send-{$this->ticketId}", 300)
+                ->block(0, fn () => $this->send($genuka, $waha, $generatePdf));
+        } catch (LockTimeoutException) {
+            return;
+        }
+    }
+
+    private function send(GenukaWhatsAppSender $genuka, WahaWhatsAppSender $waha, GenerateTicketPdfAction $generatePdf): void
+    {
         $reservation = Reservation::query()->with(['tickets.reservationPassenger', 'payments', 'payer', 'companyAccount'])->findOrFail($this->reservationId);
         $ticket = $reservation->tickets->firstWhere('id', $this->ticketId);
         if ($ticket === null) {
@@ -44,6 +58,24 @@ class SendReservationWhatsAppNotificationJob implements ShouldQueue
         $payment = $reservation->payments->firstWhere('status', 'confirmed') ?? $reservation->payments->first();
         $defaultPhone = $payment->payer_phone ?? ($reservation->payer_type->value === 'company' ? $reservation->companyAccount?->phone : $reservation->payer?->phone);
         $phone = $this->phoneOverride ?? $defaultPhone;
+
+        if ($phone === null || trim((string) $phone) === '') {
+            $delivery = WhatsAppDelivery::query()->firstOrCreate(
+                ['ticket_id' => $ticket->id],
+                [
+                    'uuid' => (string) Str::uuid(),
+                    'reservation_id' => $reservation->id,
+                    'provider' => 'genuka',
+                    'recipient_phone' => '',
+                    'status' => WhatsAppDeliveryStatus::Skipped,
+                    'last_error' => 'Aucun numéro WhatsApp valide pour le payeur.',
+                ],
+            );
+
+            return;
+        }
+
+        $phone = $this->normalizePhone((string) $phone);
 
         $delivery = WhatsAppDelivery::query()->firstOrCreate(
             ['ticket_id' => $ticket->id],
@@ -60,19 +92,12 @@ class SendReservationWhatsAppNotificationJob implements ShouldQueue
             $delivery->update(['recipient_phone' => $this->phoneOverride, 'status' => WhatsAppDeliveryStatus::Pending, 'last_error' => null]);
         }
 
-        if ($phone === null || trim($phone) === '') {
-            $delivery->update(['status' => WhatsAppDeliveryStatus::Skipped, 'last_error' => 'Aucun numéro WhatsApp valide pour le payeur.']);
-
-            return;
-        }
-
         if ($delivery->getRawOriginal('status') === WhatsAppDeliveryStatus::Sent->value) {
             return;
         }
 
         $text = $this->buildMessage($reservation, $ticket);
 
-        // Délai anti-blocage WAHA pour les contacts nouveaux.
         $this->throttleIfNewContact((string) $phone);
 
         $pdf = $generatePdf->execute($ticket);
@@ -81,7 +106,6 @@ class SendReservationWhatsAppNotificationJob implements ShouldQueue
 
         $delivery->increment('attempts');
 
-        // Genuka primaire, fallback WAHA si non configuré.
         if ($this->isGenukaConfigured()) {
             try {
                 $result = $genuka->send($phone, $text, $documentData, $documentFilename);
@@ -175,5 +199,16 @@ class SendReservationWhatsAppNotificationJob implements ShouldQueue
         if (! $alreadyContacted) {
             sleep(random_int($delaySeconds, $delaySeconds * 2));
         }
+    }
+
+    private function normalizePhone(string $phone): string
+    {
+        $digits = preg_replace('/\D+/', '', $phone);
+
+        if (str_starts_with($digits, '22901') && strlen($digits) === 13) {
+            $digits = '229'.substr($digits, 5);
+        }
+
+        return '+'.$digits;
     }
 }
