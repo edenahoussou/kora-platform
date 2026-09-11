@@ -13,8 +13,9 @@ import {
     Ticket,
     Users,
 } from 'lucide-react';
-import { cash, manifest, sale } from '@/routes';
+import { cash, sale } from '@/routes';
 import { index as departures } from '@/routes/departures';
+import { index as manifest } from '@/routes/manifest';
 
 export type MetricTone = 'gold' | 'blue' | 'navy' | 'green';
 

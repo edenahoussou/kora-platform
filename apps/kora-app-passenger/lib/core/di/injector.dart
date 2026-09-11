@@ -44,6 +44,7 @@ import '../../features/payment/data/datasources/payment_remote_data_source.dart'
 import '../../features/payment/data/repositories/payment_repository_impl.dart';
 import '../../features/payment/domain/repositories/payment_repository.dart';
 import '../../features/payment/presentation/bloc/payment_catalog_bloc.dart';
+import '../../features/payment/presentation/bloc/payment_flow_bloc.dart';
 import '../../features/theme/data/datasources/theme_local_data_source.dart';
 import '../../features/theme/data/repositories/theme_repository_impl.dart';
 import '../../features/theme/domain/repositories/theme_repository.dart';
@@ -247,6 +248,8 @@ void _registerPaymentFeature() {
   );
 
   getIt.registerFactory<PaymentCatalogBloc>(() => PaymentCatalogBloc(getIt()));
+
+  getIt.registerFactory<PaymentFlowBloc>(() => PaymentFlowBloc(getIt()));
 }
 
 /// Feature `language` : même chaîne que le thème — un data source

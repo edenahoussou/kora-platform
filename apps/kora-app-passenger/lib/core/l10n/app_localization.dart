@@ -141,6 +141,15 @@ class AppLocalization {
     return value ?? key;
   }
 
+  /// La traduction de [key], ou `null` si l'app ne la connaît pas.
+  ///
+  /// Contrairement à [translate], n'accuse pas la clé manquante : elle sert
+  /// aux libellés dont la liste est décidée par le **serveur** — les
+  /// services à bord, par exemple. Un équipement ajouté côté back après la
+  /// sortie de cette version n'est pas un oubli de traduction, et ne doit
+  /// pas faire sauter l'assertion en développement.
+  String? maybeTranslate(String key) => _strings[key] ?? _fallbackStrings[key];
+
   /// Remplace les jetons `{nom}` d'un texte par leur valeur — les langues
   /// ne placent pas leurs variables au même endroit dans la phrase, une
   /// concaténation en Dart figerait l'ordre français.
@@ -155,6 +164,14 @@ class AppLocalization {
   }
 
   // ---------------------------------------------------------------- commun
+  String get paymentMethodLoading => translate('payment_method_loading');
+  String get paymentMethodFailed => translate('payment_method_failed');
+  String get paymentMethodRetry => translate('payment_method_retry');
+  String get paymentMethodNone => translate('payment_method_none');
+  String get paymentMethodOutOfMvp => translate('payment_method_out_of_mvp');
+  String get paymentMethodUnavailable =>
+      translate('payment_method_unavailable');
+
   String get appTagline => translate('app_tagline');
   String get actionRetry => translate('action_retry');
   String get actionContinue => translate('action_continue');
@@ -597,7 +614,6 @@ class AppLocalization {
   String get passengersEyebrowInternational =>
       translate('passengers_eyebrow_international');
   String get passengersStep => translate('passengers_step');
-  String get passengersIncomplete => translate('passengers_incomplete');
   String get passengersNotice => translate('passengers_notice');
   String get passengersNoticeInternational =>
       translate('passengers_notice_international');
@@ -620,6 +636,21 @@ class AppLocalization {
       _withArgs('passengers_phone_length', {'digits': digits});
   String get passengersEmail => translate('passengers_email');
   String get passengersEmailInvalid => translate('passengers_email_invalid');
+  String passengersIncompleteDetail(String details) =>
+      _withArgs('passengers_incomplete_detail', {'details': details});
+  String passengersIncompletePassenger(int index, String fields) => _withArgs(
+    'passengers_incomplete_passenger',
+    {'index': index, 'fields': fields},
+  );
+  String get passengersDocumentTypeOptional =>
+      translate('passengers_document_type_optional');
+  String get passengersDocumentNumberOptional =>
+      translate('passengers_document_number_optional');
+  String get passengersDocumentNone => translate('passengers_document_none');
+  String get passengersYellowFever => translate('passengers_yellow_fever');
+  String get passengersAccuracy => translate('passengers_accuracy');
+  String get passengersAccuracyRequired =>
+      translate('passengers_accuracy_required');
   String get passengersDocumentType => translate('passengers_document_type');
   String get passengersDocumentNumber =>
       translate('passengers_document_number');
@@ -639,7 +670,6 @@ class AppLocalization {
   String get passengersDocNationalId => translate('passengers_doc_national_id');
   String get passengersDocBiometric => translate('passengers_doc_biometric');
   String get passengersDocConsular => translate('passengers_doc_consular');
-  String get passengersDocCip => translate('passengers_doc_cip');
   String get summaryEyebrow => translate('summary_eyebrow');
   String get summaryTitle => translate('summary_title');
   String get summaryPassengers => translate('summary_passengers');

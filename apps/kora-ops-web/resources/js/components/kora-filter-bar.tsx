@@ -1,4 +1,4 @@
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { Filter, X } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -41,10 +41,18 @@ export function KoraFilterBar({
     filters,
     route: routeUrl,
 }: KoraFilterBarProps) {
-    const urlParams = useMemo(
-        () => new URLSearchParams(window.location.search),
-        [],
-    );
+    // Inertia's own page.url (path + query string) is available identically
+    // on the server and the client, unlike window.location which only
+    // exists in the browser — this is what makes the filter bar SSR-safe
+    // and avoids a hydration mismatch between the two renders.
+    const { url: currentUrl } = usePage();
+    const urlParams = useMemo(() => {
+        const queryString = currentUrl.includes('?')
+            ? currentUrl.slice(currentUrl.indexOf('?') + 1)
+            : '';
+
+        return new URLSearchParams(queryString);
+    }, [currentUrl]);
 
     const [searchValue, setSearchValue] = useState(
         urlParams.get(searchName) ?? '',

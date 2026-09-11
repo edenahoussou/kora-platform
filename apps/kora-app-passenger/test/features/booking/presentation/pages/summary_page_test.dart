@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:kora_app_passenger/core/error/failures.dart';
 import 'package:kora_app_passenger/core/l10n/app_localization.dart';
+import 'package:kora_app_passenger/core/router/app_router.dart';
 import 'package:kora_app_passenger/core/utils/date_formats.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
@@ -18,6 +20,7 @@ import 'package:kora_app_passenger/features/booking/domain/entities/seat.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/group_quote_cubit.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/seat_hold_bloc.dart';
 import 'package:kora_app_passenger/features/booking/presentation/pages/summary_page.dart';
+import 'package:kora_app_passenger/features/payment/presentation/pages/payment_args.dart';
 
 import '../../../../support/seat_hold_harness.dart';
 
@@ -63,6 +66,9 @@ void main() {
       ),
   ];
 
+  /// Ce que le récapitulatif transmet au paiement, saisi par le routeur.
+  PaymentArgs? sentToPayment;
+
   Future<void> pumpSummary(
     WidgetTester tester, {
     int passengers = 1,
@@ -72,8 +78,35 @@ void main() {
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
 
+    sentToPayment = null;
+
+    final quote = GroupQuoteCubit(repository ?? StubReservationRepository());
+    final router = GoRouter(
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (context, state) => withSeatHold(
+            SummaryPage(
+              departure: departure,
+              passengers: passengersOf(passengers),
+            ),
+            bloc: holdBloc,
+            groupQuote: quote,
+          ),
+        ),
+        GoRoute(
+          path: AppRouter.paymentMethodPath,
+          builder: (context, state) {
+            sentToPayment = state.extra as PaymentArgs?;
+            return const Scaffold(body: Text('paiement'));
+          },
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
     await tester.pumpWidget(
-      MaterialApp(
+      MaterialApp.router(
         theme: AppTheme.light,
         locale: const Locale('fr', 'FR'),
         supportedLocales: const [Locale('fr', 'FR')],
@@ -83,16 +116,7 @@ void main() {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        home: withSeatHold(
-          SummaryPage(
-            departure: departure,
-            passengers: passengersOf(passengers),
-          ),
-          bloc: holdBloc,
-          groupQuote: GroupQuoteCubit(
-            repository ?? StubReservationRepository(),
-          ),
-        ),
+        routerConfig: router,
       ),
     );
     await tester.pumpAndSettle();
@@ -153,6 +177,50 @@ void main() {
       expect(find.textContaining('Remise groupe'), findsNothing);
       // Le prix du départ, multiplié localement.
       expect(find.text((departure.price * 2).formatted), findsWidgets);
+    });
+  });
+
+  group('montant transmis au paiement', () {
+    testWidgets('un groupe transmet le total remisé, pas le produit', (
+      tester,
+    ) async {
+      // Le défaut corrigé ici : le récapitulatif affichait 56 250 puis
+      // envoyait 62 500 au paiement. Deux écrans consécutifs montrant deux
+      // prix différents suffisent à faire abandonner un achat, même si le
+      // serveur débite ensuite le bon montant.
+      await pumpSummary(tester, passengers: 5);
+
+      await tester.tap(find.text('Continuer vers le paiement'));
+      await tester.pumpAndSettle();
+
+      // Barème du stub : 12 500 par voyageur, 10 % dès cinq.
+      expect(sentToPayment!.total, const Price(56250));
+    });
+
+    testWidgets('un voyageur seul transmet le tarif du départ', (tester) async {
+      await pumpSummary(tester);
+
+      await tester.tap(find.text('Continuer vers le paiement'));
+      await tester.pumpAndSettle();
+
+      expect(sentToPayment!.total, departure.price);
+    });
+
+    testWidgets('sans devis, le produit local prend le relais', (tester) async {
+      // Un devis refusé ne doit pas barrer le paiement : le prix reste
+      // juste à la remise près, et le serveur tranchera de toute façon.
+      await pumpSummary(
+        tester,
+        passengers: 3,
+        repository: StubReservationRepository(
+          failure: const ServerFailure('Devis indisponible.'),
+        ),
+      );
+
+      await tester.tap(find.text('Continuer vers le paiement'));
+      await tester.pumpAndSettle();
+
+      expect(sentToPayment!.total, departure.price * 3);
     });
   });
 

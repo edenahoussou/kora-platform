@@ -18,12 +18,17 @@ import 'package:kora_app_passenger/features/booking/domain/entities/seat.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/seat_hold_bloc.dart';
 import 'package:kora_app_passenger/features/booking/presentation/pages/passenger_form_page.dart';
 import 'package:kora_app_passenger/features/booking/presentation/pages/summary_page.dart';
+import 'package:kora_app_passenger/features/profil/presentation/pages/birth_date_picker_page.dart';
 
 import '../../../../support/seat_hold_harness.dart';
 
 void main() {
   late SeatHoldBloc holdBloc;
   late AuthBloc authBloc;
+
+  /// Gardée à part du Bloc : c'est elle qui retient les voyageurs envoyés,
+  /// et les tests de la revue Kora vérifient ce que chacun porte.
+  late StubReservationRepository reservations;
 
   final cotonou = kMockCities.firstWhere((city) => city.id == 'ctn');
   final malanville = kMockCities.firstWhere((city) => city.id == 'mlv');
@@ -44,7 +49,8 @@ void main() {
   });
 
   setUp(() {
-    holdBloc = SeatHoldBloc(StubReservationRepository());
+    reservations = StubReservationRepository();
+    holdBloc = SeatHoldBloc(reservations);
     addTearDown(holdBloc.close);
 
     departure = mockDeparturesFor(
@@ -99,6 +105,16 @@ void main() {
           ),
         ),
         GoRoute(
+          path: AppRouter.birthDatePath,
+          builder: (context, state) {
+            final args = state.extra! as BirthDateArgs;
+            return BirthDatePickerPage(
+              selected: args.selected,
+              eyebrow: args.eyebrow,
+            );
+          },
+        ),
+        GoRoute(
           path: AppRouter.summaryPath,
           builder: (context, state) {
             final args = state.extra! as SummaryArgs;
@@ -129,6 +145,15 @@ void main() {
         ],
         routerConfig: router,
       ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  /// Coche la confirmation d'exactitude, seule condition bloquante du
+  /// formulaire depuis la revue Kora du 29 août 2026.
+  Future<void> confirmAccuracy(WidgetTester tester) async {
+    await tester.tap(
+      find.text('Je confirme l’exactitude des informations saisies.'),
     );
     await tester.pumpAndSettle();
   }
@@ -171,9 +196,33 @@ void main() {
     expect(find.text('Prénom requis'), findsOneWidget);
     expect(find.text('Nom requis'), findsOneWidget);
     expect(find.text('Téléphone requis'), findsOneWidget);
+    // Le message nomme le voyageur et ses champs : « Complétez les champs
+    // signalés » laissait croire, sur le formulaire international, que la
+    // pièce d'identité bloquait encore.
     expect(
-      find.text('Complétez les champs signalés pour continuer.'),
+      find.textContaining('Passager 2 — Prénom, Nom, Téléphone'),
       findsOneWidget,
+    );
+  });
+
+  testWidgets('le blocage nomme la naissance, pas le document', (tester) async {
+    // Le cas signalé au test terrain : sur un trajet international, seule
+    // la naissance manque, et le message générique se lisait comme si le
+    // document — devenu facultatif — retenait encore.
+    await pumpForm(tester, international: true);
+
+    await tester.tap(find.text('Enregistrer et continuer'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Passager 1 — Naissance'), findsOneWidget);
+    // Le bandeau seul : « document » figure par ailleurs dans l'intitulé
+    // des deux champs facultatifs, qui restent affichés.
+    expect(
+      find.descendant(
+        of: find.byType(SnackBar),
+        matching: find.textContaining('document'),
+      ),
+      findsNothing,
     );
   });
 
@@ -190,6 +239,7 @@ void main() {
 
   testWidgets('accepte un formulaire complet', (tester) async {
     await pumpForm(tester);
+    await confirmAccuracy(tester);
 
     await tester.tap(find.text('Enregistrer et continuer'));
     await tester.pumpAndSettle();
@@ -210,7 +260,7 @@ void main() {
       expect(find.text('E-mail (optionnel)'), findsOneWidget);
       // Aucun champ de frontière : réclamer un passeport pour un
       // Cotonou → Malanville n'aurait aucun sens.
-      expect(find.text('Type de document'), findsNothing);
+      expect(find.text('Type de document (facultatif)'), findsNothing);
       expect(find.text('Nationalité'), findsNothing);
     });
 
@@ -220,8 +270,8 @@ void main() {
       await pumpForm(tester, international: true);
 
       expect(find.text('Identités internationales'), findsOneWidget);
-      expect(find.text('Type de document'), findsOneWidget);
-      expect(find.text('Numéro du document'), findsOneWidget);
+      expect(find.text('Type de document (facultatif)'), findsOneWidget);
+      expect(find.text('Numéro du document (facultatif)'), findsOneWidget);
       expect(find.text('Nationalité'), findsOneWidget);
       expect(find.text('Naissance'), findsOneWidget);
       // Le courriel facultatif cède la place : la maquette ne l'affiche
@@ -233,19 +283,102 @@ void main() {
       );
     });
 
-    testWidgets('exige les champs du manifeste avant de continuer', (
-      tester,
-    ) async {
+    testWidgets('retient encore sur la date de naissance', (tester) async {
       await pumpForm(tester, international: true);
 
-      // Identité déjà pré-remplie : seuls les champs de frontière
-      // manquent, et ils doivent suffire à retenir le voyageur.
+      // Identité déjà pré-remplie : seule la naissance manque, et elle
+      // reste due au manifeste de frontière.
       await tester.tap(find.text('Enregistrer et continuer'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Numéro requis'), findsOneWidget);
       expect(find.text('Date requise'), findsOneWidget);
       expect(find.text('Récapitulatif'), findsNothing);
+    });
+
+    testWidgets('ne réclame plus la pièce d’identité', (tester) async {
+      // Revue Kora du 29 août 2026 : le document est facultatif, pour le
+      // voyageur dont la pièce est expirée, perdue ou en renouvellement.
+      await pumpForm(tester, international: true);
+
+      await tester.tap(find.text('Enregistrer et continuer'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Numéro requis'), findsNothing);
+    });
+
+    testWidgets('ne propose plus le CIP', (tester) async {
+      // Retiré de la liste à la revue Kora. Le serveur l'accepte encore,
+      // mais l'app cesse de l'offrir.
+      await pumpForm(tester, international: true);
+
+      await tester.tap(find.text('Non renseigné'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Passeport'), findsWidgets);
+      expect(find.text('Carte biométrique'), findsWidgets);
+      expect(find.text('Carte consulaire'), findsWidgets);
+      expect(find.text('CIP'), findsNothing);
+    });
+  });
+
+  group('revue Kora du 29 août 2026', () {
+    testWidgets('sans la confirmation d’exactitude, rien ne part', (
+      tester,
+    ) async {
+      await pumpForm(tester);
+
+      // Le premier voyageur est pré-rempli : la saisie est complète, et
+      // seule la case non cochée retient encore.
+      await tester.tap(find.text('Enregistrer et continuer'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Confirmez l’exactitude des informations pour continuer.'),
+        findsWidgets,
+      );
+      expect(find.text('Vérifiez votre voyage'), findsNothing);
+    });
+
+    testWidgets('sans document mais avec la confirmation, le parcours passe', (
+      tester,
+    ) async {
+      // Le critère d'acceptation du ticket, mot pour mot.
+      await pumpForm(tester, international: true);
+
+      // La naissance reste due au manifeste ; la pièce, non. Le bouton de
+      // confirmation du calendrier porte la date choisie, pas un « OK ».
+      await tester.tap(find.text('Choisir'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(KoraButton).last);
+      await tester.pumpAndSettle();
+
+      // Aucun type ni numéro de document saisi.
+      expect(find.text('Non renseigné'), findsOneWidget);
+
+      await confirmAccuracy(tester);
+      await tester.tap(find.text('Enregistrer et continuer'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Vérifiez votre voyage'), findsOneWidget);
+    });
+
+    testWidgets('la vaccination se coche voyageur par voyageur', (
+      tester,
+    ) async {
+      // Deux voyageurs sur un même billet n'ont pas le même carnet : la
+      // case du premier ne doit rien décider pour le second.
+      await pumpForm(tester, passengers: 2);
+
+      final boxes = find.byType(Checkbox);
+      // Deux cases de vaccination, plus la confirmation d'exactitude.
+      expect(boxes, findsNWidgets(3));
+
+      await tester.tap(find.text('Vacciné contre la fièvre jaune').first);
+      await tester.pumpAndSettle();
+
+      // Le second bloc reste vierge : rien ne s'est propagé.
+      expect(tester.widget<Checkbox>(boxes.at(0)).value, isTrue);
+      expect(tester.widget<Checkbox>(boxes.at(1)).value, isFalse);
     });
   });
 

@@ -77,4 +77,31 @@ return [
         'redirect' => env('TIKTOK_OAUTH_REDIRECT', '/api/v1/auth/oauth/tiktok/callback'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Fournisseur cartographique (MEZ — étude carte lignes/arrêts)
+    |--------------------------------------------------------------------------
+    |
+    | Le fournisseur actif est résolu ainsi : réglage admin (MapSetting, table
+    | à ligne unique) si défini, sinon cette valeur d'environnement. OSM est le
+    | choix par défaut : gratuit, sans clé API, adapté à un lancement rapide.
+    | Google Maps reste disponible en bascule pour des besoins ponctuels
+    | (Places/geocoding plus précis) moyennant une clé API et la facturation
+    | associée — voir docs/map-provider-study.md pour l'arbitrage complet.
+    |
+    */
+
+    'maps' => [
+        'default_provider' => env('MAP_PROVIDER', 'openstreetmap'),
+
+        'google' => [
+            'api_key' => env('MAP_GOOGLE_MAPS_API_KEY'),
+        ],
+
+        'osm' => [
+            'tile_url' => env('MAP_OSM_TILE_URL', 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
+            'attribution' => env('MAP_OSM_ATTRIBUTION', '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'),
+        ],
+    ],
+
 ];

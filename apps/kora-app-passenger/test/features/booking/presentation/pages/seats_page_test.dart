@@ -10,9 +10,11 @@ import 'package:kora_app_passenger/core/di/injector.dart';
 import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/price.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/seat.dart';
 import 'package:kora_app_passenger/features/booking/domain/usecases/get_seats_usecase.dart';
+import 'package:kora_app_passenger/features/booking/presentation/bloc/group_quote_cubit.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/seat_hold_bloc.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/seats_bloc.dart';
 import 'package:kora_app_passenger/features/booking/presentation/pages/seats_page.dart';
@@ -59,7 +61,11 @@ void main() {
 
   tearDown(() => getIt.reset());
 
-  Future<void> pumpSeats(WidgetTester tester, {int passengers = 1}) async {
+  Future<void> pumpSeats(
+    WidgetTester tester, {
+    int passengers = 1,
+    GroupQuoteCubit? groupQuote,
+  }) async {
     tester.view.physicalSize = const Size(390 * 3, 900 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -78,6 +84,7 @@ void main() {
         home: withSeatHold(
           SeatsPage(departure: departure, passengers: passengers),
           bloc: holdBloc,
+          groupQuote: groupQuote,
         ),
       ),
     );
@@ -238,5 +245,41 @@ void main() {
 
       expect(bloc.state.canContinue, isFalse);
     });
+  });
+
+  testWidgets('un groupe voit le total du devis, remise comprise', (
+    tester,
+  ) async {
+    // Deux écrans annoncent la remise avant celui-ci. Y réafficher le
+    // tarif plein revient à la reprendre sans le dire : sur la staging le
+    // voyageur lisait 284 400, puis 316 000 sous le plan.
+    final quote = GroupQuoteCubit(StubReservationRepository());
+    addTearDown(quote.close);
+    await quote.load(departure: departure, passengers: 5);
+
+    await pumpSeats(tester, passengers: 5, groupQuote: quote);
+
+    // Barème du stub : 12 500 par voyageur, 10 % dès cinq.
+    expect(find.text(const Price(56250).formatted), findsOneWidget);
+    expect(find.text((departure.price * 5).formatted), findsNothing);
+  });
+
+  testWidgets('sans devis, le total reste celui de la recherche', (
+    tester,
+  ) async {
+    // Un devis refusé ne doit pas vider le total : le montant est juste à
+    // la remise près, et c'est mieux qu'un écran barré.
+    await pumpSeats(tester, passengers: 5);
+
+    final free = seats
+        .where((seat) => seat.status == SeatStatus.free)
+        .take(5)
+        .toList();
+    for (final seat in free) {
+      await tester.tap(find.text(seat.label));
+      await tester.pumpAndSettle();
+    }
+
+    expect(find.text((departure.price * 5).formatted), findsOneWidget);
   });
 }

@@ -4,6 +4,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_app_passenger/core/constants/api_constants.dart';
+import 'package:kora_app_passenger/core/error/exceptions.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_data_source.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_remote_data_source.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/city.dart';
@@ -21,8 +22,18 @@ void main() {
   late MockBookingDataSource pending;
   late BookingRemoteDataSourceImpl dataSource;
 
-  const cotonou = City(id: 'Cotonou', name: 'Cotonou', code: 'COT');
-  const abidjan = City(id: 'Abidjan', name: 'Abidjan', code: 'ABI');
+  const cotonou = City(
+    id: 'Cotonou',
+    name: 'Cotonou',
+    code: 'COT',
+    physicalStopId: '74703fce-3358-429d-9994-6b323664a419',
+  );
+  const abidjan = City(
+    id: 'Abidjan',
+    name: 'Abidjan',
+    code: 'ABI',
+    physicalStopId: 'f2b528f4-3c99-461f-ac4e-a10f0721b388',
+  );
   final criteria = SearchCriteria(
     origin: cotonou,
     destination: abidjan,
@@ -64,22 +75,58 @@ void main() {
       ).called(1);
       expect(cities.map((city) => city.name), [
         // Rendues dans l'ordre alphabétique, pas dans celui de l'API.
+        // Bohicon manque à l'appel : le catalogue ne lui rattache aucun
+        // arrêt physique, et la recherche n'aurait rien à interroger.
         'Abidjan',
-        'Bohicon',
         'Cotonou',
       ]);
       expect(cities.first.id, 'Abidjan');
+      expect(
+        cities.first.physicalStopId,
+        'f2b528f4-3c99-461f-ac4e-a10f0721b388',
+      );
     });
 
     test('écarte une entrée sans nom de ville', () async {
       stubGet(const {
         'data': [
-          {'city': 'Cotonou', 'country': 'BJ', 'stops_count': 3},
-          {'country': 'BJ', 'stops_count': 0},
+          {
+            'city': 'Cotonou',
+            'country': 'BJ',
+            'stops_count': 3,
+            'physical_stops': [kCotonouPhysicalStop],
+          },
+          {
+            'country': 'BJ',
+            'stops_count': 0,
+            'physical_stops': [kAbidjanPhysicalStop],
+          },
         ],
       });
 
       expect(await dataSource.getCities(), hasLength(1));
+    });
+
+    test('écarte une ville qu'
+        "'"
+        'aucun arrêt ne dessert', () async {
+      // Elle apparaîtrait dans le sélecteur pour mener à une impasse :
+      // `bus/itineraries` ne sait interroger que des arrêts.
+      stubGet(const {
+        'data': [
+          {
+            'city': 'Cotonou',
+            'country': 'BJ',
+            'stops_count': 3,
+            'physical_stops': [kCotonouPhysicalStop],
+          },
+          {'city': 'Savè', 'country': 'BJ', 'stops_count': 0},
+        ],
+      });
+
+      expect((await dataSource.getCities()).map((city) => city.name), [
+        'Cotonou',
+      ]);
     });
 
     test('une réponse vide est une liste vide, pas une erreur', () async {
@@ -106,24 +153,28 @@ void main() {
   });
 
   group('searchDepartures', () {
-    test('envoie la date au format de l’API et les noms de villes', () async {
+    test('interroge les arrêts physiques, plus les noms de villes', () async {
+      // Le changement de contrat de MEZ-63 : `bus/itineraries` valide ses
+      // deux paramètres contre la table `physical_stops`. Un nom de ville
+      // y est refusé net.
       stubGet(const {
-        'data': [kDeparture],
+        'data': [kItinerary],
       });
 
       await dataSource.searchDepartures(criteria);
 
       final captured = verify(
         () => dio.get<dynamic>(
-          ApiConstants.busDepartures,
+          ApiConstants.busItineraries,
           queryParameters: captureAny(named: 'queryParameters'),
         ),
       ).captured.single;
 
       expect(captured, {
+        'from_physical_stop_uuid': '74703fce-3358-429d-9994-6b323664a419',
+        'to_physical_stop_uuid': 'f2b528f4-3c99-461f-ac4e-a10f0721b388',
         'date': '2026-08-20',
-        'from': 'Cotonou',
-        'to': 'Abidjan',
+        'passenger_count': 1,
       });
     });
 
@@ -150,29 +201,81 @@ void main() {
       expect(captured['date'], '2026-09-05');
     });
 
+    test('transmet le nombre de voyageurs demandé', () async {
+      stubGet(const {'data': <dynamic>[]});
+
+      await dataSource.searchDepartures(
+        SearchCriteria(
+          origin: cotonou,
+          destination: abidjan,
+          date: DateTime(2026, 8, 20),
+          passengers: 5,
+        ),
+      );
+
+      final captured =
+          verify(
+                () => dio.get<dynamic>(
+                  any(),
+                  queryParameters: captureAny(named: 'queryParameters'),
+                ),
+              ).captured.single
+              as Map<String, dynamic>;
+
+      expect(captured['passenger_count'], 5);
+    });
+
+    test('une ville sans arrêt desservi n’est jamais envoyée', () async {
+      // Le serveur répondrait 422. Échouer ici donne un message que
+      // l'écran sait afficher, plutôt qu'une erreur de validation brute.
+      await expectLater(
+        dataSource.searchDepartures(
+          SearchCriteria(
+            origin: City.named('Cotonou'),
+            destination: abidjan,
+            date: DateTime(2026, 8, 20),
+          ),
+        ),
+        throwsA(isA<ServerException>()),
+      );
+
+      verifyNever(
+        () => dio.get<dynamic>(
+          any(),
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      );
+    });
+
     test('rend les départs lus depuis la réponse', () async {
       stubGet(const {
-        'data': [kDeparture],
+        'data': [kItinerary],
       });
 
       final departures = await dataSource.searchDepartures(criteria);
 
       expect(departures, hasLength(1));
-      expect(departures.single.id, 'a3091549-9179-454e-8440-58179f2208df');
-      expect(departures.single.departsAt, DateTime(2026, 8, 20, 6));
+      expect(departures.single.id, '56f674c2-7795-4427-9839-ff5de7345ade');
+      expect(departures.single.price.amount, 31600);
     });
 
-    test('aucun départ n’est un résultat, pas une erreur', () async {
+    test('aucun itinéraire n’est un résultat, pas une erreur', () async {
       stubGet(const {'data': <dynamic>[]});
 
       expect(await dataSource.searchDepartures(criteria), isEmpty);
     });
 
-    test('ignore un départ non datable sans perdre les autres', () async {
+    test('écarte les correspondances sans perdre les directs', () async {
+      // L'app ne sait afficher qu'un trajet direct ; le serveur, lui, rend
+      // les deux dans la même liste.
       stubGet({
         'data': [
-          kDeparture,
-          Map<String, dynamic>.from(kDeparture)..['departure_date'] = '',
+          kItinerary,
+          {
+            ...kItinerary,
+            'connections_count': 1,
+            'legs': [kItineraryLeg, kItineraryLeg],
+          },
         ],
       });
 

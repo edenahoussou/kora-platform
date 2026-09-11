@@ -1,9 +1,9 @@
 import '../../../../core/network/api_json.dart';
 import '../../domain/entities/price.dart';
 import '../../domain/entities/seat_hold.dart';
-import 'quote_model.dart';
 
-/// Couche DATA : la réservation `held` renvoyée par `POST bus/holds`.
+/// Couche DATA : la réservation `held` renvoyée par
+/// `POST bus/itinerary-holds`.
 ///
 /// ```json
 /// {
@@ -71,4 +71,18 @@ class SeatHoldModel {
       ),
     );
   }
+}
+
+/// Lit une échéance ISO en **UTC**.
+///
+/// Le serveur envoie du `Z` ; le comparer à une heure locale décalerait le
+/// décompte d'un fuseau entier. En l'absence d'échéance lisible, on rend
+/// l'instant présent : un blocage déjà expiré est le seul repli honnête —
+/// il renvoie au plan au lieu de laisser croire à du temps qui n'existe
+/// pas.
+///
+/// Vivait dans `quote_model.dart`, parti avec `bus/quotes` (MEZ-63).
+DateTime parseExpiry(String? raw) {
+  if (raw == null) return DateTime.now().toUtc();
+  return DateTime.tryParse(raw)?.toUtc() ?? DateTime.now().toUtc();
 }

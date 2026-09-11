@@ -324,7 +324,7 @@ it('updates profile with name, phone and birth_date', function (): void {
         ])
         ->assertOk()
         ->assertJsonPath('data.user.name', 'Aïcha HOUNKPÈ')
-        ->assertJsonPath('data.user.phone', '+229 01 97 42 18 60')
+        ->assertJsonPath('data.user.phone', '+2290197421860')
         ->assertJsonPath('data.user.birth_date', '1994-04-18T00:00:00.000000Z');
 });
 

@@ -22,11 +22,6 @@ class SearchDeparturesUseCase
   final DepartureRepository _repository;
 
   @override
-  Future<Either<Failure, List<Departure>>> call(SearchCriteria params) {
-    return _repository.search(
-      originCity: params.origin.name,
-      destinationCity: params.destination.name,
-      date: params.date,
-    );
-  }
+  Future<Either<Failure, List<Departure>>> call(SearchCriteria params) =>
+      _repository.search(params);
 }

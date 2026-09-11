@@ -12,6 +12,7 @@ import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/group_booking_limits.dart';
+import '../../domain/entities/price.dart';
 import '../../domain/entities/seat.dart';
 import '../bloc/group_payer_cubit.dart';
 import '../bloc/group_quote_cubit.dart';
@@ -207,10 +208,12 @@ class _Checkout extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 9),
-              _CheckoutSlot(
-                label: l10n.seatsTotal,
-                value: state.total.formatted,
-                alignEnd: true,
+              BlocBuilder<GroupQuoteCubit, GroupQuoteState>(
+                builder: (context, quote) => _CheckoutSlot(
+                  label: l10n.seatsTotal,
+                  value: _payableTotal(state, quote).formatted,
+                  alignEnd: true,
+                ),
               ),
             ],
           ),
@@ -315,6 +318,25 @@ class _ContinueButton extends StatelessWidget {
 /// obtenu — celui qui portait la remise montrée au voyageur. Sans ce devis
 /// en mémoire, on retombe sur le chemin ordinaire plutôt que de bloquer le
 /// parcours : le prix sera juste, à la remise près.
+/// Le total que le voyageur réglera : celui du devis quand le serveur en a
+/// rendu un, le tarif de la recherche multiplié sinon.
+///
+/// [SeatsState.total] ne connaît que le prix unitaire du départ : sur un
+/// groupe il affichait le tarif plein, après deux écrans qui venaient
+/// d'annoncer la remise. Le voyageur lisait 316 000 là où on lui avait
+/// promis 284 400.
+Price _payableTotal(SeatsState state, GroupQuoteState quote) {
+  final departure = state.departure;
+  if (departure == null) return state.total;
+
+  if (quote.matches(departure.id, state.passengers)) {
+    final total = quote.quote?.total;
+    if (total != null) return total;
+  }
+
+  return state.total;
+}
+
 void _hold(BuildContext context, SeatsState state) {
   final departure = state.departure!;
   final quoteState = context.read<GroupQuoteCubit>().state;

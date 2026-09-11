@@ -11,6 +11,7 @@ library;
 
 import 'dart:math';
 
+import '../../domain/entities/amenity.dart';
 import '../../domain/entities/city.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/line.dart';
@@ -202,7 +203,11 @@ List<Departure> mockDeparturesFor(SearchCriteria criteria) {
       price: Price(base.amount + extra),
       seatsTotal: 55,
       seatsAvailable: seatsAvailable,
-      amenities: const ['Wi-Fi', 'Climatisation', 'USB'],
+      amenities: const [
+        Amenity(code: 'wifi'),
+        Amenity(code: 'air_conditioning'),
+        Amenity(code: 'usb_charging'),
+      ],
     );
   }
 
@@ -344,7 +349,11 @@ UpcomingTrip mockUpcomingTrip(DateTime now) {
       price: const Price(12500),
       seatsTotal: 55,
       seatsAvailable: 12,
-      amenities: const ['Wi-Fi', 'Climatisation', 'USB'],
+      amenities: const [
+        Amenity(code: 'wifi'),
+        Amenity(code: 'air_conditioning'),
+        Amenity(code: 'usb_charging'),
+      ],
     ),
     // Siège déjà vendu — c'est justement celui du voyageur.
     seat: const Seat(
@@ -385,7 +394,11 @@ List<Ticket> mockTickets(DateTime now) {
       price: Price(price),
       seatsTotal: 55,
       seatsAvailable: seatsAvailable,
-      amenities: const ['Wi-Fi', 'Climatisation', 'USB'],
+      amenities: const [
+        Amenity(code: 'wifi'),
+        Amenity(code: 'air_conditioning'),
+        Amenity(code: 'usb_charging'),
+      ],
     );
   }
 

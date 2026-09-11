@@ -7,7 +7,6 @@ import '../entities/group_payer.dart';
 import '../entities/group_quote.dart';
 import '../entities/group_ticket.dart';
 import '../entities/passenger.dart';
-import '../entities/quote.dart';
 import '../entities/seat.dart';
 import '../entities/seat_hold.dart';
 
@@ -19,16 +18,6 @@ import '../entities/seat_hold.dart';
 /// lui, engage un compte et retire des places de la vente. Les mêler
 /// aurait donné un dépôt dont la moitié des méthodes exigent un jeton.
 abstract class ReservationRepository {
-  /// Fige le prix du tronçon pour [passengers] voyageurs.
-  ///
-  /// À appeler juste avant [hold] : le blocage réclame l'identifiant du
-  /// devis, et un devis expire vite.
-  /// Le devis d'un groupe, remise comprise.
-  ///
-  /// Distinct de [quote] : celui-ci passe par `bus/itinerary-quotes`, le
-  /// seul point d'entrée qui applique la remise de groupe et la détaille
-  /// au passager. Il sert à **afficher** le prix ; le blocage d'un groupe
-  /// s'appuiera sur son `itinerary_quote_uuid`.
   /// Les billets émis d'une réservation, un par voyageur.
   ///
   /// Une liste vide est un succès : l'émission suit le paiement, et le
@@ -48,6 +37,10 @@ abstract class ReservationRepository {
   /// Atomique : soit les N sièges partent ensemble, soit aucun. Retenir la
   /// moitié d'un groupe laisserait une réservation inutilisable et des
   /// places retirées de la vente pour rien.
+  ///
+  /// Un siège pris entre l'affichage du plan et la confirmation donne un
+  /// [SeatUnavailableFailure], porteur du siège fautif : c'est lui qu'il
+  /// faut montrer, pas un message générique.
   Future<Either<Failure, SeatHold>> holdGroup({
     required GroupQuote quote,
     required List<Seat> seats,
@@ -55,26 +48,16 @@ abstract class ReservationRepository {
     required String idempotencyKey,
   });
 
+  /// Fige le prix du trajet pour [passengers] voyageurs, remise comprise.
+  ///
+  /// À appeler juste avant [holdGroup], qui réclame l'identifiant du
+  /// devis — et un devis expire vite. Seul devis restant : MEZ-63 a retiré
+  /// `bus/quotes`, et `bus/itinerary-quotes` sert désormais le voyageur
+  /// seul comme le groupe, un voyageur seul étant un groupe d'un que le
+  /// barème laisse au plein tarif.
   Future<Either<Failure, GroupQuote>> groupQuote({
     required Departure departure,
     required int passengers,
-  });
-
-  Future<Either<Failure, Quote>> quote({
-    required Departure departure,
-    required int passengers,
-  });
-
-  /// Retire [seats] de la vente et arme le compte à rebours.
-  ///
-  /// Le nombre de sièges doit égaler le `passengerCount` du devis, sinon
-  /// le serveur refuse. Un siège pris entre l'affichage du plan et la
-  /// confirmation donne un [SeatUnavailableFailure], porteur du siège
-  /// fautif : c'est lui qu'il faut montrer, pas un message générique.
-  Future<Either<Failure, SeatHold>> hold({
-    required Departure departure,
-    required Quote quote,
-    required List<Seat> seats,
   });
 
   /// Enregistre les identités des voyageurs sur la réservation retenue.
