@@ -9,7 +9,6 @@ import {
     Ticket as TicketIcon,
     TrendingUp,
     CheckCircle2,
-    XCircle,
     X,
     Send,
     Banknote,
@@ -186,12 +185,16 @@ function WhatsAppDialog({
         setError(null);
 
         const trimmed = phone.trim();
+
         if (trimmed === '') {
             setError('Le numéro de téléphone est requis.');
+
             return;
         }
+
         if (!trimmed.startsWith('+')) {
             setError('Le numéro doit être au format international (ex: +2290197421860).');
+
             return;
         }
 
@@ -423,18 +426,23 @@ export default function TicketsPage({
 
     const applyFilters = () => {
         const params: Record<string, string> = {};
+
         if (query.trim() !== '') {
             params.q = query.trim();
         }
+
         if (status !== 'all') {
             params.status = status;
         }
+
         if (channel !== 'all') {
             params.channel = channel;
         }
+
         if (route !== 'all') {
             params.route = route;
         }
+
         router.get('/tickets', params, {
             preserveScroll: true,
             preserveState: true,
@@ -451,18 +459,23 @@ export default function TicketsPage({
 
     const goToPage = (page: number) => {
         const params: Record<string, string> = { page: String(page) };
+
         if (query.trim() !== '') {
             params.q = query.trim();
         }
+
         if (status !== 'all') {
             params.status = status;
         }
+
         if (channel !== 'all') {
             params.channel = channel;
         }
+
         if (route !== 'all') {
             params.route = route;
         }
+
         router.get('/tickets', params, {
             preserveScroll: true,
             preserveState: true,
