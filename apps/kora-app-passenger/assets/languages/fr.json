@@ -630,8 +630,6 @@
   "return_results_empty_title": "Aucun retour ce jour-là",
   "return_results_empty_text": "La liaison n’est pas desservie à la date choisie. Changez la date du retour pour en voir d’autres.",
   "return_results_empty_cta": "Changer la date du retour",
-  "home_passengers_group_soon": "La réservation de groupe arrive après le MVP Bus.",
-  "home_passengers_business_soon": "Les comptes entreprise arrivent après le MVP Bus.",
   "amenity_wifi": "Wi-Fi",
   "amenity_air_conditioning": "Climatisation",
   "amenity_reclining_seats": "Sièges inclinables",

@@ -630,8 +630,6 @@
   "return_results_empty_title": "No return that day",
   "return_results_empty_text": "The route is not served on the chosen date. Change the return date to see others.",
   "return_results_empty_cta": "Change the return date",
-  "home_passengers_group_soon": "Group booking comes after the Bus MVP.",
-  "home_passengers_business_soon": "Business accounts come after the Bus MVP.",
   "amenity_wifi": "Wi-Fi",
   "amenity_air_conditioning": "Air conditioning",
   "amenity_reclining_seats": "Reclining seats",
