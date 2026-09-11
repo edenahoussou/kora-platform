@@ -90,14 +90,6 @@ class IssueReservationTicketsJob implements ShouldQueue
                 $reservation->segments()->update(['status' => ReservationSegmentStatus::Ticketed]);
                 $ticketed = true;
             });
-
-            if ($ticketed) {
-                $ticketedReservation = Reservation::query()->with(['tickets'])->findOrFail($this->reservationId);
-                FiscalizeReservationInvoiceJob::dispatch($this->reservationId)->onConnection('database')->afterCommit();
-                foreach ($ticketedReservation->tickets as $ticket) {
-                    SendReservationWhatsAppNotificationJob::dispatch($this->reservationId, $ticket->id)->onConnection('database')->afterCommit();
-                }
-            }
         } catch (Throwable $exception) {
             Reservation::query()->whereKey($this->reservationId)->update([
                 'ticket_issuance_status' => TicketIssuanceStatus::Failed->value,
@@ -109,6 +101,37 @@ class IssueReservationTicketsJob implements ShouldQueue
             ]);
 
             throw $exception;
+        }
+
+        if ($ticketed) {
+            $this->dispatchPostIssuanceJobs();
+        }
+    }
+
+    /**
+     * Dispatch fiscalization and WhatsApp jobs after tickets are issued.
+     *
+     * These are best-effort: if dispatch fails (e.g. queue unavailable in
+     * sync mode), the tickets are already issued and the downstream jobs
+     * can be retried manually. We log the error but do not re-throw.
+     */
+    private function dispatchPostIssuanceJobs(): void
+    {
+        try {
+            $ticketedReservation = Reservation::query()
+                ->with(['tickets'])
+                ->findOrFail($this->reservationId);
+
+            FiscalizeReservationInvoiceJob::dispatch($this->reservationId);
+
+            foreach ($ticketedReservation->tickets as $ticket) {
+                SendReservationWhatsAppNotificationJob::dispatch($this->reservationId, $ticket->id);
+            }
+        } catch (Throwable $exception) {
+            Log::warning('Post-issuance job dispatch failed.', [
+                'reservation_id' => $this->reservationId,
+                'error' => $exception->getMessage(),
+            ]);
         }
     }
 }

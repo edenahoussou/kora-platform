@@ -15,7 +15,7 @@ class FiscalizationController extends Controller
         Gate::authorize('retry', $fiscalInvoice);
         abort_unless($fiscalInvoice->getRawOriginal('status') === FiscalInvoiceStatus::Failed->value, 422, 'Seules les factures en échec peuvent être relancées.');
         $fiscalInvoice->update(['status' => FiscalInvoiceStatus::Pending]);
-        FiscalizeReservationInvoiceJob::dispatch($fiscalInvoice->reservation_id)->onConnection('database');
+        FiscalizeReservationInvoiceJob::dispatch($fiscalInvoice->reservation_id);
 
         return back();
     }

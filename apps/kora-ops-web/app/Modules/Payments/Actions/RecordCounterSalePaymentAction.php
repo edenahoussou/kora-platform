@@ -23,7 +23,6 @@ use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\AgencyPaymentAccount;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Ticketing\Data\TicketIssuanceStatus;
-use App\Modules\Ticketing\Jobs\IssueReservationTicketsJob;
 use App\Modules\Ticketing\Models\Ticket;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -156,7 +155,6 @@ class RecordCounterSalePaymentAction
             ];
         });
 
-        IssueReservationTicketsJob::dispatch($result['reservation']->getKey());
         $result['reservation'] = $result['reservation']->fresh(['segments.departure', 'segments', 'passengers']);
         $result['tickets'] = Ticket::query()->where('reservation_id', $result['reservation']->getKey())->orderBy('id')->get();
 
