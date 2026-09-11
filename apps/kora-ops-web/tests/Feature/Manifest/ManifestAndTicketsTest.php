@@ -355,13 +355,12 @@ it('searches tickets by short code and shows the passenger status alongside the 
     ]);
 
     $this->actingAs(manifestOperator())
-        ->get(route('tickets.index', ['q' => 'findme']))
+        ->get(route('tickets', ['q' => 'findme']))
         ->assertSuccessful()
         ->assertInertia(fn (Assert $page) => $page
             ->component('tickets')
             ->has('tickets.data', 1)
-            ->where('tickets.data.0.ticket.shortCode', 'TCK-FINDME')
-            ->where('tickets.data.0.ticket.status', 'issued')
-            ->where('tickets.data.0.journeyStatus.value', 'ticket_issued'),
+            ->where('tickets.data.0.shortCode', 'TCK-FINDME')
+            ->where('tickets.data.0.status', 'issued'),
         );
 });

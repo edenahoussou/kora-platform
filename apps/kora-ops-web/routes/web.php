@@ -16,8 +16,8 @@ use App\Modules\DynamicPricing\Http\Controllers\PricingRuleController;
 use App\Modules\DynamicPricing\Http\Controllers\TaxRuleController;
 use App\Modules\IdentityAccess\Http\Controllers\AgencyController;
 use App\Modules\Payments\Http\Controllers\AgencyPaymentAccountController;
+use App\Modules\Ticketing\Http\Controllers\TicketIndexController;
 use App\Modules\Ticketing\Http\Controllers\TicketPreviewController;
-use App\Modules\Ticketing\Http\Controllers\TicketsController;
 use App\Modules\Ticketing\Http\Controllers\TicketViewController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -108,7 +108,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('tax-rules/{taxRule:uuid}', [TaxRuleController::class, 'update'])->name('tax-rules.update');
     Route::patch('tax-rules/{taxRule:uuid}/status', [TaxRuleController::class, 'changeStatus'])->name('tax-rules.status');
     Route::inertia('passengers', 'passengers')->name('passengers');
-    Route::get('tickets', [TicketsController::class, 'index'])->name('tickets.index');
+    Route::get('tickets', [TicketIndexController::class, 'index'])->name('tickets');
     Route::get('tickets/{ticket:uuid}', [TicketViewController::class, 'show'])->name('tickets.show');
     Route::get('tickets/{ticket:uuid}/pdf', [TicketViewController::class, 'pdf'])->name('tickets.pdf');
     Route::post('tickets/{ticket:uuid}/whatsapp', [TicketViewController::class, 'sendWhatsApp'])->name('tickets.whatsapp');
