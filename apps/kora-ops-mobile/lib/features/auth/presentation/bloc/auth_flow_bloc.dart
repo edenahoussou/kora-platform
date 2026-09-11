@@ -113,22 +113,33 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
       code: event.code,
     );
 
-    final verified = result.when(
-      onSuccess: (verification) {
-        final next = state.copyWith(
-          isSubmitting: false,
-          verification: verification,
-        );
-        emit(next);
-        return next;
-      },
+    // Ancien code (émettait `isSubmitting: false` ici, avant la suite du
+    // parcours — c'était la cause du bug « rien ne se passe au premier
+    // essai », voir note plus bas) :
+    // final verified = result.when(
+    //   onSuccess: (verification) {
+    //     final next = state.copyWith(
+    //       isSubmitting: false,
+    //       verification: verification,
+    //     );
+    //     emit(next);
+    //     return next;
+    //   },
+    //   onFailure: (failure) {
+    //     emit(_failed(failure));
+    //     return null;
+    //   },
+    // );
+    // if (verified == null) return;
+    final OtpVerification? verification = result.when(
+      onSuccess: (verification) => verification,
       onFailure: (failure) {
         emit(_failed(failure));
         return null;
       },
     );
 
-    if (verified == null) return;
+    if (verification == null) return;
 
     // Ce qui suit un code vérifié dépend du motif : rejouer la connexion,
     // choisir un nouveau PIN, ou déverrouiller. Le rejeu de connexion est
@@ -138,13 +149,43 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
     // deuxième soumission dans une émission ultérieure, distincte —
     // l'attente se résoudrait alors trop tôt, avant la vraie fin du
     // parcours.
+    //
+    // **Bug corrigé** : on stocke le jeton de vérification sans repasser
+    // `isSubmitting` à `false` ici. Le faire créait une émission
+    // intermédiaire (`isSubmitting: false`, mais `step` encore égal à
+    // `code`) que le `firstWhere(!isSubmitting)` de la page captait
+    // *avant* la fin réelle du parcours (rejeu de connexion ou
+    // déverrouillage) : le premier appui semblait ne rien faire, alors
+    // que la connexion aboutissait en tâche de fond — d'où la nécessité
+    // de renvoyer le code pour qu'un second essai retombe, par hasard,
+    // sur un état déjà `done`.
+    final AuthFlowState verifiedState = state.copyWith(
+      verification: verification,
+    );
+
+    // Ancien code :
+    // switch (state.purpose) {
+    //   case OtpPurpose.loginNewDevice:
+    //     await _retryLogin(emit);
+    //   case OtpPurpose.pinReset:
+    //     emit(state.copyWith(step: AuthFlowStep.newPin));
+    //   case OtpPurpose.accountUnlock:
+    //     await _unlock(emit, verified.verification!);
+    //   case OtpPurpose.registration:
+    //     emit(const AuthFlowState());
+    // }
     switch (state.purpose) {
       case OtpPurpose.loginNewDevice:
+        emit(verifiedState);
         await _retryLogin(emit);
       case OtpPurpose.pinReset:
-        emit(state.copyWith(step: AuthFlowStep.newPin));
+        emit(verifiedState.copyWith(
+          isSubmitting: false,
+          step: AuthFlowStep.newPin,
+        ));
       case OtpPurpose.accountUnlock:
-        await _unlock(emit, verified.verification!);
+        emit(verifiedState);
+        await _unlock(emit, verification);
       case OtpPurpose.registration:
         // Hors périmètre de ce ticket (voir docstring de classe) — aucun
         // écran n'y mène, filet de sécurité seulement.

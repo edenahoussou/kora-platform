@@ -71,11 +71,14 @@ class _PinEntryPageState extends State<PinEntryPage> {
     final AuthFlowBloc flowBloc = context.read<AuthFlowBloc>();
     final String email = flowBloc.state.email;
 
+    KoraDialogs.showLoading(context, message: 'Connexion…');
+
     flowBloc.add(AuthFlowLoginSubmitted(email: email, pin: _pin));
     final AuthFlowState next = await flowBloc.stream
         .firstWhere((AuthFlowState state) => !state.isSubmitting);
 
     if (!mounted) return;
+    KoraDialogs.hideLoading(context);
 
     if (next.hasError) {
       setState(() => _pin = '');
