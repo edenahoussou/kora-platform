@@ -3,7 +3,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { ItineraryCard } from './itinerary-card';
 import type { SaleItinerary } from './sale-types';
-import { formatIsoDate, getIsoTimestamp, isToday } from './sale-utils';
+import {
+    formatCoefficientPercent,
+    formatIsoDate,
+    formatMoney,
+    getIsoTimestamp,
+    isToday,
+} from './sale-utils';
 
 type Props = {
     itineraries: SaleItinerary[];
@@ -21,6 +27,21 @@ function itineraryKey(itinerary: SaleItinerary): string {
                 `${leg.departureUuid}:${leg.originStop.uuid}:${leg.destinationStop.uuid}`,
         )
         .join('|');
+}
+
+/**
+ * Détecte si au moins un itinéraire de la liste a une tarification
+ * dynamique appliquée (base ≠ final sur au moins une jambe).
+ */
+function hasDynamicPricingInList(itineraries: SaleItinerary[]): boolean {
+    return itineraries.some((itinerary) =>
+        itinerary.legs.some(
+            (leg) =>
+                leg.baseAmount != null &&
+                leg.finalAmount != null &&
+                leg.baseAmount !== leg.finalAmount,
+        ),
+    );
 }
 
 export function ItineraryList({
@@ -83,6 +104,8 @@ export function ItineraryList({
         return () => window.clearInterval(interval);
     }, []);
 
+    const hasDynamic = hasDynamicPricingInList(itineraries);
+
     return (
         <section
             className={cn(
@@ -98,8 +121,8 @@ export function ItineraryList({
                                 ? `Retour disponibles (${itineraries.length})`
                                 : `Prochains retours (${itineraries.length})`
                             : hasDate
-                              ? `Aller disponibles (${itineraries.length})`
-                              : `Prochains allers (${itineraries.length})`}
+                                ? `Aller disponibles (${itineraries.length})`
+                                : `Prochains allers (${itineraries.length})`}
                     </span>
                     <h2 className="results-title">
                         {direction === 'inbound' ? (
@@ -121,7 +144,33 @@ export function ItineraryList({
                         )}
                     </h2>
                 </div>
+                {hasDynamic && (
+                    <span className="service-promise">
+                        <i>✓</i> Prix final garanti
+                    </span>
+                )}
             </div>
+            {hasDynamic && (
+                <div className="pricing-intelligence-strip" role="status">
+                    <span className="pricing-intelligence-pulse" aria-hidden="true">
+                        <i className="pricing-intelligence-dot" />
+                    </span>
+                    <div className="pricing-intelligence-body">
+                        <span className="pricing-intelligence-eyebrow">
+                            Tarification dynamique
+                        </span>
+                        <strong className="pricing-intelligence-title">
+                            Prix calculés en temps réel
+                        </strong>
+                        <small className="pricing-intelligence-desc">
+                            Les prix affichés intègrent les majorations et
+                            réductions dynamiques. Les billets déjà achetés
+                            restent inchangés.
+                        </small>
+                    </div>
+                    <span className="pricing-intelligence-sheen" aria-hidden="true" />
+                </div>
+            )}
             {itineraries.length > 0 ? (
                 <div className="departure-list">
                     {itineraries.map((itinerary) => (
@@ -150,15 +199,15 @@ export function ItineraryList({
                             {emptyReason === 'incompatible-with-outbound'
                                 ? 'Aucun retour compatible'
                                 : direction === 'inbound'
-                                  ? 'Aucun retour trouvé'
-                                  : 'Aucun itinéraire trouvé'}
+                                    ? 'Aucun retour trouvé'
+                                    : 'Aucun itinéraire trouvé'}
                         </strong>
                         <span className="mt-1 block text-[0.6875rem] text-muted-foreground">
                             {emptyReason === 'incompatible-with-outbound'
                                 ? "Les retours disponibles partent avant ou en même temps que l'aller sélectionné. Choisissez un aller plus tôt ou une autre date de retour."
                                 : hasDate
-                                  ? 'Modifiez vos critères puis relancez la recherche.'
-                                  : 'Sélectionnez une date précise ou élargissez la ville de départ/descente.'}
+                                    ? 'Modifiez vos critères puis relancez la recherche.'
+                                    : 'Sélectionnez une date précise ou élargissez la ville de départ/descente.'}
                         </span>
                     </div>
                 </div>

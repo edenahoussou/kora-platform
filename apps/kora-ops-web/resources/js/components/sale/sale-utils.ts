@@ -223,3 +223,13 @@ export function formatRemainingTime(expiresAt: string | null): string {
 
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
+
+/**
+ * Format a coefficient as a signed percentage string.
+ * 1.20 -> "+20 %", 0.90 -> "-10 %", 1.00 -> "0 %"
+ */
+export function formatCoefficientPercent(coefficient: number): string {
+    const diff = (coefficient - 1) * 100;
+    const sign = diff > 0 ? '+' : '';
+    return `${sign}${Math.round(diff)} %`;
+}
