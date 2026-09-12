@@ -19,7 +19,7 @@ class TicketIndexController extends Controller
                 'reservationPassenger',
                 'reservation.segments.originStop',
                 'reservation.segments.destinationStop',
-                'reservation.fiscalInvoice',
+                'reservation.fiscalInvoice.emecfInvoice',
             ])
             ->orderByDesc('issued_at');
 
@@ -165,6 +165,8 @@ class TicketIndexController extends Controller
             'issuedAt' => $ticket->issued_at?->toIso8601String(),
             'issuedAtLabel' => $ticket->issued_at?->format('d/m/Y H:i') ?? '—',
             'mecefUid' => $fiscalInvoice?->mecef_uid,
+            'mecefCode' => $fiscalInvoice?->emecfInvoice?->code_mec_ef_dgi,
+            'mecefNim' => $fiscalInvoice?->emecfInvoice?->nim,
             'fiscalStatus' => $fiscalInvoice?->getRawOriginal('status'),
         ];
     }

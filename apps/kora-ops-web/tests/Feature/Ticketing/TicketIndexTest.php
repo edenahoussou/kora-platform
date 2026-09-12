@@ -10,11 +10,16 @@ use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
+use App\Modules\Fiscalization\Models\FiscalInvoice;
 use App\Modules\IdentityAccess\Models\Agency;
+use App\Modules\Payments\Data\PaymentStatus;
+use App\Modules\Payments\Models\Payment;
 use App\Modules\Ticketing\Data\TicketStatus;
 use App\Modules\Ticketing\Models\Ticket;
 use Carbon\CarbonImmutable;
+use Codianselme\LaraSygmef\Models\EmecfInvoice;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class TicketIndexTest extends TestCase
@@ -155,6 +160,82 @@ class TicketIndexTest extends TestCase
             ->component('tickets')
             ->where('tickets.per_page', 15)
             ->where('tickets.total', 20)
+        );
+    }
+
+    public function test_tickets_list_shows_mecef_code_and_nim_when_certified(): void
+    {
+        $scenario = $this->createTicketScenario(shortCode: 'KAB12CD');
+        $reservation = $scenario['reservation'];
+
+        $emecfInvoice = EmecfInvoice::create([
+            'uid' => 'test-uid-'.uniqid(),
+            'ifu' => '3202673225149',
+            'type' => 'FV',
+            'operator_name' => 'KORA OPS',
+            'status' => 'confirmed',
+            'code_mec_ef_dgi' => 'B01-000000000000000000000000000',
+            'nim' => 'TS01019552',
+            'finalized_at' => now(),
+        ]);
+
+        $payment = Payment::create([
+            'reservation_id' => $reservation->id,
+            'method' => 'cash',
+            'provider' => 'cash',
+            'provider_reference' => 'CASH-TICK-'.$reservation->id,
+            'idempotency_key' => (string) Str::uuid(),
+            'amount' => 7000,
+            'currency' => 'XOF',
+            'status' => PaymentStatus::Confirmed,
+            'payer_name' => 'Client TEST',
+            'payer_phone' => '+22901000000',
+            'confirmed_at' => now(),
+        ]);
+
+        FiscalInvoice::create([
+            'reservation_id' => $reservation->id,
+            'payment_id' => $payment->id,
+            'kora_reference' => 'KORA-'.$reservation->uuid,
+            'mecef_uid' => $emecfInvoice->uid,
+            'emecf_invoice_id' => $emecfInvoice->id,
+            'status' => 'certified',
+            'total_without_tax' => 7000,
+            'total_tax' => 0,
+            'total_with_tax' => 7000,
+            'tax_snapshot' => ['transport' => ['tax_group' => 'A', 'rate' => 0]],
+            'fiscalized_at' => now(),
+        ]);
+
+        $this->actingAs($scenario['user']);
+
+        $response = $this->get(route('tickets'));
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('tickets')
+            ->has('tickets.data', 1)
+            ->where('tickets.data.0.shortCode', 'KAB12CD')
+            ->where('tickets.data.0.mecefCode', 'B01-000000000000000000000000000')
+            ->where('tickets.data.0.mecefNim', 'TS01019552')
+            ->where('tickets.data.0.fiscalStatus', 'certified')
+        );
+    }
+
+    public function test_tickets_list_shows_non_fiscalise_when_no_invoice(): void
+    {
+        $scenario = $this->createTicketScenario(shortCode: 'KAB12CD');
+        $this->actingAs($scenario['user']);
+
+        $response = $this->get(route('tickets'));
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('tickets')
+            ->has('tickets.data', 1)
+            ->where('tickets.data.0.mecefCode', null)
+            ->where('tickets.data.0.mecefNim', null)
+            ->where('tickets.data.0.fiscalStatus', null)
         );
     }
 

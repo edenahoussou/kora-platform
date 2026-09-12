@@ -35,6 +35,8 @@ type TicketRecord = {
     issuedAt: string | null;
     issuedAtLabel: string;
     mecefUid: string | null;
+    mecefCode: string | null;
+    mecefNim: string | null;
     fiscalStatus: string | null;
 };
 
@@ -214,7 +216,7 @@ function WhatsAppDialog({
                     setSubmitting(false);
                     setError(
                         errors.phone ??
-                            "Une erreur est survenue lors de l'envoi.",
+                        "Une erreur est survenue lors de l'envoi.",
                     );
                 },
             },
@@ -661,8 +663,9 @@ export default function TicketsPage({
                                                             {ticket.shortCode}
                                                         </p>
                                                         <p className="mt-0.5 text-[0.625rem] text-muted-foreground">
-                                                            {ticket.mecefUid ??
-                                                                'Non fiscalisé'}
+                                                            {ticket.mecefCode
+                                                                ? `${ticket.mecefCode} • ${ticket.mecefNim ?? ''}`.trim()
+                                                                : 'Non fiscalisé'}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -675,16 +678,16 @@ export default function TicketsPage({
                                                     label={
                                                         ticket.channel
                                                             ? (channelLabels[
-                                                                  ticket.channel
-                                                              ] ??
-                                                              ticket.channelLabel)
+                                                                ticket.channel
+                                                            ] ??
+                                                                ticket.channelLabel)
                                                             : '—'
                                                     }
                                                     tone={
                                                         ticket.channel
                                                             ? (channelTones[
-                                                                  ticket.channel
-                                                              ] ?? 'muted')
+                                                                ticket.channel
+                                                            ] ?? 'muted')
                                                             : 'muted'
                                                     }
                                                 />
@@ -700,12 +703,12 @@ export default function TicketsPage({
                                                 <KoraStatusBadge
                                                     label={
                                                         statusLabels[
-                                                            ticket.status
+                                                        ticket.status
                                                         ] ?? ticket.statusLabel
                                                     }
                                                     tone={
                                                         statusTones[
-                                                            ticket.status
+                                                        ticket.status
                                                         ] ?? 'gold'
                                                     }
                                                 />
