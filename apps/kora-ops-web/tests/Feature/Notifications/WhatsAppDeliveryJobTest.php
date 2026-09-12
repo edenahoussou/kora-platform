@@ -26,10 +26,18 @@ use Exception;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 
 beforeEach(function (): void {
     Carbon::setTestNow('2026-09-08 10:00:00');
+    // Genuka est configuré par défaut dans les tests pour exercer le chemin primaire.
+    config([
+        'services.genuka.token' => 'test-genuka-token',
+        'services.genuka.connection_id' => 'test-conn',
+    ]);
+    // Désactive le délai anti-blocage de 30-60s pour ne pas ralentir les tests.
+    config(['services.waha.new_contact_delay_seconds' => 0]);
 });
 
 afterEach(function (): void {
@@ -68,6 +76,46 @@ it('falls back to Waha when Genuka returns a 5xx error', function (): void {
         ->and($delivery->status)->toBe(WhatsAppDeliveryStatus::Sent)
         ->and($delivery->provider)->toBe('waha')
         ->and($delivery->provider_message_id)->toBe('waha-msg-456');
+});
+
+it('falls back directly to Waha when Genuka is not configured (token empty)', function (): void {
+    config([
+        'services.genuka.token' => null,
+        'services.genuka.connection_id' => null,
+    ]);
+    Http::fake([
+        'wa.genuka.com/*' => Http::response(['error' => 'should not be called'], 500),
+        config('services.waha.url').'/*' => Http::response(['id' => 'waha-direct-789'], 200),
+    ]);
+
+    $scenario = createWhatsAppScenario(phone: '+2290197421860');
+    $job = new SendReservationWhatsAppNotificationJob($scenario['reservation']->id, $scenario['ticket']->id);
+    $job->handle(app(GenukaWhatsAppSender::class), app(WahaWhatsAppSender::class), app(GenerateTicketPdfAction::class));
+
+    $delivery = WhatsAppDelivery::query()->where('ticket_id', $scenario['ticket']->id)->first();
+    expect($delivery)->not->toBeNull()
+        ->and($delivery->status)->toBe(WhatsAppDeliveryStatus::Sent)
+        ->and($delivery->provider)->toBe('waha')
+        ->and($delivery->provider_message_id)->toBe('waha-direct-789');
+
+    Http::assertNotSent(fn (Request $request): bool => str_contains($request->url(), 'wa.genuka.com'));
+});
+
+it('falls back to Waha when Genuka returns 401 (token invalid)', function (): void {
+    Http::fake([
+        'wa.genuka.com/*' => Http::response(['error' => 'unauthorized'], 401),
+        config('services.waha.url').'/*' => Http::response(['id' => 'waha-401-fb'], 200),
+    ]);
+
+    $scenario = createWhatsAppScenario(phone: '+2290197421860');
+    $job = new SendReservationWhatsAppNotificationJob($scenario['reservation']->id, $scenario['ticket']->id);
+    $job->handle(app(GenukaWhatsAppSender::class), app(WahaWhatsAppSender::class), app(GenerateTicketPdfAction::class));
+
+    $delivery = WhatsAppDelivery::query()->where('ticket_id', $scenario['ticket']->id)->first();
+    expect($delivery)->not->toBeNull()
+        ->and($delivery->status)->toBe(WhatsAppDeliveryStatus::Sent)
+        ->and($delivery->provider)->toBe('waha')
+        ->and($delivery->provider_message_id)->toBe('waha-401-fb');
 });
 
 it('marks the delivery as failed when both Genuka and Waha fail', function (): void {
@@ -133,6 +181,135 @@ it('sends only a document (not a duplicate text) via Waha when documentData is s
     Http::assertNotSent(function (Request $request): bool {
         return str_contains($request->url(), '/api/sendText');
     });
+});
+
+it('sends startTyping and stopTyping before the message via Waha (anti-blocage)', function (): void {
+    Http::fake([
+        config('services.waha.url').'/api/startTyping' => Http::response(['ok' => true], 200),
+        config('services.waha.url').'/api/stopTyping' => Http::response(['ok' => true], 200),
+        config('services.waha.url').'/api/sendText' => Http::response(['id' => 'waha-typing-001'], 200),
+    ]);
+
+    $sender = app(WahaWhatsAppSender::class);
+    $result = $sender->send('+2290197421860', 'Bonjour, billet KORA', null, null);
+
+    expect($result['message_id'])->toBe('waha-typing-001');
+
+    Http::assertSent(fn (Request $request): bool => str_contains($request->url(), '/api/startTyping'));
+    Http::assertSent(fn (Request $request): bool => str_contains($request->url(), '/api/stopTyping'));
+    Http::assertSent(fn (Request $request): bool => str_contains($request->url(), '/api/sendText'));
+});
+
+it('personalizes the WhatsApp message with the passenger first name', function (): void {
+    Http::fake([
+        'wa.genuka.com/*' => Http::response(['id' => 'genuka-perso-001'], 200),
+    ]);
+
+    $scenario = createWhatsAppScenario(phone: '+2290197421860');
+    $job = new SendReservationWhatsAppNotificationJob($scenario['reservation']->id, $scenario['ticket']->id);
+    $job->handle(app(GenukaWhatsAppSender::class), app(WahaWhatsAppSender::class), app(GenerateTicketPdfAction::class));
+
+    Http::assertSent(function (Request $request): bool {
+        if (! str_contains($request->url(), 'wa.genuka.com')) {
+            return false;
+        }
+        $body = json_decode($request->body(), true);
+        // Le texte est dans "caption" quand un document est joint.
+        $text = $body['text'] ?? $body['document']['caption'] ?? '';
+
+        return str_contains($text, 'Aïcha');
+    });
+});
+
+it('marks delivery as Skipped (not Failed) when WAHA returns error 463 (Reachout Timelock)', function (): void {
+    config([
+        'services.genuka.token' => null,
+        'services.genuka.connection_id' => null,
+    ]);
+    Http::fake([
+        config('services.waha.url').'/api/startTyping' => Http::response(['ok' => true], 200),
+        config('services.waha.url').'/api/stopTyping' => Http::response(['ok' => true], 200),
+        config('services.waha.url').'/api/sendFile' => Http::response('server returned error 463', 200),
+    ]);
+
+    $scenario = createWhatsAppScenario(phone: '+2290197421860');
+    $job = new SendReservationWhatsAppNotificationJob($scenario['reservation']->id, $scenario['ticket']->id);
+    $job->handle(app(GenukaWhatsAppSender::class), app(WahaWhatsAppSender::class), app(GenerateTicketPdfAction::class));
+
+    $delivery = WhatsAppDelivery::query()->where('ticket_id', $scenario['ticket']->id)->first();
+    expect($delivery)->not->toBeNull()
+        ->and($delivery->status)->toBe(WhatsAppDeliveryStatus::Skipped)
+        ->and($delivery->provider)->toBe('waha')
+        ->and($delivery->last_error)->toContain('463');
+});
+
+it('marks delivery as Skipped (not Failed) when WAHA returns error 475 (Message Capping)', function (): void {
+    config([
+        'services.genuka.token' => null,
+        'services.genuka.connection_id' => null,
+    ]);
+    Http::fake([
+        config('services.waha.url').'/api/startTyping' => Http::response(['ok' => true], 200),
+        config('services.waha.url').'/api/stopTyping' => Http::response(['ok' => true], 200),
+        config('services.waha.url').'/api/sendFile' => Http::response(['error' => 'server returned error 475'], 500),
+    ]);
+
+    $scenario = createWhatsAppScenario(phone: '+2290197421860');
+    $job = new SendReservationWhatsAppNotificationJob($scenario['reservation']->id, $scenario['ticket']->id);
+    $job->handle(app(GenukaWhatsAppSender::class), app(WahaWhatsAppSender::class), app(GenerateTicketPdfAction::class));
+
+    $delivery = WhatsAppDelivery::query()->where('ticket_id', $scenario['ticket']->id)->first();
+    expect($delivery)->not->toBeNull()
+        ->and($delivery->status)->toBe(WhatsAppDeliveryStatus::Skipped)
+        ->and($delivery->last_error)->toContain('475');
+});
+
+it('re-dispatches Skipped WhatsApp deliveries older than the threshold via whatsapp:retry-skipped', function (): void {
+    $scenario = createWhatsAppScenario(phone: '+2290197421860');
+    $delivery = WhatsAppDelivery::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'ticket_id' => $scenario['ticket']->id,
+        'reservation_id' => $scenario['reservation']->id,
+        'provider' => 'waha',
+        'recipient_phone' => '+2290197421860',
+        'status' => WhatsAppDeliveryStatus::Skipped,
+        'last_error' => 'WhatsApp a temporairement restreint l\'envoi (code 463).',
+    ]);
+    // Force un updated_at ancien (Eloquent écrase updated_at à la création).
+    $delivery->forceFill(['updated_at' => now()->subHours(3)])->saveQuietly();
+
+    Queue::fake();
+    $this->artisan('whatsapp:retry-skipped', ['--hours' => 2])
+        ->assertSuccessful()
+        ->expectsOutput('1 livraison(s) WhatsApp Skipped re-dispatchée(s) vers le queue.');
+
+    $delivery->refresh();
+    expect($delivery->status)->toBe(WhatsAppDeliveryStatus::Pending)
+        ->and($delivery->last_error)->toBeNull();
+
+    Queue::assertPushed(SendReservationWhatsAppNotificationJob::class);
+});
+
+it('does not re-dispatch recent Skipped deliveries via whatsapp:retry-skipped', function (): void {
+    $scenario = createWhatsAppScenario(phone: '+2290197421860');
+    $delivery = WhatsAppDelivery::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'ticket_id' => $scenario['ticket']->id,
+        'reservation_id' => $scenario['reservation']->id,
+        'provider' => 'waha',
+        'recipient_phone' => '+2290197421860',
+        'status' => WhatsAppDeliveryStatus::Skipped,
+        'last_error' => 'WhatsApp a temporairement restreint l\'envoi (code 463).',
+    ]);
+
+    Queue::fake();
+    $this->artisan('whatsapp:retry-skipped', ['--hours' => 2])
+        ->assertSuccessful()
+        ->expectsOutput('Aucune livraison WhatsApp Skipped à relancer.');
+
+    $delivery->refresh();
+    expect($delivery->status)->toBe(WhatsAppDeliveryStatus::Skipped);
+    Queue::assertNotPushed(SendReservationWhatsAppNotificationJob::class);
 });
 
 /** @return array<string, mixed> */

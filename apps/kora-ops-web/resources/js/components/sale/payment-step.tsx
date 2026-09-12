@@ -174,7 +174,8 @@ export function PaymentStep({
         () => networkAccounts.find((account) => account.uuid === accountUuid),
         [networkAccounts, accountUuid],
     );
-    const cashReady = cashSession.isOpen && isCashSufficient;
+    const cashReady =
+        cashSession.isOpen && isCashSufficient && payerName.trim() !== '';
     const phoneValid =
         payerPhone.trim() !== '' && isValidPhoneNumber(payerPhone);
     const mobileReady =
@@ -244,8 +245,18 @@ export function PaymentStep({
                 method === 'mobile_money' && network ? network : null,
             agency_payment_account_uuid:
                 method === 'mobile_money' ? accountUuid : null,
-            payer_phone: method === 'mobile_money' ? payerPhone.trim() : '',
-            payer_name: method === 'mobile_money' ? payerName.trim() : '',
+            payer_phone:
+                method === 'mobile_money'
+                    ? payerPhone.trim()
+                    : method === 'cash'
+                      ? payerPhone.trim()
+                      : '',
+            payer_name:
+                method === 'mobile_money'
+                    ? payerName.trim()
+                    : method === 'cash'
+                      ? payerName.trim()
+                      : '',
             provider_reference:
                 method === 'mobile_money' ? reference.trim() : '',
             verified_manually: method === 'mobile_money' ? verified : true,
@@ -366,6 +377,10 @@ export function PaymentStep({
                             error={errors.cash_received_amount}
                             onChange={setCashReceived}
                             onQuickAmount={applyQuickAmount}
+                            payerName={payerName}
+                            payerPhone={payerPhone}
+                            onPayerNameChange={setPayerName}
+                            onPayerPhoneChange={setPayerPhone}
                         />
                     ) : method === 'mobile_money' ? (
                         <MobileMoneyFields
@@ -505,6 +520,10 @@ function CashPaymentFields({
     error,
     onChange,
     onQuickAmount,
+    payerName,
+    payerPhone,
+    onPayerNameChange,
+    onPayerPhoneChange,
 }: {
     total: number;
     currency: string;
@@ -514,6 +533,10 @@ function CashPaymentFields({
     error?: string;
     onChange: (value: string) => void;
     onQuickAmount: (amount: number) => void;
+    payerName: string;
+    payerPhone: string;
+    onPayerNameChange: (value: string) => void;
+    onPayerPhoneChange: (value: string) => void;
 }) {
     const quickAmounts = useMemo(() => smartQuickAmounts(total), [total]);
 
@@ -590,6 +613,57 @@ function CashPaymentFields({
                         La monnaie s’affiche dès que le montant reçu est saisi.
                     </small>
                 </div>
+            </div>
+
+            <div className="cash-input-grid">
+                <label className="field">
+                    <span className="field-label">
+                        <UserRound className="size-3.5" />
+                        Nom du payeur{' '}
+                        <span className="required-asterisk">*</span>
+                    </span>
+                    <span className="payment-field-control">
+                        <UserRound
+                            className="payment-field-icon"
+                            aria-hidden="true"
+                        />
+                        <input
+                            type="text"
+                            value={payerName}
+                            onChange={(event) =>
+                                onPayerNameChange(event.target.value)
+                            }
+                            placeholder="Nom du client"
+                        />
+                    </span>
+                    <small className="payment-field-help">
+                        Nom du client qui règle la vente (pour la facturation
+                        DGI).
+                    </small>
+                </label>
+                <label className="field">
+                    <span className="field-label">
+                        <Phone className="size-3.5" />
+                        Téléphone du payeur
+                    </span>
+                    <span className="payment-field-control">
+                        <Phone
+                            className="payment-field-icon"
+                            aria-hidden="true"
+                        />
+                        <input
+                            type="tel"
+                            value={payerPhone}
+                            onChange={(event) =>
+                                onPayerPhoneChange(event.target.value)
+                            }
+                            placeholder="+229 ..."
+                        />
+                    </span>
+                    <small className="payment-field-help">
+                        Numéro de contact du client (optionnel).
+                    </small>
+                </label>
             </div>
         </div>
     );

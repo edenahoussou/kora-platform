@@ -19,8 +19,15 @@ class FiscalInvoicePayloadBuilder
         $unitPrice = intdiv($total, $passengerCount);
         $remainder = $total - ($unitPrice * $passengerCount);
 
-        $client = $reservation->payer_type->value === 'company' ? $reservation->companyAccount : $reservation->payer;
         $creator = $reservation->creator;
+
+        if ($reservation->payer_type->value === 'company') {
+            $clientName = $reservation->companyAccount?->name;
+            $clientContact = $payment?->payer_phone;
+        } else {
+            $clientName = $payment?->payer_name;
+            $clientContact = $payment?->payer_phone;
+        }
 
         $items = $passengers->map(fn ($passenger, int $index): array => [
             'name' => 'Billet de transport KORA BUS - '.Str::limit(trim($passenger->first_name.' '.$passenger->last_name), 70, ''),
@@ -37,8 +44,8 @@ class FiscalInvoicePayloadBuilder
                 'name' => $creator === null ? 'KORA BUS' : $creator->name,
             ], fn ($value): bool => $value !== null && $value !== ''),
             'client' => array_filter([
-                'name' => $client === null ? null : $client->name,
-                'contact' => $payment->payer_phone ?? ($client === null ? null : $client->phone),
+                'name' => $clientName,
+                'contact' => $clientContact,
             ]),
             'items' => $items,
             'payment' => $payment === null ? [] : [[

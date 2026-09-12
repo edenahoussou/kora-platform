@@ -53,7 +53,12 @@ class StoreCounterSalePaymentRequest extends JsonValidationRequest
                 'max:32',
                 Rule::requiredIf(fn (): bool => $this->input('method') === PaymentMethod::MobileMoney->value),
             ],
-            'payer_name' => ['nullable', 'string', 'max:120'],
+            'payer_name' => [
+                'nullable',
+                'string',
+                'max:120',
+                Rule::requiredIf(fn (): bool => $this->input('method') === PaymentMethod::Cash->value),
+            ],
             'provider_reference' => [
                 'nullable',
                 'string',
@@ -79,6 +84,7 @@ class StoreCounterSalePaymentRequest extends JsonValidationRequest
             'mobile_money_network.required' => 'Sélectionnez le réseau Mobile Money utilisé.',
             'agency_payment_account_uuid.required' => 'Sélectionnez le compte Mobile Money crédité.',
             'payer_phone.required' => 'Le numéro du payeur est obligatoire.',
+            'payer_name.required' => 'Le nom du payeur est obligatoire pour un paiement en espèces.',
             'provider_reference.required' => 'La référence de transaction est obligatoire.',
             'verified_manually.required' => 'Confirmez la vérification manuelle du crédit reçu.',
         ];

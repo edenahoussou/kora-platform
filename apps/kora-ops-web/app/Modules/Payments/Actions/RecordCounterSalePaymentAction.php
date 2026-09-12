@@ -356,6 +356,8 @@ class RecordCounterSalePaymentAction
                 'cash_ledger_id' => $ledger->getKey(),
                 'cash_received_amount' => $received,
                 'change_amount' => $received - $total,
+                'payer_name' => trim((string) ($attributes['payer_name'] ?? '')) ?: null,
+                'payer_phone' => trim((string) ($attributes['payer_phone'] ?? '')) ?: null,
             ];
         }
 

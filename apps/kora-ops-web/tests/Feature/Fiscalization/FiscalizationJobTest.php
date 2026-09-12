@@ -40,7 +40,7 @@ it('builds a valid e-MECeF payload with correct operator and client separation',
         ->and($payload['type'])->toBe('FV')
         ->and($payload['operator']['name'])->toBe('Agent KORA')
         ->and($payload['operator']['id'])->toBe($user->id)
-        ->and($payload['client']['name'])->toBe($reservation->payer->name)
+        ->and($payload['client']['name'])->toBe('Client FISC TEST')
         ->and($payload['items'])->toHaveCount(3)
         ->and($payload['items'][0]['taxGroup'])->toBe('A');
 });
@@ -185,6 +185,7 @@ function createFiscalizationReservation(User $user, PayerType $payerType = Payer
         'amount' => $totalAmount,
         'currency' => 'XOF',
         'status' => PaymentStatus::Confirmed,
+        'payer_name' => 'Client FISC TEST',
         'payer_phone' => '+22901000000',
         'confirmed_at' => now(),
     ]);

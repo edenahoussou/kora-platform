@@ -13,6 +13,7 @@ RUN apt-get update \
     chromium \
     fonts-liberation \
     fonts-noto-cjk \
+    supervisor \
     && docker-php-ext-install \
     bcmath \
     exif \
@@ -63,6 +64,8 @@ RUN php artisan config:clear \
     && php artisan route:clear \
     && php artisan view:clear
 
+COPY infra/docker/kora-ops-web/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
 EXPOSE 9000
 
-CMD ["php-fpm"]
+CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
