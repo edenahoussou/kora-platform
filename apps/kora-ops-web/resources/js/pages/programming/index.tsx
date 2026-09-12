@@ -7,6 +7,7 @@ import {
     CircleHelp,
     FilePlus2,
     Filter,
+    HelpCircle,
     Layers,
     ListChecks,
     Plus,
@@ -14,7 +15,9 @@ import {
     Settings2,
     Sparkles,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { OnboardingTour } from '@/components/onboarding/onboarding-tour';
+import type { OnboardingStep } from '@/components/onboarding/onboarding-tour';
 import { ItemPanel } from '@/components/programming/item-panel';
 import { PlanningCalendar } from '@/components/programming/planning-calendar';
 import { ProgrammePanel } from '@/components/programming/programme-panel';
@@ -45,6 +48,7 @@ import type {
     Template,
 } from '@/components/programming/types';
 import { cn } from '@/lib/utils';
+import { useOnboarding } from '@/hooks/use-onboarding';
 import departures from '@/routes/departures';
 import programming from '@/routes/programming';
 import itemRoutes from '@/routes/programming/items';
@@ -63,6 +67,51 @@ type Props = {
     counts: Record<string, number>;
     canCancel: boolean;
 };
+
+const ONBOARDING_STEPS: OnboardingStep[] = [
+    {
+        target: '[data-onboarding="prog-header"]',
+        title: 'Bienvenue sur la Programmation',
+        body: "C'est ici que vous générez vos départs réguliers depuis des modèles types, affectez vos bus et publiez vos plannings pour la vente.",
+        side: 'bottom',
+    },
+    {
+        target: '[data-onboarding="prog-flow"]',
+        title: 'Le parcours en 3 étapes',
+        body: "Créez d'abord un modèle de départs (semaine type), puis préparez une période (programme), et enfin contrôlez et publiez le planning.",
+        side: 'bottom',
+    },
+    {
+        target: '[data-onboarding="prog-stats"]',
+        title: 'Suivi opérationnel',
+        body: "Suivez en temps réel combien de départs sont prêts à publier, à corriger ou déjà en vente. Cliquez sur l'icône d'aide pour afficher les compteurs.",
+        side: 'right',
+    },
+    {
+        target: '[data-onboarding="prog-tabs"]',
+        title: 'Onglets de navigation',
+        body: 'Basculez entre la grille du planning (vue semaine/mois/liste), les modèles de départs et les programmes de périodes.',
+        side: 'bottom',
+    },
+    {
+        target: '[data-onboarding="prog-calendar"]',
+        title: 'Grille du planning',
+        body: "Visualisez tous les départs générés. Cliquez sur un départ pour voir le détail, ou sélectionnez-en plusieurs pour des actions en lot.",
+        side: 'right',
+    },
+    {
+        target: '[data-onboarding="prog-bulk"]',
+        title: 'Actions en lot',
+        body: "Sélectionnez plusieurs départs puis publiez-les, affectez un bus ou excluez des dates. La barre apparaît automatiquement.",
+        side: 'top',
+    },
+    {
+        target: '[data-onboarding="prog-guide"]',
+        title: 'Guide rapide',
+        body: "Créez votre premier modèle si vos départs ont des horaires fixes, puis appliquez-le pour générer vos programmes.",
+        side: 'left',
+    },
+];
 
 export default function ProgrammingPage({
     items,
@@ -92,6 +141,16 @@ export default function ProgrammingPage({
     );
     const api = useProgrammingRequest();
     usePoll(15000, { only: ['runs', 'programmes', 'items', 'counts'] });
+    const onboarding = useOnboarding('programming');
+
+    // Auto-start the tour on first visit, then hand control to the user.
+    useEffect(() => {
+        if (onboarding.shouldAutoStart) {
+            const timer = setTimeout(() => onboarding.start(), 400);
+
+            return () => clearTimeout(timer);
+        }
+    }, [onboarding.shouldAutoStart]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const tab = filters.tab ?? 'planning';
 
@@ -219,7 +278,10 @@ export default function ProgrammingPage({
             <Head title="Programmation des départs" />
             <div className="grid w-full gap-6 pb-24">
                 {/* HEADER */}
-                <header className="flex flex-wrap items-end justify-between gap-5">
+                <header
+                    data-onboarding="prog-header"
+                    className="flex flex-wrap items-end justify-between gap-5"
+                >
                     <div>
                         <div className="mb-2 text-xs font-semibold text-muted-foreground">
                             KORA OPS / Exploitation / Programmation
@@ -234,6 +296,18 @@ export default function ProgrammingPage({
                         </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2.5">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={onboarding.start}
+                            className="h-11 rounded-xl px-3 text-xs font-bold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                            <HelpCircle
+                                className="size-4"
+                                strokeWidth={1.8}
+                            />
+                            Parcours guidé
+                        </Button>
                         <Button variant="outline" asChild className="gap-2">
                             <Link href={departures.index()}>
                                 <FilePlus2 size={15} />
@@ -259,6 +333,7 @@ export default function ProgrammingPage({
 
                 {/* FLOW GUIDANCE CARDS */}
                 <section
+                    data-onboarding="prog-flow"
                     className="grid gap-4 md:grid-cols-3"
                     aria-label="Parcours de programmation"
                 >
@@ -300,6 +375,7 @@ export default function ProgrammingPage({
 
                 {/* OVERVIEW STATS */}
                 <section
+                    data-onboarding="prog-stats"
                     className="grid grid-flow-dense gap-4 md:grid-cols-12"
                     aria-label="État de la programmation"
                 >
@@ -353,7 +429,10 @@ export default function ProgrammingPage({
                         )}
                     </div>
 
-                    <div className="flex flex-col justify-between rounded-2xl border border-gold/30 bg-gold/[0.08] p-5 md:col-span-4">
+                    <div
+                        data-onboarding="prog-guide"
+                        className="flex flex-col justify-between rounded-2xl border border-gold/30 bg-gold/[0.08] p-5 md:col-span-4"
+                    >
                         <div>
                             <div className="flex items-center gap-2 text-xs font-extrabold text-kora dark:text-gold">
                                 <Settings2 size={16} />
@@ -378,6 +457,7 @@ export default function ProgrammingPage({
 
                 {/* TABS NAVIGATION */}
                 <nav
+                    data-onboarding="prog-tabs"
                     className="flex gap-2 border-b border-border pb-1"
                     aria-label="Onglets de programmation"
                 >
@@ -390,11 +470,10 @@ export default function ProgrammingPage({
                             key={key}
                             onClick={() => navigate({ tab: key })}
                             aria-current={tab === key ? 'page' : undefined}
-                            className={`rounded-lg px-4 py-2.5 text-xs font-extrabold transition-colors ${
-                                tab === key
-                                    ? 'bg-kora text-white shadow-xs dark:bg-gold dark:text-kora'
-                                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                            }`}
+                            className={`rounded-lg px-4 py-2.5 text-xs font-extrabold transition-colors ${tab === key
+                                ? 'bg-kora text-white shadow-xs dark:bg-gold dark:text-kora'
+                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                }`}
                         >
                             {label}
                         </button>
@@ -474,11 +553,10 @@ export default function ProgrammingPage({
                                         key={key}
                                         aria-pressed={filters.view === key}
                                         onClick={() => navigate({ view: key })}
-                                        className={`rounded-lg px-3.5 py-1.5 text-xs font-extrabold transition-all ${
-                                            filters.view === key
-                                                ? 'bg-card text-foreground shadow-xs'
-                                                : 'text-muted-foreground hover:text-foreground'
-                                        }`}
+                                        className={`rounded-lg px-3.5 py-1.5 text-xs font-extrabold transition-all ${filters.view === key
+                                            ? 'bg-card text-foreground shadow-xs'
+                                            : 'text-muted-foreground hover:text-foreground'
+                                            }`}
                                     >
                                         {label}
                                     </button>
@@ -622,9 +700,9 @@ export default function ProgrammingPage({
                                             'inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-extrabold transition-all',
                                             active
                                                 ? (theme?.chipActive ??
-                                                      'border-gold bg-gold/15 text-foreground ring-1 ring-gold/40')
+                                                    'border-gold bg-gold/15 text-foreground ring-1 ring-gold/40')
                                                 : (theme?.chip ??
-                                                      'border-border bg-card text-muted-foreground hover:border-gold/60 hover:text-foreground'),
+                                                    'border-border bg-card text-muted-foreground hover:border-gold/60 hover:text-foreground'),
                                         )}
                                     >
                                         {theme && (
@@ -650,6 +728,7 @@ export default function ProgrammingPage({
                         {/* PLANNING SURFACE */}
                         <Surface>
                             <div
+                                data-onboarding="prog-calendar"
                                 aria-busy={loading}
                                 className={
                                     loading
@@ -676,8 +755,8 @@ export default function ProgrammingPage({
                                         setSelected(
                                             selected.includes(uuid)
                                                 ? selected.filter(
-                                                      (v) => v !== uuid,
-                                                  )
+                                                    (v) => v !== uuid,
+                                                )
                                                 : [...selected, uuid],
                                         )
                                     }
@@ -752,23 +831,22 @@ export default function ProgrammingPage({
                                                                 {t.name}
                                                             </h2>
                                                             <span
-                                                                className={`rounded-md px-2 py-0.5 text-[0.6875rem] font-bold ${
-                                                                    t.status ===
+                                                                className={`rounded-md px-2 py-0.5 text-[0.6875rem] font-bold ${t.status ===
                                                                     'available'
-                                                                        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                                                                        : t.status ===
-                                                                            'draft'
-                                                                          ? 'bg-gold/20 text-kora dark:text-gold'
-                                                                          : 'bg-muted text-muted-foreground'
-                                                                }`}
+                                                                    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                                                    : t.status ===
+                                                                        'draft'
+                                                                        ? 'bg-gold/20 text-kora dark:text-gold'
+                                                                        : 'bg-muted text-muted-foreground'
+                                                                    }`}
                                                             >
                                                                 {t.status ===
-                                                                'available'
+                                                                    'available'
                                                                     ? `Version ${t.versions[0]?.number}`
                                                                     : t.status ===
                                                                         'draft'
-                                                                      ? 'Brouillon'
-                                                                      : 'Archivé'}
+                                                                        ? 'Brouillon'
+                                                                        : 'Archivé'}
                                                             </span>
                                                         </div>
 
@@ -836,42 +914,42 @@ export default function ProgrammingPage({
                                                     </Button>
                                                     {t.status ===
                                                         'available' && (
-                                                        <PrimaryButton
-                                                            asChild
-                                                            size="sm"
-                                                            className="gap-1.5"
-                                                        >
-                                                            <Link
-                                                                href={programmeRoutes.create(
-                                                                    {
-                                                                        query: {
-                                                                            template:
-                                                                                t.uuid,
-                                                                        },
-                                                                    },
-                                                                )}
+                                                            <PrimaryButton
+                                                                asChild
+                                                                size="sm"
+                                                                className="gap-1.5"
                                                             >
-                                                                <Sparkles
-                                                                    size={14}
-                                                                />
-                                                                Préparer une
-                                                                période
-                                                            </Link>
-                                                        </PrimaryButton>
-                                                    )}
+                                                                <Link
+                                                                    href={programmeRoutes.create(
+                                                                        {
+                                                                            query: {
+                                                                                template:
+                                                                                    t.uuid,
+                                                                            },
+                                                                        },
+                                                                    )}
+                                                                >
+                                                                    <Sparkles
+                                                                        size={14}
+                                                                    />
+                                                                    Préparer une
+                                                                    période
+                                                                </Link>
+                                                            </PrimaryButton>
+                                                        )}
                                                     {t.status !==
                                                         'archived' && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() =>
-                                                                setArchive(t)
-                                                            }
-                                                            className="text-muted-foreground hover:text-destructive"
-                                                        >
-                                                            Archiver
-                                                        </Button>
-                                                    )}
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() =>
+                                                                    setArchive(t)
+                                                                }
+                                                                className="text-muted-foreground hover:text-destructive"
+                                                            >
+                                                                Archiver
+                                                            </Button>
+                                                        )}
                                                 </div>
                                             </article>
                                         );
@@ -938,11 +1016,10 @@ export default function ProgrammingPage({
 
                                             <div className="text-right">
                                                 <span
-                                                    className={`rounded-md px-2 py-0.5 text-xs font-extrabold ${
-                                                        p.automatic
-                                                            ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                                                            : 'bg-muted text-muted-foreground'
-                                                    }`}
+                                                    className={`rounded-md px-2 py-0.5 text-xs font-extrabold ${p.automatic
+                                                        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                                        : 'bg-muted text-muted-foreground'
+                                                        }`}
                                                 >
                                                     {p.automatic
                                                         ? `Auto · ${p.horizonDays} jours`
@@ -982,7 +1059,10 @@ export default function ProgrammingPage({
 
                 {/* STICKY BULK ACTION BAR */}
                 {selected.length > 0 && (
-                    <div className="sticky bottom-4 z-20 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-kora p-4 text-white shadow-xl ring-1 ring-white/10">
+                    <div
+                        data-onboarding="prog-bulk"
+                        className="sticky bottom-4 z-20 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-kora p-4 text-white shadow-xl ring-1 ring-white/10"
+                    >
                         <div className="flex items-center gap-2">
                             <span className="grid size-6 place-items-center rounded-full bg-gold text-xs font-black text-kora">
                                 {selected.length}
@@ -1053,8 +1133,8 @@ export default function ProgrammingPage({
                     action === 'publish'
                         ? 'Publication des départs sélectionnés'
                         : action === 'assign'
-                          ? 'Affectation d’un bus à la sélection'
-                          : 'Exclusion de dates'
+                            ? 'Affectation d’un bus à la sélection'
+                            : 'Exclusion de dates'
                 }
                 busy={api.busy}
                 onClose={() => setAction(null)}
@@ -1070,8 +1150,8 @@ export default function ProgrammingPage({
                         {api.busy
                             ? 'Traitement en cours…'
                             : action === 'publish'
-                              ? `Publier les ${ready} départ(s) prêt(s)`
-                              : 'Confirmer'}
+                                ? `Publier les ${ready} départ(s) prêt(s)`
+                                : 'Confirmer'}
                     </PrimaryButton>
                 }
             >
@@ -1141,6 +1221,13 @@ export default function ProgrammingPage({
                     planification.
                 </p>
             </Confirm>
+
+            <OnboardingTour
+                steps={ONBOARDING_STEPS}
+                isActive={onboarding.isActive}
+                onComplete={onboarding.complete}
+                onDismiss={onboarding.dismiss}
+            />
         </>
     );
 }
