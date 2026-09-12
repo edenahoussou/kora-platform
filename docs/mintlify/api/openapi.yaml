@@ -944,7 +944,7 @@ paths:
                 date:
                   type: string
                   description: 'Must be a valid date in the format <code>Y-m-d</code>.'
-                  example: '2026-09-08'
+                  example: '2026-09-12'
                 passenger_count:
                   type: integer
                   description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 10.'
@@ -980,7 +980,7 @@ paths:
                 return_date:
                   type: string
                   description: 'Must be a valid date in the format <code>Y-m-d</code>.'
-                  example: '2026-09-08'
+                  example: '2026-09-12'
               required:
                 - from_physical_stop_uuid
                 - to_physical_stop_uuid
@@ -1675,6 +1675,26 @@ paths:
                       expires_at:
                         type: string
                         example: '2026-08-20T13:10:00.000Z'
+        404:
+          description: 'User not found'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: user_not_found
+                    message: 'Utilisateur introuvable.'
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: user_not_found
+                      message:
+                        type: string
+                        example: 'Utilisateur introuvable.'
         422:
           description: 'Validation error'
           content:
@@ -3035,7 +3055,7 @@ paths:
                 birth_date:
                   type: string
                   description: 'Le champ value doit être une date valide. Le champ value doit être une date antérieure à <code>today</code>.'
-                  example: '2022-10-03'
+                  example: '2022-10-06'
                   nullable: true
               required:
                 - name

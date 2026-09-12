@@ -1,0 +1,1912 @@
+name: Bus
+description: |-
+
+  Public Bus catalog endpoints for KORA BUS search experiences.
+endpoints:
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/bus/cities
+    metadata:
+      custom: []
+      groupName: Bus
+      groupDescription: |-
+
+        Public Bus catalog endpoints for KORA BUS search experiences.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'List served cities.'
+      description: |-
+        Returns active cities with their physical stops, ready for itinerary search.
+        Each physical stop exposes its UUID, which the mobile uses as
+        `from_physical_stop_uuid` / `to_physical_stop_uuid` in `GET /bus/itineraries`.
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": [
+              {
+                "city": "Cotonou",
+                "country": "BJ",
+                "physical_stops": [
+                  {
+                    "uuid": "5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21",
+                    "name": "Cotonou · St Michel"
+                  },
+                  {
+                    "uuid": "5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22",
+                    "name": "Cotonou · Dantokpa"
+                  }
+                ]
+              },
+              {
+                "city": "Abidjan",
+                "country": "CI",
+                "physical_stops": [
+                  {
+                    "uuid": "5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e23",
+                    "name": "Abidjan · Adjamé"
+                  }
+                ]
+              }
+            ]
+          }
+        headers: []
+        description: 'Cities list'
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/bus/lines
+    metadata:
+      custom: []
+      groupName: Bus
+      groupDescription: |-
+
+        Public Bus catalog endpoints for KORA BUS search experiences.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'List Bus lines.'
+      description: ''
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters:
+      from:
+        custom: []
+        name: from
+        description: 'Optional origin city filter.'
+        required: false
+        example: Cotonou
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      to:
+        custom: []
+        name: to
+        description: 'Optional destination city filter.'
+        required: false
+        example: Abidjan
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanQueryParameters:
+      from: Cotonou
+      to: Abidjan
+    bodyParameters:
+      from:
+        custom: []
+        name: from
+        description: 'Le champ value ne doit pas dépasser 120 caractères.'
+        required: false
+        example: b
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      to:
+        custom: []
+        name: to
+        description: 'Le champ value ne doit pas dépasser 120 caractères.'
+        required: false
+        example: 'n'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+    cleanBodyParameters:
+      from: b
+      to: 'n'
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": [
+              {
+                "uuid": "9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f",
+                "code": "L1",
+                "name": "Cotonou - Abidjan",
+                "type": "internationale",
+                "countries_crossed": ["BJ", "TG", "GH", "CI"],
+                "distance_km": 1020,
+                "estimated_duration_minutes": 1260,
+                "status": "active",
+                "stops": []
+              }
+            ]
+          }
+        headers: []
+        description: 'Lines list'
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'api/v1/bus/lines/{uuid}'
+    metadata:
+      custom: []
+      groupName: Bus
+      groupDescription: |-
+
+        Public Bus catalog endpoints for KORA BUS search experiences.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Show a Bus line.'
+      description: "Includes the line's active stops, ordered along the route."
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      uuid:
+        custom: []
+        name: uuid
+        description: ''
+        required: true
+        example: f3e58eb2-66aa-4fee-9e98-f5dd59054e7e
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      line:
+        custom: []
+        name: line
+        description: 'Public UUID of the line.'
+        required: true
+        example: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      uuid: f3e58eb2-66aa-4fee-9e98-f5dd59054e7e
+      line: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": {
+              "uuid": "9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f",
+              "code": "L1",
+              "name": "Cotonou - Abidjan",
+              "type": "internationale",
+              "countries_crossed": ["BJ", "TG", "GH", "CI"],
+              "distance_km": 1020,
+              "estimated_duration_minutes": 1260,
+              "status": "active",
+              "stops": [
+                {
+                  "uuid": "5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21",
+                  "name": "Cotonou · St Michel",
+                  "city": "Cotonou",
+                  "country": "BJ",
+                  "stop_order": 1,
+                  "km_from_origin": 0
+                },
+                {
+                  "uuid": "5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22",
+                  "name": "Abidjan · Adjamé",
+                  "city": "Abidjan",
+                  "country": "CI",
+                  "stop_order": 2,
+                  "km_from_origin": 1020
+                }
+              ]
+            }
+          }
+        headers: []
+        description: 'Line detail'
+      -
+        custom: []
+        status: 404
+        content: |-
+          {
+            "message": "No query results for model [App\\Modules\\BusNetwork\\Models\\Line]."
+          }
+        headers: []
+        description: 'Line not found'
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'api/v1/bus/departures/{departure_uuid}/seats'
+    metadata:
+      custom: []
+      groupName: Bus
+      groupDescription: |-
+
+        Public Bus seat availability endpoint.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'List departure seats.'
+      description: |-
+        Returns every seat on the assigned bus, with its availability status for
+        the requested origin/destination segment (available, held, occupied, or blocked).
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      departure_uuid:
+        custom: []
+        name: departure_uuid
+        description: ''
+        required: true
+        example: 48cc889a-8518-4cb2-b4ec-13e225ad597b
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      departure:
+        custom: []
+        name: departure
+        description: 'Public UUID of the departure.'
+        required: true
+        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      departure_uuid: 48cc889a-8518-4cb2-b4ec-13e225ad597b
+      departure: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+    queryParameters:
+      origin_stop_uuid:
+        custom: []
+        name: origin_stop_uuid
+        description: 'Public UUID of the boarding stop.'
+        required: true
+        example: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      destination_stop_uuid:
+        custom: []
+        name: destination_stop_uuid
+        description: 'Public UUID of the drop-off stop.'
+        required: true
+        example: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanQueryParameters:
+      origin_stop_uuid: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21
+      destination_stop_uuid: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22
+    bodyParameters:
+      origin_stop_uuid:
+        custom: []
+        name: origin_stop_uuid
+        description: 'Le champ value doit être un UUID valide.'
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      destination_stop_uuid:
+        custom: []
+        name: destination_stop_uuid
+        description: 'Le champ value doit être un UUID valide.'
+        required: true
+        example: 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      origin_stop_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      destination_stop_uuid: 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": [
+              {
+                "uuid": "6e2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e50",
+                "code": "1A",
+                "type": "standard",
+                "sellable": true,
+                "availability_status": "available",
+                "held_until": null
+              },
+              {
+                "uuid": "6e2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e51",
+                "code": "1B",
+                "type": "standard",
+                "sellable": true,
+                "availability_status": "held",
+                "held_until": "2026-08-15T07:20:00.000000Z"
+              },
+              {
+                "uuid": "6e2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e52",
+                "code": "1C",
+                "type": "standard",
+                "sellable": true,
+                "availability_status": "occupied",
+                "held_until": null
+              }
+            ]
+          }
+        headers: []
+        description: 'Seat map'
+      -
+        custom: []
+        status: 422
+        content: |-
+          {
+            "message": "The requested origin and destination do not form a valid ordered segment for this line.",
+            "errors": {
+              "segment": ["The requested origin and destination do not form a valid ordered segment for this line."]
+            }
+          }
+        headers: []
+        description: 'Invalid segment'
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/bus/itineraries
+    metadata:
+      custom: []
+      groupName: Bus
+      groupDescription: |-
+
+        Multi-line itinerary endpoints for journeys with connections.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Search for multi-line itineraries (direct and with connections).'
+      description: |-
+        Returns rich leg data (line, bus with amenities, origin/destination stops
+        with city and country, available seats count, service class) so the
+        mobile client can render search results without extra calls.
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters:
+      from_physical_stop_uuid:
+        custom: []
+        name: from_physical_stop_uuid
+        description: 'UUID of the origin physical stop.'
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      to_physical_stop_uuid:
+        custom: []
+        name: to_physical_stop_uuid
+        description: 'UUID of the destination physical stop.'
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      date:
+        custom: []
+        name: date
+        description: 'Travel date (Y-m-d).'
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      passenger_count:
+        custom: []
+        name: passenger_count
+        description: 'Number of passengers. Defaults to 1.'
+        required: false
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      sort:
+        custom: []
+        name: sort
+        description: 'Sort key: departure_time, arrival_time, price, duration, connections. Defaults to connections.'
+        required: false
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      sort_direction:
+        custom: []
+        name: sort_direction
+        description: 'Sort direction: asc or desc. Defaults to asc.'
+        required: false
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      service_class_code:
+        custom: []
+        name: service_class_code
+        description: 'Filter by service class code (e.g. standard, confort).'
+        required: false
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      trip_type:
+        custom: []
+        name: trip_type
+        description: 'Trip type: one_way or round_trip. Defaults to one_way. When round_trip, return_date is required and the response shape changes to { outbound: [...], inbound: [...] }.'
+        required: false
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      return_date:
+        custom: []
+        name: return_date
+        description: 'Return date (Y-m-d). Required when trip_type is round_trip.'
+        required: false
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanQueryParameters:
+      from_physical_stop_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      to_physical_stop_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      date: architecto
+      passenger_count: 16
+      sort: architecto
+      sort_direction: architecto
+      service_class_code: architecto
+      trip_type: architecto
+      return_date: architecto
+    bodyParameters:
+      from_physical_stop_uuid:
+        custom: []
+        name: from_physical_stop_uuid
+        description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      to_physical_stop_uuid:
+        custom: []
+        name: to_physical_stop_uuid
+        description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
+        required: true
+        example: 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      date:
+        custom: []
+        name: date
+        description: 'Must be a valid date in the format <code>Y-m-d</code>.'
+        required: true
+        example: '2026-09-12'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      passenger_count:
+        custom: []
+        name: passenger_count
+        description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 10.'
+        required: false
+        example: 7
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      sort:
+        custom: []
+        name: sort
+        description: ''
+        required: false
+        example: connections
+        type: string
+        enumValues:
+          - departure_time
+          - arrival_time
+          - price
+          - duration
+          - connections
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      sort_direction:
+        custom: []
+        name: sort_direction
+        description: ''
+        required: false
+        example: desc
+        type: string
+        enumValues:
+          - asc
+          - desc
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      service_class_code:
+        custom: []
+        name: service_class_code
+        description: 'Must match an existing stored value.'
+        required: false
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      trip_type:
+        custom: []
+        name: trip_type
+        description: ''
+        required: false
+        example: one_way
+        type: string
+        enumValues:
+          - one_way
+          - round_trip
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      return_date:
+        custom: []
+        name: return_date
+        description: 'Must be a valid date in the format <code>Y-m-d</code>.'
+        required: false
+        example: '2026-09-12'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      from_physical_stop_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      to_physical_stop_uuid: 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
+      date: '2026-09-12'
+      passenger_count: 7
+      sort: connections
+      sort_direction: desc
+      service_class_code: architecto
+      trip_type: one_way
+      return_date: '2026-09-12'
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": [
+              {
+                "connections_count": 0,
+                "total_amount": 15600,
+                "currency": "XOF",
+                "departure_at": "2026-09-07T13:00:00+00:00",
+                "arrival_at": "2026-09-07T23:00:00+00:00",
+                "connection_margin_minutes": 45,
+                "legs": [
+                  {
+                    "leg_order": 1,
+                    "departure_uuid": "eaaf800b-90b6-4334-b840-7122d9ed65ac",
+                    "line": {
+                      "uuid": "line-uuid",
+                      "code": "L2",
+                      "name": "Cotonou - Malanville",
+                      "estimated_duration_minutes": 600,
+                      "is_international": false
+                    },
+                    "bus": {
+                      "uuid": "bus-uuid",
+                      "registration_number": "BJ-1234-AA",
+                      "brand": "Toyota",
+                      "model": "Coaster",
+                      "seat_count": 30,
+                      "amenities": [
+                        { "code": "wifi", "label": "Wi-Fi", "icon": "wifi" }
+                      ]
+                    },
+                    "origin_stop": {
+                      "uuid": "stop-uuid",
+                      "name": "Cotonou",
+                      "city": "Cotonou",
+                      "country": "BJ",
+                      "stop_order": 1
+                    },
+                    "destination_stop": {
+                      "uuid": "stop-uuid",
+                      "name": "Malanville",
+                      "city": "Malanville",
+                      "country": "BJ",
+                      "stop_order": 7
+                    },
+                    "amount": 15600,
+                    "available_seats_count": 28,
+                    "service_class_code": "standard",
+                    "service_class_name": "Standard",
+                    "departure_at": "2026-09-07T13:00:00+00:00",
+                    "arrival_at": "2026-09-07T23:00:00+00:00"
+                  }
+                ]
+              }
+            ]
+          }
+        headers: []
+        description: 'One-way itineraries'
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "outbound": [
+              {
+                "connections_count": 0,
+                "total_amount": 15600,
+                "currency": "XOF",
+                "departure_at": "2026-09-07T13:00:00+00:00",
+                "arrival_at": "2026-09-07T23:00:00+00:00",
+                "connection_margin_minutes": 45,
+                "legs": [...]
+              }
+            ],
+            "inbound": [
+              {
+                "connections_count": 0,
+                "total_amount": 15600,
+                "currency": "XOF",
+                "departure_at": "2026-09-14T13:00:00+00:00",
+                "arrival_at": "2026-09-14T23:00:00+00:00",
+                "connection_margin_minutes": 45,
+                "legs": [...]
+              }
+            ]
+          }
+        headers: []
+        description: 'Round-trip itineraries'
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/bus/itinerary-quotes
+    metadata:
+      custom: []
+      groupName: Bus
+      groupDescription: |-
+
+        Multi-line itinerary endpoints for journeys with connections.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Calculate an aggregated quote for a multi-leg itinerary.'
+      description: 'Requires a Sanctum bearer token.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      passenger_count:
+        custom: []
+        name: passenger_count
+        description: 'Number of passengers. Defaults to 1.'
+        required: false
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      legs:
+        custom: []
+        name: legs
+        description: 'Ordered itinerary legs, including a direct itinerary with one leg. For a round trip, include outbound legs first, then inbound legs.'
+        required: true
+        example:
+          - architecto
+        type: 'string[]'
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'legs[].departure_uuid':
+        custom: []
+        name: 'legs[].departure_uuid'
+        description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'legs[].origin_stop_uuid':
+        custom: []
+        name: 'legs[].origin_stop_uuid'
+        description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
+        required: true
+        example: 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'legs[].destination_stop_uuid':
+        custom: []
+        name: 'legs[].destination_stop_uuid'
+        description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
+        required: true
+        example: 977e5426-8d13-3824-86aa-b092f8ae52c5
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'legs[].leg_order':
+        custom: []
+        name: 'legs[].leg_order'
+        description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 6.'
+        required: false
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'legs[].direction':
+        custom: []
+        name: 'legs[].direction'
+        description: ''
+        required: false
+        example: outbound
+        type: string
+        enumValues:
+          - outbound
+          - inbound
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'legs.*.leg_order':
+        custom: []
+        name: 'legs.*.leg_order'
+        description: 'Leg order, starting at 1.'
+        required: false
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'legs.*.departure_uuid':
+        custom: []
+        name: 'legs.*.departure_uuid'
+        description: 'Departure UUID.'
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'legs.*.origin_stop_uuid':
+        custom: []
+        name: 'legs.*.origin_stop_uuid'
+        description: 'Origin stop UUID.'
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'legs.*.destination_stop_uuid':
+        custom: []
+        name: 'legs.*.destination_stop_uuid'
+        description: 'Destination stop UUID.'
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'legs.*.direction':
+        custom: []
+        name: 'legs.*.direction'
+        description: 'Leg direction: outbound or inbound. Defaults to outbound. Required for round-trip legs.'
+        required: false
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      passenger_count: 16
+      legs:
+        - architecto
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": {
+              "itinerary_quote_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+              "trip_type": "round_trip",
+              "total_amount": 27500,
+              "currency": "XOF",
+              "expires_at": "2026-09-10T08:00:00Z",
+              "legs": [
+              {
+                "leg_order": 1,
+                "direction": "outbound",
+                "quote_uuid": "quote-uuid-1",
+                "final_amount": 15000
+              },
+              {
+                "leg_order": 2,
+                "direction": "inbound",
+                "quote_uuid": "quote-uuid-2",
+                "final_amount": 12500
+              }
+              ],
+              "pricing": {
+                "subtotal_amount": 27500,
+                "dynamic_adjustment_amount": 0,
+                "group_discount": {},
+                "passenger_allocations": [27500],
+                "total_amount": 27500,
+                "currency": "XOF"
+              }
+            }
+          }
+        headers: []
+        description: 'Quote calculated'
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/bus/itinerary-holds
+    metadata:
+      custom: []
+      groupName: Bus
+      groupDescription: |-
+
+        Multi-line itinerary endpoints for journeys with connections.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Create an atomic seat hold for a multi-leg itinerary.'
+      description: 'Requires a Sanctum bearer token.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      itinerary_quote_uuid:
+        custom: []
+        name: itinerary_quote_uuid
+        description: 'Immutable itinerary quote UUID.'
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      idempotency_key:
+        custom: []
+        name: idempotency_key
+        description: 'Client-generated key for safe retries.'
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      payer:
+        custom: []
+        name: payer
+        description: 'Optional personal or company payer context.'
+        required: false
+        example: []
+        type: object
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      payer.type:
+        custom: []
+        name: payer.type
+        description: 'This field is required when <code>payer</code> is present.'
+        required: false
+        example: company
+        type: string
+        enumValues:
+          - personal
+          - company
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      payer.user_uuid:
+        custom: []
+        name: payer.user_uuid
+        description: 'Le champ value doit être un UUID valide.'
+        required: false
+        example: c90237e9-ced5-3af6-88ea-84aeaa148878
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      payer.company_account_uuid:
+        custom: []
+        name: payer.company_account_uuid
+        description: 'This field is required when <code>payer.type</code> is <code>company</code>. Le champ value doit être un UUID valide. Must match an existing stored value.'
+        required: false
+        example: a1a0a47d-e8c3-3cf0-8e6e-c1ff9dca5d1f
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      passengers:
+        custom: []
+        name: passengers
+        description: 'Passenger-to-leg seat assignment matrix.'
+        required: true
+        example:
+          - architecto
+        type: 'string[]'
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers[].passenger_index':
+        custom: []
+        name: 'passengers[].passenger_index'
+        description: 'Le champ value doit être au moins 0. Le champ value ne doit pas être supérieur à 9.'
+        required: true
+        example: 7
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers[].seat_assignments':
+        custom: []
+        name: 'passengers[].seat_assignments'
+        description: 'Le champ value doit contenir au moins 1 éléments. Le champ value ne doit pas contenir plus de 6 éléments.'
+        required: true
+        example:
+          - []
+        type: 'object[]'
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers[].seat_assignments[].leg_order':
+        custom: []
+        name: 'passengers[].seat_assignments[].leg_order'
+        description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 6.'
+        required: true
+        example: 4
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers[].seat_assignments[].seat_uuid':
+        custom: []
+        name: 'passengers[].seat_assignments[].seat_uuid'
+        description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
+        required: true
+        example: a4855dc5-0acb-33c3-b921-f4291f719ca0
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers.*.passenger_index':
+        custom: []
+        name: 'passengers.*.passenger_index'
+        description: 'Zero-based passenger index.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers.*.seat_assignments':
+        custom: []
+        name: 'passengers.*.seat_assignments'
+        description: 'One seat assignment per itinerary leg.'
+        required: true
+        example:
+          - architecto
+        type: 'string[]'
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers.*.seat_assignments.*.leg_order':
+        custom: []
+        name: 'passengers.*.seat_assignments.*.leg_order'
+        description: 'One-based itinerary leg order.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers.*.seat_assignments.*.seat_uuid':
+        custom: []
+        name: 'passengers.*.seat_assignments.*.seat_uuid'
+        description: 'Seat UUID.'
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      itinerary_quote_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+      idempotency_key: architecto
+      payer:
+        type: company
+        user_uuid: c90237e9-ced5-3af6-88ea-84aeaa148878
+        company_account_uuid: a1a0a47d-e8c3-3cf0-8e6e-c1ff9dca5d1f
+      passengers:
+        -
+          seat_assignments:
+            -
+              leg_order: 4
+              seat_uuid: a4855dc5-0acb-33c3-b921-f4291f719ca0
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 201
+        content: |-
+          {
+            "data": {
+              "uuid": "reservation-uuid",
+              "status": "held"
+            }
+          }
+        headers: []
+        description: 'Hold created'
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'api/v1/bookings/{reservation_uuid}'
+    metadata:
+      custom: []
+      groupName: Bus
+      groupDescription: |-
+
+        Reservation lifecycle endpoints for the passenger booking flow.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Retrieve a reservation and its current booking state.'
+      description: |-
+        This endpoint is safe to call after a mobile session is restored. It returns the
+        server-side reservation state instead of requiring the client to rebuild it locally.
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      reservation_uuid:
+        custom: []
+        name: reservation_uuid
+        description: ''
+        required: true
+        example: e024a63d-d529-41b5-bc38-002a9d4c77cb
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      reservation_uuid: e024a63d-d529-41b5-bc38-002a9d4c77cb
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": {
+              "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+              "status": "held",
+              "expires_at": "2026-08-20T08:15:00Z",
+              "total_amount": 25000,
+              "currency": "XOF",
+              "channel": "mobile",
+              "departure_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e",
+              "price_quote_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6f",
+              "passenger_count": 2,
+              "segments": [],
+              "passengers": []
+            }
+          }
+        headers: []
+        description: 'Reservation details'
+      -
+        custom: []
+        status: 401
+        content: |-
+          {
+            "message": "Unauthenticated."
+          }
+        headers: []
+        description: Unauthenticated
+      -
+        custom: []
+        status: 403
+        content: |-
+          {
+            "message": "This action is unauthorized."
+          }
+        headers: []
+        description: Forbidden
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - DELETE
+    uri: 'api/v1/bookings/{reservation_uuid}'
+    metadata:
+      custom: []
+      groupName: Bus
+      groupDescription: |-
+
+        Reservation lifecycle endpoints for the passenger booking flow.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Release a held reservation and make its seats available again.'
+      description: |-
+        The operation is explicit and idempotent for a reservation that is no longer held.
+        It never releases a paid or ticketed reservation.
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      reservation_uuid:
+        custom: []
+        name: reservation_uuid
+        description: ''
+        required: true
+        example: e024a63d-d529-41b5-bc38-002a9d4c77cb
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      reservation_uuid: e024a63d-d529-41b5-bc38-002a9d4c77cb
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 204
+        content: ''
+        headers: []
+        description: 'Hold released'
+      -
+        custom: []
+        status: 401
+        content: |-
+          {
+            "message": "Unauthenticated."
+          }
+        headers: []
+        description: Unauthenticated
+      -
+        custom: []
+        status: 403
+        content: |-
+          {
+            "message": "This action is unauthorized."
+          }
+        headers: []
+        description: Forbidden
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/bookings/{reservation_uuid}/passengers'
+    metadata:
+      custom: []
+      groupName: Bus
+      groupDescription: |-
+
+        Passenger information capture for bus reservations.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Store passenger details for a reservation.'
+      description: 'Requires a Sanctum bearer token.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      reservation_uuid:
+        custom: []
+        name: reservation_uuid
+        description: ''
+        required: true
+        example: e024a63d-d529-41b5-bc38-002a9d4c77cb
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      reservation_uuid: e024a63d-d529-41b5-bc38-002a9d4c77cb
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      passengers:
+        custom: []
+        name: passengers
+        description: 'Passenger identity data, one item per passenger.'
+        required: true
+        example:
+          - architecto
+        type: 'string[]'
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers[].first_name':
+        custom: []
+        name: 'passengers[].first_name'
+        description: 'Le champ value ne doit pas dépasser 120 caractères.'
+        required: true
+        example: b
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers[].last_name':
+        custom: []
+        name: 'passengers[].last_name'
+        description: 'Le champ value ne doit pas dépasser 120 caractères.'
+        required: true
+        example: 'n'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers[].phone':
+        custom: []
+        name: 'passengers[].phone'
+        description: 'Le champ value ne doit pas dépasser 32 caractères.'
+        required: false
+        example: g
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      'passengers[].email':
+        custom: []
+        name: 'passengers[].email'
+        description: 'Le champ value doit être une adresse e-mail valide. Le champ value ne doit pas dépasser 255 caractères.'
+        required: false
+        example: rowan.gulgowski@example.com
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      'passengers[].document_number':
+        custom: []
+        name: 'passengers[].document_number'
+        description: 'This field is required when <code>passengers.*.document_type</code> is present. Le champ value ne doit pas dépasser 64 caractères.'
+        required: false
+        example: d
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      'passengers[].document_type':
+        custom: []
+        name: 'passengers[].document_type'
+        description: 'This field is required when <code>passengers.*.document_number</code> is present.'
+        required: false
+        example: biometric_card
+        type: string
+        enumValues:
+          - national_id
+          - biometric_card
+          - passport
+          - consular_card
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      'passengers[].nationality':
+        custom: []
+        name: 'passengers[].nationality'
+        description: 'Le champ value doit contenir 2 caractères.'
+        required: false
+        example: lj
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      'passengers[].birth_date':
+        custom: []
+        name: 'passengers[].birth_date'
+        description: 'Must be a valid date in the format <code>Y-m-d</code>.'
+        required: false
+        example: '2026-09-12'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      'passengers[].passenger_index':
+        custom: []
+        name: 'passengers[].passenger_index'
+        description: 'Le champ value doit être au moins 0. Le champ value ne doit pas être supérieur à 9.'
+        required: false
+        example: 2
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      'passengers[].seat_uuid':
+        custom: []
+        name: 'passengers[].seat_uuid'
+        description: 'Le champ value doit être un UUID valide.'
+        required: false
+        example: cd1eb1ea-4697-3b9a-9dd0-988044a83af6
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      'passengers[].yellow_fever_vaccinated':
+        custom: []
+        name: 'passengers[].yellow_fever_vaccinated'
+        description: ''
+        required: false
+        example: true
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      'passengers.*.passenger_index':
+        custom: []
+        name: 'passengers.*.passenger_index'
+        description: 'Stable zero-based passenger index across all itinerary legs.'
+        required: false
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers.*.first_name':
+        custom: []
+        name: 'passengers.*.first_name'
+        description: 'Passenger first name.'
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers.*.last_name':
+        custom: []
+        name: 'passengers.*.last_name'
+        description: 'Passenger last name.'
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers.*.phone':
+        custom: []
+        name: 'passengers.*.phone'
+        description: 'Passenger phone number.'
+        required: false
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers.*.email':
+        custom: []
+        name: 'passengers.*.email'
+        description: 'Passenger email address.'
+        required: false
+        example: gbailey@example.net
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers.*.document_type':
+        custom: []
+        name: 'passengers.*.document_type'
+        description: 'Identity document type required for international lines.'
+        required: false
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers.*.document_number':
+        custom: []
+        name: 'passengers.*.document_number'
+        description: 'Identity document number required for international lines.'
+        required: false
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers.*.nationality':
+        custom: []
+        name: 'passengers.*.nationality'
+        description: 'ISO 2-letter nationality code.'
+        required: false
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers.*.birth_date':
+        custom: []
+        name: 'passengers.*.birth_date'
+        description: 'Date of birth in Y-m-d format.'
+        required: false
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'passengers.*.seat_uuid':
+        custom: []
+        name: 'passengers.*.seat_uuid'
+        description: "Seat UUID for the passenger's segment."
+        required: false
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      passengers:
+        - architecto
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": {
+              "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+              "status": "held",
+              "expires_at": "2026-08-20T08:15:00Z",
+              "total_amount": 12500,
+              "currency": "XOF",
+              "channel": "mobile",
+              "departure_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e",
+              "passengers": [
+                {
+                  "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb73",
+                  "passenger_index": 0,
+                  "first_name": "Aïcha",
+                  "last_name": "HOUNKPÈ",
+                  "phone": "+2290197421860",
+                  "document_type": "passport",
+                  "document_number": "BJ0427851",
+                  "nationality": "BJ",
+                  "birth_date": "1994-04-18",
+                  "seat_code": "4A"
+                }
+              ]
+            }
+          }
+        headers: []
+        description: 'Passengers stored'
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/bookings/{reservation_uuid}/cancel'
+    metadata:
+      custom: []
+      groupName: Bus
+      groupDescription: |-
+
+        Reservation lifecycle endpoints for the passenger booking flow.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Cancel a reservation and release its held seats.'
+      description: |-
+        Only reservations that are still held (not paid or ticketed) can be cancelled.
+        The operation is idempotent — cancelling an already-cancelled reservation is a no-op.
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      reservation_uuid:
+        custom: []
+        name: reservation_uuid
+        description: ''
+        required: true
+        example: e024a63d-d529-41b5-bc38-002a9d4c77cb
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      reservation_uuid: e024a63d-d529-41b5-bc38-002a9d4c77cb
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": {
+              "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+              "status": "cancelled",
+              "total_amount": 25000,
+              "currency": "XOF",
+              "segments": [],
+              "passengers": []
+            }
+          }
+        headers: []
+        description: 'Reservation cancelled'
+      -
+        custom: []
+        status: 401
+        content: |-
+          {
+            "message": "Unauthenticated."
+          }
+        headers: []
+        description: Unauthenticated
+      -
+        custom: []
+        status: 403
+        content: |-
+          {
+            "message": "This action is unauthorized."
+          }
+        headers: []
+        description: Forbidden
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/bookings/{reservation_uuid}/passengers/{passenger_uuid}/cancel'
+    metadata:
+      custom: []
+      groupName: Bus
+      groupDescription: |-
+
+        Reservation lifecycle endpoints for the passenger booking flow.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Cancel a single passenger within a group reservation.'
+      description: |-
+        Releases only the segments associated with the specified passenger, keeping the
+        rest of the reservation intact. The passenger must belong to the reservation.
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      reservation_uuid:
+        custom: []
+        name: reservation_uuid
+        description: ''
+        required: true
+        example: e024a63d-d529-41b5-bc38-002a9d4c77cb
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      passenger_uuid:
+        custom: []
+        name: passenger_uuid
+        description: ''
+        required: true
+        example: e9b72717-a6ed-4c5d-89dd-643cd55ed726
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      reservation_uuid: e024a63d-d529-41b5-bc38-002a9d4c77cb
+      passenger_uuid: e9b72717-a6ed-4c5d-89dd-643cd55ed726
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": {
+              "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+              "status": "held",
+              "total_amount": 12500,
+              "currency": "XOF",
+              "segments": [],
+              "passengers": []
+            }
+          }
+        headers: []
+        description: 'Passenger cancelled'
+      -
+        custom: []
+        status: 401
+        content: |-
+          {
+            "message": "Unauthenticated."
+          }
+        headers: []
+        description: Unauthenticated
+      -
+        custom: []
+        status: 403
+        content: |-
+          {
+            "message": "This action is unauthorized."
+          }
+        headers: []
+        description: Forbidden
+      -
+        custom: []
+        status: 404
+        content: |-
+          {
+            "message": "No query results for model [App\\Modules\\Booking\\Models\\ReservationPassenger]."
+          }
+        headers: []
+        description: 'Passenger not found'
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null

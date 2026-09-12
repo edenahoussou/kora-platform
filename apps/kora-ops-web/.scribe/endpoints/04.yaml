@@ -1,0 +1,543 @@
+name: 'Group Discounts'
+description: |-
+
+  Group discount rule management and group booking settings.
+endpoints:
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/group-discounts
+    metadata:
+      custom: []
+      groupName: 'Group Discounts'
+      groupDescription: |-
+
+        Group discount rule management and group booking settings.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'List all group discount rules ordered by start date.'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": [
+              {
+                "uuid": "d1234567-89ab-cdef-0123-456789abcdef",
+                "status": "active",
+                "passenger_threshold": 5,
+                "percentage": 10.0,
+                "starts_at": "2026-09-01T00:00:00+00:00",
+                "ends_at": null
+              }
+            ]
+          }
+        headers: []
+        description: 'Discount rule list'
+      -
+        custom: []
+        status: 401
+        content: |-
+          {
+            "message": "Unauthenticated."
+          }
+        headers: []
+        description: Unauthenticated
+      -
+        custom: []
+        status: 403
+        content: |-
+          {
+            "message": "This action is unauthorized."
+          }
+        headers: []
+        description: Forbidden
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/group-discounts
+    metadata:
+      custom: []
+      groupName: 'Group Discounts'
+      groupDescription: |-
+
+        Group discount rule management and group booking settings.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Create a new group discount rule.'
+      description: |-
+        The passenger threshold must be >= the configured minimum group size.
+        Only one active rule can cover a given period.
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      status:
+        custom: []
+        name: status
+        description: 'Rule status.'
+        required: true
+        example: active
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      passenger_threshold:
+        custom: []
+        name: passenger_threshold
+        description: 'Minimum passenger count for the rule.'
+        required: true
+        example: 5
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      percentage:
+        custom: []
+        name: percentage
+        description: 'Discount percentage.'
+        required: true
+        example: 10.0
+        type: number
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      starts_at:
+        custom: []
+        name: starts_at
+        description: 'Start of the validity period.'
+        required: false
+        example: '2026-09-01T00:00:00+00:00'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: true
+        deprecated: false
+      ends_at:
+        custom: []
+        name: ends_at
+        description: 'End of the validity period.'
+        required: false
+        example: '2026-12-31T00:00:00+00:00'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: true
+        deprecated: false
+    cleanBodyParameters:
+      status: active
+      passenger_threshold: 5
+      percentage: 10.0
+      starts_at: '2026-09-01T00:00:00+00:00'
+      ends_at: '2026-12-31T00:00:00+00:00'
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 201
+        content: |-
+          {
+            "data": {
+              "uuid": "d1234567-89ab-cdef-0123-456789abcdef",
+              "status": "active",
+              "passenger_threshold": 5,
+              "percentage": 10.0,
+              "starts_at": "2026-09-01T00:00:00+00:00",
+              "ends_at": null
+            }
+          }
+        headers: []
+        description: 'Discount rule created'
+      -
+        custom: []
+        status: 401
+        content: |-
+          {
+            "message": "Unauthenticated."
+          }
+        headers: []
+        description: Unauthenticated
+      -
+        custom: []
+        status: 403
+        content: |-
+          {
+            "message": "This action is unauthorized."
+          }
+        headers: []
+        description: Forbidden
+      -
+        custom: []
+        status: 422
+        content: |-
+          {
+            "message": "The given data was invalid.",
+            "errors": {"passenger_threshold": ["Le seuil de remise doit être supérieur ou égal au minimum groupe configuré."]}
+          }
+        headers: []
+        description: 'Threshold below minimum'
+      -
+        custom: []
+        status: 422
+        content: |-
+          {
+            "message": "The given data was invalid.",
+            "errors": {"starts_at": ["Une règle groupe active couvre déjà cette période."]}
+          }
+        headers: []
+        description: 'Overlapping active rule'
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - PUT
+    uri: 'api/v1/group-discounts/{groupDiscountRule_uuid}'
+    metadata:
+      custom: []
+      groupName: 'Group Discounts'
+      groupDescription: |-
+
+        Group discount rule management and group booking settings.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Update an existing group discount rule.'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      groupDiscountRule_uuid:
+        custom: []
+        name: groupDiscountRule_uuid
+        description: ''
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      groupDiscountRule_uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      status:
+        custom: []
+        name: status
+        description: 'Rule status.'
+        required: true
+        example: active
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      passenger_threshold:
+        custom: []
+        name: passenger_threshold
+        description: 'Minimum passenger count for the rule.'
+        required: true
+        example: 8
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      percentage:
+        custom: []
+        name: percentage
+        description: 'Discount percentage.'
+        required: true
+        example: 15.0
+        type: number
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      starts_at:
+        custom: []
+        name: starts_at
+        description: 'Start of the validity period.'
+        required: false
+        example: '2026-09-01T00:00:00+00:00'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: true
+        deprecated: false
+      ends_at:
+        custom: []
+        name: ends_at
+        description: 'End of the validity period.'
+        required: false
+        example: '2026-12-31T00:00:00+00:00'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: true
+        deprecated: false
+    cleanBodyParameters:
+      status: active
+      passenger_threshold: 8
+      percentage: 15.0
+      starts_at: '2026-09-01T00:00:00+00:00'
+      ends_at: '2026-12-31T00:00:00+00:00'
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": {
+              "uuid": "d1234567-89ab-cdef-0123-456789abcdef",
+              "status": "active",
+              "passenger_threshold": 8,
+              "percentage": 15.0,
+              "starts_at": "2026-09-01T00:00:00+00:00",
+              "ends_at": "2026-12-31T00:00:00+00:00"
+            }
+          }
+        headers: []
+        description: 'Discount rule updated'
+      -
+        custom: []
+        status: 401
+        content: |-
+          {
+            "message": "Unauthenticated."
+          }
+        headers: []
+        description: Unauthenticated
+      -
+        custom: []
+        status: 403
+        content: |-
+          {
+            "message": "This action is unauthorized."
+          }
+        headers: []
+        description: Forbidden
+      -
+        custom: []
+        status: 422
+        content: |-
+          {
+            "message": "The given data was invalid.",
+            "errors": {"starts_at": ["Une règle groupe active couvre déjà cette période."]}
+          }
+        headers: []
+        description: 'Overlapping active rule'
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/group-booking-settings
+    metadata:
+      custom: []
+      groupName: 'Group Discounts'
+      groupDescription: |-
+
+        Group discount rule management and group booking settings.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Get the current group booking settings (min/max passengers).'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": {
+              "minimum_passengers": 5,
+              "maximum_passengers": 10
+            }
+          }
+        headers: []
+        description: 'Group booking settings'
+      -
+        custom: []
+        status: 401
+        content: |-
+          {
+            "message": "Unauthenticated."
+          }
+        headers: []
+        description: Unauthenticated
+      -
+        custom: []
+        status: 403
+        content: |-
+          {
+            "message": "This action is unauthorized."
+          }
+        headers: []
+        description: Forbidden
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - PUT
+    uri: api/v1/group-booking-settings
+    metadata:
+      custom: []
+      groupName: 'Group Discounts'
+      groupDescription: |-
+
+        Group discount rule management and group booking settings.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Update the group booking settings (min/max passengers).'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      minimum_passengers:
+        custom: []
+        name: minimum_passengers
+        description: 'Le champ value doit être au moins 1.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      maximum_passengers:
+        custom: []
+        name: maximum_passengers
+        description: ''
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      minimum_passengers: 16
+      maximum_passengers: 16
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "data": {
+              "minimum_passengers": 3,
+              "maximum_passengers": 15
+            }
+          }
+        headers: []
+        description: 'Settings updated'
+      -
+        custom: []
+        status: 401
+        content: |-
+          {
+            "message": "Unauthenticated."
+          }
+        headers: []
+        description: Unauthenticated
+      -
+        custom: []
+        status: 422
+        content: |-
+          {
+            "message": "The given data was invalid.",
+            "errors": {"maximum_passengers": ["The maximum passengers must be greater than or equal to 3."]}
+          }
+        headers: []
+        description: 'Validation error'
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
