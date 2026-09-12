@@ -485,6 +485,13 @@ class CounterSaleController extends Controller
             'originStop' => $this->serializeStop($leg->originStop),
             'destinationStop' => $this->serializeStop($leg->destinationStop),
             'amount' => $leg->amount,
+            'baseAmount' => $leg->baseAmount,
+            'coefficient' => $leg->coefficient,
+            'finalAmount' => $leg->finalAmount,
+            'dynamicAdjustmentAmount' => $leg->dynamicAdjustmentAmount,
+            'pricingRuleUuid' => $leg->pricingRuleUuid,
+            'fillRate' => $leg->fillRate,
+            'hoursBeforeDeparture' => $leg->hoursBeforeDeparture,
             'availableSeatsCount' => $leg->availableSeatsCount,
             'serviceClassCode' => $leg->serviceClassCode,
             'serviceClassName' => $leg->serviceClassName,
@@ -671,7 +678,7 @@ class CounterSaleController extends Controller
         }
 
         $snapshot = $quote->snapshot ?? [];
-        $quote->loadMissing(['legs.departure.line', 'legs.departure.bus.amenities', 'legs.originStop', 'legs.destinationStop']);
+        $quote->loadMissing(['legs.departure.line', 'legs.departure.bus.amenities', 'legs.originStop', 'legs.destinationStop', 'legs.priceQuote']);
         $legs = $quote->legs->sortBy('leg_order')->values();
 
         return [
@@ -701,6 +708,12 @@ class CounterSaleController extends Controller
     private function serializeItineraryQuoteLeg(ItineraryQuoteLeg $leg, string $currency): array
     {
         $departure = $leg->departure;
+        $priceQuote = $leg->priceQuote;
+        $baseAmount = $priceQuote !== null ? (int) $priceQuote->base_amount : (int) $leg->amount;
+        $coefficient = $priceQuote !== null ? (float) $priceQuote->coefficient : 1.0;
+        $finalAmount = $priceQuote !== null ? (int) $priceQuote->final_amount : (int) $leg->amount;
+        $dynamicAdjustment = $finalAmount - $baseAmount;
+        $priceQuoteSnapshot = $priceQuote?->snapshot ?? [];
 
         return [
             'legOrder' => $leg->leg_order,
@@ -733,7 +746,13 @@ class CounterSaleController extends Controller
             ],
             'originStop' => $this->serializeStop($leg->originStop),
             'destinationStop' => $this->serializeStop($leg->destinationStop),
-            'amount' => $leg->amount,
+            'amount' => $finalAmount,
+            'baseAmount' => $baseAmount,
+            'coefficient' => $coefficient,
+            'dynamicAdjustmentAmount' => $dynamicAdjustment,
+            'pricingRuleUuid' => $priceQuoteSnapshot['pricing_rule_uuid'] ?? null,
+            'fillRate' => $priceQuoteSnapshot['fill_rate_at_quote'] ?? null,
+            'hoursBeforeDeparture' => $priceQuoteSnapshot['hours_before_departure_at_quote'] ?? null,
             'currency' => $currency,
             // Not needed by any current consumer of itineraryQuote.legs
             // (real-time seat counts/service class come from

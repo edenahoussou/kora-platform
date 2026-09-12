@@ -166,6 +166,8 @@ it('applies a pricing rule only when the fill rate condition is met', function (
 
     Sanctum::actingAs($scenario['user']);
 
+    $rule = PricingRule::query()->where('percentage', 20.0)->firstOrFail();
+
     $this->postJson('/api/v1/bus/itinerary-quotes', [
         'passenger_count' => 1,
         'legs' => [[
@@ -175,7 +177,12 @@ it('applies a pricing rule only when the fill rate condition is met', function (
             'destination_stop_uuid' => $scenario['destination']->uuid,
         ]],
     ])->assertOk()
+        ->assertJsonPath('data.legs.0.base_amount', 10000)
+        ->assertJsonPath('data.legs.0.coefficient', 1.20)
         ->assertJsonPath('data.legs.0.final_amount', 12000)
+        ->assertJsonPath('data.legs.0.dynamic_adjustment_amount', 2000)
+        ->assertJsonPath('data.legs.0.pricing_rule_uuid', $rule->uuid)
+        ->assertJsonPath('data.legs.0.fill_rate', 75)
         ->assertJsonPath('data.pricing.dynamic_adjustment_amount', 2000);
 });
 
@@ -203,7 +210,11 @@ it('does not apply a pricing rule when the fill rate condition is not met', func
             'destination_stop_uuid' => $scenario['destination']->uuid,
         ]],
     ])->assertOk()
+        ->assertJsonPath('data.legs.0.base_amount', 10000)
+        ->assertJsonPath('data.legs.0.coefficient', 1)
         ->assertJsonPath('data.legs.0.final_amount', 10000)
+        ->assertJsonPath('data.legs.0.dynamic_adjustment_amount', 0)
+        ->assertJsonPath('data.legs.0.pricing_rule_uuid', null)
         ->assertJsonPath('data.pricing.dynamic_adjustment_amount', 0);
 });
 
@@ -363,7 +374,7 @@ it('picks the highest priority matching rule among several active candidates', f
 it('exposes the dynamic price in the itinerary search fare preview', function (): void {
     $scenario = pricingEngineScenario(occupiedSeats: 3, hoursFromNow: 10);
 
-    PricingRule::query()->create([
+    $rule = PricingRule::query()->create([
         'uuid' => Str::uuid()->toString(),
         'line_id' => $scenario['departure']->line_id,
         'type' => 'increase',
@@ -375,6 +386,26 @@ it('exposes the dynamic price in the itinerary search fare preview', function ()
 
     $this->getJson('/api/v1/bus/itineraries?from_physical_stop_uuid='.$scenario['origin']->physicalStop->uuid.'&to_physical_stop_uuid='.$scenario['destination']->physicalStop->uuid.'&date='.$scenario['departure']->departure_date->toDateString())
         ->assertOk()
+        ->assertJsonPath('data.0.total_amount', 12000)
+        ->assertJsonPath('data.0.legs.0.amount', 12000)
+        ->assertJsonPath('data.0.legs.0.base_amount', 10000)
+        ->assertJsonPath('data.0.legs.0.coefficient', 1.2)
+        ->assertJsonPath('data.0.legs.0.final_amount', 12000)
+        ->assertJsonPath('data.0.legs.0.dynamic_adjustment_amount', 2000)
+        ->assertJsonPath('data.0.legs.0.pricing_rule_uuid', $rule->uuid)
+        ->assertJsonPath('data.0.legs.0.fill_rate', 75);
+});
+
+it('returns neutral dynamic pricing fields when no rule matches in search', function (): void {
+    $scenario = pricingEngineScenario(occupiedSeats: 0, hoursFromNow: 200);
+
+    $this->getJson('/api/v1/bus/itineraries?from_physical_stop_uuid='.$scenario['origin']->physicalStop->uuid.'&to_physical_stop_uuid='.$scenario['destination']->physicalStop->uuid.'&date='.$scenario['departure']->departure_date->toDateString())
+        ->assertOk()
         ->assertJsonPath('data.0.total_amount', 10000)
-        ->assertJsonPath('data.0.legs.0.amount', 10000);
+        ->assertJsonPath('data.0.legs.0.amount', 10000)
+        ->assertJsonPath('data.0.legs.0.base_amount', 10000)
+        ->assertJsonPath('data.0.legs.0.coefficient', 1)
+        ->assertJsonPath('data.0.legs.0.final_amount', 10000)
+        ->assertJsonPath('data.0.legs.0.dynamic_adjustment_amount', 0)
+        ->assertJsonPath('data.0.legs.0.pricing_rule_uuid', null);
 });
