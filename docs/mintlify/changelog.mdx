@@ -6,6 +6,27 @@ rss: true
 
 # Changelog
 
+<Update label="2026-09-11" description="API Mes voyages" tags={["API Reference", "Tickets"]}>
+
+## Endpoint « Mes voyages » — billets du passager authentifié
+
+Nouvel endpoint `GET /api/v1/tickets` qui liste tous les billets du passager authentifié, tous statuts confondus, avec un contrat enrichi pour l'écran « Mes voyages » de l'app passager.
+
+### Nouveautés
+
+- **`GET /api/v1/tickets`** : liste paginée (15 par page) des billets où `created_by_user_id` ou `payer_user_id` correspond à l'utilisateur connecté
+- **Contrat enrichi** (`PassengerTicketResource`) : route (ville origine → destination), date/heure de départ, siège, gare de départ, montant payé, QR code, passager, infos ligne
+- **Mappage des statuts** côté API : `issued → confirmed`, `used → completed`, `cancelled/refunded → cancelled`
+- **Séparation des ressources** : `PassengerTicketResource` distincte de `TicketResource` existante pour ne pas casser le contrat de `GET /bookings/{uuid}/tickets`
+
+### Documentation
+
+- Nouvelle page de référence : `reference/payments/tickets-list.mdx`
+- Endpoint ajouté dans `openapi.yaml`
+- Navigation Mintlify mise à jour
+
+</Update>
+
 <Update label="2026-08-25" description="Restructuration complète" tags={["API Reference", "Playground", "Navigation"]}>
 
 ## Restructuration de la documentation API (KORA-38)

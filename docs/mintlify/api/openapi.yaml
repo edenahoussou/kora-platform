@@ -701,6 +701,13 @@ paths:
                             country: BJ
                             stop_order: 7
                           amount: 15600
+                          base_amount: 13000
+                          coefficient: 1.2
+                          final_amount: 15600
+                          dynamic_adjustment_amount: 2600
+                          pricing_rule_uuid: rule-uuid
+                          fill_rate: 75
+                          hours_before_departure: 10
                           available_seats_count: 28
                           service_class_code: standard
                           service_class_name: Standard
@@ -751,6 +758,13 @@ paths:
                               country: BJ
                               stop_order: 7
                             amount: 15600
+                            base_amount: 13000
+                            coefficient: 1.2
+                            final_amount: 15600
+                            dynamic_adjustment_amount: 2600
+                            pricing_rule_uuid: rule-uuid
+                            fill_rate: 75
+                            hours_before_departure: 10
                             available_seats_count: 28
                             service_class_code: standard
                             service_class_name: Standard
@@ -813,6 +827,13 @@ paths:
                                 country: BJ
                                 stop_order: 7
                               amount: 15600
+                              base_amount: 13000
+                              coefficient: 1.2
+                              final_amount: 15600
+                              dynamic_adjustment_amount: 2600
+                              pricing_rule_uuid: rule-uuid
+                              fill_rate: 75
+                              hours_before_departure: 10
                               available_seats_count: 28
                               service_class_code: standard
                               service_class_name: Standard
@@ -924,6 +945,40 @@ paths:
                               arrival_at:
                                 type: string
                                 example: '2026-09-07T23:00:00+00:00'
+                              base_amount:
+                                type: integer
+                                description: 'Static base fare amount before dynamic pricing adjustment.'
+                                example: 13000
+                              coefficient:
+                                type: number
+                                format: float
+                                description: 'Multiplier applied to the base fare (e.g. 1.20 for +20 %, 0.90 for -10 %). Always non-negative.'
+                                example: 1.2
+                              final_amount:
+                                type: integer
+                                description: 'Dynamically adjusted fare actually charged to the customer (round(base_amount * coefficient)).'
+                                example: 15600
+                              dynamic_adjustment_amount:
+                                type: integer
+                                description: 'Currency difference between final and base amount (final_amount - base_amount). Can be negative for discounts.'
+                                example: 2600
+                              pricing_rule_uuid:
+                                type: string
+                                nullable: true
+                                description: 'UUID of the pricing rule that matched, or null when no rule applied.'
+                                example: 00000000-0000-4000-8000-000000000000
+                              fill_rate:
+                                type: number
+                                format: float
+                                nullable: true
+                                description: 'Percentage of sellable seats held or occupied on the leg segment (0–100).'
+                                example: 75
+                              hours_before_departure:
+                                type: number
+                                format: float
+                                nullable: true
+                                description: 'Hours between now and the scheduled departure. Negative when the departure is in the past.'
+                                example: 10
       tags:
         - Bus
       requestBody:
@@ -944,7 +999,7 @@ paths:
                 date:
                   type: string
                   description: 'Must be a valid date in the format <code>Y-m-d</code>.'
-                  example: '2026-09-11'
+                  example: '2026-09-12'
                 passenger_count:
                   type: integer
                   description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 10.'
@@ -980,7 +1035,7 @@ paths:
                 return_date:
                   type: string
                   description: 'Must be a valid date in the format <code>Y-m-d</code>.'
-                  example: '2026-09-11'
+                  example: '2026-09-12'
               required:
                 - from_physical_stop_uuid
                 - to_physical_stop_uuid
@@ -1011,12 +1066,24 @@ paths:
                         leg_order: 1
                         direction: outbound
                         quote_uuid: quote-uuid-1
+                        base_amount: 15000
+                        coefficient: 1.0
                         final_amount: 15000
+                        dynamic_adjustment_amount: 0
+                        pricing_rule_uuid: null
+                        fill_rate: 25
+                        hours_before_departure: 48
                       -
                         leg_order: 2
                         direction: inbound
                         quote_uuid: quote-uuid-2
+                        base_amount: 12500
+                        coefficient: 1.0
                         final_amount: 12500
+                        dynamic_adjustment_amount: 0
+                        pricing_rule_uuid: null
+                        fill_rate: 0
+                        hours_before_departure: 120
                     pricing:
                       subtotal_amount: 27500
                       dynamic_adjustment_amount: 0
@@ -1051,12 +1118,24 @@ paths:
                             leg_order: 1
                             direction: outbound
                             quote_uuid: quote-uuid-1
+                            base_amount: 15000
+                            coefficient: 1.0
                             final_amount: 15000
+                            dynamic_adjustment_amount: 0
+                            pricing_rule_uuid: null
+                            fill_rate: 25
+                            hours_before_departure: 48
                           -
                             leg_order: 2
                             direction: inbound
                             quote_uuid: quote-uuid-2
+                            base_amount: 12500
+                            coefficient: 1.0
                             final_amount: 12500
+                            dynamic_adjustment_amount: 0
+                            pricing_rule_uuid: null
+                            fill_rate: 0
+                            hours_before_departure: 120
                         items:
                           type: object
                           properties:
@@ -1069,9 +1148,40 @@ paths:
                             quote_uuid:
                               type: string
                               example: quote-uuid-1
+                            base_amount:
+                              type: integer
+                              description: 'Tarif de base avant application de la tarification dynamique.'
+                              example: 15000
+                            coefficient:
+                              type: number
+                              format: float
+                              description: 'Coefficient multiplicateur appliqué (1.0 = neutre, 1.20 = +20%, 0.90 = -10%).'
+                              example: 1.0
                             final_amount:
                               type: integer
+                              description: 'Montant final après tarification dynamique (base_amount × coefficient).'
                               example: 15000
+                            dynamic_adjustment_amount:
+                              type: integer
+                              description: 'Écart en XOF entre le prix final et le prix de base (positif = augmentation, négatif = réduction).'
+                              example: 0
+                            pricing_rule_uuid:
+                              type: string
+                              nullable: true
+                              description: 'UUID de la règle de tarification dynamique appliquée, ou null si aucune règle n''a matché.'
+                              example: null
+                            fill_rate:
+                              type: number
+                              format: float
+                              nullable: true
+                              description: 'Taux de remplissage du segment au moment du devis (0-100).'
+                              example: 25
+                            hours_before_departure:
+                              type: number
+                              format: float
+                              nullable: true
+                              description: 'Délai en heures entre le devis et le départ (négatif si le départ est passé).'
+                              example: 48
                       pricing:
                         type: object
                         properties:
@@ -5809,6 +5919,210 @@ paths:
         required: true
         schema:
           type: string
+  /api/v1/tickets:
+    get:
+      summary: 'List all tickets belonging to the authenticated passenger.'
+      operationId: listAllTicketsBelongingToTheAuthenticatedPassenger
+      description: "Returns every issued ticket for which the authenticated user is either\nthe creator (`created_by_user_id`) or the payer (`payer_user_id`) of the\nunderlying reservation, across all statuses. The response is paginated\nand uses the `PassengerTicketResource` contract, which maps backend\nstatuses to the app-facing vocabulary (confirmed / completed / cancelled)."
+      parameters:
+        -
+          in: query
+          name: page
+          description: 'Page number (default 1).'
+          example: 1
+          required: false
+          schema:
+            type: integer
+            description: 'Page number (default 1).'
+            example: 1
+      responses:
+        200:
+          description: 'Passenger ticket list'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    -
+                      uuid: t1234567-89ab-cdef-0123-456789abcdef
+                      short_code: KE-20260804-78342
+                      qr_code: v2.eyJpdiI6...
+                      status: confirmed
+                      issued_at: '2026-08-20T08:10:00+00:00'
+                      reservation_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
+                      amount: 12500
+                      currency: XOF
+                      passenger:
+                        uuid: p1234567-89ab-cdef-0123-456789abcdef
+                        first_name: Aïcha
+                        last_name: Hounkpè
+                      origin:
+                        city: Cotonou
+                        city_code: CTN
+                        stop_name: 'Cotonou Dantokpa'
+                      destination:
+                        city: Malanville
+                        city_code: MLV
+                        stop_name: 'Malanville Centre'
+                      departure:
+                        uuid: dep12345-6789-abcd-ef01-23456789abcd
+                        departs_at: '2026-08-04T07:30:00+00:00'
+                        line_name: Cotonou-Malanville
+                        line_code: L1
+                      seat:
+                        uuid: seat123-4567-89ab-cdef-0123456789ab
+                        code: 4A
+                  meta:
+                    current_page: 1
+                    per_page: 15
+                    total: 5
+                properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        uuid: t1234567-89ab-cdef-0123-456789abcdef
+                        short_code: KE-20260804-78342
+                        qr_code: v2.eyJpdiI6...
+                        status: confirmed
+                        issued_at: '2026-08-20T08:10:00+00:00'
+                        reservation_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
+                        amount: 12500
+                        currency: XOF
+                        passenger:
+                          uuid: p1234567-89ab-cdef-0123-456789abcdef
+                          first_name: Aïcha
+                          last_name: Hounkpè
+                        origin:
+                          city: Cotonou
+                          city_code: CTN
+                          stop_name: 'Cotonou Dantokpa'
+                        destination:
+                          city: Malanville
+                          city_code: MLV
+                          stop_name: 'Malanville Centre'
+                        departure:
+                          uuid: dep12345-6789-abcd-ef01-23456789abcd
+                          departs_at: '2026-08-04T07:30:00+00:00'
+                          line_name: Cotonou-Malanville
+                          line_code: L1
+                        seat:
+                          uuid: seat123-4567-89ab-cdef-0123456789ab
+                          code: 4A
+                    items:
+                      type: object
+                      properties:
+                        uuid:
+                          type: string
+                          example: t1234567-89ab-cdef-0123-456789abcdef
+                        short_code:
+                          type: string
+                          example: KE-20260804-78342
+                        qr_code:
+                          type: string
+                          example: v2.eyJpdiI6...
+                        status:
+                          type: string
+                          example: confirmed
+                        issued_at:
+                          type: string
+                          example: '2026-08-20T08:10:00+00:00'
+                        reservation_uuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        amount:
+                          type: integer
+                          example: 12500
+                        currency:
+                          type: string
+                          example: XOF
+                        passenger:
+                          type: object
+                          properties:
+                            uuid:
+                              type: string
+                              example: p1234567-89ab-cdef-0123-456789abcdef
+                            first_name:
+                              type: string
+                              example: Aïcha
+                            last_name:
+                              type: string
+                              example: Hounkpè
+                        origin:
+                          type: object
+                          properties:
+                            city:
+                              type: string
+                              example: Cotonou
+                            city_code:
+                              type: string
+                              example: CTN
+                            stop_name:
+                              type: string
+                              example: 'Cotonou Dantokpa'
+                        destination:
+                          type: object
+                          properties:
+                            city:
+                              type: string
+                              example: Malanville
+                            city_code:
+                              type: string
+                              example: MLV
+                            stop_name:
+                              type: string
+                              example: 'Malanville Centre'
+                        departure:
+                          type: object
+                          properties:
+                            uuid:
+                              type: string
+                              example: dep12345-6789-abcd-ef01-23456789abcd
+                            departs_at:
+                              type: string
+                              example: '2026-08-04T07:30:00+00:00'
+                            line_name:
+                              type: string
+                              example: Cotonou-Malanville
+                            line_code:
+                              type: string
+                              example: L1
+                        seat:
+                          type: object
+                          properties:
+                            uuid:
+                              type: string
+                              example: seat123-4567-89ab-cdef-0123456789ab
+                            code:
+                              type: string
+                              example: 4A
+                  meta:
+                    type: object
+                    properties:
+                      current_page:
+                        type: integer
+                        example: 1
+                      per_page:
+                        type: integer
+                        example: 15
+                      total:
+                        type: integer
+                        example: 5
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - Tickets
   '/api/v1/tickets/{uuid}':
     get:
       summary: 'Retrieve a single ticket by UUID.'

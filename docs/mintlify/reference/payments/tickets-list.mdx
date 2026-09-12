@@ -1,0 +1,163 @@
+---
+title: Mes voyages — billets du passager
+description: "GET /api/v1/tickets : lister tous les billets du passager authentifié, tous statuts confondus, avec un contrat enrichi pour l'écran « Mes voyages » de l'app passager."
+api: GET /api/v1/tickets
+---
+
+# Mes voyages — billets du passager
+
+Retourne la liste paginée de **tous les billets** du passager authentifié, tous statuts confondus (confirmés, terminés, annulés). L'app passager filtre côté client par statut d'affichage ; le serveur renvoie tout en une seule requête.
+
+Un billet appartient au passager si la réservation parente a `created_by_user_id` **ou** `payer_user_id` égal à l'utilisateur authentifié. Cela couvre les achats en ligne (le passager paie lui-même) et les achats pour autrui (un agent au guichet crée la réservation, le passager est le payeur).
+
+## Contrat enrichi
+
+Contrairement à [`GET /bookings/{uuid}/tickets`](/reference/payments/tickets) qui retourne un contrat minimal (segments à plat), cet endpoint agrège les informations que l'écran « Mes voyages » affiche : route (ville d'origine → destination), date et heure de départ, siège, gare de départ, montant payé, QR code et statut mappé vers le vocabulaire de l'app.
+
+### Mappage des statuts
+
+Le backend utilise `issued`, `used`, `cancelled`, `refunded`. L'API les mappe vers trois statuts compréhensibles par le passager :
+
+| Backend | API response | Onglet app |
+|---------|-------------|------------|
+| `issued` | `confirmed` | À venir |
+| `used` | `completed` | Passés |
+| `cancelled` | `cancelled` | Annulés |
+| `refunded` | `cancelled` | Annulés |
+
+## Paramètres
+
+<ParamField query="page" type="integer">
+  Numéro de page pour la pagination (15 billets par page). Par défaut `1`.
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X GET https://staging.koraexpress.app/api/v1/tickets \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Accept: application/json'
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/tickets', {
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+const { data, meta } = await res.json();
+```
+
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/tickets', {
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+const body: PaginatedTickets = await res.json();
+const tickets: PassengerTicket[] = body.data;
+```
+
+```dart Dart
+final res = await authDio.get('/api/v1/tickets');
+final tickets = res.data['data'] as List;
+final total = res.data['meta']['total'] as int;
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "data": [
+    {
+      "uuid": "t1234567-89ab-cdef-0123-456789abcdef",
+      "short_code": "KE-20260804-78342",
+      "qr_code": "v2.eyJpdiI6...",
+      "status": "confirmed",
+      "issued_at": "2026-08-20T08:10:00+00:00",
+      "reservation_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+      "amount": 12500,
+      "currency": "XOF",
+      "passenger": {
+        "uuid": "p1234567-89ab-cdef-0123-456789abcdef",
+        "first_name": "Aïcha",
+        "last_name": "HOUNKPÈ"
+      },
+      "origin": {
+        "city": "Cotonou",
+        "city_code": "CTN",
+        "stop_name": "Cotonou Dantokpa"
+      },
+      "destination": {
+        "city": "Malanville",
+        "city_code": "MLV",
+        "stop_name": "Malanville Centre"
+      },
+      "departure": {
+        "uuid": "dep12345-6789-abcd-ef01-23456789abcd",
+        "departs_at": "2026-08-04T07:30:00+00:00",
+        "line_name": "Cotonou-Malanville",
+        "line_code": "L1"
+      },
+      "seat": {
+        "uuid": "seat123-4567-89ab-cdef-0123456789ab",
+        "code": "4A"
+      }
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "per_page": 15,
+    "total": 5
+  }
+}
+```
+
+</ResponseExample>
+
+## Réponse
+
+<ResponseField name="data" type="array" required>
+  Liste des billets du passager, triés par date d'émission décroissante.
+</ResponseField>
+<ResponseField name="data[].uuid" type="UUID" required>UUID public du billet.</ResponseField>
+<ResponseField name="data[].short_code" type="string" required>Code court lisible (ex: `KE-20260804-78342`).</ResponseField>
+<ResponseField name="data[].qr_code" type="string" required>Payload QR signé Ed25519 (format `base64url(json).base64url(signature)`).</ResponseField>
+<ResponseField name="data[].status" type="string" required>Statut mappé pour l'app : `confirmed`, `completed` ou `cancelled`.</ResponseField>
+<ResponseField name="data[].issued_at" type="string">Date d'émission (ISO 8601) ou `null`.</ResponseField>
+<ResponseField name="data[].reservation_uuid" type="UUID" required>UUID de la réservation parent.</ResponseField>
+<ResponseField name="data[].amount" type="integer" required>Montant total payé en plus petite unité (ex: `12500` pour 12 500 FCFA).</ResponseField>
+<ResponseField name="data[].currency" type="string" required>Code devise ISO 4217 (ex: `XOF`).</ResponseField>
+<ResponseField name="data[].passenger" type="object">Passager rattaché au billet ou `null`.</ResponseField>
+<ResponseField name="data[].passenger.uuid" type="UUID">UUID du passager.</ResponseField>
+<ResponseField name="data[].passenger.first_name" type="string">Prénom.</ResponseField>
+<ResponseField name="data[].passenger.last_name" type="string">Nom.</ResponseField>
+<ResponseField name="data[].origin" type="object">Arrêt de montée (premier segment) ou `null`.</ResponseField>
+<ResponseField name="data[].origin.city" type="string">Ville d'origine (ex: `Cotonou`).</ResponseField>
+<ResponseField name="data[].origin.city_code" type="string">Code ville de 3 lettres (ex: `CTN`), dérivé du code de l'arrêt physique.</ResponseField>
+<ResponseField name="data[].origin.stop_name" type="string">Nom de l'arrêt / gare de départ (ex: `Cotonou Dantokpa`).</ResponseField>
+<ResponseField name="data[].destination" type="object">Arrêt de descente (dernier segment) ou `null`.</ResponseField>
+<ResponseField name="data[].destination.city" type="string">Ville de destination (ex: `Malanville`).</ResponseField>
+<ResponseField name="data[].destination.city_code" type="string">Code ville de 3 lettres (ex: `MLV`).</ResponseField>
+<ResponseField name="data[].destination.stop_name" type="string">Nom de l'arrêt de destination.</ResponseField>
+<ResponseField name="data[].departure" type="object">Départ du premier segment ou `null`.</ResponseField>
+<ResponseField name="data[].departure.uuid" type="UUID">UUID public du départ.</ResponseField>
+<ResponseField name="data[].departure.departs_at" type="string">Date et heure de départ (ISO 8601).</ResponseField>
+<ResponseField name="data[].departure.line_name" type="string">Nom commercial de la ligne (ex: `Cotonou-Malanville`).</ResponseField>
+<ResponseField name="data[].departure.line_code" type="string">Code de la ligne (ex: `L1`).</ResponseField>
+<ResponseField name="data[].seat" type="object">Siège attribué (premier segment) ou `null`.</ResponseField>
+<ResponseField name="data[].seat.uuid" type="UUID">UUID public du siège.</ResponseField>
+<ResponseField name="data[].seat.code" type="string">Code du siège (ex: `4A`).</ResponseField>
+<ResponseField name="meta" type="object" required>Métadonnées de pagination Laravel.</ResponseField>
+<ResponseField name="meta.current_page" type="integer" required>Page courante.</ResponseField>
+<ResponseField name="meta.per_page" type="integer" required>Nombre de billets par page (15).</ResponseField>
+<ResponseField name="meta.total" type="integer" required>Nombre total de billets.</ResponseField>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `200` | Liste des billets (potentiellement vide si le passager n'a aucune réservation). |
+| `401` | Token absent ou invalide. |
+
+<Info>
+  Pour consulter un **seul** billet en détail, utilisez `GET /api/v1/tickets/{ticket_uuid}`. Pour lister les billets d'une **réservation spécifique**, utilisez `GET /api/v1/bookings/{reservation_uuid}/tickets`.
+</Info>

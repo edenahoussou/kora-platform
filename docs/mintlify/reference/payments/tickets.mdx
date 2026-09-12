@@ -112,5 +112,5 @@ final tickets = res.data['data'] as List;
 | `404` | Réservation introuvable. |
 
 <Info>
-  Pour consulter un **seul** billet, utilisez `GET /api/v1/tickets/{ticket_uuid}`. Les deux endpoints vérifient la propriété de la réservation.
+  Pour lister **tous les billets** du passager authentifié (écran « Mes voyages »), utilisez `GET /api/v1/tickets`. Pour consulter un **seul** billet, utilisez `GET /api/v1/tickets/{ticket_uuid}`. Les trois endpoints vérifient la propriété de la réservation.
 </Info>
