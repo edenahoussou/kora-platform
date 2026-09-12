@@ -47,7 +47,11 @@ class QuickAccessItem {
   /// [KoraVehicleIcon] selon le service).
   final Widget icon;
 
-  final VoidCallback onTap;
+  /// `null` pour un service que l'app ne sait pas encore ouvrir : la
+  /// tuile reste visible — elle dit ce que KORA fera — mais elle n'accroche
+  /// plus l'appui. Mieux vaut un pavé inerte qu'un message qui s'excuse.
+  final VoidCallback? onTap;
+
   final bool highlighted;
 }
 

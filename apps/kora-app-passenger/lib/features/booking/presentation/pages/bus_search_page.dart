@@ -23,12 +23,27 @@ import '../widgets/booking_progress.dart';
 /// Deux blocs séparés donneraient deux recherches divergentes selon
 /// l'endroit d'où on est parti.
 class BusSearchPage extends StatelessWidget {
-  const BusSearchPage({super.key});
+  const BusSearchPage({super.key, this.tripType = TripType.oneway});
+
+  /// L'onglet ouvert à l'arrivée.
+  ///
+  /// L'accueil mène ici par deux portes : la recherche rapide, qui ne
+  /// compose qu'un aller, et la carte « Réserver un aller-retour ». La
+  /// seconde serait un détour absurde si elle déposait le voyageur sur
+  /// « Aller simple », à recliquer sur l'onglet d'à côté.
+  final TripType tripType;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider<HomeBloc>(
-      create: (_) => getIt<HomeBloc>()..add(const HomeStarted()),
+      create: (_) {
+        final bloc = getIt<HomeBloc>()..add(const HomeStarted());
+        if (tripType != TripType.oneway) {
+          bloc.add(HomeTripTypeChanged(tripType));
+        }
+
+        return bloc;
+      },
       child: const _BusSearchView(),
     );
   }
@@ -54,7 +69,10 @@ class _BusSearchView extends StatelessWidget {
                 title: l10n.searchTitle,
                 action: KoraIconButton(
                   icon: Icons.help_outline_rounded,
-                  onTap: () => KoraToaster.show(context, l10n.searchHelp),
+                  // Le bouton annonçait « Aide » dans un toast, et c'est
+                  // tout : le voyageur bloqué sur ce formulaire restait
+                  // dessus. Il ouvre maintenant le centre d'aide.
+                  onTap: () => context.push(AppRouter.helpPath),
                 ),
               ),
               Expanded(
@@ -78,6 +96,7 @@ class _Form extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final recent = _recentRoutesOf(state);
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 100),
@@ -106,34 +125,30 @@ class _Form extends StatelessWidget {
           onPressed: () => _search(context),
         ),
         const SizedBox(height: 18),
-        SectionTitle(title: l10n.searchRecent),
-        const SizedBox(height: AppSpacing.sm),
-        _RecentRoutes(state: state),
+        // Titre et liste vont ensemble : un compte neuf n'a aucun trajet
+        // derrière lui, et l'intertitre « Trajets récents » coiffait alors
+        // le vide — un historique annoncé puis introuvable.
+        if (recent.isNotEmpty) ...[
+          SectionTitle(title: l10n.searchRecent),
+          const SizedBox(height: AppSpacing.sm),
+          _RecentRoutes(routes: recent),
+        ],
       ],
     );
   }
 
   void _search(BuildContext context) {
     final l10n = context.l10n;
+
     final criteria = state.criteria;
 
     // Le trajet n'est pas complet : on le dit plutôt que de laisser le
-    // bouton sans effet apparent.
+    // bouton sans effet apparent. Seules les villes retiennent désormais —
+    // la date de retour est facultative, et son absence ramène simplement
+    // la recherche à l'aller.
     if (criteria == null) {
       KoraToaster.show(context, l10n.searchMissingCities);
       return;
-    }
-
-    if (state.tripType == TripType.roundtrip) {
-      if (state.returnDate == null) {
-        KoraToaster.show(context, l10n.searchMissingReturn);
-        return;
-      }
-
-      // L'aller part quand même : c'est la première moitié du voyage, et
-      // elle se cherche exactement pareil. Seul l'écran `return-results`,
-      // qui enchaînerait sur le retour, n'existe pas encore.
-      KoraToaster.show(context, l10n.searchReturnResultsSoon);
     }
 
     context.push(AppRouter.departuresUrlFor(criteria));
@@ -771,22 +786,27 @@ class _ComfortNote extends StatelessWidget {
 }
 
 /// `.recent-routes` : les dernières liaisons cherchées, en un tap.
-class _RecentRoutes extends StatelessWidget {
-  const _RecentRoutes({required this.state});
+/// Les liaisons déjà cherchées, reconstituées depuis les villes récentes.
+///
+/// Elles arrivent par paires — un départ, une arrivée — et une paire
+/// incomplète ne fait pas une liaison. C'est cette liste-là qui décide
+/// d'afficher la section, pour que l'intertitre ne puisse pas coiffer un
+/// vide que la liste aurait laissé.
+List<(City, City)> _recentRoutesOf(HomeState state) {
+  final cities = state.recentCities;
 
-  final HomeState state;
+  return [
+    for (var i = 0; i + 1 < cities.length; i += 2) (cities[i], cities[i + 1]),
+  ];
+}
+
+class _RecentRoutes extends StatelessWidget {
+  const _RecentRoutes({required this.routes});
+
+  final List<(City, City)> routes;
 
   @override
   Widget build(BuildContext context) {
-    // Les villes récentes viennent par paires : on les lit deux à deux
-    // pour reconstituer des liaisons.
-    final cities = state.recentCities;
-    if (cities.length < 2) return const SizedBox.shrink();
-
-    final routes = <(City, City)>[
-      for (var i = 0; i + 1 < cities.length; i += 2) (cities[i], cities[i + 1]),
-    ];
-
     return Column(
       children: [
         for (final route in routes)
@@ -887,7 +907,7 @@ class _ReturnDateCard extends StatelessWidget {
     final outbound = state.date ?? state.today ?? DateTime.now();
 
     final picked = await context.push<DateTime>(
-      AppRouter.datePath,
+      AppRouter.returnDatePath,
       extra: DatePickerArgs(
         selected: state.returnDate ?? outbound,
         today: outbound,

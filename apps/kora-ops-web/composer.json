@@ -10,7 +10,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
-        "barryvdh/laravel-dompdf": "^3.1",
+        "codianselme/lara-sygmef": "^1.0",
         "fedapay/fedapay-php": "^0.4.8",
         "inertiajs/inertia-laravel": "^3.0",
         "laravel/chisel": "^0.1.0",
@@ -22,6 +22,7 @@
         "laravel/wayfinder": "^0.1.14",
         "predis/predis": "^3.5",
         "socialiteproviders/tiktok": "^5.2",
+        "spatie/browsershot": "^5.4",
         "spatie/laravel-activitylog": "^5.1",
         "spatie/laravel-medialibrary": "^11.23",
         "spatie/laravel-permission": "^8.3"

@@ -3044,12 +3044,12 @@ paths:
                   example: zbailey@example.net
                 phone:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 20 caractères.'
+                  description: 'Must match the regex /^\+?[\d\s\-.()]{6,20}$/. Le champ value ne doit pas dépasser 20 caractères.'
                   example: iyvdljnikhwaykcm
                   nullable: true
                 country_code:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 4 caractères.'
+                  description: 'Must match the regex /^\+?[\d\s\-.()]{1,7}$/. Le champ value ne doit pas dépasser 4 caractères.'
                   example: yuwp
                   nullable: true
                 birth_date:

@@ -100,9 +100,25 @@ class _PassengersPickerPageState extends State<PassengersPickerPage> {
                     const SizedBox(height: AppSpacing.md),
                     KoraCard(
                       variant: KoraCardVariant.mist,
-                      child: Text(
-                        context.l10n.homePassengersNotice,
-                        style: AppTextStyles.body(koraColors.textMuted),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            context.l10n.homePassengersNotice,
+                            style: AppTextStyles.body(koraColors.textMuted),
+                          ),
+                          const SizedBox(height: 6),
+                          // Ce que disait le toast du bouton d'à côté. Un
+                          // message qui s'efface au bout de deux secondes
+                          // ne se lit pas forcément ; cette phrase-ci
+                          // reste sous les yeux, au-dessus du bouton
+                          // qu'elle explique.
+                          Text(
+                            context.l10n.homePassengersBusinessPayer,
+                            style: AppTextStyles.body(koraColors.textMuted),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: AppSpacing.md),
@@ -126,10 +142,11 @@ class _PassengersPickerPageState extends State<PassengersPickerPage> {
                           child: KoraButton(
                             label: context.l10n.homePassengersBusiness,
                             variant: KoraButtonVariant.secondary,
-                            onPressed: () => _notAvailableYet(
-                              context,
-                              context.l10n.homePassengersBusinessPayer,
-                            ),
+                            // Rien à choisir ici : le payeur se désigne au
+                            // paiement, et la note ci-dessus le dit. Le
+                            // bouton reste, éteint, pour que le compte
+                            // entreprise ne semble pas absent de l'offre.
+                            onPressed: null,
                           ),
                         ),
                       ],
@@ -204,10 +221,4 @@ class _Stepper extends StatelessWidget {
       ],
     );
   }
-}
-
-void _notAvailableYet(BuildContext context, String message) {
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(message)));
 }

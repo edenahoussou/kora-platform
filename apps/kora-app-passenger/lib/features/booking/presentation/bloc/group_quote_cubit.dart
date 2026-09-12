@@ -24,6 +24,7 @@ class GroupQuoteCubit extends Cubit<GroupQuoteState> {
   Future<void> load({
     required Departure departure,
     required int passengers,
+    Departure? returnDeparture,
   }) async {
     // Le même devis ne se redemande pas : le récapitulatif se reconstruit
     // à chaque battement du décompte de blocage.
@@ -34,6 +35,7 @@ class GroupQuoteCubit extends Cubit<GroupQuoteState> {
     final result = await _repository.groupQuote(
       departure: departure,
       passengers: passengers,
+      returnDeparture: returnDeparture,
     );
 
     result.fold(

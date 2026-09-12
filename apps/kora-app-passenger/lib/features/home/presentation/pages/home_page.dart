@@ -150,7 +150,9 @@ class _HomeContent extends StatelessWidget {
                 size: 24,
                 colorFilter: ColorFilter.mode(AppColors.kora, BlendMode.srcIn),
               ),
-              onTap: () => _notAvailableYet(context, context.l10n.homeRideSoon),
+              // KORA Ride n'a pas d'écran : la tuile l'annonce, sans
+              // promettre de l'ouvrir.
+              onTap: null,
             ),
             QuickAccessItem(
               label: context.l10n.homeQuickParcels,
@@ -170,9 +172,7 @@ class _HomeContent extends StatelessWidget {
           ],
         ),
         const SizedBox(height: AppSpacing.md),
-        HomeRideBanner(
-          onTap: () => _notAvailableYet(context, context.l10n.homeRideSoon),
-        ),
+        const HomeRideBanner(),
         SectionTitle(
           title: context.l10n.homeNextTrip,
           actionLabel: context.l10n.actionSeeAll,
@@ -198,6 +198,19 @@ class _HomeContent extends StatelessWidget {
             message: context.l10n.homeReminderText,
           ),
         ],
+        // L'accueil ne compose qu'un aller : son formulaire n'a ni date de
+        // retour ni bascule, et c'est voulu — la recherche rapide d'un
+        // trajet simple est ce qu'on y vient faire. L'aller-retour a sa
+        // porte à lui, qui mène au formulaire complet avec le bon onglet
+        // déjà choisi.
+        SectionTitle(title: context.l10n.homeRoundTripSection),
+        TravelReminder(
+          icon: Icons.swap_horiz_rounded,
+          title: context.l10n.homeRoundTripTitle,
+          message: context.l10n.homeRoundTripText,
+          onTap: () =>
+              context.push(AppRouter.busSearchPath, extra: TripType.roundtrip),
+        ),
       ],
     );
   }
@@ -338,13 +351,4 @@ class _HomeError extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Retour visuel pour les services encore absents du MVP Bus (Ride,
-/// notifications) : la maquette les propose depuis l'accueil, mais leurs
-/// écrans ne font pas partie du périmètre (voir AGENTS.md).
-void _notAvailableYet(BuildContext context, String message) {
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(message)));
 }

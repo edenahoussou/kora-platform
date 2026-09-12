@@ -10,8 +10,10 @@ import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/features/auth/domain/entities/phone_country.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/price.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/seat_hold_bloc.dart';
+import 'package:kora_app_passenger/features/payment/domain/entities/payment_attempt.dart';
 import 'package:kora_app_passenger/features/payment/domain/entities/payment_catalog.dart';
 import 'package:kora_app_passenger/features/payment/presentation/bloc/payment_catalog_bloc.dart';
+import 'package:kora_app_passenger/features/payment/presentation/bloc/payment_flow_bloc.dart';
 import 'package:kora_app_passenger/features/payment/presentation/pages/card_payment_page.dart';
 import 'package:kora_app_passenger/features/payment/presentation/pages/mobile_money_page.dart';
 import 'package:kora_app_passenger/features/payment/presentation/pages/payment_args.dart';
@@ -41,6 +43,7 @@ void main() {
     WidgetTester tester,
     Widget page, {
     PaymentCatalogBloc? catalog,
+    PaymentFlowBloc? flow,
   }) async {
     tester.view.physicalSize = const Size(390 * 3, 1400 * 3);
     tester.view.devicePixelRatio = 3;
@@ -57,7 +60,7 @@ void main() {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        home: withSeatHold(page, bloc: holdBloc, catalog: catalog),
+        home: withSeatHold(page, bloc: holdBloc, catalog: catalog, flow: flow),
       ),
     );
     await tester.pumpAndSettle();
@@ -266,6 +269,56 @@ void main() {
         find.text('Aucun moyen de paiement n’est disponible pour le moment.'),
         findsOneWidget,
       );
+    });
+  });
+
+  group('un paiement déjà lancé', () {
+    /// Un [PaymentFlowBloc] dont la demande est partie et déjà tranchée.
+    ///
+    /// C'est l'état dans lequel on retrouve l'écran quand le voyageur
+    /// revient dessus par le geste « retour » depuis l'échec : le bloc
+    /// garde la tentative pour ne pas rouvrir un second paiement.
+    Future<PaymentFlowBloc> flowWith(PaymentAttempt attempt) async {
+      final bloc = PaymentFlowBloc(StubPaymentRepository(attempt: attempt));
+      addTearDown(bloc.close);
+
+      bloc.add(
+        const PaymentFlowStarted(
+          reservationId: 'res-1',
+          provider: 'fedapay',
+          network: 'mtn_momo',
+          phone: '+2290166000001',
+          idempotencyKey: 'kora-1',
+        ),
+      );
+      await bloc.stream.firstWhere((state) => !state.isStarting);
+
+      return bloc;
+    }
+
+    testWidgets('après un refus, « Payer » cède la place à la sortie', (
+      tester,
+    ) async {
+      // Le bloc refuse de relancer une demande déjà ouverte — c'est ce qui
+      // protège du double débit. Le bouton « Payer » n'avait donc plus
+      // aucun effet, et le voyageur appuyait dans le vide.
+      final flow = await flowWith(
+        const PaymentAttempt(
+          id: 'pay-1',
+          status: PaymentAttemptStatus.failed,
+          reference: 'KE-PAY-1',
+        ),
+      );
+
+      await pump(
+        tester,
+        const MobileMoneyPage(args: args),
+        catalog: await loadedCatalog(),
+        flow: flow,
+      );
+
+      expect(find.text('Payer ${money(12500)}'), findsNothing);
+      expect(find.text('Changer de moyen'), findsOneWidget);
     });
   });
 

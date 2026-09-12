@@ -10,6 +10,10 @@ RUN apt-get update \
     libzip-dev \
     unzip \
     git \
+    chromium \
+    fonts-liberation \
+    fonts-noto-cjk \
+    supervisor \
     && docker-php-ext-install \
     bcmath \
     exif \
@@ -24,6 +28,8 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 # Installer Node 22 (necessaire pour le build Vite)
 COPY --from=node:22-bookworm-slim /usr/local/bin /usr/local/bin
 COPY --from=node:22-bookworm-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
+# Browsershot cherche /usr/bin/node par defaut ; on symlink le binaire Node 22.
+RUN ln -sf /usr/local/bin/node /usr/bin/node
 
 WORKDIR /app
 
@@ -45,8 +51,8 @@ RUN mkdir -p storage/app/private storage/app/public storage/framework/cache/data
 # Build frontend (Wayfinder necessite PHP + artisan)
 RUN php artisan wayfinder:generate --with-form && npm run build
 
-# Nettoyer Node (non necessaire en production)
-RUN rm -rf node_modules
+# Nettoyer Node (puppeteer-core est requis par Browsershot en production)
+# puppeteer-core ne télécharge pas Chrome — on utilise le chromium système.
 
 # Permissions Laravel
 RUN mkdir -p /app/storage/app/private /app/storage/app/public /app/storage/framework/cache/data /app/storage/framework/sessions /app/storage/framework/views /app/storage/logs \
@@ -58,6 +64,8 @@ RUN php artisan config:clear \
     && php artisan route:clear \
     && php artisan view:clear
 
+COPY infra/docker/kora-ops-web/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
 EXPOSE 9000
 
-CMD ["php-fpm"]
+CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

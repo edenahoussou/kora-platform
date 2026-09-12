@@ -28,6 +28,16 @@ class BookingSuccessPage extends StatefulWidget {
 }
 
 class _BookingSuccessPageState extends State<BookingSuccessPage> {
+  /// La réservation qu'on vient de payer.
+  ///
+  /// Retenue ici parce que [SeatHoldSettled] vide le blocage — c'est son
+  /// rôle, la réservation est payée et le décompte n'a plus lieu d'être.
+  /// Mais « Afficher mon billet » en a besoin juste après : sans cette
+  /// copie, le bouton ne trouvait plus d'identifiant et renvoyait à la
+  /// liste des voyages, où la réservation ne figure pas encore.
+  String? _reservationId;
+  int _passengers = 1;
+
   @override
   void initState() {
     super.initState();
@@ -36,27 +46,42 @@ class _BookingSuccessPageState extends State<BookingSuccessPage> {
     // milieu d'un build.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+
+      final hold = context.read<SeatHoldBloc>().state;
+      _reservationId = hold.hold?.id;
+      _passengers = hold.passengers;
+
       context.read<SeatHoldBloc>().add(const SeatHoldSettled());
     });
   }
 
-  /// Ouvre les billets : la liste du groupe, ou l'onglet Voyages.
+  /// Ouvre les billets émis pour la réservation qu'on vient de payer.
+  ///
+  /// Un voyageur seul y va comme un groupe : cet écran-là lit les billets
+  /// du serveur (`bookings/{uuid}/tickets`), QR compris. Le renvoyer vers
+  /// l'onglet Voyages, comme on le faisait, le laissait devant une liste
+  /// qui ne connaît pas encore sa réservation — le bouton semblait ne
+  /// rien faire.
   void _openTickets(BuildContext context) {
-    final hold = context.read<SeatHoldBloc>().state;
-    final reservationId = hold.hold?.id;
+    final reservationId = _reservationId;
 
-    if (reservationId != null && hold.passengers > 1) {
-      context.push(
-        AppRouter.groupTicketsPath,
-        extra: GroupTicketsArgs(
-          reservationId: reservationId,
-          passengers: hold.passengers,
-        ),
-      );
+    // Sans réservation en mémoire il n'y a pas de billet à aller chercher :
+    // reste la liste des voyages, seule porte ouverte.
+    if (reservationId == null) {
+      context.go('/voyages');
       return;
     }
 
-    context.go('/voyages');
+    context.push(
+      AppRouter.groupTicketsPath,
+      extra: GroupTicketsArgs(
+        reservationId: reservationId,
+        passengers: _passengers,
+        // De quoi écrire le trajet sur le billet exporté : les billets du
+        // serveur ne rendent que des identifiants de gares.
+        departure: widget.args?.departure,
+      ),
+    );
   }
 
   @override

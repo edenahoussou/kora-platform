@@ -15,7 +15,7 @@ import 'package:kora_app_passenger/core/error/failures.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_data_source.dart';
 import 'package:kora_app_passenger/features/booking/data/repositories/departure_repository_impl.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/city.dart';
-import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/departure_search.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -63,16 +63,15 @@ void main() {
   test('une liste vide reste un succès, pas un échec', () async {
     when(
       () => dataSource.searchDepartures(criteria),
-    ).thenAnswer((_) async => const <Departure>[]);
+    ).thenAnswer((_) async => const DepartureSearch.oneWay([]));
 
-    final result = await repository.search(
-      originCity: 'Cotonou',
-      destinationCity: 'Abidjan',
-      date: DateTime(2026, 8, 20),
-    );
+    final result = await repository.search(criteria);
 
     expect(result.isRight(), isTrue);
-    expect(result.getOrElse(() => const <Departure>[]), isEmpty);
+    expect(
+      result.getOrElse(() => const DepartureSearch.oneWay([])).outbound,
+      isEmpty,
+    );
   });
 
   group('erreurs réseau', () {

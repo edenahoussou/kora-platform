@@ -300,7 +300,7 @@ class CounterSaleController extends Controller
         StoreCounterSalePaymentRequest $request,
         Reservation $reservation,
         RecordCounterSalePaymentAction $recordPayment,
-    ): RedirectResponse {
+    ): \Symfony\Component\HttpFoundation\Response {
         try {
             $result = $recordPayment->execute(
                 reservation: $reservation,
@@ -337,12 +337,48 @@ class CounterSaleController extends Controller
             'message' => __('Paiement confirmé. L’émission des billets est en cours.'),
         ]);
 
+        // Emit tickets synchronously so the PDF is available immediately.
+        // If issuance fails, the payment is already committed — redirect
+        // back to the sale page with an error so the agent can retry.
+        try {
+            IssueReservationTicketsJob::dispatchSync($reservation->getKey());
+        } catch (\Throwable $exception) {
+            report($exception);
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => __('Paiement enregistré, mais l’émission du billet a échoué. Vous pouvez réessayer depuis la liste des ventes.'),
+            ]);
+
+            $segment = $result['reservation']->segments->first();
+
+            return to_route('sale', array_filter([
+                'date' => $segment?->departure?->departure_date?->toDateString(),
+                'from' => $segment?->originStop?->city,
+                'to' => $segment?->destinationStop?->city,
+                'reservation_uuid' => $reservation->uuid,
+            ], static fn (mixed $value): bool => $value !== null && $value !== ''));
+        }
+
         $confirmedReservation = $result['reservation']->load([
             'segments.departure.line',
             'segments.departure.bus',
             'segments.originStop',
             'segments.destinationStop',
+            'tickets',
         ]);
+
+        $firstTicket = $confirmedReservation->tickets->first();
+
+        if ($firstTicket !== null) {
+            // Inertia::location forces a full page navigation (not SPA visit)
+            // because /tickets/{uuid} is a Blade page, not an Inertia render.
+            return Inertia::location(route('tickets.show', [
+                'ticket' => $firstTicket->uuid,
+                'download' => 1,
+            ]));
+        }
+
+        // Ticket issuance failed or pending — fall back to sale page.
         $segment = $confirmedReservation->segments->first();
 
         return to_route('sale', array_filter([

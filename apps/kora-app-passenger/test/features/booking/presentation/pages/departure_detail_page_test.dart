@@ -9,9 +9,13 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:kora_app_passenger/core/di/injector.dart';
 import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/core/utils/date_formats.dart';
+import 'package:kora_app_passenger/features/booking/data/datasources/booking_data_source.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
+import 'package:kora_app_passenger/features/booking/data/repositories/booking_repository_impl.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/line.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
+import 'package:kora_app_passenger/features/booking/domain/repositories/booking_repository.dart';
 import 'package:kora_app_passenger/features/booking/domain/repositories/departure_repository.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/departure_detail_cubit.dart';
 import 'package:kora_app_passenger/features/booking/presentation/pages/departure_detail_page.dart';
@@ -37,6 +41,14 @@ void main() {
     // les tests ci-dessous.
     getIt.registerLazySingleton<DepartureRepository>(
       StubDepartureRepository.new,
+    );
+
+    // L'écran charge les arrêts de la ligne — `GET bus/lines/{uuid}` —
+    // par le dépôt de réservation. Le jeu de démonstration les déduit de
+    // ses tronçons, ce qui donne à la frise de quoi s'afficher.
+    getIt.registerLazySingleton<BookingRepository>(
+      () =>
+          BookingRepositoryImpl(BookingMockDataSource(latency: Duration.zero)),
     );
 
     departure = mockDeparturesFor(
@@ -117,9 +129,13 @@ void main() {
       expect(find.text(stop), findsWidgets, reason: '$stop absent des étapes');
     }
 
-    // Seul le départ est ferme, le reste est estimé.
+    // Les deux terminus portent une heure — celle du départ, qu'on
+    // connaît. Les escales, elles, n'en portent aucune : le serveur ne
+    // publie pas d'heure de passage, et en interpoler une sur la distance
+    // tromperait le voyageur qui descend en route.
     expect(find.text('07:30 · départ confirmé'), findsOneWidget);
-    expect(find.textContaining('· estimée'), findsNWidgets(4));
+    expect(find.textContaining('arrivée prévue'), findsOneWidget);
+    expect(find.textContaining('· estimée'), findsNothing);
   });
 
   testWidgets('affiche le prix de chaque tronçon', (tester) async {
@@ -137,6 +153,42 @@ void main() {
     expect(find.text(firstSegment.price.formatted), findsWidgets);
   });
 
+  testWidgets('masque les étapes quand la ligne n’en publie aucune', (
+    tester,
+  ) async {
+    // `bus/itineraries` ne renvoie pas les tronçons d'une ligne : une
+    // ligne sans tronçon n'a donc aucun arrêt à montrer. L'intertitre
+    // « Les étapes » coiffait pourtant une carte vide, suivie d'une note
+    // qui parlait d'heures que rien n'affichait.
+    final bare = Departure(
+      id: departure.id,
+      line: Line(
+        // Un identifiant que le catalogue ne connaît pas : `bus/lines`
+        // ne rend alors aucun arrêt.
+        id: 'ligne-absente-du-catalogue',
+        code: departure.line.code,
+        origin: departure.line.origin,
+        destination: departure.line.destination,
+        duration: departure.line.duration,
+        distanceKm: departure.line.distanceKm,
+      ),
+      departsAt: departure.departsAt,
+      comfort: departure.comfort,
+      price: departure.price,
+      seatsTotal: departure.seatsTotal,
+      seatsAvailable: departure.seatsAvailable,
+    );
+
+    await pumpDetail(tester, value: bare);
+
+    expect(find.text('Les étapes'), findsNothing);
+    expect(find.text('Prix par tronçon'), findsNothing);
+    expect(
+      find.textContaining('Les heures de passage sont des estimations'),
+      findsNothing,
+    );
+  });
+
   testWidgets('masque les tronçons sur une liaison directe', (tester) async {
     final direct = mockDeparturesFor(
       SearchCriteria(
@@ -148,9 +200,11 @@ void main() {
 
     await pumpDetail(tester, value: direct);
 
-    // Un seul tronçon : la section ferait doublon avec le prix du trajet.
+    // Un seul tronçon : la section des prix ferait doublon avec le prix
+    // du trajet, et la frise se réduirait aux deux terminus — déjà dans
+    // le bandeau du haut.
     expect(find.text('Prix par tronçon'), findsNothing);
-    expect(find.text('Les étapes'), findsOneWidget);
+    expect(find.text('Les étapes'), findsNothing);
   });
 
   testWidgets('annonce un départ manquant plutôt que de planter', (
@@ -182,62 +236,30 @@ void main() {
   });
 
   group('rafraîchissement', () {
-    test('recharge le départ par son identifiant', () async {
-      final repository = StubDepartureRepository();
-      final cubit = DepartureDetailCubit(repository, departure: departure);
-      addTearDown(cubit.close);
-
-      await cubit.refresh();
-
-      expect(repository.calls, ['byId:${departure.id}']);
-    });
-
-    test('remplace ce que la liste affichait', () async {
-      // Les places restantes ont bougé depuis la recherche : c'est tout
-      // l'intérêt de recharger juste avant de choisir un siège.
-      final fresher = Departure(
-        id: departure.id,
-        line: departure.line,
-        departsAt: departure.departsAt,
-        comfort: departure.comfort,
-        price: departure.price,
-        seatsTotal: departure.seatsTotal,
-        seatsAvailable: 3,
-      );
+    test('ne rappelle plus le serveur pour un départ isolé', () async {
+      // MEZ-63 a retiré `GET bus/departures/{uuid}` : il n'existe plus de
+      // route pour relire un départ seul. Continuer à l'appeler marquerait
+      // l'écran « périmé » en permanence, ce qui est pire que de ne pas
+      // rafraîchir.
       final cubit = DepartureDetailCubit(
-        StubDepartureRepository(refreshed: fresher),
         departure: departure,
-      );
-      addTearDown(cubit.close);
-
-      await cubit.refresh();
-
-      expect(cubit.state.departure.seatsAvailable, 3);
-      expect(cubit.state.isStale, isFalse);
-    });
-
-    test('un échec garde le départ affiché et le signale', () async {
-      // Vider l'écran priverait le voyageur d'informations qu'il avait
-      // déjà sous les yeux.
-      final cubit = DepartureDetailCubit(
-        StubDepartureRepository(),
-        departure: departure,
+        repository: BookingRepositoryImpl(BookingMockDataSource()),
       );
       addTearDown(cubit.close);
 
       await cubit.refresh();
 
       expect(cubit.state.departure, departure);
-      expect(cubit.state.isStale, isTrue);
+      expect(cubit.state.isStale, isFalse);
       expect(cubit.state.isRefreshing, isFalse);
     });
 
-    testWidgets('l’écran prévient quand les données ont vieilli', (
-      tester,
-    ) async {
+    testWidgets('l’écran n’annonce plus de données vieillies', (tester) async {
+      // L'avertissement n'avait de sens que face à un rafraîchissement qui
+      // échoue. Sans rafraîchissement, il inquiéterait pour rien.
       await pumpDetail(tester);
 
-      expect(find.textContaining('non actualisés'), findsOneWidget);
+      expect(find.textContaining('non actualisés'), findsNothing);
     });
   });
 }

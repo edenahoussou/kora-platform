@@ -82,32 +82,22 @@ class ApiConstants {
   /// `from` et `to` (noms de villes).
   static const String busLines = '$_v1/bus/lines';
 
-  /// Départs programmés. `date` (`aaaa-mm-jj`) est obligatoire ; `from` et
-  /// `to` (noms de villes) sont facultatifs.
-  static const String busDepartures = '$_v1/bus/departures';
-
-  /// Un départ précis, rechargé par son identifiant.
+  /// Itinéraires desservant un couple d'arrêts, à une date donnée.
   ///
-  /// Même forme qu'un élément de la liste : ce n'est pas plus de données
-  /// qu'on vient chercher, ce sont les mêmes, fraîches. Entre la recherche
-  /// et le moment où l'on ouvre le détail, les places restantes ont pu
-  /// bouger.
-  static String busDeparture(String departureUuid) =>
-      '$busDepartures/$departureUuid';
+  /// Remplace `bus/departures`, que MEZ-63 a retiré. Le contrat n'est plus
+  /// le même : on interroge des **arrêts** — `from_physical_stop_uuid` et
+  /// `to_physical_stop_uuid`, pas des noms de villes — et la réponse rend
+  /// des itinéraires, chacun composé d'un ou plusieurs tronçons. `date`
+  /// (`aaaa-mm-jj`) est obligatoire ; `passenger_count` est facultatif.
+  static const String busItineraries = '$_v1/bus/itineraries';
 
   /// Plan des sièges d'un départ. Exige `origin_stop_uuid` et
   /// `destination_stop_uuid` en paramètres de requête.
+  ///
+  /// Seul rescapé de `bus/departures/…` : la liste et le détail d'un départ
+  /// sont partis avec MEZ-63, le plan des sièges est resté.
   static String busDepartureSeats(String departureUuid) =>
-      '$busDepartures/$departureUuid/seats';
-
-  /// Devis ferme pour un tronçon (`POST`, authentifié). Étape obligée
-  /// avant [busHolds], qui en réclame l'identifiant.
-  static const String busQuotes = '$_v1/bus/quotes';
-
-  /// Blocage des sièges (`POST`, authentifié). C'est cet appel — et lui
-  /// seul — qui retire les places de la vente et arme le compte à
-  /// rebours ; le choix sur le plan n'engage rien.
-  static const String busHolds = '$_v1/bus/holds';
+      '$_v1/bus/departures/$departureUuid/seats';
 
   /// `POST` : le devis d'un itinéraire, un ou plusieurs tronçons, pour un
   /// nombre de voyageurs donné.
@@ -134,12 +124,13 @@ class ApiConstants {
   /// Libération d'un blocage avant son échéance (`DELETE`, authentifié).
   /// La clé est l'identifiant de la **réservation**, pas du départ.
   ///
-  /// Sous `bus/`, comme les deux autres : la route a été déplacée de
-  /// `/holds/{uuid}` vers `/bus/holds/{uuid}` côté serveur, et l'ancienne
-  /// répond désormais 404. Une libération qui échoue ne se voit pas —
-  /// l'app rend la main tout de suite — mais les sièges restaient retenus
-  /// jusqu'à l'échéance.
-  static String hold(String reservationUuid) => '$busHolds/$reservationUuid';
+  /// A remplacé `DELETE bus/holds/{uuid}`, retiré par MEZ-63 : côté serveur
+  /// c'est la même libération, rangée sous la réservation plutôt que sous
+  /// le blocage. Une libération qui échoue ne se voit pas — l'app rend la
+  /// main tout de suite — mais les sièges resteraient retenus jusqu'à
+  /// l'échéance.
+  static String booking(String reservationUuid) =>
+      '$_v1/bookings/$reservationUuid';
 
   /// Identités des voyageurs d'une réservation (`POST`, authentifié).
   ///

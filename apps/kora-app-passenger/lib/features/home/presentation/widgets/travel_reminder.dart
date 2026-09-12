@@ -8,11 +8,18 @@ class TravelReminder extends StatelessWidget {
     super.key,
     required this.title,
     required this.message,
+    this.icon = Icons.access_time_rounded,
     this.onTap,
   });
 
   final String title;
   final String message;
+
+  /// Le pictogramme de la pastille dorée. L'horloge du rappel de départ
+  /// par défaut ; les autres entrées de la même famille — l'aller-retour,
+  /// par exemple — disent la leur.
+  final IconData icon;
+
   final VoidCallback? onTap;
 
   @override
@@ -49,11 +56,7 @@ class TravelReminder extends StatelessWidget {
                   color: AppColors.gold,
                   borderRadius: BorderRadius.circular(AppRadius.base),
                 ),
-                child: const Icon(
-                  Icons.access_time_rounded,
-                  size: 20,
-                  color: AppColors.kora,
-                ),
+                child: Icon(icon, size: 20, color: AppColors.kora),
               ),
               const SizedBox(width: AppSpacing.sm + 2),
               Expanded(

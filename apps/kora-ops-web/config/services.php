@@ -35,6 +35,21 @@ return [
         ],
     ],
 
+    'genuka' => [
+        'url' => env('GENUKA_URL', 'https://wa.genuka.com'),
+        'token' => env('GENUKA_TOKEN'),
+        'connection_id' => env('GENUKA_CONNECTION_ID'),
+    ],
+
+    'waha' => [
+        'url' => env('WAHA_URL', 'http://waha:3000'),
+        'token' => env('WAHA_TOKEN'),
+        'session' => env('WAHA_SESSION', 'default'),
+        // Délai anti-blocage (secondes) avant le premier envoi vers un contact
+        // nouveau. 0 désactive le délai (utile en test). WAHA recommande 30-60s.
+        'new_contact_delay_seconds' => env('WAHA_NEW_CONTACT_DELAY_SECONDS', 30),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | OAuth Social Providers (Laravel Socialite)

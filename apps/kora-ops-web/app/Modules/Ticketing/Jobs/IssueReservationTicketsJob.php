@@ -2,6 +2,8 @@
 
 namespace App\Modules\Ticketing\Jobs;
 
+use App\Jobs\FiscalizeReservationInvoiceJob;
+use App\Jobs\SendReservationWhatsAppNotificationJob;
 use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Models\Reservation;
@@ -39,10 +41,11 @@ class IssueReservationTicketsJob implements ShouldQueue
             return;
         }
 
+        $ticketed = false;
         try {
-            DB::transaction(function () use ($issueTickets): void {
+            DB::transaction(function () use ($issueTickets, &$ticketed): void {
                 $reservation = Reservation::query()
-                    ->with(['passengers', 'segments'])
+                    ->with(['passengers', 'segments', 'tickets'])
                     ->whereKey($this->reservationId)
                     ->lockForUpdate()
                     ->firstOrFail();
@@ -85,6 +88,7 @@ class IssueReservationTicketsJob implements ShouldQueue
                     'ticket_issuance_error' => null,
                 ]);
                 $reservation->segments()->update(['status' => ReservationSegmentStatus::Ticketed]);
+                $ticketed = true;
             });
         } catch (Throwable $exception) {
             Reservation::query()->whereKey($this->reservationId)->update([
@@ -97,6 +101,37 @@ class IssueReservationTicketsJob implements ShouldQueue
             ]);
 
             throw $exception;
+        }
+
+        if ($ticketed) {
+            $this->dispatchPostIssuanceJobs();
+        }
+    }
+
+    /**
+     * Dispatch fiscalization and WhatsApp jobs after tickets are issued.
+     *
+     * These are best-effort: if dispatch fails (e.g. queue unavailable in
+     * sync mode), the tickets are already issued and the downstream jobs
+     * can be retried manually. We log the error but do not re-throw.
+     */
+    private function dispatchPostIssuanceJobs(): void
+    {
+        try {
+            $ticketedReservation = Reservation::query()
+                ->with(['tickets'])
+                ->findOrFail($this->reservationId);
+
+            FiscalizeReservationInvoiceJob::dispatch($this->reservationId);
+
+            foreach ($ticketedReservation->tickets as $ticket) {
+                SendReservationWhatsAppNotificationJob::dispatch($this->reservationId, $ticket->id);
+            }
+        } catch (Throwable $exception) {
+            Log::warning('Post-issuance job dispatch failed.', [
+                'reservation_id' => $this->reservationId,
+                'error' => $exception->getMessage(),
+            ]);
         }
     }
 }

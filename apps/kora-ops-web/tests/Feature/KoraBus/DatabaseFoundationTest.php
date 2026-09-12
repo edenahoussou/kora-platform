@@ -245,7 +245,7 @@ it('keeps fiscal invoices unique per KORA reference and MECeF uid', function ():
         'payment_id' => $paymentId,
         'kora_reference' => 'KORA-FISCAL-001',
         'mecef_uid' => 'MECEF-001',
-        'status' => 'fiscalized',
+        'status' => 'certified',
         'total_without_tax' => 10000,
         'total_tax' => 0,
         'total_with_tax' => 10000,

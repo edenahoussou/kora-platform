@@ -144,7 +144,12 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   }
 
   void _onDateSelected(HomeDateSelected event, Emitter<HomeState> emit) {
-    emit(state.copyWith(date: event.date));
+    emit(
+      state.copyWith(
+        date: event.date,
+        clearReturnDate: _returnPrecedes(event.date, state.returnDate),
+      ),
+    );
   }
 
   void _onPassengersSelected(
@@ -161,7 +166,15 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   }
 
   void _onTripTypeChanged(HomeTripTypeChanged event, Emitter<HomeState> emit) {
-    emit(state.copyWith(tripType: event.tripType));
+    emit(
+      state.copyWith(
+        tripType: event.tripType,
+        // Revenir à l'aller simple efface le retour : le garder le ferait
+        // réapparaître tel quel à la bascule suivante, alors qu'entre-temps
+        // la date de départ a pu passer devant lui.
+        clearReturnDate: event.tripType == TripType.oneway,
+      ),
+    );
   }
 
   void _onReturnDateSelected(
@@ -169,5 +182,15 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     Emitter<HomeState> emit,
   ) {
     emit(state.copyWith(returnDate: event.date));
+  }
+
+  /// Un départ repoussé après le retour rendrait le voyage impossible :
+  /// le serveur refuserait un retour antérieur à l'aller. On efface alors
+  /// le retour plutôt que de laisser partir une recherche absurde.
+  bool _returnPrecedes(DateTime departure, DateTime? returnDate) {
+    if (returnDate == null) return false;
+    return returnDate.isBefore(
+      DateTime(departure.year, departure.month, departure.day),
+    );
   }
 }

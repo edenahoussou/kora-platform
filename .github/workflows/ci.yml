@@ -42,10 +42,28 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Install Chromium for Browsershot (PDF tests)
+        run: |
+          # Install puppeteer and download a compatible Chromium binary
+          # that Browsershot can use without snap sandbox restrictions.
+          npm install puppeteer --no-save
+          npx puppeteer browsers install chrome-headless-shell
+          # Browsershot looks for node at /usr/bin/node by default;
+          # symlink the setup-node binary so the path resolves.
+          sudo ln -sf "$(which node)" /usr/bin/node
+
       - name: Prepare Laravel
         run: |
           cp .env.example .env
           php artisan key:generate
+          # Point Browsershot at the puppeteer-downloaded chrome-headless-shell.
+          CHROME_PATH=$(find ~/.cache/puppeteer -name 'chrome-headless-shell' -type f 2>/dev/null | head -1)
+          printf "BROWSERSHOT_CHROME_PATH=%s\n" "$CHROME_PATH" >> .env
+          # Browsershot temp dir must exist before writing HTML files.
+          mkdir -p storage/app/temp/chrome
+          # Ticket QR signing keys (test keypair, safe for CI).
+          echo "KORA_TICKET_SIGNING_PRIVATE_KEY=I6KFQT1V89kAkMD6j9tF6V/I6Ij5uH0aomSdMNy/phRMOMFt06hCiB+GO9hsZ0w/KOwnsHsB1AC5OSgh/AOsMQ==" >> .env
+          echo "KORA_TICKET_SIGNING_PUBLIC_KEY=TDjBbdOoQogfhjvYbGdMPyjsJ7B7AdQAuTkoIfwDrDE=" >> .env
 
       - name: Generate Wayfinder routes/actions
         run: php artisan wayfinder:generate --with-form

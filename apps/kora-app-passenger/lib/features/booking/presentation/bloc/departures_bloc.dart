@@ -81,11 +81,14 @@ class DeparturesBloc extends Bloc<DeparturesEvent, DeparturesState> {
     final result = await _searchDepartures(criteria);
     result.fold(
       (failure) => emit(_failed(failure.message)),
-      (departures) => emit(
+      // Cet écran ne liste que l'aller ; le retour a le sien, et c'est la
+      // même recherche qui l'a rapporté.
+      (search) => emit(
         state.copyWith(
           status: DeparturesStatus.success,
           criteria: criteria,
-          departures: departures,
+          departures: search.outbound,
+          returnDepartures: search.inbound,
         ),
       ),
     );
@@ -163,10 +166,11 @@ class DeparturesBloc extends Bloc<DeparturesEvent, DeparturesState> {
       (failure) => emit(
         state.copyWith(isRefreshing: false, refreshError: failure.message),
       ),
-      (departures) => emit(
+      (search) => emit(
         state.copyWith(
           status: DeparturesStatus.success,
-          departures: departures,
+          departures: search.outbound,
+          returnDepartures: search.inbound,
           isRefreshing: false,
         ),
       ),
@@ -197,6 +201,10 @@ class DeparturesBloc extends Bloc<DeparturesEvent, DeparturesState> {
       destination: destination,
       date: date,
       passengers: int.tryParse(event.passengers ?? '') ?? 1,
+      // Illisible vaut absent : mieux vaut chercher un aller simple que
+      // refuser la recherche entière sur un paramètre abîmé.
+      returnDate: DateTime.tryParse(event.returnDate ?? ''),
+      roundTrip: event.tripType == 'round_trip',
     );
   }
 

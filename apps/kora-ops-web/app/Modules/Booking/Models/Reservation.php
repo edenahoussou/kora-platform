@@ -12,6 +12,7 @@ use App\Modules\CompanyAccounts\Models\CompanyAccount;
 use App\Modules\CompanyAccounts\Models\CompanyCreditHold;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Models\PriceQuote;
+use App\Modules\Fiscalization\Models\FiscalInvoice;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentRefund;
 use App\Modules\Support\Models\KoraModel;
@@ -19,6 +20,7 @@ use App\Modules\Ticketing\Data\TicketIssuanceStatus;
 use App\Modules\Ticketing\Models\Ticket;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -143,6 +145,14 @@ class Reservation extends KoraModel
     public function tickets(): HasMany
     {
         return $this->hasMany(Ticket::class);
+    }
+
+    /**
+     * @return HasOne<FiscalInvoice, $this>
+     */
+    public function fiscalInvoice(): HasOne
+    {
+        return $this->hasOne(FiscalInvoice::class);
     }
 
     protected function casts(): array

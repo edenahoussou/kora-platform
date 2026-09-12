@@ -8,6 +8,7 @@ use App\Modules\IdentityAccess\Actions\FindTrustedDeviceAction;
 use App\Modules\IdentityAccess\Actions\IssueDeviceTokenAction;
 use App\Modules\IdentityAccess\Actions\IssueOtpChallengeAction;
 use App\Modules\IdentityAccess\Actions\UpsertTrustedDeviceAction;
+use App\Modules\IdentityAccess\Contracts\PassengerIdentityResolver;
 use App\Modules\IdentityAccess\Data\OtpPurpose;
 use App\Modules\IdentityAccess\Data\UserStatus;
 use App\Modules\IdentityAccess\Exceptions\AuthLockedException;
@@ -30,6 +31,7 @@ class AuthSessionService
         private IssueDeviceTokenAction $issueDeviceToken,
         private IssueOtpChallengeAction $issueOtpChallenge,
         private UpsertTrustedDeviceAction $upsertTrustedDevice,
+        private PassengerIdentityResolver $identityResolver,
     ) {}
 
     /**
@@ -166,10 +168,15 @@ class AuthSessionService
     {
         $emailChanged = Str::lower($input['email']) !== Str::lower($user->email);
 
+        $rawPhone = $input['phone'] ?? null;
+        $normalizedPhone = $rawPhone !== null
+            ? $this->identityResolver->normalizePhone($rawPhone, $input['country_code'] ?? null)
+            : $user->phone;
+
         $user->forceFill([
             'name' => $input['name'],
             'email' => Str::lower($input['email']),
-            'phone' => $input['phone'] ?? $user->phone,
+            'phone' => $normalizedPhone,
             'country_code' => $input['country_code'] ?? $user->country_code,
             'birth_date' => $input['birth_date'] ?? $user->birth_date,
             'email_verified_at' => $emailChanged ? null : $user->email_verified_at,

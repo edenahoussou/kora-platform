@@ -3,6 +3,7 @@ import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
 import '../entities/city.dart';
 import '../entities/departure.dart';
+import '../entities/line_stop.dart';
 import '../entities/seat.dart';
 import '../entities/ticket.dart';
 import '../entities/upcoming_trip.dart';
@@ -23,6 +24,13 @@ abstract class BookingRepository {
   Future<Either<Failure, List<City>>> getRecentCities();
 
   /// Plan des sièges d'un départ.
+  /// Les arrêts d'une ligne, dans l'ordre du trajet.
+  ///
+  /// Vide pour une ligne dont le serveur n'a pas publié d'arrêts : c'est
+  /// un résultat, pas une erreur, et l'écran de détail tait alors sa
+  /// section « Les étapes ».
+  Future<Either<Failure, List<LineStop>>> getLineStops(String lineId);
+
   Future<Either<Failure, List<Seat>>> getSeats(Departure departure);
 
   /// Prochain voyage réservé, ou `null` si l'utilisateur n'en a aucun

@@ -24,12 +24,23 @@ import 'summary_page.dart';
 
 /// Données passées à [PassengerFormPage] par `go_router` (`extra`).
 class PassengerFormArgs {
-  const PassengerFormArgs({required this.departure, required this.seats});
+  const PassengerFormArgs({
+    required this.departure,
+    required this.seats,
+    this.returnDeparture,
+    this.returnSeats,
+  });
 
   final Departure departure;
 
   /// Les sièges choisis à l'écran précédent, un par voyageur.
   final List<Seat> seats;
+
+  /// Le retour d'un aller-retour, avec ses sièges. Transmis au
+  /// récapitulatif : sans lui, il redemanderait un devis d'aller simple et
+  /// annoncerait la moitié du prix.
+  final Departure? returnDeparture;
+  final List<Seat>? returnSeats;
 }
 
 /// Identité des voyageurs — écrans `passenger-info` et
@@ -51,12 +62,18 @@ class PassengerFormPage extends StatefulWidget {
     super.key,
     required this.departure,
     this.seats = const [],
+    this.returnDeparture,
+    this.returnSeats,
   });
 
   /// `null` si l'écran est ouvert sans données (lien profond).
   final Departure? departure;
 
   final List<Seat> seats;
+
+  /// Voir [PassengerFormArgs.returnDeparture].
+  final Departure? returnDeparture;
+  final List<Seat>? returnSeats;
 
   @override
   State<PassengerFormPage> createState() => _PassengerFormPageState();
@@ -109,13 +126,17 @@ class _PassengerFormPageState extends State<PassengerFormPage> {
 
     final missing = _missing(l10n);
     if (missing.isNotEmpty) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(l10n.passengersIncompleteDetail(missing.join(' · '))),
-          ),
-        );
+      // Le toast de la maquette, et non le `SnackBar` de Material : ce
+      // dernier barre le bas de l'écran, donc le bouton qu'on vient
+      // d'actionner, et ne ressemble à rien d'autre dans l'app.
+      //
+      // Le message ne porte pas seul l'information : les champs fautifs
+      // sont déjà soulignés de rouge sous les yeux du voyageur. Il dit
+      // lesquels, pour ceux que le défilement cache.
+      KoraToaster.show(
+        context,
+        l10n.passengersIncompleteDetail(missing.join(' · ')),
+      );
       return;
     }
 
@@ -125,11 +146,7 @@ class _PassengerFormPageState extends State<PassengerFormPage> {
     // saisie tenable, c'est elle seule qui retient le voyageur — la revue
     // Kora n'a voulu qu'un seul verrou à ce stade.
     if (!_accuracyConfirmed) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text(l10n.passengersAccuracyRequired)),
-        );
+      KoraToaster.show(context, l10n.passengersAccuracyRequired);
       return;
     }
 
@@ -152,25 +169,33 @@ class _PassengerFormPageState extends State<PassengerFormPage> {
     bloc.add(SeatHoldPassengersSubmitted(passengers));
   }
 
-  /// Ce qui manque, voyageur par voyageur, en clair.
+  /// Les champs à reprendre, voyageur par voyageur, en clair.
   ///
   /// Un « Complétez les champs signalés » ne dit pas *lequel* : sur le
   /// formulaire international, le champ Naissance tombe juste sous le bloc
   /// document, et le message générique se lisait comme si la pièce
   /// d'identité bloquait encore — alors qu'elle est facultative depuis la
-  /// revue Kora. Nommer le voyageur et le champ lève l'ambiguïté.
+  /// revue Kora. Nommer le champ lève l'ambiguïté.
+  ///
+  /// Le rang du voyageur ne s'y ajoute que s'il y en a plusieurs :
+  /// « Passager 1 : Prénom » devant un formulaire unique fait chercher
+  /// un passager 2 qui n'existe pas.
   List<String> _missing(AppLocalization l10n) {
     final summaries = <String>[];
+    final alone = _fields.length == 1;
 
     for (final fields in _fields) {
       final errors = fields.errorsFor(l10n);
       if (errors.isEmpty) continue;
 
+      final labels = errors.keys
+          .map((key) => _fieldLabel(l10n, key))
+          .join(', ');
+
       summaries.add(
-        l10n.passengersIncompletePassenger(
-          fields.index + 1,
-          errors.keys.map((key) => _fieldLabel(l10n, key)).join(', '),
-        ),
+        alone
+            ? labels
+            : l10n.passengersIncompletePassenger(fields.index + 1, labels),
       );
     }
 
@@ -186,8 +211,27 @@ class _PassengerFormPageState extends State<PassengerFormPage> {
   void _openSummary(List<Passenger> passengers) {
     context.push(
       AppRouter.summaryPath,
-      extra: SummaryArgs(departure: widget.departure!, passengers: passengers),
+      extra: SummaryArgs(
+        departure: widget.departure!,
+        passengers: passengers,
+        returnDeparture: widget.returnDeparture,
+        returnSeats: widget.returnSeats,
+      ),
     );
+  }
+
+  /// Le siège du voyageur [index] : le sien à l'aller, et celui du retour
+  /// quand il y en a un.
+  ///
+  /// Les deux voyages se paient ensemble ; n'en montrer qu'un laisserait
+  /// croire que le retour n'a pas de place attribuée.
+  String _seatLabel(BuildContext context, int index) {
+    final outbound = widget.seats[index].label;
+    final returnSeats = widget.returnSeats;
+
+    if (returnSeats == null || index >= returnSeats.length) return outbound;
+
+    return context.l10n.summarySeatsRound(outbound, returnSeats[index].label);
   }
 
   @override
@@ -235,6 +279,7 @@ class _PassengerFormPageState extends State<PassengerFormPage> {
                       _PassengerCard(
                         fields: fields,
                         seat: widget.seats[fields.index],
+                        seatLabel: _seatLabel(context, fields.index),
                         showErrors: _showErrors,
                         international: _isInternational,
                         onChanged: () => setState(() {}),
@@ -304,6 +349,7 @@ class _PassengerCard extends StatelessWidget {
   const _PassengerCard({
     required this.fields,
     required this.seat,
+    required this.seatLabel,
     required this.showErrors,
     required this.international,
     required this.onChanged,
@@ -318,6 +364,10 @@ class _PassengerCard extends StatelessWidget {
   final bool international;
 
   final VoidCallback onChanged;
+
+  /// Le siège affiché, déjà composé : un seul numéro sur un aller simple,
+  /// les deux (« 5A · 2C ») sur un aller-retour.
+  final String seatLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -338,7 +388,7 @@ class _PassengerCard extends StatelessWidget {
                 context.l10n.passengersBlock(fields.index + 1),
                 style: AppTextStyles.eyebrow(koraColors.textMuted),
               ),
-              _SeatBadge(label: seat.label),
+              _SeatBadge(label: seatLabel),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
@@ -625,7 +675,7 @@ class _BirthDateField extends StatelessWidget {
     final date = fields.birthDate;
 
     return _LabelledField(
-      label: context.l10n.passengersBirthDate,
+      label: context.l10n.passengersBirthDateOptional,
       child: InkWell(
         onTap: () => _pick(context),
         borderRadius: BorderRadius.circular(AppRadius.input),
@@ -849,14 +899,15 @@ class _PassengerFields {
 
     if (!international) return errors;
 
-    // La pièce d'identité ne bloque plus : type et numéro sont
-    // facultatifs depuis la revue Kora du 29 août 2026, pour le voyageur
-    // dont le document est expiré, perdu ou en cours de renouvellement.
-    // La date de naissance, elle, reste due au manifeste de frontière.
-    if (birthDate == null) {
-      errors['birthDate'] = l10n.passengersBirthDateRequired;
-    }
-
+    // Sur une liaison internationale, rien de plus n'est exigé : ni la
+    // pièce d'identité — facultative depuis la revue Kora du 29 août 2026,
+    // pour le voyageur dont le document est expiré, perdu ou en cours de
+    // renouvellement — ni la date de naissance, qui la rejoint.
+    //
+    // Le manifeste de frontière la réclame toujours, mais c'est au comptoir
+    // de la compléter : bloquer l'achat sur un champ que le voyageur ne
+    // sait pas toujours renseigner de tête coûtait des réservations
+    // qu'aucune règle ne refusait.
     return errors;
   }
 

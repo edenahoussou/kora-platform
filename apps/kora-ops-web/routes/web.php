@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\FiscalizationController;
 use App\Modules\Booking\Http\Controllers\CounterSaleController;
 use App\Modules\BusNetwork\Http\Controllers\BusAmenityController;
 use App\Modules\BusNetwork\Http\Controllers\BusController;
@@ -15,7 +16,8 @@ use App\Modules\DynamicPricing\Http\Controllers\PricingRuleController;
 use App\Modules\DynamicPricing\Http\Controllers\TaxRuleController;
 use App\Modules\IdentityAccess\Http\Controllers\AgencyController;
 use App\Modules\Payments\Http\Controllers\AgencyPaymentAccountController;
-use App\Modules\Ticketing\Http\Controllers\TicketsController;
+use App\Modules\Ticketing\Http\Controllers\TicketIndexController;
+use App\Modules\Ticketing\Http\Controllers\TicketPreviewController;
 use App\Modules\Ticketing\Http\Controllers\TicketViewController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -24,6 +26,14 @@ Route::get('/', fn () => Auth::check()
     ? redirect()->route('dashboard')
     : redirect()->route('login')
 )->name('home');
+
+Route::get('tickets/{ticket:uuid}/pdf/signed', [TicketViewController::class, 'signedPdf'])
+    ->middleware('signed')
+    ->name('tickets.signed-pdf');
+
+// Ticket preview — static mock data for visual validation
+Route::get('tickets/preview/{scenario}', [TicketPreviewController::class, 'show'])
+    ->name('tickets.preview');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     // Dashboard
@@ -42,6 +52,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('sale/{reservation:uuid}/passengers', [CounterSaleController::class, 'storePassengers'])->name('sale.passengers');
     Route::post('sale/{reservation:uuid}/payment', [CounterSaleController::class, 'storePayment'])->name('sale.payment');
     Route::post('sale/{reservation:uuid}/tickets/retry', [CounterSaleController::class, 'retryTicketIssuance'])->name('sale.tickets.retry');
+    Route::post('fiscalization/{fiscalInvoice:uuid}/retry', [FiscalizationController::class, 'retry'])->name('fiscalization.retry');
     Route::get('cash', [CashSessionController::class, 'index'])->name('cash');
     Route::post('cash/open', [CashSessionController::class, 'store'])->name('cash.open');
     Route::post('cash/{cashSession:uuid}/close', [CashSessionController::class, 'close'])->name('cash.close');
@@ -97,9 +108,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('tax-rules/{taxRule:uuid}', [TaxRuleController::class, 'update'])->name('tax-rules.update');
     Route::patch('tax-rules/{taxRule:uuid}/status', [TaxRuleController::class, 'changeStatus'])->name('tax-rules.status');
     Route::inertia('passengers', 'passengers')->name('passengers');
-    Route::get('tickets', [TicketsController::class, 'index'])->name('tickets.index');
+    Route::get('tickets', [TicketIndexController::class, 'index'])->name('tickets');
     Route::get('tickets/{ticket:uuid}', [TicketViewController::class, 'show'])->name('tickets.show');
     Route::get('tickets/{ticket:uuid}/pdf', [TicketViewController::class, 'pdf'])->name('tickets.pdf');
+    Route::post('tickets/{ticket:uuid}/whatsapp', [TicketViewController::class, 'sendWhatsApp'])->name('tickets.whatsapp');
 
     // V1 MVP — Réseau (Lignes & arrêts)
     Route::get('network', [LineController::class, 'index'])->name('network.index');

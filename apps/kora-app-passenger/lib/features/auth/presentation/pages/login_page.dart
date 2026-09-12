@@ -178,7 +178,11 @@ class _LoginPageState extends State<LoginPage> {
                         builder: (context, flow) => Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            PinKeypad(onKey: _press, onNavy: true),
+                            PinKeypad(
+                              onKey: _press,
+                              onNavy: true,
+                              isSubmitting: flow.isSubmitting,
+                            ),
                             if (flow.hasError) ...[
                               const SizedBox(height: 12),
                               Text(

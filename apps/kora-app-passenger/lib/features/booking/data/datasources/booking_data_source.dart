@@ -1,5 +1,7 @@
 import '../../domain/entities/city.dart';
 import '../../domain/entities/departure.dart';
+import '../../domain/entities/departure_search.dart';
+import '../../domain/entities/line_stop.dart';
 import '../../domain/entities/search_criteria.dart';
 import '../../domain/entities/seat.dart';
 import '../../domain/entities/ticket.dart';
@@ -22,13 +24,19 @@ abstract class BookingDataSource {
   /// Dernières villes recherchées, mises en avant dans le sélecteur.
   Future<List<City>> getRecentCities();
 
-  /// Départs correspondant à une recherche. Liste vide si la liaison n'est
-  /// pas desservie ce jour-là : c'est un résultat, pas une erreur.
-  Future<List<Departure>> searchDepartures(SearchCriteria criteria);
+  /// Départs correspondant à une recherche, un sens ou deux selon que le
+  /// voyageur a demandé un retour.
+  ///
+  /// Un résultat vide est un **résultat**, pas une erreur : la liaison
+  /// n'est pas desservie ce jour-là.
+  Future<DepartureSearch> searchDepartures(SearchCriteria criteria);
 
-  /// Un départ rechargé par son identifiant, pour rafraîchir un détail
-  /// affiché depuis la liste.
-  Future<Departure> getDeparture(String departureId);
+  /// Les arrêts d'une ligne, dans l'ordre du trajet.
+  ///
+  /// `GET bus/lines/{uuid}` les rend avec la ligne. Une liste vide est un
+  /// résultat : une ligne directe n'a que ses deux terminus, que l'écran
+  /// de détail affiche déjà par ailleurs.
+  Future<List<LineStop>> getLineStops(String lineId);
 
   /// Plan des sièges d'un départ, dans l'ordre de lecture du bus.
   Future<List<Seat>> getSeats(Departure departure);
@@ -74,23 +82,48 @@ class BookingMockDataSource implements BookingDataSource {
   }
 
   @override
-  Future<List<Departure>> searchDepartures(SearchCriteria criteria) async {
+  Future<DepartureSearch> searchDepartures(SearchCriteria criteria) async {
     // Une recherche est plus longue qu'une simple lecture : la maquette
     // lui consacre un écran entier (`searching`), qu'on n'aurait jamais le
     // temps de voir avec le délai standard.
     await Future<void>.delayed(latency * 2);
-    return mockDeparturesFor(criteria);
+
+    final outbound = mockDeparturesFor(criteria);
+    final returnDate = criteria.returnDate;
+    if (returnDate == null) return DepartureSearch.oneWay(outbound);
+
+    // Le retour, c'est la même liaison prise à l'envers.
+    return DepartureSearch(
+      outbound: outbound,
+      inbound: mockDeparturesFor(
+        SearchCriteria(
+          origin: criteria.destination,
+          destination: criteria.origin,
+          date: returnDate,
+          passengers: criteria.passengers,
+        ),
+      ),
+    );
   }
 
+  /// Le jeu de démonstration décrit ses lignes par tronçons : les arrêts
+  /// s'en déduisent — une origine par tronçon, plus le terminus.
   @override
-  Future<Departure> getDeparture(String departureId) async {
+  Future<List<LineStop>> getLineStops(String lineId) async {
     await Future<void>.delayed(latency);
 
-    // Le jeu de démonstration ne s'indexe pas par identifiant : il produit
-    // des départs à la demande, pour une recherche. Rien à rafraîchir ici.
-    throw UnimplementedError(
-      'Le jeu de démonstration ne recharge pas un départ isolé.',
-    );
+    final line = kMockLines.where((line) => line.id == lineId).firstOrNull;
+    final segments = line?.segments ?? const [];
+    if (segments.isEmpty) return const [];
+
+    return [
+      for (var i = 0; i < segments.length; i++)
+        LineStop(order: i + 1, name: segments[i].origin.name),
+      LineStop(
+        order: segments.length + 1,
+        name: segments.last.destination.name,
+      ),
+    ];
   }
 
   @override

@@ -10,7 +10,12 @@ sealed class SeatHoldEvent extends Equatable {
 /// « Continuer » sur le plan : fige le prix, retient les sièges, arme le
 /// décompte.
 class SeatHoldRequested extends SeatHoldEvent {
-  const SeatHoldRequested({required this.departure, required this.seats});
+  const SeatHoldRequested({
+    required this.departure,
+    required this.seats,
+    this.returnDeparture,
+    this.returnSeats,
+  });
 
   final Departure departure;
 
@@ -18,8 +23,18 @@ class SeatHoldRequested extends SeatHoldEvent {
   /// aux voyageurs du formulaire suivant.
   final List<Seat> seats;
 
+  /// Le retour d'un aller-retour, avec ses propres sièges.
+  ///
+  /// Les deux trajets partent dans **un seul devis et un seul blocage** :
+  /// le serveur réclame un siège pour chaque tronçon du devis, et c'est
+  /// ce qui donne au voyageur un paiement unique.
+  final Departure? returnDeparture;
+
+  /// Un siège de retour par voyageur, dans le même ordre que [seats].
+  final List<Seat>? returnSeats;
+
   @override
-  List<Object?> get props => [departure, seats];
+  List<Object?> get props => [departure, seats, returnDeparture, returnSeats];
 }
 
 /// Le voyageur revient sur ses choix. Rend les sièges à la vente et coupe
