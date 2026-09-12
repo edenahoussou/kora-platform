@@ -10,6 +10,7 @@ import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/features/auth/domain/entities/otp_purpose.dart';
 import 'package:kora_app_passenger/features/auth/presentation/bloc/auth_flow_bloc.dart';
 import 'package:kora_app_passenger/features/auth/presentation/pages/login_page.dart';
+import 'package:kora_app_passenger/features/auth/presentation/widgets/pin_pad.dart';
 
 import '../../../../support/stub_auth_repository.dart';
 
@@ -143,6 +144,10 @@ void main() {
 
     await tester.tap(find.text('PIN oublié ?'));
     await tester.pumpAndSettle();
+    // Le lien demande d'abord le compte ; c'est « Continuer » qui envoie
+    // le code.
+    await tester.tap(find.text('Continuer'));
+    await tester.pumpAndSettle();
 
     // Même parcours que l'inscription, autre motif : le code part, et
     // l'écran de vérification prend la suite.
@@ -156,11 +161,112 @@ void main() {
 
     await tester.tap(find.text('Connexion sur un nouvel appareil'));
     await tester.pumpAndSettle();
+    // Le lien demande d'abord le compte visé ; c'est « Continuer » qui
+    // engage le parcours.
+    await tester.tap(find.text('Continuer'));
+    await tester.pumpAndSettle();
 
     // Rien n'est demandé au serveur ici : l'écran explique d'abord.
     expect(repository.calls, isEmpty);
     expect(flow.state.step, AuthFlowStep.newDevice);
     expect(flow.state.purpose, OtpPurpose.loginNewDevice);
+  });
+
+  testWidgets('une adresse vide laisse saisir la sienne', (tester) async {
+    // Le parcours remis à zéro repasse par ici avec une chaîne vide,
+    // jamais un `null`. S'y fier rendait le champ inutile : il
+    // s'affichait, on pouvait y taper, mais la saisie n'était pas lue et
+    // l'écran répondait « Adresse e-mail requise » à chaque essai.
+    repository = StubAuthRepository();
+    flow = AuthFlowBloc(repository);
+    addTearDown(flow.close);
+
+    tester.view.physicalSize = const Size(390 * 3, 900 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        locale: const Locale('fr'),
+        supportedLocales: const [Locale('fr'), Locale('en')],
+        localizationsDelegates: const [
+          AppLocalization.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: _withFlow(flow, const LoginPage(email: '')),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).first, 'kevine@example.com');
+    for (final key in ['1', '2', '3', '4']) {
+      await tester.tap(find.text(key));
+    }
+    await tester.tap(find.text('✓'));
+    await tester.pumpAndSettle();
+
+    // L'adresse saisie est bien celle envoyée au serveur.
+    expect(repository.calls, contains('login:kevine@example.com'));
+  });
+  testWidgets('« nouvel appareil » ne demande que l’adresse', (tester) async {
+    // La vérification part d'un compte, pas d'un code : laisser le pavé à
+    // l'écran faisait taper quatre chiffres pour rien. Et sur un appareil
+    // neuf l'adresse n'est même pas mémorisée — le lien répondait alors
+    // « Saisissez d'abord votre adresse e-mail » au-dessus d'un clavier
+    // numérique inutile.
+    await pumpLogin(tester);
+
+    expect(find.byType(PinKeypad), findsOneWidget);
+
+    await tester.tap(find.text('Connexion sur un nouvel appareil'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sur quel compte ?'), findsOneWidget);
+    expect(find.byType(PinKeypad), findsNothing);
+    // L'adresse mémorisée sert de point de départ : on la corrige, on ne
+    // la retape pas.
+    expect(find.text('aicha.hounkpe@example.com'), findsWidgets);
+
+    await tester.tap(find.text('Continuer'));
+    await tester.pumpAndSettle();
+
+    expect(flow.state.step, AuthFlowStep.newDevice);
+    expect(flow.state.email, 'aicha.hounkpe@example.com');
+  });
+
+  testWidgets('« PIN oublié ? » ne demande que l’adresse aussi', (
+    tester,
+  ) async {
+    // Même dead-end que le lien voisin : le code n'a rien à voir là-dedans,
+    // c'est un courriel qui porte la réinitialisation.
+    await pumpLogin(tester);
+
+    await tester.tap(find.text('PIN oublié ?'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Quel compte réinitialiser ?'), findsOneWidget);
+    expect(find.byType(PinKeypad), findsNothing);
+
+    await tester.tap(find.text('Continuer'));
+    await tester.pumpAndSettle();
+
+    expect(flow.state.purpose, OtpPurpose.pinReset);
+    expect(flow.state.email, 'aicha.hounkpe@example.com');
+  });
+
+  testWidgets('on peut revenir au PIN sans quitter l’écran', (tester) async {
+    await pumpLogin(tester);
+
+    await tester.tap(find.text('Connexion sur un nouvel appareil'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Revenir au PIN'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PinKeypad), findsOneWidget);
+    expect(find.text('Votre PIN KORA'), findsOneWidget);
   });
 }
 

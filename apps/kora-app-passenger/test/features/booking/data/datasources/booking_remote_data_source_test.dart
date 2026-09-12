@@ -5,8 +5,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_app_passenger/core/constants/api_constants.dart';
 import 'package:kora_app_passenger/core/error/exceptions.dart';
+import 'package:kora_app_passenger/features/booking/data/datasources/booked_trips_store.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_data_source.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_remote_data_source.dart';
+import 'package:kora_app_passenger/features/booking/data/datasources/reservation_remote_data_source.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/city.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
 import 'package:mocktail/mocktail.dart';
@@ -58,7 +60,15 @@ void main() {
   setUp(() {
     dio = MockDio();
     pending = MockBookingDataSource();
-    dataSource = BookingRemoteDataSourceImpl(dio, pending: pending);
+    dataSource = BookingRemoteDataSourceImpl(
+      dio,
+      pending: pending,
+      bookedTrips: const BookedTripsStore(),
+      reservations: ReservationRemoteDataSource(dio),
+      // Hors session : l'onglet Voyages n'a alors rien à lister, et
+      // aucun test de ce fichier ne s'y intéresse.
+      accountId: () => null,
+    );
   });
 
   group('getCities', () {
@@ -439,15 +449,12 @@ void main() {
   });
 
   group('écrans pas encore servis par l’API', () {
-    test('le prochain voyage et les billets passent par le repli', () async {
+    test('le prochain voyage passe encore par le repli', () async {
       when(() => pending.getNextTrip()).thenAnswer((_) async => null);
-      when(() => pending.getTickets()).thenAnswer((_) async => const []);
 
       await dataSource.getNextTrip();
-      await dataSource.getTickets();
 
       verify(() => pending.getNextTrip()).called(1);
-      verify(() => pending.getTickets()).called(1);
       verifyNever(
         () => dio.get<dynamic>(
           any(),
@@ -455,6 +462,19 @@ void main() {
         ),
       );
     });
+
+    test(
+      'les billets ne sont plus mockés : hors session, la liste est vide',
+      () async {
+        // L'onglet Voyages lit désormais le journal local des réservations,
+        // puis demande au serveur l'état de chacune. Sans compte connecté il
+        // n'y a rien à lister — et surtout pas un jeu de démonstration, qui
+        // ferait croire à des billets qu'on n'a jamais achetés.
+        expect(await dataSource.getTickets(), isEmpty);
+
+        verifyNever(() => pending.getTickets());
+      },
+    );
 
     test('les recherches récentes sont vides, jamais mockées', () async {
       expect(await dataSource.getRecentCities(), isEmpty);

@@ -1,11 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/di/injector.dart';
 import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/date_formats.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../booking/data/datasources/booked_trips_store.dart';
 import '../../../booking/presentation/bloc/seat_hold_bloc.dart';
 import '../../../booking/presentation/pages/group_tickets_page.dart';
 import '../../../booking/presentation/widgets/state_view.dart';
@@ -51,8 +56,39 @@ class _BookingSuccessPageState extends State<BookingSuccessPage> {
       _reservationId = hold.hold?.id;
       _passengers = hold.passengers;
 
+      _remember(context);
       context.read<SeatHoldBloc>().add(const SeatHoldSettled());
     });
+  }
+
+  /// Note le voyage dans le journal local des réservations.
+  ///
+  /// **C'est le seul moment où l'app le peut.** L'API ne sait pas lister
+  /// les réservations d'un voyageur — elle n'a que `GET bookings/{uuid}` —
+  /// et l'onglet Voyages n'aurait donc rien à afficher. Ici, l'app sait
+  /// exactement ce qu'elle vient de payer.
+  ///
+  /// Un échec d'écriture ne se voit pas : le billet est acheté, le QR est
+  /// là, et prévenir d'un problème de cache n'apprendrait rien d'utile au
+  /// voyageur devant sa confirmation.
+  void _remember(BuildContext context) {
+    final reservationId = _reservationId;
+    final departure = widget.args?.departure;
+    final account = context.read<AuthBloc>().state.session?.user.uuid;
+
+    if (reservationId == null || departure == null || account == null) return;
+
+    unawaited(
+      getIt<BookedTripsStore>()
+          .remember(
+            account,
+            reservationId: reservationId,
+            departure: departure,
+            seatLabel: widget.args?.seatLabel ?? '',
+            total: widget.args!.total,
+          )
+          .catchError((Object _) {}),
+    );
   }
 
   /// Ouvre les billets émis pour la réservation qu'on vient de payer.

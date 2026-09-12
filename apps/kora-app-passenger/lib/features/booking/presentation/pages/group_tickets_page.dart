@@ -347,12 +347,15 @@ class _TicketRow extends StatelessWidget {
   /// ouvrait le sélecteur de partage, et garder son propre billet
   /// obligeait à passer par une application tierce.
   ///
-  /// `FileSaver` s'adresse au MediaStore d'Android : le dossier public
-  /// Téléchargements n'est plus accessible en écriture directe depuis le
-  /// stockage cloisonné, et cette voie-là ne réclame aucune permission.
+  /// `saveAs` et non `saveFile` : sur Android, le second écrit dans le
+  /// dossier **privé** de l'application — le fichier existe, mais reste
+  /// introuvable depuis Fichiers ou Téléchargements, ce qui revient à ne
+  /// pas l'avoir enregistré. `saveAs` ouvre le sélecteur du système, où
+  /// le voyageur choisit l'emplacement, et le fichier lui appartient
+  /// vraiment.
   Future<void> _save(BuildContext context, AppLocalization l10n) async {
     await _export(context, l10n, (bytes) async {
-      await FileSaver.instance.saveFile(
+      final path = await FileSaver.instance.saveAs(
         name: 'KORA-${ticket.shortCode}',
         bytes: bytes,
         fileExtension: 'pdf',
@@ -360,7 +363,10 @@ class _TicketRow extends StatelessWidget {
       );
 
       if (!context.mounted) return;
-      KoraToaster.show(context, l10n.ticketsDownloadDone);
+
+      // `null` quand le voyageur referme le sélecteur : rien n'a été
+      // enregistré, et annoncer le contraire serait un mensonge.
+      if (path != null) KoraToaster.show(context, l10n.ticketsDownloadDone);
     });
   }
 

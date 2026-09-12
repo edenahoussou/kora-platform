@@ -15,7 +15,9 @@ import '../models/city_model.dart';
 import '../models/itinerary_model.dart';
 import '../models/line_stop_model.dart';
 import '../models/seat_model.dart';
+import 'booked_trips_store.dart';
 import 'booking_data_source.dart';
+import 'reservation_remote_data_source.dart';
 
 /// Couche DATA : le parcours Bus branché sur l'API KORA.
 ///
@@ -35,9 +37,26 @@ import 'booking_data_source.dart';
 /// (`DioException`, porteuse d'une `ApiException` typée) : c'est le
 /// repository qui les traduit en `Failure`.
 class BookingRemoteDataSourceImpl implements BookingDataSource {
-  BookingRemoteDataSourceImpl(this._dio, {required this.pending});
+  BookingRemoteDataSourceImpl(
+    this._dio, {
+    required this.pending,
+    required this.bookedTrips,
+    required this.reservations,
+    required this.accountId,
+  });
 
   final Dio _dio;
+
+  /// Les voyages que l'app a elle-même payés — voir [BookedTripsStore].
+  final BookedTripsStore bookedTrips;
+
+  /// De quoi relire l'état d'une réservation sur le serveur.
+  final ReservationRemoteDataSource reservations;
+
+  /// Le compte connecté, ou `null` hors session. Le journal est tenu par
+  /// compte : deux voyageurs qui se succèdent sur le même téléphone ne
+  /// doivent pas hériter des voyages l'un de l'autre.
+  final String? Function() accountId;
 
   /// Source de repli pour les écrans que l'API ne sert pas encore : plan
   /// des sièges, prochain voyage, billets. Injectée plutôt que construite
@@ -207,7 +226,59 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
 
   /// Pas encore servi par l'API — voir la note de classe.
   @override
-  Future<List<Ticket>> getTickets() => pending.getTickets();
+  /// Les voyages du compte connecté.
+  ///
+  /// **L'API ne sait pas les lister** : elle n'offre que
+  /// `GET bookings/{uuid}`. Les identifiants viennent donc du journal
+  /// local, que l'app tient à chaque paiement confirmé, et le serveur dit
+  /// où en est chacun — c'est lui qui fait autorité sur un billet annulé
+  /// ou déjà voyagé.
+  ///
+  /// Une réservation que le serveur ne reconnaît plus est simplement
+  /// omise : mieux vaut un voyage manquant qu'un billet fantôme.
+  @override
+  Future<List<Ticket>> getTickets() async {
+    final account = accountId();
+    if (account == null || account.isEmpty) return const [];
+
+    final trips = await bookedTrips.all(account);
+
+    final tickets = await Future.wait([
+      for (final trip in trips) _ticketOf(trip),
+    ]);
+
+    return [for (final ticket in tickets) ?ticket];
+  }
+
+  /// Le billet d'un voyage retenu, une fois son statut relu.
+  Future<Ticket?> _ticketOf(BookedTrip trip) async {
+    try {
+      final status = await reservations.bookingStatus(trip.reservationId);
+
+      return trip.toTicket(_ticketStatusOf(status, trip.departure.departsAt));
+    } on Object {
+      // Réseau coupé, réservation effacée côté serveur : on garde ce que
+      // le journal sait, plutôt que de faire disparaître l'onglet entier.
+      return trip.toTicket(_ticketStatusOf('', trip.departure.departsAt));
+    }
+  }
+
+  /// Traduit le statut du serveur en l'un des trois onglets de l'écran.
+  ///
+  /// Le serveur dit si la réservation vit (`paid`, `ticketed`) ou non
+  /// (`cancelled`, `expired`) ; c'est la date de départ qui décide ensuite
+  /// entre « à venir » et « effectué ». Un statut inconnu de cette version
+  /// est traité comme vivant : le rendre annulé ferait passer un billet
+  /// valable pour un billet mort.
+  TicketStatus _ticketStatusOf(String status, DateTime departsAt) {
+    if (status == 'cancelled' || status == 'expired') {
+      return TicketStatus.cancelled;
+    }
+
+    return departsAt.isBefore(DateTime.now())
+        ? TicketStatus.completed
+        : TicketStatus.confirmed;
+  }
 
   /// `2026-08-20` — le format exigé par le paramètre `date`.
   ///

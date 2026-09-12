@@ -179,6 +179,22 @@ class ReservationRemoteDataSource {
     ];
   }
 
+  /// Le statut d'une réservation, tel que le serveur le tient.
+  ///
+  /// `GET bookings/{uuid}` : la seule lecture qu'offre l'API sur une
+  /// réservation. Il n'existe pas de route qui les liste — c'est le
+  /// journal local qui fournit les identifiants à interroger.
+  ///
+  /// La chaîne est rendue brute : c'est au domaine de décider ce qu'un
+  /// statut inconnu de cette version doit devenir.
+  Future<String> bookingStatus(String reservationId) async {
+    final response = await _dio.get<dynamic>(
+      ApiConstants.booking(reservationId),
+    );
+
+    return ApiJson.string(ApiJson.map(_payload(response.data))['status']);
+  }
+
   Future<void> release(String reservationId) =>
       _dio.delete<dynamic>(ApiConstants.booking(reservationId));
 }

@@ -13,6 +13,7 @@ import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_flow_bloc.dart';
+import '../../features/booking/data/datasources/booked_trips_store.dart';
 import '../../features/booking/data/datasources/booking_data_source.dart';
 import '../../features/booking/data/datasources/booking_remote_data_source.dart';
 import '../../features/booking/data/datasources/reservation_remote_data_source.dart';
@@ -174,9 +175,19 @@ void _registerThemeFeature() {
 /// Repository, use cases, Blocs et écrans, eux, n'ont pas bougé — c'est
 /// tout l'intérêt d'avoir gardé cette décision à un seul endroit.
 void _registerBookingFeature() {
+  getIt.registerLazySingleton<BookedTripsStore>(BookedTripsStore.new);
+
   getIt.registerLazySingleton<BookingDataSource>(
-    () =>
-        BookingRemoteDataSourceImpl(getIt(), pending: BookingMockDataSource()),
+    () => BookingRemoteDataSourceImpl(
+      getIt(),
+      pending: BookingMockDataSource(),
+      bookedTrips: getIt(),
+      reservations: getIt(),
+      // Lu à chaque appel, jamais capturé : la session change au fil de
+      // la vie de l'app, et un identifiant figé à l'enregistrement ferait
+      // lire les voyages du compte précédent.
+      accountId: () => getIt<AuthBloc>().state.session?.user.uuid,
+    ),
   );
 
   // La recherche a son propre contrat (`DepartureRepository`) : c'est le
