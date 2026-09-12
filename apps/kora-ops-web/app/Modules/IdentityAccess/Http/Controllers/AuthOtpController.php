@@ -3,6 +3,7 @@
 namespace App\Modules\IdentityAccess\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\IdentityAccess\Exceptions\UserNotFoundException;
 use App\Modules\IdentityAccess\Http\Requests\RequestOtpRequest;
 use App\Modules\IdentityAccess\Http\Requests\VerifyOtpRequest;
 use App\Modules\IdentityAccess\Services\AuthOtpService;
@@ -37,17 +38,32 @@ class AuthOtpController extends Controller
      *   "message": "The given data was invalid.",
      *   "errors": {"email": ["The email field is required."]}
      * }
+     * @response 404 scenario="User not found" {
+     *   "error": {
+     *     "code": "user_not_found",
+     *     "message": "Utilisateur introuvable."
+     *   }
+     * }
      * @response 429 scenario="Too many requests" {
      *   "message": "Too many requests. Please try again later."
      * }
      */
     public function request(RequestOtpRequest $request): JsonResponse
     {
-        $challenge = $this->authOtpService->request(
-            $request->string('email')->toString(),
-            $request->string('purpose')->toString(),
-            $request,
-        );
+        try {
+            $challenge = $this->authOtpService->request(
+                $request->string('email')->toString(),
+                $request->string('purpose')->toString(),
+                $request,
+            );
+        } catch (UserNotFoundException $e) {
+            return response()->json([
+                'error' => [
+                    'code' => 'user_not_found',
+                    'message' => $e->getMessage(),
+                ],
+            ], 404);
+        }
 
         return response()->json([
             'data' => [

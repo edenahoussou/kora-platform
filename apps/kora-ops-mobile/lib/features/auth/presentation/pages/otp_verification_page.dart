@@ -12,8 +12,8 @@ import '../../../../core/helpers/responsive.dart';
 import '../../../../core/services/kora_dialogs.dart';
 import '../../../../core/widgets/kora_button.dart';
 import '../../../../core/widgets/screen_header.dart';
+import '../bloc/auth_flow_bloc.dart';
 import '../cubit/auth_cubit.dart';
-import '../cubit/login_cubit.dart';
 
 /// Confirmation d'un appareil non reconnu — seul cas d'usage de l'OTP côté
 /// OPS (voir document.md § Flux d'authentification, pas de création de
@@ -91,16 +91,36 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
     }
     if (_code.length < _length) return;
 
-    final LoginCubit loginCubit = context.read<LoginCubit>();
-    final bool success = await loginCubit.submitOtp(_code);
+    final AuthFlowBloc flowBloc = context.read<AuthFlowBloc>();
+    flowBloc.add(AuthFlowCodeSubmitted(_code));
+    final AuthFlowState next = await flowBloc.stream
+        .firstWhere((AuthFlowState state) => !state.isSubmitting);
+
     if (!context.mounted) return;
 
-    if (success) {
-      final user = loginCubit.state.user;
-      if (user != null) context.read<AuthCubit>().authenticate(user);
-      context.go(AppRoutes.home);
-    } else {
+    if (next.hasError) {
       await context.push(AppRoutes.loginOtpInvalid);
+      return;
+    }
+
+    switch (next.step) {
+      case AuthFlowStep.done:
+        final session = next.session;
+        if (session != null) {
+          context.read<AuthCubit>().authenticate(session.user);
+        }
+        context.go(AppRoutes.home);
+      case AuthFlowStep.newPin:
+        // PIN oublié : le code confirme l'identité, il reste à en choisir
+        // un nouveau.
+        await context.push(AppRoutes.loginNewPin);
+      case AuthFlowStep.email:
+      case AuthFlowStep.pin:
+      case AuthFlowStep.code:
+        // Un appareil toujours inconnu après vérification (cas très rare :
+        // le serveur redemande un OTP) — on reste sur cet écran, déjà
+        // reconstruit avec le nouveau défi.
+        break;
     }
   }
 
@@ -109,7 +129,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
       controller.clear();
     }
     _focusNodes.first.requestFocus();
-    await context.read<LoginCubit>().resendOtp();
+    context.read<AuthFlowBloc>().add(const AuthFlowCodeResent());
     if (mounted) _startCountdown();
     if (context.mounted) {
       await KoraDialogs.success(
@@ -148,10 +168,9 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
             ),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              child: BlocBuilder<LoginCubit, LoginState>(
-                builder: (BuildContext context, LoginState state) {
-                  final bool isSubmitting =
-                      state.status == LoginStatus.submitting;
+              child: BlocBuilder<AuthFlowBloc, AuthFlowState>(
+                builder: (BuildContext context, AuthFlowState state) {
+                  final bool isSubmitting = state.isSubmitting;
                   return ListView(
                     padding: EdgeInsets.zero,
                     children: <Widget>[

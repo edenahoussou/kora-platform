@@ -29,6 +29,23 @@ class AuthenticationFailure extends Failure {
   const AuthenticationFailure([super.message = 'Authentification requise.']);
 }
 
+/// Compte temporairement verrouillé après trop d'erreurs de PIN (423).
+/// Distinct d'[AuthenticationFailure] : l'écran ne doit pas proposer de
+/// retenter le PIN, mais un déverrouillage par OTP.
+class AccountLockedFailure extends Failure {
+  const AccountLockedFailure(
+      [super.message =
+          'Compte temporairement verrouillé après trop d’essais.']);
+}
+
+/// Compte suspendu par un administrateur (403 métier) — distinct d'un 403
+/// « pas les droits sur cette ressource » : ici, aucune action de
+/// l'utilisateur ne rouvre le compte.
+class AccountSuspendedFailure extends Failure {
+  const AccountSuspendedFailure(
+      [super.message = 'Compte suspendu. Contactez votre responsable.']);
+}
+
 class ValidationFailure extends Failure {
   const ValidationFailure([super.message = 'Données invalides.']);
 }

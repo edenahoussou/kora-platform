@@ -1,70 +1,86 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../domain/entities/user_entity.dart';
-import '../../domain/usecases/get_current_user.dart';
-import '../../domain/usecases/get_saved_email.dart';
-import '../../domain/usecases/logout_user.dart';
+import '../../../../core/errors/failures.dart';
+import '../../domain/entities/auth_user.dart';
+import '../../domain/repositories/auth_repository.dart';
 
 part 'auth_state.dart';
 
 /// État de session global — c'est la seule source de vérité utilisée par
 /// [AuthGuard] pour rediriger entre les écrans d'authentification et
-/// `/home`. La logique détaillée du flux (email → OTP → PIN → nouvel
-/// appareil) vit dans `LoginCubit`, propre à la feature de connexion ;
-/// celui-ci appelle [authenticate] une fois la connexion aboutie.
+/// `/home`. La logique détaillée du parcours de connexion (email → OTP →
+/// PIN → nouvel appareil) vit dans `AuthFlowBloc`, propre à la feature de
+/// connexion ; celui-ci appelle [authenticate] une fois la connexion
+/// aboutie.
+///
+/// Appelle directement [AuthRepository] plutôt que de passer par des
+/// UseCases dédiés — même convention que `AuthFlowBloc` et que
+/// kora-app-passenger : un seul repository, pas de couche intermédiaire
+/// pour des opérations qui ne font qu'un appel chacune.
 class AuthCubit extends Cubit<AuthState> {
-  AuthCubit({
-    required GetCurrentUser getCurrentUser,
-    required GetSavedEmail getSavedEmail,
-    required LogoutUser logoutUser,
-  })  : _getCurrentUser = getCurrentUser,
-        _getSavedEmail = getSavedEmail,
-        _logoutUser = logoutUser,
-        super(const AuthInitial());
+  AuthCubit(this._authRepository) : super(const AuthInitial());
 
-  final GetCurrentUser _getCurrentUser;
-  final GetSavedEmail _getSavedEmail;
-  final LogoutUser _logoutUser;
+  final AuthRepository _authRepository;
 
+  /// Appelée au démarrage de l'app ET au retour au premier plan (voir
+  /// `_AppLifecycleListener` dans `app.dart`) : relit la session stockée
+  /// localement, sans appel réseau — l'app doit rester utilisable même
+  /// hors connexion tant que le token n'est pas expiré.
   Future<void> checkAuthStatus() async {
     emit(const AuthLoading());
-    final result = await _getCurrentUser();
-    result.when(
-      onSuccess: (UserEntity? user) async {
-        if (user != null) {
-          emit(AuthAuthenticated(user));
+    final result = await _authRepository.currentSession();
+
+    await result.when(
+      onSuccess: (session) async {
+        if (session != null) {
+          emit(AuthAuthenticated(session.user));
           return;
         }
-        final emailResult = await _getSavedEmail();
         emit(
-          AuthUnauthenticated(
-            savedEmail: emailResult.when(
-                onSuccess: (email) => email, onFailure: (_) => null),
+            AuthUnauthenticated(savedEmail: await _authRepository.lastEmail()));
+      },
+      onFailure: (Failure failure) async {
+        // Erreur du stockage local lui-même (rare) : on ne peut pas
+        // affirmer que l'utilisateur est déconnecté, mais on ne peut pas
+        // non plus le laisser sur un écran de chargement indéfini.
+        emit(
+          AuthCheckFailed(
+            failure.message,
+            savedEmail: await _authRepository.lastEmail(),
           ),
         );
       },
-      onFailure: (failure) => emit(const AuthUnauthenticated()),
     );
   }
 
-  /// Appelé par `LoginCubit` une fois l'authentification aboutie (via OTP ou
-  /// PIN).
-  void authenticate(UserEntity user) => emit(AuthAuthenticated(user));
+  /// Appelé par `AuthFlowBloc` une fois la connexion aboutie (PIN seul ou
+  /// PIN + OTP).
+  void authenticate(AuthUser user) => emit(AuthAuthenticated(user));
+
+  /// Un appel API protégé a reçu un 401 : le token n'est plus valide côté
+  /// serveur (expiré ou révoqué). Purge la session locale et fait
+  /// retomber l'app sur l'écran PIN — pas email, l'appareil reste de
+  /// confiance.
+  Future<void> sessionExpired() async {
+    await _authRepository.logout();
+    emit(AuthUnauthenticated(savedEmail: await _authRepository.lastEmail()));
+  }
 
   Future<void> logout() async {
     emit(const AuthLoading());
-    final result = await _logoutUser();
-    result.when(
+    final result = await _authRepository.logout();
+    await result.when(
       onSuccess: (_) async {
-        final emailResult = await _getSavedEmail();
         emit(
-          AuthUnauthenticated(
-            savedEmail: emailResult.when(
-                onSuccess: (email) => email, onFailure: (_) => null),
-          ),
-        );
+            AuthUnauthenticated(savedEmail: await _authRepository.lastEmail()));
       },
-      onFailure: (failure) => emit(const AuthUnauthenticated()),
+      onFailure: (_) async {
+        // La purge locale a lieu quoi qu'il arrive dans le repository
+        // (voir AuthRepositoryImpl.logout) : l'utilisateur est donc bien
+        // déconnecté localement même si l'appel serveur a échoué.
+        emit(
+            AuthUnauthenticated(savedEmail: await _authRepository.lastEmail()));
+      },
     );
   }
 }

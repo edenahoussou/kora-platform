@@ -1,115 +1,144 @@
-import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import '../../../../core/constants/storage_keys.dart';
 import '../../../../core/exceptions/app_exceptions.dart';
-import '../models/user_model.dart';
+import '../../domain/entities/auth_device.dart';
+import '../../domain/entities/auth_session.dart';
+import '../../domain/entities/auth_user.dart';
+import '../../domain/entities/device_platform.dart';
 
-/// Datasource locale — simule tout le flux d'authentification (voir spec
-/// ticket : "connectés aux API réelles au Sprint 5"). Identifiants, PIN et
-/// code OTP sont des valeurs fixes documentées ci-dessous et dans
-/// document.md § Flux d'authentification.
+/// Couche DATA : persistance locale de la session, dans le stockage
+/// **sécurisé** (jamais SharedPreferences — voir périmètre du ticket
+/// "aucun secret en dur / stocké en clair").
 ///
-/// **L'email n'est enregistré comme "activé sur cet appareil" qu'après un
-/// parcours OTP réussi** ([verifyOtp]) — tant que ce n'est pas fait,
-/// [getSavedEmail] retourne `null` et l'app redemande email + mot de passe
-/// à chaque lancement.
-///
-/// **La session (`current_user`) reste en mémoire uniquement, jamais
-/// persistée** (voir échange du 18/08/2026 — app en mode démo) : à chaque
-/// redémarrage à froid, le PIN (ou email + mot de passe pour un appareil
-/// jamais activé) est redemandé, même si l'appareil est déjà activé —
-/// seule l'activation de l'appareil (`saved_email`) survit à un
-/// redémarrage, pas la session en cours.
-class AuthLocalDataSource {
-  AuthLocalDataSource(this._preferences);
+/// La session survit à un redémarrage à froid : au lancement, l'app relit
+/// le token ici (sans appel réseau, voir AuthRepository.currentSession)
+/// pour décider si l'utilisateur est déjà connecté.
+abstract class AuthLocalDataSource {
+  Future<AuthSession?> readSession();
+  Future<void> saveSession(AuthSession session);
+  Future<void> saveUser(AuthUser user);
+  Future<String?> readLastEmail();
+  Future<void> clear();
+}
 
-  final SharedPreferences _preferences;
+class AuthLocalDataSourceImpl implements AuthLocalDataSource {
+  AuthLocalDataSourceImpl(this._storage);
 
-  static const String _savedEmailKey = 'auth.saved_email';
+  final FlutterSecureStorage _storage;
 
-  /// Session en cours — volontairement **non persistée**, voir docstring.
-  UserModel? _currentUser;
+  @override
+  Future<AuthSession?> readSession() async {
+    try {
+      final raw = await _storage.read(key: StorageKeys.session);
+      if (raw == null || raw.isEmpty) return null;
 
-  static const String provisionedFullName = 'Aïcha Hounkpé';
-  static const String provisionedRole = 'Convoyeur';
-
-  /// Identifiants acceptés par le mock — toute autre combinaison échoue.
-  static const String mockEmail = 'aicha.hounkpe@kora-express.com';
-  static const String mockPassword = 'Kora@2026';
-
-  /// PIN accepté par le mock — toute autre valeur à 4 chiffres est refusée.
-  static const String mockPin = '1234';
-
-  /// Code OTP accepté par le mock — toute autre valeur à 6 chiffres déclenche
-  /// l'écran "Code non valide".
-  static const String mockOtpCode = '583187';
-
-  Future<String?> getSavedEmail() async =>
-      _preferences.getString(_savedEmailKey);
-
-  Future<void> login({required String email, required String password}) async {
-    await Future<void>.delayed(const Duration(milliseconds: 600));
-    if (email.trim().toLowerCase() != mockEmail || password != mockPassword) {
-      throw const ApiException('Email ou mot de passe incorrect.');
+      final json = jsonDecode(raw) as Map<String, dynamic>;
+      return _sessionFromJson(json);
+    } on Object catch (error) {
+      throw CacheException('Session locale illisible : $error');
     }
   }
 
-  Future<void> forgotPassword({required String email}) async {
-    await Future<void>.delayed(const Duration(milliseconds: 600));
-    if (email.trim().toLowerCase() != mockEmail) {
-      throw const ApiException('Aucun compte associé à cet email.');
+  @override
+  Future<void> saveSession(AuthSession session) async {
+    try {
+      await _storage.write(
+        key: StorageKeys.session,
+        value: jsonEncode(_sessionToJson(session)),
+      );
+      await _storage.write(
+        key: StorageKeys.lastEmail,
+        value: session.user.email,
+      );
+    } on Object catch (error) {
+      throw CacheException('Impossible d’enregistrer la session : $error');
     }
-    // Simule l'envoi d'un lien de réinitialisation — aucun envoi réel à ce
-    // sprint.
   }
 
-  Future<void> sendOtp({required String email}) async {
-    // Simule la latence d'envoi d'email — aucun envoi réel à ce sprint.
-    await Future<void>.delayed(const Duration(milliseconds: 500));
+  @override
+  Future<void> saveUser(AuthUser user) async {
+    final session = await readSession();
+    if (session == null) return;
+
+    await saveSession(session.copyWith(user: user));
   }
 
-  Future<UserModel> verifyOtp(
-      {required String email, required String code}) async {
-    await Future<void>.delayed(const Duration(milliseconds: 500));
-    if (code != mockOtpCode) {
-      throw const ApiException('Le code est incorrect ou expiré.');
-    }
+  @override
+  Future<String?> readLastEmail() => _storage.read(key: StorageKeys.lastEmail);
 
-    final UserModel user = UserModel(
-      id: 'agent-001',
-      fullName: provisionedFullName,
-      role: provisionedRole,
-      email: email,
+  @override
+  Future<void> clear() async {
+    // La session part, mais pas `deviceFingerprint` : l'appareil doit
+    // rester reconnu du serveur après une déconnexion, sinon la prochaine
+    // connexion redemanderait un OTP pour rien.
+    await _storage.delete(key: StorageKeys.session);
+    // `lastEmail` reste volontairement : l'écran PIN, à la prochaine
+    // ouverture, propose le même compte plutôt que de redemander l'e-mail.
+  }
+
+  Map<String, dynamic> _sessionToJson(AuthSession session) => <String, dynamic>{
+        'token': session.token,
+        'token_type': session.tokenType,
+        'expires_at': session.expiresAt.toIso8601String(),
+        'user': <String, dynamic>{
+          'uuid': session.user.uuid,
+          'name': session.user.name,
+          'email': session.user.email,
+          'phone': session.user.phone,
+          'status': session.user.status,
+          'avatar_url': session.user.avatarUrl,
+          'permissions': session.user.permissions,
+        },
+        if (session.device != null)
+          'device': <String, dynamic>{
+            'uuid': session.device!.uuid,
+            'name': session.device!.name,
+            'platform': session.device!.platform.value,
+            'status': session.device!.status,
+            'trusted_at': session.device!.trustedAt?.toIso8601String(),
+            'last_seen_at': session.device!.lastSeenAt?.toIso8601String(),
+          },
+      };
+
+  AuthSession _sessionFromJson(Map<String, dynamic> json) {
+    final userJson = json['user'] as Map<String, dynamic>? ?? const {};
+    final deviceJson = json['device'] as Map<String, dynamic>?;
+
+    return AuthSession(
+      token: json['token'] as String? ?? '',
+      tokenType: json['token_type'] as String? ?? 'Bearer',
+      expiresAt: DateTime.tryParse(json['expires_at'] as String? ?? '') ??
+          DateTime.now(),
+      user: AuthUser(
+        uuid: userJson['uuid'] as String? ?? '',
+        name: userJson['name'] as String? ?? '',
+        email: userJson['email'] as String? ?? '',
+        phone: userJson['phone'] as String?,
+        status: userJson['status'] as String? ?? 'active',
+        avatarUrl: userJson['avatar_url'] as String?,
+        permissions: (userJson['permissions'] as List<dynamic>? ?? const [])
+            .map((value) => '$value')
+            .toList(),
+      ),
+      device: deviceJson == null
+          ? null
+          : AuthDevice(
+              uuid: deviceJson['uuid'] as String? ?? '',
+              name: deviceJson['name'] as String? ?? '',
+              platform: DevicePlatform.fromValue(
+                deviceJson['platform'] as String?,
+              ),
+              status: deviceJson['status'] as String? ?? 'trusted',
+              trustedAt: deviceJson['trusted_at'] == null
+                  ? null
+                  : DateTime.tryParse(deviceJson['trusted_at'] as String),
+              lastSeenAt: deviceJson['last_seen_at'] == null
+                  ? null
+                  : DateTime.tryParse(deviceJson['last_seen_at'] as String),
+            ),
     );
-    // L'appareil est désormais reconnu pour cet email — les prochaines
-    // connexions n'auront plus qu'à saisir le PIN (mais toujours à chaque
-    // lancement, voir docstring de la classe).
-    await _preferences.setString(_savedEmailKey, email);
-    _currentUser = user;
-    return user;
   }
-
-  Future<UserModel> verifyPin(
-      {required String email, required String pin}) async {
-    await Future<void>.delayed(const Duration(milliseconds: 400));
-    if (pin != mockPin) {
-      throw const ApiException('PIN incorrect.');
-    }
-
-    final UserModel user = UserModel(
-      id: 'agent-001',
-      fullName: provisionedFullName,
-      role: provisionedRole,
-      email: email,
-    );
-    _currentUser = user;
-    return user;
-  }
-
-  Future<void> logout() async {
-    // On efface la session courante mais on garde l'email activé, pour
-    // retomber sur l'écran PIN (et non email + mot de passe) à la
-    // reconnexion.
-    _currentUser = null;
-  }
-
-  Future<UserModel?> getCurrentUser() async => _currentUser;
 }

@@ -18,13 +18,16 @@ class MesInformationsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final AuthState authState = context.watch<AuthCubit>().state;
     final String fullName =
-        authState is AuthAuthenticated ? authState.user.fullName : '—';
+        authState is AuthAuthenticated ? authState.user.name : '—';
     final String email =
         authState is AuthAuthenticated ? authState.user.email : '—';
-    final String role =
-        authState is AuthAuthenticated ? authState.user.role : '—';
-    final String matricule =
-        authState is AuthAuthenticated ? authState.user.id.toUpperCase() : '—';
+    // Le backend ne renvoie plus de libellé de rôle, seulement des
+    // permissions — voir AuthUser et le commentaire équivalent dans
+    // profil_page.dart.
+    const String role = '—';
+    final String matricule = authState is AuthAuthenticated
+        ? authState.user.uuid.toUpperCase()
+        : '—';
 
     return Scaffold(
       appBar:
@@ -47,7 +50,7 @@ class MesInformationsPage extends StatelessWidget {
                       label: 'Adresse email',
                       value: email),
                   const Divider(height: AppSpacing.lg),
-                  _InfoRow(
+                  const _InfoRow(
                       icon: Icons.work_outline, label: 'Rôle', value: role),
                   const Divider(height: AppSpacing.lg),
                   _InfoRow(

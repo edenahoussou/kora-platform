@@ -30,7 +30,7 @@ class AccueilPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final AuthState authState = context.watch<AuthCubit>().state;
     final String prenom = authState is AuthAuthenticated
-        ? _firstName(authState.user.fullName)
+        ? _firstName(authState.user.name)
         : 'Agent';
     final Depart? depart = context.watch<SelectedDepartCubit>().state;
     final int embarques = context.watch<ManifesteCubit>().state.embarques;

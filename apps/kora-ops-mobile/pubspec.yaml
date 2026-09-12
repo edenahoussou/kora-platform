@@ -26,9 +26,16 @@ dependencies:
   # Networking
   dio: ^5.7.0
 
+  flutter_networking:
+    path: ../../packages/flutter-networking
+
   # Local & secure storage
   shared_preferences: ^2.3.3
   flutter_secure_storage: ^9.2.2
+
+  # Identité de l'appareil courant (nom + empreinte stable) — requis par
+  # /auth/login et le stockage de l'empreinte dans le stockage sécurisé.
+  device_info_plus: ^10.1.2
 
   # Logging
   logger: ^2.5.0
@@ -41,7 +48,7 @@ dependencies:
 
   # Vérification de connexion au démarrage (non bloquante, voir splash) —
   # voir document.md § Splash
-  connectivity_plus: ^7.0.0
+  connectivity_plus: 
 
   # Scanner caméra QR (écran Scan boarding) — voir document.md § Scan boarding
   mobile_scanner: ^7.4.0
