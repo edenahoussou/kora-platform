@@ -1,21 +1,21 @@
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter_networking/flutter_networking.dart'
+    show DioClient, NetworkConfig, AuthInterceptor;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../app/config/app_config.dart';
 import '../app/theme/theme_cubit.dart';
 import '../core/network/network_client.dart';
+import '../core/network/session_expiry_interceptor.dart';
 import '../features/auth/data/datasources/auth_local_datasource.dart';
+import '../features/auth/data/datasources/auth_remote_datasource.dart';
+import '../features/auth/data/datasources/device_info_datasource.dart';
 import '../features/auth/data/repositories/auth_repository_impl.dart';
 import '../features/auth/domain/repositories/auth_repository.dart';
-import '../features/auth/domain/usecases/forgot_password.dart';
-import '../features/auth/domain/usecases/get_current_user.dart';
-import '../features/auth/domain/usecases/get_saved_email.dart';
-import '../features/auth/domain/usecases/login_with_password.dart';
-import '../features/auth/domain/usecases/logout_user.dart';
-import '../features/auth/domain/usecases/send_otp.dart';
-import '../features/auth/domain/usecases/verify_otp.dart';
-import '../features/auth/domain/usecases/verify_pin.dart';
+import '../features/auth/presentation/bloc/auth_flow_bloc.dart';
 import '../features/auth/presentation/cubit/auth_cubit.dart';
-import '../features/auth/presentation/cubit/login_cubit.dart';
 import '../features/manifeste/presentation/cubit/manifeste_cubit.dart';
 import '../features/ops/presentation/cubit/selected_depart_cubit.dart';
 import '../features/printing/data/services/mock_barcode_scanner.dart';
@@ -34,15 +34,16 @@ final GetIt getIt = GetIt.instance;
 
 /// Flux d'injection (voir document.md § Dependency Injection) :
 ///
-///   NetworkClient / SharedPreferences
+///   FlutterSecureStorage / SharedPreferences / DeviceInfoPlugin
 ///         ↓
-///   LocalDataSource
+///   LocalDataSource / DeviceInfoDataSource
+///         ↓
+///   DioClient (flutter_networking) → RemoteDataSource
 ///         ↓
 ///   Repository (implémentation)
 ///         ↓
-///   UseCase
-///         ↓
-///   Cubit/Bloc
+///   Cubit/Bloc — appelé directement, sans UseCase intermédiaire pour
+///   l'auth (voir docstring d'AuthFlowBloc)
 ///         ↓
 ///   UI
 Future<void> configureDependencies() async {
@@ -50,57 +51,91 @@ Future<void> configureDependencies() async {
   final SharedPreferences preferences = await SharedPreferences.getInstance();
   getIt.registerSingleton<SharedPreferences>(preferences);
 
-  getIt.registerSingleton<NetworkClient>(
-    NetworkClient(
+  const FlutterSecureStorage secureStorage = FlutterSecureStorage();
+  getIt.registerSingleton<FlutterSecureStorage>(secureStorage);
+
+  getIt.registerSingleton<DeviceInfoPlugin>(DeviceInfoPlugin());
+
+  // --- Feature: auth ---
+  //
+  // Le token vit dans FlutterSecureStorage (jamais SharedPreferences, et
+  // jamais en dur dans le code — voir périmètre du ticket). AuthLocalDataSource
+  // est construit avant le client réseau : c'est lui qui fournit
+  // `getAccessToken` au DioClient, sans dépendance circulaire (il ne
+  // dépend lui-même que du stockage sécurisé, pas du réseau).
+  getIt.registerLazySingleton<AuthLocalDataSource>(
+    () => AuthLocalDataSourceImpl(getIt<FlutterSecureStorage>()),
+  );
+  getIt.registerLazySingleton<DeviceInfoDataSource>(
+    () => DeviceInfoDataSourceImpl(
+      getIt<DeviceInfoPlugin>(),
+      getIt<FlutterSecureStorage>(),
+    ),
+  );
+
+  final DioClient authDioClient = DioClient(
+    config: NetworkConfig(
       baseUrl: AppConfig.instance.apiBaseUrl,
       enableLogging: AppConfig.instance.enableLogging,
     ),
+    getAccessToken: () async {
+      final session = await getIt<AuthLocalDataSource>().readSession();
+      return session?.token;
+    },
+    logger: Logger(),
   );
+
+  // Un 401 sur N'IMPORTE QUEL appel passant par ce client déclenche la
+  // purge de session — un seul point pour toute l'app, voir docstring de
+  // SessionExpiryInterceptor. Ajouté après la construction : Dio exécute
+  // les intercepteurs d'erreur dans l'ordre inverse de leur ajout, donc
+  // celui-ci voit l'erreur avant que les autres ne la transforment — d'où
+  // la vérification sur le code HTTP brut plutôt que sur le type déjà
+  // traduit.
+  authDioClient.dio.interceptors.add(
+    SessionExpiryInterceptor(
+      onSessionExpired: () => getIt<AuthCubit>().sessionExpired(),
+    ),
+  );
+
+  getIt.registerLazySingleton<AuthRemoteDataSource>(
+    () => AuthRemoteDataSourceImpl(authDioClient.dio),
+  );
+
+  getIt.registerLazySingleton<AuthRepository>(
+    () => AuthRepositoryImpl(
+      getIt<AuthRemoteDataSource>(),
+      getIt<AuthLocalDataSource>(),
+      getIt<DeviceInfoDataSource>(),
+    ),
+  );
+
+  getIt.registerSingleton<AuthCubit>(AuthCubit(getIt<AuthRepository>()));
+  getIt.registerLazySingleton<AuthFlowBloc>(
+    () => AuthFlowBloc(getIt<AuthRepository>()),
+  );
+
+  // --- Client réseau historique (features encore mockées : ops,
+  // manifeste, scan, synchro, impression — voir MEZ-11). Même
+  // AuthInterceptor que le client dédié à l'auth : dès qu'une de ces
+  // features branchera un vrai endpoint, l'en-tête Authorization suit
+  // automatiquement, sans changement à faire ici.
+  final NetworkClient legacyNetworkClient = NetworkClient(
+    baseUrl: AppConfig.instance.apiBaseUrl,
+    enableLogging: AppConfig.instance.enableLogging,
+  );
+  legacyNetworkClient.addInterceptor(
+    AuthInterceptor(
+      getAccessToken: () async {
+        final session = await getIt<AuthLocalDataSource>().readSession();
+        return session?.token;
+      },
+    ),
+  );
+  getIt.registerSingleton<NetworkClient>(legacyNetworkClient);
 
   // --- Thème (dark mode auto + bascule manuelle) ---
   getIt.registerSingleton<ThemeCubit>(ThemeCubit(getIt<SharedPreferences>()));
-
-  // --- Feature: auth (PIN pur + OTP de confirmation d'appareil) ---
-  getIt.registerLazySingleton<AuthLocalDataSource>(
-    () => AuthLocalDataSource(getIt<SharedPreferences>()),
-  );
-  getIt.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(getIt<AuthLocalDataSource>()),
-  );
-  getIt.registerLazySingleton<GetCurrentUser>(
-      () => GetCurrentUser(getIt<AuthRepository>()));
-  getIt.registerLazySingleton<GetSavedEmail>(
-      () => GetSavedEmail(getIt<AuthRepository>()));
-  getIt.registerLazySingleton<LoginWithPassword>(
-      () => LoginWithPassword(getIt<AuthRepository>()));
-  getIt.registerLazySingleton<ForgotPassword>(
-      () => ForgotPassword(getIt<AuthRepository>()));
-  getIt.registerLazySingleton<SendOtp>(() => SendOtp(getIt<AuthRepository>()));
-  getIt.registerLazySingleton<VerifyOtp>(
-      () => VerifyOtp(getIt<AuthRepository>()));
-  getIt.registerLazySingleton<VerifyPin>(
-      () => VerifyPin(getIt<AuthRepository>()));
-  getIt.registerLazySingleton<LogoutUser>(
-      () => LogoutUser(getIt<AuthRepository>()));
-
-  getIt.registerSingleton<AuthCubit>(
-    AuthCubit(
-      getCurrentUser: getIt<GetCurrentUser>(),
-      getSavedEmail: getIt<GetSavedEmail>(),
-      logoutUser: getIt<LogoutUser>(),
-    ),
-  );
-
-  getIt.registerSingleton<LoginCubit>(
-    LoginCubit(
-      getSavedEmail: getIt<GetSavedEmail>(),
-      loginWithPassword: getIt<LoginWithPassword>(),
-      forgotPassword: getIt<ForgotPassword>(),
-      sendOtp: getIt<SendOtp>(),
-      verifyOtp: getIt<VerifyOtp>(),
-      verifyPin: getIt<VerifyPin>(),
-    ),
-  );
 
   // --- Feature: printing (adaptateurs P501 — MEZ-10) ---
   //

@@ -12,6 +12,7 @@ abstract final class AppRoutes {
   static const String loginPin = '/login/pin';
   static const String loginOtp = '/login/otp';
   static const String loginOtpInvalid = '/login/otp-invalid';
+  static const String loginNewPin = '/login/new-pin';
 
   // Bottom nav (5 onglets) — voir document.md § Navigation.
   static const String home = '/home';

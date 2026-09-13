@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../core/helpers/responsive.dart';
 import '../../../../core/services/kora_dialogs.dart';
 import '../../../../core/widgets/kora_button.dart';
 import '../../../../core/widgets/screen_header.dart';
-import '../cubit/login_cubit.dart';
+import '../bloc/auth_flow_bloc.dart';
 
-/// Écran "Mot de passe oublié" — envoie (simule) un lien de
-/// réinitialisation à l'email saisi. Route : `/login/forgot-password`.
+/// Écran "PIN oublié" — envoie un code de vérification à l'email saisi,
+/// première étape du parcours `pin_reset` (email → OTP → nouveau PIN).
+/// Route : `/login/forgot-password`.
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
 
@@ -36,33 +38,33 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
   Future<void> _submit(BuildContext context) async {
     if (!_formKey.currentState!.validate()) return;
-    final LoginCubit loginCubit = context.read<LoginCubit>();
-    final bool success =
-        await loginCubit.submitForgotPassword(_emailController.text.trim());
+
+    final AuthFlowBloc bloc = context.read<AuthFlowBloc>();
+    bloc.add(AuthFlowPinResetRequested(_emailController.text.trim()));
+
+    // AuthFlowPinResetRequested est asynchrone côté bloc (appel réseau) ;
+    // on attend le prochain état stable avant de décider où naviguer.
+    final AuthFlowState next = await bloc.stream
+        .firstWhere((AuthFlowState state) => !state.isSubmitting);
+
     if (!context.mounted) return;
 
-    if (success) {
-      await KoraDialogs.success(
+    if (next.hasError) {
+      await KoraDialogs.error(
         context,
-        title: 'Email envoyé',
-        description:
-            'Si un compte existe pour cet email, un lien de réinitialisation vient '
-            'd\'être envoyé.',
+        title: 'Échec de l’envoi',
+        description: next.errorMessage,
       );
-      if (context.mounted) context.pop();
-    } else {
-      final String message =
-          loginCubit.state.errorMessage ?? 'Erreur inattendue.';
-      await KoraDialogs.error(context,
-          title: 'Échec de l\'envoi', description: message);
+      return;
     }
+
+    await context.push(AppRoutes.loginOtp);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const ScreenHeader(
-          eyebrow: 'Connexion', title: 'Mot de passe oublié'),
+      appBar: const ScreenHeader(eyebrow: 'Connexion', title: 'PIN oublié'),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -78,8 +80,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     Text(
-                      'Saisissez l\'adresse email associée à votre compte KORA. Nous vous '
-                      'enverrons un lien pour réinitialiser votre mot de passe.',
+                      'Saisissez l\'adresse email associée à votre compte KORA. '
+                      'Nous vous enverrons un code pour choisir un nouveau PIN.',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     const SizedBox(height: AppSpacing.lg),
@@ -95,11 +97,11 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       validator: _validateEmail,
                     ),
                     const SizedBox(height: AppSpacing.lg),
-                    BlocBuilder<LoginCubit, LoginState>(
-                      builder: (BuildContext context, LoginState state) =>
+                    BlocBuilder<AuthFlowBloc, AuthFlowState>(
+                      builder: (BuildContext context, AuthFlowState state) =>
                           KoraButton(
-                        label: 'Envoyer le lien',
-                        isLoading: state.status == LoginStatus.submitting,
+                        label: 'Envoyer le code',
+                        isLoading: state.isSubmitting,
                         onPressed: () => _submit(context),
                       ),
                     ),

@@ -8,7 +8,7 @@ import '../../../../core/widgets/kora_button.dart';
 import '../../../../core/widgets/kora_card.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../../injection/injection.dart';
-import '../../../auth/domain/usecases/get_saved_email.dart';
+import '../../../auth/domain/repositories/auth_repository.dart';
 
 /// "Sécurité" — PIN, email et appareils. Route : `/profil/securite`.
 class SecuritePage extends StatelessWidget {
@@ -69,10 +69,7 @@ class SecuritePage extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.lg),
             FutureBuilder<String?>(
-              future: getIt<GetSavedEmail>()().then(
-                (result) => result.when(
-                    onSuccess: (email) => email, onFailure: (_) => null),
-              ),
+              future: getIt<AuthRepository>().lastEmail(),
               builder: (BuildContext context, AsyncSnapshot<String?> snapshot) {
                 final String? email = snapshot.data;
                 return KoraCard(

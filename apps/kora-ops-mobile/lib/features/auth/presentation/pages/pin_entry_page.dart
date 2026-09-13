@@ -9,17 +9,15 @@ import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/helpers/responsive.dart';
 import '../../../../core/services/kora_dialogs.dart';
 import '../../../../core/widgets/pin_pad.dart';
+import '../bloc/auth_flow_bloc.dart';
 import '../cubit/auth_cubit.dart';
-import '../cubit/login_cubit.dart';
 
-/// Écran PIN — fidèle à `kora-passager`. Deux parcours (voir document.md §
-/// Flux d'authentification) :
-///   - reconnexion (email déjà activé sur cet appareil) : PIN correct →
-///     connecté directement ;
-///   - première connexion (venant de [LoginEmailPage]) : PIN correct →
-///     envoi d'un OTP d'activation, voir [LoginState.pendingOtpActivation].
-/// Fond bleu marine plein écran fixe, indépendant de `ThemeMode` (voir
-/// document.md § Dark mode).
+/// Écran PIN — email + PIN envoyés ensemble à `login` (contrat réel de
+/// l'API, voir AuthRepository.login). Deux issues possibles :
+///   - connecté directement (appareil déjà reconnu) ;
+///   - le serveur répond 202 (appareil inconnu) → `AuthFlowBloc` passe à
+///     l'étape OTP, cet écran navigue vers `/login/otp`.
+/// Fond bleu marine plein écran fixe, indépendant de `ThemeMode`.
 class PinEntryPage extends StatefulWidget {
   const PinEntryPage({super.key});
 
@@ -35,9 +33,22 @@ class _PinEntryPageState extends State<PinEntryPage> {
   @override
   void initState() {
     super.initState();
-    // Sans effet si un email est déjà présent dans le state (venant de
-    // LoginEmailPage) — voir LoginCubit.loadSavedEmail.
-    context.read<LoginCubit>().loadSavedEmail();
+    // Si cet écran est atteint directement (appareil déjà reconnu, sans
+    // passer par LoginEmailPage), AuthFlowBloc n'a pas encore l'email —
+    // on le reprend de AuthCubit, seule source qui l'a lu du stockage
+    // sécurisé à ce stade (voir AuthGuard.redirect).
+    final AuthFlowBloc flowBloc = context.read<AuthFlowBloc>();
+    if (flowBloc.state.email.isEmpty) {
+      final AuthState authState = context.read<AuthCubit>().state;
+      final String? savedEmail = switch (authState) {
+        AuthUnauthenticated(:final savedEmail) => savedEmail,
+        AuthCheckFailed(:final savedEmail) => savedEmail,
+        _ => null,
+      };
+      if (savedEmail != null) {
+        flowBloc.add(AuthFlowEmailEntered(savedEmail));
+      }
+    }
   }
 
   void _onKey(String key) {
@@ -57,35 +68,49 @@ class _PinEntryPageState extends State<PinEntryPage> {
   }
 
   Future<void> _submit() async {
-    final LoginCubit loginCubit = context.read<LoginCubit>();
-    final bool success = await loginCubit.submitPin(_pin);
-    if (!mounted) return;
+    final AuthFlowBloc flowBloc = context.read<AuthFlowBloc>();
+    final String email = flowBloc.state.email;
 
-    if (!success) {
+    KoraDialogs.showLoading(context, message: 'Connexion…');
+
+    flowBloc.add(AuthFlowLoginSubmitted(email: email, pin: _pin));
+    final AuthFlowState next = await flowBloc.stream
+        .firstWhere((AuthFlowState state) => !state.isSubmitting);
+
+    if (!mounted) return;
+    KoraDialogs.hideLoading(context);
+
+    if (next.hasError) {
       setState(() => _pin = '');
-      final String message = loginCubit.state.errorMessage ?? 'PIN incorrect.';
+      if (next.isAccountLocked) {
+        await KoraDialogs.error(
+          context,
+          title: 'Compte verrouillé',
+          description: next.errorMessage,
+        );
+        return;
+      }
       await KoraDialogs.error(context,
-          title: 'Connexion refusée', description: message);
+          title: 'Connexion refusée', description: next.errorMessage);
       return;
     }
 
-    if (loginCubit.state.pendingOtpActivation) {
-      final bool otpSent = await loginCubit.requestActivationOtp();
-      if (!mounted) return;
-      if (otpSent) {
-        await context.push(AppRoutes.loginOtp);
-      } else {
+    switch (next.step) {
+      case AuthFlowStep.code:
+        // Appareil inconnu : le serveur a déjà envoyé le code.
+        if (mounted) await context.push(AppRoutes.loginOtp);
+      case AuthFlowStep.done:
+        final session = next.session;
+        if (session != null) {
+          context.read<AuthCubit>().authenticate(session.user);
+        }
+        if (mounted) context.go(AppRoutes.home);
+      case AuthFlowStep.email:
+      case AuthFlowStep.pin:
+      case AuthFlowStep.newPin:
+        // Ne devrait pas arriver depuis une soumission de PIN réussie —
+        // filet de sécurité silencieux plutôt qu'un crash.
         setState(() => _pin = '');
-        await KoraDialogs.error(
-          context,
-          title: 'Erreur',
-          description: loginCubit.state.errorMessage ?? 'Erreur inattendue.',
-        );
-      }
-    } else {
-      final user = loginCubit.state.user;
-      if (user != null) context.read<AuthCubit>().authenticate(user);
-      if (mounted) context.go(AppRoutes.home);
     }
   }
 
@@ -107,28 +132,23 @@ class _PinEntryPageState extends State<PinEntryPage> {
                 maxWidth: Responsive.value<double>(context,
                     mobile: double.infinity, tablet: 420),
               ),
-              child: BlocBuilder<LoginCubit, LoginState>(
-                builder: (BuildContext context, LoginState state) {
+              child: BlocBuilder<AuthFlowBloc, AuthFlowState>(
+                builder: (BuildContext context, AuthFlowState state) {
                   return ListView(
                     padding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.lg, vertical: AppSpacing.xl),
                     children: <Widget>[
                       const _Logo(),
                       const SizedBox(height: AppSpacing.lg),
-                      _Header(email: state.email ?? ''),
+                      _Header(email: state.email),
                       PinDots(
                           filled: _pin.length, total: _pinLength, onNavy: true),
                       PinKeypad(onKey: _onKey, onNavy: true),
                       const SizedBox(height: AppSpacing.md),
                       Center(
                         child: TextButton(
-                          onPressed: () => KoraDialogs.info(
-                            context,
-                            title: 'PIN oublié ?',
-                            description:
-                                'Contactez votre superviseur d\'agence pour réinitialiser '
-                                'votre PIN KORA.',
-                          ),
+                          onPressed: () =>
+                              context.push(AppRoutes.loginForgotPassword),
                           style: TextButton.styleFrom(
                               foregroundColor: AppColors.white),
                           child: const Text('PIN oublié ?'),
@@ -151,8 +171,6 @@ class _Logo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Logo "clair" (voir échange du 18/08/2026) : pensé pour un fond
-    // sombre, plus besoin de carte blanche derrière.
     return const Center(
       child: Image(
         image: AssetImage('assets/images/kora_logo_light.png'),

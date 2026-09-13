@@ -73,6 +73,8 @@ class _SplashPageState extends State<SplashPage> {
       case AuthInitial() || AuthLoading():
         // Ne devrait pas arriver : on a attendu checkAuthStatus() ci-dessus.
         context.go(AppRoutes.loginEmail);
+      case AuthCheckFailed():
+        throw UnimplementedError();
     }
   }
 

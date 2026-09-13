@@ -126,7 +126,12 @@ abstract final class KoraDialogs {
   /// [hideLoading] une fois l'opération terminée.
   static void showLoading(BuildContext context,
       {String message = 'Chargement…'}) {
-    showLoadingDialog(context, title: message, description: '');
+    showLoadingDialog(
+      context,
+      title: message,
+      description: '',
+      theme: _theme,
+    );
   }
 
   static void hideLoading(BuildContext context) {

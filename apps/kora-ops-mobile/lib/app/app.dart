@@ -32,37 +32,79 @@ class App extends StatelessWidget {
         BlocProvider<ScanBoardingCubit>.value(
             value: getIt<ScanBoardingCubit>()),
       ],
-      child: Builder(
-        builder: (BuildContext context) {
-          final AuthGuard authGuard = AuthGuard(context.read<AuthCubit>());
-          final AppRouter appRouter = AppRouter(authGuard);
+      child: const _AppLifecycleListener(child: _AppRouterHost()),
+    );
+  }
+}
 
-          // ScreenUtilInit calibre .w / .h / .sp / .r sur un design de
-          // référence 375x812 (iPhone standard), proche des terminaux P501
-          // utilisés sur le terrain — voir core/helpers/responsive.dart
-          // pour les breakpoints tablette/desktop complémentaires.
-          return ScreenUtilInit(
-            designSize: const Size(375, 812),
-            minTextAdapt: true,
-            splitScreenMode: true,
-            builder: (BuildContext context, Widget? child) {
-              return BlocBuilder<ThemeCubit, ThemeMode>(
-                builder: (BuildContext context, ThemeMode themeMode) {
-                  return MaterialApp.router(
-                    title: AppConfig.instance.appName,
-                    debugShowCheckedModeBanner:
-                        AppConfig.instance.enableDebugBanner,
-                    theme: AppTheme.light,
-                    darkTheme: AppTheme.dark,
-                    themeMode: themeMode,
-                    routerConfig: appRouter.router,
-                  );
-                },
-              );
-            },
-          );
-        },
-      ),
+/// Relit l'état de session au retour au premier plan (verrouillage écran,
+/// changement d'app, etc.) — pas seulement au démarrage à froid. Un token
+/// expiré pendant que l'app était en arrière-plan doit être détecté dès le
+/// retour, pas seulement à la prochaine action de l'utilisateur.
+class _AppLifecycleListener extends StatefulWidget {
+  const _AppLifecycleListener({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_AppLifecycleListener> createState() => _AppLifecycleListenerState();
+}
+
+class _AppLifecycleListenerState extends State<_AppLifecycleListener>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      getIt<AuthCubit>().checkAuthStatus();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
+class _AppRouterHost extends StatelessWidget {
+  const _AppRouterHost();
+
+  @override
+  Widget build(BuildContext context) {
+    final AuthGuard authGuard = AuthGuard(context.read<AuthCubit>());
+    final AppRouter appRouter = AppRouter(authGuard);
+
+    // ScreenUtilInit calibre .w / .h / .sp / .r sur un design de référence
+    // 375x812 (iPhone standard), proche des terminaux P501 utilisés sur
+    // le terrain — voir core/helpers/responsive.dart pour les breakpoints
+    // tablette/desktop complémentaires.
+    return ScreenUtilInit(
+      designSize: const Size(375, 812),
+      minTextAdapt: true,
+      splitScreenMode: true,
+      builder: (BuildContext context, Widget? child) {
+        return BlocBuilder<ThemeCubit, ThemeMode>(
+          builder: (BuildContext context, ThemeMode themeMode) {
+            return MaterialApp.router(
+              title: AppConfig.instance.appName,
+              debugShowCheckedModeBanner: AppConfig.instance.enableDebugBanner,
+              theme: AppTheme.light,
+              darkTheme: AppTheme.dark,
+              themeMode: themeMode,
+              routerConfig: appRouter.router,
+            );
+          },
+        );
+      },
     );
   }
 }

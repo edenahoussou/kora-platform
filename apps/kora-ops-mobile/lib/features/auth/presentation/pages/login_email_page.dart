@@ -4,16 +4,19 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../core/helpers/responsive.dart';
-import '../../../../core/services/kora_dialogs.dart';
 import '../../../../core/widgets/kora_button.dart';
 import '../../../../core/widgets/screen_header.dart';
-import '../cubit/login_cubit.dart';
+import '../bloc/auth_flow_bloc.dart';
 
-/// Écran "Se connecter" — première connexion sur un appareil (voir
-/// document.md § Flux d'authentification) : email + mot de passe. Une fois
-/// validé, l'écran PIN suivant sera lui-même suivi d'un OTP d'activation.
-/// Sur un appareil déjà reconnu, ce écran n'est jamais affiché — l'app
-/// démarre directement sur le PIN (voir `AuthGuard`).
+/// Écran "Se connecter" — première ouverture de l'app sur cet appareil,
+/// ou lien "pas moi" depuis l'écran PIN.
+///
+/// Contrairement à la version précédente (mock), il n'y a plus de mot de
+/// passe : le contrat réel de l'API est email + PIN. Cet écran ne fait
+/// aucun appel réseau — il mémorise juste l'adresse et passe à l'écran
+/// PIN, qui est celui qui appelle réellement `login`. Sur un appareil déjà
+/// reconnu, cet écran n'est jamais affiché — l'app démarre directement sur
+/// le PIN (voir `AuthGuard`).
 class LoginEmailPage extends StatefulWidget {
   const LoginEmailPage({super.key});
 
@@ -23,14 +26,11 @@ class LoginEmailPage extends StatefulWidget {
 
 class _LoginEmailPageState extends State<LoginEmailPage> {
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  bool _obscurePassword = true;
 
   @override
   void dispose() {
     _emailController.dispose();
-    _passwordController.dispose();
     super.dispose();
   }
 
@@ -41,27 +41,12 @@ class _LoginEmailPageState extends State<LoginEmailPage> {
     return isValid ? null : 'Adresse email invalide.';
   }
 
-  String? _validatePassword(String? value) {
-    if (value == null || value.isEmpty) return 'Mot de passe requis.';
-    return null;
-  }
-
-  Future<void> _submit(BuildContext context) async {
+  void _submit(BuildContext context) {
     if (!_formKey.currentState!.validate()) return;
-    final LoginCubit loginCubit = context.read<LoginCubit>();
-    final bool success = await loginCubit.submitEmailPassword(
-      _emailController.text.trim(),
-      _passwordController.text,
-    );
-    if (!context.mounted) return;
-    if (success) {
-      await context.push(AppRoutes.loginPin);
-    } else {
-      final String message =
-          loginCubit.state.errorMessage ?? 'Erreur inattendue.';
-      await KoraDialogs.error(context,
-          title: 'Connexion refusée', description: message);
-    }
+    context
+        .read<AuthFlowBloc>()
+        .add(AuthFlowEmailEntered(_emailController.text.trim()));
+    context.push(AppRoutes.loginPin);
   }
 
   @override
@@ -83,8 +68,8 @@ class _LoginEmailPageState extends State<LoginEmailPage> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     Text(
-                      'Nouvel appareil détecté. Connectez-vous avec vos identifiants KORA '
-                      'pour l\'activer.',
+                      'Nouvel appareil détecté. Saisissez votre adresse email '
+                      'KORA pour continuer.',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     const SizedBox(height: AppSpacing.lg),
@@ -98,43 +83,12 @@ class _LoginEmailPageState extends State<LoginEmailPage> {
                       decoration: const InputDecoration(
                           hintText: 'nom.prenom@kora-express.com'),
                       validator: _validateEmail,
+                      onFieldSubmitted: (_) => _submit(context),
                     ),
                     const SizedBox(height: AppSpacing.md),
-                    Text('Mot de passe',
-                        style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: AppSpacing.sm),
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      autofillHints: const <String>[AutofillHints.password],
-                      decoration: InputDecoration(
-                        hintText: '••••••••',
-                        suffixIcon: IconButton(
-                          icon: Icon(_obscurePassword
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined),
-                          onPressed: () => setState(
-                              () => _obscurePassword = !_obscurePassword),
-                        ),
-                      ),
-                      validator: _validatePassword,
-                    ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () =>
-                            context.push(AppRoutes.loginForgotPassword),
-                        child: const Text('Mot de passe oublié ?'),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    BlocBuilder<LoginCubit, LoginState>(
-                      builder: (BuildContext context, LoginState state) =>
-                          KoraButton(
-                        label: 'Se connecter',
-                        isLoading: state.status == LoginStatus.submitting,
-                        onPressed: () => _submit(context),
-                      ),
+                    KoraButton(
+                      label: 'Continuer',
+                      onPressed: () => _submit(context),
                     ),
                   ],
                 ),
