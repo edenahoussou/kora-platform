@@ -18,6 +18,7 @@ export type FilterConfig = {
 };
 
 type KoraFilterBarProps = {
+    appearance?: 'default' | 'compact';
     searchName?: string;
     searchPlaceholder?: string;
     filters: FilterConfig[];
@@ -36,6 +37,7 @@ type KoraFilterBarProps = {
  * - Filter values sync to URL query params for shareable URLs
  */
 export function KoraFilterBar({
+    appearance = 'default',
     searchName = 'q',
     searchPlaceholder = 'Rechercher…',
     filters,
@@ -177,7 +179,13 @@ export function KoraFilterBar({
             <Button
                 type="button"
                 onClick={applyFilters}
-                className="h-10 shrink-0 rounded-[0.625rem] bg-gold px-4 font-medium text-[var(--kora)] shadow-[0_6px_18px_rgba(246,176,0,0.18)] hover:bg-[var(--kora)] hover:text-white"
+                variant={appearance === 'compact' ? 'kora' : 'default'}
+                size={appearance === 'compact' ? 'kora' : 'default'}
+                className={
+                    appearance === 'compact'
+                        ? 'shrink-0'
+                        : 'h-10 shrink-0 rounded-[0.625rem] bg-gold px-4 font-medium text-[var(--kora)] shadow-[0_6px_18px_rgba(246,176,0,0.18)] hover:bg-[var(--kora)] hover:text-white'
+                }
             >
                 <Filter className="size-4" />
                 Filtrer
@@ -185,9 +193,16 @@ export function KoraFilterBar({
             {hasActiveFilters && (
                 <Button
                     type="button"
-                    variant="ghost"
+                    variant={
+                        appearance === 'compact' ? 'kora-secondary' : 'ghost'
+                    }
+                    size={appearance === 'compact' ? 'kora' : 'default'}
                     onClick={resetFilters}
-                    className="h-10 shrink-0 rounded-[0.625rem] px-3 font-medium text-muted-foreground hover:text-foreground"
+                    className={
+                        appearance === 'compact'
+                            ? 'shrink-0'
+                            : 'h-10 shrink-0 rounded-[0.625rem] px-3 font-medium text-muted-foreground hover:text-foreground'
+                    }
                 >
                     <X className="size-4" />
                     Réinitialiser

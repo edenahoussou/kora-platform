@@ -9,6 +9,8 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
+        kora: "border border-transparent bg-gold text-kora shadow-none hover:bg-gold/85 transition-[transform,background-color,border-color] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]",
+        "kora-secondary": "border border-border bg-card text-foreground shadow-none hover:border-gold hover:bg-card transition-[transform,background-color,border-color] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]",
         default:
           "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
         destructive:
@@ -21,6 +23,7 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
+        kora: "h-[38px] rounded-[10px] px-[13px] py-0 text-[10px] font-black gap-[7px] has-[>svg]:px-[13px]",
         default: "h-9 px-4 py-2 has-[>svg]:px-3",
         sm: "h-8 rounded-md px-3 has-[>svg]:px-2.5",
         lg: "h-10 rounded-md px-6 has-[>svg]:px-4",

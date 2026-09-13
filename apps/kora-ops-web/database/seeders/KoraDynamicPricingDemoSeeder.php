@@ -67,6 +67,8 @@ class KoraDynamicPricingDemoSeeder extends Seeder
 
     /**
      * Crée ou met à jour une règle de tarification par UUID.
+     *
+     * @param  array<string, mixed>  $conditions
      */
     private function upsertRule(
         string $uuid,

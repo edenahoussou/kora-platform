@@ -169,7 +169,7 @@ export function PricingRuleBuilder({
     };
 
     return (
-        <section className="rounded-xl bg-card p-6 shadow-sm ring-1 ring-black/[0.05] sm:p-7">
+        <section className="rounded-[18px] bg-card p-6 shadow-sm ring-1 ring-border sm:p-7">
             <Form
                 key={rule?.uuid ?? 'new'}
                 {...form}
@@ -197,7 +197,7 @@ export function PricingRuleBuilder({
                                     vérifiez son impact avant de l'activer.
                                 </p>
                             </div>
-                            <div className="hidden size-11 shrink-0 place-items-center rounded-lg bg-gold/15 text-kora sm:grid">
+                            <div className="hidden size-11 shrink-0 place-items-center rounded-[10px] bg-gold/15 text-kora sm:grid">
                                 {draft.type === 'increase' ? (
                                     <TrendingUp
                                         className="size-5"
@@ -212,7 +212,7 @@ export function PricingRuleBuilder({
                             </div>
                         </div>
 
-                        <div className="rounded-lg bg-kora p-4 text-white shadow-sm">
+                        <div className="rounded-[10px] bg-kora p-4 text-white shadow-sm">
                             <div className="mb-2 flex items-center gap-2 text-[0.62rem] font-black tracking-[0.16em] text-white/55 uppercase">
                                 <Target
                                     className="size-3.5"
@@ -235,7 +235,7 @@ export function PricingRuleBuilder({
                                         update('lineId', event.target.value)
                                     }
                                     required
-                                    className="h-11 w-full rounded-lg bg-muted/60 px-3 text-sm text-foreground ring-1 ring-black/[0.05] transition-[box-shadow,background-color] duration-300 outline-none focus:bg-card focus:ring-2 focus:ring-gold/40"
+                                    className="h-11 w-full rounded-[10px] bg-muted/60 px-3 text-sm text-foreground ring-1 ring-border transition-[box-shadow,background-color] duration-300 outline-none focus:bg-card focus:ring-2 focus:ring-gold/40"
                                 >
                                     <option value="">
                                         Sélectionner une ligne
@@ -267,7 +267,7 @@ export function PricingRuleBuilder({
                                         update('priority', event.target.value)
                                     }
                                     required
-                                    className="h-11 rounded-lg border-0 bg-muted/60 ring-1 ring-black/[0.05]"
+                                    className="h-11 rounded-[10px] border-0 bg-muted/60 ring-1 ring-border"
                                 />
                                 <FieldHint>
                                     1 est la priorité la plus haute. Une seule
@@ -282,7 +282,7 @@ export function PricingRuleBuilder({
                                 <FieldLabel required>
                                     Réaction tarifaire
                                 </FieldLabel>
-                                <div className="grid grid-cols-2 gap-1.5 rounded-lg bg-muted/60 p-1.5 ring-1 ring-black/[0.05]">
+                                <div className="grid grid-cols-2 gap-1.5 rounded-[10px] bg-muted/60 p-1.5 ring-1 ring-border">
                                     {[
                                         {
                                             value: 'increase',
@@ -301,7 +301,7 @@ export function PricingRuleBuilder({
                                             onClick={() =>
                                                 update('type', value)
                                             }
-                                            className={`flex h-9 items-center justify-center gap-1.5 rounded-md text-xs font-bold transition-[transform,background-color,color,box-shadow] duration-300 active:scale-[0.98] ${draft.type === value ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:bg-card/70 hover:text-foreground'}`}
+                                            className={`flex h-9 items-center justify-center gap-1.5 rounded-[8px] text-xs font-bold transition-[transform,background-color,color,box-shadow] duration-300 active:scale-[0.98] ${draft.type === value ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:bg-card/70 hover:text-foreground'}`}
                                         >
                                             <Icon
                                                 className="size-3.5"
@@ -335,7 +335,7 @@ export function PricingRuleBuilder({
                                             )
                                         }
                                         required
-                                        className="h-11 rounded-lg border-0 bg-muted/60 pr-10 ring-1 ring-black/[0.05]"
+                                        className="h-11 rounded-[10px] border-0 bg-muted/60 pr-10 ring-1 ring-border"
                                     />
                                     <span className="pointer-events-none absolute inset-y-0 right-3 grid place-items-center text-sm font-black text-muted-foreground">
                                         %
@@ -345,7 +345,7 @@ export function PricingRuleBuilder({
                             </div>
                             <div className="grid gap-2">
                                 <FieldLabel>Effet</FieldLabel>
-                                <div className="flex h-11 items-center gap-2 rounded-lg bg-muted/60 px-3 text-xs font-bold text-muted-foreground ring-1 ring-black/[0.05]">
+                                <div className="flex h-11 items-center gap-2 rounded-[10px] bg-muted/60 px-3 text-xs font-bold text-muted-foreground ring-1 ring-border">
                                     <Clock3
                                         className="size-4 text-gold"
                                         strokeWidth={1.8}
@@ -360,10 +360,10 @@ export function PricingRuleBuilder({
 
                         <div
                             data-onboarding="triggers"
-                            className="rounded-lg bg-kora/[0.04] p-4 ring-1 ring-kora/15 sm:p-5"
+                            className="rounded-[10px] bg-kora/[0.04] p-4 ring-1 ring-kora/15 sm:p-5"
                         >
                             <div className="mb-4 flex items-start gap-3">
-                                <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-gold/15 text-kora">
+                                <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-gold/15 text-kora">
                                     <Gauge
                                         className="size-4"
                                         strokeWidth={1.8}
@@ -397,7 +397,7 @@ export function PricingRuleBuilder({
                                                     event.target.value,
                                                 )
                                             }
-                                            className="h-10 rounded-lg border-0 bg-card ring-1 ring-black/[0.05]"
+                                            className="h-10 rounded-[10px] border-0 bg-card ring-1 ring-border"
                                         />
                                         <Input
                                             name="conditions[fill_rate_max]"
@@ -412,7 +412,7 @@ export function PricingRuleBuilder({
                                                     event.target.value,
                                                 )
                                             }
-                                            className="h-10 rounded-lg border-0 bg-card ring-1 ring-black/[0.05]"
+                                            className="h-10 rounded-[10px] border-0 bg-card ring-1 ring-border"
                                         />
                                     </div>
                                     <InputError
@@ -443,7 +443,7 @@ export function PricingRuleBuilder({
                                                     event.target.value,
                                                 )
                                             }
-                                            className="h-10 rounded-lg border-0 bg-card ring-1 ring-black/[0.05]"
+                                            className="h-10 rounded-[10px] border-0 bg-card ring-1 ring-border"
                                         />
                                         <Input
                                             name="conditions[hours_before_departure_max]"
@@ -459,7 +459,7 @@ export function PricingRuleBuilder({
                                                     event.target.value,
                                                 )
                                             }
-                                            className="h-10 rounded-lg border-0 bg-card ring-1 ring-black/[0.05]"
+                                            className="h-10 rounded-[10px] border-0 bg-card ring-1 ring-border"
                                         />
                                     </div>
                                     <InputError
@@ -490,7 +490,7 @@ export function PricingRuleBuilder({
                                     onChange={(event) =>
                                         update('startsAt', event.target.value)
                                     }
-                                    className="h-10 rounded-lg border-0 bg-muted/60 ring-1 ring-black/[0.05]"
+                                    className="h-10 rounded-[10px] border-0 bg-muted/60 ring-1 ring-border"
                                 />
                                 <InputError message={errors.starts_at} />
                             </div>
@@ -503,13 +503,13 @@ export function PricingRuleBuilder({
                                     onChange={(event) =>
                                         update('endsAt', event.target.value)
                                     }
-                                    className="h-10 rounded-lg border-0 bg-muted/60 ring-1 ring-black/[0.05]"
+                                    className="h-10 rounded-[10px] border-0 bg-muted/60 ring-1 ring-border"
                                 />
                                 <InputError message={errors.ends_at} />
                             </div>
                         </div>
 
-                        <div className="flex flex-col gap-3 rounded-lg bg-gold/10 p-4 text-[0.72rem] text-foreground sm:flex-row sm:items-start">
+                        <div className="flex flex-col gap-3 rounded-[10px] bg-gold/10 p-4 text-[0.72rem] text-foreground sm:flex-row sm:items-start">
                             <Info
                                 className="mt-0.5 size-4 shrink-0 text-gold"
                                 strokeWidth={1.8}
@@ -529,9 +529,11 @@ export function PricingRuleBuilder({
                             </p>
                             {canSubmit && (
                                 <Button
+                                    size="kora"
+                                    variant="kora"
                                     type="submit"
                                     disabled={processing || !draft.lineId}
-                                    className="group h-11 rounded-lg bg-kora px-4 font-bold text-white shadow-sm transition-[transform,background-color] duration-300 hover:-translate-y-0.5 hover:bg-digital active:scale-[0.98]"
+                                    className="group"
                                 >
                                     {processing
                                         ? 'Enregistrement…'
@@ -549,7 +551,7 @@ export function PricingRuleBuilder({
                 )}
             </Form>
 
-            <div className="mt-6 rounded-lg bg-muted/30 p-4 ring-1 ring-black/[0.04]">
+            <div className="mt-6 rounded-[10px] bg-muted/30 p-4 ring-1 ring-border">
                 <div className="mb-3 flex items-center justify-between gap-3">
                     <div>
                         <p className="section-kicker text-gold">
@@ -559,7 +561,7 @@ export function PricingRuleBuilder({
                             Base illustrative fixe pour lire la variation.
                         </p>
                     </div>
-                    <span className="rounded-full bg-card px-2.5 py-1 text-[0.65rem] font-bold text-muted-foreground ring-1 ring-black/[0.04]">
+                    <span className="rounded-full bg-card px-2.5 py-1 text-[0.65rem] font-bold text-muted-foreground ring-1 ring-border">
                         10 000 XOF
                     </span>
                 </div>
@@ -576,7 +578,7 @@ export function PricingRuleBuilder({
                         </p>
                     </div>
                     <span
-                        className={`rounded-full px-3 py-1.5 text-xs font-black ${adjustment >= 0 ? 'bg-emerald-500/10 text-emerald-700' : 'bg-sky-500/10 text-sky-700'}`}
+                        className={`rounded-full px-3 py-1.5 text-xs font-black ${adjustment >= 0 ? 'bg-emerald-500/10 text-emerald-700' : 'bg-sky-500/10 text-sky-700 dark:text-sky-400'}`}
                     >
                         {adjustment >= 0 ? '+' : ''}
                         {adjustment.toLocaleString('fr-FR')} XOF
