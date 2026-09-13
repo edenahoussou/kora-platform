@@ -18,6 +18,7 @@ use App\Modules\Ticketing\Data\TicketStatus;
 use App\Modules\Ticketing\Models\Ticket;
 use Carbon\CarbonImmutable;
 use Codianselme\LaraSygmef\Models\EmecfInvoice;
+use Database\Seeders\KoraBusRolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -25,6 +26,12 @@ use Tests\TestCase;
 class TicketIndexTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(KoraBusRolePermissionSeeder::class);
+    }
 
     public function test_guests_are_redirected_to_login(): void
     {
@@ -34,6 +41,7 @@ class TicketIndexTest extends TestCase
     public function test_authenticated_users_can_view_the_tickets_list(): void
     {
         $user = User::factory()->create();
+        $user->assignRole('general_management');
         $this->actingAs($user);
 
         $response = $this->get(route('tickets'));
@@ -144,6 +152,7 @@ class TicketIndexTest extends TestCase
     public function test_tickets_are_paginated(): void
     {
         $user = User::factory()->create();
+        $user->assignRole('general_management');
         $this->actingAs($user);
 
         for ($i = 0; $i < 20; $i++) {
@@ -249,10 +258,9 @@ class TicketIndexTest extends TestCase
     ): array {
         $shortCode = $shortCode ?? 'K'.strtoupper(bin2hex(random_bytes(3)));
         $user = $user ?? User::factory()->create();
+        $user->assignRole('general_management');
         $agencyCode = 'COT'.strtoupper(bin2hex(random_bytes(3)));
         $agency = Agency::create(['code' => $agencyCode, 'name' => 'Cotonou Agence', 'city' => 'Cotonou', 'country' => 'BJ', 'status' => 'active']);
-        $user->agency()->associate($agency);
-        $user->save();
 
         $originPhysical = PhysicalStop::create(['name' => 'Cotonou Dantokpa', 'city' => 'Cotonou', 'country' => 'BJ', 'status' => 'active']);
         $destinationPhysical = PhysicalStop::create(['name' => 'Djougou Centre', 'city' => 'Djougou', 'country' => 'BJ', 'status' => 'active']);
@@ -282,6 +290,7 @@ class TicketIndexTest extends TestCase
 
         $reservation = Reservation::create([
             'created_by_user_id' => $user->id,
+            'selling_agency_id' => $agency->id,
             'status' => 'ticketed',
             'total_amount' => 7000,
             'currency' => 'XOF',

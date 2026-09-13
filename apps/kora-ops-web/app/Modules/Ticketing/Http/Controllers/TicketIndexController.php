@@ -5,16 +5,27 @@ namespace App\Modules\Ticketing\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Booking\Data\ReservationChannel;
 use App\Modules\Booking\Models\ReservationSegment;
+use App\Modules\Ticketing\Actions\ResolveTicketAmountAction;
 use App\Modules\Ticketing\Data\TicketStatus;
 use App\Modules\Ticketing\Models\Ticket;
+use App\Modules\Ticketing\Services\TicketVisibility;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Response;
 
 class TicketIndexController extends Controller
 {
+    public function __construct(
+        private readonly TicketVisibility $visibility,
+        private readonly ResolveTicketAmountAction $resolveAmount,
+    ) {}
+
     public function index(Request $request): Response
     {
-        $query = Ticket::query()
+        Gate::authorize('viewAny', Ticket::class);
+        $baseQuery = $this->visibility->query($request->user());
+        $query = (clone $baseQuery)
             ->with([
                 'reservationPassenger',
                 'reservation.segments.originStop',
@@ -48,7 +59,7 @@ class TicketIndexController extends Controller
         }
 
         $route = $request->string('route')->trim()->value();
-        if ($route !== '') {
+        if ($route !== '' && str_contains($route, '→')) {
             [$originCity, $destinationCity] = explode('→', $route, 2);
             $originCity = trim($originCity);
             $destinationCity = trim($destinationCity);
@@ -58,9 +69,9 @@ class TicketIndexController extends Controller
             });
         }
 
-        $paginated = $query->paginate(15);
-        $kpis = $this->buildKpis();
-        $routes = $this->buildRoutes();
+        $paginated = $query->paginate(15)->withQueryString();
+        $kpis = $this->buildKpis(clone $baseQuery);
+        $routes = $this->buildRoutes(clone $baseQuery);
 
         return inertia('tickets', [
             'tickets' => $paginated->through(fn (Ticket $ticket): array => $this->serializeTicket($ticket)),
@@ -72,11 +83,13 @@ class TicketIndexController extends Controller
     }
 
     /**
+     * @param  Builder<Ticket>  $visibleTickets
      * @return array<int, string>
      */
-    private function buildRoutes(): array
+    private function buildRoutes(Builder $visibleTickets): array
     {
         $segments = ReservationSegment::query()
+            ->whereIn('reservation_id', $visibleTickets->select('reservation_id'))
             ->with(['originStop', 'destinationStop'])
             ->get();
 
@@ -96,11 +109,11 @@ class TicketIndexController extends Controller
     }
 
     /**
+     * @param  Builder<Ticket>  $baseQuery
      * @return array<string, mixed>
      */
-    private function buildKpis(): array
+    private function buildKpis(Builder $baseQuery): array
     {
-        $baseQuery = Ticket::query();
 
         $total = (clone $baseQuery)->count();
         $issued = (clone $baseQuery)->where('status', TicketStatus::Issued)->count();
@@ -108,10 +121,11 @@ class TicketIndexController extends Controller
         $cancelled = (clone $baseQuery)->where('status', TicketStatus::Cancelled)->count();
         $refunded = (clone $baseQuery)->where('status', TicketStatus::Refunded)->count();
 
-        $totalRevenue = (clone $baseQuery)
-            ->whereIn('tickets.status', [TicketStatus::Issued->value, TicketStatus::Used->value])
-            ->join('reservations', 'tickets.reservation_id', '=', 'reservations.id')
-            ->sum('reservations.total_amount');
+        $totalRevenue = 0;
+        foreach ((clone $baseQuery)->whereIn('status', [TicketStatus::Issued, TicketStatus::Used])
+            ->with(['reservation', 'reservationPassenger'])->lazyById(500) as $ticket) {
+            $totalRevenue += $this->resolveAmount->execute($ticket);
+        }
 
         return [
             'total' => $total,
@@ -140,7 +154,7 @@ class TicketIndexController extends Controller
             : '—';
 
         $channel = $reservation?->getRawOriginal('channel');
-        $amount = (int) ($reservation->total_amount ?? 0);
+        $amount = $this->resolveAmount->execute($ticket);
         $currency = $reservation->currency ?? 'XOF';
         $fiscalInvoice = $reservation?->fiscalInvoice;
 

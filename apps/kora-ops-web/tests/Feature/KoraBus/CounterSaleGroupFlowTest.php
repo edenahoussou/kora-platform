@@ -202,6 +202,7 @@ it('records a company credit payment without creating a cash movement', function
         ])
         ->assertRedirect();
 
+    expect($reservation->fresh()->selling_agency_id)->toBe($scenario['agent']->agency_id);
     expect($reservation->fresh()->status)->toBeIn([ReservationStatus::Paid, ReservationStatus::Ticketed]);
 
     $this->assertDatabaseHas('payments', [

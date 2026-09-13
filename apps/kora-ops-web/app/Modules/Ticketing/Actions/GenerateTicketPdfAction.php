@@ -2,7 +2,6 @@
 
 namespace App\Modules\Ticketing\Actions;
 
-use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\Booking\Services\DepartureStopTimeResolver;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
@@ -22,6 +21,7 @@ class GenerateTicketPdfAction
     public function __construct(
         private readonly DepartureStopTimeResolver $stopTimeResolver,
         private readonly GenerateTicketQrCodeAction $generateQr,
+        private readonly ResolveTicketAmountAction $resolveTicketAmount,
     ) {}
 
     /**
@@ -30,8 +30,7 @@ class GenerateTicketPdfAction
     public function execute(Ticket $ticket): array
     {
         $ticket->loadMissing([
-            'reservation.payments.verifier.agency',
-            'reservation.creator.agency',
+            'reservation.sellingAgency',
             'reservationPassenger.segments.departure.line',
             'reservationPassenger.segments.departure.bus',
             'reservationPassenger.segments.seat',
@@ -52,8 +51,7 @@ class GenerateTicketPdfAction
         $originCity = $this->stopCity($firstLeg?->originStop) ?? '—';
         $destinationCity = $this->stopCity($lastLeg?->destinationStop) ?? '—';
 
-        $payment = $reservation?->payments->sortByDesc('id')->first();
-        $agency = $payment?->verifier->agency ?? $reservation?->creator?->agency;
+        $agency = $reservation?->sellingAgency;
         $fiscalInvoice = FiscalInvoice::query()
             ->where('reservation_id', $reservation?->getKey())
             ->first();
@@ -67,7 +65,7 @@ class GenerateTicketPdfAction
 
         $qrSvg = $this->generateQr->execute($ticket->qr_code ?? $ticket->uuid);
 
-        $amount = $this->resolveAmount($reservation, $passenger?->passenger_index);
+        $amount = $this->resolveTicketAmount->execute($ticket);
         $currency = $reservation->currency ?? 'XOF';
 
         $data = [
@@ -172,17 +170,6 @@ class GenerateTicketPdfAction
         }
 
         return $stop->city ?? $stop->name ?? null;
-    }
-
-    private function resolveAmount(?Reservation $reservation, ?int $passengerIndex): int
-    {
-        if ($reservation === null || $passengerIndex === null) {
-            return 0;
-        }
-
-        $allocations = $reservation->total_snapshot['passenger_allocations'] ?? [];
-
-        return (int) ($allocations[$passengerIndex] ?? 0);
     }
 
     private function formatMoney(int $amount, string $currency): string

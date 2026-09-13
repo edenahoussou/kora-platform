@@ -13,6 +13,7 @@ use App\Modules\CompanyAccounts\Models\CompanyCreditHold;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Models\PriceQuote;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
+use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentRefund;
 use App\Modules\Support\Models\KoraModel;
@@ -46,6 +47,7 @@ class Reservation extends KoraModel
 
     protected $fillable = [
         'uuid',
+        'selling_agency_id',
         'created_by_user_id',
         'payer_user_id',
         'payer_type',
@@ -153,6 +155,12 @@ class Reservation extends KoraModel
     public function fiscalInvoice(): HasOne
     {
         return $this->hasOne(FiscalInvoice::class);
+    }
+
+    /** @return BelongsTo<Agency, $this> */
+    public function sellingAgency(): BelongsTo
+    {
+        return $this->belongsTo(Agency::class, 'selling_agency_id')->withTrashed();
     }
 
     protected function casts(): array

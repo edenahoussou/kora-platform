@@ -102,6 +102,7 @@ it('records an exact cash payment, change, cash movement and one ticket per pass
     ]);
 
     $response->assertRedirect();
+    expect($reservation->fresh()->selling_agency_id)->toBe($scenario['agency']->id);
     expect($reservation->fresh()->status)->toBe(ReservationStatus::Ticketed);
     expect($reservation->fresh()->ticket_issuance_status)->toBe(TicketIssuanceStatus::Issued);
     expect($reservation->fresh()->draft_data)->toBeNull();

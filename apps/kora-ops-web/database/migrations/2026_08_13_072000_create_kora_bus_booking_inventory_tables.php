@@ -13,6 +13,7 @@ return new class extends Migration
             $table->id();
             $table->uuid('uuid')->unique();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('selling_agency_id')->nullable()->index()->constrained('agencies')->restrictOnDelete();
             $table->foreignId('departure_id')->constrained('departures')->restrictOnDelete();
             $table->foreignId('price_quote_id')->nullable()->constrained('price_quotes')->nullOnDelete();
             $table->string('status', 32)->default('held')->index();
