@@ -17,6 +17,11 @@ class Agency extends KoraModel
     /** @use HasFactory<AgencyFactory> */
     use HasFactory, SoftDeletes;
 
+    protected static function newFactory(): AgencyFactory
+    {
+        return AgencyFactory::new();
+    }
+
     protected $fillable = [
         'uuid',
         'code',

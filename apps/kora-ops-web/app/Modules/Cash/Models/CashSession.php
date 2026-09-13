@@ -26,6 +26,11 @@ class CashSession extends KoraModel
     /** @use HasFactory<CashSessionFactory> */
     use HasFactory;
 
+    protected static function newFactory(): CashSessionFactory
+    {
+        return CashSessionFactory::new();
+    }
+
     protected $fillable = [
         'uuid',
         'agent_id',

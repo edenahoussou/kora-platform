@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Modules\Cash\Data\CashLedgerKind;
 use App\Modules\Cash\Models\CashLedger;
 use App\Modules\Cash\Models\CashMovement;
 use App\Modules\Cash\Models\CashSession;
@@ -280,3 +281,74 @@ function createCashManagementSession(array $scenario): CashSession
 
     return $session->load('ledgers');
 }
+
+it('requires an agency even for administrators on the journal and export', function (): void {
+    $admin = User::factory()->create(['agency_id' => null]);
+    $admin->assignRole('system_admin');
+    $this->actingAs($admin)->get(route('cash'))->assertForbidden();
+    $this->get(route('cash.export'))->assertForbidden();
+    $this->get(route('dashboard'))->assertInertia(fn ($page) => $page->where('auth.user.canViewCash', false));
+});
+
+it('returns a real empty journal before opening a personal cash session', function (): void {
+    $scenario = cashManagementScenario();
+    $this->actingAs($scenario['agent'])->get(route('cash'))->assertInertia(fn ($page) => $page
+        ->component('cash')->where('cashSession', null)->where('movements.total', 0)
+        ->where('permissions.canOpen', true)->where('auth.user.canViewCash', true));
+});
+
+it('paginates the entire personal journal while keeping totals independent of filters', function (): void {
+    $scenario = cashManagementScenario();
+    $session = createCashManagementSession($scenario);
+    $ledger = $session->ledgers->firstWhere('kind', CashLedgerKind::Cash);
+    CashMovement::factory()->count(35)->create(['cash_ledger_id' => $ledger->id, 'amount' => 1000]);
+    $oldMovement = CashMovement::query()->oldest('id')->firstOrFail();
+    $oldMovement->update(['reference' => 'ANCIENNE-VENTE']);
+    CashMovement::factory()->pendingTransfer()->create(['cash_ledger_id' => $ledger->id, 'amount' => 3000]);
+    CashMovement::factory()->pendingTransfer()->approved()->create(['cash_ledger_id' => $ledger->id, 'amount' => 2000]);
+    $ledger->update(['expected_balance' => 158000]);
+    $colleague = User::factory()->create(['agency_id' => $scenario['agency']->id]);
+    $foreignLedger = CashLedger::factory()->create();
+    CashMovement::factory()->create(['cash_ledger_id' => $foreignLedger->id, 'reference' => 'AUTRE-AGENCE']);
+    $colleagueSession = CashSession::factory()->create(['agent_id' => $colleague->id, 'agency_id' => $scenario['agency']->id, 'business_date' => now()->toDateString()]);
+    $colleagueLedger = CashLedger::factory()->create(['cash_session_id' => $colleagueSession->id]);
+    CashMovement::factory()->create(['cash_ledger_id' => $colleagueLedger->id, 'reference' => 'COLLEGUE']);
+
+    $this->actingAs($scenario['agent'])->get(route('cash', ['page' => 5]))->assertInertia(fn ($page) => $page
+        ->has('movements.data', 5)->where('movements.total', 37)->where('movements.last_page', 5)
+        ->where('cashSession.ledgers.0.inflows', 35000)->where('cashSession.ledgers.0.outflows', 2000)
+        ->where('cashSession.ledgers.0.expectedBalance', 158000)->where('cashSession.ledgers.0.movementCount', 37)
+        ->missing('cashSession.id')->missing('movements.data.0.id'));
+    $this->get(route('cash', ['q' => 'ANCIENNE-VENTE', 'channel' => 'cash', 'status' => 'posted', 'direction' => 'in']))
+        ->assertInertia(fn ($page) => $page->where('movements.total', 1)
+            ->where('movements.data.0.uuid', $oldMovement->uuid)->where('cashSession.ledgers.0.inflows', 35000));
+    $csv = $this->get(route('cash.export'))->assertOk()->streamedContent();
+    expect(substr_count(trim($csv), "\n"))->toBe(37)
+        ->and($csv)->toContain('ANCIENNE-VENTE')->not->toContain('COLLEGUE', 'AUTRE-AGENCE');
+    $csv = $this->get(route('cash.export', ['q' => 'ANCIENNE-VENTE', 'page' => 5]))->assertOk()->streamedContent();
+    expect(substr_count(trim($csv), "\n"))->toBe(1)->and($csv)->toContain('ANCIENNE-VENTE');
+});
+
+it('filters the journal by network and escapes spreadsheet formulas in exports', function (): void {
+    $scenario = cashManagementScenario();
+    $session = createCashManagementSession($scenario);
+    $mtn = $session->ledgers->firstWhere('agency_payment_account_id', $scenario['accounts'][0]->id);
+    CashMovement::factory()->create(['cash_ledger_id' => $mtn->id, 'reference' => '=1+1']);
+    $this->actingAs($scenario['agent'])->get(route('cash', ['channel' => 'mtn_momo', 'q' => 'MTN']))
+        ->assertInertia(fn ($page) => $page->where('movements.total', 1));
+    $this->get(route('cash', ['channel' => 'moov_flooz']))->assertInertia(fn ($page) => $page->where('movements.total', 0));
+    expect($this->get(route('cash.export'))->streamedContent())->toContain("'=1+1");
+    $this->getJson(route('cash', ['direction' => 'invalid']))->assertUnprocessable();
+});
+
+it('refuses journal access without cash permission and closure outside the personal agency session', function (): void {
+    $scenario = cashManagementScenario();
+    $session = createCashManagementSession($scenario);
+    $user = User::factory()->create(['agency_id' => $scenario['agency']->id]);
+    $this->actingAs($user)->get(route('cash'))->assertForbidden();
+    $user->assignRole('agency_manager');
+    $this->post(route('cash.close', $session), [])->assertForbidden();
+    $user->forceFill(['agency_id' => Agency::factory()->create()->id])->save();
+    $session->update(['status' => 'pending_approval', 'actual_balance' => 0, 'variance' => -125000]);
+    $this->post(route('cash.approve-variance', $session), [])->assertForbidden();
+});

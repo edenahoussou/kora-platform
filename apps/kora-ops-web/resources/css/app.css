@@ -4764,6 +4764,273 @@
         margin-top: 9px;
     }
 
+    .price-dynamic {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 1px;
+    }
+
+    .price-base-struck {
+        color: var(--muted-foreground);
+        font-size: 11px;
+        font-weight: 700;
+        text-decoration: line-through;
+    }
+
+    .price-final {
+        color: var(--kora);
+        font-size: 15px;
+        font-weight: 900;
+    }
+
+    .fare-variation {
+        display: inline-flex;
+        margin: 3px 0;
+        padding: 3px 7px;
+        border-radius: 8px;
+        background: var(--gold);
+        color: var(--kora);
+        font-size: 11px;
+        font-weight: 900;
+        font-style: normal;
+    }
+
+    .dynamic-fare-note {
+        display: none;
+    }
+
+    /* ── Pricing Intelligence Strip ────────────────────────────
+       Capsule glass premium avec indicateur live pulsant,
+       typographie éditoriale et sheen subtil au survol.
+       Inspirée du design system KORA (navy + gold). */
+    .pricing-intelligence-strip {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        margin: 0 0 18px;
+        padding: 16px 22px 16px 20px;
+        border-radius: 18px;
+        background: linear-gradient(
+            135deg,
+            color-mix(in srgb, var(--kora) 4%, var(--card)),
+            color-mix(in srgb, var(--gold) 6%, var(--card))
+        );
+        border: 1px solid color-mix(in srgb, var(--gold) 28%, transparent);
+        box-shadow:
+            0 1px 1px rgba(255, 255, 255, 0.6) inset,
+            0 12px 32px rgba(0, 29, 78, 0.07);
+        overflow: hidden;
+        animation: pricingStripEnter 0.7s cubic-bezier(0.32, 0.72, 0, 1) both;
+    }
+
+    @keyframes pricingStripEnter {
+        from {
+            transform: translateY(10px);
+            opacity: 0;
+            filter: blur(6px);
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+            filter: blur(0);
+        }
+    }
+
+    .pricing-intelligence-pulse {
+        position: relative;
+        flex-shrink: 0;
+        display: grid;
+        place-items: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: color-mix(in srgb, var(--gold) 14%, transparent);
+    }
+
+    .pricing-intelligence-pulse::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        border: 1.5px solid var(--gold);
+        opacity: 0.5;
+        animation: pricingPulseRing 2.4s cubic-bezier(0.32, 0.72, 0, 1) infinite;
+    }
+
+    .pricing-intelligence-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--gold);
+        box-shadow: 0 0 12px color-mix(in srgb, var(--gold) 70%, transparent);
+        animation: pricingPulseDot 2.4s cubic-bezier(0.32, 0.72, 0, 1) infinite;
+    }
+
+    @keyframes pricingPulseRing {
+        0% {
+            transform: scale(0.85);
+            opacity: 0.6;
+        }
+
+        70% {
+            transform: scale(1.4);
+            opacity: 0;
+        }
+
+        100% {
+            transform: scale(1.4);
+            opacity: 0;
+        }
+    }
+
+    @keyframes pricingPulseDot {
+        0%,
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        50% {
+            transform: scale(0.85);
+            opacity: 0.75;
+        }
+    }
+
+    .pricing-intelligence-body {
+        display: grid;
+        gap: 2px;
+        min-width: 0;
+    }
+
+    .pricing-intelligence-eyebrow {
+        color: var(--digital);
+        font-size: 8px;
+        font-weight: 900;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+    }
+
+    .pricing-intelligence-title {
+        color: var(--kora);
+        font-size: 13px;
+        font-weight: 900;
+        letter-spacing: -0.01em;
+        line-height: 1.3;
+    }
+
+    .pricing-intelligence-desc {
+        color: var(--muted-foreground);
+        font-size: 9px;
+        font-weight: 600;
+        line-height: 1.5;
+    }
+
+    .pricing-intelligence-sheen {
+        position: absolute;
+        top: 0;
+        left: -60%;
+        width: 40%;
+        height: 100%;
+        background: linear-gradient(
+            100deg,
+            transparent,
+            color-mix(in srgb, var(--gold) 18%, transparent),
+            transparent
+        );
+        transform: skewX(-18deg);
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .pricing-intelligence-strip:hover .pricing-intelligence-sheen {
+        animation: pricingSheen 1.1s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+    }
+
+    @keyframes pricingSheen {
+        0% {
+            left: -60%;
+            opacity: 0;
+        }
+
+        40% {
+            opacity: 1;
+        }
+
+        100% {
+            left: 120%;
+            opacity: 0;
+        }
+    }
+
+    @media (max-width: 760px) {
+        .pricing-intelligence-strip {
+            gap: 14px;
+            padding: 14px 16px 14px 14px;
+        }
+
+        .pricing-intelligence-pulse {
+            width: 32px;
+            height: 32px;
+        }
+
+        .pricing-intelligence-title {
+            font-size: 12px;
+        }
+
+        .pricing-intelligence-desc {
+            font-size: 8px;
+        }
+    }
+
+    .service-promise {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: var(--kora);
+        font-size: 9px;
+        font-weight: 900;
+    }
+
+    .service-promise i {
+        display: inline-grid;
+        place-items: center;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--gold);
+        color: var(--kora);
+        font-size: 9px;
+        font-style: normal;
+    }
+
+    .timeline-segment-price {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-left: auto;
+    }
+
+    .timeline-segment-price-base {
+        color: var(--muted-foreground);
+        font-size: 9px;
+        font-weight: 700;
+    }
+
+    .timeline-segment-price-final {
+        color: var(--kora);
+        font-size: 10px;
+        font-weight: 900;
+    }
+
+    .timeline-segment-price .fare-variation {
+        margin: 0;
+        padding: 2px 5px;
+        font-size: 9px;
+    }
+
     .btn {
         display: inline-flex;
         align-items: center;
@@ -7611,6 +7878,7 @@
         opacity: 0;
         transform: translateY(8px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);

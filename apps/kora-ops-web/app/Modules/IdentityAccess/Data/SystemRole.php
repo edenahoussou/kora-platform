@@ -79,6 +79,7 @@ enum SystemRole: string
                 'tickets.view',
             ],
             self::OperationsDirector => [
+                'tickets.view-network',
                 'agencies.view',
                 'fleet.view',
                 'fleet.create',
@@ -101,6 +102,7 @@ enum SystemRole: string
                 'tickets.view',
             ],
             self::CommercialDirector => [
+                'tickets.view-network',
                 'agencies.view',
                 'fleet.view',
                 'fleet.create',
@@ -122,6 +124,7 @@ enum SystemRole: string
                 'tickets.view',
             ],
             self::Daf => [
+                'tickets.view-network',
                 'bookings.view',
                 'company-accounts.view',
                 'company-accounts.manage',
@@ -131,6 +134,7 @@ enum SystemRole: string
                 'tickets.view',
             ],
             self::GeneralManagement => [
+                'tickets.view-network',
                 'agencies.view',
                 'fleet.view',
                 'fleet.create',
@@ -206,6 +210,7 @@ enum SystemRole: string
             'tickets.issue',
             'tickets.view',
             'tickets.cancel',
+            'tickets.view-network',
             'group-discounts.view',
             'group-discounts.manage',
             'company-accounts.view',

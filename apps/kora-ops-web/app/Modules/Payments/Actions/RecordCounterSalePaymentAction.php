@@ -123,6 +123,7 @@ class RecordCounterSalePaymentAction
             }
 
             $lockedReservation->update([
+                'selling_agency_id' => $cashSession->agency_id ?? $agent->agency_id,
                 'status' => ReservationStatus::Paid,
                 'ticket_issuance_status' => TicketIssuanceStatus::Pending,
                 'ticket_issuance_error' => null,

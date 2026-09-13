@@ -91,3 +91,7 @@ _Avoid_: Guichet agence KORA OPS Web du MVP
 **Agence**:
 Entite commerciale KORA ou l'argent circule (vente guichet, caisse, encaissement mobile money, terminal P501). L'agence se rattache aux utilisateurs et aux flux financiers, pas aux ressources d'exploitation. Un bus, une ligne, un arret ou un depart n'appartient pas a une agence — ce sont des ressources du reseau KORA. L'arret (ou le bus s'arrete) et l'agence (ou l'argent change de mains) sont deux concepts distincts qui peuvent coexister geographiquement sans etre lies structurellement.
 _Avoid_: Lier un bus ou un depart a une agence; confondre l'arret avec l'agence
+
+**Agence de vente**:
+Agence qui réalise commercialement une vente de billets. Elle est conservée dans l’historique, même si le vendeur change ensuite d’agence, et couvre aussi les ventes à crédit entreprise. Les ventes en ligne sans intervention d’une agence et les anciennes ventes dont l’agence ne peut être établie avec certitude restent sans agence de vente connue.
+_Avoid_: Agence actuelle du vendeur ; agence du départ ; réaffecter les ventes historiques lors d’une mutation

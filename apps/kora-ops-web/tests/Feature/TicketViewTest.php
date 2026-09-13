@@ -18,10 +18,13 @@ use App\Modules\Payments\Models\Payment;
 use App\Modules\Ticketing\Data\TicketStatus;
 use App\Modules\Ticketing\Models\Ticket;
 use Carbon\CarbonImmutable;
+use Database\Seeders\KoraBusRolePermissionSeeder;
 
 function ticketViewScenario(): array
 {
+    test()->seed(KoraBusRolePermissionSeeder::class);
     $user = User::factory()->create();
+    $user->assignRole('agency_agent');
     $agency = Agency::create(['code' => 'COT01', 'name' => 'Cotonou Agence', 'city' => 'Cotonou', 'country' => 'BJ', 'status' => 'active']);
     $user->agency()->associate($agency);
     $user->save();
@@ -55,6 +58,7 @@ function ticketViewScenario(): array
 
     $reservation = Reservation::create([
         'created_by_user_id' => $user->id,
+        'selling_agency_id' => $agency->id,
         'status' => 'ticketed',
         'total_amount' => 7000,
         'currency' => 'XOF',

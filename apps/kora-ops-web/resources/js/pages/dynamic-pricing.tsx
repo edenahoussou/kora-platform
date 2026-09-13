@@ -227,19 +227,21 @@ export default function DynamicPricingPage({
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                         <Button
+                            size="kora"
+                            variant="kora-secondary"
                             type="button"
-                            variant="ghost"
                             onClick={onboarding.start}
-                            className="h-11 rounded-xl px-3 text-xs font-bold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                         >
                             <HelpCircle className="size-4" strokeWidth={1.8} />
                             Parcours guidé
                         </Button>
                         {permissions.canCreate && (
                             <Button
+                                size="kora"
+                                variant="kora"
                                 type="button"
                                 onClick={() => setSelected(null)}
-                                className="group h-11 rounded-xl bg-kora px-4 font-bold text-white shadow-sm transition-[transform,background-color] duration-300 hover:-translate-y-0.5 hover:bg-digital active:scale-[0.98]"
+                                className="group"
                             >
                                 <Plus className="size-4" strokeWidth={1.8} />
                                 Nouvelle règle
@@ -257,7 +259,7 @@ export default function DynamicPricingPage({
                             label: 'Règles actives',
                             value: counts.active,
                             icon: ShieldCheck,
-                            tone: 'text-emerald-700 bg-emerald-500/10',
+                            tone: 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10',
                         },
                         {
                             label: 'À vérifier',
@@ -274,10 +276,10 @@ export default function DynamicPricingPage({
                     ].map(({ label, value, icon: Icon, tone }) => (
                         <div
                             key={label}
-                            className="flex items-center gap-3 rounded-xl bg-card p-4 shadow-sm ring-1 ring-black/[0.04]"
+                            className="flex items-center gap-3 rounded-[18px] bg-card p-4 shadow-sm ring-1 ring-border"
                         >
                             <span
-                                className={`grid size-9 place-items-center rounded-lg ${tone}`}
+                                className={`grid size-9 place-items-center rounded-[10px] ${tone}`}
                             >
                                 <Icon className="size-4" strokeWidth={1.8} />
                             </span>
@@ -295,7 +297,8 @@ export default function DynamicPricingPage({
 
                 <div className="cash-reveal cash-reveal-delay-2">
                     <KoraFilterBar
-                        route="/dynamic-pricing"
+                        route={pricingRules.index.url()}
+                        appearance="compact"
                         searchPlaceholder="Rechercher une ligne ou une règle…"
                         filters={filters}
                     />
@@ -332,11 +335,11 @@ export default function DynamicPricingPage({
                                         key={rule.uuid}
                                         type="button"
                                         onClick={() => setSelected(rule)}
-                                        className={`group w-full rounded-xl p-4 text-left ring-1 transition-[transform,box-shadow,background-color] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${active ? 'bg-gold/10 shadow-[0_8px_24px_rgba(246,176,0,0.1)] ring-gold/30' : 'bg-card ring-black/[0.04] hover:-translate-y-0.5 hover:shadow-[0_8px_22px_rgba(0,29,78,0.06)]'}`}
+                                        className={`group w-full rounded-[18px] p-4 text-left ring-1 transition-[transform,box-shadow,background-color] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${active ? 'bg-gold/10 shadow-[0_8px_24px_rgba(246,176,0,0.1)] ring-gold/30' : 'bg-card ring-border hover:-translate-y-0.5 hover:shadow-[0_8px_22px_rgba(0,29,78,0.06)]'}`}
                                     >
                                         <div className="flex items-start justify-between gap-3">
                                             <span
-                                                className={`grid size-8 place-items-center rounded-lg ${rule.type === 'increase' ? 'bg-amber-500/10 text-amber-700' : 'bg-sky-500/10 text-sky-700'}`}
+                                                className={`grid size-8 place-items-center rounded-[10px] ${rule.type === 'increase' ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400' : 'bg-sky-500/10 text-sky-700 dark:text-sky-400'}`}
                                             >
                                                 <RuleIcon
                                                     className="size-4"
@@ -380,7 +383,7 @@ export default function DynamicPricingPage({
                                 );
                             })}
                             {rules.data.length === 0 && (
-                                <div className="rounded-xl bg-muted/30 p-6 text-center text-sm text-muted-foreground ring-1 ring-black/[0.04]">
+                                <div className="rounded-[18px] bg-muted/30 p-6 text-center text-sm text-muted-foreground ring-1 ring-border">
                                     Aucune règle pour le moment.
                                 </div>
                             )}
@@ -402,7 +405,7 @@ export default function DynamicPricingPage({
                         data-onboarding="guardrails"
                         className="space-y-4 lg:col-span-3"
                     >
-                        <div className="rounded-xl bg-card p-5 shadow-sm ring-1 ring-black/[0.05]">
+                        <div className="rounded-[18px] bg-card p-5 shadow-sm ring-1 ring-border">
                             <div className="flex items-start justify-between gap-3">
                                 <div>
                                     <p className="section-kicker text-gold">
@@ -422,7 +425,7 @@ export default function DynamicPricingPage({
                                 quelle que soit la règle gagnante.
                             </p>
                             <div className="mt-4 grid grid-cols-2 gap-2">
-                                <div className="rounded-lg bg-muted/50 p-3">
+                                <div className="rounded-[10px] bg-muted/50 p-3">
                                     <p className="text-[0.62rem] text-muted-foreground">
                                         Plancher
                                     </p>
@@ -430,7 +433,7 @@ export default function DynamicPricingPage({
                                         {settings.floorCoefficient ?? '—'}
                                     </p>
                                 </div>
-                                <div className="rounded-lg bg-muted/50 p-3">
+                                <div className="rounded-[10px] bg-muted/50 p-3">
                                     <p className="text-[0.62rem] text-muted-foreground">
                                         Plafond
                                     </p>
@@ -457,7 +460,7 @@ export default function DynamicPricingPage({
                         </div>
 
                         {showSettings && permissions.canManageSettings && (
-                            <div className="rounded-xl bg-card p-5 shadow-sm ring-1 ring-black/[0.05]">
+                            <div className="rounded-[18px] bg-card p-5 shadow-sm ring-1 ring-border">
                                 <div className="mb-4 flex items-center gap-2">
                                     <Layers3
                                         className="size-4 text-gold"
@@ -486,7 +489,7 @@ export default function DynamicPricingPage({
                                             defaultValue={
                                                 settings.floorCoefficient ?? ''
                                             }
-                                            className="h-10 rounded-lg border-0 bg-muted ring-1 ring-black/[0.05]"
+                                            className="h-10 rounded-[10px] border-0 bg-muted ring-1 ring-border"
                                         />
                                     </div>
                                     <div className="grid gap-2">
@@ -504,12 +507,14 @@ export default function DynamicPricingPage({
                                                 settings.ceilingCoefficient ??
                                                 ''
                                             }
-                                            className="h-10 rounded-lg border-0 bg-muted ring-1 ring-black/[0.05]"
+                                            className="h-10 rounded-[10px] border-0 bg-muted ring-1 ring-border"
                                         />
                                     </div>
                                     <Button
+                                        size="kora"
+                                        variant="kora"
                                         type="submit"
-                                        className="w-full rounded-lg bg-kora font-bold text-white hover:bg-digital"
+                                        className="w-full"
                                     >
                                         Enregistrer
                                     </Button>
@@ -520,7 +525,7 @@ export default function DynamicPricingPage({
                         {selected && (
                             <div
                                 data-onboarding="lifecycle"
-                                className="rounded-xl bg-card p-5 shadow-sm ring-1 ring-black/[0.05]"
+                                className="rounded-[18px] bg-card p-5 shadow-sm ring-1 ring-border"
                             >
                                 <div className="flex items-center gap-2">
                                     <ShieldCheck
@@ -536,10 +541,12 @@ export default function DynamicPricingPage({
                                         ? 'Cette version influence les nouvelles demandes de prix.'
                                         : "Cette version ne modifie aucune vente tant qu'elle n'est pas active."}
                                 </p>
-                                <div className="mt-4 flex gap-2">
+                                <div className="mt-4 flex flex-wrap gap-2">
                                     {selected.status !== 'active' &&
                                         permissions.canUpdate && (
                                             <Button
+                                                size="kora"
+                                                variant="kora"
                                                 type="button"
                                                 onClick={() =>
                                                     changeStatus(
@@ -547,7 +554,7 @@ export default function DynamicPricingPage({
                                                         'active',
                                                     )
                                                 }
-                                                className="h-10 flex-1 rounded-lg bg-kora text-xs font-bold text-white hover:bg-gold hover:text-kora"
+                                                className="flex-1"
                                             >
                                                 <CheckCircle2
                                                     className="size-4 shrink-0"
@@ -559,15 +566,16 @@ export default function DynamicPricingPage({
                                     {selected.status === 'active' &&
                                         permissions.canUpdate && (
                                             <Button
+                                                size="kora"
+                                                variant="kora-secondary"
                                                 type="button"
-                                                variant="ghost"
                                                 onClick={() =>
                                                     changeStatus(
                                                         selected,
                                                         'draft',
                                                     )
                                                 }
-                                                className="h-10 flex-1 rounded-lg text-xs font-bold"
+                                                className="flex-1"
                                             >
                                                 <CircleDashed
                                                     className="size-4 shrink-0"
@@ -579,15 +587,16 @@ export default function DynamicPricingPage({
                                     {selected.status !== 'archived' &&
                                         permissions.canUpdate && (
                                             <Button
+                                                size="kora"
+                                                variant="kora-secondary"
                                                 type="button"
-                                                variant="ghost"
                                                 onClick={() =>
                                                     changeStatus(
                                                         selected,
                                                         'archived',
                                                     )
                                                 }
-                                                className="h-10 flex-1 rounded-lg bg-gold text-xs font-bold text-kora hover:bg-kora hover:text-white"
+                                                className="flex-1"
                                             >
                                                 <Archive
                                                     className="size-4 shrink-0"

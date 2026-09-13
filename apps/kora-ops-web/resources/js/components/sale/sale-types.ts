@@ -280,6 +280,13 @@ export type SaleItineraryLeg = {
     originStop: SaleStop;
     destinationStop: SaleStop;
     amount: number;
+    baseAmount?: number | null;
+    coefficient?: number | null;
+    finalAmount?: number | null;
+    dynamicAdjustmentAmount?: number | null;
+    pricingRuleUuid?: string | null;
+    fillRate?: number | null;
+    hoursBeforeDeparture?: number | null;
     availableSeatsCount: number;
     serviceClassCode: string | null;
     serviceClassName: string | null;
@@ -296,6 +303,18 @@ export type SaleItinerary = {
     arrivalAt: string;
     connectionMarginMinutes: number;
     legs: SaleItineraryLeg[];
+};
+
+export type SaleItineraryDynamicPricing = {
+    hasDynamicPricing: boolean;
+    isIncrease: boolean;
+    coefficient: number;
+    baseAmount: number;
+    finalAmount: number;
+    dynamicAdjustmentAmount: number;
+    fillRate: number | null;
+    hoursBeforeDeparture: number | null;
+    pricingRuleUuid: string | null;
 };
 
 export type SaleSeat = {

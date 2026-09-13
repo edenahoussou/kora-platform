@@ -4,19 +4,19 @@ namespace App\Modules\Ticketing\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\SendReservationWhatsAppNotificationJob;
-use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\Booking\Services\DepartureStopTimeResolver;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
 use App\Modules\Notifications\Models\WhatsAppDelivery;
 use App\Modules\Ticketing\Actions\GenerateTicketPdfAction;
 use App\Modules\Ticketing\Actions\GenerateTicketQrCodeAction;
+use App\Modules\Ticketing\Actions\ResolveTicketAmountAction;
 use App\Modules\Ticketing\Models\Ticket;
 use Carbon\CarbonInterface;
-use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * Renders a single ticket as a standalone Blade page (no dashboard layout)
@@ -27,13 +27,14 @@ class TicketViewController extends Controller
     public function __construct(
         private readonly DepartureStopTimeResolver $stopTimeResolver,
         private readonly GenerateTicketQrCodeAction $generateQr,
+        private readonly ResolveTicketAmountAction $resolveTicketAmount,
         private readonly GenerateTicketPdfAction $generatePdf,
     ) {}
 
     public function show(Ticket $ticket, Request $request): Response
     {
         $this->loadRelations($ticket);
-        $this->authorizeOwner($ticket->reservation, $request);
+        Gate::authorize('view', $ticket);
 
         return response()->view('tickets.show', $this->viewData($ticket, isPdf: false));
     }
@@ -41,7 +42,7 @@ class TicketViewController extends Controller
     public function pdf(Ticket $ticket, Request $request): Response
     {
         $this->loadRelations($ticket);
-        $this->authorizeOwner($ticket->reservation, $request);
+        Gate::authorize('view', $ticket);
 
         $pdf = $this->generatePdf->execute($ticket);
 
@@ -64,7 +65,7 @@ class TicketViewController extends Controller
     public function sendWhatsApp(Ticket $ticket, Request $request): RedirectResponse
     {
         $this->loadRelations($ticket);
-        $this->authorizeOwner($ticket->reservation, $request);
+        Gate::authorize('view', $ticket);
 
         $validated = $request->validate([
             'phone' => ['nullable', 'string', 'max:32'],
@@ -92,8 +93,7 @@ class TicketViewController extends Controller
     private function loadRelations(Ticket $ticket): void
     {
         $ticket->loadMissing([
-            'reservation.payments.verifier.agency',
-            'reservation.creator.agency',
+            'reservation.sellingAgency',
             'reservationPassenger.segments.departure.line',
             'reservationPassenger.segments.departure.bus',
             'reservationPassenger.segments.seat',
@@ -118,8 +118,7 @@ class TicketViewController extends Controller
         $originCity = $this->stopCity($firstLeg?->originStop) ?? '—';
         $destinationCity = $this->stopCity($lastLeg?->destinationStop) ?? '—';
 
-        $payment = $reservation?->payments->sortByDesc('id')->first();
-        $agency = $payment?->verifier->agency ?? $reservation?->creator?->agency;
+        $agency = $reservation?->sellingAgency;
         $fiscalInvoice = FiscalInvoice::query()
             ->where('reservation_id', $reservation?->getKey())
             ->first();
@@ -133,7 +132,7 @@ class TicketViewController extends Controller
 
         $qrSvg = $this->generateQr->execute($ticket->qr_code ?? $ticket->uuid);
 
-        $amount = $this->resolveAmount($reservation, $passenger?->passenger_index);
+        $amount = $this->resolveTicketAmount->execute($ticket);
         $currency = $reservation->currency ?? 'XOF';
 
         return [
@@ -207,17 +206,6 @@ class TicketViewController extends Controller
         return $stop->city ?? $stop->name ?? null;
     }
 
-    private function resolveAmount(?Reservation $reservation, ?int $passengerIndex): int
-    {
-        if ($reservation === null || $passengerIndex === null) {
-            return 0;
-        }
-
-        $allocations = $reservation->total_snapshot['passenger_allocations'] ?? [];
-
-        return (int) ($allocations[$passengerIndex] ?? 0);
-    }
-
     private function formatMoney(int $amount, string $currency): string
     {
         $formatted = number_format($amount, 0, ',', ' ');
@@ -243,14 +231,5 @@ class TicketViewController extends Controller
             'ops' => 'Vente OPS',
             default => 'KORA EXPRESS',
         };
-    }
-
-    private function authorizeOwner(?Reservation $reservation, Request $request): void
-    {
-        if ($reservation === null
-            || ($reservation->created_by_user_id !== $request->user()?->getKey()
-                && $reservation->payer_user_id !== $request->user()?->getKey())) {
-            throw new AuthorizationException('Vous n’avez pas accès à ce billet.');
-        }
     }
 }

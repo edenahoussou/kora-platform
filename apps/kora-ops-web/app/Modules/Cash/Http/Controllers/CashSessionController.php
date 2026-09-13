@@ -11,35 +11,34 @@ use App\Modules\Cash\Actions\RecordCashMovementAction;
 use App\Modules\Cash\Http\Requests\ApproveCashMovementRequest;
 use App\Modules\Cash\Http\Requests\ApproveCashVarianceRequest;
 use App\Modules\Cash\Http\Requests\CloseCashSessionRequest;
+use App\Modules\Cash\Http\Requests\ListCashMovementsRequest;
 use App\Modules\Cash\Http\Requests\StoreCashMovementRequest;
 use App\Modules\Cash\Http\Requests\StoreCashSessionRequest;
 use App\Modules\Cash\Models\CashLedger;
 use App\Modules\Cash\Models\CashMovement;
 use App\Modules\Cash\Models\CashSession;
+use App\Modules\Cash\Services\CashJournalQuery;
 use App\Modules\Payments\Models\AgencyPaymentAccount;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CashSessionController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(ListCashMovementsRequest $request, CashJournalQuery $journal): Response
     {
-        Gate::authorize('viewAny', CashSession::class);
         $user = $request->user();
-        $session = $user->agency_id === null ? null : CashSession::query()
-            ->where('agent_id', $user->getKey())
-            ->where('agency_id', $user->agency_id)
-            ->whereDate('business_date', now()->toDateString())
-            ->with(['agent', 'agency', 'ledgers.agencyPaymentAccount', 'movements.cashLedger'])
-            ->latest('id')
-            ->first();
+        $session = $journal->session($user);
+        $movements = $journal->movements($session, $request->filters())
+            ->with(['cashLedger'])->latest('id')->paginate(8)->withQueryString();
 
         return Inertia::render('cash', [
             'cashSession' => $this->serializeSession($session),
+            'movements' => $movements->through(fn (CashMovement $movement): array => $this->serializeMovement($movement)),
+            'filters' => $request->filters(),
             'mobileMoneyAccounts' => $this->serializeAccounts($user->agency_id),
             'permissions' => [
                 'canOpen' => Gate::allows('create', CashSession::class),
@@ -49,6 +48,36 @@ class CashSessionController extends Controller
                 'canApproveMovement' => $user->can('cash.transfer.approve'),
             ],
         ]);
+    }
+
+    public function export(ListCashMovementsRequest $request, CashJournalQuery $journal): StreamedResponse
+    {
+        $session = $journal->session($request->user());
+        $query = $journal->movements($session, $request->filters())->with('cashLedger.agencyPaymentAccount');
+
+        return response()->streamDownload(function () use ($query): void {
+            $stream = fopen('php://output', 'w');
+            if ($stream === false) {
+                return;
+            }
+            fwrite($stream, "\xEF\xBB\xBF");
+            fputcsv($stream, ['Date', 'Nature', 'Canal', 'Référence', 'Sens', 'Statut', 'Montant'], ';', '"', '');
+            foreach ($query->lazyByIdDesc(500) as $movement) {
+                $ledger = $movement->cashLedger;
+                $channel = $ledger?->kind->value === 'cash' ? 'cash' : $ledger?->agencyPaymentAccount?->network->value;
+                $cells = [
+                    $movement->occurred_at?->timezone(config('app.timezone'))->format('d/m/Y H:i') ?? '',
+                    CashJournalQuery::TYPES[$movement->type] ?? $movement->type,
+                    CashJournalQuery::CHANNELS[$channel ?? ''] ?? 'Mobile Money',
+                    $movement->reference ?? '',
+                    $movement->direction->value === 'in' ? 'Encaissement' : 'Sortie',
+                    CashJournalQuery::STATUSES[$movement->status->value],
+                    (string) $movement->amount,
+                ];
+                fputcsv($stream, array_map(fn (string $cell): string => preg_match('/^[\s]*[=+@-]/u', $cell) ? "'".$cell : $cell, $cells), ';', '"', '');
+            }
+            fclose($stream);
+        }, 'encaissements-'.($session?->business_date->toDateString() ?? now()->toDateString()).'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     public function store(
@@ -154,6 +183,10 @@ class CashSessionController extends Controller
 
         return [
             'uuid' => $session->uuid,
+            'isOpen' => $session->status->value === 'open',
+            'canOpen' => false,
+            'totalCash' => (int) $session->total_cash,
+            'totalMobileMoney' => (int) $session->total_mobile_money,
             'businessDate' => $session->business_date->toDateString(),
             'status' => $session->status->value,
             'openedAt' => $session->opened_at?->toISOString(),
@@ -164,6 +197,9 @@ class CashSessionController extends Controller
                 'kind' => $ledger->kind->value,
                 'status' => $ledger->status->value,
                 'openingBalance' => (int) $ledger->opening_balance,
+                'inflows' => (int) $ledger->inflows,
+                'outflows' => (int) $ledger->outflows,
+                'movementCount' => (int) $ledger->movements_count,
                 'expectedBalance' => (int) $ledger->expected_balance,
                 'actualBalance' => $ledger->actual_balance,
                 'variance' => $ledger->variance,
@@ -175,9 +211,7 @@ class CashSessionController extends Controller
                 ] : null,
                 'media' => $this->serializeLedgerMedia($ledger),
             ])->values()->all(),
-            'movements' => array_values($session->movements->sortByDesc('id')->take(30)->map(
-                fn (CashMovement $movement): array => $this->serializeMovement($movement),
-            )->all()),
+
         ];
     }
 

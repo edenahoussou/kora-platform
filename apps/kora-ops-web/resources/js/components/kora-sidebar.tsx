@@ -277,6 +277,9 @@ export function KoraSidebar({
 
                     if (
                         !canAccess(item.permission) ||
+                        (item.href === '/cash' && !auth?.user?.canViewCash) ||
+                        (item.href === '/tickets' &&
+                            !auth?.user?.canViewTickets) ||
                         (item.children && visibleChildren?.length === 0)
                     ) {
                         return null;

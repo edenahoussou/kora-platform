@@ -25,6 +25,9 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property int $expected_balance
  * @property int|null $actual_balance
  * @property int|null $variance
+ * @property int|null $inflows
+ * @property int|null $outflows
+ * @property int $movements_count
  * @property Carbon|null $opened_at
  * @property Carbon|null $closed_at
  */
@@ -32,6 +35,11 @@ class CashLedger extends KoraModel implements HasMedia
 {
     /** @use HasFactory<CashLedgerFactory> */
     use HasFactory, InteractsWithMedia;
+
+    protected static function newFactory(): CashLedgerFactory
+    {
+        return CashLedgerFactory::new();
+    }
 
     protected $fillable = [
         'uuid',

@@ -274,6 +274,8 @@ class AuthSessionController extends Controller
      *
      * @authenticated
      *
+     * @bodyParam birth_date string Birth date in Y-m-d format. Example: 1990-05-15
+     *
      * @response 200 scenario="Profile updated" {
      *   "data": {
      *     "user": {

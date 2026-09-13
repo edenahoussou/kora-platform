@@ -4,6 +4,7 @@ namespace App\Modules\Ticketing\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Booking\Models\Reservation;
+use App\Modules\Ticketing\Http\Resources\PassengerTicketResource;
 use App\Modules\Ticketing\Http\Resources\TicketResource;
 use App\Modules\Ticketing\Models\Ticket;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -17,6 +18,89 @@ use Illuminate\Http\Request;
  */
 class TicketController extends Controller
 {
+    /**
+     * List all tickets belonging to the authenticated passenger.
+     *
+     * Returns every issued ticket for which the authenticated user is either
+     * the creator (`created_by_user_id`) or the payer (`payer_user_id`) of the
+     * underlying reservation, across all statuses. The response is paginated
+     * and uses the `PassengerTicketResource` contract, which maps backend
+     * statuses to the app-facing vocabulary (confirmed / completed / cancelled).
+     *
+     * @authenticated
+     *
+     * @queryParam page int Page number (default 1). Example: 1
+     *
+     * @response 200 scenario="Passenger ticket list" {
+     *   "data": [
+     *     {
+     *       "uuid": "t1234567-89ab-cdef-0123-456789abcdef",
+     *       "short_code": "KE-20260804-78342",
+     *       "qr_code": "v2.eyJpdiI6...",
+     *       "status": "confirmed",
+     *       "issued_at": "2026-08-20T08:10:00+00:00",
+     *       "reservation_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+     *       "amount": 12500,
+     *       "currency": "XOF",
+     *       "passenger": {
+     *         "uuid": "p1234567-89ab-cdef-0123-456789abcdef",
+     *         "first_name": "Aïcha",
+     *         "last_name": "Hounkpè"
+     *       },
+     *       "origin": {
+     *         "city": "Cotonou",
+     *         "city_code": "CTN",
+     *         "stop_name": "Cotonou Dantokpa"
+     *       },
+     *       "destination": {
+     *         "city": "Malanville",
+     *         "city_code": "MLV",
+     *         "stop_name": "Malanville Centre"
+     *       },
+     *       "departure": {
+     *         "uuid": "dep12345-6789-abcd-ef01-23456789abcd",
+     *         "departs_at": "2026-08-04T07:30:00+00:00",
+     *         "line_name": "Cotonou-Malanville",
+     *         "line_code": "L1"
+     *       },
+     *       "seat": {
+     *         "uuid": "seat123-4567-89ab-cdef-0123456789ab",
+     *         "code": "4A"
+     *       }
+     *     }
+     *   ],
+     *   "meta": {
+     *     "current_page": 1,
+     *     "per_page": 15,
+     *     "total": 5
+     *   }
+     * }
+     * @response 401 scenario="Unauthenticated" {
+     *   "message": "Unauthenticated."
+     * }
+     */
+    public function mine(Request $request): JsonResponse
+    {
+        $userId = $request->user()->getKey();
+
+        $tickets = Ticket::query()
+            ->whereHas('reservation', function ($q) use ($userId): void {
+                $q->where('created_by_user_id', $userId)
+                    ->orWhere('payer_user_id', $userId);
+            })
+            ->with([
+                'reservation',
+                'reservationPassenger.segments.departure.line',
+                'reservationPassenger.segments.originStop.physicalStop',
+                'reservationPassenger.segments.destinationStop.physicalStop',
+                'reservationPassenger.segments.seat',
+            ])
+            ->orderByDesc('issued_at')
+            ->paginate(15);
+
+        return PassengerTicketResource::collection($tickets)->response()->setStatusCode(200);
+    }
+
     /**
      * List all tickets for a reservation.
      *

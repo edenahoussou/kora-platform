@@ -36,6 +36,13 @@ final class ItineraryLegData
         public readonly ?string $serviceClassName = null,
         public readonly ?int $estimatedDurationMinutes = null,
         public readonly ?Bus $bus = null,
+        public readonly ?int $baseAmount = null,
+        public readonly ?float $coefficient = null,
+        public readonly ?int $finalAmount = null,
+        public readonly ?int $dynamicAdjustmentAmount = null,
+        public readonly ?string $pricingRuleUuid = null,
+        public readonly ?float $fillRate = null,
+        public readonly ?float $hoursBeforeDeparture = null,
     ) {}
 }
 
@@ -522,12 +529,26 @@ class ItinerarySearchService
                     continue;
                 }
 
-                $farePreview = $this->calculateFarePreview->handleFromLoadedFares(
-                    $fares,
+                // Apply dynamic pricing per leg so search results show the
+                // actual price the customer will pay, not just the static base
+                // fare. Falls back to the static base amount when no fare or
+                // no pricing engine result is available.
+                $farePreview = $this->calculateFarePreview->handleForDeparture(
+                    $departure,
                     $originStop,
                     $stop,
-                    $travelDate,
                 );
+
+                if ($farePreview !== null) {
+                    $baseAmount = (int) $farePreview['base_amount'];
+                    $coefficient = (float) $farePreview['coefficient'];
+                    $finalAmount = (int) $farePreview['final_amount'];
+                    $legAmount = $finalAmount;
+                } else {
+                    $baseAmount = $legAmount;
+                    $coefficient = 1.0;
+                    $finalAmount = $legAmount;
+                }
 
                 $leg = new ItineraryLegData(
                     departure: $departure,
@@ -542,6 +563,13 @@ class ItinerarySearchService
                     serviceClassName: $farePreview['service_class_name'] ?? null,
                     estimatedDurationMinutes: $departure->line->estimated_duration_minutes,
                     bus: $departure->bus,
+                    baseAmount: $baseAmount,
+                    coefficient: $coefficient,
+                    finalAmount: $finalAmount,
+                    dynamicAdjustmentAmount: $finalAmount - $baseAmount,
+                    pricingRuleUuid: $farePreview['pricing_rule_uuid'] ?? null,
+                    fillRate: $farePreview['fill_rate'] ?? null,
+                    hoursBeforeDeparture: $farePreview['hours_before_departure'] ?? null,
                 );
 
                 if ($stop->physical_stop_id === $destinationPhysicalId) {

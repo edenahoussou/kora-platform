@@ -23,6 +23,21 @@ function itineraryKey(itinerary: SaleItinerary): string {
         .join('|');
 }
 
+/**
+ * Détecte si au moins un itinéraire de la liste a une tarification
+ * dynamique appliquée (base ≠ final sur au moins une jambe).
+ */
+function hasDynamicPricingInList(itineraries: SaleItinerary[]): boolean {
+    return itineraries.some((itinerary) =>
+        itinerary.legs.some(
+            (leg) =>
+                leg.baseAmount != null &&
+                leg.finalAmount != null &&
+                leg.baseAmount !== leg.finalAmount,
+        ),
+    );
+}
+
 export function ItineraryList({
     itineraries,
     selectedLegsKey,
@@ -83,6 +98,8 @@ export function ItineraryList({
         return () => window.clearInterval(interval);
     }, []);
 
+    const hasDynamic = hasDynamicPricingInList(itineraries);
+
     return (
         <section
             className={cn(
@@ -121,7 +138,39 @@ export function ItineraryList({
                         )}
                     </h2>
                 </div>
+                {hasDynamic && (
+                    <span className="service-promise">
+                        <i>✓</i> Prix final garanti
+                    </span>
+                )}
             </div>
+            {hasDynamic && (
+                <div className="pricing-intelligence-strip" role="status">
+                    <span
+                        className="pricing-intelligence-pulse"
+                        aria-hidden="true"
+                    >
+                        <i className="pricing-intelligence-dot" />
+                    </span>
+                    <div className="pricing-intelligence-body">
+                        <span className="pricing-intelligence-eyebrow">
+                            Tarification dynamique
+                        </span>
+                        <strong className="pricing-intelligence-title">
+                            Prix calculés en temps réel
+                        </strong>
+                        <small className="pricing-intelligence-desc">
+                            Les prix affichés intègrent les majorations et
+                            réductions dynamiques. Les billets déjà achetés
+                            restent inchangés.
+                        </small>
+                    </div>
+                    <span
+                        className="pricing-intelligence-sheen"
+                        aria-hidden="true"
+                    />
+                </div>
+            )}
             {itineraries.length > 0 ? (
                 <div className="departure-list">
                     {itineraries.map((itinerary) => (

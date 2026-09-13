@@ -1,4 +1,4 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, router, useForm, usePoll } from '@inertiajs/react';
 import {
     ArrowDownLeft,
     ArrowUpRight,
@@ -14,9 +14,10 @@ import {
     SlidersHorizontal,
     X,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CameraCapture } from '@/components/cash/camera-capture';
 import { CashOpeningDialog } from '@/components/cash/cash-opening-dialog';
+import { KoraStatusBadge } from '@/components/kora-status-badge';
 import type {
     SaleCashLedger,
     SaleCashMedia,
@@ -25,6 +26,8 @@ import type {
 } from '@/components/sale/sale-types';
 import { formatMoney } from '@/components/sale/sale-utils';
 import { cn } from '@/lib/utils';
+import { cash } from '@/routes';
+import { exportMethod as exportCash } from '@/routes/cash';
 import { approveVariance, close as closeCash } from '@/routes/cash';
 import { approve, reject, store } from '@/routes/cash/movements';
 
@@ -41,13 +44,32 @@ type CashMovement = {
     media: SaleCashMedia[];
 };
 type CashSessionPage = SaleCashSession & {
-    ledgers: SaleCashLedger[];
-    movements: CashMovement[];
+    status: string;
+    ledgers: CashLedgerPage[];
     openedAt?: string | null;
     agentName?: string | null;
     agencyName?: string | null;
 };
+type CashLedgerPage = SaleCashLedger & {
+    inflows: number;
+    outflows: number;
+    movementCount: number;
+};
+type CashFilters = {
+    q: string;
+    channel: string;
+    status: string;
+    direction: string;
+};
 type Props = {
+    movements: {
+        data: CashMovement[];
+        current_page: number;
+        last_page: number;
+        total: number;
+        per_page: number;
+    };
+    filters: CashFilters;
     cashSession: CashSessionPage | null;
     mobileMoneyAccounts: SaleMobileMoneyAccount[];
     permissions: {
@@ -82,177 +104,12 @@ const statusLabels: Record<string, string> = {
 
 const movementTypeLabels: Record<string, string> = {
     counter_sale: 'Vente guichet',
+    counter_sale_cash: 'Vente guichet espèces',
+    counter_sale_mobile_money: 'Vente guichet Mobile Money',
     mobile_money_payment: 'Paiement Mobile Money',
     cash_payment: 'Paiement espèces',
     reversement: 'Reversement',
     adjustment: 'Ajustement',
-};
-
-const postedStatuses = new Set(['posted', 'approved']);
-
-function buildDemoMovements(): CashMovement[] {
-    const seeds = [
-        {
-            type: 'counter_sale',
-            direction: 'in' as const,
-            amount: 12500,
-            ledgerUuid: 'demo-ledger-cash',
-            reference: 'KORA-240828-001',
-            destinationLabel: null,
-            status: 'posted' as const,
-        },
-        {
-            type: 'mobile_money_payment',
-            direction: 'in' as const,
-            amount: 18500,
-            ledgerUuid: 'demo-ledger-mtn',
-            reference: 'MTN-884201',
-            destinationLabel: 'MTN MoMo',
-            status: 'posted' as const,
-        },
-        {
-            type: 'counter_sale',
-            direction: 'in' as const,
-            amount: 22000,
-            ledgerUuid: 'demo-ledger-cash',
-            reference: 'KORA-240828-003',
-            destinationLabel: null,
-            status: 'posted' as const,
-        },
-        {
-            type: 'mobile_money_payment',
-            direction: 'in' as const,
-            amount: 9500,
-            ledgerUuid: 'demo-ledger-moov',
-            reference: 'FLOOZ-441902',
-            destinationLabel: 'Moov Money / Flooz',
-            status: 'approved' as const,
-        },
-        {
-            type: 'reversement',
-            direction: 'out' as const,
-            amount: 50000,
-            ledgerUuid: 'demo-ledger-cash',
-            reference: 'REV-240828-01',
-            destinationLabel: 'Trésorerie agence',
-            status: 'pending' as const,
-        },
-        {
-            type: 'counter_sale',
-            direction: 'in' as const,
-            amount: 15000,
-            ledgerUuid: 'demo-ledger-cash',
-            reference: 'KORA-240828-006',
-            destinationLabel: null,
-            status: 'posted' as const,
-        },
-        {
-            type: 'mobile_money_payment',
-            direction: 'in' as const,
-            amount: 27500,
-            ledgerUuid: 'demo-ledger-moov',
-            reference: 'FLOOZ-441917',
-            destinationLabel: 'Moov Money / Flooz',
-            status: 'posted' as const,
-        },
-        {
-            type: 'adjustment',
-            direction: 'out' as const,
-            amount: 3000,
-            ledgerUuid: 'demo-ledger-cash',
-            reference: 'AJU-240828-01',
-            destinationLabel: 'Fonds de caisse',
-            status: 'approved' as const,
-        },
-    ];
-
-    return Array.from({ length: 120 }, (_, index) => {
-        const seed = seeds[index % seeds.length];
-        const hour = 7 + ((index * 3) % 10);
-        const minute = (index * 11) % 60;
-        const date = new Date('2026-08-28T00:00:00+01:00');
-        date.setHours(hour, minute, 0, 0);
-
-        return {
-            uuid: `demo-movement-${index + 1}`,
-            ...seed,
-            amount: seed.amount + (index % 5) * 500,
-            reference: `${seed.reference}-${String(index + 1).padStart(3, '0')}`,
-            occurredAt: date.toISOString(),
-            media: [],
-        };
-    });
-}
-
-const demoSession: CashSessionPage = {
-    isOpen: true,
-    canOpen: false,
-    uuid: 'demo-cash-session',
-    businessDate: '2026-08-28',
-    totalCash: 877500,
-    totalMobileMoney: 1157500,
-    status: 'open',
-    openedAt: '2026-08-28T07:32:00+01:00',
-    agentName: 'Aïcha Koudjo',
-    agencyName: 'Agence Cotonou — Étoile Rouge',
-    ledgers: [
-        {
-            uuid: 'demo-ledger-cash',
-            kind: 'cash',
-            status: 'open',
-            openingBalance: 150000,
-            expectedBalance: 877500,
-            actualBalance: null,
-            variance: null,
-            account: null,
-        },
-        {
-            uuid: 'demo-ledger-mtn',
-            kind: 'mobile_money',
-            status: 'open',
-            openingBalance: 200000,
-            expectedBalance: 492500,
-            actualBalance: null,
-            variance: null,
-            account: {
-                uuid: 'demo-account-mtn',
-                network: 'mtn_momo',
-                label: 'Compte principal',
-                accountIdentifier: '•••• 4821',
-            },
-        },
-        {
-            uuid: 'demo-ledger-moov',
-            kind: 'mobile_money',
-            status: 'open',
-            openingBalance: 80000,
-            expectedBalance: 665000,
-            actualBalance: null,
-            variance: null,
-            account: {
-                uuid: 'demo-account-moov',
-                network: 'moov_flooz',
-                label: 'Compte agence',
-                accountIdentifier: '•••• 9056',
-            },
-        },
-        {
-            uuid: 'demo-ledger-celtiis',
-            kind: 'mobile_money',
-            status: 'open',
-            openingBalance: 50000,
-            expectedBalance: 210000,
-            actualBalance: null,
-            variance: null,
-            account: {
-                uuid: 'demo-account-celtiis',
-                network: 'celtiis_cash',
-                label: 'Compte agence',
-                accountIdentifier: '•••• 1374',
-            },
-        },
-    ],
-    movements: buildDemoMovements(),
 };
 
 function formatMovementType(type: string): string {
@@ -289,112 +146,65 @@ function getMovementChannel(
 
 export default function CashPage({
     cashSession,
+    movements,
+    filters,
     mobileMoneyAccounts,
     permissions,
 }: Props) {
     const [openingOpen, setOpeningOpen] = useState(false);
     const [closingOpen, setClosingOpen] = useState(false);
     const [movementOpen, setMovementOpen] = useState(false);
-    const [query, setQuery] = useState('');
-    const [channel, setChannel] = useState('all');
-    const [status, setStatus] = useState('all');
-    const [direction, setDirection] = useState('all');
-    const [page, setPage] = useState(1);
-
-    const isDemoSession = cashSession === null;
-    const session = cashSession ?? demoSession;
-    const filteredMovements = useMemo(() => {
-        const normalizedQuery = query.trim().toLowerCase();
-
-        return session.movements.filter((movement) => {
-            const movementChannel = getMovementChannel(movement, session);
-            const matchesQuery =
-                normalizedQuery === '' ||
-                [
-                    formatMovementType(movement.type),
-                    movement.reference ?? '',
-                    movement.destinationLabel ?? '',
-                    movementChannel,
-                ].some((value) =>
-                    value.toLowerCase().includes(normalizedQuery),
-                );
-
-            return (
-                matchesQuery &&
-                (channel === 'all' || movementChannel === channel) &&
-                (status === 'all' || movement.status === status) &&
-                (direction === 'all' || movement.direction === direction)
-            );
-        });
-    }, [channel, direction, query, session, status]);
-
-    const pageSize = 8;
-    const totalPages = Math.max(
-        1,
-        Math.ceil(filteredMovements.length / pageSize),
+    const [query, setQuery] = useState(filters.q);
+    const channel = filters.channel;
+    const status = filters.status;
+    const direction = filters.direction;
+    const { start, stop } = usePoll(
+        30000,
+        {
+            only: [
+                'cashSession',
+                'movements',
+                'permissions',
+                'mobileMoneyAccounts',
+            ],
+        },
+        { autoStart: false },
     );
-    const visibleMovements = filteredMovements.slice(
-        (page - 1) * pageSize,
-        page * pageSize,
+
+    useEffect(() => {
+        const updatePolling = () => (document.hidden ? stop() : start());
+        updatePolling();
+        document.addEventListener('visibilitychange', updatePolling);
+
+        return () => {
+            stop();
+            document.removeEventListener('visibilitychange', updatePolling);
+        };
+    }, [start, stop]);
+
+    const visit = (next: Partial<CashFilters>, page = 1) => {
+        router.get(
+            cash.url(),
+            { ...filters, q: query, ...next, page },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
+    };
+    const resetFilters = () => {
+        setQuery('');
+        visit({ q: '', channel: 'all', status: 'all', direction: 'all' });
+    };
+    const session = cashSession;
+    const ledgerCards = [...(session?.ledgers ?? [])].sort((first, second) =>
+        first.kind === 'cash' ? -1 : second.kind === 'cash' ? 1 : 0,
     );
-    const ledgerCards = [...session.ledgers].sort((first, second) => {
-        if (first.kind === 'cash') {
-            return -1;
-        }
-
-        if (second.kind === 'cash') {
-            return 1;
-        }
-
-        return 0;
-    });
-    const totalExpected = session.ledgers.reduce(
+    const totalExpected = ledgerCards.reduce(
         (total, ledger) => total + ledger.expectedBalance,
         0,
     );
-    const resetFilters = () => {
-        setQuery('');
-        setChannel('all');
-        setStatus('all');
-        setDirection('all');
-        setPage(1);
-    };
-
-    const exportMovements = () => {
-        const rows = [
-            [
-                'Date',
-                'Nature',
-                'Canal',
-                'Référence',
-                'Sens',
-                'Statut',
-                'Montant',
-            ],
-            ...filteredMovements.map((movement) => [
-                formatDateTime(movement.occurredAt),
-                formatMovementType(movement.type),
-                getMovementChannel(movement, session),
-                movement.reference ?? '',
-                movement.direction === 'in' ? 'Encaissement' : 'Sortie',
-                statusLabels[movement.status] ?? movement.status,
-                String(movement.amount),
-            ]),
-        ];
-        const csv = `\ufeff${rows
-            .map((row) =>
-                row.map((cell) => `"${cell.replaceAll('"', '""')}"`).join(';'),
-            )
-            .join('\n')}`;
-        const url = URL.createObjectURL(
-            new Blob([csv], { type: 'text/csv;charset=utf-8' }),
-        );
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `encaissements-${session.businessDate ?? 'jour'}.csv`;
-        link.click();
-        URL.revokeObjectURL(url);
-    };
 
     return (
         <>
@@ -414,7 +224,7 @@ export default function CashPage({
                         </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2.5">
-                        {isDemoSession && permissions.canOpen && (
+                        {!session && permissions.canOpen && (
                             <button
                                 type="button"
                                 className="btn btn-primary"
@@ -423,63 +233,49 @@ export default function CashPage({
                                 <Plus className="size-4" /> Ouvrir la caisse
                             </button>
                         )}
-                        {session.status === 'open' &&
-                            !isDemoSession &&
-                            permissions.canClose && (
-                                <button
-                                    type="button"
-                                    className="btn btn-primary"
-                                    onClick={() => setClosingOpen(true)}
-                                >
-                                    <FileCheck2 className="size-4" /> Clôturer
-                                    la caisse
-                                </button>
-                            )}
+                        {session?.status === 'open' && permissions.canClose && (
+                            <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={() => setClosingOpen(true)}
+                            >
+                                <FileCheck2 className="size-4" /> Clôturer la
+                                caisse
+                            </button>
+                        )}
                     </div>
                 </div>
 
                 <section className="cash-reveal cash-reveal-delay-1 cash-hero">
                     <div>
                         <span className="section-kicker text-gold">
-                            {isDemoSession
-                                ? 'Aperçu de la session'
-                                : 'Ma caisse journalière'}
+                            Ma caisse journalière
                         </span>
                         <h2>
-                            {isDemoSession
-                                ? 'Caisse prête à être ouverte'
-                                : `Caisse ouverte depuis ${formatTime(session.openedAt)}`}
+                            {!session
+                                ? 'Aucune caisse ouverte'
+                                : session.status === 'open'
+                                  ? `Caisse ouverte depuis ${formatTime(session.openedAt)}`
+                                  : `Caisse ${statusLabels[session.status]?.toLowerCase() ?? session.status}`}
                         </h2>
                         <p>
-                            {isDemoSession
-                                ? 'Les chiffres illustrent la structure attendue avant le raccordement complet aux écritures du jour.'
-                                : 'Le total additionne les soldes théoriques de chaque compte suivi.'}
+                            {!session
+                                ? 'Ouvrez votre caisse pour enregistrer les opérations de la journée.'
+                                : `${session.agentName ?? ''} · ${session.agencyName ?? ''}. Le total additionne les soldes théoriques de chaque compte suivi.`}
                         </p>
                     </div>
                     <div className="cash-hero-current">
                         <span>Solde théorique actuel</span>
-                        <strong>{formatMoney(totalExpected, 'XOF')}</strong>
+                        <strong>
+                            {session ? formatMoney(totalExpected, 'XOF') : '—'}
+                        </strong>
                     </div>
-                    <span className="cash-status open">
-                        <i />
-                        {isDemoSession ? 'Aperçu statique' : 'Ouverte'}
-                    </span>
+                    {session && <StatusPill status={session.status} />}
                 </section>
-
-                {isDemoSession && (
-                    <div className="cash-demo-note cash-reveal cash-reveal-delay-1">
-                        <CircleAlert className="size-4" /> Les montants affichés
-                        sont des données de démonstration pour valider l’écran.
-                    </div>
-                )}
 
                 <section className="cash-ledger-grid cash-reveal cash-reveal-delay-2">
                     {ledgerCards.map((ledger) => (
-                        <LedgerBalanceCard
-                            key={ledger.uuid}
-                            ledger={ledger}
-                            movements={session.movements}
-                        />
+                        <LedgerBalanceCard key={ledger.uuid} ledger={ledger} />
                     ))}
                 </section>
 
@@ -492,7 +288,7 @@ export default function CashPage({
                     </div>
                     <div className="actions">
                         {permissions.canCreateMovement &&
-                            !isDemoSession &&
+                            session &&
                             session.status === 'open' && (
                                 <button
                                     type="button"
@@ -503,13 +299,14 @@ export default function CashPage({
                                     Reversement
                                 </button>
                             )}
-                        <button
-                            type="button"
-                            className="btn btn-ghost"
-                            onClick={exportMovements}
-                        >
-                            <Download className="size-4" /> Exporter
-                        </button>
+                        {session && (
+                            <a
+                                className="btn btn-ghost"
+                                href={exportCash.url({ query: filters })}
+                            >
+                                <Download className="size-4" /> Exporter
+                            </a>
+                        )}
                     </div>
                 </div>
 
@@ -519,8 +316,13 @@ export default function CashPage({
                         value={query}
                         onChange={(event) => {
                             setQuery(event.target.value);
-                            setPage(1);
                         }}
+                        onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                                visit({});
+                            }
+                        }}
+                        aria-label="Rechercher une opération"
                         placeholder="Rechercher une opération, une référence…"
                         className="cash-filter-search"
                     />
@@ -528,23 +330,21 @@ export default function CashPage({
                         label="Canal"
                         value={channel}
                         onChange={(value) => {
-                            setChannel(value);
-                            setPage(1);
+                            visit({ channel: value });
                         }}
                         options={[
                             ['all', 'Tous les canaux'],
-                            ['Espèces', 'Espèces'],
-                            ['MTN MoMo', 'MTN MoMo'],
-                            ['Moov Money / Flooz', 'Moov Money / Flooz'],
-                            ['Celtiis Cash', 'Celtiis Cash'],
+                            ['cash', 'Espèces'],
+                            ['mtn_momo', 'MTN MoMo'],
+                            ['moov_flooz', 'Moov Money / Flooz'],
+                            ['celtiis_cash', 'Celtiis Cash'],
                         ]}
                     />
                     <FilterSelect
                         label="Statut"
                         value={status}
                         onChange={(value) => {
-                            setStatus(value);
-                            setPage(1);
+                            visit({ status: value });
                         }}
                         options={[
                             ['all', 'Tous les statuts'],
@@ -552,14 +352,14 @@ export default function CashPage({
                             ['approved', 'Approuvé'],
                             ['pending', 'En attente'],
                             ['rejected', 'Rejeté'],
+                            ['reversed', 'Contrepassé'],
                         ]}
                     />
                     <FilterSelect
                         label="Sens"
                         value={direction}
                         onChange={(value) => {
-                            setDirection(value);
-                            setPage(1);
+                            visit({ direction: value });
                         }}
                         options={[
                             ['all', 'Tous les sens'],
@@ -570,7 +370,7 @@ export default function CashPage({
                     <button
                         type="button"
                         className="btn btn-navy cash-filter-submit"
-                        onClick={() => setPage(1)}
+                        onClick={() => visit({})}
                     >
                         <SlidersHorizontal className="size-4" /> Filtrer
                     </button>
@@ -584,23 +384,28 @@ export default function CashPage({
                 </div>
 
                 <section className="cash-table-card cash-reveal cash-reveal-delay-4">
-                    <MovementTable
-                        movements={visibleMovements}
-                        session={session}
-                        canApprove={
-                            permissions.canApproveMovement && !isDemoSession
-                        }
-                    />
+                    {session ? (
+                        <MovementTable
+                            movements={movements.data}
+                            session={session}
+                            canApprove={permissions.canApproveMovement}
+                        />
+                    ) : (
+                        <p className="px-6 py-16 text-center text-sm text-muted-foreground">
+                            Aucune opération : votre caisse n’est pas encore
+                            ouverte.
+                        </p>
+                    )}
                     <Pagination
-                        currentPage={page}
-                        totalPages={totalPages}
-                        total={filteredMovements.length}
-                        pageSize={pageSize}
-                        onPageChange={setPage}
+                        currentPage={movements.current_page}
+                        totalPages={movements.last_page}
+                        total={movements.total}
+                        pageSize={movements.per_page}
+                        onPageChange={(page) => visit(filters, page)}
                     />
                 </section>
 
-                {session.status === 'pending_approval' && (
+                {session?.status === 'pending_approval' && (
                     <div className="cash-reveal cash-reveal-delay-4 mt-5">
                         <PendingActions
                             session={session}
@@ -642,30 +447,8 @@ function formatTime(value: string | null | undefined): string {
     }).format(new Date(value));
 }
 
-function LedgerBalanceCard({
-    ledger,
-    movements,
-}: {
-    ledger: SaleCashLedger;
-    movements: CashMovement[];
-}) {
-    const ledgerMovements = movements.filter(
-        (movement) => movement.ledgerUuid === ledger.uuid,
-    );
-    const inflows = ledgerMovements
-        .filter(
-            (movement) =>
-                movement.direction === 'in' &&
-                postedStatuses.has(movement.status),
-        )
-        .reduce((total, movement) => total + movement.amount, 0);
-    const outflows = ledgerMovements
-        .filter(
-            (movement) =>
-                movement.direction === 'out' &&
-                postedStatuses.has(movement.status),
-        )
-        .reduce((total, movement) => total + movement.amount, 0);
+function LedgerBalanceCard({ ledger }: { ledger: CashLedgerPage }) {
+    const { inflows, outflows, movementCount } = ledger;
     const isCash = ledger.kind === 'cash';
     const network = isCash
         ? 'Espèces'
@@ -729,9 +512,9 @@ function LedgerBalanceCard({
                     <Smartphone className="size-3.5" strokeWidth={1.7} />
                 )}
                 <span>
-                    {ledgerMovements.length === 0
+                    {movementCount === 0
                         ? 'Aucun mouvement enregistré'
-                        : `${ledgerMovements.length} mouvement${ledgerMovements.length > 1 ? 's' : ''} enregistré${ledgerMovements.length > 1 ? 's' : ''}`}
+                        : `${movementCount} mouvement${movementCount > 1 ? 's' : ''} enregistré${movementCount > 1 ? 's' : ''}`}
                 </span>
                 {ledger.actualBalance !== null && (
                     <b>Constaté {formatMoney(ledger.actualBalance, 'XOF')}</b>
@@ -1067,19 +850,17 @@ function PendingActions({
 }
 
 function StatusPill({ status }: { status: string }) {
+    const tone =
+        status === 'pending' || status === 'pending_approval'
+            ? 'gold'
+            : status === 'rejected'
+              ? 'destructive'
+              : status === 'closed' || status === 'reversed'
+                ? 'muted'
+                : 'navy';
+
     return (
-        <span
-            className={cn(
-                'rounded-full px-2 py-1 text-[0.6rem] font-extrabold',
-                ['open', 'posted', 'approved', 'closed'].includes(status)
-                    ? 'bg-emerald-500/10 text-emerald-600'
-                    : status === 'rejected'
-                      ? 'bg-destructive/10 text-destructive'
-                      : 'bg-gold/15 text-gold',
-            )}
-        >
-            {statusLabels[status] ?? status}
-        </span>
+        <KoraStatusBadge label={statusLabels[status] ?? status} tone={tone} />
     );
 }
 

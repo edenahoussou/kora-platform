@@ -35,6 +35,8 @@ type TicketRecord = {
     issuedAt: string | null;
     issuedAtLabel: string;
     mecefUid: string | null;
+    mecefCode: string | null;
+    mecefNim: string | null;
     fiscalStatus: string | null;
 };
 
@@ -661,8 +663,9 @@ export default function TicketsPage({
                                                             {ticket.shortCode}
                                                         </p>
                                                         <p className="mt-0.5 text-[0.625rem] text-muted-foreground">
-                                                            {ticket.mecefUid ??
-                                                                'Non fiscalisé'}
+                                                            {ticket.mecefCode
+                                                                ? `${ticket.mecefCode} • ${ticket.mecefNim ?? ''}`.trim()
+                                                                : 'Non fiscalisé'}
                                                         </p>
                                                     </div>
                                                 </div>

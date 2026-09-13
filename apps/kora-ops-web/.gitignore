@@ -29,5 +29,6 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
-apps/kora-ops-web/.scribe/
+/.scribe/
+/resources/views/scribe/
 check.sh

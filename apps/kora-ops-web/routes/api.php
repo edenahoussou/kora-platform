@@ -112,6 +112,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::post('payments/{payment:uuid}/cancel', [PaymentController::class, 'cancel'])
             ->name('payments.cancel');
 
+        Route::get('tickets', [TicketController::class, 'mine'])
+            ->name('tickets.index');
         Route::get('tickets/{ticket:uuid}', [TicketController::class, 'show'])
             ->name('tickets.show');
     });

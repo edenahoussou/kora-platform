@@ -47,3 +47,11 @@ Endpoints publics de lecture pour la recherche KORA BUS. Ces routes sont limitee
 La disponibilite siege vaut `available`, `occupied` ou `blocked`. Les statuts de reservation bloquants sont `held`, `confirmed`, `paid`, `ticketed` et `boarded`.
 
 `fare_preview` est un apercu du tarif actif; il ne cree pas de devis fige. Le devis serveur fige reste porte par `/api/v1/pricing`.
+
+## `/api/v1/tickets`
+
+Endpoints proteges par token Sanctum pour la consultation des billets du passager.
+
+- `GET /api/v1/tickets` : liste paginee de tous les billets du passager authentifie (tous statuts confondus), avec un contrat enrichi pour l'ecran « Mes voyages » de l'app passager (route, date/heure de depart, siege, gare, montant, QR code, statut mappe en `confirmed` / `completed` / `cancelled`). Un billet appartient au passager si `created_by_user_id` ou `payer_user_id` de la reservation parente correspond a l'utilisateur connecte.
+- `GET /api/v1/tickets/{ticket_uuid}` : detail d'un billet individuel par UUID public, reserve au proprietaire de la reservation.
+- `GET /api/v1/bookings/{reservation_uuid}/tickets` : billets emis d'une reservation specifique (un par passager), apres confirmation du paiement.
