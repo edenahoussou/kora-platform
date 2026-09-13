@@ -3,13 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { ItineraryCard } from './itinerary-card';
 import type { SaleItinerary } from './sale-types';
-import {
-    formatCoefficientPercent,
-    formatIsoDate,
-    formatMoney,
-    getIsoTimestamp,
-    isToday,
-} from './sale-utils';
+import { formatIsoDate, getIsoTimestamp, isToday } from './sale-utils';
 
 type Props = {
     itineraries: SaleItinerary[];
@@ -121,8 +115,8 @@ export function ItineraryList({
                                 ? `Retour disponibles (${itineraries.length})`
                                 : `Prochains retours (${itineraries.length})`
                             : hasDate
-                                ? `Aller disponibles (${itineraries.length})`
-                                : `Prochains allers (${itineraries.length})`}
+                              ? `Aller disponibles (${itineraries.length})`
+                              : `Prochains allers (${itineraries.length})`}
                     </span>
                     <h2 className="results-title">
                         {direction === 'inbound' ? (
@@ -152,7 +146,10 @@ export function ItineraryList({
             </div>
             {hasDynamic && (
                 <div className="pricing-intelligence-strip" role="status">
-                    <span className="pricing-intelligence-pulse" aria-hidden="true">
+                    <span
+                        className="pricing-intelligence-pulse"
+                        aria-hidden="true"
+                    >
                         <i className="pricing-intelligence-dot" />
                     </span>
                     <div className="pricing-intelligence-body">
@@ -168,7 +165,10 @@ export function ItineraryList({
                             restent inchangés.
                         </small>
                     </div>
-                    <span className="pricing-intelligence-sheen" aria-hidden="true" />
+                    <span
+                        className="pricing-intelligence-sheen"
+                        aria-hidden="true"
+                    />
                 </div>
             )}
             {itineraries.length > 0 ? (
@@ -199,15 +199,15 @@ export function ItineraryList({
                             {emptyReason === 'incompatible-with-outbound'
                                 ? 'Aucun retour compatible'
                                 : direction === 'inbound'
-                                    ? 'Aucun retour trouvé'
-                                    : 'Aucun itinéraire trouvé'}
+                                  ? 'Aucun retour trouvé'
+                                  : 'Aucun itinéraire trouvé'}
                         </strong>
                         <span className="mt-1 block text-[0.6875rem] text-muted-foreground">
                             {emptyReason === 'incompatible-with-outbound'
                                 ? "Les retours disponibles partent avant ou en même temps que l'aller sélectionné. Choisissez un aller plus tôt ou une autre date de retour."
                                 : hasDate
-                                    ? 'Modifiez vos critères puis relancez la recherche.'
-                                    : 'Sélectionnez une date précise ou élargissez la ville de départ/descente.'}
+                                  ? 'Modifiez vos critères puis relancez la recherche.'
+                                  : 'Sélectionnez une date précise ou élargissez la ville de départ/descente.'}
                         </span>
                     </div>
                 </div>

@@ -47,8 +47,8 @@ import type {
     State,
     Template,
 } from '@/components/programming/types';
-import { cn } from '@/lib/utils';
 import { useOnboarding } from '@/hooks/use-onboarding';
+import { cn } from '@/lib/utils';
 import departures from '@/routes/departures';
 import programming from '@/routes/programming';
 import itemRoutes from '@/routes/programming/items';
@@ -96,19 +96,19 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
     {
         target: '[data-onboarding="prog-calendar"]',
         title: 'Grille du planning',
-        body: "Visualisez tous les départs générés. Cliquez sur un départ pour voir le détail, ou sélectionnez-en plusieurs pour des actions en lot.",
+        body: 'Visualisez tous les départs générés. Cliquez sur un départ pour voir le détail, ou sélectionnez-en plusieurs pour des actions en lot.',
         side: 'right',
     },
     {
         target: '[data-onboarding="prog-bulk"]',
         title: 'Actions en lot',
-        body: "Sélectionnez plusieurs départs puis publiez-les, affectez un bus ou excluez des dates. La barre apparaît automatiquement.",
+        body: 'Sélectionnez plusieurs départs puis publiez-les, affectez un bus ou excluez des dates. La barre apparaît automatiquement.',
         side: 'top',
     },
     {
         target: '[data-onboarding="prog-guide"]',
         title: 'Guide rapide',
-        body: "Créez votre premier modèle si vos départs ont des horaires fixes, puis appliquez-le pour générer vos programmes.",
+        body: 'Créez votre premier modèle si vos départs ont des horaires fixes, puis appliquez-le pour générer vos programmes.',
         side: 'left',
     },
 ];
@@ -302,10 +302,7 @@ export default function ProgrammingPage({
                             onClick={onboarding.start}
                             className="h-11 rounded-xl px-3 text-xs font-bold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                         >
-                            <HelpCircle
-                                className="size-4"
-                                strokeWidth={1.8}
-                            />
+                            <HelpCircle className="size-4" strokeWidth={1.8} />
                             Parcours guidé
                         </Button>
                         <Button variant="outline" asChild className="gap-2">
@@ -470,10 +467,11 @@ export default function ProgrammingPage({
                             key={key}
                             onClick={() => navigate({ tab: key })}
                             aria-current={tab === key ? 'page' : undefined}
-                            className={`rounded-lg px-4 py-2.5 text-xs font-extrabold transition-colors ${tab === key
-                                ? 'bg-kora text-white shadow-xs dark:bg-gold dark:text-kora'
-                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                                }`}
+                            className={`rounded-lg px-4 py-2.5 text-xs font-extrabold transition-colors ${
+                                tab === key
+                                    ? 'bg-kora text-white shadow-xs dark:bg-gold dark:text-kora'
+                                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                            }`}
                         >
                             {label}
                         </button>
@@ -553,10 +551,11 @@ export default function ProgrammingPage({
                                         key={key}
                                         aria-pressed={filters.view === key}
                                         onClick={() => navigate({ view: key })}
-                                        className={`rounded-lg px-3.5 py-1.5 text-xs font-extrabold transition-all ${filters.view === key
-                                            ? 'bg-card text-foreground shadow-xs'
-                                            : 'text-muted-foreground hover:text-foreground'
-                                            }`}
+                                        className={`rounded-lg px-3.5 py-1.5 text-xs font-extrabold transition-all ${
+                                            filters.view === key
+                                                ? 'bg-card text-foreground shadow-xs'
+                                                : 'text-muted-foreground hover:text-foreground'
+                                        }`}
                                     >
                                         {label}
                                     </button>
@@ -700,9 +699,9 @@ export default function ProgrammingPage({
                                             'inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-extrabold transition-all',
                                             active
                                                 ? (theme?.chipActive ??
-                                                    'border-gold bg-gold/15 text-foreground ring-1 ring-gold/40')
+                                                      'border-gold bg-gold/15 text-foreground ring-1 ring-gold/40')
                                                 : (theme?.chip ??
-                                                    'border-border bg-card text-muted-foreground hover:border-gold/60 hover:text-foreground'),
+                                                      'border-border bg-card text-muted-foreground hover:border-gold/60 hover:text-foreground'),
                                         )}
                                     >
                                         {theme && (
@@ -755,8 +754,8 @@ export default function ProgrammingPage({
                                         setSelected(
                                             selected.includes(uuid)
                                                 ? selected.filter(
-                                                    (v) => v !== uuid,
-                                                )
+                                                      (v) => v !== uuid,
+                                                  )
                                                 : [...selected, uuid],
                                         )
                                     }
@@ -831,22 +830,23 @@ export default function ProgrammingPage({
                                                                 {t.name}
                                                             </h2>
                                                             <span
-                                                                className={`rounded-md px-2 py-0.5 text-[0.6875rem] font-bold ${t.status ===
+                                                                className={`rounded-md px-2 py-0.5 text-[0.6875rem] font-bold ${
+                                                                    t.status ===
                                                                     'available'
-                                                                    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                                                                    : t.status ===
-                                                                        'draft'
-                                                                        ? 'bg-gold/20 text-kora dark:text-gold'
-                                                                        : 'bg-muted text-muted-foreground'
-                                                                    }`}
+                                                                        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                                                        : t.status ===
+                                                                            'draft'
+                                                                          ? 'bg-gold/20 text-kora dark:text-gold'
+                                                                          : 'bg-muted text-muted-foreground'
+                                                                }`}
                                                             >
                                                                 {t.status ===
-                                                                    'available'
+                                                                'available'
                                                                     ? `Version ${t.versions[0]?.number}`
                                                                     : t.status ===
                                                                         'draft'
-                                                                        ? 'Brouillon'
-                                                                        : 'Archivé'}
+                                                                      ? 'Brouillon'
+                                                                      : 'Archivé'}
                                                             </span>
                                                         </div>
 
@@ -914,42 +914,42 @@ export default function ProgrammingPage({
                                                     </Button>
                                                     {t.status ===
                                                         'available' && (
-                                                            <PrimaryButton
-                                                                asChild
-                                                                size="sm"
-                                                                className="gap-1.5"
-                                                            >
-                                                                <Link
-                                                                    href={programmeRoutes.create(
-                                                                        {
-                                                                            query: {
-                                                                                template:
-                                                                                    t.uuid,
-                                                                            },
+                                                        <PrimaryButton
+                                                            asChild
+                                                            size="sm"
+                                                            className="gap-1.5"
+                                                        >
+                                                            <Link
+                                                                href={programmeRoutes.create(
+                                                                    {
+                                                                        query: {
+                                                                            template:
+                                                                                t.uuid,
                                                                         },
-                                                                    )}
-                                                                >
-                                                                    <Sparkles
-                                                                        size={14}
-                                                                    />
-                                                                    Préparer une
-                                                                    période
-                                                                </Link>
-                                                            </PrimaryButton>
-                                                        )}
+                                                                    },
+                                                                )}
+                                                            >
+                                                                <Sparkles
+                                                                    size={14}
+                                                                />
+                                                                Préparer une
+                                                                période
+                                                            </Link>
+                                                        </PrimaryButton>
+                                                    )}
                                                     {t.status !==
                                                         'archived' && (
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() =>
-                                                                    setArchive(t)
-                                                                }
-                                                                className="text-muted-foreground hover:text-destructive"
-                                                            >
-                                                                Archiver
-                                                            </Button>
-                                                        )}
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                setArchive(t)
+                                                            }
+                                                            className="text-muted-foreground hover:text-destructive"
+                                                        >
+                                                            Archiver
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             </article>
                                         );
@@ -1016,10 +1016,11 @@ export default function ProgrammingPage({
 
                                             <div className="text-right">
                                                 <span
-                                                    className={`rounded-md px-2 py-0.5 text-xs font-extrabold ${p.automatic
-                                                        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                                                        : 'bg-muted text-muted-foreground'
-                                                        }`}
+                                                    className={`rounded-md px-2 py-0.5 text-xs font-extrabold ${
+                                                        p.automatic
+                                                            ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                                            : 'bg-muted text-muted-foreground'
+                                                    }`}
                                                 >
                                                     {p.automatic
                                                         ? `Auto · ${p.horizonDays} jours`
@@ -1133,8 +1134,8 @@ export default function ProgrammingPage({
                     action === 'publish'
                         ? 'Publication des départs sélectionnés'
                         : action === 'assign'
-                            ? 'Affectation d’un bus à la sélection'
-                            : 'Exclusion de dates'
+                          ? 'Affectation d’un bus à la sélection'
+                          : 'Exclusion de dates'
                 }
                 busy={api.busy}
                 onClose={() => setAction(null)}
@@ -1150,8 +1151,8 @@ export default function ProgrammingPage({
                         {api.busy
                             ? 'Traitement en cours…'
                             : action === 'publish'
-                                ? `Publier les ${ready} départ(s) prêt(s)`
-                                : 'Confirmer'}
+                              ? `Publier les ${ready} départ(s) prêt(s)`
+                              : 'Confirmer'}
                     </PrimaryButton>
                 }
             >

@@ -109,19 +109,26 @@ function itineraryDynamicPricing(itinerary: SaleItinerary) {
         baseAmount += legBase;
         finalAmount += legFinal;
 
-        if (legAdjustment !== 0 || (leg.coefficient != null && leg.coefficient !== 1)) {
+        if (
+            legAdjustment !== 0 ||
+            (leg.coefficient != null && leg.coefficient !== 1)
+        ) {
             hasDynamic = true;
+
             if (legAdjustment > 0) {
                 isIncrease = true;
             } else if (legAdjustment < 0) {
                 isDecrease = true;
             }
+
             if (leg.fillRate != null) {
                 fillRate = leg.fillRate;
             }
+
             if (leg.hoursBeforeDeparture != null) {
                 hoursBeforeDeparture = leg.hoursBeforeDeparture;
             }
+
             if (leg.pricingRuleUuid) {
                 pricingRuleUuid = leg.pricingRuleUuid;
             }
@@ -370,7 +377,7 @@ export function ItineraryCard({
                             const sameBusAsPrevious =
                                 index > 0 &&
                                 itinerary.legs[index - 1].bus?.uuid ===
-                                leg.bus?.uuid;
+                                    leg.bus?.uuid;
 
                             return (
                                 <div
@@ -432,13 +439,13 @@ export function ItineraryCard({
                                                     {busLabel(leg)}
                                                     {leg.bus
                                                         ?.registrationNumber && (
-                                                            <em>
-                                                                {
-                                                                    leg.bus
-                                                                        .registrationNumber
-                                                                }
-                                                            </em>
-                                                        )}
+                                                        <em>
+                                                            {
+                                                                leg.bus
+                                                                    .registrationNumber
+                                                            }
+                                                        </em>
+                                                    )}
                                                 </span>
                                             )}
                                             {sameBusAsPrevious && (
@@ -449,22 +456,35 @@ export function ItineraryCard({
                                             )}
                                             <span className="timeline-segment-price">
                                                 {leg.baseAmount != null &&
-                                                    leg.finalAmount != null &&
-                                                    leg.baseAmount !== leg.finalAmount ? (
+                                                leg.finalAmount != null &&
+                                                leg.baseAmount !==
+                                                    leg.finalAmount ? (
                                                     <>
                                                         <s className="timeline-segment-price-base">
-                                                            {formatMoney(leg.baseAmount, itinerary.currency)}
+                                                            {formatMoney(
+                                                                leg.baseAmount,
+                                                                itinerary.currency,
+                                                            )}
                                                         </s>
                                                         <strong className="timeline-segment-price-final">
-                                                            {formatMoney(leg.finalAmount, itinerary.currency)}
+                                                            {formatMoney(
+                                                                leg.finalAmount,
+                                                                itinerary.currency,
+                                                            )}
                                                         </strong>
                                                         <em className="fare-variation">
-                                                            {formatCoefficientPercent(leg.coefficient ?? 1)}
+                                                            {formatCoefficientPercent(
+                                                                leg.coefficient ??
+                                                                    1,
+                                                            )}
                                                         </em>
                                                     </>
                                                 ) : (
                                                     <strong className="timeline-segment-price-final">
-                                                        {formatMoney(leg.amount, itinerary.currency)}
+                                                        {formatMoney(
+                                                            leg.amount,
+                                                            itinerary.currency,
+                                                        )}
                                                     </strong>
                                                 )}
                                             </span>
@@ -567,13 +587,20 @@ export function ItineraryCard({
 
             <div className="departure-price">
                 <small>par passager</small>
-                {dynamicPricing && dynamicPricing.baseAmount !== dynamicPricing.finalAmount ? (
+                {dynamicPricing &&
+                dynamicPricing.baseAmount !== dynamicPricing.finalAmount ? (
                     <div className="price price-dynamic">
                         <span className="price-base-struck">
-                            {formatMoney(dynamicPricing.baseAmount, itinerary.currency)}
+                            {formatMoney(
+                                dynamicPricing.baseAmount,
+                                itinerary.currency,
+                            )}
                         </span>
                         <span className="price-final">
-                            {formatMoney(itinerary.totalAmount, itinerary.currency)}
+                            {formatMoney(
+                                itinerary.totalAmount,
+                                itinerary.currency,
+                            )}
                         </span>
                     </div>
                 ) : (
@@ -581,14 +608,16 @@ export function ItineraryCard({
                         {formatMoney(itinerary.totalAmount, itinerary.currency)}
                     </div>
                 )}
-                {dynamicPricing && dynamicPricing.baseAmount !== dynamicPricing.finalAmount && (
-                    <em className="fare-variation">
-                        {formatCoefficientPercent(
-                            dynamicPricing.finalAmount /
-                            dynamicPricing.baseAmount,
-                        )}
-                    </em>
-                )}
+                {dynamicPricing &&
+                    dynamicPricing.baseAmount !==
+                        dynamicPricing.finalAmount && (
+                        <em className="fare-variation">
+                            {formatCoefficientPercent(
+                                dynamicPricing.finalAmount /
+                                    dynamicPricing.baseAmount,
+                            )}
+                        </em>
+                    )}
                 <button
                     type="button"
                     onClick={(e) => {
@@ -605,8 +634,8 @@ export function ItineraryCard({
                             ? 'Retour sélectionné'
                             : 'Aller sélectionné'
                         : direction === 'inbound'
-                            ? 'Sélectionner le retour'
-                            : "Sélectionner l'aller"}
+                          ? 'Sélectionner le retour'
+                          : "Sélectionner l'aller"}
                     <ArrowRight className="size-3.5" />
                 </button>
             </div>

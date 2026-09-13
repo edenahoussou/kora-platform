@@ -585,12 +585,12 @@ paths:
           in: query
           name: date
           description: 'Travel date (Y-m-d).'
-          example: architecto
+          example: '2026-09-07'
           required: true
           schema:
             type: string
             description: 'Travel date (Y-m-d).'
-            example: architecto
+            example: '2026-09-07'
         -
           in: query
           name: passenger_count
@@ -645,12 +645,12 @@ paths:
           in: query
           name: return_date
           description: 'Return date (Y-m-d). Required when trip_type is round_trip.'
-          example: architecto
+          example: '2026-09-14'
           required: false
           schema:
             type: string
             description: 'Return date (Y-m-d). Required when trip_type is round_trip.'
-            example: architecto
+            example: '2026-09-14'
       responses:
         200:
           description: 'One-way itineraries'
@@ -705,7 +705,7 @@ paths:
                           coefficient: 1.2
                           final_amount: 15600
                           dynamic_adjustment_amount: 2600
-                          pricing_rule_uuid: rule-uuid
+                          pricing_rule_uuid: null
                           fill_rate: 75
                           hours_before_departure: 10
                           available_seats_count: 28
@@ -762,7 +762,7 @@ paths:
                             coefficient: 1.2
                             final_amount: 15600
                             dynamic_adjustment_amount: 2600
-                            pricing_rule_uuid: rule-uuid
+                            pricing_rule_uuid: null
                             fill_rate: 75
                             hours_before_departure: 10
                             available_seats_count: 28
@@ -831,7 +831,7 @@ paths:
                               coefficient: 1.2
                               final_amount: 15600
                               dynamic_adjustment_amount: 2600
-                              pricing_rule_uuid: rule-uuid
+                              pricing_rule_uuid: null
                               fill_rate: 75
                               hours_before_departure: 10
                               available_seats_count: 28
@@ -930,6 +930,34 @@ paths:
                               amount:
                                 type: integer
                                 example: 15600
+                              base_amount:
+                                type: integer
+                                example: 13000
+                                description: 'Static base fare amount before dynamic pricing adjustment.'
+                              coefficient:
+                                type: number
+                                example: 1.2
+                                description: 'Multiplier applied to the base fare (e.g. 1.20 for +20 %, 0.90 for -10 %). Always non-negative.'
+                              final_amount:
+                                type: integer
+                                example: 15600
+                                description: 'Dynamically adjusted fare actually charged to the customer (round(base_amount * coefficient)).'
+                              dynamic_adjustment_amount:
+                                type: integer
+                                example: 2600
+                                description: 'Currency difference between final and base amount (final_amount - base_amount). Can be negative for discounts.'
+                              pricing_rule_uuid:
+                                type: string
+                                example: null
+                                description: 'UUID of the pricing rule that matched, or null when no rule applied.'
+                              fill_rate:
+                                type: integer
+                                example: 75
+                                description: 'Percentage of sellable seats held or occupied on the leg segment (0-100).'
+                              hours_before_departure:
+                                type: integer
+                                example: 10
+                                description: 'Hours between now and the scheduled departure. Negative when the departure is in the past.'
                               available_seats_count:
                                 type: integer
                                 example: 28
@@ -945,40 +973,6 @@ paths:
                               arrival_at:
                                 type: string
                                 example: '2026-09-07T23:00:00+00:00'
-                              base_amount:
-                                type: integer
-                                description: 'Static base fare amount before dynamic pricing adjustment.'
-                                example: 13000
-                              coefficient:
-                                type: number
-                                format: float
-                                description: 'Multiplier applied to the base fare (e.g. 1.20 for +20 %, 0.90 for -10 %). Always non-negative.'
-                                example: 1.2
-                              final_amount:
-                                type: integer
-                                description: 'Dynamically adjusted fare actually charged to the customer (round(base_amount * coefficient)).'
-                                example: 15600
-                              dynamic_adjustment_amount:
-                                type: integer
-                                description: 'Currency difference between final and base amount (final_amount - base_amount). Can be negative for discounts.'
-                                example: 2600
-                              pricing_rule_uuid:
-                                type: string
-                                nullable: true
-                                description: 'UUID of the pricing rule that matched, or null when no rule applied.'
-                                example: 00000000-0000-4000-8000-000000000000
-                              fill_rate:
-                                type: number
-                                format: float
-                                nullable: true
-                                description: 'Percentage of sellable seats held or occupied on the leg segment (0–100).'
-                                example: 75
-                              hours_before_departure:
-                                type: number
-                                format: float
-                                nullable: true
-                                description: 'Hours between now and the scheduled departure. Negative when the departure is in the past.'
-                                example: 10
       tags:
         - Bus
       requestBody:
@@ -998,8 +992,8 @@ paths:
                   example: 00000000-0000-4000-8000-000000000000
                 date:
                   type: string
-                  description: 'Must be a valid date in the format <code>Y-m-d</code>.'
-                  example: '2026-09-12'
+                  description: 'Travel date (Y-m-d).'
+                  example: '2026-09-07'
                 passenger_count:
                   type: integer
                   description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 10.'
@@ -1034,8 +1028,8 @@ paths:
                     - round_trip
                 return_date:
                   type: string
-                  description: 'Must be a valid date in the format <code>Y-m-d</code>.'
-                  example: '2026-09-12'
+                  description: 'Return date (Y-m-d). Required when trip_type is round_trip.'
+                  example: '2026-09-14'
               required:
                 - from_physical_stop_uuid
                 - to_physical_stop_uuid
@@ -1119,7 +1113,7 @@ paths:
                             direction: outbound
                             quote_uuid: quote-uuid-1
                             base_amount: 15000
-                            coefficient: 1.0
+                            coefficient: 1
                             final_amount: 15000
                             dynamic_adjustment_amount: 0
                             pricing_rule_uuid: null
@@ -1130,7 +1124,7 @@ paths:
                             direction: inbound
                             quote_uuid: quote-uuid-2
                             base_amount: 12500
-                            coefficient: 1.0
+                            coefficient: 1
                             final_amount: 12500
                             dynamic_adjustment_amount: 0
                             pricing_rule_uuid: null
@@ -1150,38 +1144,32 @@ paths:
                               example: quote-uuid-1
                             base_amount:
                               type: integer
-                              description: 'Tarif de base avant application de la tarification dynamique.'
                               example: 15000
+                              description: 'Tarif de base avant application de la tarification dynamique.'
                             coefficient:
                               type: number
-                              format: float
-                              description: 'Coefficient multiplicateur appliqué (1.0 = neutre, 1.20 = +20%, 0.90 = -10%).'
                               example: 1.0
+                              description: 'Coefficient multiplicateur appliqué (1.0 = neutre, 1.20 = +20%, 0.90 = -10%).'
                             final_amount:
                               type: integer
-                              description: 'Montant final après tarification dynamique (base_amount × coefficient).'
                               example: 15000
+                              description: 'Montant final après tarification dynamique (base_amount × coefficient).'
                             dynamic_adjustment_amount:
                               type: integer
-                              description: 'Écart en XOF entre le prix final et le prix de base (positif = augmentation, négatif = réduction).'
                               example: 0
+                              description: 'Écart en XOF entre le prix final et le prix de base (positif = augmentation, négatif = réduction).'
                             pricing_rule_uuid:
                               type: string
-                              nullable: true
-                              description: 'UUID de la règle de tarification dynamique appliquée, ou null si aucune règle n''a matché.'
                               example: null
+                              description: "UUID de la règle de tarification dynamique appliquée, ou null si aucune règle n'a matché."
                             fill_rate:
-                              type: number
-                              format: float
-                              nullable: true
-                              description: 'Taux de remplissage du segment au moment du devis (0-100).'
+                              type: integer
                               example: 25
+                              description: 'Taux de remplissage du segment au moment du devis (0-100).'
                             hours_before_departure:
-                              type: number
-                              format: float
-                              nullable: true
-                              description: 'Délai en heures entre le devis et le départ (négatif si le départ est passé).'
+                              type: integer
                               example: 48
+                              description: 'Délai en heures entre le devis et le départ (négatif si le départ est passé).'
                       pricing:
                         type: object
                         properties:
@@ -3144,8 +3132,8 @@ paths:
                   nullable: true
                 birth_date:
                   type: string
-                  description: 'Le champ value doit être une date valide. Le champ value doit être une date antérieure à <code>today</code>.'
-                  example: '2022-10-06'
+                  description: 'Birth date in Y-m-d format.'
+                  example: '1990-05-15'
                   nullable: true
               required:
                 - name

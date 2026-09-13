@@ -231,5 +231,6 @@ export function formatRemainingTime(expiresAt: string | null): string {
 export function formatCoefficientPercent(coefficient: number): string {
     const diff = (coefficient - 1) * 100;
     const sign = diff > 0 ? '+' : '';
+
     return `${sign}${Math.round(diff)} %`;
 }

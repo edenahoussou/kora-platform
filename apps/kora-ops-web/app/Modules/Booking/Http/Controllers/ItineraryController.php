@@ -41,13 +41,24 @@ class ItineraryController extends Controller
      *
      * @queryParam from_physical_stop_uuid string required UUID of the origin physical stop.
      * @queryParam to_physical_stop_uuid string required UUID of the destination physical stop.
-     * @queryParam date string required Travel date (Y-m-d).
+     * @queryParam date string required Travel date (Y-m-d). Example: 2026-09-07
      * @queryParam passenger_count integer Number of passengers. Defaults to 1.
      * @queryParam sort string Sort key: departure_time, arrival_time, price, duration, connections. Defaults to connections.
      * @queryParam sort_direction string Sort direction: asc or desc. Defaults to asc.
      * @queryParam service_class_code string Filter by service class code (e.g. standard, confort).
      * @queryParam trip_type string Trip type: one_way or round_trip. Defaults to one_way. When round_trip, return_date is required and the response shape changes to { outbound: [...], inbound: [...] }.
-     * @queryParam return_date string Return date (Y-m-d). Required when trip_type is round_trip.
+     * @queryParam return_date string Return date (Y-m-d). Required when trip_type is round_trip. Example: 2026-09-14
+     *
+     * @bodyParam date string required Travel date (Y-m-d). Example: 2026-09-07
+     * @bodyParam return_date string Return date (Y-m-d). Required when trip_type is round_trip. Example: 2026-09-14
+     *
+     * @responseField data.legs.base_amount integer Static base fare amount before dynamic pricing adjustment.
+     * @responseField data.legs.coefficient number Multiplier applied to the base fare (e.g. 1.20 for +20 %, 0.90 for -10 %). Always non-negative.
+     * @responseField data.legs.final_amount integer Dynamically adjusted fare actually charged to the customer (round(base_amount * coefficient)).
+     * @responseField data.legs.dynamic_adjustment_amount integer Currency difference between final and base amount (final_amount - base_amount). Can be negative for discounts.
+     * @responseField data.legs.pricing_rule_uuid string UUID of the pricing rule that matched, or null when no rule applied.
+     * @responseField data.legs.fill_rate number Percentage of sellable seats held or occupied on the leg segment (0-100).
+     * @responseField data.legs.hours_before_departure number Hours between now and the scheduled departure. Negative when the departure is in the past.
      *
      * @response 200 scenario="One-way itineraries" {
      *   "data": [
@@ -94,6 +105,13 @@ class ItineraryController extends Controller
      *             "stop_order": 7
      *           },
      *           "amount": 15600,
+     *           "base_amount": 13000,
+     *           "coefficient": 1.2,
+     *           "final_amount": 15600,
+     *           "dynamic_adjustment_amount": 2600,
+     *           "pricing_rule_uuid": null,
+     *           "fill_rate": 75,
+     *           "hours_before_departure": 10,
      *           "available_seats_count": 28,
      *           "service_class_code": "standard",
      *           "service_class_name": "Standard",
@@ -212,6 +230,14 @@ class ItineraryController extends Controller
      * @bodyParam legs.*.destination_stop_uuid string required Destination stop UUID.
      * @bodyParam legs.*.direction string Leg direction: outbound or inbound. Defaults to outbound. Required for round-trip legs.
      *
+     * @responseField data.legs.base_amount integer Tarif de base avant application de la tarification dynamique.
+     * @responseField data.legs.coefficient number Coefficient multiplicateur appliqué (1.0 = neutre, 1.20 = +20%, 0.90 = -10%).
+     * @responseField data.legs.final_amount integer Montant final après tarification dynamique (base_amount × coefficient).
+     * @responseField data.legs.dynamic_adjustment_amount integer Écart en XOF entre le prix final et le prix de base (positif = augmentation, négatif = réduction).
+     * @responseField data.legs.pricing_rule_uuid string UUID de la règle de tarification dynamique appliquée, ou null si aucune règle n'a matché.
+     * @responseField data.legs.fill_rate number Taux de remplissage du segment au moment du devis (0-100).
+     * @responseField data.legs.hours_before_departure number Délai en heures entre le devis et le départ (négatif si le départ est passé).
+     *
      * @response 200 scenario="Quote calculated" {
      *   "data": {
      *     "itinerary_quote_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
@@ -224,13 +250,25 @@ class ItineraryController extends Controller
      *       "leg_order": 1,
      *       "direction": "outbound",
      *       "quote_uuid": "quote-uuid-1",
-     *       "final_amount": 15000
+     *       "base_amount": 15000,
+     *       "coefficient": 1.0,
+     *       "final_amount": 15000,
+     *       "dynamic_adjustment_amount": 0,
+     *       "pricing_rule_uuid": null,
+     *       "fill_rate": 25,
+     *       "hours_before_departure": 48
      *     },
      *     {
      *       "leg_order": 2,
      *       "direction": "inbound",
      *       "quote_uuid": "quote-uuid-2",
-     *       "final_amount": 12500
+     *       "base_amount": 12500,
+     *       "coefficient": 1.0,
+     *       "final_amount": 12500,
+     *       "dynamic_adjustment_amount": 0,
+     *       "pricing_rule_uuid": null,
+     *       "fill_rate": 0,
+     *       "hours_before_departure": 120
      *     }
      *     ],
      *     "pricing": {

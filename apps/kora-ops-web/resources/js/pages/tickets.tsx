@@ -216,7 +216,7 @@ function WhatsAppDialog({
                     setSubmitting(false);
                     setError(
                         errors.phone ??
-                        "Une erreur est survenue lors de l'envoi.",
+                            "Une erreur est survenue lors de l'envoi.",
                     );
                 },
             },
@@ -678,16 +678,16 @@ export default function TicketsPage({
                                                     label={
                                                         ticket.channel
                                                             ? (channelLabels[
-                                                                ticket.channel
-                                                            ] ??
-                                                                ticket.channelLabel)
+                                                                  ticket.channel
+                                                              ] ??
+                                                              ticket.channelLabel)
                                                             : '—'
                                                     }
                                                     tone={
                                                         ticket.channel
                                                             ? (channelTones[
-                                                                ticket.channel
-                                                            ] ?? 'muted')
+                                                                  ticket.channel
+                                                              ] ?? 'muted')
                                                             : 'muted'
                                                     }
                                                 />
@@ -703,12 +703,12 @@ export default function TicketsPage({
                                                 <KoraStatusBadge
                                                     label={
                                                         statusLabels[
-                                                        ticket.status
+                                                            ticket.status
                                                         ] ?? ticket.statusLabel
                                                     }
                                                     tone={
                                                         statusTones[
-                                                        ticket.status
+                                                            ticket.status
                                                         ] ?? 'gold'
                                                     }
                                                 />
