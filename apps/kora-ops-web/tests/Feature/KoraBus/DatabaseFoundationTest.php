@@ -113,7 +113,10 @@ it('keeps roles out of users and centralizes authorization through policies', fu
     $commercial = User::factory()->create();
     $commercial->assignRole('commercial_director');
 
+    $agency = Agency::factory()->create();
     $agent = User::factory()->create();
+    $agent->agency()->associate($agency);
+    $agent->save();
     $agent->assignRole('agency_agent');
 
     expect(Gate::forUser($commercial)->allows('create', Fare::class))->toBeTrue()

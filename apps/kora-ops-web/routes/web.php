@@ -54,6 +54,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('sale/{reservation:uuid}/tickets/retry', [CounterSaleController::class, 'retryTicketIssuance'])->name('sale.tickets.retry');
     Route::post('fiscalization/{fiscalInvoice:uuid}/retry', [FiscalizationController::class, 'retry'])->name('fiscalization.retry');
     Route::get('cash', [CashSessionController::class, 'index'])->name('cash');
+    Route::get('cash/export', [CashSessionController::class, 'export'])->name('cash.export');
     Route::post('cash/open', [CashSessionController::class, 'store'])->name('cash.open');
     Route::post('cash/{cashSession:uuid}/close', [CashSessionController::class, 'close'])->name('cash.close');
     Route::post('cash/{cashSession:uuid}/approve-variance', [CashSessionController::class, 'approveVariance'])->name('cash.approve-variance');

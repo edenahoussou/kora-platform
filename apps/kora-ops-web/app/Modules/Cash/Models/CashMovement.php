@@ -28,6 +28,11 @@ class CashMovement extends KoraModel implements HasMedia
     /** @use HasFactory<CashMovementFactory> */
     use HasFactory, InteractsWithMedia;
 
+    protected static function newFactory(): CashMovementFactory
+    {
+        return CashMovementFactory::new();
+    }
+
     protected $fillable = [
         'uuid',
         'cash_session_id',
