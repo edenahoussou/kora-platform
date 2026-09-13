@@ -3,6 +3,8 @@
 namespace App\Http\Middleware;
 
 use App\Modules\BusNetwork\Models\MapSetting;
+use App\Modules\Cash\Models\CashSession;
+use App\Modules\Ticketing\Models\Ticket;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -47,6 +49,8 @@ class HandleInertiaRequests extends Middleware
                     'name' => $user->name,
                     'email' => $user->email,
                     'avatar' => null,
+                    'canViewCash' => $user->can('viewAny', CashSession::class),
+                    'canViewTickets' => $user->can('viewAny', Ticket::class),
                     'email_verified_at' => $user->email_verified_at?->toISOString(),
                     'permissions' => $user->getAllPermissions()->pluck('name')->toArray(),
                     'roles' => $user->getRoleNames()->toArray(),
