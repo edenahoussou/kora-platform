@@ -713,7 +713,7 @@ class CounterSaleController extends Controller
         $coefficient = $priceQuote !== null ? (float) $priceQuote->coefficient : 1.0;
         $finalAmount = $priceQuote !== null ? (int) $priceQuote->final_amount : (int) $leg->amount;
         $dynamicAdjustment = $finalAmount - $baseAmount;
-        $priceQuoteSnapshot = $priceQuote?->snapshot ?? [];
+        $priceQuoteSnapshot = $priceQuote === null ? [] : $priceQuote->snapshot;
 
         return [
             'legOrder' => $leg->leg_order,
