@@ -11,6 +11,7 @@ use App\Modules\Departures\Models\PlannedDeparture;
 use App\Modules\Departures\Services\PublicationService;
 use App\Modules\DynamicPricing\Models\PriceQuote;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -32,13 +33,36 @@ class UpdateDepartureAction
 
         return DB::transaction(function () use ($departure, $attributes): Departure {
             $departure = Departure::query()->whereKey($departure->id)->lockForUpdate()->firstOrFail();
-            if ($departure->getRawOriginal('status') !== 'scheduled' || $departure->reservationSegments()->whereNotIn('status', ['expired', 'cancelled'])->exists() || $departure->reservationSegments()->whereHas('reservation', fn ($query) => $query->whereHas('tickets'))->exists() || $departure->reservationSegments()->whereHas('reservation', fn ($query) => $query->whereHas('payments', fn ($q) => $q->whereIn('status', ['pending', 'confirmed', 'refunded'])))->exists()) {
+
+            // ✅ REFACTORISATION : Séparation des conditions pour aider PHPStan à résoudre les types
+            $hasActiveSegments = $departure->reservationSegments()
+                ->whereNotIn('status', ['expired', 'cancelled'])
+                ->exists();
+
+            $hasSegmentsWithTickets = $departure->reservationSegments()
+                ->whereHas('reservation', function (Builder $query): void {
+                    $query->whereHas('tickets');
+                })
+                ->exists();
+
+            $hasSegmentsWithPayments = $departure->reservationSegments()
+                ->whereHas('reservation', function (Builder $query): void {
+                    $query->whereHas('payments', function (Builder $q): void {
+                        $q->whereIn('status', ['pending', 'confirmed', 'refunded']);
+                    });
+                })
+                ->exists();
+
+            if ($departure->getRawOriginal('status') !== 'scheduled' || $hasActiveSegments || $hasSegmentsWithTickets || $hasSegmentsWithPayments) {
                 throw ValidationException::withMessages(['departure' => 'Ce départ est protégé par une réservation ou son état opérationnel.']);
             }
+
             if (PlannedDeparture::query()->where('departure_id', $departure->id)->exists()) {
                 throw ValidationException::withMessages(['departure' => 'Modifiez ce départ depuis Programmation pour conserver sa provenance.']);
             }
+
             PriceQuote::query()->where('departure_id', $departure->id)->update(['expires_at' => now()]);
+
             $lineId = $departure->line_id;
             if (isset($attributes['line_uuid'])) {
                 $lineId = Line::query()->where('uuid', $attributes['line_uuid'])->firstOrFail(['id'])->id;

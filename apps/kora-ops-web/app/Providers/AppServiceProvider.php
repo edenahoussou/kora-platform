@@ -178,5 +178,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('auth-login', fn (Request $request) => Limit::perMinute(5)->by(
             $request->ip().'|'.strtolower((string) $request->input('email')),
         ));
+
+        RateLimiter::for('terminal-handshake', fn (Request $request) => Limit::perMinute(10)->by(
+            $request->user()?->getAuthIdentifier().'|'.$request->ip(),
+        ));
     }
 }

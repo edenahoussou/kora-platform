@@ -15,6 +15,7 @@ use App\Modules\DynamicPricing\Http\Controllers\FareController;
 use App\Modules\DynamicPricing\Http\Controllers\PricingRuleController;
 use App\Modules\DynamicPricing\Http\Controllers\TaxRuleController;
 use App\Modules\IdentityAccess\Http\Controllers\AgencyController;
+use App\Modules\IdentityAccess\Http\Controllers\TerminalP501Controller;
 use App\Modules\Payments\Http\Controllers\AgencyPaymentAccountController;
 use App\Modules\Ticketing\Http\Controllers\TicketIndexController;
 use App\Modules\Ticketing\Http\Controllers\TicketPreviewController;
@@ -149,6 +150,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('agencies/{agency:uuid}/status', [AgencyController::class, 'changeStatus'])->name('agencies.status');
     Route::post('agencies/{agency:uuid}/payment-accounts', [AgencyPaymentAccountController::class, 'store'])->name('agencies.payment-accounts.store');
     Route::patch('agencies/{agency:uuid}/payment-accounts/{account:uuid}/status', [AgencyPaymentAccountController::class, 'changeStatus'])->name('agencies.payment-accounts.status');
+
+    // Terminaux P501 — services/endpoints backend (MEZ-XX). L'écran
+    // d'administration lui-même (page "terminals" ci-dessous, toujours en
+    // "coming soon") est livré séparément dans MEZ-99.
+    Route::prefix('terminals')->name('terminals.')->group(function (): void {
+        Route::get('data', [TerminalP501Controller::class, 'index'])->name('index');
+        Route::post('/', [TerminalP501Controller::class, 'store'])->name('store');
+        Route::get('{terminal:uuid}', [TerminalP501Controller::class, 'show'])->name('show');
+        Route::post('{terminal:uuid}/activate', [TerminalP501Controller::class, 'activate'])->name('activate');
+        Route::post('{terminal:uuid}/deactivate', [TerminalP501Controller::class, 'deactivate'])->name('deactivate');
+        Route::post('{terminal:uuid}/maintenance', [TerminalP501Controller::class, 'maintenance'])->name('maintenance');
+        Route::post('{terminal:uuid}/lost', [TerminalP501Controller::class, 'reportLost'])->name('lost');
+        Route::post('{terminal:uuid}/assign', [TerminalP501Controller::class, 'assign'])->name('assign');
+    });
 
     // =========================================================
     // V1 secondary — Colis & Wallet Lite (stubs)
