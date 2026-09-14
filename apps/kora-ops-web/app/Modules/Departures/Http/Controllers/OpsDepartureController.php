@@ -3,11 +3,9 @@
 namespace App\Modules\Departures\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Data\LineType;
 use App\Modules\Departures\Actions\ComputeManifestVersionAction;
 use App\Modules\Departures\Actions\ResolveManifestRowStatusAction;
-use App\Modules\Departures\Data\ManifestSegmentStatus;
 use App\Modules\Departures\Http\Resources\OpsDepartureResource;
 use App\Modules\Departures\Http\Resources\OpsManifestRowResource;
 use App\Modules\Departures\Models\Departure;
@@ -146,10 +144,7 @@ class OpsDepartureController extends Controller
      * pas encore payés/confirmés (hold, paiement en attente...), qui
      * n'ont pas de billet à présenter à l'embarquement.
      *
-     * CORRECTION : Toujours retourner 3 éléments pour satisfaire le type de retour.
-     * Le 3ème élément est un tableau vide quand $withStatuses est false.
-     *
-     * @return array{Collection<int, ReservationSegment>, array<int, Ticket>, array<int, ManifestSegmentStatus>}
+     * @return array{0: Collection<int, \App\Modules\Booking\Models\ReservationSegment>, 1: array<int, Ticket>, 2: array<int, \App\Modules\Departures\Data\ManifestSegmentStatus>}
      */
     private function manifestSegments(Departure $departure, bool $withStatuses = false): array
     {
@@ -187,8 +182,7 @@ class OpsDepartureController extends Controller
             return true;
         })->values();
 
-        // CORRECTION : Toujours retourner 3 éléments (tableau vide si non demandé)
-        return [$included, $ticketsByPassengerId, $withStatuses ? $statusesBySegmentId : []];
+        return $withStatuses ? [$included, $ticketsByPassengerId, $statusesBySegmentId] : [$included, $ticketsByPassengerId];
     }
 
     private function perPage(Request $request): int
@@ -197,9 +191,6 @@ class OpsDepartureController extends Controller
     }
 
     /**
-     * CORRECTION : Ajout des types génériques pour LengthAwarePaginator.
-     *
-     * @param  LengthAwarePaginator<int, mixed>  $paginator
      * @return array<string, int>
      */
     private function paginationMeta(LengthAwarePaginator $paginator): array

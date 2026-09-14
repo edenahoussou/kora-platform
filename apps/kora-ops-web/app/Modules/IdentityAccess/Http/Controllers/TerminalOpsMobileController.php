@@ -69,7 +69,6 @@ class TerminalOpsMobileController extends Controller
      * @authenticated
      *
      * @header X-Terminal-Serial Numéro de série du terminal (alternative au champ serial_number du corps). Example: P501-000123
-     *
      * @bodyParam serial_number string Numéro de série du terminal, requis si l'en-tête X-Terminal-Serial est absent. Example: P501-000123
      * @bodyParam summary object Résumé libre de ce qui a été synchronisé (compté, jamais interprété par ce endpoint). No-example.
      *

@@ -15,6 +15,7 @@ use App\Modules\IdentityAccess\Models\TerminalP501;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Ticketing\Models\Ticket;
 use Database\Seeders\KoraBusRolePermissionSeeder;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 beforeEach(function (): void {
@@ -231,15 +232,28 @@ it('grants access to every crew role assigned to the departure, not just the con
     [$origin, $destination] = manifestStops($line);
     [$bus] = manifestBusWithSeat();
 
-    foreach (['bus_driver' => 'driver_id', 'mechanic' => 'mechanic_id', 'conductor' => 'conductor_id'] as $role => $column) {
+    $cases = [
+        ['bus_driver', 'driver_id'],
+        ['bus_driver', 'secondary_driver_id'],
+        ['mechanic', 'mechanic_id'],
+        ['conductor', 'conductor_id'],
+    ];
+
+    foreach ($cases as [$role, $column]) {
         [$user, $token] = manifestCrewToken($role);
-        $terminal = manifestActiveTerminal('P501-CREW-'.$role);
+        $terminal = manifestActiveTerminal('P501-CREW-'.$column);
         $departure = manifestOpsDeparture($line, $bus, [$column => $user->id]);
+
+        // Le guard sanctum met en cache l'utilisateur résolu sur son
+        // instance, partagée entre les requêtes simulées d'un même test —
+        // sans ce reset, les itérations suivantes réutiliseraient
+        // l'authentification de la première au lieu du nouveau token.
+        Auth::forgetGuards();
 
         $this->withToken($token)
             ->withHeaders(['X-Terminal-Serial' => $terminal->serial_number])
             ->getJson("/api/v1/ops/departures/{$departure->uuid}")
-            ->assertOk();
+            ->assertOk("Expected access for role [{$role}] via column [{$column}]");
     }
 });
 
@@ -371,28 +385,44 @@ it('maps internal statuses to paid, boarded, cancelled and no_show', function ()
     $seat2 = Seat::query()->create(['bus_id' => $bus->id, 'code' => '1B', 'type' => 'standard', 'sellable' => true, 'status' => 'active']);
     $seat3 = Seat::query()->create(['bus_id' => $bus->id, 'code' => '1C', 'type' => 'standard', 'sellable' => true, 'status' => 'active']);
     $seat4 = Seat::query()->create(['bus_id' => $bus->id, 'code' => '1D', 'type' => 'standard', 'sellable' => true, 'status' => 'active']);
+    $seat5 = Seat::query()->create(['bus_id' => $bus->id, 'code' => '1E', 'type' => 'standard', 'sellable' => true, 'status' => 'active']);
 
-    // "Departed" so a still-ticketed (not boarded) passenger reads as no_show.
-    $departure = manifestOpsDeparture($line, $bus, ['conductor_id' => $user->id], status: 'departed');
+    // Pas encore parti : un segment "confirmed" avec paiement confirmé
+    // lit "paid" (ResolvePassengerJourneyStatusAction ne considère un
+    // ticketed-mais-non-embarqué comme absent qu'une fois le départ
+    // effectivement parti/arrivé — voir le cas no_show séparé ci-dessous).
+    $upcoming = manifestOpsDeparture($line, $bus, ['conductor_id' => $user->id], status: 'scheduled');
 
-    manifestBookedPassenger($departure, $origin, $destination, $seat1, segmentStatus: 'ticketed', passengerOverrides: ['first_name' => 'Paid', 'last_name' => 'One']);
-    manifestBookedPassenger($departure, $origin, $destination, $seat2, segmentStatus: 'boarded', passengerOverrides: ['first_name' => 'Boarded', 'last_name' => 'Two']);
-    manifestBookedPassenger($departure, $origin, $destination, $seat3, segmentStatus: 'cancelled', passengerOverrides: ['first_name' => 'Cancelled', 'last_name' => 'Three']);
-    // Held (not yet paid) — must be excluded from the manifest entirely.
-    manifestBookedPassenger($departure, $origin, $destination, $seat4, segmentStatus: 'held', passengerOverrides: ['first_name' => 'Held', 'last_name' => 'Four'], withConfirmedPayment: false);
+    manifestBookedPassenger($upcoming, $origin, $destination, $seat1, segmentStatus: 'confirmed', passengerOverrides: ['first_name' => 'Paid', 'last_name' => 'One']);
+    manifestBookedPassenger($upcoming, $origin, $destination, $seat2, segmentStatus: 'boarded', passengerOverrides: ['first_name' => 'Boarded', 'last_name' => 'Two']);
+    manifestBookedPassenger($upcoming, $origin, $destination, $seat3, segmentStatus: 'cancelled', passengerOverrides: ['first_name' => 'Cancelled', 'last_name' => 'Three']);
+    // Held (pas encore payé) — doit être absent du manifeste.
+    manifestBookedPassenger($upcoming, $origin, $destination, $seat4, segmentStatus: 'held', passengerOverrides: ['first_name' => 'Held', 'last_name' => 'Four'], withConfirmedPayment: false);
 
-    $response = $this->withToken($token)
+    $upcomingResponse = $this->withToken($token)
         ->withHeaders(['X-Terminal-Serial' => $terminal->serial_number])
-        ->getJson("/api/v1/ops/departures/{$departure->uuid}/manifest")
+        ->getJson("/api/v1/ops/departures/{$upcoming->uuid}/manifest")
         ->assertOk();
 
-    $rowsByName = collect($response->json('data'))->keyBy('name');
+    $upcomingRows = collect($upcomingResponse->json('data'))->keyBy('name');
 
-    expect($rowsByName)->toHaveCount(3)
-        ->and($rowsByName['Paid One']['segmentStatus'])->toBe('paid')
-        ->and($rowsByName['Boarded Two']['segmentStatus'])->toBe('boarded')
-        ->and($rowsByName['Cancelled Three']['segmentStatus'])->toBe('cancelled')
-        ->and($rowsByName->has('Held Four'))->toBeFalse();
+    expect($upcomingRows)->toHaveCount(3)
+        ->and($upcomingRows['Paid One']['segmentStatus'])->toBe('paid')
+        ->and($upcomingRows['Boarded Two']['segmentStatus'])->toBe('boarded')
+        ->and($upcomingRows['Cancelled Three']['segmentStatus'])->toBe('cancelled')
+        ->and($upcomingRows->has('Held Four'))->toBeFalse();
+
+    // "no_show" ne s'applique qu'une fois le départ effectivement parti :
+    // un billet émis mais jamais scanné à l'embarquement.
+    $departed = manifestOpsDeparture($line, $bus, ['conductor_id' => $user->id], status: 'departed');
+    manifestBookedPassenger($departed, $origin, $destination, $seat5, segmentStatus: 'ticketed', passengerOverrides: ['first_name' => 'NoShow', 'last_name' => 'Five']);
+
+    $departedResponse = $this->withToken($token)
+        ->withHeaders(['X-Terminal-Serial' => $terminal->serial_number])
+        ->getJson("/api/v1/ops/departures/{$departed->uuid}/manifest")
+        ->assertOk();
+
+    expect($departedResponse->json('data.0.segmentStatus'))->toBe('no_show');
 });
 
 it('searches manifest rows by passenger name and by ticket short code', function (): void {

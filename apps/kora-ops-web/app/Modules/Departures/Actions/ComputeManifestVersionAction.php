@@ -29,15 +29,11 @@ class ComputeManifestVersionAction
                 ? ($ticketsByPassengerId[$segment->reservation_passenger_id] ?? null)
                 : null;
 
-            // CORRECTION : Remplacement de ?->id ?? par ternaire explicite
-            $ticketId = $ticket !== null ? $ticket->id : '-';
-            $ticketStatus = $ticket !== null ? $ticket->status->value : '-';
-
             $parts[] = implode(':', [
                 $segment->id,
                 $segment->status->value,
-                $ticketId,
-                $ticketStatus,
+                $ticket?->id ?? '-',
+                $ticket?->status->value ?? '-',
             ]);
         }
 
