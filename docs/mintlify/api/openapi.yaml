@@ -4941,17 +4941,170 @@ paths:
       summary: "Accuse réception d'une synchronisation réussie côté terminal et met\nà jour last_sync_at. Le traitement du contenu du lot de\nsynchronisation (sync_batches/sync_operations) est hors périmètre."
       operationId: accuseRceptionDuneSynchronisationRussieCtTerminalEtMetJourLastSyncAtLeTraitementDuContenuDuLotDeSynchronisationsyncBatchessyncOperationsEstHorsPrimtre
       description: ''
-      parameters: []
-      responses: {}
+      parameters:
+        -
+          in: header
+          name: X-Terminal-Serial
+          description: ''
+          example: 'Numéro de série du terminal (alternative au champ serial_number du corps). Example: P501-000123'
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Synchronisation enregistrée'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: b3091549-9179-454e-8440-58179f2208df
+                    serial_number: P501-000123
+                    status: active
+                    last_sync_at: '2026-09-14T09:05:00.000Z'
+                    last_handshake_at: '2026-09-14T09:00:00.000Z'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      serial_number:
+                        type: string
+                        example: P501-000123
+                      status:
+                        type: string
+                        example: active
+                      last_sync_at:
+                        type: string
+                        example: '2026-09-14T09:05:00.000Z'
+                      last_handshake_at:
+                        type: string
+                        example: '2026-09-14T09:00:00.000Z'
+        403:
+          description: 'Terminal non utilisable'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: terminal_inactive
+                    message: 'Ce terminal est désactivé. Contactez votre agence.'
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: terminal_inactive
+                      message:
+                        type: string
+                        example: 'Ce terminal est désactivé. Contactez votre agence.'
+        404:
+          description: 'Terminal unknown'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: terminal_unknown
+                    message: 'Ce terminal n’est pas enregistré. Contactez votre agence.'
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: terminal_unknown
+                      message:
+                        type: string
+                        example: 'Ce terminal n’est pas enregistré. Contactez votre agence.'
       tags:
         - 'OPS Mobile — Terminal'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                serial_number:
+                  type: string
+                  description: "Numéro de série du terminal, requis si l'en-tête X-Terminal-Serial est absent."
+                  example: P501-000123
+                summary:
+                  type: object
+                  description: 'Résumé libre de ce qui a été synchronisé (compté, jamais interprété par ce endpoint).'
+                  example: null
+                  properties: {}
   /api/v1/ops-mobile/terminal/activity:
     post:
       summary: "Journalise un scan, une impression ou une erreur pour le terminal en\ncours d'utilisation."
       operationId: journaliseUnScanUneImpressionOuUneErreurPourLeTerminalEnCoursDutilisation
       description: ''
-      parameters: []
-      responses: {}
+      parameters:
+        -
+          in: header
+          name: X-Terminal-Serial
+          description: ''
+          example: 'Numéro de série du terminal (alternative au champ serial_number du corps). Example: P501-000123'
+          schema:
+            type: string
+      responses:
+        204:
+          description: 'Activité journalisée'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ''
+        403:
+          description: 'Terminal non utilisable'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: terminal_inactive
+                    message: 'Ce terminal est désactivé. Contactez votre agence.'
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: terminal_inactive
+                      message:
+                        type: string
+                        example: 'Ce terminal est désactivé. Contactez votre agence.'
+        422:
+          description: 'Type non autorisé (handshake/sync ont leur propre endpoint)'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'The selected type is invalid.'
+                  errors:
+                    type:
+                      - 'The selected type is invalid.'
+                properties:
+                  message:
+                    type: string
+                    example: 'The selected type is invalid.'
+                  errors:
+                    type: object
+                    properties:
+                      type:
+                        type: array
+                        example:
+                          - 'The selected type is invalid.'
+                        items:
+                          type: string
       tags:
         - 'OPS Mobile — Terminal'
       requestBody:

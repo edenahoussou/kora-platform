@@ -67,6 +67,26 @@ class TerminalOpsMobileController extends Controller
      * synchronisation (sync_batches/sync_operations) est hors périmètre.
      *
      * @authenticated
+     *
+     * @header X-Terminal-Serial Numéro de série du terminal (alternative au champ serial_number du corps). Example: P501-000123
+     * @bodyParam serial_number string Numéro de série du terminal, requis si l'en-tête X-Terminal-Serial est absent. Example: P501-000123
+     * @bodyParam summary object Résumé libre de ce qui a été synchronisé (compté, jamais interprété par ce endpoint). No-example.
+     *
+     * @response 200 scenario="Synchronisation enregistrée" {
+     *   "data": {
+     *     "uuid": "b3091549-9179-454e-8440-58179f2208df",
+     *     "serial_number": "P501-000123",
+     *     "status": "active",
+     *     "last_sync_at": "2026-09-14T09:05:00.000Z",
+     *     "last_handshake_at": "2026-09-14T09:00:00.000Z"
+     *   }
+     * }
+     * @response 403 scenario="Terminal non utilisable" {
+     *   "error": { "code": "terminal_inactive", "message": "Ce terminal est désactivé. Contactez votre agence." }
+     * }
+     * @response 404 scenario="Terminal unknown" {
+     *   "error": { "code": "terminal_unknown", "message": "Ce terminal n’est pas enregistré. Contactez votre agence." }
+     * }
      */
     public function sync(Request $request, RecordTerminalSyncAction $recordSync): JsonResponse
     {
@@ -85,6 +105,17 @@ class TerminalOpsMobileController extends Controller
      * cours d'utilisation.
      *
      * @authenticated
+     *
+     * @header X-Terminal-Serial Numéro de série du terminal (alternative au champ serial_number du corps). Example: P501-000123
+     *
+     * @response 204 scenario="Activité journalisée"
+     * @response 403 scenario="Terminal non utilisable" {
+     *   "error": { "code": "terminal_inactive", "message": "Ce terminal est désactivé. Contactez votre agence." }
+     * }
+     * @response 422 scenario="Type non autorisé (handshake/sync ont leur propre endpoint)" {
+     *   "message": "The selected type is invalid.",
+     *   "errors": { "type": ["The selected type is invalid."] }
+     * }
      */
     public function activity(TerminalActivityRequest $request, LogTerminalActivityAction $logActivity): JsonResponse
     {
