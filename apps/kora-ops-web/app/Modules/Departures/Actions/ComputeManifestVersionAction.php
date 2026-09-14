@@ -32,8 +32,8 @@ class ComputeManifestVersionAction
             $parts[] = implode(':', [
                 $segment->id,
                 $segment->status->value,
-                $ticket?->id ?? '-',
-                $ticket?->status->value ?? '-',
+                $ticket !== null ? $ticket->id : '-',
+                $ticket !== null ? $ticket->status->value : '-',
             ]);
         }
 

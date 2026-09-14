@@ -23,6 +23,9 @@ tags:
     name: Health
     description: "\nApplication health and liveness probes for load balancers and monitoring."
   -
+    name: 'OPS Mobile — Departures'
+    description: "\nDéparts et manifeste pour l'équipage terrain (convoyeur, chauffeur,\nchauffeur second, mécanicien) affecté — remplace les écrans mockés de\nMEZ-11. Authentification : auth:sanctum (login existant) + terminal\nenregistré et actif (middleware terminal.active)."
+  -
     name: 'OPS Mobile — Terminal'
     description: "\nHandshake et opérations liées au terminal P501 pour l'application OPS\nMobile. L'authentification de l'utilisateur (login, PIN, OTP) reste celle\nde l'app KORA existante (auth:sanctum) ; ces endpoints ajoutent le\ncontrôle du terminal par-dessus une session déjà ouverte."
   -
@@ -4841,6 +4844,54 @@ paths:
       tags:
         - Health
       security: []
+  /api/v1/ops/departures:
+    get:
+      summary: "Départs accessibles à l'utilisateur connecté : ceux où il est\naffecté (chauffeur, chauffeur second, convoyeur ou mécanicien),\nhors départs annulés."
+      operationId: dpartsAccessiblesLutilisateurConnectCeuxOIlEstAffectchauffeurChauffeurSecondConvoyeurOuMcanicienHorsDpartsAnnuls
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'OPS Mobile — Departures'
+      security: []
+  '/api/v1/ops/departures/{uuid}':
+    get:
+      summary: "Détail d'un départ affecté : ligne, arrêts, bus, équipage, statut\nopérationnel et version du manifeste."
+      operationId: dtailDunDpartAffectLigneArrtsBusquipageStatutOprationnelEtVersionDuManifeste
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'OPS Mobile — Departures'
+      security: []
+    parameters:
+      -
+        in: path
+        name: uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/departures/{departure_uuid}/manifest':
+    get:
+      summary: "Manifeste téléchargeable : une ligne par segment/passager du départ\nconsulté (jamais les autres jambes d'un itinéraire multi-jambes)."
+      operationId: manifesteTlchargeableUneLigneParSegmentpassagerDuDpartConsultjamaisLesAutresJambesDunItinraireMultiJambes
+      description: 'Jamais de prix, montant, ou identifiant numérique interne.'
+      parameters: []
+      responses: {}
+      tags:
+        - 'OPS Mobile — Departures'
+      security: []
+    parameters:
+      -
+        in: path
+        name: departure_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
   /api/v1/ops-mobile/terminal/handshake:
     post:
       summary: "Handshake du terminal : à appeler juste après le login pour lier la\nsession au terminal physique utilisé."

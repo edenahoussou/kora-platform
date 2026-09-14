@@ -3,9 +3,11 @@
 namespace App\Modules\Departures\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Data\LineType;
 use App\Modules\Departures\Actions\ComputeManifestVersionAction;
 use App\Modules\Departures\Actions\ResolveManifestRowStatusAction;
+use App\Modules\Departures\Data\ManifestSegmentStatus;
 use App\Modules\Departures\Http\Resources\OpsDepartureResource;
 use App\Modules\Departures\Http\Resources\OpsManifestRowResource;
 use App\Modules\Departures\Models\Departure;
@@ -144,7 +146,7 @@ class OpsDepartureController extends Controller
      * pas encore payés/confirmés (hold, paiement en attente...), qui
      * n'ont pas de billet à présenter à l'embarquement.
      *
-     * @return array{0: Collection<int, \App\Modules\Booking\Models\ReservationSegment>, 1: array<int, Ticket>, 2: array<int, \App\Modules\Departures\Data\ManifestSegmentStatus>}
+     * @return array{Collection<int, ReservationSegment>, array<int, Ticket>, array<int, ManifestSegmentStatus>}
      */
     private function manifestSegments(Departure $departure, bool $withStatuses = false): array
     {
@@ -182,7 +184,7 @@ class OpsDepartureController extends Controller
             return true;
         })->values();
 
-        return $withStatuses ? [$included, $ticketsByPassengerId, $statusesBySegmentId] : [$included, $ticketsByPassengerId];
+        return [$included, $ticketsByPassengerId, $withStatuses ? $statusesBySegmentId : []];
     }
 
     private function perPage(Request $request): int
@@ -191,6 +193,7 @@ class OpsDepartureController extends Controller
     }
 
     /**
+     * @param  LengthAwarePaginator<int, mixed>  $paginator
      * @return array<string, int>
      */
     private function paginationMeta(LengthAwarePaginator $paginator): array

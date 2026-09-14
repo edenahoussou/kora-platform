@@ -2,8 +2,8 @@
 
 namespace App\Modules\Departures\Http\Resources;
 
-use App\Modules\Departures\Models\Departure;
 use App\Modules\BusNetwork\Data\LineType;
+use App\Modules\Departures\Models\Departure;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
