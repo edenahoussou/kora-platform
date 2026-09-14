@@ -10,6 +10,7 @@ use App\Modules\Departures\Models\PlannedDeparture;
 use App\Modules\Departures\Models\ProgrammingRun;
 use App\Modules\DynamicPricing\Models\PriceQuote;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder; // ✅ AJOUTÉ : Nécessaire pour le type hint
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -25,10 +26,15 @@ class PlanningService
         abort_if($version->template->status === 'archived', 422, 'Ce modèle est archivé.');
         $programme = new DepartureProgramme([
             'uuid' => (string) Str::uuid(),
-            'name' => $data['name'], 'version_id' => $version->id,
-            'starts_on' => $data['starts_on'], 'ends_on' => $data['ends_on'],
-            'horizon_days' => $data['horizon_days'], 'automatic' => false,
-            'exceptions' => $data['exceptions'], 'revision' => 1, 'created_by' => $actor->id,
+            'name' => $data['name'],
+            'version_id' => $version->id,
+            'starts_on' => $data['starts_on'],
+            'ends_on' => $data['ends_on'],
+            'horizon_days' => $data['horizon_days'],
+            'automatic' => false,
+            'exceptions' => $data['exceptions'],
+            'revision' => 1,
+            'created_by' => $actor->id,
             'version_schedule' => [['from' => $data['starts_on'], 'version_id' => $version->id]],
         ]);
         $programme->setRelation('version', $version);
@@ -101,8 +107,30 @@ class PlanningService
         }
         $departure = $item->departure;
 
-        return $departure === null || $departure->getRawOriginal('status') !== 'scheduled' || $departure->reservationSegments()->whereNotIn('status', ['expired', 'cancelled'])->exists()
-            || $departure->reservationSegments()->whereHas('reservation', fn ($query) => $query->whereHas('tickets'))->exists() || $departure->reservationSegments()->whereHas('reservation', fn ($query) => $query->whereHas('payments', fn ($q) => $q->whereIn('status', ['pending', 'confirmed', 'refunded'])))->exists();
+        // ✅ REFACTORISATION : Séparation des conditions pour aider PHPStan à résoudre les types des closures
+        $hasActiveSegments = $departure->reservationSegments()
+            ->whereNotIn('status', ['expired', 'cancelled'])
+            ->exists();
+
+        $hasSegmentsWithTickets = $departure->reservationSegments()
+            ->whereHas('reservation', function (Builder $query): void {
+                $query->whereHas('tickets');
+            })
+            ->exists();
+
+        $hasSegmentsWithPayments = $departure->reservationSegments()
+            ->whereHas('reservation', function (Builder $query): void {
+                $query->whereHas('payments', function (Builder $q): void {
+                    $q->whereIn('status', ['pending', 'confirmed', 'refunded']);
+                });
+            })
+            ->exists();
+
+        return $departure === null
+            || $departure->getRawOriginal('status') !== 'scheduled'
+            || $hasActiveSegments
+            || $hasSegmentsWithTickets
+            || $hasSegmentsWithPayments;
     }
 
     /**
@@ -184,12 +212,18 @@ class PlanningService
         }
         $time = $item->scheduled_at->setTimezone(config('app.timezone'));
         $item->departure->update([
-            'line_id' => $item->line_id, 'bus_id' => $item->bus_id,
-            'driver_id' => $item->driver_id, 'secondary_driver_id' => $item->secondary_driver_id,
-            'conductor_id' => $item->conductor_id, 'mechanic_id' => $item->mechanic_id,
-            'scheduled_at' => $item->scheduled_at, 'departure_timezone' => $item->timezone,
-            'departure_date' => $time->toDateString(), 'departure_time' => $time->format('H:i:s'),
-            'estimated_arrival_at' => $item->arrival_at->setTimezone(config('app.timezone')), 'stop_times' => $item->snapshot['stops'],
+            'line_id' => $item->line_id,
+            'bus_id' => $item->bus_id,
+            'driver_id' => $item->driver_id,
+            'secondary_driver_id' => $item->secondary_driver_id,
+            'conductor_id' => $item->conductor_id,
+            'mechanic_id' => $item->mechanic_id,
+            'scheduled_at' => $item->scheduled_at,
+            'departure_timezone' => $item->timezone,
+            'departure_date' => $time->toDateString(),
+            'departure_time' => $time->format('H:i:s'),
+            'estimated_arrival_at' => $item->arrival_at->setTimezone(config('app.timezone')),
+            'stop_times' => $item->snapshot['stops'],
         ]);
         PriceQuote::query()->where('departure_id', $item->departure_id)->update(['expires_at' => now()]);
     }
