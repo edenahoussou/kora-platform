@@ -6,6 +6,7 @@ use App\Modules\Booking\Http\Controllers\ReservationPassengerController;
 use App\Modules\BusNetwork\Http\Controllers\BusCatalogController;
 use App\Modules\CompanyAccounts\Http\Controllers\CompanyAccountController;
 use App\Modules\Departures\Http\Controllers\BusDepartureController;
+use App\Modules\Departures\Http\Controllers\OpsDepartureController;
 use App\Modules\DynamicPricing\Http\Controllers\GroupDiscountRuleController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthDeviceController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthOAuthController;
@@ -69,6 +70,18 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 Route::post('sync', [TerminalOpsMobileController::class, 'sync'])->name('sync');
                 Route::post('activity', [TerminalOpsMobileController::class, 'activity'])->name('activity');
             });
+        });
+
+    // OPS Mobile — planning et manifeste du convoyeur (MEZ-84 suite,
+    // remplace les écrans mockés de MEZ-11). Même garde que ci-dessus :
+    // session existante (auth:sanctum) + terminal enregistré et actif.
+    Route::prefix('ops/departures')
+        ->name('ops.departures.')
+        ->middleware(['auth:sanctum', 'terminal.active'])
+        ->group(function (): void {
+            Route::get('/', [OpsDepartureController::class, 'index'])->name('index');
+            Route::get('{departure:uuid}', [OpsDepartureController::class, 'show'])->name('show');
+            Route::get('{departure:uuid}/manifest', [OpsDepartureController::class, 'manifest'])->name('manifest');
         });
 
     Route::prefix('bus')

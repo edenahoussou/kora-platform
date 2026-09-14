@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Modules\Departures\Models\Departure;
+use App\Modules\Departures\Services\CrewDepartureScope;
 use App\Policies\Concerns\AuthorizesPermissions;
 
 class DeparturePolicy
@@ -18,6 +19,16 @@ class DeparturePolicy
     public function view(User $user, Departure $departure): bool
     {
         return $this->allows($user, 'departures.view');
+    }
+
+    /**
+     * OPS Mobile : au-delà de la permission, il faut être personnellement
+     * affecté au départ (chauffeur, chauffeur second, convoyeur ou
+     * mécanicien) et celui-ci ne doit pas être annulé.
+     */
+    public function viewAsCrew(User $user, Departure $departure): bool
+    {
+        return app(CrewDepartureScope::class)->canAccess($user, $departure);
     }
 
     public function create(User $user): bool

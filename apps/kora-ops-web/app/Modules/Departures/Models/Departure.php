@@ -87,6 +87,22 @@ class Departure extends KoraModel
     /**
      * @return BelongsTo<User, $this>
      */
+    public function secondaryDriver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'secondary_driver_id');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function mechanic(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'mechanic_id');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
