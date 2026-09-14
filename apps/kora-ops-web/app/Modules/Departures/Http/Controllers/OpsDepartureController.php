@@ -36,7 +36,7 @@ class OpsDepartureController extends Controller
     /**
      * Départs accessibles à l'utilisateur connecté : ceux où il est
      * affecté (chauffeur, chauffeur second, convoyeur ou mécanicien),
-     * hors départs annulés.
+     * hors départs annulés. 
      */
     public function index(Request $request): JsonResponse
     {

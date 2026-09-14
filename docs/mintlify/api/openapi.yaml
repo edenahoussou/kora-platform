@@ -4850,7 +4850,19 @@ paths:
       operationId: dpartsAccessiblesLutilisateurConnectCeuxOIlEstAffectchauffeurChauffeurSecondConvoyeurOuMcanicienHorsDpartsAnnuls
       description: ''
       parameters: []
-      responses: {}
+      "responses": {
+        "200": {
+          "description": "Liste des départs récupérée avec succès",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/Departure" }
+              }
+            }
+          }
+        }
+      }
       tags:
         - 'OPS Mobile — Departures'
       security: []
