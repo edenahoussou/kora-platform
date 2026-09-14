@@ -32,3 +32,4 @@ yarn-error.log
 /.scribe/
 /resources/views/scribe/
 check.sh
+erreur_check.txt

@@ -107,9 +107,6 @@ class CounterSaleController extends Controller
 
         $itineraryQuote = $this->selectedItineraryQuote($context);
 
-        // After confirm/hold, the redirect only carries reservation_uuid
-        // (not itinerary_quote_uuid). Load the quote from the reservation
-        // so the journey summary can display per-leg pricing and times.
         if ($itineraryQuote === null && ($context['reservation_uuid'] ?? null) !== null) {
             $reservation = $this->selectedReservation($context);
 
@@ -121,10 +118,6 @@ class CounterSaleController extends Controller
             }
         }
 
-        // When the agent has fetched seat availability via POST /sale/seats
-        // (the new flow that defers quote creation until after seat
-        // selection), the legs are stored in session and we rebuild the
-        // availability from them instead of from a persisted quote.
         $pendingLegs = session()->pull('counter_sale_pending_legs');
         $itineraryLegSeats = $pendingLegs !== null
             ? $this->buildSeatAvailabilityFromLegs($pendingLegs)
@@ -206,21 +199,12 @@ class CounterSaleController extends Controller
         return to_route('sale', $request->saleQuery($reservation->uuid));
     }
 
-    /**
-     * Fetches seat availability for the selected legs WITHOUT creating a
-     * quote. Returns a partial Inertia response (only itineraryLegSeats) so
-     * the frontend can open the seat picker immediately without a full page
-     * reload.
-     */
     public function seats(FetchCounterSaleSeatsRequest $request): Response
     {
         Gate::authorize('viewAny', Departure::class);
 
         $data = $request->legsData();
 
-        // Persist the selected legs in session so a subsequent full page
-        // reload (e.g. browser refresh) can rebuild the same seat
-        // availability without a new POST.
         session()->put('counter_sale_pending_legs', $data);
 
         $legSeats = $this->buildSeatAvailabilityFromLegs($data);
@@ -230,13 +214,6 @@ class CounterSaleController extends Controller
         ]);
     }
 
-    /**
-     * Creates the itinerary quote with the FINAL passenger count and
-     * immediately holds the selected seats in a single request. This
-     * ensures the quote is frozen at the right price (with group discounts,
-     * dynamic pricing, promotions) only after the agent has chosen
-     * passengers, seats and payer.
-     */
     public function confirm(
         ConfirmCounterSaleRequest $request,
         CalculateItineraryQuoteAction $calculateItineraryQuote,
@@ -337,9 +314,6 @@ class CounterSaleController extends Controller
             'message' => __('Paiement confirmé. L’émission des billets est en cours.'),
         ]);
 
-        // Emit tickets synchronously so the PDF is available immediately.
-        // If issuance fails, the payment is already committed — redirect
-        // back to the sale page with an error so the agent can retry.
         try {
             IssueReservationTicketsJob::dispatchSync($reservation->getKey());
         } catch (\Throwable $exception) {
@@ -370,15 +344,12 @@ class CounterSaleController extends Controller
         $firstTicket = $confirmedReservation->tickets->first();
 
         if ($firstTicket !== null) {
-            // Inertia::location forces a full page navigation (not SPA visit)
-            // because /tickets/{uuid} is a Blade page, not an Inertia render.
             return Inertia::location(route('tickets.show', [
                 'ticket' => $firstTicket->uuid,
                 'download' => 1,
             ]));
         }
 
-        // Ticket issuance failed or pending — fall back to sale page.
         $segment = $confirmedReservation->segments->first();
 
         return to_route('sale', array_filter([
@@ -515,10 +486,6 @@ class CounterSaleController extends Controller
     }
 
     /**
-     * Seat availability per leg of an itinerary quote — an aller-retour
-     * quote has both outbound and inbound legs, each potentially on a
-     * different bus, so seats must be resolved leg by leg.
-     *
      * @return list<array{legOrder: int, direction: string, departureUuid: string, seats: list<array<string, mixed>>}>
      */
     private function serializeItineraryLegSeats(?ItineraryQuote $quote): array
@@ -540,14 +507,6 @@ class CounterSaleController extends Controller
     }
 
     /**
-     * Builds seat availability from raw leg data (UUIDs) without requiring
-     * a persisted ItineraryQuote. Used by the new flow where seats are
-     * fetched BEFORE the quote is created.
-     *
-     * Batch-loads all departures and stops in 2 queries (anti-N+1), with
-     * bus.seats and line.stops eager-loaded so BuildCounterSaleSeatAvailabilityAction
-     * doesn't need to re-query them.
-     *
      * @param  array{outbound_legs: list<array{departure_uuid: string, origin_stop_uuid: string, destination_stop_uuid: string}>, inbound_legs: list<array{departure_uuid: string, origin_stop_uuid: string, destination_stop_uuid: string}>}  $legsData
      * @return list<array{legOrder: int, direction: string, departureUuid: string, seats: list<array<string, mixed>>}>
      */
@@ -595,10 +554,6 @@ class CounterSaleController extends Controller
     }
 
     /**
-     * Builds ItineraryLegQuoteRequest[] from raw leg UUIDs, batch-loading
-     * all departures and stops in 2 queries (anti-N+1). Shared by
-     * confirm() and quote().
-     *
      * @param  list<array{departure_uuid: string, origin_stop_uuid: string, destination_stop_uuid: string}>  $outboundLegs
      * @param  list<array{departure_uuid: string, origin_stop_uuid: string, destination_stop_uuid: string}>  $inboundLegs
      * @return list<ItineraryLegQuoteRequest>
@@ -640,9 +595,6 @@ class CounterSaleController extends Controller
     }
 
     /**
-     * Batch-fetches departures by UUID with bus.seats and line.stops
-     * eager-loaded, keyed by UUID. A single query regardless of leg count.
-     *
      * @param  list<string>  $uuids
      * @return Collection<string, Departure>
      */
@@ -656,9 +608,6 @@ class CounterSaleController extends Controller
     }
 
     /**
-     * Batch-fetches stops by UUID, keyed by UUID. A single query
-     * regardless of leg count.
-     *
      * @param  list<string>  $uuids
      * @return Collection<string, Stop>
      */
@@ -697,12 +646,6 @@ class CounterSaleController extends Controller
     }
 
     /**
-     * Serializes a persisted itinerary quote leg using the same
-     * camelCase/nested shape as serializeItineraryLeg() (used for
-     * outboundItineraries/inboundItineraries), so the frontend can consume
-     * itineraryQuote.legs with the same SaleItineraryLeg-compatible shape
-     * regardless of where the legs came from.
-     *
      * @return array<string, mixed>
      */
     private function serializeItineraryQuoteLeg(ItineraryQuoteLeg $leg, string $currency): array
@@ -754,10 +697,6 @@ class CounterSaleController extends Controller
             'fillRate' => $priceQuoteSnapshot['fill_rate_at_quote'] ?? null,
             'hoursBeforeDeparture' => $priceQuoteSnapshot['hours_before_departure_at_quote'] ?? null,
             'currency' => $currency,
-            // Not needed by any current consumer of itineraryQuote.legs
-            // (real-time seat counts/service class come from
-            // itineraryLegSeats instead); kept null/0 for type parity with
-            // SaleItineraryLeg.
             'availableSeatsCount' => 0,
             'serviceClassCode' => null,
             'serviceClassName' => null,
@@ -990,26 +929,10 @@ class CounterSaleController extends Controller
                 'status' => $refund->getRawOriginal('status'),
                 'reference' => $refund->reference,
             ])->values()->all(),
-            'tickets' => $tickets->map(fn (Ticket $ticket): array => [
-                'uuid' => $ticket->uuid,
-                'shortCode' => $ticket->short_code,
-                'ticketNumber' => $ticket->uuid,
-                'qrCode' => $ticket->qr_code,
-                'seatCode' => $ticket->reservationPassenger?->segments->first()?->seat?->code,
-                'passengerUuid' => $ticket->reservationPassenger?->uuid,
-                'passengerIndex' => $ticket->reservationPassenger?->passenger_index,
-                'passengerName' => trim($ticket->reservationPassenger->first_name.' '.$ticket->reservationPassenger->last_name),
-                'allocationAmount' => (int) (($reservation->total_snapshot['passenger_allocations'] ?? [])[(int) $ticket->reservationPassenger->passenger_index] ?? 0),
-                'transactionReference' => $fiscalInvoice !== null ? $fiscalInvoice->kora_reference : $reservation->uuid,
-                'status' => $ticket->status->value,
-                'legs' => $ticket->reservationPassenger->segments->sortBy('leg_order')->map(fn ($segment): array => [
-                    'direction' => $segment->direction,
-                    'legOrder' => $segment->leg_order,
-                    'originStop' => $segment->originStop?->name,
-                    'destinationStop' => $segment->destinationStop?->name,
-                    'seatCode' => $segment->seat?->code,
-                ])->values()->all(),
-            ])->values()->all(),
+
+            // ✅ MODIFICATION ICI : On appelle la nouvelle méthode privée pour éviter le "unresolvable type"
+            'tickets' => $tickets->map(fn (Ticket $ticket): array => $this->serializeTicket($ticket, $reservation, $fiscalInvoice))->values()->all(),
+
             'segments' => $reservation->segments->map(fn ($segment): array => [
                 'uuid' => $segment->uuid,
                 'direction' => $segment->direction,
@@ -1055,7 +978,7 @@ class CounterSaleController extends Controller
                     $firstSeatUuid = $firstSegment->seat?->uuid;
                     $draft = is_array($draftPassengers[(string) $passengerIndex] ?? null)
                         ? $draftPassengers[(string) $passengerIndex]
-                    : (is_array($draftPassengers[$firstSeatUuid ?? ''] ?? null)
+                        : (is_array($draftPassengers[$firstSeatUuid ?? ''] ?? null)
                             ? $draftPassengers[$firstSeatUuid ?? '']
                             : []);
 
@@ -1074,6 +997,52 @@ class CounterSaleController extends Controller
                         'seatCode' => $segments->pluck('seat.code')->filter()->implode(' · '),
                     ];
                 })->values()->all(),
+        ];
+    }
+
+    /**
+     * NOUVELLE MÉTHODE PRIVÉE : Extrait la logique complexe du map() des tickets
+     * pour que PHPStan puisse résoudre les types sans erreur.
+     *
+     * @return array<string, mixed>
+     */
+    private function serializeTicket(Ticket $ticket, Reservation $reservation, ?FiscalInvoice $fiscalInvoice): array
+    {
+        $passenger = $ticket->reservationPassenger;
+
+        /** @var list<array<string, mixed>> $legs */
+        $legs = [];
+        if ($passenger !== null) {
+            $legs = $passenger->segments->sortBy('leg_order')->map(function ($segment): array {
+                return [
+                    'direction' => $segment->direction,
+                    'legOrder' => $segment->leg_order,
+                    'originStop' => $segment->originStop?->name,
+                    'destinationStop' => $segment->destinationStop?->name,
+                    'seatCode' => $segment->seat?->code,
+                ];
+            })->values()->all();
+        }
+
+        $passengerIndex = $passenger?->passenger_index;
+        $allocationAmount = 0;
+        if ($passengerIndex !== null && is_array($reservation->total_snapshot['passenger_allocations'] ?? null)) {
+            $allocationAmount = (int) ($reservation->total_snapshot['passenger_allocations'][$passengerIndex] ?? 0);
+        }
+
+        return [
+            'uuid' => $ticket->uuid,
+            'shortCode' => $ticket->short_code,
+            'ticketNumber' => $ticket->uuid,
+            'qrCode' => $ticket->qr_code,
+            'seatCode' => $passenger?->segments->first()?->seat?->code,
+            'passengerUuid' => $passenger?->uuid,
+            'passengerIndex' => $passengerIndex,
+            'passengerName' => $passenger !== null ? trim($passenger->first_name.' '.$passenger->last_name) : '',
+            'allocationAmount' => $allocationAmount,
+            'transactionReference' => $fiscalInvoice !== null ? $fiscalInvoice->kora_reference : $reservation->uuid,
+            'status' => $ticket->status->value,
+            'legs' => $legs,
         ];
     }
 
@@ -1127,10 +1096,6 @@ class CounterSaleController extends Controller
         ];
     }
 
-    /**
-     * Resolve the agent's open cash session for today, memoized per request
-     * so serializeCashSession and serializeMobileMoneyAccounts share one query.
-     */
     private function resolveOpenCashSession(): ?CashSession
     {
         if (array_key_exists('openCashSession', $this->requestCache)) {
@@ -1178,10 +1143,6 @@ class CounterSaleController extends Controller
         return array_values($accounts);
     }
 
-    /**
-     * Resolve the ledger UUID for a mobile-money account from an already-
-     * loaded cash session, avoiding a fresh query per account.
-     */
     private function ledgerUuidForAccount(?CashSession $session, string $accountUuid): ?string
     {
         return $session?->ledgers

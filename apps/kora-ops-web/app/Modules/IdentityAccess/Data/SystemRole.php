@@ -75,6 +75,7 @@ enum SystemRole: string
                 'cash.close',
                 'counter-sales.create',
                 'departures.view',
+                'terminals.view',
                 'tickets.issue',
                 'tickets.view',
             ],
@@ -99,6 +100,8 @@ enum SystemRole: string
                 'departures.manage',
                 'departures.cancel',
                 'seat-releases.view',
+                'terminals.view',
+                'terminals.manage',
                 'tickets.view',
             ],
             self::CommercialDirector => [

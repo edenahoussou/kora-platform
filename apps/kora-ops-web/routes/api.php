@@ -11,6 +11,7 @@ use App\Modules\IdentityAccess\Http\Controllers\AuthDeviceController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthOAuthController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthOtpController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthSessionController;
+use App\Modules\IdentityAccess\Http\Controllers\TerminalOpsMobileController;
 use App\Modules\IdentityAccess\Http\Controllers\UserPreferenceController;
 use App\Modules\Payments\Http\Controllers\PaymentController;
 use App\Modules\Support\Http\Controllers\HealthController;
@@ -52,6 +53,23 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::post('logout', [AuthSessionController::class, 'logout'])->name('logout');
         });
     });
+
+    // OPS Mobile — handshake et opérations du terminal P501. L'auth de
+    // l'utilisateur (login, PIN, OTP) reste celle de auth/login ci-dessus ;
+    // ces routes ajoutent le contrôle du terminal par-dessus la session.
+    Route::prefix('ops-mobile/terminal')
+        ->name('ops-mobile.terminal.')
+        ->middleware('auth:sanctum')
+        ->group(function (): void {
+            Route::post('handshake', [TerminalOpsMobileController::class, 'handshake'])
+                ->middleware('throttle:terminal-handshake')
+                ->name('handshake');
+
+            Route::middleware('terminal.active')->group(function (): void {
+                Route::post('sync', [TerminalOpsMobileController::class, 'sync'])->name('sync');
+                Route::post('activity', [TerminalOpsMobileController::class, 'activity'])->name('activity');
+            });
+        });
 
     Route::prefix('bus')
         ->name('bus.')

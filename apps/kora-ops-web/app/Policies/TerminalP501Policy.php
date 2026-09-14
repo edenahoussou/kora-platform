@@ -15,12 +15,27 @@ class TerminalP501Policy
         return $this->allows($user, 'terminals.view');
     }
 
+    public function view(User $user, TerminalP501 $terminalP501): bool
+    {
+        return $this->allows($user, 'terminals.view');
+    }
+
     public function create(User $user): bool
     {
         return $this->allows($user, 'terminals.manage');
     }
 
     public function update(User $user, TerminalP501 $terminalP501): bool
+    {
+        return $this->allows($user, 'terminals.manage');
+    }
+
+    public function changeStatus(User $user, TerminalP501 $terminalP501): bool
+    {
+        return $this->allows($user, 'terminals.manage');
+    }
+
+    public function assign(User $user, TerminalP501 $terminalP501): bool
     {
         return $this->allows($user, 'terminals.manage');
     }
