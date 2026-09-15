@@ -179,7 +179,6 @@ class ProcessSeatReleaseAction
                     'recommendedAction' => SeatReleaseFunctionalCode::ReleaseConflict->recommendedAction(),
                     'accepted_event_uuid' => $originalEvent->uuid,
                     'accepted_terminal_uuid' => $originalEvent->terminal?->uuid,
-                    // ✅ CORRECTION : local_recorded_at est un Carbon non-nullable
                     'accepted_local_recorded_at' => $originalEvent->local_recorded_at->toISOString(),
                     'conflicting_terminal_uuid' => $terminal->uuid,
                     'conflicting_local_recorded_at' => $localRecordedAt->toISOString(),
@@ -196,7 +195,6 @@ class ProcessSeatReleaseAction
      */
     private function describeSegments(Collection $segments): array
     {
-        // ✅ CORRECTION : array_values() garantit à PHPStan que le résultat est une "list" (clés 0, 1, 2...)
         return array_values($segments->map(fn (ReservationSegment $s) => [
             'segment_uuid' => $s->uuid,
             'leg_order' => $s->leg_order,
