@@ -49,4 +49,13 @@ class CrewDepartureScope
     {
         return $this->query($user, 'boarding.scan')->whereKey($departure->getKey())->exists();
     }
+
+    /**
+     * OPS Mobile seat-releases (descente anticipée, clôture no-show) :
+     * permission `seat-releases.create` spécifiquement.
+     */
+    public function canReleaseSeat(User $user, Departure $departure): bool
+    {
+        return $this->query($user, 'seat-releases.create')->whereKey($departure->getKey())->exists();
+    }
 }

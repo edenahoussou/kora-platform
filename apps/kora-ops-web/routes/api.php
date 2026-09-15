@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Boarding\Http\Controllers\OpsBoardingController;
+use App\Modules\Boarding\Http\Controllers\OpsSeatReleaseController;
 use App\Modules\Booking\Http\Controllers\ItineraryController;
 use App\Modules\Booking\Http\Controllers\ReservationController;
 use App\Modules\Booking\Http\Controllers\ReservationPassengerController;
@@ -96,6 +97,17 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 ->middleware('terminal.active')
                 ->name('store');
             Route::post('{boardingEvent:uuid}/reverse', [OpsBoardingController::class, 'reverse'])->name('reverse');
+        });
+
+    // OPS Mobile — descente anticipée et clôture no-show (MEZ-84 suite).
+    // Les deux exigent un terminal actif : ce sont des actions faites
+    // depuis le P501, contrairement à l'annulation d'embarquement.
+    Route::prefix('ops/seat-releases')
+        ->name('ops.seat-releases.')
+        ->middleware(['auth:sanctum', 'terminal.active'])
+        ->group(function (): void {
+            Route::post('/', [OpsSeatReleaseController::class, 'store'])->name('store');
+            Route::post('no-show-closure', [OpsSeatReleaseController::class, 'closeNoShows'])->name('no-show-closure');
         });
 
     Route::prefix('bus')
