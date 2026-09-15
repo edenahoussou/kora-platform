@@ -23,6 +23,9 @@ tags:
     name: Health
     description: "\nApplication health and liveness probes for load balancers and monitoring."
   -
+    name: 'OPS Mobile — Boarding'
+    description: "\nContrôle serveur d'un billet (QR signé ou code court) pour un départ et\nune jambe précis, avec idempotence par operation_uuid et détection des\nconflits entre terminaux."
+  -
     name: 'OPS Mobile — Departures'
     description: "\nDéparts et manifeste pour l'équipage terrain (convoyeur, chauffeur,\nchauffeur second, mécanicien) affecté — remplace les écrans mockés de\nMEZ-11. Authentification : auth:sanctum (login existant) + terminal\nenregistré et actif (middleware terminal.active)."
   -
@@ -4844,6 +4847,248 @@ paths:
       tags:
         - Health
       security: []
+  /api/v1/ops/boarding:
+    post:
+      summary: "Valide un scan d'embarquement."
+      operationId: valideUnScanDembarquement
+      description: ''
+      parameters:
+        -
+          in: header
+          name: X-Terminal-Serial
+          description: ''
+          example: 'Numéro de série du terminal. Example: P501-000123'
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Embarquement accepté'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 4b1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e61
+                    status: accepted
+                    ticketUuid: 3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e41
+                    departureUuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                    operationUuid: 6f1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e99
+                    localRecordedAt: '2026-10-01T07:58:03.000Z'
+                    serverRecordedAt: '2026-10-01T07:58:03.400Z'
+                    code: null
+                    message: null
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      status:
+                        type: string
+                        example: accepted
+                      ticketUuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      departureUuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      operationUuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      localRecordedAt:
+                        type: string
+                        example: '2026-10-01T07:58:03.000Z'
+                      serverRecordedAt:
+                        type: string
+                        example: '2026-10-01T07:58:03.400Z'
+                      code:
+                        type: string
+                        example: null
+                        nullable: true
+                      message:
+                        type: string
+                        example: null
+                        nullable: true
+        404:
+          description: 'Billet inconnu'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: qr_unknown
+                    message: 'Billet inconnu ou signature invalide.'
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: qr_unknown
+                      message:
+                        type: string
+                        example: 'Billet inconnu ou signature invalide.'
+        409:
+          description: 'Conflit entre terminaux'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 5c1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e71
+                    status: conflict
+                    code: boarding_conflict
+                    message: 'Ce billet a déjà été embarqué sur un autre terminal.'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      status:
+                        type: string
+                        example: conflict
+                      code:
+                        type: string
+                        example: boarding_conflict
+                      message:
+                        type: string
+                        example: 'Ce billet a déjà été embarqué sur un autre terminal.'
+        422:
+          description: 'Billet annulé'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 6d1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e81
+                    status: rejected
+                    code: ticket_cancelled
+                    message: 'Ce billet a été annulé.'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      status:
+                        type: string
+                        example: rejected
+                      code:
+                        type: string
+                        example: ticket_cancelled
+                      message:
+                        type: string
+                        example: 'Ce billet a été annulé.'
+      tags:
+        - 'OPS Mobile — Boarding'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                departure_uuid:
+                  type: string
+                  description: 'UUID public du départ scanné.'
+                  example: 00000000-0000-4000-8000-000000000000
+                qr_payload:
+                  type: string
+                  description: 'Contenu signé du QR (requis si short_code absent).'
+                  example: eyJ2IjoyfQ.c2ln
+                  nullable: true
+                short_code:
+                  type: string
+                  description: 'Code court saisi manuellement (requis si qr_payload absent).'
+                  example: AB12CD
+                  nullable: true
+                operation_uuid:
+                  type: string
+                  description: 'UUID généré par le terminal, unique par tentative — les retries avec le même operation_uuid sont sans effet secondaire.'
+                  example: 00000000-0000-4000-8000-000000000000
+                local_recorded_at:
+                  type: string
+                  description: "Horodatage local de l'appareil au moment du scan (ISO 8601)."
+                  example: '2026-10-01T07:58:03Z'
+              required:
+                - departure_uuid
+                - operation_uuid
+                - local_recorded_at
+  '/api/v1/ops/boarding/{boardingEvent_uuid}/reverse':
+    post:
+      summary: "Annulation exceptionnelle d'un embarquement déjà accepté. Permission\ndédiée (`boarding.reverse`), motif obligatoire, audit immuable\n(l'événement d'origine n'est jamais modifié ni supprimé)."
+      operationId: annulationExceptionnelleDunEmbarquementDjAcceptPermissionDdieboardingreverseMotifObligatoireAuditImmuablelvnementDorigineNestJamaisModifiNiSupprim
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: 'Embarquement annulé'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 4b1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e61
+                    status: accepted
+                    ticketUuid: 3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e41
+                    departureUuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      status:
+                        type: string
+                        example: accepted
+                      ticketUuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      departureUuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+      tags:
+        - 'OPS Mobile — Boarding'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  description: "Motif de l'annulation exceptionnelle (5 à 500 caractères)."
+                  example: 'Scan erroné, passager non présent à bord.'
+              required:
+                - reason
+    parameters:
+      -
+        in: path
+        name: boardingEvent_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+      -
+        in: path
+        name: boardingEvent
+        description: "UUID public de l'événement d'embarquement à annuler."
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
   /api/v1/ops/departures:
     get:
       summary: "Départs accessibles à l'utilisateur connecté : ceux où il est\naffecté (chauffeur, chauffeur second, convoyeur ou mécanicien),\nhors départs annulés."

@@ -19,11 +19,11 @@ class CrewDepartureScope
     use AuthorizesPermissions;
 
     /** @return Builder<Departure> */
-    public function query(User $user): Builder
+    public function query(User $user, string $permission = 'departures.view'): Builder
     {
         $query = Departure::query()->where('status', '!=', DepartureStatus::Cancelled->value);
 
-        if (! $this->allows($user, 'departures.view')) {
+        if (! $this->allows($user, $permission)) {
             return $query->whereRaw('1 = 0');
         }
 
@@ -38,5 +38,15 @@ class CrewDepartureScope
     public function canAccess(User $user, Departure $departure): bool
     {
         return $this->query($user)->whereKey($departure->getKey())->exists();
+    }
+
+    /**
+     * OPS Mobile boarding : au-delà de l'affectation, il faut la
+     * permission `boarding.scan` spécifiquement (accordée au convoyeur,
+     * pas au chauffeur ni au mécanicien).
+     */
+    public function canScanBoarding(User $user, Departure $departure): bool
+    {
+        return $this->query($user, 'boarding.scan')->whereKey($departure->getKey())->exists();
     }
 }
