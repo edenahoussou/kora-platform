@@ -183,4 +183,35 @@ void main() {
     expect(flow.state.step, AuthFlowStep.email);
     expect(flow.state.verification, isNotNull);
   });
+
+  testWidgets('« Ce n’est pas moi » rend le parcours à son début', (
+    tester,
+  ) async {
+    // Un simple `pop` laissait le Bloc à l'étape `newDevice` : l'écran de
+    // connexion revenait, mais toute action qui retombait sur cette même
+    // étape n'était plus suivie d'aucune navigation, le routeur n'écoutant
+    // que les changements d'étape. Les liens « PIN oublié » et « nouvel
+    // appareil » semblaient morts.
+    repository = StubAuthRepository();
+    flow = AuthFlowBloc(repository)
+      ..add(const AuthFlowNewDeviceRequested('aicha.hounkpe@example.com'));
+    await tester.pump();
+
+    await pumpPage(tester);
+
+    expect(flow.state.step, AuthFlowStep.newDevice);
+    expect(flow.state.email, 'aicha.hounkpe@example.com');
+
+    await tester.tap(find.text('Ce n’est pas moi'));
+    await tester.pumpAndSettle();
+
+    expect(flow.state.step, AuthFlowStep.email);
+    // L'adresse tombe avec le reste : l'écran de connexion doit rendre un
+    // formulaire vierge, pas celui du compte qu'on vient de récuser.
+    expect(flow.state.email, isEmpty);
+
+    // Le toast porte un minuteur : le laisser pendre ferait échouer le
+    // test à la destruction de l'arbre.
+    await tester.pump(const Duration(seconds: 4));
+  });
 }

@@ -5,11 +5,15 @@
 // annonçait comme confirmé. Le parcours ne passe plus par là — le
 // résultat vient du serveur, et de lui seul.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:kora_app_passenger/core/l10n/app_localization.dart';
+import 'package:kora_app_passenger/core/router/app_router.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/price.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/seat_hold_bloc.dart';
 import 'package:kora_app_passenger/features/payment/domain/entities/payment_attempt.dart';
@@ -147,6 +151,86 @@ void main() {
     // décompte court.
     expect(find.text('Réessayer le paiement'), findsOneWidget);
     expect(find.text('Changer de moyen'), findsOneWidget);
+  });
+
+  testWidgets('« Changer de moyen » rend l’écran des moyens déjà ouvert', (
+    tester,
+  ) async {
+    // Un `go` reconstruisait l'écran des moyens sans son total : écran
+    // vide, et un retour qui, la pile remplacée, ne menait qu'au noir.
+    tester.view.physicalSize = const Size(390 * 3, 900 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    final flow = PaymentFlowBloc(StubPaymentRepository(attempt: declined));
+    addTearDown(flow.close);
+
+    final router = GoRouter(
+      initialLocation: '/recapitulatif',
+      routes: [
+        GoRoute(
+          path: '/recapitulatif',
+          builder: (context, state) =>
+              const Scaffold(body: Text('Récapitulatif')),
+        ),
+        GoRoute(
+          path: AppRouter.paymentMethodPath,
+          builder: (context, state) =>
+              const Scaffold(body: Text('Moyens, total compris')),
+        ),
+        GoRoute(
+          path: AppRouter.paymentMobileMoneyPath,
+          builder: (context, state) =>
+              const Scaffold(body: Text('Saisie Mobile Money')),
+        ),
+        GoRoute(
+          path: AppRouter.paymentFailedPath,
+          builder: (context, state) => const PaymentFailedPage(args: args),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp.router(
+        theme: AppTheme.light,
+        locale: const Locale('fr'),
+        supportedLocales: const [Locale('fr'), Locale('en')],
+        localizationsDelegates: const [
+          AppLocalization.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        routerConfig: router,
+        builder: (context, child) => withSeatHold(
+          child!,
+          bloc: SeatHoldBloc(StubReservationRepository()),
+          flow: flow,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Le chemin du tunnel : récapitulatif, moyens, saisie, refus.
+    unawaited(router.push(AppRouter.paymentMethodPath));
+    await tester.pumpAndSettle();
+    unawaited(router.push(AppRouter.paymentMobileMoneyPath));
+    await tester.pumpAndSettle();
+    unawaited(router.push(AppRouter.paymentFailedPath));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Changer de moyen'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Moyens, total compris'), findsOneWidget);
+    expect(find.text('Changer de moyen'), findsNothing);
+
+    // Et le retour mène encore quelque part.
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Récapitulatif'), findsOneWidget);
   });
 
   test('le suivi interroge le fournisseur, il ne relit pas la base', () async {

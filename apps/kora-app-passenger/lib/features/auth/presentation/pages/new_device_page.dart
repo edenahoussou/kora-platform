@@ -54,106 +54,131 @@ class _NewDevicePageState extends State<NewDevicePage> {
     final koraColors = context.koraColors;
     final l10n = context.l10n;
 
-    return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ScreenHeader(
-                eyebrow: l10n.newDeviceEyebrow,
-                title: l10n.newDeviceTitle,
-              ),
-              Expanded(
-                child: BlocBuilder<AuthFlowBloc, AuthFlowState>(
-                  builder: (context, flow) => ListView(
-                    padding: EdgeInsets.zero,
-                    children: [
-                      const _DeviceVisual(),
-                      // `.form-title { margin: 18px 0 5px }`
-                      const SizedBox(height: 18),
-                      Text(
-                        l10n.newDeviceQuestion,
-                        style: AppTextStyles.heading2(context.koraTitleColor),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        l10n.newDeviceLead,
-                        style: AppTextStyles.lead(koraColors.textMuted),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      KoraCard(
-                        variant: KoraCardVariant.mist,
-                        child: Column(
-                          children: [
-                            _Row(
-                              label: l10n.newDeviceDevice,
-                              // Vide tant que le système n'a pas répondu,
-                              // ou s'il a échoué : mieux vaut un tiret
-                              // qu'un nom inventé sur un écran qui sert
-                              // justement à reconnaître son appareil.
-                              value: switch ((flow.deviceName, _deviceName)) {
-                                (final fromFlow, _) when fromFlow.isNotEmpty =>
-                                  fromFlow,
-                                (_, final local) when local.isNotEmpty => local,
-                                _ => '—',
-                              },
-                            ),
-                            const _Divider(),
-                            _Row(
-                              label: l10n.newDeviceAttempt,
-                              value: l10n.newDeviceAttemptNow,
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (flow.hasError) ...[
-                        const SizedBox(height: 12),
+    // Quitter cet écran doit **remettre le parcours à zéro**, par la
+    // flèche comme par le geste du système.
+    //
+    // Un simple `pop` laissait le Bloc à l'étape `newDevice` : l'écran de
+    // connexion revenait, mais toute action qui retombait sur cette même
+    // étape — redemander une vérification d'appareil, réinitialiser un PIN
+    // sur un appareil inconnu — n'était plus suivie d'aucune navigation,
+    // le routeur n'écoutant que les **changements** d'étape. Deux boutons
+    // semblaient alors morts.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _leave(context);
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ScreenHeader(
+                  eyebrow: l10n.newDeviceEyebrow,
+                  title: l10n.newDeviceTitle,
+                ),
+                Expanded(
+                  child: BlocBuilder<AuthFlowBloc, AuthFlowState>(
+                    builder: (context, flow) => ListView(
+                      padding: EdgeInsets.zero,
+                      children: [
+                        const _DeviceVisual(),
+                        // `.form-title { margin: 18px 0 5px }`
+                        const SizedBox(height: 18),
                         Text(
-                          flow.errorMessage,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: AppColors.danger,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
+                          l10n.newDeviceQuestion,
+                          style: AppTextStyles.heading2(context.koraTitleColor),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          l10n.newDeviceLead,
+                          style: AppTextStyles.lead(koraColors.textMuted),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        KoraCard(
+                          variant: KoraCardVariant.mist,
+                          child: Column(
+                            children: [
+                              _Row(
+                                label: l10n.newDeviceDevice,
+                                // Vide tant que le système n'a pas répondu,
+                                // ou s'il a échoué : mieux vaut un tiret
+                                // qu'un nom inventé sur un écran qui sert
+                                // justement à reconnaître son appareil.
+                                value: switch ((flow.deviceName, _deviceName)) {
+                                  (final fromFlow, _)
+                                      when fromFlow.isNotEmpty =>
+                                    fromFlow,
+                                  (_, final local) when local.isNotEmpty =>
+                                    local,
+                                  _ => '—',
+                                },
+                              ),
+                              const _Divider(),
+                              _Row(
+                                label: l10n.newDeviceAttempt,
+                                value: l10n.newDeviceAttemptNow,
+                              ),
+                            ],
                           ),
                         ),
+                        if (flow.hasError) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            flow.errorMessage,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: AppColors.danger,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                        // `style="margin-top:16px"` dans la maquette.
+                        const SizedBox(height: 16),
+                        KoraButton(
+                          label: l10n.newDeviceReceiveCode,
+                          isLoading: flow.isSubmitting,
+                          onPressed: flow.isSubmitting
+                              ? null
+                              : () => context.read<AuthFlowBloc>().add(
+                                  const AuthFlowNewDeviceConfirmed(),
+                                ),
+                        ),
+                        const SizedBox(height: 9),
+                        KoraButton(
+                          label: l10n.newDeviceNotMe,
+                          variant: KoraButtonVariant.ghost,
+                          // Aucun endpoint ne recueille ce signalement : on
+                          // ne prétend pas l'avoir transmis, on arrête le
+                          // parcours, ce qui est le geste utile.
+                          onPressed: () {
+                            KoraToaster.show(context, l10n.newDeviceReported);
+                            _leave(context);
+                          },
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
                       ],
-                      // `style="margin-top:16px"` dans la maquette.
-                      const SizedBox(height: 16),
-                      KoraButton(
-                        label: l10n.newDeviceReceiveCode,
-                        isLoading: flow.isSubmitting,
-                        onPressed: flow.isSubmitting
-                            ? null
-                            : () => context.read<AuthFlowBloc>().add(
-                                const AuthFlowNewDeviceConfirmed(),
-                              ),
-                      ),
-                      const SizedBox(height: 9),
-                      KoraButton(
-                        label: l10n.newDeviceNotMe,
-                        variant: KoraButtonVariant.ghost,
-                        // Aucun endpoint ne recueille ce signalement : on
-                        // ne prétend pas l'avoir transmis, on arrête le
-                        // parcours, ce qui est le geste utile.
-                        onPressed: () {
-                          KoraToaster.show(context, l10n.newDeviceReported);
-                          Navigator.of(context).maybePop();
-                        },
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+
+  /// Quitte l'écran en rendant le parcours à son point de départ.
+  ///
+  /// C'est [AuthFlowReset] qui ramène à la connexion — le routeur suit
+  /// l'étape — et non un `pop` : lui seul efface aussi l'adresse retenue,
+  /// et rend à l'écran de connexion un formulaire vierge.
+  void _leave(BuildContext context) =>
+      context.read<AuthFlowBloc>().add(const AuthFlowReset());
 }
 
 /// `.security-device-visual` : le bandeau navy au bouclier doré.

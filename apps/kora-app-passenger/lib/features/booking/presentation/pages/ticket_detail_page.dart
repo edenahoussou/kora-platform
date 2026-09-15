@@ -7,7 +7,7 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../domain/entities/ticket.dart';
-import 'ticket_page.dart';
+import 'group_tickets_page.dart';
 
 /// Écran `ticket-detail` de la maquette : le billet en grand, puis ce qu'on
 /// peut en faire — QR code, suivi du bus, partage, annulation.
@@ -60,9 +60,20 @@ class TicketDetailPage extends StatelessWidget {
                           icon: Icons.qr_code_2_rounded,
                           title: l10n.ticketDetailQrTitle,
                           subtitle: l10n.ticketDetailQrSubtitle,
+                          // Vers les billets **émis**, et non vers la
+                          // maquette du billet numérique : celle-ci replie
+                          // sur la référence à défaut de charge signée, et
+                          // affichait donc un QR bâti sur un UUID de
+                          // réservation — d'allure officielle, refusé à
+                          // l'embarquement. L'écran des billets, lui, va
+                          // chercher le jeton Ed25519 du serveur.
                           onTap: () => context.push(
-                            AppRouter.ticketPath,
-                            extra: TicketArgs(ticket: ticket),
+                            AppRouter.groupTicketsPath,
+                            extra: GroupTicketsArgs(
+                              reservationId:
+                                  ticket.reservationId ?? ticket.reference,
+                              departure: ticket.departure,
+                            ),
                           ),
                         ),
                         KoraMenuItem(
@@ -75,7 +86,17 @@ class TicketDetailPage extends StatelessWidget {
                           icon: Icons.ios_share_rounded,
                           title: l10n.ticketDetailShareTitle,
                           subtitle: l10n.ticketDetailShareSubtitle,
-                          onTap: () => _soon(context),
+                          // Même destination que le QR : c'est là que le
+                          // billet se télécharge et se partage, en PDF,
+                          // avec la charge signée du serveur dedans.
+                          onTap: () => context.push(
+                            AppRouter.groupTicketsPath,
+                            extra: GroupTicketsArgs(
+                              reservationId:
+                                  ticket.reservationId ?? ticket.reference,
+                              departure: ticket.departure,
+                            ),
+                          ),
                         ),
                         // Seule action destructrice de la liste : elle
                         // passe en rouge pour ne pas se confondre avec les

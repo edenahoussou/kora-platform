@@ -101,6 +101,34 @@ void main() {
     expect(bloc.state.attempt!.hasTickets, isTrue);
   });
 
+  test('recommencer après un refus ouvre un nouvel essai', () async {
+    // Le serveur rend le paiement existant pour toute clé déjà vue, même
+    // refusé. Sans numéro d'essai dans la clé, « Changer de moyen » puis
+    // « Payer » ressortait l'ancien refus sans rien envoyer à l'opérateur.
+    final bloc = PaymentFlowBloc(
+      StubPaymentRepository(
+        attempt: const PaymentAttempt(
+          id: 'pay-1',
+          status: PaymentAttemptStatus.failed,
+        ),
+      ),
+    );
+    addTearDown(bloc.close);
+
+    expect(bloc.state.round, 0);
+
+    bloc.add(started);
+    await bloc.stream.firstWhere((state) => state.hasFailed);
+    // L'essai en cours garde son numéro : un double appui reste protégé.
+    expect(bloc.state.round, 0);
+
+    bloc.add(const PaymentFlowReset());
+    await bloc.stream.firstWhere((state) => state.attempt == null);
+
+    expect(bloc.state.round, 1);
+    expect(bloc.state.hasFailed, isFalse);
+  });
+
   test('« J’ai payé » demande une vérification, il ne conclut rien', () async {
     final repository = StubPaymentRepository(statuses: const [confirmed]);
     final bloc = PaymentFlowBloc(repository);

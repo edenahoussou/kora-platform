@@ -4,7 +4,6 @@ import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/l10n/app_localization.dart';
-import '../../../../core/router/app_router.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../booking/presentation/widgets/hold_countdown.dart';
 import '../../../booking/presentation/widgets/state_view.dart';
@@ -65,7 +64,7 @@ class PaymentFailedPage extends StatelessWidget {
                     context.read<PaymentFlowBloc>().add(
                       const PaymentFlowReset(),
                     );
-                    context.go(AppRouter.paymentMethodPath);
+                    backToPaymentMethods(context);
                   },
                 ),
                 const SizedBox(height: AppSpacing.xl),

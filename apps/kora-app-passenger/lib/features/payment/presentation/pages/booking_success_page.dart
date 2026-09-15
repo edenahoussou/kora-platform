@@ -76,6 +76,7 @@ class _BookingSuccessPageState extends State<BookingSuccessPage> {
       AppRouter.groupTicketsPath,
       extra: GroupTicketsArgs(
         reservationId: reservationId,
+        exitToHome: true,
         passengers: _passengers,
         // De quoi écrire le trajet sur le billet exporté : les billets du
         // serveur ne rendent que des identifiants de gares.

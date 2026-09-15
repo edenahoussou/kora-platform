@@ -338,6 +338,22 @@ class _HoldReminder extends StatelessWidget {
 
 /// Écran ouvert sans montant — un lien profond, ou un retour après
 /// expiration. On ne devine pas un total à payer.
+/// Revient à l'écran des moyens de paiement déjà ouvert.
+///
+/// Surtout pas `context.go` : l'écran s'ouvre avec le total arrêté au
+/// récapitulatif, et un `go` le reconstruisait **sans** — le voyageur
+/// tombait sur un écran vide, dont le retour, la pile ayant été remplacée,
+/// ne menait plus qu'à un écran noir. On dépile donc jusqu'à lui : il est
+/// encore là, avec son total.
+///
+/// go_router nomme chaque page d'après son chemin, d'où la comparaison.
+void backToPaymentMethods(BuildContext context) {
+  Navigator.of(context).popUntil(
+    (route) =>
+        route.settings.name == AppRouter.paymentMethodPath || route.isFirst,
+  );
+}
+
 class PaymentMissingArgs extends StatelessWidget {
   const PaymentMissingArgs({super.key});
 

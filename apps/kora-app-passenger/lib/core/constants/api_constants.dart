@@ -121,6 +121,9 @@ class ApiConstants {
   static String bookingTickets(String reservationUuid) =>
       '$_v1/bookings/$reservationUuid/tickets';
 
+  /// Tous les billets du voyageur connecté, paginés — `GET`.
+  static const String tickets = '$_v1/tickets';
+
   /// Libération d'un blocage avant son échéance (`DELETE`, authentifié).
   /// La clé est l'identifiant de la **réservation**, pas du départ.
   ///

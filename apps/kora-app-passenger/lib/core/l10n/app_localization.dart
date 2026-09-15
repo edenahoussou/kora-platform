@@ -1090,6 +1090,18 @@ class AppLocalization {
   String get newDeviceNotMe => translate('new_device_not_me');
   String get newDeviceReported => translate('new_device_reported');
   String get loginNewDeviceLink => translate('login_new_device_link');
+
+  String get loginNewDeviceTitle => translate('login_new_device_title');
+
+  String get loginNewDeviceHint => translate('login_new_device_hint');
+
+  String get loginResetTitle => translate('login_reset_title');
+
+  String get loginResetHint => translate('login_reset_hint');
+
+  String get loginEmailContinue => translate('login_email_continue');
+
+  String get loginEmailBack => translate('login_email_back');
   String get loginEmailFirst => translate('login_email_first');
 
   // --- Écran des autorisations (AUTH-07) ---

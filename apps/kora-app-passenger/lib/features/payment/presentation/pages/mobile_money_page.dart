@@ -180,7 +180,12 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
         // fait alors répondre au serveur le paiement déjà ouvert plutôt
         // que d'en créer un second. Une clé tirée au hasard à chaque appui
         // provoquerait exactement le double débit qu'elle prétend éviter.
-        idempotencyKey: 'kora-${hold.id}-$network',
+        //
+        // Le numéro d'essai la complète : sans lui, un essai après un refus
+        // renvoyait la même clé, et le serveur ressortait l'ancien refus.
+        idempotencyKey:
+            'kora-${hold.id}-$network-'
+            '${context.read<PaymentFlowBloc>().state.round}',
       ),
     );
   }
@@ -283,7 +288,7 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
         variant: KoraButtonVariant.ghost,
         onPressed: () {
           context.read<PaymentFlowBloc>().add(const PaymentFlowReset());
-          context.go(AppRouter.paymentMethodPath);
+          backToPaymentMethods(context);
         },
       );
     }

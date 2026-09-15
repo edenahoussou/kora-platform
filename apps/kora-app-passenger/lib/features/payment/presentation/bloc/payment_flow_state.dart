@@ -22,9 +22,21 @@ class PaymentFlowState extends Equatable {
     this.attempt,
     this.failure,
     this.isVerifying = false,
+    this.round = 0,
   });
 
   final PaymentFlowStatus status;
+
+  /// Le numéro de l'essai de paiement, qui entre dans la clé d'idempotence.
+  ///
+  /// Le serveur rend le paiement existant pour toute clé déjà vue — même
+  /// refusé. Une clé figée faisait donc de chaque nouvel essai une relecture
+  /// de l'ancien refus : l'écran d'échec revenait aussitôt, sans que rien ne
+  /// parte chez l'opérateur, et un autre numéro était rejeté comme « clé
+  /// déjà utilisée ». Le compteur n'avance qu'avec [PaymentFlowReset], le
+  /// geste explicite de recommencer : deux appuis sur « Payer » gardent la
+  /// même clé, et c'est tout ce que l'idempotence doit protéger.
+  final int round;
 
   /// Le paiement tel que le serveur le décrit. `null` avant le lancement.
   final PaymentAttempt? attempt;
@@ -63,9 +75,10 @@ class PaymentFlowState extends Equatable {
       // un message qui ne vaut plus rien.
       failure: clearFailure ? null : failure ?? this.failure,
       isVerifying: isVerifying ?? this.isVerifying,
+      round: round,
     );
   }
 
   @override
-  List<Object?> get props => [status, attempt, failure, isVerifying];
+  List<Object?> get props => [status, attempt, failure, isVerifying, round];
 }

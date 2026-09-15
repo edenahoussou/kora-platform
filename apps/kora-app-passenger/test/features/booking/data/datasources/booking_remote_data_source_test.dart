@@ -9,6 +9,7 @@ import 'package:kora_app_passenger/features/booking/data/datasources/booking_dat
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_remote_data_source.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/city.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/ticket.dart';
 import 'package:mocktail/mocktail.dart';
 
 import '../../../../support/bus_api_fixtures.dart';
@@ -438,16 +439,180 @@ void main() {
     });
   });
 
-  group('écrans pas encore servis par l’API', () {
-    test('le prochain voyage et les billets passent par le repli', () async {
-      when(() => pending.getNextTrip()).thenAnswer((_) async => null);
-      when(() => pending.getTickets()).thenAnswer((_) async => const []);
+  group('getTickets', () {
+    /// Un billet tel que `GET /api/v1/tickets` le rend.
+    Map<String, dynamic> ticketJson({
+      required String uuid,
+      String? reservation = 'res-1',
+      String status = 'confirmed',
+      String seat = '4A',
+      String departsAt = '2099-08-04T07:30:00+00:00',
+    }) => {
+      'uuid': uuid,
+      'short_code': 'K${uuid.toUpperCase()}',
+      'qr_code': 'payload.$uuid',
+      'status': status,
+      'issued_at': '2026-08-01T10:00:00+00:00',
+      'reservation_uuid': reservation,
+      'amount': 25200,
+      'currency': 'XOF',
+      'passenger': {
+        'uuid': 'p-$uuid',
+        'first_name': 'Aïcha',
+        'last_name': 'HOUNKPÈ',
+      },
+      'origin': {
+        'city': 'Cotonou',
+        'city_code': 'CTN',
+        'stop_name': 'Cotonou Dantokpa',
+      },
+      'destination': {
+        'city': 'Bohicon',
+        'city_code': 'BOH',
+        'stop_name': 'Bohicon Centre',
+      },
+      'departure': {
+        'uuid': 'dep-1',
+        'departs_at': departsAt,
+        'line_name': 'Cotonou-Bohicon',
+        'line_code': 'L1',
+      },
+      'seat': {'uuid': 'seat-$seat', 'code': seat},
+    };
 
-      await dataSource.getNextTrip();
+    Map<String, dynamic> page(
+      List<Map<String, dynamic>> data, {
+      int current = 1,
+      int last = 1,
+    }) => {
+      'data': data,
+      'meta': {
+        'current_page': current,
+        'last_page': last,
+        'per_page': 15,
+        'total': data.length,
+      },
+    };
+
+    test('lit l’endpoint du serveur, jamais le jeu de démonstration', () async {
+      stubGet(page([ticketJson(uuid: 't1')]));
+
       await dataSource.getTickets();
 
+      final captured = verify(
+        () => dio.get<dynamic>(
+          ApiConstants.tickets,
+          queryParameters: captureAny(named: 'queryParameters'),
+        ),
+      ).captured;
+      expect(captured.single, {'page': 1});
+      verifyNever(() => pending.getTickets());
+    });
+
+    test('un voyage par réservation, ses sièges bout à bout', () async {
+      // Le serveur rend un billet par voyageur. Sans regroupement, un
+      // groupe de cinq remplissait l'onglet de cinq cartes identiques.
+      stubGet(
+        page([
+          ticketJson(uuid: 't1', seat: '4A'),
+          ticketJson(uuid: 't2', seat: '4B'),
+          ticketJson(uuid: 't3', reservation: 'res-2', seat: '7C'),
+        ]),
+      );
+
+      final tickets = await dataSource.getTickets();
+
+      expect(tickets, hasLength(2));
+      expect(tickets.first.seat.label, '4A, 4B');
+      expect(tickets.first.reservationId, 'res-1');
+      // Le code imprimé sur le billet, pas l'identifiant de réservation.
+      expect(tickets.first.reference, 'KT1');
+      // La charge signée, que la douchette vérifie hors ligne.
+      expect(tickets.first.qrCode, 'payload.t1');
+      expect(tickets.first.departure.line.origin.code, 'CTN');
+      expect(
+        tickets.first.departure.line.destination.station,
+        'Bohicon Centre',
+      );
+      expect(tickets.first.departure.price.amount, 25200);
+      expect(tickets.last.seat.label, '7C');
+    });
+
+    test('toutes les pages sont lues', () async {
+      // Quinze billets par page : un voyage à venir peut dormir en page
+      // deux derrière des billets récemment émis.
+      when(
+        () => dio.get<dynamic>(
+          ApiConstants.tickets,
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      ).thenAnswer((invocation) async {
+        final query = invocation.namedArguments[#queryParameters] as Map;
+        return responseWith(
+          query['page'] == 1
+              ? page([ticketJson(uuid: 't1')], last: 2)
+              : page(
+                  [ticketJson(uuid: 't2', reservation: 'res-2')],
+                  current: 2,
+                  last: 2,
+                ),
+        );
+      });
+
+      final tickets = await dataSource.getTickets();
+
+      expect(tickets.map((ticket) => ticket.reservationId).toList(), [
+        'res-1',
+        'res-2',
+      ]);
+    });
+
+    test('un départ passé ne reste pas « à venir »', () async {
+      // Le serveur laisse `issued` — donc `confirmed` — un billet que
+      // personne n'a scanné. Ce voyage-là n'est plus à venir.
+      stubGet(
+        page([
+          ticketJson(uuid: 't1', departsAt: '2020-01-01T07:30:00+00:00'),
+          ticketJson(
+            uuid: 't2',
+            reservation: 'res-2',
+            status: 'cancelled',
+            departsAt: '2020-01-01T07:30:00+00:00',
+          ),
+          ticketJson(uuid: 't3', reservation: 'res-3'),
+        ]),
+      );
+
+      final tickets = await dataSource.getTickets();
+
+      expect(tickets.map((ticket) => ticket.status).toList(), [
+        TicketStatus.completed,
+        TicketStatus.cancelled,
+        TicketStatus.confirmed,
+      ]);
+    });
+
+    test('un voyageur annulé ne fait pas un voyage annulé', () async {
+      stubGet(
+        page([
+          ticketJson(uuid: 't1', status: 'cancelled'),
+          ticketJson(uuid: 't2'),
+        ]),
+      );
+
+      final tickets = await dataSource.getTickets();
+
+      expect(tickets.single.status, TicketStatus.confirmed);
+    });
+  });
+
+  group('écrans pas encore servis par l’API', () {
+    test('le prochain voyage passe encore par le repli', () async {
+      when(() => pending.getNextTrip()).thenAnswer((_) async => null);
+
+      await dataSource.getNextTrip();
+
       verify(() => pending.getNextTrip()).called(1);
-      verify(() => pending.getTickets()).called(1);
       verifyNever(
         () => dio.get<dynamic>(
           any(),
