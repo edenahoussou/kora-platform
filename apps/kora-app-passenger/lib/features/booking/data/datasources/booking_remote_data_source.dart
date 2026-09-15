@@ -6,7 +6,9 @@ import '../../../../core/network/api_json.dart';
 import '../../domain/entities/city.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/departure_search.dart';
+import '../../domain/entities/line.dart';
 import '../../domain/entities/line_stop.dart';
+import '../../domain/entities/price.dart';
 import '../../domain/entities/search_criteria.dart';
 import '../../domain/entities/seat.dart';
 import '../../domain/entities/ticket.dart';
@@ -14,10 +16,9 @@ import '../../domain/entities/upcoming_trip.dart';
 import '../models/city_model.dart';
 import '../models/itinerary_model.dart';
 import '../models/line_stop_model.dart';
+import '../models/passenger_ticket_model.dart';
 import '../models/seat_model.dart';
-import 'booked_trips_store.dart';
 import 'booking_data_source.dart';
-import 'reservation_remote_data_source.dart';
 
 /// Couche DATA : le parcours Bus branché sur l'API KORA.
 ///
@@ -37,29 +38,12 @@ import 'reservation_remote_data_source.dart';
 /// (`DioException`, porteuse d'une `ApiException` typée) : c'est le
 /// repository qui les traduit en `Failure`.
 class BookingRemoteDataSourceImpl implements BookingDataSource {
-  BookingRemoteDataSourceImpl(
-    this._dio, {
-    required this.pending,
-    required this.bookedTrips,
-    required this.reservations,
-    required this.accountId,
-  });
+  BookingRemoteDataSourceImpl(this._dio, {required this.pending});
 
   final Dio _dio;
 
-  /// Les voyages que l'app a elle-même payés — voir [BookedTripsStore].
-  final BookedTripsStore bookedTrips;
-
-  /// De quoi relire l'état d'une réservation sur le serveur.
-  final ReservationRemoteDataSource reservations;
-
-  /// Le compte connecté, ou `null` hors session. Le journal est tenu par
-  /// compte : deux voyageurs qui se succèdent sur le même téléphone ne
-  /// doivent pas hériter des voyages l'un de l'autre.
-  final String? Function() accountId;
-
-  /// Source de repli pour les écrans que l'API ne sert pas encore : plan
-  /// des sièges, prochain voyage, billets. Injectée plutôt que construite
+  /// Source de repli pour ce que l'API ne sert pas encore : le prochain
+  /// voyage de l'accueil. Injectée plutôt que construite
   /// ici pour que les tests puissent vérifier qu'elle est bien appelée —
   /// et pour qu'elle se retire proprement, méthode par méthode, quand
   /// l'API les exposera.
@@ -224,60 +208,175 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
   @override
   Future<UpcomingTrip?> getNextTrip() => pending.getNextTrip();
 
-  /// Pas encore servi par l'API — voir la note de classe.
-  @override
-  /// Les voyages du compte connecté.
+  /// Les billets du voyageur connecté — `GET /api/v1/tickets`.
   ///
-  /// **L'API ne sait pas les lister** : elle n'offre que
-  /// `GET bookings/{uuid}`. Les identifiants viennent donc du journal
-  /// local, que l'app tient à chaque paiement confirmé, et le serveur dit
-  /// où en est chacun — c'est lui qui fait autorité sur un billet annulé
-  /// ou déjà voyagé.
+  /// Le serveur rend **un billet par voyageur**, du plus récemment émis au
+  /// plus ancien, par pages de quinze. L'onglet Voyages, lui, montre des
+  /// voyages : les billets d'une même réservation deviennent une seule
+  /// carte, leurs sièges mis bout à bout. Sans ça, un groupe de cinq
+  /// remplissait l'écran de cinq cartes identiques.
   ///
-  /// Une réservation que le serveur ne reconnaît plus est simplement
-  /// omise : mieux vaut un voyage manquant qu'un billet fantôme.
+  /// Toutes les pages sont lues, dans la limite de [_maxTicketPages] : les
+  /// onglets se trient côté écran, et un voyage à venir peut très bien
+  /// dormir en page deux derrière des billets récemment émis.
+  ///
+  /// Contrairement au journal local qu'il remplace, il voit aussi les
+  /// billets achetés au guichet ou sur un autre téléphone : le serveur
+  /// retient ceux dont le voyageur est l'auteur **ou** le payeur.
   @override
   Future<List<Ticket>> getTickets() async {
-    final account = accountId();
-    if (account == null || account.isEmpty) return const [];
+    final entries = <PassengerTicketModel>[];
 
-    final trips = await bookedTrips.all(account);
+    for (var page = 1; page <= _maxTicketPages; page++) {
+      final response = await _dio.get<dynamic>(
+        ApiConstants.tickets,
+        queryParameters: {'page': page},
+      );
 
-    final tickets = await Future.wait([
-      for (final trip in trips) _ticketOf(trip),
-    ]);
+      entries.addAll([
+        for (final json in ApiJson.list(response.data))
+          PassengerTicketModel(json),
+      ]);
 
-    return [for (final ticket in tickets) ?ticket];
-  }
-
-  /// Le billet d'un voyage retenu, une fois son statut relu.
-  Future<Ticket?> _ticketOf(BookedTrip trip) async {
-    try {
-      final status = await reservations.bookingStatus(trip.reservationId);
-
-      return trip.toTicket(_ticketStatusOf(status, trip.departure.departsAt));
-    } on Object {
-      // Réseau coupé, réservation effacée côté serveur : on garde ce que
-      // le journal sait, plutôt que de faire disparaître l'onglet entier.
-      return trip.toTicket(_ticketStatusOf('', trip.departure.departsAt));
+      if (page >= _lastPageOf(response.data)) break;
     }
+
+    return _tripsOf(entries);
   }
 
-  /// Traduit le statut du serveur en l'un des trois onglets de l'écran.
+  /// Plafond de pages lues d'un coup. Quinze billets par page, cela fait
+  /// trois cents billets — bien au-delà de ce qu'un voyageur accumule, et
+  /// assez bas pour qu'une pagination détraquée ne tourne pas sans fin.
+  static const int _maxTicketPages = 20;
+
+  /// La dernière page annoncée par `meta` : `last_page`, que Laravel
+  /// fournit, ou à défaut le total rapporté à la taille des pages. Une
+  /// réponse sans `meta` n'a qu'une page.
+  static int _lastPageOf(Object? body) {
+    final meta = ApiJson.map(body is Map ? body['meta'] : null);
+
+    final last = ApiJson.intOrNull(meta['last_page']);
+    if (last != null) return last;
+
+    final total = ApiJson.intOrNull(meta['total']) ?? 0;
+    final perPage = ApiJson.intOrNull(meta['per_page']) ?? 0;
+    if (total <= 0 || perPage <= 0) return 1;
+
+    return (total / perPage).ceil();
+  }
+
+  /// Regroupe les billets par réservation, dans l'ordre du serveur.
+  static List<Ticket> _tripsOf(List<PassengerTicketModel> entries) {
+    final groups = <String, List<PassengerTicketModel>>{};
+    for (final entry in entries) {
+      // Un billet sans réservation connue forme son propre voyage.
+      groups
+          .putIfAbsent(entry.reservationId ?? entry.uuid, () => [])
+          .add(entry);
+    }
+
+    return [for (final group in groups.values) ?_tripOf(group)];
+  }
+
+  /// Une réservation devenue carte de l'onglet Voyages.
   ///
-  /// Le serveur dit si la réservation vit (`paid`, `ticketed`) ou non
-  /// (`cancelled`, `expired`) ; c'est la date de départ qui décide ensuite
-  /// entre « à venir » et « effectué ». Un statut inconnu de cette version
-  /// est traité comme vivant : le rendre annulé ferait passer un billet
-  /// valable pour un billet mort.
-  TicketStatus _ticketStatusOf(String status, DateTime departsAt) {
-    if (status == 'cancelled' || status == 'expired') {
-      return TicketStatus.cancelled;
+  /// `null` quand le serveur ne dit pas quand part le bus : sans date, la
+  /// carte ne saurait ni se ranger dans un onglet ni afficher son compte à
+  /// rebours, et en inventer une serait pire que l'omettre.
+  static Ticket? _tripOf(List<PassengerTicketModel> group) {
+    final first = group.first;
+    final departsAt = first.departsAt;
+    if (departsAt == null) return null;
+
+    final seats = [
+      for (final entry in group)
+        if (entry.seatCode.isNotEmpty) entry.seatCode,
+    ];
+
+    return Ticket(
+      // Le code imprimé sur le billet, pas l'identifiant de réservation :
+      // c'est lui qu'on présente au contrôle.
+      reference: first.shortCode.isNotEmpty ? first.shortCode : first.uuid,
+      reservationId: first.reservationId,
+      // La charge signée du premier voyageur. Un groupe passe de toute
+      // façon par la liste de ses billets, où chacun a la sienne.
+      qrCode: first.qrCode,
+      departure: Departure(
+        id: ApiJson.string(first.departure['uuid']),
+        line: Line(
+          id: '',
+          code: ApiJson.stringOrNull(first.departure['line_code']),
+          origin: _cityOf(first.origin),
+          destination: _cityOf(first.destination),
+          duration: Duration.zero,
+          distanceKm: 0,
+        ),
+        departsAt: departsAt,
+        comfort: BusComfort.confort,
+        price: Price(first.amount),
+        seatsTotal: 0,
+        seatsAvailable: 0,
+      ),
+      seat: Seat(
+        id: '',
+        label: seats.join(', '),
+        row: 0,
+        column: 0,
+        status: SeatStatus.occupied,
+      ),
+      status: _statusOf(group, departsAt),
+    );
+  }
+
+  /// Une ville du billet : le code à trois lettres du serveur (`CTN`) est
+  /// repris tel quel, l'arrêt devient la gare.
+  static City _cityOf(Map<String, dynamic> json) {
+    final name = ApiJson.string(json['city']);
+    final code = ApiJson.string(json['city_code']);
+
+    return City(
+      id: name,
+      name: name,
+      code: code.isNotEmpty ? code : City.named(name).code,
+      station: ApiJson.stringOrNull(json['stop_name']),
+    );
+  }
+
+  /// L'onglet d'une réservation.
+  ///
+  /// Le serveur a déjà traduit ses statuts (`confirmed`, `completed`,
+  /// `cancelled`). On garde le plus vivant des billets du groupe : un seul
+  /// voyageur annulé ne fait pas un voyage annulé.
+  ///
+  /// Une correction s'y ajoute, et une seule : un billet `confirmed` dont le
+  /// départ est passé bascule dans les voyages effectués. Le serveur laisse
+  /// `issued` un billet que personne n'a scanné — un voyageur qui n'est pas
+  /// monté, un contrôle manqué — et ce voyage-là n'est plus « à venir ». Un
+  /// statut inconnu de cette version compte comme confirmé : le rendre
+  /// annulé ferait passer un billet valable pour un billet mort.
+  static TicketStatus _statusOf(
+    List<PassengerTicketModel> group,
+    DateTime departsAt,
+  ) {
+    final statuses = {for (final entry in group) entry.status};
+
+    final TicketStatus status;
+    if (statuses.every((value) => value == 'cancelled')) {
+      status = TicketStatus.cancelled;
+    } else if (statuses.every(
+      (value) => value == 'completed' || value == 'cancelled',
+    )) {
+      status = TicketStatus.completed;
+    } else {
+      status = TicketStatus.confirmed;
     }
 
-    return departsAt.isBefore(DateTime.now())
-        ? TicketStatus.completed
-        : TicketStatus.confirmed;
+    if (status == TicketStatus.confirmed &&
+        departsAt.isBefore(DateTime.now())) {
+      return TicketStatus.completed;
+    }
+
+    return status;
   }
 
   /// `2026-08-20` — le format exigé par le paramètre `date`.

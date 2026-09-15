@@ -23,9 +23,15 @@ class GroupTicketsArgs {
     required this.reservationId,
     this.passengers = 0,
     this.departure,
+    this.exitToHome = false,
   });
 
   final String reservationId;
+
+  /// `true` au sortir d'un paiement : le retour mène alors à l'accueil,
+  /// plutôt que de rouvrir le tunnel d'achat. Ouvert depuis l'onglet
+  /// Voyages, l'écran rend simplement la main au billet consulté.
+  final bool exitToHome;
 
   /// Le nombre attendu, pour l'annoncer avant même que le serveur réponde.
   final int passengers;
@@ -73,13 +79,16 @@ class _GroupTicketsPageState extends State<GroupTicketsPage> {
 
     if (args == null) return const _MissingBooking();
 
-    // Le parcours d'achat s'arrête ici. Derrière cet écran il y a le
-    // paiement, l'attente, le plan des sièges — des étapes qu'on ne
+    // Au sortir d'un achat, le parcours s'arrête ici. Derrière cet écran il
+    // y a le paiement, l'attente, le plan des sièges — des étapes qu'on ne
     // repasse pas une fois le billet émis, et que le geste « retour »
     // rouvrait pourtant une à une. On sort donc vers l'accueil, que le
     // voyageur revienne par la flèche ou par le geste du système.
+    //
+    // Depuis l'onglet Voyages, en revanche, derrière il y a le billet
+    // qu'on consultait : c'est là que le retour doit ramener.
     return PopScope(
-      canPop: false,
+      canPop: !args.exitToHome,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) context.go('/home');
       },
@@ -108,7 +117,9 @@ class _GroupTicketsPageState extends State<GroupTicketsPage> {
                       title: isAlone
                           ? l10n.ticketsOneTitle
                           : l10n.groupTicketsTitle,
-                      onBack: () => context.go('/home'),
+                      onBack: args.exitToHome
+                          ? () => context.go('/home')
+                          : null,
                     ),
                     Expanded(
                       child: _Content(

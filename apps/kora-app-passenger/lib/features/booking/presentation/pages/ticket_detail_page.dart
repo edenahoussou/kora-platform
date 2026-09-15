@@ -70,7 +70,8 @@ class TicketDetailPage extends StatelessWidget {
                           onTap: () => context.push(
                             AppRouter.groupTicketsPath,
                             extra: GroupTicketsArgs(
-                              reservationId: ticket.reference,
+                              reservationId:
+                                  ticket.reservationId ?? ticket.reference,
                               departure: ticket.departure,
                             ),
                           ),
@@ -91,7 +92,8 @@ class TicketDetailPage extends StatelessWidget {
                           onTap: () => context.push(
                             AppRouter.groupTicketsPath,
                             extra: GroupTicketsArgs(
-                              reservationId: ticket.reference,
+                              reservationId:
+                                  ticket.reservationId ?? ticket.reference,
                               departure: ticket.departure,
                             ),
                           ),

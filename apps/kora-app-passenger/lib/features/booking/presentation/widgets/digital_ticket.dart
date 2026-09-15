@@ -91,7 +91,16 @@ class DigitalTicket extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
                 child: Column(
                   children: [
-                    KoraQr(payload: qrPayload ?? ticket.reference),
+                    KoraQr(
+                      // La charge signée quand le billet la porte ; la
+                      // référence ne sert plus qu'aux billets de
+                      // démonstration.
+                      payload:
+                          qrPayload ??
+                          (ticket.qrCode.isNotEmpty
+                              ? ticket.qrCode
+                              : ticket.reference),
+                    ),
                     const SizedBox(height: AppSpacing.md),
                     Row(
                       children: [

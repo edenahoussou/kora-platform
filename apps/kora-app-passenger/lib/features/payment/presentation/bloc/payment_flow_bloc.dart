@@ -123,7 +123,9 @@ class PaymentFlowBloc extends Bloc<PaymentFlowEvent, PaymentFlowState> {
 
   void _onReset(PaymentFlowReset event, Emitter<PaymentFlowState> emit) {
     _poller?.cancel();
-    emit(const PaymentFlowState());
+    // Tout repart de zéro, sauf le numéro d'essai : c'est lui qui fera du
+    // prochain « Payer » une demande neuve plutôt qu'une relecture du refus.
+    emit(PaymentFlowState(round: state.round + 1));
   }
 
   /// L'état correspondant à un paiement fraîchement lu.

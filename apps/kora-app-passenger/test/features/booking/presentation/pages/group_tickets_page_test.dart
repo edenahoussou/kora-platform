@@ -1,5 +1,7 @@
 // Les billets du groupe (BUS-17) : un par voyageur, chacun son QR.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
@@ -147,11 +149,10 @@ void main() {
     expect(find.text('Billets du groupe'), findsNothing);
   });
 
-  testWidgets('le retour quitte le tunnel et rend l’accueil', (tester) async {
-    // On n'arrive ici qu'au bout d'un achat. Derrière l'écran il y a le
-    // paiement, l'attente, le plan des sièges — des étapes qu'on ne
-    // repasse pas une fois le billet émis, et que la flèche rouvrait une
-    // à une.
+  testWidgets('au bout d’un achat, le retour quitte le tunnel', (tester) async {
+    // Derrière l'écran il y a le paiement, l'attente, le plan des sièges —
+    // des étapes qu'on ne repasse pas une fois le billet émis, et que la
+    // flèche rouvrait une à une.
     tester.view.physicalSize = const Size(390 * 3, 900 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -162,6 +163,68 @@ void main() {
         GoRoute(
           path: '/home',
           builder: (context, state) => const Scaffold(body: Text('Accueil')),
+        ),
+        GoRoute(
+          path: '/billets',
+          builder: (context, state) => BlocProvider<GroupTicketsCubit>(
+            create: (_) =>
+                GroupTicketsCubit(StubReservationRepository(tickets: tickets)),
+            child: const GroupTicketsPage(
+              args: GroupTicketsArgs(
+                reservationId: 'res-1',
+                passengers: 2,
+                exitToHome: true,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp.router(
+        theme: AppTheme.light,
+        locale: const Locale('fr'),
+        supportedLocales: const [Locale('fr'), Locale('en')],
+        localizationsDelegates: const [
+          AppLocalization.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        routerConfig: router,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.chevron_left_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Accueil'), findsOneWidget);
+    expect(find.text('Billets du groupe'), findsNothing);
+  });
+
+  testWidgets('ouvert depuis Voyages, le retour rend le billet consulté', (
+    tester,
+  ) async {
+    // Le voyageur consultait un billet et voulait son QR : l'envoyer à
+    // l'accueil lui faisait perdre sa place dans l'onglet Voyages.
+    tester.view.physicalSize = const Size(390 * 3, 900 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    final router = GoRouter(
+      initialLocation: '/billet',
+      routes: [
+        GoRoute(
+          path: '/home',
+          builder: (context, state) => const Scaffold(body: Text('Accueil')),
+        ),
+        GoRoute(
+          path: '/billet',
+          builder: (context, state) =>
+              const Scaffold(body: Text('Détail du billet')),
         ),
         GoRoute(
           path: '/billets',
@@ -193,10 +256,22 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    // Par la flèche…
+    unawaited(router.push('/billets'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.chevron_left_rounded));
     await tester.pumpAndSettle();
 
-    expect(find.text('Accueil'), findsOneWidget);
-    expect(find.text('Billets du groupe'), findsNothing);
+    expect(find.text('Détail du billet'), findsOneWidget);
+    expect(find.text('Accueil'), findsNothing);
+
+    // … comme par le geste du système.
+    unawaited(router.push('/billets'));
+    await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Détail du billet'), findsOneWidget);
+    expect(find.text('Accueil'), findsNothing);
   });
 }

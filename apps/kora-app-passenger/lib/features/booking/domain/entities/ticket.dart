@@ -27,10 +27,22 @@ class Ticket extends Equatable {
     required this.departure,
     required this.seat,
     required this.status,
+    this.reservationId,
+    this.qrCode = '',
   });
 
-  /// Référence imprimée sur le billet (ex: `KE-20260804-78342`).
+  /// Référence imprimée sur le billet : `KE-20260804-78342`, ou le code
+  /// court du serveur, `K5F414H5`.
   final String reference;
+
+  /// La réservation qui porte le billet. `null` pour un billet de
+  /// démonstration ; c'est elle qui mène à la liste des billets émis,
+  /// voyageur par voyageur.
+  final String? reservationId;
+
+  /// La charge signée (Ed25519) que la douchette du convoyeur vérifie hors
+  /// ligne. Vide pour un billet de démonstration.
+  final String qrCode;
 
   final Departure departure;
   final Seat seat;
@@ -41,9 +53,12 @@ class Ticket extends Equatable {
   /// complète reste sur l'écran de détail.
   String get shortReference {
     const visible = 5;
-    if (reference.length <= visible) return reference;
+    // Les codes courts du serveur (`K5F414H5`) se lisent en entier : les
+    // tronquer sous un préfixe `KE-` inventé les rendait méconnaissables.
+    if (reference.length <= 10) return reference;
 
-    return 'KE-…${reference.substring(reference.length - visible)}';
+    return '${reference.substring(0, 3)}…'
+        '${reference.substring(reference.length - visible)}';
   }
 
   /// Nombre de jours entiers avant le départ, à partir de [now].
@@ -63,5 +78,12 @@ class Ticket extends Equatable {
   }
 
   @override
-  List<Object?> get props => [reference, departure, seat, status];
+  List<Object?> get props => [
+    reference,
+    departure,
+    seat,
+    status,
+    reservationId,
+    qrCode,
+  ];
 }
