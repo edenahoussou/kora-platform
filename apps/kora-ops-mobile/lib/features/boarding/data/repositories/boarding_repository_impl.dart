@@ -19,11 +19,10 @@ class BoardingRepositoryImpl implements BoardingRepository {
     this._remote,
     this._local, {
     DateTime Function()? now,
-  }) : _now = now ?? DateTime.now;
+  });
 
   final BoardingRemoteDataSource _remote;
   final BoardingLocalDataSource _local;
-  final DateTime Function() _now;
 
   @override
   Future<Result<BoardingOutcome>> scan({
@@ -96,7 +95,7 @@ class BoardingRepositoryImpl implements BoardingRepository {
           ),
         );
       }
-      return Result<BoardingOutcome>.failure(
+      return const Result<BoardingOutcome>.failure(
         ServerFailure('Le serveur est momentanément indisponible.'),
       );
     }

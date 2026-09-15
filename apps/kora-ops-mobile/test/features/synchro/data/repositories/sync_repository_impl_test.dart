@@ -3,7 +3,6 @@ import 'package:flutter_networking/flutter_networking.dart'
     show NetworkApiException, ServerApiException;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_ops_mobile/core/errors/failures.dart';
-import 'package:kora_ops_mobile/features/boarding/data/datasources/boarding_remote_datasource.dart';
 import 'package:kora_ops_mobile/features/boarding/domain/entities/boarding_outcome.dart';
 import 'package:kora_ops_mobile/features/boarding/domain/entities/boarding_outcome_status.dart';
 import 'package:kora_ops_mobile/features/boarding/domain/entities/pending_boarding_operation.dart';
@@ -89,16 +88,16 @@ void main() {
         )).thenAnswer((_) async => SyncBatchFetchResult(
           recordedAt,
           <SyncOperationResult>[
-            SyncOperationResult(
+            const SyncOperationResult(
               'op-1',
-              const BoardingOutcome(
+              BoardingOutcome(
                 status: BoardingOutcomeStatus.valid,
                 message: 'Billet valide.',
               ),
             ),
-            SyncOperationResult(
+            const SyncOperationResult(
               'op-2',
-              const BoardingOutcome(
+              BoardingOutcome(
                 status: BoardingOutcomeStatus.cancelled,
                 message: 'Ce billet a été annulé.',
               ),

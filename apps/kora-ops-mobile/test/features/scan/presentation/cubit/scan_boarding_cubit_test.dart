@@ -1,6 +1,5 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kora_ops_mobile/core/errors/failures.dart';
 import 'package:kora_ops_mobile/core/result/result.dart';
 import 'package:kora_ops_mobile/features/boarding/domain/entities/boarding_outcome.dart';
 import 'package:kora_ops_mobile/features/boarding/domain/entities/boarding_outcome_status.dart';
