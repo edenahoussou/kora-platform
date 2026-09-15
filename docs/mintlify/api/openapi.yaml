@@ -23,6 +23,9 @@ tags:
     name: Health
     description: "\nApplication health and liveness probes for load balancers and monitoring."
   -
+    name: 'OPS Mobile — Departures'
+    description: "\nDéparts et manifeste pour l'équipage terrain (convoyeur, chauffeur,\nchauffeur second, mécanicien) affecté — remplace les écrans mockés de\nMEZ-11. Authentification : auth:sanctum (login existant) + terminal\nenregistré et actif (middleware terminal.active)."
+  -
     name: 'OPS Mobile — Terminal'
     description: "\nHandshake et opérations liées au terminal P501 pour l'application OPS\nMobile. L'authentification de l'utilisateur (login, PIN, OTP) reste celle\nde l'app KORA existante (auth:sanctum) ; ces endpoints ajoutent le\ncontrôle du terminal par-dessus une session déjà ouverte."
   -
@@ -4841,6 +4844,656 @@ paths:
       tags:
         - Health
       security: []
+  /api/v1/ops/departures:
+    get:
+      summary: "Départs accessibles à l'utilisateur connecté : ceux où il est\naffecté (chauffeur, chauffeur second, convoyeur ou mécanicien),\nhors départs annulés."
+      operationId: dpartsAccessiblesLutilisateurConnectCeuxOIlEstAffectchauffeurChauffeurSecondConvoyeurOuMcanicienHorsDpartsAnnuls
+      description: ''
+      parameters:
+        -
+          in: query
+          name: date
+          description: 'Filtre sur la date de départ (YYYY-MM-DD).'
+          example: '2026-10-01'
+          required: false
+          schema:
+            type: string
+            description: 'Filtre sur la date de départ (YYYY-MM-DD).'
+            example: '2026-10-01'
+        -
+          in: query
+          name: status
+          description: 'Filtre sur le statut opérationnel (scheduled, boarding, departed, arrived).'
+          example: scheduled
+          required: false
+          schema:
+            type: string
+            description: 'Filtre sur le statut opérationnel (scheduled, boarding, departed, arrived).'
+            example: scheduled
+        -
+          in: query
+          name: page
+          description: 'Numéro de page.'
+          example: 1
+          required: false
+          schema:
+            type: integer
+            description: 'Numéro de page.'
+            example: 1
+        -
+          in: query
+          name: per_page
+          description: 'Taille de page (max 200).'
+          example: 100
+          required: false
+          schema:
+            type: integer
+            description: 'Taille de page (max 200).'
+            example: 100
+        -
+          in: header
+          name: X-Terminal-Serial
+          description: ''
+          example: 'Numéro de série du terminal. Example: P501-000123'
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Départs affectés'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    -
+                      uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                      status: scheduled
+                      departureDate: '2026-10-01'
+                      departureTime: '08:00'
+                      estimatedArrivalAt: '2026-10-01T11:00:00.000Z'
+                      line:
+                        uuid: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21
+                        code: COT-LFW
+                        name: 'Cotonou - Lomé'
+                        type: internationale
+                        international: true
+                      stops: null
+                      bus:
+                        uuid: 7c1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e33
+                        registrationNumber: AB-1234-RB
+                        seatCount: 60
+                      crew:
+                        driver: null
+                        secondaryDriver: null
+                        conductor: null
+                        mechanic: null
+                      manifestVersion: null
+                  meta:
+                    currentPage: 1
+                    lastPage: 1
+                    perPage: 100
+                    total: 1
+                properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                        status: scheduled
+                        departureDate: '2026-10-01'
+                        departureTime: '08:00'
+                        estimatedArrivalAt: '2026-10-01T11:00:00.000Z'
+                        line:
+                          uuid: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21
+                          code: COT-LFW
+                          name: 'Cotonou - Lomé'
+                          type: internationale
+                          international: true
+                        stops: null
+                        bus:
+                          uuid: 7c1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e33
+                          registrationNumber: AB-1234-RB
+                          seatCount: 60
+                        crew:
+                          driver: null
+                          secondaryDriver: null
+                          conductor: null
+                          mechanic: null
+                        manifestVersion: null
+                    items:
+                      type: object
+                      properties:
+                        uuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        status:
+                          type: string
+                          example: scheduled
+                        departureDate:
+                          type: string
+                          example: '2026-10-01'
+                        departureTime:
+                          type: string
+                          example: '08:00'
+                        estimatedArrivalAt:
+                          type: string
+                          example: '2026-10-01T11:00:00.000Z'
+                        line:
+                          type: object
+                          properties:
+                            uuid:
+                              type: string
+                              example: 00000000-0000-4000-8000-000000000000
+                            code:
+                              type: string
+                              example: COT-LFW
+                            name:
+                              type: string
+                              example: 'Cotonou - Lomé'
+                            type:
+                              type: string
+                              example: internationale
+                            international:
+                              type: boolean
+                              example: false
+                        stops:
+                          type: string
+                          example: null
+                          nullable: true
+                        bus:
+                          type: object
+                          properties:
+                            uuid:
+                              type: string
+                              example: 00000000-0000-4000-8000-000000000000
+                            registrationNumber:
+                              type: string
+                              example: AB-1234-RB
+                            seatCount:
+                              type: integer
+                              example: 60
+                        crew:
+                          type: object
+                          properties:
+                            driver:
+                              type: string
+                              example: null
+                              nullable: true
+                            secondaryDriver:
+                              type: string
+                              example: null
+                              nullable: true
+                            conductor:
+                              type: string
+                              example: null
+                              nullable: true
+                            mechanic:
+                              type: string
+                              example: null
+                              nullable: true
+                        manifestVersion:
+                          type: string
+                          example: null
+                          nullable: true
+                  meta:
+                    type: object
+                    properties:
+                      currentPage:
+                        type: integer
+                        example: 1
+                      lastPage:
+                        type: integer
+                        example: 1
+                      perPage:
+                        type: integer
+                        example: 100
+                      total:
+                        type: integer
+                        example: 1
+        404:
+          description: 'Terminal unknown'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: terminal_unknown
+                    message: "Ce terminal n'est pas enregistré. Contactez votre agence."
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: terminal_unknown
+                      message:
+                        type: string
+                        example: "Ce terminal n'est pas enregistré. Contactez votre agence."
+      tags:
+        - 'OPS Mobile — Departures'
+  '/api/v1/ops/departures/{uuid}':
+    get:
+      summary: "Détail d'un départ affecté : ligne, arrêts, bus, équipage, statut\nopérationnel et version du manifeste."
+      operationId: dtailDunDpartAffectLigneArrtsBusquipageStatutOprationnelEtVersionDuManifeste
+      description: ''
+      parameters:
+        -
+          in: header
+          name: X-Terminal-Serial
+          description: ''
+          example: 'Numéro de série du terminal. Example: P501-000123'
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Départ affecté'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                    status: scheduled
+                    departureDate: '2026-10-01'
+                    departureTime: '08:00'
+                    estimatedArrivalAt: '2026-10-01T11:00:00.000Z'
+                    line:
+                      uuid: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21
+                      code: COT-LFW
+                      name: 'Cotonou - Lomé'
+                      type: internationale
+                      international: true
+                    stops:
+                      -
+                        uuid: 3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e41
+                        name: 'Cotonou Gare'
+                        city: Cotonou
+                        country: BJ
+                        order: 1
+                      -
+                        uuid: 3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e42
+                        name: 'Lomé Gare'
+                        city: Lomé
+                        country: TG
+                        order: 2
+                    bus:
+                      uuid: 7c1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e33
+                      registrationNumber: AB-1234-RB
+                      seatCount: 60
+                    crew:
+                      driver:
+                        uuid: 1a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e51
+                        name: 'Jean Dossou'
+                      secondaryDriver: null
+                      conductor:
+                        uuid: 2a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e52
+                        name: 'Awa Traoré'
+                      mechanic: null
+                    manifestVersion: 3f9a1c2e8b7d4a10
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      status:
+                        type: string
+                        example: scheduled
+                      departureDate:
+                        type: string
+                        example: '2026-10-01'
+                      departureTime:
+                        type: string
+                        example: '08:00'
+                      estimatedArrivalAt:
+                        type: string
+                        example: '2026-10-01T11:00:00.000Z'
+                      line:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          code:
+                            type: string
+                            example: COT-LFW
+                          name:
+                            type: string
+                            example: 'Cotonou - Lomé'
+                          type:
+                            type: string
+                            example: internationale
+                          international:
+                            type: boolean
+                            example: false
+                      stops:
+                        type: array
+                        example:
+                          -
+                            uuid: 3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e41
+                            name: 'Cotonou Gare'
+                            city: Cotonou
+                            country: BJ
+                            order: 1
+                          -
+                            uuid: 3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e42
+                            name: 'Lomé Gare'
+                            city: Lomé
+                            country: TG
+                            order: 2
+                        items:
+                          type: object
+                          properties:
+                            uuid:
+                              type: string
+                              example: 00000000-0000-4000-8000-000000000000
+                            name:
+                              type: string
+                              example: 'Cotonou Gare'
+                            city:
+                              type: string
+                              example: Cotonou
+                            country:
+                              type: string
+                              example: BJ
+                            order:
+                              type: integer
+                              example: 1
+                      bus:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          registrationNumber:
+                            type: string
+                            example: AB-1234-RB
+                          seatCount:
+                            type: integer
+                            example: 60
+                      crew:
+                        type: object
+                        properties:
+                          driver:
+                            type: object
+                            properties:
+                              uuid:
+                                type: string
+                                example: 00000000-0000-4000-8000-000000000000
+                              name:
+                                type: string
+                                example: 'Jean Dossou'
+                          secondaryDriver:
+                            type: string
+                            example: null
+                            nullable: true
+                          conductor:
+                            type: object
+                            properties:
+                              uuid:
+                                type: string
+                                example: 00000000-0000-4000-8000-000000000000
+                              name:
+                                type: string
+                                example: 'Awa Traoré'
+                          mechanic:
+                            type: string
+                            example: null
+                            nullable: true
+                      manifestVersion:
+                        type: string
+                        example: 3f9a1c2e8b7d4a10
+        403:
+          description: 'Départ non affecté, annulé ou hors périmètre'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'This action is unauthorized.'
+                properties:
+                  message:
+                    type: string
+                    example: 'This action is unauthorized.'
+        404:
+          description: 'Terminal unknown'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: terminal_unknown
+                    message: "Ce terminal n'est pas enregistré. Contactez votre agence."
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: terminal_unknown
+                      message:
+                        type: string
+                        example: "Ce terminal n'est pas enregistré. Contactez votre agence."
+      tags:
+        - 'OPS Mobile — Departures'
+    parameters:
+      -
+        in: path
+        name: uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+      -
+        in: path
+        name: departure
+        description: 'UUID public du départ.'
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/departures/{departure_uuid}/manifest':
+    get:
+      summary: "Manifeste téléchargeable : une ligne par segment/passager du départ\nconsulté (jamais les autres jambes d'un itinéraire multi-jambes)."
+      operationId: manifesteTlchargeableUneLigneParSegmentpassagerDuDpartConsultjamaisLesAutresJambesDunItinraireMultiJambes
+      description: 'Jamais de prix, montant, ou identifiant numérique interne.'
+      parameters:
+        -
+          in: query
+          name: q
+          description: 'Recherche par nom de passager ou code court du billet.'
+          example: traore
+          required: false
+          schema:
+            type: string
+            description: 'Recherche par nom de passager ou code court du billet.'
+            example: traore
+        -
+          in: query
+          name: page
+          description: 'Numéro de page.'
+          example: 1
+          required: false
+          schema:
+            type: integer
+            description: 'Numéro de page.'
+            example: 1
+        -
+          in: query
+          name: per_page
+          description: 'Taille de page (max 200).'
+          example: 100
+          required: false
+          schema:
+            type: integer
+            description: 'Taille de page (max 200).'
+            example: 100
+        -
+          in: header
+          name: X-Terminal-Serial
+          description: ''
+          example: 'Numéro de série du terminal. Example: P501-000123'
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Manifeste (ligne nationale)'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    -
+                      ticketUuid: 4b1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e61
+                      shortCode: AB12CD
+                      name: 'Awa Traoré'
+                      seatCode: 1A
+                      originStop:
+                        uuid: 3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e41
+                        name: 'Cotonou Gare'
+                      destinationStop:
+                        uuid: 3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e42
+                        name: 'Lomé Gare'
+                      segmentStatus: paid
+                      ticketStatus: issued
+                  meta:
+                    currentPage: 1
+                    lastPage: 1
+                    perPage: 100
+                    total: 1
+                  manifestVersion: 3f9a1c2e8b7d4a10
+                properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        ticketUuid: 4b1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e61
+                        shortCode: AB12CD
+                        name: 'Awa Traoré'
+                        seatCode: 1A
+                        originStop:
+                          uuid: 3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e41
+                          name: 'Cotonou Gare'
+                        destinationStop:
+                          uuid: 3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e42
+                          name: 'Lomé Gare'
+                        segmentStatus: paid
+                        ticketStatus: issued
+                    items:
+                      type: object
+                      properties:
+                        ticketUuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        shortCode:
+                          type: string
+                          example: AB12CD
+                        name:
+                          type: string
+                          example: 'Awa Traoré'
+                        seatCode:
+                          type: string
+                          example: 1A
+                        originStop:
+                          type: object
+                          properties:
+                            uuid:
+                              type: string
+                              example: 00000000-0000-4000-8000-000000000000
+                            name:
+                              type: string
+                              example: 'Cotonou Gare'
+                        destinationStop:
+                          type: object
+                          properties:
+                            uuid:
+                              type: string
+                              example: 00000000-0000-4000-8000-000000000000
+                            name:
+                              type: string
+                              example: 'Lomé Gare'
+                        segmentStatus:
+                          type: string
+                          example: paid
+                        ticketStatus:
+                          type: string
+                          example: issued
+                  meta:
+                    type: object
+                    properties:
+                      currentPage:
+                        type: integer
+                        example: 1
+                      lastPage:
+                        type: integer
+                        example: 1
+                      perPage:
+                        type: integer
+                        example: 100
+                      total:
+                        type: integer
+                        example: 1
+                  manifestVersion:
+                    type: string
+                    example: 3f9a1c2e8b7d4a10
+        403:
+          description: 'Départ non affecté, annulé ou hors périmètre'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'This action is unauthorized.'
+                properties:
+                  message:
+                    type: string
+                    example: 'This action is unauthorized.'
+        404:
+          description: 'Terminal unknown'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: terminal_unknown
+                    message: "Ce terminal n'est pas enregistré. Contactez votre agence."
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: terminal_unknown
+                      message:
+                        type: string
+                        example: "Ce terminal n'est pas enregistré. Contactez votre agence."
+      tags:
+        - 'OPS Mobile — Departures'
+    parameters:
+      -
+        in: path
+        name: departure_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+      -
+        in: path
+        name: departure
+        description: 'UUID public du départ.'
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
   /api/v1/ops-mobile/terminal/handshake:
     post:
       summary: "Handshake du terminal : à appeler juste après le login pour lier la\nsession au terminal physique utilisé."

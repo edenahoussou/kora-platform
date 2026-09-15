@@ -1,0 +1,42 @@
+<?php
+
+namespace App\Modules\Departures\Services;
+
+use App\Models\User;
+use App\Modules\Departures\Data\DepartureStatus;
+use App\Modules\Departures\Models\Departure;
+use App\Policies\Concerns\AuthorizesPermissions;
+use Illuminate\Database\Eloquent\Builder;
+
+/**
+ * Départs visibles pour un membre d'équipage terrain (convoyeur,
+ * chauffeur, chauffeur second, mécanicien) sur OPS Mobile : la permission
+ * `departures.view` ne suffit pas — encore faut-il être personnellement
+ * affecté au départ, et celui-ci ne doit pas être annulé.
+ */
+class CrewDepartureScope
+{
+    use AuthorizesPermissions;
+
+    /** @return Builder<Departure> */
+    public function query(User $user): Builder
+    {
+        $query = Departure::query()->where('status', '!=', DepartureStatus::Cancelled->value);
+
+        if (! $this->allows($user, 'departures.view')) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where(function (Builder $q) use ($user): void {
+            $q->where('driver_id', $user->id)
+                ->orWhere('secondary_driver_id', $user->id)
+                ->orWhere('conductor_id', $user->id)
+                ->orWhere('mechanic_id', $user->id);
+        });
+    }
+
+    public function canAccess(User $user, Departure $departure): bool
+    {
+        return $this->query($user)->whereKey($departure->getKey())->exists();
+    }
+}
