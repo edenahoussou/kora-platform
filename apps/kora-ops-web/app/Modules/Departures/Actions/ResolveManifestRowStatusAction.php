@@ -21,10 +21,19 @@ class ResolveManifestRowStatusAction
      * réservations pas encore payées/confirmées (hold, paiement en
      * attente, hold expiré) : ces passagers n'ont pas de billet à
      * présenter et ne doivent pas apparaître sur le manifeste.
+     *
+     * @param  bool  $wasReleasedAsNoShow  Segment "released" spécifiquement
+     *                                     via un no-show (voir ResolveManifestSegmentsAction) — distingue du
+     *                                     cas générique "cancelled" (annulation réelle ou descente
+     *                                     anticipée), que PassengerJourneyStatus ne différencie pas.
      */
-    public function execute(ReservationSegment $segment, ?Payment $latestPayment, DepartureStatus $departureStatus): ?ManifestSegmentStatus
+    public function execute(ReservationSegment $segment, ?Payment $latestPayment, DepartureStatus $departureStatus, bool $wasReleasedAsNoShow = false): ?ManifestSegmentStatus
     {
         $journeyStatus = $this->resolveJourneyStatus->execute($segment, $latestPayment, $departureStatus);
+
+        if ($journeyStatus === PassengerJourneyStatus::Cancelled && $wasReleasedAsNoShow) {
+            return ManifestSegmentStatus::NoShow;
+        }
 
         return match ($journeyStatus) {
             PassengerJourneyStatus::PaymentConfirmed, PassengerJourneyStatus::TicketIssued => ManifestSegmentStatus::Paid,

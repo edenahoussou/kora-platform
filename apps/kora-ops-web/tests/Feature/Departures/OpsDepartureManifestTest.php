@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\User;
+use App\Modules\Boarding\Actions\ProcessIndividualNoShowAction;
+use App\Modules\Boarding\Actions\ProcessSeatReleaseAction;
 use App\Modules\Booking\Data\ReservationChannel;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationPassenger;
@@ -205,6 +207,66 @@ function manifestBookedPassenger(
 
     return [$segment, $ticket, $passenger];
 }
+
+it('shows a no-show release as no_show on the manifest, distinct from a genuine cancellation', function (): void {
+    [$user, $token] = manifestCrewToken('conductor');
+    $terminal = manifestActiveTerminal();
+    $line = manifestLine();
+    [$origin, $destination] = manifestStops($line);
+    [$bus, $seat1] = manifestBusWithSeat();
+    $seat2 = Seat::query()->create(['bus_id' => $bus->id, 'code' => '1B', 'type' => 'standard', 'sellable' => true, 'status' => 'active']);
+    $departure = manifestOpsDeparture($line, $bus, ['conductor_id' => $user->id], status: 'departed');
+
+    [$noShowSegment, $noShowTicket] = manifestBookedPassenger($departure, $origin, $destination, $seat1, segmentStatus: 'ticketed', passengerOverrides: ['first_name' => 'NoShow', 'last_name' => 'One']);
+    [$cancelledSegment] = manifestBookedPassenger($departure, $origin, $destination, $seat2, segmentStatus: 'cancelled', passengerOverrides: ['first_name' => 'Cancelled', 'last_name' => 'Two']);
+
+    app(ProcessIndividualNoShowAction::class)->execute(
+        $departure,
+        $terminal,
+        $user,
+        $noShowTicket->uuid,
+        (string) Str::uuid(),
+        now(),
+    );
+
+    $response = $this->withToken($token)
+        ->withHeaders(['X-Terminal-Serial' => $terminal->serial_number])
+        ->getJson("/api/v1/ops/departures/{$departure->uuid}/manifest")
+        ->assertOk();
+
+    $rowsByName = collect($response->json('data'))->keyBy('name');
+
+    expect($rowsByName['NoShow One']['segmentStatus'])->toBe('no_show')
+        ->and($rowsByName['Cancelled Two']['segmentStatus'])->toBe('cancelled');
+});
+
+it('shows an early-disembark release as cancelled on the manifest, not no_show', function (): void {
+    [$user, $token] = manifestCrewToken('conductor');
+    $terminal = manifestActiveTerminal();
+    $line = manifestLine();
+    [$origin, $destination] = manifestStops($line);
+    [$bus, $seat] = manifestBusWithSeat();
+    $departure = manifestOpsDeparture($line, $bus, ['conductor_id' => $user->id], status: 'boarding');
+
+    [$segment, $ticket] = manifestBookedPassenger($departure, $origin, $destination, $seat, segmentStatus: 'boarded', passengerOverrides: ['first_name' => 'Early', 'last_name' => 'Leaver']);
+
+    app(ProcessSeatReleaseAction::class)->execute(
+        $departure,
+        $terminal,
+        $user,
+        $ticket->uuid,
+        $origin, // stop_order plus petit que la destination : compatible
+        (string) Str::uuid(),
+        now(),
+    );
+
+    $response = $this->withToken($token)
+        ->withHeaders(['X-Terminal-Serial' => $terminal->serial_number])
+        ->getJson("/api/v1/ops/departures/{$departure->uuid}/manifest")
+        ->assertOk();
+
+    expect($response->json('data.0.segmentStatus'))->toBe('cancelled');
+});
 
 it('lists only departures assigned to the crew member, excluding cancelled ones', function (): void {
     [$user, $token] = manifestCrewToken('conductor');
