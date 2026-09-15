@@ -40,6 +40,16 @@ class DeparturePolicy
         return app(CrewDepartureScope::class)->canScanBoarding($user, $departure);
     }
 
+    /**
+     * OPS Mobile : peut enregistrer une descente anticipée ou clôturer
+     * les no-show sur ce départ — affecté au départ (non annulé) et
+     * permission `seat-releases.create`.
+     */
+    public function releaseSeat(User $user, Departure $departure): bool
+    {
+        return app(CrewDepartureScope::class)->canReleaseSeat($user, $departure);
+    }
+
     public function create(User $user): bool
     {
         return $this->allows($user, 'departures.manage');

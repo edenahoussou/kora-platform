@@ -29,6 +29,9 @@ tags:
     name: 'OPS Mobile — Departures'
     description: "\nDéparts et manifeste pour l'équipage terrain (convoyeur, chauffeur,\nchauffeur second, mécanicien) affecté — remplace les écrans mockés de\nMEZ-11. Authentification : auth:sanctum (login existant) + terminal\nenregistré et actif (middleware terminal.active)."
   -
+    name: 'OPS Mobile — Seat releases'
+    description: "\nDescente anticipée et clôture no-show : libère les portions de siège\nnon parcourues, le serveur restant seul maître de la disponibilité et\nde la revente."
+  -
     name: 'OPS Mobile — Terminal'
     description: "\nHandshake et opérations liées au terminal P501 pour l'application OPS\nMobile. L'authentification de l'utilisateur (login, PIN, OTP) reste celle\nde l'app KORA existante (auth:sanctum) ; ces endpoints ajoutent le\ncontrôle du terminal par-dessus une session déjà ouverte."
   -
@@ -5739,6 +5742,354 @@ paths:
         required: true
         schema:
           type: string
+  /api/v1/ops/seat-releases:
+    post:
+      summary: "Enregistre une descente anticipée à partir du billet, du départ et\nde l'arrêt réel."
+      operationId: enregistreUneDescenteAnticipePartirDuBilletDuDpartEtDeLarrtRel
+      description: ''
+      parameters:
+        -
+          in: header
+          name: X-Terminal-Serial
+          description: ''
+          example: 'Numéro de série du terminal. Example: P501-000123'
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Libération acceptée'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 4b1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e61
+                    status: accepted
+                    ticketUuid: 3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e41
+                    departureUuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                    actualStopUuid: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21
+                    releasedSegments:
+                      -
+                        segment_uuid: 7c1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e33
+                        leg_order: 0
+                        departure_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                    operationUuid: 6f1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e99
+                    localRecordedAt: '2026-10-01T09:12:00.000Z'
+                    serverRecordedAt: '2026-10-01T09:12:00.400Z'
+                    code: null
+                    message: null
+                    recommendedAction: null
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      status:
+                        type: string
+                        example: accepted
+                      ticketUuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      departureUuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      actualStopUuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      releasedSegments:
+                        type: array
+                        example:
+                          -
+                            segment_uuid: 7c1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e33
+                            leg_order: 0
+                            departure_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                        items:
+                          type: object
+                          properties:
+                            segment_uuid:
+                              type: string
+                              example: 00000000-0000-4000-8000-000000000000
+                            leg_order:
+                              type: integer
+                              example: 0
+                            departure_uuid:
+                              type: string
+                              example: 00000000-0000-4000-8000-000000000000
+                      operationUuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      localRecordedAt:
+                        type: string
+                        example: '2026-10-01T09:12:00.000Z'
+                      serverRecordedAt:
+                        type: string
+                        example: '2026-10-01T09:12:00.400Z'
+                      code:
+                        type: string
+                        example: null
+                        nullable: true
+                      message:
+                        type: string
+                        example: null
+                        nullable: true
+                      recommendedAction:
+                        type: string
+                        example: null
+                        nullable: true
+        404:
+          description: 'Billet inconnu'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: ticket_unknown
+                    message: 'Billet inconnu.'
+                    recommendedAction: 'Vérifiez le billet et réessayez.'
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: ticket_unknown
+                      message:
+                        type: string
+                        example: 'Billet inconnu.'
+                      recommendedAction:
+                        type: string
+                        example: 'Vérifiez le billet et réessayez.'
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  -
+                    description: 'Libération contradictoire (pas embarqué sur ce départ)'
+                    type: object
+                    example:
+                      data:
+                        uuid: 6d1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e81
+                        status: rejected
+                        code: segment_not_boarded
+                        message: 'Ce billet n’a pas été embarqué sur ce départ — impossible de signaler une descente.'
+                        recommendedAction: 'Embarquez d’abord le billet (scan) avant de signaler une descente anticipée.'
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          status:
+                            type: string
+                            example: rejected
+                          code:
+                            type: string
+                            example: segment_not_boarded
+                          message:
+                            type: string
+                            example: 'Ce billet n’a pas été embarqué sur ce départ — impossible de signaler une descente.'
+                          recommendedAction:
+                            type: string
+                            example: 'Embarquez d’abord le billet (scan) avant de signaler une descente anticipée.'
+                  -
+                    description: 'Conflit entre deux terminaux (libéré hors ligne des deux côtés)'
+                    type: object
+                    example:
+                      data:
+                        uuid: 8f1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0ea5
+                        status: conflict
+                        code: seat_release_conflict
+                        message: 'Ce trajet a déjà été libéré depuis un autre terminal.'
+                        recommendedAction: 'Vérifiez auprès de l’autre terminal avant de recommencer — la libération d’origine fait foi.'
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          status:
+                            type: string
+                            example: conflict
+                          code:
+                            type: string
+                            example: seat_release_conflict
+                          message:
+                            type: string
+                            example: 'Ce trajet a déjà été libéré depuis un autre terminal.'
+                          recommendedAction:
+                            type: string
+                            example: 'Vérifiez auprès de l’autre terminal avant de recommencer — la libération d’origine fait foi.'
+        422:
+          description: 'Arrêt non compatible'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 7e1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e91
+                    status: rejected
+                    code: stop_not_compatible
+                    message: 'Cet arrêt n’est pas compatible avec la jambe et la destination initiale du billet.'
+                    recommendedAction: 'Sélectionnez un arrêt situé entre l’embarquement et la destination du billet.'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      status:
+                        type: string
+                        example: rejected
+                      code:
+                        type: string
+                        example: stop_not_compatible
+                      message:
+                        type: string
+                        example: 'Cet arrêt n’est pas compatible avec la jambe et la destination initiale du billet.'
+                      recommendedAction:
+                        type: string
+                        example: 'Sélectionnez un arrêt situé entre l’embarquement et la destination du billet.'
+      tags:
+        - 'OPS Mobile — Seat releases'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                departure_uuid:
+                  type: string
+                  description: 'UUID public du départ (la jambe en cours).'
+                  example: 00000000-0000-4000-8000-000000000000
+                ticket_uuid:
+                  type: string
+                  description: 'UUID public du billet.'
+                  example: 00000000-0000-4000-8000-000000000000
+                actual_stop_uuid:
+                  type: string
+                  description: "UUID public de l'arrêt où le passager est réellement descendu."
+                  example: 00000000-0000-4000-8000-000000000000
+                operation_uuid:
+                  type: string
+                  description: 'UUID généré par le terminal, unique par tentative — les retries sont sans effet secondaire.'
+                  example: 00000000-0000-4000-8000-000000000000
+                local_recorded_at:
+                  type: string
+                  description: "Horodatage local de l'appareil (ISO 8601)."
+                  example: '2026-10-01T09:12:00Z'
+              required:
+                - departure_uuid
+                - ticket_uuid
+                - actual_stop_uuid
+                - operation_uuid
+                - local_recorded_at
+  /api/v1/ops/seat-releases/no-show-closure:
+    post:
+      summary: "Clôture no-show d'un départ : chaque billet encore \"ticketed\"\n(jamais embarqué) est libéré. Autorisé uniquement une fois le\ndépart effectivement parti ou arrivé — les passagers peuvent\ntoujours se présenter tant que l'embarquement est en cours."
+      operationId: cltureNoShowDunDpartChaqueBilletEncoreticketedjamaisEmbarquEstLibrAutorisUniquementUneFoisLeDpartEffectivementPartiOuArrivLesPassagersPeuventToujoursSePrsenterTantQueLembarquementEstEnCours
+      description: ''
+      parameters:
+        -
+          in: header
+          name: X-Terminal-Serial
+          description: ''
+          example: 'Numéro de série du terminal. Example: P501-000123'
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Clôture effectuée'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    -
+                      uuid: 9b1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0eb1
+                      status: accepted
+                      ticketUuid: 3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e41
+                      departureUuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        uuid: 9b1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0eb1
+                        status: accepted
+                        ticketUuid: 3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e41
+                        departureUuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                    items:
+                      type: object
+                      properties:
+                        uuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        status:
+                          type: string
+                          example: accepted
+                        ticketUuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        departureUuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+        422:
+          description: 'Départ pas encore parti'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: departure_not_closable
+                    message: 'La clôture no-show n’est possible qu’une fois le départ parti ou arrivé.'
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: departure_not_closable
+                      message:
+                        type: string
+                        example: 'La clôture no-show n’est possible qu’une fois le départ parti ou arrivé.'
+      tags:
+        - 'OPS Mobile — Seat releases'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                departure_uuid:
+                  type: string
+                  description: 'UUID public du départ à clôturer.'
+                  example: 00000000-0000-4000-8000-000000000000
+                operation_uuid:
+                  type: string
+                  description: 'UUID généré par le terminal pour cette clôture — les retries sont sans effet secondaire (chaque billet no-show obtient un identifiant dérivé, déterministe).'
+                  example: 00000000-0000-4000-8000-000000000000
+                local_recorded_at:
+                  type: string
+                  description: "Horodatage local de l'appareil (ISO 8601)."
+                  example: '2026-10-01T11:05:00Z'
+              required:
+                - departure_uuid
+                - operation_uuid
+                - local_recorded_at
   /api/v1/ops-mobile/terminal/handshake:
     post:
       summary: "Handshake du terminal : à appeler juste après le login pour lier la\nsession au terminal physique utilisé."
