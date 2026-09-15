@@ -14,7 +14,7 @@ use App\Modules\Departures\Models\Departure;
 use App\Modules\IdentityAccess\Models\TerminalP501;
 use App\Modules\Ticketing\Data\TicketStatus;
 use App\Modules\Ticketing\Models\Ticket;
-use Illuminate\Support\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -41,7 +41,7 @@ class ProcessIndividualNoShowAction
         User $agent,
         string $ticketUuid,
         string $operationUuid,
-        Carbon $localRecordedAt,
+        CarbonInterface $localRecordedAt,
     ): SeatReleaseEvent {
         $existing = SeatReleaseEvent::query()->where('operation_uuid', $operationUuid)->first();
         if ($existing !== null) {
@@ -125,7 +125,7 @@ class ProcessIndividualNoShowAction
         User $agent,
         ReservationSegment $segment,
         string $operationUuid,
-        Carbon $localRecordedAt,
+        CarbonInterface $localRecordedAt,
     ): SeatReleaseEvent {
         $originalEvent = SeatReleaseEvent::query()
             ->where('ticket_id', $ticket->id)
@@ -174,7 +174,7 @@ class ProcessIndividualNoShowAction
         ?int $seatId,
         ?int $actualStopId,
         string $operationUuid,
-        Carbon $localRecordedAt,
+        CarbonInterface $localRecordedAt,
         SeatReleaseFunctionalCode $code,
     ): SeatReleaseEvent {
         return SeatReleaseEvent::query()->create([

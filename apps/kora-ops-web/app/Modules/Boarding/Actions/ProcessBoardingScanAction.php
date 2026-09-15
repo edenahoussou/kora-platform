@@ -12,7 +12,7 @@ use App\Modules\Departures\Models\Departure;
 use App\Modules\IdentityAccess\Models\TerminalP501;
 use App\Modules\Ticketing\Data\TicketStatus;
 use App\Modules\Ticketing\Models\Ticket;
-use Illuminate\Support\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
 class ProcessBoardingScanAction
@@ -35,7 +35,7 @@ class ProcessBoardingScanAction
         Departure $departure,
         TerminalP501 $terminal,
         string $operationUuid,
-        Carbon $localRecordedAt,
+        CarbonInterface $localRecordedAt,
         ?string $qrPayload,
         ?string $shortCode,
     ): BoardingEvent {
@@ -107,7 +107,7 @@ class ProcessBoardingScanAction
         Departure $departure,
         TerminalP501 $terminal,
         string $operationUuid,
-        Carbon $localRecordedAt,
+        CarbonInterface $localRecordedAt,
     ): BoardingEvent {
         $previousAccepted = BoardingEvent::query()
             ->where('departure_id', $departure->id)
@@ -156,7 +156,7 @@ class ProcessBoardingScanAction
         Departure $departure,
         TerminalP501 $terminal,
         string $operationUuid,
-        Carbon $localRecordedAt,
+        CarbonInterface $localRecordedAt,
         BoardingFunctionalCode $code,
     ): BoardingEvent {
         return BoardingEvent::query()->create([

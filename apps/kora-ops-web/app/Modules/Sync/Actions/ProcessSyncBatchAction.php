@@ -19,6 +19,7 @@ use App\Modules\Sync\Data\SyncOperationStatus;
 use App\Modules\Sync\Data\SyncOperationType;
 use App\Modules\Sync\Models\SyncBatch;
 use App\Modules\Sync\Models\SyncOperation;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
 
@@ -136,7 +137,7 @@ class ProcessSyncBatchAction
         User $agent,
         array $payload,
         string $operationUuid,
-        Carbon $localRecordedAt,
+        CarbonInterface $localRecordedAt,
     ): array {
         $departure = isset($payload['departure_uuid'])
             ? Departure::query()->where('uuid', $payload['departure_uuid'])->first()
@@ -161,7 +162,7 @@ class ProcessSyncBatchAction
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
-    private function dispatchBoardingScan(Departure $departure, TerminalP501 $terminal, User $agent, array $payload, string $operationUuid, Carbon $localRecordedAt): array
+    private function dispatchBoardingScan(Departure $departure, TerminalP501 $terminal, User $agent, array $payload, string $operationUuid, CarbonInterface $localRecordedAt): array
     {
         if (! Gate::forUser($agent)->check('create', BoardingEvent::class) || ! Gate::forUser($agent)->check('scanBoarding', $departure)) {
             return $this->genericRejection('permission_denied', 'Permission refusée pour cette opération.', 'Vérifiez les droits de l’utilisateur.');
@@ -192,7 +193,7 @@ class ProcessSyncBatchAction
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
-    private function dispatchIndividualNoShow(Departure $departure, TerminalP501 $terminal, User $agent, array $payload, string $operationUuid, Carbon $localRecordedAt): array
+    private function dispatchIndividualNoShow(Departure $departure, TerminalP501 $terminal, User $agent, array $payload, string $operationUuid, CarbonInterface $localRecordedAt): array
     {
         if (! Gate::forUser($agent)->check('create', SeatReleaseEventModel::class) || ! Gate::forUser($agent)->check('releaseSeat', $departure)) {
             return $this->genericRejection('permission_denied', 'Permission refusée pour cette opération.', 'Vérifiez les droits de l’utilisateur.');
@@ -211,7 +212,7 @@ class ProcessSyncBatchAction
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
-    private function dispatchSeatRelease(Departure $departure, TerminalP501 $terminal, User $agent, array $payload, string $operationUuid, Carbon $localRecordedAt): array
+    private function dispatchSeatRelease(Departure $departure, TerminalP501 $terminal, User $agent, array $payload, string $operationUuid, CarbonInterface $localRecordedAt): array
     {
         if (! Gate::forUser($agent)->check('create', SeatReleaseEventModel::class) || ! Gate::forUser($agent)->check('releaseSeat', $departure)) {
             return $this->genericRejection('permission_denied', 'Permission refusée pour cette opération.', 'Vérifiez les droits de l’utilisateur.');
