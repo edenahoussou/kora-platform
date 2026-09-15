@@ -21,6 +21,8 @@ enum SeatReleaseFunctionalCode: string
     case SegmentNotBoarded = 'segment_not_boarded';
     case SegmentAlreadyReleased = 'segment_already_released';
     case ReleaseConflict = 'seat_release_conflict';
+    case DepartureNotYetClosable = 'departure_not_yet_closable';
+    case SegmentNotEligibleForNoShow = 'segment_not_eligible_for_no_show';
 
     public function message(): string
     {
@@ -32,6 +34,8 @@ enum SeatReleaseFunctionalCode: string
             self::SegmentNotBoarded => 'Ce billet n’a pas été embarqué sur ce départ — impossible de signaler une descente.',
             self::SegmentAlreadyReleased => 'Ce trajet a déjà été libéré.',
             self::ReleaseConflict => 'Ce trajet a déjà été libéré depuis un autre terminal.',
+            self::DepartureNotYetClosable => 'Le no-show n’est possible qu’une fois le départ parti ou arrivé.',
+            self::SegmentNotEligibleForNoShow => 'Ce billet a déjà été embarqué ou déjà libéré — ce n’est pas un no-show.',
         };
     }
 
@@ -45,6 +49,8 @@ enum SeatReleaseFunctionalCode: string
             self::SegmentNotBoarded => 'Embarquez d’abord le billet (scan) avant de signaler une descente anticipée.',
             self::SegmentAlreadyReleased => 'Consultez l’historique des libérations avant de recommencer.',
             self::ReleaseConflict => 'Vérifiez auprès de l’autre terminal avant de recommencer — la libération d’origine fait foi.',
+            self::DepartureNotYetClosable => 'Attendez que le départ soit marqué parti ou arrivé.',
+            self::SegmentNotEligibleForNoShow => 'Vérifiez le statut du billet avant de signaler un no-show.',
         };
     }
 
@@ -52,8 +58,8 @@ enum SeatReleaseFunctionalCode: string
     {
         return match ($this) {
             self::TicketUnknown => 404,
-            self::TicketCancelled, self::WrongDeparture, self::StopNotCompatible => 422,
-            self::SegmentNotBoarded, self::SegmentAlreadyReleased, self::ReleaseConflict => 409,
+            self::TicketCancelled, self::WrongDeparture, self::StopNotCompatible, self::DepartureNotYetClosable => 422,
+            self::SegmentNotBoarded, self::SegmentAlreadyReleased, self::ReleaseConflict, self::SegmentNotEligibleForNoShow => 409,
         };
     }
 }

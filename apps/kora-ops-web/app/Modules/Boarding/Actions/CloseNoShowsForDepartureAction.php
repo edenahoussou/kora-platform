@@ -10,7 +10,7 @@ use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\IdentityAccess\Models\TerminalP501;
 use App\Modules\Ticketing\Models\Ticket;
-use Illuminate\Support\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Ramsey\Uuid\Uuid;
@@ -48,7 +48,7 @@ class CloseNoShowsForDepartureAction
         TerminalP501 $terminal,
         User $agent,
         string $closureOperationUuid,
-        Carbon $localRecordedAt,
+        CarbonInterface $localRecordedAt,
     ): Collection {
         $candidates = ReservationSegment::query()
             ->where('departure_id', $departure->id)

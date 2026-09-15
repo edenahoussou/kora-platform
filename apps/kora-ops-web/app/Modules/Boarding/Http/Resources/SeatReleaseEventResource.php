@@ -28,7 +28,6 @@ class SeatReleaseEventResource extends JsonResource
             'actualStopUuid' => $this->actualStop?->uuid,
             'releasedSegments' => $this->released_segments,
             'operationUuid' => $this->operation_uuid,
-            // CORRECTION : Suppression de l'opérateur nullsafe (?->) sur les dates castées
             'localRecordedAt' => $this->local_recorded_at->toISOString(),
             'serverRecordedAt' => $this->server_recorded_at->toISOString(),
             'code' => $details['code'] ?? null,

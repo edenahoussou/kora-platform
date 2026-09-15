@@ -18,6 +18,7 @@ use App\Modules\IdentityAccess\Http\Controllers\TerminalOpsMobileController;
 use App\Modules\IdentityAccess\Http\Controllers\UserPreferenceController;
 use App\Modules\Payments\Http\Controllers\PaymentController;
 use App\Modules\Support\Http\Controllers\HealthController;
+use App\Modules\Sync\Http\Controllers\OpsSyncController;
 use App\Modules\Ticketing\Http\Controllers\TicketController;
 use Illuminate\Support\Facades\Route;
 
@@ -108,6 +109,18 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->group(function (): void {
             Route::post('/', [OpsSeatReleaseController::class, 'store'])->name('store');
             Route::post('no-show-closure', [OpsSeatReleaseController::class, 'closeNoShows'])->name('no-show-closure');
+        });
+
+    // OPS Mobile — synchronisation hors ligne (MEZ-84 suite). Enveloppe
+    // sync_batches/sync_operations autour des actions de traitement déjà
+    // construites (embarquement, no-show, libération) — même garde que
+    // les autres actions terrain.
+    Route::prefix('ops/sync')
+        ->name('ops.sync.')
+        ->middleware(['auth:sanctum', 'terminal.active'])
+        ->group(function (): void {
+            Route::post('manifest-versions', [OpsSyncController::class, 'manifestVersions'])->name('manifest-versions');
+            Route::post('batches', [OpsSyncController::class, 'submitBatch'])->name('batches');
         });
 
     Route::prefix('bus')

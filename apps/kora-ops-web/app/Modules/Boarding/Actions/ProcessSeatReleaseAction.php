@@ -15,7 +15,7 @@ use App\Modules\Departures\Models\Departure;
 use App\Modules\IdentityAccess\Models\TerminalP501;
 use App\Modules\Ticketing\Data\TicketStatus;
 use App\Modules\Ticketing\Models\Ticket;
-use Illuminate\Support\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -44,7 +44,7 @@ class ProcessSeatReleaseAction
         string $ticketUuid,
         Stop $actualStop,
         string $operationUuid,
-        Carbon $localRecordedAt,
+        CarbonInterface $localRecordedAt,
     ): SeatReleaseEvent {
         $existing = SeatReleaseEvent::query()->where('operation_uuid', $operationUuid)->first();
         if ($existing !== null) {
@@ -148,7 +148,7 @@ class ProcessSeatReleaseAction
         ReservationSegment $segment,
         Stop $actualStop,
         string $operationUuid,
-        Carbon $localRecordedAt,
+        CarbonInterface $localRecordedAt,
     ): SeatReleaseEvent {
         $originalEvent = SeatReleaseEvent::query()
             ->where('ticket_id', $ticket->id)
@@ -179,7 +179,6 @@ class ProcessSeatReleaseAction
                     'recommendedAction' => SeatReleaseFunctionalCode::ReleaseConflict->recommendedAction(),
                     'accepted_event_uuid' => $originalEvent->uuid,
                     'accepted_terminal_uuid' => $originalEvent->terminal?->uuid,
-                    // ✅ CORRECTION : local_recorded_at est un Carbon non-nullable
                     'accepted_local_recorded_at' => $originalEvent->local_recorded_at->toISOString(),
                     'conflicting_terminal_uuid' => $terminal->uuid,
                     'conflicting_local_recorded_at' => $localRecordedAt->toISOString(),
@@ -196,7 +195,6 @@ class ProcessSeatReleaseAction
      */
     private function describeSegments(Collection $segments): array
     {
-        // ✅ CORRECTION : array_values() garantit à PHPStan que le résultat est une "list" (clés 0, 1, 2...)
         return array_values($segments->map(fn (ReservationSegment $s) => [
             'segment_uuid' => $s->uuid,
             'leg_order' => $s->leg_order,
@@ -212,7 +210,7 @@ class ProcessSeatReleaseAction
         ?int $seatId,
         Stop $actualStop,
         string $operationUuid,
-        Carbon $localRecordedAt,
+        CarbonInterface $localRecordedAt,
         SeatReleaseFunctionalCode $code,
     ): SeatReleaseEvent {
         return SeatReleaseEvent::query()->create([
