@@ -31,6 +31,15 @@ class DeparturePolicy
         return app(CrewDepartureScope::class)->canAccess($user, $departure);
     }
 
+    /**
+     * OPS Mobile : peut valider un embarquement sur ce départ — affecté
+     * au départ (non annulé) et permission `boarding.scan` (convoyeur).
+     */
+    public function scanBoarding(User $user, Departure $departure): bool
+    {
+        return app(CrewDepartureScope::class)->canScanBoarding($user, $departure);
+    }
+
     public function create(User $user): bool
     {
         return $this->allows($user, 'departures.manage');

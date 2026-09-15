@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Boarding\Http\Controllers\OpsBoardingController;
 use App\Modules\Booking\Http\Controllers\ItineraryController;
 use App\Modules\Booking\Http\Controllers\ReservationController;
 use App\Modules\Booking\Http\Controllers\ReservationPassengerController;
@@ -82,6 +83,19 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::get('/', [OpsDepartureController::class, 'index'])->name('index');
             Route::get('{departure:uuid}', [OpsDepartureController::class, 'show'])->name('show');
             Route::get('{departure:uuid}/manifest', [OpsDepartureController::class, 'manifest'])->name('manifest');
+        });
+
+    // OPS Mobile — validation d'embarquement (MEZ-84 suite). Le scan lui
+    // même exige un terminal actif ; l'annulation exceptionnelle est une
+    // action de correction ops (permission dédiée) qui n'en a pas besoin.
+    Route::prefix('ops/boarding')
+        ->name('ops.boarding.')
+        ->middleware('auth:sanctum')
+        ->group(function (): void {
+            Route::post('/', [OpsBoardingController::class, 'store'])
+                ->middleware('terminal.active')
+                ->name('store');
+            Route::post('{boardingEvent:uuid}/reverse', [OpsBoardingController::class, 'reverse'])->name('reverse');
         });
 
     Route::prefix('bus')
