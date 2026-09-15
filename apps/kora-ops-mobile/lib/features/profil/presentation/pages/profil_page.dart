@@ -13,6 +13,7 @@ import '../../../../core/widgets/notification_button.dart';
 import '../../../../injection/injection.dart';
 import '../../../auth/presentation/bloc/auth_flow_bloc.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
+import '../../../terminal/presentation/cubit/terminal_cubit.dart';
 
 /// Onglet Profil — reproduit trait pour trait l'écran Profil de
 /// `kora-passager` (voir échange du 18/08/2026) : en-tête marine incurvé
@@ -30,6 +31,23 @@ class ProfilPage extends StatelessWidget {
       return parts.isEmpty ? '?' : parts.first.substring(0, 1).toUpperCase();
     }
     return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+  }
+
+  /// Oublie le terminal lié et renvoie vers l'écran de liaison — voir
+  /// `AuthGuard`, qui redirige automatiquement dès que `TerminalCubit`
+  /// repasse à `TerminalUnlinked` (MEZ-91).
+  Future<void> _confirmChangeTerminal(BuildContext context) async {
+    final bool confirmed = await KoraDialogs.confirm(
+      context,
+      title: 'Changer de terminal ?',
+      description: 'Vous devrez saisir le numéro de série du nouveau '
+          'terminal P501 avant de pouvoir scanner à nouveau.',
+      confirmLabel: 'Changer',
+      cancelLabel: 'Annuler',
+    );
+    if (confirmed && context.mounted) {
+      await context.read<TerminalCubit>().forget();
+    }
   }
 
   @override
@@ -103,6 +121,17 @@ class ProfilPage extends StatelessWidget {
                       title: 'Préférences',
                       subtitle: 'Alertes, langue, thème',
                       onTap: () => context.push(AppRoutes.preferences),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    _AccountTile(
+                      icon: Icons.point_of_sale,
+                      title: 'Terminal P501',
+                      subtitle: switch (context.watch<TerminalCubit>().state) {
+                        TerminalLinked(:final terminal) =>
+                          'Lié — ${terminal.serialNumber}',
+                        _ => 'Aucun terminal lié',
+                      },
+                      onTap: () => _confirmChangeTerminal(context),
                     ),
                     const SizedBox(height: AppSpacing.lg),
                     Text('Besoin d\'aide ?',

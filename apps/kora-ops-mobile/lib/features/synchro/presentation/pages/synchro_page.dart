@@ -101,12 +101,44 @@ class SynchroPage extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: AppSpacing.lg),
+                  if (state.lastSyncSummary != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                      child: KoraCard(
+                        child: Row(
+                          children: <Widget>[
+                            const Icon(Icons.cloud_done,
+                                color: AppColors.success, size: 18),
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: Text(
+                                'Dernière synchro : '
+                                '${state.lastSyncSummary!.accepted} accepté(s), '
+                                '${state.lastSyncSummary!.rejected} rejeté(s), '
+                                '${state.lastSyncSummary!.conflict} conflit(s).',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  if (state.lastSyncError != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                      child: Text(
+                        state.lastSyncError!,
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                            fontSize: 12),
+                      ),
+                    ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: <Widget>[
-                      Text('File d\'attente (${state.pending.length})',
+                      Text('File d\'attente (${state.totalPending})',
                           style: Theme.of(context).textTheme.titleMedium),
-                      if (state.pending.isNotEmpty)
+                      if (state.totalPending > 0)
                         TextButton(
                           onPressed: state.isOnline && !state.isSyncing
                               ? () => context.read<SyncCubit>().syncNow()
@@ -118,7 +150,26 @@ class SynchroPage extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: AppSpacing.sm),
-                  if (state.pending.isEmpty)
+                  if (state.pendingBoardingCount > 0)
+                    KoraCard(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                      child: Row(
+                        children: <Widget>[
+                          const Icon(Icons.confirmation_number_outlined,
+                              color: AppColors.warning, size: 18),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: Text(
+                              '${state.pendingBoardingCount} embarquement(s) en '
+                              'attente de synchronisation',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (state.totalPending == 0)
                     const AppStatePlaceholder.empty(
                         message: 'Aucune opération en attente.')
                   else

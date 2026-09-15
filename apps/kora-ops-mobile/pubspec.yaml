@@ -50,8 +50,24 @@ dependencies:
   # voir document.md § Splash
   connectivity_plus: 
 
-  # Scanner caméra QR (écran Scan boarding) — voir document.md § Scan boarding
-  mobile_scanner: ^7.4.0
+  # Base de données locale (manifeste en cache, file de sync hors ligne,
+  # anti-double-scan, reprise après crash — voir MEZ-91 / document.md §
+  # Base locale). Choisie plutôt que Hive/drift : robuste, transactionnelle
+  # (verrous nécessaires pour l'idempotence locale), et suffit largement au
+  # volume d'un terminal (un manifeste + une file d'opérations à la fois).
+  sqflite: ^2.4.1
+  path: ^1.9.1
+
+  # Génération d'UUID (operation_uuid, batch_uuid — voir contrats
+  # MEZ-86/MEZ-88 côté backend).
+  uuid: ^4.5.1
+
+  # Scanner caméra QR — retiré du flux Scan boarding (MEZ-91, critère
+  # d'acceptation "jamais par la caméra standard" ; seul l'adaptateur
+  # matériel P501/son Mock — MEZ-10 — déclenche un scan désormais). Ligne
+  # conservée en commentaire : à réintroduire seulement si un futur écran
+  # (hors boarding) en a besoin.
+  # mobile_scanner: ^7.4.0
 
   # Rendu du QR code sur le billet affiché en app — voir document.md § Ticket
   qr_flutter: ^4.1.0

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kora_ops_mobile/features/terminal/presentation/cubit/terminal_cubit.dart';
 import '../../core/widgets/kora_bottom_nav.dart';
 import '../../features/auth/presentation/bloc/auth_flow_bloc.dart';
+import '../../features/auth/presentation/cubit/auth_cubit.dart';
 import '../../features/auth/presentation/pages/forgot_password_page.dart';
 import '../../features/auth/presentation/pages/login_email_page.dart';
 import '../../features/auth/presentation/pages/new_pin_page.dart';
@@ -13,6 +15,9 @@ import '../../features/descente/presentation/pages/descente_anticipee_page.dart'
 import '../../features/home/presentation/pages/accueil_page.dart';
 import '../../features/manifeste/presentation/pages/detail_passager_page.dart';
 import '../../features/manifeste/presentation/pages/manifeste_page.dart';
+import '../../features/onboarding/data/onboarding_store.dart';
+import '../../features/onboarding/presentation/pages/onboarding_page.dart';
+import '../../features/splash/domain/resolve_auth_destination.dart';
 import '../../features/printing/presentation/cubit/printing_cubit.dart';
 import '../../features/printing/presentation/pages/printer_test_page.dart';
 import '../../features/profil/presentation/pages/mes_informations_page.dart';
@@ -23,6 +28,7 @@ import '../../features/scan/presentation/pages/scan_boarding_page.dart';
 import '../../features/scan/presentation/pages/scan_result_page.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
 import '../../features/synchro/presentation/pages/synchro_page.dart';
+import '../../features/terminal/presentation/pages/terminal_setup_page.dart';
 import '../../features/tournee/presentation/pages/tournee_page.dart';
 import '../../injection/injection.dart';
 import 'app_routes.dart';
@@ -49,6 +55,26 @@ class AppRouter {
       GoRoute(
           path: AppRoutes.splash,
           builder: (context, state) => const SplashPage()),
+      GoRoute(
+        path: AppRoutes.onboarding,
+        builder: (context, state) => OnboardingPage(
+          onDone: () async {
+            await getIt<OnboardingStore>().markSeen();
+            if (context.mounted) {
+              context.go(
+                resolveAuthDestination(
+                  context.read<AuthCubit>().state,
+                  context.read<TerminalCubit>().state,
+                ),
+              );
+            }
+          },
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.terminalSetup,
+        builder: (context, state) => const TerminalSetupPage(),
+      ),
       GoRoute(
         path: AppRoutes.loginEmail,
         builder: (context, state) => _withAuthFlow(const LoginEmailPage()),

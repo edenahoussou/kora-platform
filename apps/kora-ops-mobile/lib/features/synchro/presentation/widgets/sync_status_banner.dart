@@ -19,18 +19,19 @@ class SyncStatusBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<SyncCubit, SyncState>(
       builder: (BuildContext context, SyncState state) {
+        final int totalPending = state.totalPending;
         final Color color = !state.isOnline
             ? AppColors.danger
-            : state.pending.isNotEmpty
+            : totalPending > 0
                 ? AppColors.warning
                 : AppColors.success;
 
         final String label = !state.isOnline
-            ? 'Hors ligne${state.pending.isNotEmpty ? ' · ${state.pending.length} en attente' : ''}'
+            ? 'Hors ligne${totalPending > 0 ? ' · $totalPending en attente' : ''}'
             : state.isSyncing
                 ? 'Synchronisation…'
-                : state.pending.isNotEmpty
-                    ? '${state.pending.length} en attente'
+                : totalPending > 0
+                    ? '$totalPending en attente'
                     : 'En ligne';
 
         final Widget dot = Container(

@@ -7,16 +7,60 @@ import '../../../../app/theme/kora_colors.dart';
 import '../../../../core/widgets/kora_button.dart';
 import '../../../../core/widgets/kora_card.dart';
 import '../../../../core/widgets/screen_header.dart';
-import '../../../../core/widgets/ticket_card.dart';
-import '../../../ops/data/mock_ops_data_source.dart';
-import '../../../ops/domain/entities/passenger.dart';
-import '../../../ops/presentation/cubit/selected_depart_cubit.dart';
 import '../cubit/scan_boarding_cubit.dart';
 
-/// Détail du scan — feedback plein écran valide/refusé, fidèle aux codes
-/// couleur success/danger du design system. Route : `/scan/resultat`.
+/// Détail du scan — feedback plein écran pour chacun des 7 états requis
+/// par le ticket MEZ-91 (billet valide, mauvais départ, billet inconnu,
+/// déjà embarqué, annulé, conflit, en attente de synchronisation). Route :
+/// `/scan/resultat`.
 class ScanResultPage extends StatelessWidget {
   const ScanResultPage({super.key});
+
+  ({Color color, IconData icon, String title}) _presentationOf(
+      ScanBoardingStatus status) {
+    return switch (status) {
+      ScanBoardingStatus.valide => (
+          color: AppColors.success,
+          icon: Icons.check_circle,
+          title: 'Billet valide',
+        ),
+      ScanBoardingStatus.mauvaisDepart => (
+          color: AppColors.danger,
+          icon: Icons.wrong_location,
+          title: 'Mauvais départ',
+        ),
+      ScanBoardingStatus.billetInconnu => (
+          color: AppColors.danger,
+          icon: Icons.help_outline,
+          title: 'Billet inconnu',
+        ),
+      ScanBoardingStatus.dejaEmbarque => (
+          color: AppColors.danger,
+          icon: Icons.event_busy,
+          title: 'Déjà embarqué',
+        ),
+      ScanBoardingStatus.annule => (
+          color: AppColors.danger,
+          icon: Icons.cancel,
+          title: 'Billet annulé',
+        ),
+      ScanBoardingStatus.conflit => (
+          color: AppColors.danger,
+          icon: Icons.report_gmailerrorred,
+          title: 'Conflit terminal',
+        ),
+      ScanBoardingStatus.enAttenteSync => (
+          color: AppColors.gold,
+          icon: Icons.cloud_off,
+          title: 'En attente de synchronisation',
+        ),
+      _ => (
+          color: AppColors.danger,
+          icon: Icons.error_outline,
+          title: 'Erreur',
+        ),
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,10 +76,7 @@ class ScanResultPage extends StatelessWidget {
               Expanded(
                 child: BlocBuilder<ScanBoardingCubit, ScanBoardingState>(
                   builder: (BuildContext context, ScanBoardingState state) {
-                    final bool isValide =
-                        state.status == ScanBoardingStatus.valide;
-                    final Color color =
-                        isValide ? AppColors.success : AppColors.danger;
+                    final presentation = _presentationOf(state.status);
                     final passenger = state.matchedPassenger;
 
                     return Column(
@@ -45,26 +86,26 @@ class ScanResultPage extends StatelessWidget {
                           width: 110,
                           height: 110,
                           decoration: BoxDecoration(
-                              color: color.withValues(alpha: 0.12),
+                              color: presentation.color.withValues(alpha: 0.12),
                               shape: BoxShape.circle),
                           child: Icon(
-                            isValide ? Icons.check_circle : Icons.cancel,
-                            color: color,
+                            presentation.icon,
+                            color: presentation.color,
                             size: 64,
                           ),
                         ),
                         const SizedBox(height: AppSpacing.lg),
                         Text(
-                          isValide ? 'Billet valide' : 'Billet refusé',
+                          presentation.title,
                           style: Theme.of(context)
                               .textTheme
                               .displayMedium
-                              ?.copyWith(color: color),
+                              ?.copyWith(color: presentation.color),
                         ),
                         const SizedBox(height: AppSpacing.sm),
-                        if (state.lastScannedCode != null)
+                        if (state.lastCode != null)
                           Text(
-                            'Code : ${state.lastScannedCode}',
+                            'Code : ${state.lastCode}',
                             style: TextStyle(
                                 color: context.koraColors.textMuted,
                                 fontSize: 12),
@@ -99,15 +140,12 @@ class ScanResultPage extends StatelessWidget {
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
                           ),
-                        if (passenger != null) ...<Widget>[
-                          const SizedBox(height: AppSpacing.sm),
-                          TextButton.icon(
-                            onPressed: () => _showTicket(context, passenger),
-                            icon: const Icon(Icons.confirmation_number_outlined,
-                                size: 16),
-                            label: const Text('Voir le billet'),
-                          ),
-                        ],
+                        // "Voir le billet" (aperçu imprimable) s'appuyait
+                        // sur MockOpsDataSource.ticketFor — retiré tant que
+                        // MEZ-91 ne dispose pas d'un vrai objet Ticket côté
+                        // scan (BoardingEventResource ne renvoie qu'un
+                        // ticketUuid, volontairement minimal). À reprendre
+                        // avec le module Impression (MEZ-10) si besoin.
                       ],
                     );
                   },
@@ -123,33 +161,6 @@ class ScanResultPage extends StatelessWidget {
               const SizedBox(height: AppSpacing.md),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showTicket(BuildContext context, Passenger passenger) {
-    final depart = context.read<SelectedDepartCubit>().state;
-    if (depart == null) return Future<void>.value();
-    final ticket = MockOpsDataSource.ticketFor(passenger, depart.id);
-
-    return showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (BuildContext context) => Padding(
-        padding: EdgeInsets.fromLTRB(
-          AppSpacing.md,
-          AppSpacing.lg,
-          AppSpacing.md,
-          MediaQuery.viewInsetsOf(context).bottom + AppSpacing.lg,
-        ),
-        child: TicketCard(
-          ticket: ticket,
-          passengerName: passenger.nomComplet,
-          route: depart.route,
-          date: depart.date,
-          heure: depart.heure,
         ),
       ),
     );

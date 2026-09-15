@@ -14,4 +14,23 @@ abstract final class StorageKeys {
   /// doit rester identique d'un lancement à l'autre pour que le serveur
   /// continue de reconnaître l'appareil.
   static const String deviceFingerprint = 'device_fingerprint';
+
+  /// L'onboarding (présentation Tournée/Scan/Synchro) a été vu — voir
+  /// `OnboardingStore`. Non liée à la session : un agent qui se
+  /// déconnecte ne doit pas le revoir.
+  static const String onboardingSeen = 'onboarding_seen';
+
+  /// Numéro de série du terminal P501 lié à cet appareil (voir
+  /// `TerminalLocalDataSource`, MEZ-91). Distinct de `deviceFingerprint` :
+  /// le fingerprint identifie le téléphone/PDA pour l'auth utilisateur, le
+  /// numéro de série identifie le terminal P501 pour les endpoints
+  /// `ops/*`. Persiste après déconnexion, comme le fingerprint — relier de
+  /// nouveau le même terminal physique à chaque connexion serait une
+  /// friction inutile pour le convoyeur.
+  static const String terminalSerialNumber = 'terminal_serial_number';
+
+  /// Dernier instantané du terminal (JSON de `Terminal.toCache`), relu au
+  /// démarrage pour un affichage immédiat avant confirmation réseau — voir
+  /// `TerminalCubit.bootstrap`.
+  static const String terminalSnapshot = 'terminal_snapshot';
 }
