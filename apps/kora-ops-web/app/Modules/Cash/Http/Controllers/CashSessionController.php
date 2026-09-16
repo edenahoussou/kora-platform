@@ -3,20 +3,28 @@
 namespace App\Modules\Cash\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Modules\Cash\Actions\ApproveCashMovementAction;
+use App\Modules\Cash\Actions\ApproveCashTransferAction;
 use App\Modules\Cash\Actions\ApproveCashVarianceAction;
 use App\Modules\Cash\Actions\CloseCashSessionAction;
+use App\Modules\Cash\Actions\CreateCashTransferAction;
 use App\Modules\Cash\Actions\OpenCashSessionAction;
 use App\Modules\Cash\Actions\RecordCashMovementAction;
+use App\Modules\Cash\Actions\RejectCashTransferAction;
 use App\Modules\Cash\Http\Requests\ApproveCashMovementRequest;
+use App\Modules\Cash\Http\Requests\ApproveCashTransferRequest;
 use App\Modules\Cash\Http\Requests\ApproveCashVarianceRequest;
 use App\Modules\Cash\Http\Requests\CloseCashSessionRequest;
 use App\Modules\Cash\Http\Requests\ListCashMovementsRequest;
 use App\Modules\Cash\Http\Requests\StoreCashMovementRequest;
 use App\Modules\Cash\Http\Requests\StoreCashSessionRequest;
+use App\Modules\Cash\Http\Requests\StoreCashTransferRequest;
 use App\Modules\Cash\Models\CashLedger;
 use App\Modules\Cash\Models\CashMovement;
+use App\Modules\Cash\Models\CashRegister;
 use App\Modules\Cash\Models\CashSession;
+use App\Modules\Cash\Models\CashTransfer;
 use App\Modules\Cash\Services\CashJournalQuery;
 use App\Modules\Payments\Models\AgencyPaymentAccount;
 use Illuminate\Http\RedirectResponse;
@@ -40,6 +48,7 @@ class CashSessionController extends Controller
             'movements' => $movements->through(fn (CashMovement $movement): array => $this->serializeMovement($movement)),
             'filters' => $request->filters(),
             'mobileMoneyAccounts' => $this->serializeAccounts($user->agency_id),
+            'cashRegisters' => $this->serializeRegisters($user),
             'permissions' => [
                 'canOpen' => Gate::allows('create', CashSession::class),
                 'canClose' => $session ? Gate::allows('close', $session) : false,
@@ -174,6 +183,55 @@ class CashSessionController extends Controller
         return back();
     }
 
+    public function storeTransfer(
+        StoreCashTransferRequest $request,
+        CreateCashTransferAction $createCashTransfer,
+    ): RedirectResponse {
+        $createCashTransfer->execute($request->user(), $request->payload());
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __('Le transfert est en attente de validation.'),
+        ]);
+
+        return back();
+    }
+
+    public function approveTransfer(
+        ApproveCashTransferRequest $request,
+        CashTransfer $cashTransfer,
+        ApproveCashTransferAction $approveCashTransfer,
+    ): RedirectResponse {
+        $approveCashTransfer->execute($cashTransfer, $request->user());
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __('Le transfert a été publié dans le journal.'),
+        ]);
+
+        return back();
+    }
+
+    public function rejectTransfer(
+        ApproveCashTransferRequest $request,
+        CashTransfer $cashTransfer,
+        RejectCashTransferAction $rejectCashTransfer,
+    ): RedirectResponse {
+        $reason = trim((string) $request->input('reason', ''));
+        if ($reason === '') {
+            return back()->withErrors(['reason' => 'Le motif du rejet est obligatoire.']);
+        }
+
+        $rejectCashTransfer->execute($cashTransfer, $request->user(), $reason);
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __('Le transfert a été rejeté.'),
+        ]);
+
+        return back();
+    }
+
     /** @return array<string, mixed>|null  */
     private function serializeSession(?CashSession $session): ?array
     {
@@ -192,6 +250,11 @@ class CashSessionController extends Controller
             'openedAt' => $session->opened_at?->toISOString(),
             'agentName' => $session->agent?->name,
             'agencyName' => $session->agency?->name,
+            'cashRegister' => $session->cashRegister ? [
+                'uuid' => $session->cashRegister->uuid,
+                'code' => $session->cashRegister->code,
+                'label' => $session->cashRegister->label,
+            ] : null,
             'ledgers' => $session->ledgers->map(fn ($ledger): array => [
                 'uuid' => $ledger->uuid,
                 'kind' => $ledger->kind->value,
@@ -234,6 +297,32 @@ class CashSessionController extends Controller
                 'label' => $account->label,
                 'accountIdentifier' => $this->maskAccountIdentifier($account->account_identifier),
             ])->values()->all());
+    }
+
+    /** @return array<int, array{uuid: string, code: string, label: string}> */
+    private function serializeRegisters(User $user): array
+    {
+        if ($user->agency_id === null) {
+            return [];
+        }
+
+        return CashRegister::query()
+            ->where('agency_id', $user->agency_id)
+            ->where('kind', 'counter')
+            ->where('status', 'active')
+            ->where(function ($query) use ($user): void {
+                $query->whereDoesntHave('authorizedUsers')
+                    ->orWhereHas('authorizedUsers', fn ($users) => $users->whereKey($user->getKey()));
+            })
+            ->orderBy('code')
+            ->get()
+            ->map(fn (CashRegister $register): array => [
+                'uuid' => $register->uuid,
+                'code' => $register->code,
+                'label' => $register->label,
+            ])
+            ->values()
+            ->all();
     }
 
     /** @return list<array<string, mixed>> */

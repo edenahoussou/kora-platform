@@ -33,10 +33,46 @@ class CashMovement extends KoraModel implements HasMedia
         return CashMovementFactory::new();
     }
 
+    protected static function booted(): void
+    {
+        static::updating(function (CashMovement $movement): void {
+            $publishedStatuses = [CashMovementStatus::Posted->value, CashMovementStatus::Approved->value];
+            $immutableFields = [
+                'cash_session_id',
+                'cash_ledger_id',
+                'cash_register_id',
+                'cash_transfer_id',
+                'source_type',
+                'source_id',
+                'type',
+                'direction',
+                'status',
+                'amount',
+                'currency',
+                'created_by',
+                'approved_by',
+                'approved_at',
+                'occurred_at',
+            ];
+            if (in_array((string) $movement->getRawOriginal('status'), $publishedStatuses, true)
+                && array_intersect($immutableFields, array_keys($movement->getDirty())) !== []) {
+                throw new \LogicException('Une écriture publiée est immuable. Utilisez une contrepassation ou un ajustement approuvé.');
+            }
+        });
+
+        static::deleting(function (CashMovement $movement): void {
+            if (in_array((string) $movement->getRawOriginal('status'), [CashMovementStatus::Posted->value, CashMovementStatus::Approved->value], true)) {
+                throw new \LogicException('Une écriture publiée ne peut pas être supprimée.');
+            }
+        });
+    }
+
     protected $fillable = [
         'uuid',
         'cash_session_id',
         'cash_ledger_id',
+        'cash_register_id',
+        'cash_transfer_id',
         'source_type',
         'source_id',
         'type',
@@ -70,6 +106,12 @@ class CashMovement extends KoraModel implements HasMedia
     public function cashLedger(): BelongsTo
     {
         return $this->belongsTo(CashLedger::class);
+    }
+
+    /** @return BelongsTo<CashRegister, $this> */
+    public function cashRegister(): BelongsTo
+    {
+        return $this->belongsTo(CashRegister::class);
     }
 
     /**
