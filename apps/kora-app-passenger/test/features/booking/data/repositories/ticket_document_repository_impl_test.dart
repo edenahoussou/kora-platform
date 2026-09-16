@@ -2,6 +2,7 @@
 // hors ligne et contrôle d'accès.
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -24,12 +25,16 @@ class _FakeRemote implements TicketDocumentRemoteDataSource {
   }
 }
 
-DioException _status(int code) {
+DioException _status(int code, {List<int>? body}) {
   final options = RequestOptions(path: '/api/v1/tickets/x/pdf');
   return DioException(
     requestOptions: options,
     type: DioExceptionType.badResponse,
-    response: Response<List<int>>(requestOptions: options, statusCode: code),
+    response: Response<List<int>>(
+      requestOptions: options,
+      statusCode: code,
+      data: body,
+    ),
   );
 }
 
@@ -101,7 +106,10 @@ void main() {
 
     final failed = await repository.download(ticketId);
     expect(failed.isLeft(), isTrue);
-    expect(failed.fold((e) => e, (_) => null), TicketDocumentError.unavailable);
+    expect(
+      failed.fold((e) => e.kind, (_) => null),
+      TicketDocumentError.unavailable,
+    );
     // Rien d'écrit : ni fichier partiel, ni billet vide.
     expect(filesOf(ticketId), isEmpty);
 
@@ -135,18 +143,55 @@ void main() {
 
     final result = await repository.download(ticketId);
 
-    expect(result.fold((e) => e, (_) => null), TicketDocumentError.network);
+    expect(
+      result.fold((e) => e.kind, (_) => null),
+      TicketDocumentError.network,
+    );
   });
 
   group('contrôle d’accès', () {
     Future<TicketDocumentError?> errorFor(int status) async {
       remote.answers.add(() => throw _status(status));
       final result = await repository.download(ticketId);
-      return result.fold((e) => e, (_) => null);
+      return result.fold((e) => e.kind, (_) => null);
     }
 
     test('401 : session expirée', () async {
       expect(await errorFor(401), TicketDocumentError.sessionExpired);
+    });
+
+    test('422 : billet annulé ou non émis, pas téléchargeable', () async {
+      // `ticket_pdf_unavailable` : réessayer n'y changera rien, ce n'est
+      // pas une panne de génération.
+      expect(await errorFor(422), TicketDocumentError.notDownloadable);
+    });
+
+    test('le texte du serveur accompagne le 422', () async {
+      // Le corps arrive en octets, comme le PDF : c'est au dépôt de le lire.
+      final body = utf8.encode(
+        jsonEncode({
+          'error': {
+            'code': 'ticket_pdf_unavailable',
+            'message': "Le PDF de ce billet n'est pas disponible.",
+          },
+        }),
+      );
+      remote.answers.add(() => throw _status(422, body: body));
+
+      final failure = (await repository.download(
+        ticketId,
+      )).fold((e) => e, (_) => null)!;
+
+      expect(failure.kind, TicketDocumentError.notDownloadable);
+      expect(
+        failure.serverDetail,
+        "HTTP 422 · ticket_pdf_unavailable · Le PDF de ce billet n'est pas "
+        'disponible.',
+      );
+    });
+
+    test('500 : génération indisponible, on peut réessayer', () async {
+      expect(await errorFor(500), TicketDocumentError.unavailable);
     });
 
     test('403 et 404 : billet inaccessible', () async {
@@ -165,7 +210,7 @@ void main() {
       final result = await repository.download(ticketId);
 
       expect(
-        result.fold((e) => e, (_) => null),
+        result.fold((e) => e.kind, (_) => null),
         TicketDocumentError.inaccessible,
       );
     });
@@ -176,7 +221,7 @@ void main() {
         final result = await repository.download('../../etc');
 
         expect(
-          result.fold((e) => e, (_) => null),
+          result.fold((e) => e.kind, (_) => null),
           TicketDocumentError.inaccessible,
         );
         expect(remote.calls, 0);
@@ -189,6 +234,9 @@ void main() {
 
     final result = await repository.download(ticketId);
 
-    expect(result.fold((e) => e, (_) => null), TicketDocumentError.unavailable);
+    expect(
+      result.fold((e) => e.kind, (_) => null),
+      TicketDocumentError.unavailable,
+    );
   });
 }

@@ -162,6 +162,7 @@ class SeatMap extends StatelessWidget {
     required this.seats,
     this.columns = 4,
     this.showLegend = true,
+    this.legendStatuses,
     this.onSeatTap,
   });
 
@@ -174,6 +175,11 @@ class SeatMap extends StatelessWidget {
   /// Affiche la légende des 6 états au-dessus du plan — équivalent
   /// `.seat-legend`, toujours présente sur l'écran réel.
   final bool showLegend;
+
+  /// Les états que la légende présente, dans son ordre habituel. `null` :
+  /// les six. Un écran voyageur n'a que faire de « Embarqué » ou
+  /// « Bloqué », que ses sièges ne distinguent pas.
+  final Set<KoraSeatStatus>? legendStatuses;
 
   final ValueChanged<KoraSeat>? onSeatTap;
 
@@ -198,7 +204,7 @@ class SeatMap extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (showLegend) ...[
-          const _Legend(),
+          _Legend(statuses: legendStatuses),
           const SizedBox(height: AppSpacing.md),
         ],
         Container(
@@ -433,7 +439,10 @@ class _SeatButton extends StatelessWidget {
 /// [_seatVisual], donc représente fidèlement la couleur réelle du siège
 /// (contrairement au CSS d'origine, voir la note sur [_SeatVisual]).
 class _Legend extends StatelessWidget {
-  const _Legend();
+  const _Legend({this.statuses});
+
+  /// Voir [SeatMap.legendStatuses].
+  final Set<KoraSeatStatus>? statuses;
 
   static const _entries = [
     ('Libre', KoraSeatStatus.available),
@@ -452,6 +461,10 @@ class _Legend extends StatelessWidget {
     // `AppColors.*` fixe y serait donc invisible en mode sombre (texte
     // sombre sur fond sombre), d'où `koraColors.textMuted` ici.
     final textMuted = context.koraColors.textMuted;
+    final entries = [
+      for (final entry in _entries)
+        if (statuses?.contains(entry.$2) ?? true) entry,
+    ];
 
     // Les 6 états tiennent sur UNE ligne : passer à deux couperait la
     // légende en deux blocs déséquilibrés, avec un état orphelin en
@@ -463,8 +476,8 @@ class _Legend extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          for (final entry in _entries) ...[
-            if (entry != _entries.first) const SizedBox(width: 11),
+          for (final entry in entries) ...[
+            if (entry != entries.first) const SizedBox(width: 11),
             _LegendSwatch(status: entry.$2),
             const SizedBox(width: 4),
             Text(entry.$1, style: TextStyle(color: textMuted, fontSize: 9)),

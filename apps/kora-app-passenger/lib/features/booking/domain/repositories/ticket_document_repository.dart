@@ -12,5 +12,7 @@ abstract interface class TicketDocumentRepository {
   ///
   /// Hors ligne, un document déjà enregistré est rendu marqué
   /// [TicketDocument.isStale] plutôt qu'un échec : le voyageur a son billet.
-  Future<Either<TicketDocumentError, TicketDocument>> download(String ticketId);
+  Future<Either<TicketDocumentFailure, TicketDocument>> download(
+    String ticketId,
+  );
 }

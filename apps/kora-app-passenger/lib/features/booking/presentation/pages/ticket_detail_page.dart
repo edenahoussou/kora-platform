@@ -7,7 +7,6 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../domain/entities/ticket.dart';
-import '../../domain/entities/ticket_document.dart';
 import '../widgets/official_ticket_download.dart';
 import 'group_tickets_page.dart';
 
@@ -22,13 +21,9 @@ class TicketDetailPage extends StatelessWidget {
     super.key,
     required this.ticket,
     required this.today,
-    this.officialTicketPdf = kOfficialTicketPdfEnabled,
   });
 
   final Ticket ticket;
-
-  /// Voir [kOfficialTicketPdfEnabled].
-  final bool officialTicketPdf;
 
   /// Date du jour, transmise par l'écran appelant — même raison que sur
   /// [TicketCard] : l'écran ne lit pas l'horloge lui-même.
@@ -78,7 +73,6 @@ class TicketDetailPage extends StatelessWidget {
                             extra: GroupTicketsArgs(
                               reservationId:
                                   ticket.reservationId ?? ticket.reference,
-                              departure: ticket.departure,
                             ),
                           ),
                         ),
@@ -92,15 +86,13 @@ class TicketDetailPage extends StatelessWidget {
                           icon: Icons.ios_share_rounded,
                           title: l10n.ticketDetailShareTitle,
                           subtitle: l10n.ticketDetailShareSubtitle,
-                          // Même destination que le QR : c'est là que le
-                          // billet se télécharge et se partage, en PDF,
-                          // avec la charge signée du serveur dedans.
+                          // Même destination que le QR : c'est là que chaque
+                          // voyageur télécharge et partage son PDF officiel.
                           onTap: () => context.push(
                             AppRouter.groupTicketsPath,
                             extra: GroupTicketsArgs(
                               reservationId:
                                   ticket.reservationId ?? ticket.reference,
-                              departure: ticket.departure,
                             ),
                           ),
                         ),
@@ -119,7 +111,7 @@ class TicketDetailPage extends StatelessWidget {
                     // Un billet, un document : le PDF officiel se télécharge
                     // ici. Un groupe passe par la liste de ses billets, où
                     // chaque voyageur a le sien.
-                    if (officialTicketPdf && ticket.ticketIds.length == 1) ...[
+                    if (ticket.ticketIds.length == 1) ...[
                       const SizedBox(height: 13),
                       OfficialTicketDownload(ticketId: ticket.ticketIds.single),
                     ],

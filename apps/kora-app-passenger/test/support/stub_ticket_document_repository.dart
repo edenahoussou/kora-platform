@@ -9,14 +9,14 @@ import 'package:kora_app_passenger/features/booking/domain/repositories/ticket_d
 class StubTicketDocumentRepository implements TicketDocumentRepository {
   StubTicketDocumentRepository({
     this.savedDocument,
-    List<Either<TicketDocumentError, TicketDocument>>? results,
+    List<Either<TicketDocumentFailure, TicketDocument>>? results,
   }) : results = results ?? [];
 
   /// Ce que rend [saved] : le document déjà sur le téléphone.
   TicketDocument? savedDocument;
 
   /// Les réponses de [download], dans l'ordre. Vide : succès.
-  final List<Either<TicketDocumentError, TicketDocument>> results;
+  final List<Either<TicketDocumentFailure, TicketDocument>> results;
 
   /// Posé, il retient chaque téléchargement jusqu'à ce qu'on le complète —
   /// de quoi observer l'état « en cours ».
@@ -34,7 +34,7 @@ class StubTicketDocumentRepository implements TicketDocumentRepository {
   Future<TicketDocument?> saved(String ticketId) async => savedDocument;
 
   @override
-  Future<Either<TicketDocumentError, TicketDocument>> download(
+  Future<Either<TicketDocumentFailure, TicketDocument>> download(
     String ticketId,
   ) async {
     downloads++;

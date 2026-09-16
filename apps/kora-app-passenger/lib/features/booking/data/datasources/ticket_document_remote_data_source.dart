@@ -16,8 +16,8 @@ class TicketPdfPayload {
 
 /// Couche DATA : le téléchargement du PDF officiel d'un billet.
 ///
-/// **Contrat provisoire** — `GET /api/v1/tickets/{uuid}/pdf`, en attente de
-/// MEZ-82. Comme les autres sources, celle-ci laisse remonter les
+/// `GET /api/v1/tickets/{uuid}/pdf`, livré par MEZ-82 : le document que le
+/// backend génère pour le web et WhatsApp, octet pour octet. Comme les autres sources, celle-ci laisse remonter les
 /// `DioException` : c'est le dépôt qui les traduit.
 class TicketDocumentRemoteDataSource {
   const TicketDocumentRemoteDataSource(this._dio);

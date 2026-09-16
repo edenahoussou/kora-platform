@@ -205,8 +205,26 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
   }
 
   /// Pas encore servi par l'API — voir la note de classe.
+  /// Le prochain voyage de l'accueil : le départ confirmé le plus proche,
+  /// lu dans les billets du voyageur (`GET /api/v1/tickets`).
+  ///
+  /// `null` quand il n'y en a aucun — l'accueil propose alors de chercher un
+  /// trajet plutôt que d'afficher un voyage de démonstration.
   @override
-  Future<UpcomingTrip?> getNextTrip() => pending.getNextTrip();
+  Future<UpcomingTrip?> getNextTrip() async {
+    final now = DateTime.now();
+    final upcoming = [
+      for (final ticket in await getTickets())
+        if (ticket.status == TicketStatus.confirmed &&
+            ticket.departure.departsAt.isAfter(now))
+          ticket,
+    ]..sort((a, b) => a.departure.departsAt.compareTo(b.departure.departsAt));
+
+    if (upcoming.isEmpty) return null;
+
+    final next = upcoming.first;
+    return UpcomingTrip(departure: next.departure, seat: next.seat);
+  }
 
   /// Les billets du voyageur connecté — `GET /api/v1/tickets`.
   ///

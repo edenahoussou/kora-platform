@@ -295,6 +295,8 @@ class AppLocalization {
   String get searchCta => translate('search_cta');
   String get searchCtaRoundtrip => translate('search_cta_roundtrip');
   String get searchReturnDate => translate('search_return_date');
+
+  String get searchMissingReturn => translate('search_missing_return');
   String get searchReturnPick => translate('search_return_pick');
   String get searchRecent => translate('search_recent');
   String get searchMissingCities => translate('search_missing_cities');
@@ -763,13 +765,9 @@ class AppLocalization {
 
   String get ticketsOneNotice => translate('tickets_one_notice');
 
-  String get ticketsDownload => translate('tickets_download');
-
   String get ticketsShare => translate('tickets_share');
 
   String get ticketsDownloadDone => translate('tickets_download_done');
-
-  String get ticketsDownloadFailed => translate('tickets_download_failed');
 
   String get ticketsPdfDownload => translate('tickets_pdf_download');
 
@@ -796,6 +794,9 @@ class AppLocalization {
 
   String get ticketsPdfErrorUnavailable =>
       translate('tickets_pdf_error_unavailable');
+
+  String get ticketsPdfErrorNotDownloadable =>
+      translate('tickets_pdf_error_not_downloadable');
 
   String get ticketsPdfErrorUnexpected =>
       translate('tickets_pdf_error_unexpected');

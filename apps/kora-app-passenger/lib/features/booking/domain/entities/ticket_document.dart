@@ -1,20 +1,5 @@
 import 'package:equatable/equatable.dart';
 
-/// Le PDF officiel est-il servi par l'API ?
-///
-/// `false` tant que MEZ-82 n'a pas livré `GET /api/v1/tickets/{uuid}/pdf` :
-/// les écrans gardent alors le billet recomposé sur le téléphone, faute de
-/// mieux. Le jour où la route existe, un build avec
-/// `--dart-define=KORA_OFFICIAL_TICKET_PDF=true` bascule tous les écrans sur
-/// le document du backend — et plus aucun ne recompose le billet.
-///
-/// Un interrupteur plutôt qu'un repli automatique sur 404 : un 404 veut
-/// aussi dire « ce billet n'est pas le vôtre », et fabriquer un PDF à la
-/// place masquerait exactement l'erreur que le contrôle d'accès exprime.
-const bool kOfficialTicketPdfEnabled = bool.fromEnvironment(
-  'KORA_OFFICIAL_TICKET_PDF',
-);
-
 /// Pourquoi le PDF officiel n'a pas pu être obtenu.
 ///
 /// Chaque cas appelle une suite différente, et l'écran doit pouvoir la
@@ -30,12 +15,55 @@ enum TicketDocumentError {
   /// Réessayer n'y changera rien.
   inaccessible,
 
-  /// 5xx, ou une réponse qui n'est pas un PDF : la génération côté backend
-  /// est indisponible pour l'instant.
+  /// 500, ou une réponse qui n'est pas un PDF : la génération a échoué
+  /// côté backend. Temporaire — réessayer a un sens.
   unavailable,
+
+  /// 422 `ticket_pdf_unavailable` : le billet n'est pas téléchargeable —
+  /// annulé, remboursé, ou pas encore émis. Réessayer n'y changera rien.
+  notDownloadable,
 
   /// Tout le reste — un stockage plein, une réponse inattendue.
   unexpected,
+}
+
+/// Un téléchargement refusé : la suite à proposer, et ce que le serveur a
+/// répondu mot pour mot.
+///
+/// [kind] décide de l'écran — réessayer ou non, garder la copie ou non. Le
+/// reste est le texte brut de la réponse : le PDF arrive en octets, et sans
+/// cette lecture le message du backend (« Le PDF de ce billet n'est pas
+/// disponible. ») disparaissait derrière un libellé générique.
+class TicketDocumentFailure extends Equatable {
+  const TicketDocumentFailure(
+    this.kind, {
+    this.status,
+    this.code,
+    this.message,
+  });
+
+  final TicketDocumentError kind;
+
+  /// Le statut HTTP. `null` sans réponse (réseau coupé).
+  final int? status;
+
+  /// `error.code` du corps : `ticket_pdf_unavailable`,
+  /// `ticket_pdf_generation_failed`…
+  final String? code;
+
+  /// `error.message` (ou `message`) du corps, tel quel.
+  final String? message;
+
+  /// La réponse du serveur en une ligne :
+  /// `HTTP 422 · ticket_pdf_unavailable · Le PDF de ce billet n'est pas
+  /// disponible.` — `null` quand il n'y a rien à rapporter.
+  String? get serverDetail {
+    final parts = [if (status != null) 'HTTP $status', ?code, ?message];
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
+
+  @override
+  List<Object?> get props => [kind, status, code, message];
 }
 
 /// Couche DOMAIN : le PDF officiel d'un billet, enregistré sur le téléphone.

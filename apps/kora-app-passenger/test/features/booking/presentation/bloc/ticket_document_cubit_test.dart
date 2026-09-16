@@ -31,7 +31,7 @@ void main() {
 
   test('après un échec, réessayer mène au billet', () async {
     final repository = StubTicketDocumentRepository(
-      results: [const Left(TicketDocumentError.network)],
+      results: [const Left(TicketDocumentFailure(TicketDocumentError.network))],
     );
     final cubit = TicketDocumentCubit(repository);
     addTearDown(cubit.close);
@@ -61,7 +61,7 @@ void main() {
     final repository = StubTicketDocumentRepository(
       results: [
         Right(StubTicketDocumentRepository.documentFor(ticketId)),
-        const Left(TicketDocumentError.inaccessible),
+        const Left(TicketDocumentFailure(TicketDocumentError.inaccessible)),
       ],
     );
     final cubit = TicketDocumentCubit(repository);
@@ -79,7 +79,7 @@ void main() {
     final repository = StubTicketDocumentRepository(
       results: [
         Right(StubTicketDocumentRepository.documentFor(ticketId)),
-        const Left(TicketDocumentError.unavailable),
+        const Left(TicketDocumentFailure(TicketDocumentError.unavailable)),
       ],
     );
     final cubit = TicketDocumentCubit(repository);

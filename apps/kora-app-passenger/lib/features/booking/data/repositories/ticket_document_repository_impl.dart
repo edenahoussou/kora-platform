@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dartz/dartz.dart';
@@ -12,7 +13,8 @@ import 'package:flutter_networking/flutter_networking.dart'
         NotFoundApiException,
         ServerApiException,
         TimeoutApiException,
-        UnauthorizedApiException;
+        UnauthorizedApiException,
+        ValidationApiException;
 
 import '../../domain/entities/ticket_document.dart';
 import '../../domain/repositories/ticket_document_repository.dart';
@@ -30,7 +32,7 @@ class TicketDocumentRepositoryImpl implements TicketDocumentRepository {
   /// Un second appel pendant le premier — deux appuis, ou la liste et le
   /// détail à la fois — reçoit la même réponse au lieu de relancer la
   /// génération et d'écrire deux fois le même fichier.
-  final Map<String, Future<Either<TicketDocumentError, TicketDocument>>>
+  final Map<String, Future<Either<TicketDocumentFailure, TicketDocument>>>
   _inFlight = {};
 
   @override
@@ -43,7 +45,7 @@ class TicketDocumentRepositoryImpl implements TicketDocumentRepository {
   }
 
   @override
-  Future<Either<TicketDocumentError, TicketDocument>> download(
+  Future<Either<TicketDocumentFailure, TicketDocument>> download(
     String ticketId,
   ) {
     final running = _inFlight[ticketId];
@@ -56,13 +58,15 @@ class TicketDocumentRepositoryImpl implements TicketDocumentRepository {
     return future;
   }
 
-  Future<Either<TicketDocumentError, TicketDocument>> _download(
+  Future<Either<TicketDocumentFailure, TicketDocument>> _download(
     String ticketId,
   ) async {
     // Vérifié avant l'appel : un identifiant mal formé ne doit pas même
     // partir vers le serveur.
     if (!TicketDocumentStore.isValidTicketId(ticketId)) {
-      return const Left(TicketDocumentError.inaccessible);
+      return const Left(
+        TicketDocumentFailure(TicketDocumentError.inaccessible),
+      );
     }
 
     try {
@@ -75,17 +79,30 @@ class TicketDocumentRepositoryImpl implements TicketDocumentRepository {
 
       return Right(document);
     } on DioException catch (error) {
-      final kind = errorOf(ApiExceptionMapper.fromDioException(error));
-      return _orSaved(ticketId, kind);
-    } on FormatException {
-      return const Left(TicketDocumentError.unavailable);
+      return _orSaved(ticketId, failureOf(error));
+    } on FormatException catch (error) {
+      // Un 200 dont le corps n'est pas un PDF : on dit ce qui est arrivé.
+      return Left(
+        TicketDocumentFailure(
+          TicketDocumentError.unavailable,
+          status: 200,
+          message: error.message,
+        ),
+      );
     } on ArgumentError {
       // Un identifiant qui n'est pas un UUID : aucune requête n'est partie.
-      return const Left(TicketDocumentError.inaccessible);
-    } on FileSystemException {
-      return const Left(TicketDocumentError.unexpected);
+      return const Left(
+        TicketDocumentFailure(TicketDocumentError.inaccessible),
+      );
+    } on FileSystemException catch (error) {
+      return Left(
+        TicketDocumentFailure(
+          TicketDocumentError.unexpected,
+          message: error.message,
+        ),
+      );
     } on Object {
-      return const Left(TicketDocumentError.unexpected);
+      return const Left(TicketDocumentFailure(TicketDocumentError.unexpected));
     }
   }
 
@@ -95,16 +112,54 @@ class TicketDocumentRepositoryImpl implements TicketDocumentRepository {
   ///
   /// Seulement hors ligne : sur un 401 ou un 403, ressortir la copie locale
   /// contournerait le contrôle d'accès que le serveur vient d'exprimer.
-  Future<Either<TicketDocumentError, TicketDocument>> _orSaved(
+  Future<Either<TicketDocumentFailure, TicketDocument>> _orSaved(
     String ticketId,
-    TicketDocumentError kind,
+    TicketDocumentFailure failure,
   ) async {
-    if (kind == TicketDocumentError.network) {
+    if (failure.kind == TicketDocumentError.network) {
       final document = await saved(ticketId);
       if (document != null) return Right(document.asStale());
     }
 
-    return Left(kind);
+    return Left(failure);
+  }
+
+  /// L'échec, avec la réponse du serveur lue dans son corps.
+  ///
+  /// Le téléchargement demande des octets : une erreur arrive donc elle
+  /// aussi en octets, et `ApiExceptionMapper` n'y trouve aucun message. On
+  /// décode ici le JSON de l'API (`{"error": {"code", "message"}}`).
+  static TicketDocumentFailure failureOf(DioException error) {
+    final response = error.response;
+    final body = _jsonOf(response?.data);
+    final nested = body['error'];
+    final details = nested is Map ? nested : const <String, Object?>{};
+
+    final message = details['message'] ?? body['message'];
+    final code = details['code'];
+
+    return TicketDocumentFailure(
+      errorOf(ApiExceptionMapper.fromDioException(error)),
+      status: response?.statusCode,
+      code: code is String && code.isNotEmpty ? code : null,
+      message: message is String && message.isNotEmpty ? message : null,
+    );
+  }
+
+  static Map<Object?, Object?> _jsonOf(Object? data) {
+    try {
+      final decoded = switch (data) {
+        final Map<Object?, Object?> map => map,
+        final List<int> bytes => jsonDecode(
+          utf8.decode(bytes, allowMalformed: true),
+        ),
+        final String text => jsonDecode(text),
+        _ => null,
+      };
+      return decoded is Map ? decoded : const {};
+    } on FormatException {
+      return const {};
+    }
   }
 
   /// La traduction des erreurs réseau en suites possibles pour l'écran.
@@ -115,6 +170,8 @@ class TicketDocumentRepositoryImpl implements TicketDocumentRepository {
     ForbiddenApiException() ||
     NotFoundApiException() => TicketDocumentError.inaccessible,
     ServerApiException() => TicketDocumentError.unavailable,
+    // `ticket_pdf_unavailable` : billet annulé, remboursé ou non émis.
+    ValidationApiException() => TicketDocumentError.notDownloadable,
     _ => TicketDocumentError.unexpected,
   };
 }

@@ -75,7 +75,9 @@ void main() {
   ) async {
     final cubit = TicketDocumentCubit(
       StubTicketDocumentRepository(
-        results: [const Left(TicketDocumentError.sessionExpired)],
+        results: [
+          const Left(TicketDocumentFailure(TicketDocumentError.sessionExpired)),
+        ],
       ),
     );
     addTearDown(cubit.close);
@@ -97,7 +99,9 @@ void main() {
   ) async {
     final cubit = TicketDocumentCubit(
       StubTicketDocumentRepository(
-        results: [const Left(TicketDocumentError.inaccessible)],
+        results: [
+          const Left(TicketDocumentFailure(TicketDocumentError.inaccessible)),
+        ],
       ),
     );
     addTearDown(cubit.close);
@@ -112,6 +116,68 @@ void main() {
       findsOneWidget,
     );
     expect(find.byType(KoraButton), findsNothing);
+  });
+
+  testWidgets('un billet annulé le dit, sans proposer de réessayer', (
+    tester,
+  ) async {
+    final cubit = TicketDocumentCubit(
+      StubTicketDocumentRepository(
+        results: [
+          const Left(
+            TicketDocumentFailure(TicketDocumentError.notDownloadable),
+          ),
+        ],
+      ),
+    );
+    addTearDown(cubit.close);
+
+    await pump(tester, cubit);
+    await tester.tap(find.text('Télécharger le billet (PDF)'));
+    await tester.pump();
+    await tester.pump();
+
+    expect(
+      find.text(
+        'Ce billet ne peut pas être téléchargé : il a été annulé ou n’est '
+        'pas encore émis.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.byType(KoraButton), findsNothing);
+  });
+
+  testWidgets('la réponse du serveur s’affiche en texte', (tester) async {
+    // Sans elle, « pas disponible » cachait ce que le backend reprochait
+    // vraiment au billet.
+    final cubit = TicketDocumentCubit(
+      StubTicketDocumentRepository(
+        results: [
+          const Left(
+            TicketDocumentFailure(
+              TicketDocumentError.notDownloadable,
+              status: 422,
+              code: 'ticket_pdf_unavailable',
+              message: "Le PDF de ce billet n'est pas disponible.",
+            ),
+          ),
+        ],
+      ),
+    );
+    addTearDown(cubit.close);
+
+    await pump(tester, cubit);
+    await tester.tap(find.text('Télécharger le billet (PDF)'));
+    await tester.pump();
+    await tester.pump();
+
+    expect(
+      find.text(
+        "HTTP 422 · ticket_pdf_unavailable · Le PDF de ce billet n'est pas "
+        'disponible.',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('hors ligne, le billet enregistré s’ouvre quand même', (

@@ -15,6 +15,8 @@ String ticketDocumentErrorText(AppLocalization l10n, TicketDocumentError e) =>
       TicketDocumentError.sessionExpired => l10n.ticketsPdfErrorSession,
       TicketDocumentError.inaccessible => l10n.ticketsPdfErrorInaccessible,
       TicketDocumentError.unavailable => l10n.ticketsPdfErrorUnavailable,
+      TicketDocumentError.notDownloadable =>
+        l10n.ticketsPdfErrorNotDownloadable,
       TicketDocumentError.unexpected => l10n.ticketsPdfErrorUnexpected,
     };
 
@@ -60,8 +62,11 @@ class _OfficialTicketDownloadState extends State<OfficialTicketDownload> {
         final document = entry.document;
         final error = entry.error;
 
-        // Un billet inaccessible ne le deviendra pas en réessayant.
-        final canDownload = error != TicketDocumentError.inaccessible;
+        // Un billet inaccessible, ou annulé, ne le deviendra pas en
+        // réessayant : le bouton s'efface plutôt que de promettre.
+        final canDownload =
+            error != TicketDocumentError.inaccessible &&
+            error != TicketDocumentError.notDownloadable;
 
         final status = switch (entry.phase) {
           TicketDocumentPhase.failed when error != null =>
@@ -86,6 +91,17 @@ class _OfficialTicketDownloadState extends State<OfficialTicketDownload> {
                       : koraColors.textMuted,
                 ),
               ),
+              // La réponse du serveur, telle quelle : code HTTP, code
+              // d'erreur et message — de quoi savoir ce qui bloque.
+              if (entry.phase == TicketDocumentPhase.failed &&
+                  entry.detail != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  entry.detail!,
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.caption(koraColors.textMuted),
+                ),
+              ],
               const SizedBox(height: AppSpacing.sm),
             ],
             if (document != null) ...[
@@ -263,9 +279,12 @@ class _OfficialTicketDownloadIconState
     final document = await _cubit.download(widget.ticketId);
     if (!context.mounted) return;
 
-    final error = _cubit.state.of(widget.ticketId).error;
+    final entry = _cubit.state.of(widget.ticketId);
+    final error = entry.error;
     if (document == null && error != null) {
-      KoraToaster.show(context, ticketDocumentErrorText(l10n, error));
+      final text = ticketDocumentErrorText(l10n, error);
+      final detail = entry.detail;
+      KoraToaster.show(context, detail == null ? text : '$text\n$detail');
     } else if (document != null) {
       KoraToaster.show(
         context,

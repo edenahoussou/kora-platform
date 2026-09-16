@@ -169,7 +169,7 @@ void main() {
 
     expect(find.text('Aller simple'), findsOneWidget);
     expect(find.text('Aller-retour'), findsOneWidget);
-    expect(find.text('Date du retour (facultatif)'), findsNothing);
+    expect(find.text('Date du retour'), findsNothing);
     expect(find.text('Rechercher les départs'), findsOneWidget);
   });
 
@@ -179,30 +179,40 @@ void main() {
     await tester.tap(find.text('Aller-retour'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Date du retour (facultatif)'), findsOneWidget);
+    expect(find.text('Date du retour'), findsOneWidget);
     expect(find.text('Choisir une date'), findsOneWidget);
     expect(find.text('Rechercher l’aller et le retour'), findsOneWidget);
   });
 
-  testWidgets('sans date de retour, la recherche part sur l’aller', (
+  testWidgets('sans date de retour, l’aller-retour ne part pas', (
     tester,
   ) async {
-    // La date de retour est facultative : on choisit souvent son aller
-    // avant de savoir quand on rentre. Le formulaire ne retient plus, il
-    // cherche l'aller et le retour se rajoutera ensuite.
+    // La date du retour est obligatoire : le formulaire dit ce qui manque
+    // plutôt que de lancer une recherche d'aller seul.
     await pumpSearch(tester);
     await pickRoute(tester);
 
     await tester.tap(find.text('Aller-retour'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Rechercher l’aller et le retour'));
-    await tester.pumpAndSettle();
+    // Le toast se pose après la frame en cours : une seconde frame le montre.
+    await tester.pump();
+    await tester.pump();
 
-    expect(pushed, hasLength(1));
+    expect(pushed, isEmpty);
     expect(
-      Uri.parse(pushed.single).queryParameters.containsKey('return_date'),
-      isFalse,
+      find.text(
+        'Choisissez la date du retour pour rechercher un aller-retour.',
+      ),
+      findsOneWidget,
     );
+
+    // Laisse le toast finir : son entrée (250 ms), son attente (2,6 s), qui
+    // ne démarre qu'après l'entrée, puis sa sortie. Un minuteur en suspens
+    // ferait échouer le test à sa fin.
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
   });
 
   testWidgets('le calendrier du retour ne remonte pas avant le départ', (
@@ -212,7 +222,7 @@ void main() {
 
     await tester.tap(find.text('Aller-retour'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Date du retour (facultatif)'));
+    await tester.tap(find.text('Date du retour'));
     await tester.pumpAndSettle();
 
     expect(find.text('Quand rentrez-vous ?'), findsOneWidget);
@@ -231,7 +241,7 @@ void main() {
 
     await tester.tap(find.text('Aller-retour'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Date du retour (facultatif)'));
+    await tester.tap(find.text('Date du retour'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('20'));
     await tester.pumpAndSettle();
@@ -274,7 +284,7 @@ void main() {
     // l'onglet d'à côté — le détour serait absurde.
     await pumpSearch(tester, tripType: TripType.roundtrip);
 
-    expect(find.text('Date du retour (facultatif)'), findsOneWidget);
+    expect(find.text('Date du retour'), findsOneWidget);
     expect(find.text('Rechercher l’aller et le retour'), findsOneWidget);
   });
 

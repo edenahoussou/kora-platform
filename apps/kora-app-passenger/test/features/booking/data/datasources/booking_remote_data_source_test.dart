@@ -592,6 +592,51 @@ void main() {
       ]);
     });
 
+    test('le prochain voyage est le départ confirmé le plus proche', () async {
+      stubGet(
+        page([
+          ticketJson(uuid: 't1', departsAt: '2099-09-01T07:30:00+00:00'),
+          ticketJson(
+            uuid: 't2',
+            reservation: 'res-2',
+            seat: '7C',
+            departsAt: '2099-08-04T07:30:00+00:00',
+          ),
+          // Passé, puis annulé : ni l'un ni l'autre n'est « à venir ».
+          ticketJson(
+            uuid: 't3',
+            reservation: 'res-3',
+            departsAt: '2020-01-01T07:30:00+00:00',
+          ),
+          ticketJson(
+            uuid: 't4',
+            reservation: 'res-4',
+            status: 'cancelled',
+            departsAt: '2099-08-01T07:30:00+00:00',
+          ),
+        ]),
+      );
+
+      final trip = await dataSource.getNextTrip();
+
+      expect(trip, isNotNull);
+      expect(trip!.seat.label, '7C');
+      expect(
+        trip.departure.departsAt,
+        DateTime.parse('2099-08-04T07:30:00+00:00').toLocal(),
+      );
+      verifyNever(() => pending.getNextTrip());
+    });
+
+    test('aucun voyage à venir : pas de carte de démonstration', () async {
+      stubGet(
+        page([ticketJson(uuid: 't1', departsAt: '2020-01-01T07:30:00+00:00')]),
+      );
+
+      expect(await dataSource.getNextTrip(), isNull);
+      verifyNever(() => pending.getNextTrip());
+    });
+
     test('un voyageur annulé ne fait pas un voyage annulé', () async {
       stubGet(
         page([
@@ -607,20 +652,6 @@ void main() {
   });
 
   group('écrans pas encore servis par l’API', () {
-    test('le prochain voyage passe encore par le repli', () async {
-      when(() => pending.getNextTrip()).thenAnswer((_) async => null);
-
-      await dataSource.getNextTrip();
-
-      verify(() => pending.getNextTrip()).called(1);
-      verifyNever(
-        () => dio.get<dynamic>(
-          any(),
-          queryParameters: any(named: 'queryParameters'),
-        ),
-      );
-    });
-
     test('les recherches récentes sont vides, jamais mockées', () async {
       expect(await dataSource.getRecentCities(), isEmpty);
       verifyNever(() => pending.getRecentCities());

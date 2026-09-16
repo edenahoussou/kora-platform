@@ -142,12 +142,16 @@ class _Form extends StatelessWidget {
 
     final criteria = state.criteria;
 
-    // Le trajet n'est pas complet : on le dit plutôt que de laisser le
-    // bouton sans effet apparent. Seules les villes retiennent désormais —
-    // la date de retour est facultative, et son absence ramène simplement
-    // la recherche à l'aller.
+    // Le formulaire n'est pas complet : on dit ce qui manque plutôt que de
+    // laisser le bouton sans effet apparent. Un aller-retour exige sa date
+    // de retour.
     if (criteria == null) {
-      KoraToaster.show(context, l10n.searchMissingCities);
+      KoraToaster.show(
+        context,
+        state.hasRoute && state.isMissingReturnDate
+            ? l10n.searchMissingReturn
+            : l10n.searchMissingCities,
+      );
       return;
     }
 

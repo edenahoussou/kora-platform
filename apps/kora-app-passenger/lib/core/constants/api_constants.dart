@@ -127,7 +127,8 @@ class ApiConstants {
   /// Le PDF officiel d'un billet, tel que le backend le génère — `GET`,
   /// réponse binaire.
   ///
-  /// **Contrat provisoire** : MEZ-82 doit livrer et documenter cette route.
+  /// Livrée par MEZ-82 : réservée au créateur ou au payeur de la
+  /// réservation, pour un billet `issued` ou `used`.
   /// Seul l'UUID du billet y figure, jamais son identifiant numérique.
   static String ticketPdf(String ticketUuid) =>
       '$_v1/tickets/${Uri.encodeComponent(ticketUuid)}/pdf';

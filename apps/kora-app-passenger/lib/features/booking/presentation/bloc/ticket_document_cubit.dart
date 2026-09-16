@@ -13,6 +13,7 @@ class TicketDocumentEntry extends Equatable {
     this.phase = TicketDocumentPhase.idle,
     this.document,
     this.error,
+    this.detail,
   });
 
   final TicketDocumentPhase phase;
@@ -25,10 +26,14 @@ class TicketDocumentEntry extends Equatable {
   /// Renseigné quand [phase] vaut [TicketDocumentPhase.failed].
   final TicketDocumentError? error;
 
+  /// Ce que le serveur a répondu, mot pour mot (voir
+  /// [TicketDocumentFailure.serverDetail]).
+  final String? detail;
+
   bool get isDownloading => phase == TicketDocumentPhase.downloading;
 
   @override
-  List<Object?> get props => [phase, document, error];
+  List<Object?> get props => [phase, document, error, detail];
 }
 
 /// Couche PRESENTATION : les PDF officiels, billet par billet.
@@ -100,16 +105,17 @@ class TicketDocumentCubit extends Cubit<TicketDocumentState> {
     if (isClosed) return null;
 
     return result.fold(
-      (error) {
+      (failure) {
         emit(
           state._with(
             ticketId,
             TicketDocumentEntry(
               phase: TicketDocumentPhase.failed,
-              error: error,
+              error: failure.kind,
+              detail: failure.serverDetail,
               // Le serveur vient de refuser l'accès : l'écran ne doit plus
               // proposer la copie locale de ce billet.
-              document: _keepsCopy(error) ? current.document : null,
+              document: _keepsCopy(failure.kind) ? current.document : null,
             ),
           ),
         );
@@ -132,7 +138,8 @@ class TicketDocumentCubit extends Cubit<TicketDocumentState> {
 
   static bool _keepsCopy(TicketDocumentError error) => switch (error) {
     TicketDocumentError.sessionExpired ||
-    TicketDocumentError.inaccessible => false,
+    TicketDocumentError.inaccessible ||
+    TicketDocumentError.notDownloadable => false,
     TicketDocumentError.network ||
     TicketDocumentError.unavailable ||
     TicketDocumentError.unexpected => true,
