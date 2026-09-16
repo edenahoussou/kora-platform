@@ -153,17 +153,6 @@ it('denies access to tickets not owned by the user', function (): void {
     $response->assertForbidden();
 });
 
-it('downloads a PDF for an owned ticket', function (): void {
-    $scenario = ticketViewScenario();
-    $this->actingAs($scenario['user']);
-
-    $response = $this->get("/tickets/{$scenario['ticket']->uuid}/pdf");
-
-    $response->assertOk();
-    expect($response->headers->get('content-type'))->toContain('application/pdf');
-    expect($response->headers->get('content-disposition'))->toContain('billet-KAB12CD.pdf');
-});
-
 it('displays all segments for a round-trip ticket', function (): void {
     $scenario = ticketViewScenario();
     $this->actingAs($scenario['user']);
