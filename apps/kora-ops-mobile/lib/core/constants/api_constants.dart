@@ -27,6 +27,8 @@ abstract final class ApiConstants {
 
   // OPS Mobile — départs, manifeste, embarquement, synchro (MEZ-91).
   static const String opsDepartures = '$_v1/ops/departures';
+  static String opsDepartureShow(String departureUuid) =>
+      '$_v1/ops/departures/$departureUuid';
   static String opsDepartureManifest(String departureUuid) =>
       '$_v1/ops/departures/$departureUuid/manifest';
   static const String opsBoarding = '$_v1/ops/boarding';

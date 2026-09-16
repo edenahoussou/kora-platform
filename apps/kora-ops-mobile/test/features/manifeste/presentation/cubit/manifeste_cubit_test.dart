@@ -2,9 +2,12 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_ops_mobile/core/errors/failures.dart';
 import 'package:kora_ops_mobile/core/result/result.dart';
+import 'package:kora_ops_mobile/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:kora_ops_mobile/features/boarding/domain/repositories/boarding_repository.dart';
+import 'package:kora_ops_mobile/features/manifeste/domain/entities/manifest_snapshot.dart';
 import 'package:kora_ops_mobile/features/manifeste/domain/repositories/manifeste_repository.dart';
 import 'package:kora_ops_mobile/features/manifeste/presentation/cubit/manifeste_cubit.dart';
+import 'package:kora_ops_mobile/features/ops/data/datasources/selected_departure_local_datasource.dart';
 import 'package:kora_ops_mobile/features/ops/domain/entities/depart.dart';
 import 'package:kora_ops_mobile/features/ops/domain/entities/passenger.dart';
 import 'package:kora_ops_mobile/features/ops/presentation/cubit/selected_depart_cubit.dart';
@@ -18,7 +21,24 @@ class MockSyncRepository extends Mock implements SyncRepository {}
 
 class MockBoardingRepository extends Mock implements BoardingRepository {}
 
+class MockSelectedDepartureLocalDataSource extends Mock
+    implements SelectedDepartureLocalDataSource {}
+
+class MockAuthCubit extends Mock implements AuthCubit {}
+
 void main() {
+  setUpAll(() {
+    registerFallbackValue(const Depart(
+      id: 'fallback',
+      route: '—',
+      date: '—',
+      heure: '—',
+      vehiculeImmat: '—',
+      totalPlaces: 0,
+      placesOccupees: 0,
+    ));
+  });
+
   late SelectedDepartCubit selectedDepartCubit;
   late SyncCubit syncCubit;
   late MockManifesteRepository repository;
@@ -33,6 +53,16 @@ void main() {
     placesOccupees: 38,
   );
 
+  const Depart autreDepart = Depart(
+    id: 'dep-uuid-2',
+    route: 'Cotonou → Lomé',
+    date: '16/08/2026',
+    heure: '09:00',
+    vehiculeImmat: 'CD-5678-RB',
+    totalPlaces: 30,
+    placesOccupees: 0,
+  );
+
   const Passenger passenger = Passenger(
     id: 'ticket-1',
     nomComplet: 'Aïcha Hounkpé',
@@ -43,8 +73,34 @@ void main() {
     ticketId: 'AB12CD',
   );
 
+  const Passenger autrePassenger = Passenger(
+    id: 'ticket-2',
+    nomComplet: 'Koffi Adjovi',
+    siege: '05B',
+    statut: BoardingStatus.enAttente,
+    segmentOrigine: 'Cotonou',
+    segmentDestination: 'Lomé',
+    ticketId: 'EF34GH',
+  );
+
+  ManifestSnapshot snapshotOf(List<Passenger> passengers,
+          {bool isStale = false, bool isFromCache = false}) =>
+      ManifestSnapshot(
+        passengers: passengers,
+        version: 'v1',
+        fetchedAt: DateTime(2026, 8, 16, 7),
+        isStale: isStale,
+        isFromCache: isFromCache,
+      );
+
   setUp(() {
-    selectedDepartCubit = SelectedDepartCubit();
+    final MockSelectedDepartureLocalDataSource local =
+        MockSelectedDepartureLocalDataSource();
+    when(() => local.saveSnapshot(any())).thenAnswer((_) async {});
+    when(local.clear).thenAnswer((_) async {});
+    final MockAuthCubit authCubit = MockAuthCubit();
+    when(() => authCubit.stream).thenAnswer((_) => const Stream.empty());
+    selectedDepartCubit = SelectedDepartCubit(local, authCubit);
     // Mocks jamais stubbés : ManifesteCubit n'exerce que `enqueue()` (via
     // `updateStatut`), qui ne les appelle pas — voir SyncCubit.enqueue.
     syncCubit = SyncCubit(MockSyncRepository(), MockBoardingRepository());
@@ -64,11 +120,10 @@ void main() {
     'charge les passagers depuis le repository quand un départ est déjà '
     'sélectionné à la création',
     setUp: () {
-      when(() => repository.load(depart.id)).thenAnswer(
-        (_) async => const Result<List<Passenger>>.success(<Passenger>[
-          passenger,
-        ]),
-      );
+      when(() => repository.load(depart.id))
+          .thenAnswer((_) async => Result<ManifestSnapshot>.success(
+                snapshotOf(<Passenger>[passenger]),
+              ));
     },
     build: () {
       selectedDepartCubit.select(depart);
@@ -90,10 +145,33 @@ void main() {
   );
 
   blocTest<ManifesteCubit, ManifesteState>(
+    'un manifeste servi hors ligne (cache) se reflète en isStale/isFromCache',
+    setUp: () {
+      when(() => repository.load(depart.id))
+          .thenAnswer((_) async => Result<ManifestSnapshot>.success(
+                snapshotOf(<Passenger>[passenger],
+                    isStale: true, isFromCache: true),
+              ));
+    },
+    build: () {
+      selectedDepartCubit.select(depart);
+      return ManifesteCubit(
+        selectedDepartCubit: selectedDepartCubit,
+        syncCubit: syncCubit,
+        repository: repository,
+      );
+    },
+    expect: () => <dynamic>[
+      predicate<ManifesteState>(
+          (s) => s.status == ManifesteStatus.success && s.isStale == true),
+    ],
+  );
+
+  blocTest<ManifesteCubit, ManifesteState>(
     'un échec réseau sans repli possible passe en erreur',
     setUp: () {
       when(() => repository.load(depart.id)).thenAnswer(
-        (_) async => const Result<List<Passenger>>.failure(
+        (_) async => const Result<ManifestSnapshot>.failure(
           NetworkFailure('Pas de connexion et aucun manifeste en cache.'),
         ),
       );
@@ -113,11 +191,11 @@ void main() {
 
   test('markBoarded met à jour le statut sans enfiler de synchro mock',
       () async {
-    when(() => repository.load(depart.id)).thenAnswer(
-      (_) async =>
-          const Result<List<Passenger>>.success(<Passenger>[passenger]),
-    );
-    selectedDepartCubit.select(depart);
+    when(() => repository.load(depart.id))
+        .thenAnswer((_) async => Result<ManifestSnapshot>.success(
+              snapshotOf(<Passenger>[passenger]),
+            ));
+    await selectedDepartCubit.select(depart);
     final cubit = ManifesteCubit(
       selectedDepartCubit: selectedDepartCubit,
       syncCubit: syncCubit,
@@ -133,11 +211,11 @@ void main() {
   });
 
   test('searchByShortCode filtre localement, sans appel réseau', () async {
-    when(() => repository.load(depart.id)).thenAnswer(
-      (_) async =>
-          const Result<List<Passenger>>.success(<Passenger>[passenger]),
-    );
-    selectedDepartCubit.select(depart);
+    when(() => repository.load(depart.id))
+        .thenAnswer((_) async => Result<ManifestSnapshot>.success(
+              snapshotOf(<Passenger>[passenger]),
+            ));
+    await selectedDepartCubit.select(depart);
     final cubit = ManifesteCubit(
       selectedDepartCubit: selectedDepartCubit,
       syncCubit: syncCubit,
@@ -154,11 +232,11 @@ void main() {
   test(
     'revient à noDepart quand SelectedDepartCubit.clear() est appelé',
     () async {
-      when(() => repository.load(depart.id)).thenAnswer(
-        (_) async =>
-            const Result<List<Passenger>>.success(<Passenger>[passenger]),
-      );
-      selectedDepartCubit.select(depart);
+      when(() => repository.load(depart.id))
+          .thenAnswer((_) async => Result<ManifestSnapshot>.success(
+                snapshotOf(<Passenger>[passenger]),
+              ));
+      await selectedDepartCubit.select(depart);
       final cubit = ManifesteCubit(
         selectedDepartCubit: selectedDepartCubit,
         syncCubit: syncCubit,
@@ -171,6 +249,39 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 10));
 
       expect(cubit.state.status, ManifesteStatus.noDepart);
+    },
+  );
+
+  test(
+    'changement de départ : recharge le manifeste du nouveau départ',
+    () async {
+      when(() => repository.load(depart.id))
+          .thenAnswer((_) async => Result<ManifestSnapshot>.success(
+                snapshotOf(<Passenger>[passenger]),
+              ));
+      when(() => repository.load(autreDepart.id))
+          .thenAnswer((_) async => Result<ManifestSnapshot>.success(
+                snapshotOf(<Passenger>[autrePassenger]),
+              ));
+
+      await selectedDepartCubit.select(depart);
+      final cubit = ManifesteCubit(
+        selectedDepartCubit: selectedDepartCubit,
+        syncCubit: syncCubit,
+        repository: repository,
+      );
+      await cubit.stream.firstWhere(
+          (ManifesteState s) => s.status == ManifesteStatus.success);
+      expect(cubit.state.passengers.single.id, 'ticket-1');
+
+      await selectedDepartCubit.select(autreDepart);
+      await cubit.stream.firstWhere((ManifesteState s) =>
+          s.status == ManifesteStatus.success &&
+          s.passengers.any((p) => p.id == 'ticket-2'));
+
+      expect(cubit.state.passengers.single.id, 'ticket-2');
+      verify(() => repository.load(depart.id)).called(1);
+      verify(() => repository.load(autreDepart.id)).called(1);
     },
   );
 }

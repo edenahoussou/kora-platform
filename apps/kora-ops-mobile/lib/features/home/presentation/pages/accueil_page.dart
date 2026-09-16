@@ -33,7 +33,14 @@ class AccueilPage extends StatelessWidget {
         ? _firstName(authState.user.name)
         : 'Agent';
     final Depart? depart = context.watch<SelectedDepartCubit>().state;
-    final int embarques = context.watch<ManifesteCubit>().state.embarques;
+    final ManifesteState manifesteState = context.watch<ManifesteCubit>().state;
+    final int embarques = manifesteState.embarques;
+    // MEZ-92 : `GET /ops/departures` ne renvoie pas d'effectif (il
+    // faudrait charger le manifeste de chaque ligne de liste) — le total
+    // de passagers vient donc du manifeste déjà chargé pour le départ
+    // sélectionné, pas de `Depart.placesOccupees` (toujours à 0 côté
+    // données réelles).
+    final int totalPassagers = manifesteState.passengers.length;
 
     return Scaffold(
       backgroundColor: context.koraColors.background,
@@ -61,7 +68,10 @@ class AccueilPage extends StatelessWidget {
                         .md, // ✅ CORRIGÉ : Marge droite identique à la gauche pour un centrage parfait
                     bottom:
                         -140, // ✅ CORRIGÉ : La carte descend un peu plus (était à -126)
-                    child: _DepartCard(depart: depart, embarques: embarques),
+                    child: _DepartCard(
+                        depart: depart,
+                        embarques: embarques,
+                        totalPassagers: totalPassagers),
                   ),
                 ],
               ),
@@ -251,10 +261,14 @@ class _NavyHeader extends StatelessWidget {
 ///   - bouton switch : entièrement à l'extérieur de la carte, à droite,
 ///     centré verticalement sur le séparateur départ/arrivée.
 class _DepartCard extends StatelessWidget {
-  const _DepartCard({required this.depart, required this.embarques});
+  const _DepartCard(
+      {required this.depart,
+      required this.embarques,
+      required this.totalPassagers});
 
   final Depart? depart;
   final int embarques;
+  final int totalPassagers;
 
   /// Retrait du header/footer par rapport à la carte (plus large qu'eux).
   static const double _capInset = AppSpacing.md;
@@ -428,9 +442,8 @@ class _DepartCard extends StatelessWidget {
                   Expanded(
                     child: _MiniStat(
                       label: 'EMBARQUÉS',
-                      value: depart != null
-                          ? '$embarques / ${depart!.placesOccupees}'
-                          : '—',
+                      value:
+                          depart != null ? '$embarques / $totalPassagers' : '—',
                     ),
                   ),
                 ],

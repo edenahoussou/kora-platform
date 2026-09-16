@@ -3,6 +3,8 @@
 namespace App\Modules\Departures\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Boarding\Data\BoardingEventStatus;
+use App\Modules\Boarding\Models\BoardingEvent;
 use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Data\LineType;
 use App\Modules\Departures\Actions\ComputeManifestVersionAction;
@@ -201,6 +203,22 @@ class OpsDepartureController extends Controller
         [$includedSegments, $ticketsByPassengerId, $statusesBySegmentId] = app(ResolveManifestSegmentsAction::class)->execute($departure);
         $manifestVersion = app(ComputeManifestVersionAction::class)->execute($departure, $includedSegments, $ticketsByPassengerId);
 
+        // UUID du dernier embarquement accepté par billet sur CE départ —
+        // une seule requête (pas de N+1), consommée par
+        // OpsManifestRowResource pour exposer `boardingEventUuid` (permet
+        // à l'app OPS Mobile de proposer l'annulation exceptionnelle,
+        // POST /ops/boarding/{uuid}/reverse, sans endpoint dédié).
+        $ticketIds = collect($ticketsByPassengerId)->pluck('id')->filter()->unique()->values();
+        $boardingEventUuidsByTicketId = $ticketIds->isEmpty() ? [] : BoardingEvent::query()
+            ->whereIn('ticket_id', $ticketIds)
+            ->where('departure_id', $departure->id)
+            ->where('status', BoardingEventStatus::Accepted)
+            ->orderByDesc('server_recorded_at')
+            ->get(['ticket_id', 'uuid'])
+            ->unique('ticket_id')
+            ->pluck('uuid', 'ticket_id')
+            ->all();
+
         $search = $request->string('q')->trim()->value();
         $rows = $includedSegments;
 
@@ -226,10 +244,10 @@ class OpsDepartureController extends Controller
         );
 
         return response()->json([
-            'data' => $paginated->getCollection()->map(function (ReservationSegment $segment) use ($ticketsByPassengerId, $statusesBySegmentId, $international) {
+            'data' => $paginated->getCollection()->map(function (ReservationSegment $segment) use ($ticketsByPassengerId, $statusesBySegmentId, $international, $boardingEventUuidsByTicketId) {
                 $ticket = $segment->reservation_passenger_id !== null ? ($ticketsByPassengerId[$segment->reservation_passenger_id] ?? null) : null;
 
-                return (new OpsManifestRowResource($segment, $ticket, $statusesBySegmentId[$segment->id], $international))->toArray(request());
+                return (new OpsManifestRowResource($segment, $ticket, $statusesBySegmentId[$segment->id], $international, $boardingEventUuidsByTicketId))->toArray(request());
             })->values(),
             'meta' => $this->paginationMeta($paginated),
             'manifestVersion' => $manifestVersion,

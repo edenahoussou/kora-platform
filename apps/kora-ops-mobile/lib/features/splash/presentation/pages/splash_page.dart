@@ -8,6 +8,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../injection/injection.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../onboarding/data/onboarding_store.dart';
+import '../../../ops/presentation/cubit/selected_depart_cubit.dart';
 import '../../../synchro/presentation/cubit/sync_cubit.dart';
 import '../../../terminal/presentation/cubit/terminal_cubit.dart';
 import '../../domain/resolve_auth_destination.dart';
@@ -81,6 +82,7 @@ class _SplashPageState extends State<SplashPage>
       context.read<AuthCubit>().checkAuthStatus(),
       context.read<TerminalCubit>().bootstrap(),
       context.read<SyncCubit>().bootstrap(),
+      context.read<SelectedDepartCubit>().bootstrap(),
     ]);
 
     final Duration elapsed = stopwatch.elapsed;
