@@ -158,11 +158,22 @@ it('returns a stable error when PDF generation fails', function (): void {
 
 it('generates a PDF with the configured Chromium environment', function (): void {
     $scenario = ticketPdfScenario();
+    $previousHome = getenv('HOME');
+    putenv('HOME=/var/www');
 
-    $result = app(GenerateTicketPdfAction::class)->execute($scenario['ticket']);
+    try {
+        $result = app(GenerateTicketPdfAction::class)->execute($scenario['ticket']);
+    } finally {
+        if (is_string($previousHome)) {
+            putenv("HOME={$previousHome}");
+        } else {
+            putenv('HOME');
+        }
+    }
 
     expect($result['content'])->toStartWith('%PDF-')
-        ->and($result['filename'])->toBe('billet-KAB12CD.pdf');
+        ->and($result['filename'])->toBe('billet-KAB12CD.pdf')
+        ->and(getenv('HOME'))->toBe($previousHome);
 });
 
 it('passes multi-segment ticket data to the shared PDF generator', function (): void {
