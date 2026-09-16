@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../features/auth/presentation/cubit/auth_cubit.dart';
 import '../features/manifeste/presentation/cubit/manifeste_cubit.dart';
+import '../features/ops/presentation/cubit/departure_list_cubit.dart';
 import '../features/ops/presentation/cubit/selected_depart_cubit.dart';
 import '../features/scan/presentation/cubit/scan_boarding_cubit.dart';
 import '../features/synchro/presentation/cubit/sync_cubit.dart';
@@ -29,6 +30,8 @@ class App extends StatelessWidget {
         // document.md § Navigation.
         BlocProvider<SelectedDepartCubit>.value(
             value: getIt<SelectedDepartCubit>()),
+        BlocProvider<DepartureListCubit>.value(
+            value: getIt<DepartureListCubit>()),
         BlocProvider<SyncCubit>.value(value: getIt<SyncCubit>()),
         BlocProvider<ManifesteCubit>.value(value: getIt<ManifesteCubit>()),
         BlocProvider<ScanBoardingCubit>.value(

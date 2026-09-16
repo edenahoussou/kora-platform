@@ -1,11 +1,14 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_ops_mobile/core/result/result.dart';
+import 'package:kora_ops_mobile/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:kora_ops_mobile/features/boarding/domain/entities/boarding_outcome.dart';
 import 'package:kora_ops_mobile/features/boarding/domain/entities/boarding_outcome_status.dart';
 import 'package:kora_ops_mobile/features/boarding/domain/repositories/boarding_repository.dart';
+import 'package:kora_ops_mobile/features/manifeste/domain/entities/manifest_snapshot.dart';
 import 'package:kora_ops_mobile/features/manifeste/domain/repositories/manifeste_repository.dart';
 import 'package:kora_ops_mobile/features/manifeste/presentation/cubit/manifeste_cubit.dart';
+import 'package:kora_ops_mobile/features/ops/data/datasources/selected_departure_local_datasource.dart';
 import 'package:kora_ops_mobile/features/ops/domain/entities/depart.dart';
 import 'package:kora_ops_mobile/features/ops/domain/entities/passenger.dart';
 import 'package:kora_ops_mobile/features/ops/presentation/cubit/selected_depart_cubit.dart';
@@ -28,9 +31,23 @@ class MockTerminalRepository extends Mock implements TerminalRepository {}
 
 class MockSyncRepository extends Mock implements SyncRepository {}
 
+class MockSelectedDepartureLocalDataSource extends Mock
+    implements SelectedDepartureLocalDataSource {}
+
+class MockAuthCubit extends Mock implements AuthCubit {}
+
 void main() {
   setUpAll(() {
     registerFallbackValue(TerminalActivityType.scan);
+    registerFallbackValue(const Depart(
+      id: 'fallback',
+      route: '—',
+      date: '—',
+      heure: '—',
+      vehiculeImmat: '—',
+      totalPlaces: 0,
+      placesOccupees: 0,
+    ));
   });
 
   late MockScanBarcode scanBarcode;
@@ -75,7 +92,14 @@ void main() {
     boardingRepository = MockBoardingRepository();
     manifesteRepository = MockManifesteRepository();
     terminalRepository = MockTerminalRepository();
-    selectedDepartCubit = SelectedDepartCubit();
+    final MockSelectedDepartureLocalDataSource selectedDepartLocal =
+        MockSelectedDepartureLocalDataSource();
+    when(() => selectedDepartLocal.saveSnapshot(any()))
+        .thenAnswer((_) async {});
+    when(selectedDepartLocal.clear).thenAnswer((_) async {});
+    final MockAuthCubit authCubit = MockAuthCubit();
+    when(() => authCubit.stream).thenAnswer((_) => const Stream.empty());
+    selectedDepartCubit = SelectedDepartCubit(selectedDepartLocal, authCubit);
     // Mocks jamais stubbés : ManifesteCubit n'exerce que `enqueue()` (via
     // `updateStatut`), qui ne les appelle pas — voir SyncCubit.enqueue.
     // `markBoarded` (utilisé par ScanBoardingCubit) ne passe pas non plus
@@ -83,15 +107,22 @@ void main() {
     syncCubit = SyncCubit(MockSyncRepository(), MockBoardingRepository());
 
     when(() => manifesteRepository.load(depart.id)).thenAnswer(
-      (_) async =>
-          const Result<List<Passenger>>.success(<Passenger>[passenger]),
+      (_) async => Result<ManifestSnapshot>.success(
+        ManifestSnapshot(
+          passengers: const <Passenger>[passenger],
+          version: 'v1',
+          fetchedAt: DateTime(2026, 8, 16, 7),
+          isStale: false,
+          isFromCache: false,
+        ),
+      ),
     );
     when(() => terminalRepository.logActivity(
           any(),
           context: any(named: 'context'),
         )).thenAnswer((_) async {});
 
-    selectedDepartCubit.select(depart);
+    await selectedDepartCubit.select(depart);
     manifesteCubit = ManifesteCubit(
       selectedDepartCubit: selectedDepartCubit,
       syncCubit: syncCubit,

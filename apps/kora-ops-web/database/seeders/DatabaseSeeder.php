@@ -21,8 +21,10 @@ class DatabaseSeeder extends Seeder
             KoraBusAmenitySeeder::class,
             KoraFareSeeder::class,
             KoraDemoUserSeeder::class,
+            KoraTerminalP501Seeder::class,
             KoraCounterSaleSeeder::class,
             KoraDepartureProgrammingSeeder::class,
+            KoraTerminalP501DemoCrewSeeder::class,
             Mez57GroupPurchaseSeeder::class,
             KoraCompanyAccountSeeder::class,
         ]);

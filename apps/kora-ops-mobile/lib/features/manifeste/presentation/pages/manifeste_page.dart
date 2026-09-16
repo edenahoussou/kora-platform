@@ -39,7 +39,7 @@ class ManifestePage extends StatelessWidget {
                 )
               : BlocBuilder<ManifesteCubit, ManifesteState>(
                   builder: (BuildContext context, ManifesteState state) {
-                    return switch (state.status) {
+                    final Widget content = switch (state.status) {
                       ManifesteStatus.noDepart =>
                         const AppStatePlaceholder.empty(
                           message:
@@ -73,9 +73,63 @@ class ManifestePage extends StatelessWidget {
                           ),
                         ),
                     };
+
+                    if (state.status != ManifesteStatus.success ||
+                        !state.isStale) {
+                      return content;
+                    }
+
+                    // Manifeste servi hors ligne (jamais vérifié à jour
+                    // auprès du serveur) — voir critère d'acceptation
+                    // MEZ-92 "signaler la version périmée avant
+                    // l'embarquement".
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: <Widget>[
+                        _StaleManifestBanner(fetchedAt: state.fetchedAt),
+                        const SizedBox(height: AppSpacing.sm),
+                        Expanded(child: content),
+                      ],
+                    );
                   },
                 ),
         ),
+      ),
+    );
+  }
+}
+
+class _StaleManifestBanner extends StatelessWidget {
+  const _StaleManifestBanner({this.fetchedAt});
+
+  final DateTime? fetchedAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final String suffix = fetchedAt == null
+        ? ''
+        : ' (${fetchedAt!.hour.toString().padLeft(2, '0')}:'
+            '${fetchedAt!.minute.toString().padLeft(2, '0')})';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: Colors.orange.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: <Widget>[
+          const Icon(Icons.cloud_off, size: 18, color: Colors.orange),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              'Hors ligne — dernière version connue$suffix, non vérifiée '
+              'auprès du serveur.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+        ],
       ),
     );
   }
