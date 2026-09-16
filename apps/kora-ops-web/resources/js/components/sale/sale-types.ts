@@ -67,6 +67,7 @@ export type SaleCashSession = {
     totalCash: number;
     totalMobileMoney: number;
     status?: 'open' | 'pending_approval' | 'closed' | null;
+    cashRegisters?: Array<{ uuid: string; code: string; label: string }>;
     ledgers?: SaleCashLedger[];
 };
 

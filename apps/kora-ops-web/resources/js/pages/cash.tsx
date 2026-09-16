@@ -72,6 +72,7 @@ type Props = {
     filters: CashFilters;
     cashSession: CashSessionPage | null;
     mobileMoneyAccounts: SaleMobileMoneyAccount[];
+    cashRegisters: { uuid: string; code: string; label: string }[];
     permissions: {
         canOpen: boolean;
         canClose: boolean;
@@ -149,6 +150,7 @@ export default function CashPage({
     movements,
     filters,
     mobileMoneyAccounts,
+    cashRegisters,
     permissions,
 }: Props) {
     const [openingOpen, setOpeningOpen] = useState(false);
@@ -417,6 +419,7 @@ export default function CashPage({
             {openingOpen && (
                 <CashOpeningDialog
                     accounts={mobileMoneyAccounts}
+                    cashRegisters={cashRegisters}
                     onClose={() => setOpeningOpen(false)}
                 />
             )}

@@ -471,6 +471,7 @@ export function PaymentStep({
             {cashModalOpen && (
                 <CashOpeningDialog
                     accounts={mobileMoneyAccounts}
+                    cashRegisters={cashSession.cashRegisters}
                     onClose={() => setCashModalOpen(false)}
                 />
             )}

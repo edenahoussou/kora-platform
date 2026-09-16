@@ -19,8 +19,15 @@ type OpeningLedger = {
 
 type Props = {
     accounts: SaleMobileMoneyAccount[];
+    cashRegisters?: CashRegisterOption[];
     onClose: () => void;
     onSuccess?: () => void;
+};
+
+type CashRegisterOption = {
+    uuid: string;
+    code: string;
+    label: string;
 };
 
 function initialLedgers(accounts: SaleMobileMoneyAccount[]): OpeningLedger[] {
@@ -46,9 +53,20 @@ function initialLedgers(accounts: SaleMobileMoneyAccount[]): OpeningLedger[] {
     ];
 }
 
-export function CashOpeningDialog({ accounts, onClose, onSuccess }: Props) {
+export function CashOpeningDialog({
+    accounts,
+    cashRegisters = [],
+    onClose,
+    onSuccess,
+}: Props) {
     const initial = useMemo(() => initialLedgers(accounts), [accounts]);
-    const form = useForm<{ ledgers: OpeningLedger[] }>({ ledgers: initial });
+    const form = useForm<{
+        cash_register_uuid: string;
+        ledgers: OpeningLedger[];
+    }>({
+        cash_register_uuid: cashRegisters[0]?.uuid ?? '',
+        ledgers: initial,
+    });
     // Business-rule errors like `cash_session` (e.g. "no agency assigned")
     // aren't tied to any form field, so they fall outside the strict
     // FormDataErrors<T> typing; read them via a loosely-typed view.
@@ -57,13 +75,15 @@ export function CashOpeningDialog({ accounts, onClose, onSuccess }: Props) {
         (total, ledger) => total + (Number(ledger.opening_balance) || 0),
         0,
     );
-    const canSubmit = form.data.ledgers.every(
-        (ledger) =>
-            Number.isInteger(Number(ledger.opening_balance)) &&
-            Number(ledger.opening_balance) >= 0 &&
-            ledger.evidence !== null &&
-            ledger.evidence_captured_at !== null,
-    );
+    const canSubmit =
+        form.data.ledgers.every(
+            (ledger) =>
+                Number.isInteger(Number(ledger.opening_balance)) &&
+                Number(ledger.opening_balance) >= 0 &&
+                ledger.evidence !== null &&
+                ledger.evidence_captured_at !== null,
+        ) &&
+        (cashRegisters.length === 0 || form.data.cash_register_uuid !== '');
 
     const setLedger = (
         index: number,
@@ -85,6 +105,7 @@ export function CashOpeningDialog({ accounts, onClose, onSuccess }: Props) {
         }
 
         form.transform((data) => ({
+            cash_register_uuid: data.cash_register_uuid,
             ledgers: data.ledgers.map((ledger) => ({
                 kind: ledger.kind,
                 account_uuid: ledger.account_uuid,
@@ -135,6 +156,32 @@ export function CashOpeningDialog({ accounts, onClose, onSuccess }: Props) {
                 </div>
 
                 <div className="cash-opening-list">
+                    <label className="field cash-opening-register">
+                        <span>
+                            Caisse du guichet <b>*</b>
+                        </span>
+                        <select
+                            className="control"
+                            value={form.data.cash_register_uuid}
+                            onChange={(event) =>
+                                form.setData(
+                                    'cash_register_uuid',
+                                    event.target.value,
+                                )
+                            }
+                            required
+                        >
+                            <option value="">Sélectionner une caisse</option>
+                            {cashRegisters.map((register) => (
+                                <option
+                                    key={register.uuid}
+                                    value={register.uuid}
+                                >
+                                    {register.code} · {register.label}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
                     {form.data.ledgers.map((ledger, index) => {
                         const account = ledger.account_uuid
                             ? accounts.find(

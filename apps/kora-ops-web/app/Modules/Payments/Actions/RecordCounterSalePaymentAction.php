@@ -87,6 +87,7 @@ class RecordCounterSalePaymentAction
                 CashMovement::query()->create([
                     'cash_session_id' => $cashSession->getKey(),
                     'cash_ledger_id' => $payment->cash_ledger_id,
+                    'cash_register_id' => $cashSession->cash_register_id,
                     'source_type' => Payment::class,
                     'source_id' => $payment->getKey(),
                     'type' => $movementType,
