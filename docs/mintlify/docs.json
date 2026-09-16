@@ -132,6 +132,7 @@
                   "reference/payments/tickets",
                   "reference/payments/tickets-list",
                   "reference/payments/ticket",
+                  "reference/payments/ticket-pdf",
                   "reference/payments/confirm"
                 ]
               },
