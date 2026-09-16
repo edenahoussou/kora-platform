@@ -186,6 +186,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->name('tickets.index');
         Route::get('tickets/{ticket:uuid}', [TicketController::class, 'show'])
             ->name('tickets.show');
+        Route::get('tickets/{ticket:uuid}/pdf', [TicketController::class, 'downloadPdf'])
+            ->name('tickets.pdf');
     });
 
     Route::post('payments/{payment:uuid}/confirm', [PaymentController::class, 'confirm'])

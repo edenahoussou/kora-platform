@@ -42,6 +42,29 @@ $openApi = preg_replace(
     $openApi,
 );
 
+$pdfPath = '/api/v1/tickets/{ticket_uuid}/pdf';
+$pdfPathPattern = sprintf(
+    '/(  [\'\"]?%s[\'\"]?:\n.*?)(?=\n  [\'\"]?\/api\/v1\/|\z)/s',
+    preg_quote($pdfPath, '/'),
+);
+$normalizedOpenApi = preg_replace_callback(
+    $pdfPathPattern,
+    static fn (array $matches): string => str_replace(
+        'application/octet-stream:',
+        'application/pdf:',
+        $matches[1],
+    ),
+    $openApi,
+    1,
+);
+
+if ($normalizedOpenApi === null || $normalizedOpenApi === $openApi) {
+    fwrite(STDERR, "Unable to normalize the ticket PDF response in the OpenAPI specification.\n");
+    exit(1);
+}
+
+$openApi = $normalizedOpenApi;
+
 if (! str_contains($openApi, 'securitySchemes:')) {
     $openApi = preg_replace(
         '/^tags:\n/m',

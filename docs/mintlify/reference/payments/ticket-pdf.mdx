@@ -1,0 +1,109 @@
+---
+title: Télécharger le PDF d'un billet
+description: "GET /api/v1/tickets/{ticket_uuid}/pdf : télécharger le billet PDF officiel d'un passager authentifié."
+api: GET /api/v1/tickets/{ticket_uuid}/pdf
+---
+
+# Télécharger le PDF d'un billet
+
+Retourne le PDF officiel du billet. Le document est généré par le backend avec le même module que le téléchargement web et l'envoi WhatsApp : QR code, informations du trajet, passager, montant et informations officielles restent donc identiques entre les canaux.
+
+L'utilisateur authentifié doit être le créateur de la réservation ou son payeur. Le billet doit être émis et son statut doit être `issued` ou `used`.
+
+## Paramètres
+
+<ParamField path="ticket_uuid" type="UUID" required>
+  UUID public du billet (route model binding sur colonne `uuid`).
+</ParamField>
+
+## Téléchargement
+
+La réponse `200` est un flux binaire `application/pdf` avec les en-têtes suivants :
+
+| En-tête | Valeur |
+|---------|--------|
+| `Content-Type` | `application/pdf` |
+| `Content-Disposition` | `attachment; filename="billet-{short_code}.pdf"` |
+| `Content-Length` | Taille du PDF en octets |
+| `Cache-Control` | `private, no-store` |
+| `X-Content-Type-Options` | `nosniff` |
+
+L'application Android ou iOS doit lire la réponse comme des octets, l'enregistrer dans un fichier local avec le nom fourni par `Content-Disposition`, puis utiliser le mécanisme natif de partage ou d'ouverture de document. Une nouvelle demande avec le même UUID permet de télécharger à nouveau le billet.
+
+<RequestExample>
+
+```bash cURL
+curl -L https://staging.koraexpress.app/api/v1/tickets/f1a2b3c4-d5e6-7890-abcd-ef1234567890/pdf \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Accept: application/pdf' \
+  -o billet-KORA-AB12CD.pdf
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/tickets/f1a2b3c4-d5e6-7890-abcd-ef1234567890/pdf', {
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Accept': 'application/pdf',
+  },
+});
+
+if (!res.ok) {
+  throw new Error(`Téléchargement impossible (${res.status})`);
+}
+
+const pdfBytes = await res.arrayBuffer();
+const filename = res.headers.get('Content-Disposition');
+```
+
+```typescript TypeScript
+const res = await fetch(`${baseUrl}/api/v1/tickets/${ticketUuid}/pdf`, {
+  headers: {
+    Authorization: `Bearer ${token}`,
+    Accept: 'application/pdf',
+  },
+});
+
+if (!res.ok) {
+  const error = await res.json();
+  throw new Error(error.error?.message ?? 'Téléchargement impossible');
+}
+
+const pdfBytes = await res.arrayBuffer();
+const contentDisposition = res.headers.get('Content-Disposition');
+```
+
+```dart Dart
+final response = await authDio.get<List<int>>(
+  '/api/v1/tickets/$ticketUuid/pdf',
+  options: Options(responseType: ResponseType.bytes),
+);
+
+final pdfBytes = response.data!;
+final contentDisposition = response.headers.value('content-disposition');
+// Enregistrer pdfBytes dans le stockage local puis ouvrir/partager le fichier.
+```
+
+</RequestExample>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `200` | PDF officiel téléchargé. |
+| `401` | Token absent ou invalide. |
+| `403` | Le billet appartient à une réservation dont l'utilisateur n'est ni le créateur ni le payeur. |
+| `404` | UUID de billet inconnu ou billet supprimé. |
+| `422` | Le billet n'est pas disponible au téléchargement (`ticket_pdf_unavailable`). Les billets annulés ou remboursés ne sont pas téléchargeables. |
+| `500` | Échec temporaire de génération (`ticket_pdf_generation_failed`). Réessayer avec une limite côté mobile. |
+
+Les erreurs `422`, `500` utilisent la structure API standard :
+
+```json
+{
+  "error": {
+    "code": "ticket_pdf_unavailable",
+    "message": "Le PDF de ce billet n'est pas disponible."
+  }
+}
+```
+
