@@ -5,6 +5,7 @@ return [
     'node_binary' => env('BROWSERSHOT_NODE_BINARY', '/usr/bin/node'),
     'npm_binary' => env('BROWSERSHOT_NPM_BINARY', '/usr/bin/npm'),
     'temp_dir' => storage_path('app/temp/chrome'),
+    'home_dir' => env('BROWSERSHOT_HOME', storage_path('app/temp/chrome/home')),
     'timeout' => 60000,
 
     'common_args' => [
