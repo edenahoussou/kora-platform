@@ -298,6 +298,7 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
       // c'est lui qu'on présente au contrôle.
       reference: first.shortCode.isNotEmpty ? first.shortCode : first.uuid,
       reservationId: first.reservationId,
+      ticketIds: [for (final entry in group) entry.uuid],
       // La charge signée du premier voyageur. Un groupe passe de toute
       // façon par la liste de ses billets, où chacun a la sienne.
       qrCode: first.qrCode,

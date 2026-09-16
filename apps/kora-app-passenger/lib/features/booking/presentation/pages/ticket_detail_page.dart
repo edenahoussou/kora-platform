@@ -7,6 +7,8 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../domain/entities/ticket.dart';
+import '../../domain/entities/ticket_document.dart';
+import '../widgets/official_ticket_download.dart';
 import 'group_tickets_page.dart';
 
 /// Écran `ticket-detail` de la maquette : le billet en grand, puis ce qu'on
@@ -20,9 +22,13 @@ class TicketDetailPage extends StatelessWidget {
     super.key,
     required this.ticket,
     required this.today,
+    this.officialTicketPdf = kOfficialTicketPdfEnabled,
   });
 
   final Ticket ticket;
+
+  /// Voir [kOfficialTicketPdfEnabled].
+  final bool officialTicketPdf;
 
   /// Date du jour, transmise par l'écran appelant — même raison que sur
   /// [TicketCard] : l'écran ne lit pas l'horloge lui-même.
@@ -110,6 +116,13 @@ class TicketDetailPage extends StatelessWidget {
                         ),
                       ],
                     ),
+                    // Un billet, un document : le PDF officiel se télécharge
+                    // ici. Un groupe passe par la liste de ses billets, où
+                    // chaque voyageur a le sien.
+                    if (officialTicketPdf && ticket.ticketIds.length == 1) ...[
+                      const SizedBox(height: 13),
+                      OfficialTicketDownload(ticketId: ticket.ticketIds.single),
+                    ],
                     const SizedBox(height: 13),
                     KoraCard(
                       variant: KoraCardVariant.mist,

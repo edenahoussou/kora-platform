@@ -12,9 +12,11 @@ import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/group_ticket.dart';
+import '../../domain/entities/ticket_document.dart';
 import '../bloc/group_tickets_cubit.dart';
 import '../pdf/ticket_pdf.dart';
 import '../widgets/kora_qr.dart';
+import '../widgets/official_ticket_download.dart';
 
 /// Ce qu'attend [GroupTicketsPage] : la réservation dont on liste les
 /// billets.
@@ -52,10 +54,19 @@ class GroupTicketsArgs {
 /// groupé d'un billet collectif : dix personnes peuvent embarquer à dix
 /// moments différents.
 class GroupTicketsPage extends StatefulWidget {
-  const GroupTicketsPage({super.key, this.args});
+  const GroupTicketsPage({
+    super.key,
+    this.args,
+    this.officialTicketPdf = kOfficialTicketPdfEnabled,
+  });
 
   /// `null` si l'écran est ouvert sans données (lien profond).
   final GroupTicketsArgs? args;
+
+  /// Le billet se télécharge tel que le backend le génère. Voir
+  /// [kOfficialTicketPdfEnabled] : tant que MEZ-82 n'est pas livré, l'écran
+  /// garde le PDF recomposé sur le téléphone.
+  final bool officialTicketPdf;
 
   @override
   State<GroupTicketsPage> createState() => _GroupTicketsPageState();
@@ -126,6 +137,7 @@ class _GroupTicketsPageState extends State<GroupTicketsPage> {
                         state: state,
                         isAlone: isAlone,
                         departure: args.departure,
+                        officialTicketPdf: widget.officialTicketPdf,
                       ),
                     ),
                     Padding(
@@ -148,9 +160,17 @@ class _GroupTicketsPageState extends State<GroupTicketsPage> {
 
 /// Le corps de l'écran : la liste, l'attente, ou l'échec.
 class _Content extends StatelessWidget {
-  const _Content({required this.state, required this.isAlone, this.departure});
+  const _Content({
+    required this.state,
+    required this.isAlone,
+    this.departure,
+    this.officialTicketPdf = false,
+  });
 
   final GroupTicketsState state;
+
+  /// Voir [GroupTicketsPage.officialTicketPdf].
+  final bool officialTicketPdf;
 
   /// Voir [GroupTicketsArgs.departure].
   final Departure? departure;
@@ -187,6 +207,7 @@ class _Content extends StatelessWidget {
             ticket: state.tickets[i],
             index: i + 1,
             departure: departure,
+            officialTicketPdf: officialTicketPdf,
           ),
           const SizedBox(height: 9),
         ],
@@ -207,9 +228,17 @@ class _Content extends StatelessWidget {
 /// `.multi-ticket-list button` : la pastille numérotée, le voyageur et sa
 /// référence, puis le chevron.
 class _TicketRow extends StatelessWidget {
-  const _TicketRow({required this.ticket, required this.index, this.departure});
+  const _TicketRow({
+    required this.ticket,
+    required this.index,
+    this.departure,
+    this.officialTicketPdf = false,
+  });
 
   final GroupTicket ticket;
+
+  /// Voir [GroupTicketsPage.officialTicketPdf].
+  final bool officialTicketPdf;
   final int index;
 
   /// Voir [GroupTicketsArgs.departure].
@@ -327,23 +356,29 @@ class _TicketRow extends StatelessWidget {
               // la douchette du convoyeur attend.
               KoraQr(payload: ticket.qrCode, size: 190),
               const SizedBox(height: AppSpacing.md),
-              // Deux gestes, et non un : enregistrer le billet chez soi
-              // n'est pas l'envoyer à quelqu'un. Le partage seul obligeait
-              // à passer par une application tierce pour garder son propre
-              // billet.
-              KoraButton(
-                label: l10n.ticketsDownload,
-                variant: KoraButtonVariant.ghost,
-                icon: Icons.file_download_outlined,
-                onPressed: () => _save(dialogContext, l10n),
-              ),
-              const SizedBox(height: 8),
-              KoraButton(
-                label: l10n.ticketsShare,
-                variant: KoraButtonVariant.ghost,
-                icon: Icons.ios_share_rounded,
-                onPressed: () => _share(dialogContext, l10n),
-              ),
+              if (officialTicketPdf)
+                // Le document du backend, tel quel : aucun billet recomposé
+                // sur le téléphone quand KORA sert le sien.
+                OfficialTicketDownload(ticketId: ticket.id)
+              else ...[
+                // Deux gestes, et non un : enregistrer le billet chez soi
+                // n'est pas l'envoyer à quelqu'un. Le partage seul obligeait
+                // à passer par une application tierce pour garder son propre
+                // billet.
+                KoraButton(
+                  label: l10n.ticketsDownload,
+                  variant: KoraButtonVariant.ghost,
+                  icon: Icons.file_download_outlined,
+                  onPressed: () => _save(dialogContext, l10n),
+                ),
+                const SizedBox(height: 8),
+                KoraButton(
+                  label: l10n.ticketsShare,
+                  variant: KoraButtonVariant.ghost,
+                  icon: Icons.ios_share_rounded,
+                  onPressed: () => _share(dialogContext, l10n),
+                ),
+              ],
             ],
           ),
         ),

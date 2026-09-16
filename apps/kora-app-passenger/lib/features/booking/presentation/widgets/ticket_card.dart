@@ -18,6 +18,7 @@ class TicketCard extends StatelessWidget {
     required this.ticket,
     required this.today,
     this.onTap,
+    this.action,
   });
 
   final Ticket ticket;
@@ -31,6 +32,10 @@ class TicketCard extends StatelessWidget {
   /// n'existe pas — le lien « Voir le billet » reste affiché, comme sur la
   /// maquette, mais la carte ne réagit pas encore au doigt.
   final VoidCallback? onTap;
+
+  /// Une action posée à côté de « Voir le billet » — le téléchargement du
+  /// PDF officiel, quand il est servi.
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -105,13 +110,22 @@ class TicketCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Text(
-                l10n.ticketsSeeTicket,
-                style: const TextStyle(
-                  color: AppColors.gold,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (action != null) ...[
+                    action!,
+                    const SizedBox(width: AppSpacing.md),
+                  ],
+                  Text(
+                    l10n.ticketsSeeTicket,
+                    style: const TextStyle(
+                      color: AppColors.gold,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

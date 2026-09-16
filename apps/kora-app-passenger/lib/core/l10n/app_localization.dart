@@ -771,6 +771,35 @@ class AppLocalization {
 
   String get ticketsDownloadFailed => translate('tickets_download_failed');
 
+  String get ticketsPdfDownload => translate('tickets_pdf_download');
+
+  String get ticketsPdfDownloading => translate('tickets_pdf_downloading');
+
+  String get ticketsPdfRedownload => translate('tickets_pdf_redownload');
+
+  String get ticketsPdfReady => translate('tickets_pdf_ready');
+
+  String get ticketsPdfOffline => translate('tickets_pdf_offline');
+
+  String get ticketsPdfOpen => translate('tickets_pdf_open');
+
+  String get ticketsPdfSaveCopy => translate('tickets_pdf_save_copy');
+
+  String get ticketsPdfOpenFailed => translate('tickets_pdf_open_failed');
+
+  String get ticketsPdfErrorNetwork => translate('tickets_pdf_error_network');
+
+  String get ticketsPdfErrorSession => translate('tickets_pdf_error_session');
+
+  String get ticketsPdfErrorInaccessible =>
+      translate('tickets_pdf_error_inaccessible');
+
+  String get ticketsPdfErrorUnavailable =>
+      translate('tickets_pdf_error_unavailable');
+
+  String get ticketsPdfErrorUnexpected =>
+      translate('tickets_pdf_error_unexpected');
+
   String get ticketsOnePending => translate('tickets_one_pending');
 
   // --- Choix du retour (aller-retour) ---

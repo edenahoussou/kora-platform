@@ -8,7 +8,9 @@ import '../../../../core/widgets/brand_mini.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../../core/widgets/section_title.dart';
 import '../../domain/entities/ticket.dart';
+import '../../domain/entities/ticket_document.dart';
 import '../bloc/tickets_bloc.dart';
+import '../widgets/official_ticket_download.dart';
 import '../widgets/state_view.dart';
 import '../widgets/ticket_card.dart';
 
@@ -18,7 +20,15 @@ import '../widgets/ticket_card.dart';
 /// Les billets sont mockés (`BookingMockDataSource`) ; le Sprint 2 changera
 /// la source, pas cet écran.
 class TicketsPage extends StatelessWidget {
-  const TicketsPage({super.key, this.onBookTrip, this.onOpenTicket});
+  const TicketsPage({
+    super.key,
+    this.onBookTrip,
+    this.onOpenTicket,
+    this.officialTicketPdf = kOfficialTicketPdfEnabled,
+  });
+
+  /// Voir [kOfficialTicketPdfEnabled].
+  final bool officialTicketPdf;
 
   /// « Réserver un voyage » — ramène au formulaire de recherche.
   final VoidCallback? onBookTrip;
@@ -32,13 +42,23 @@ class TicketsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider<TicketsBloc>(
       create: (_) => getIt<TicketsBloc>()..add(const TicketsStarted()),
-      child: _TicketsView(onBookTrip: onBookTrip, onOpenTicket: onOpenTicket),
+      child: _TicketsView(
+        onBookTrip: onBookTrip,
+        onOpenTicket: onOpenTicket,
+        officialTicketPdf: officialTicketPdf,
+      ),
     );
   }
 }
 
 class _TicketsView extends StatelessWidget {
-  const _TicketsView({this.onBookTrip, this.onOpenTicket});
+  const _TicketsView({
+    this.onBookTrip,
+    this.onOpenTicket,
+    this.officialTicketPdf = false,
+  });
+
+  final bool officialTicketPdf;
 
   final VoidCallback? onBookTrip;
   final void Function(Ticket ticket, DateTime today)? onOpenTicket;
@@ -75,6 +95,7 @@ class _TicketsView extends StatelessWidget {
                       state: state,
                       onBookTrip: onBookTrip,
                       onOpenTicket: onOpenTicket,
+                      officialTicketPdf: officialTicketPdf,
                     ),
                   ),
                 ],
@@ -88,7 +109,14 @@ class _TicketsView extends StatelessWidget {
 }
 
 class _Body extends StatelessWidget {
-  const _Body({required this.state, this.onBookTrip, this.onOpenTicket});
+  const _Body({
+    required this.state,
+    this.onBookTrip,
+    this.onOpenTicket,
+    this.officialTicketPdf = false,
+  });
+
+  final bool officialTicketPdf;
 
   final TicketsState state;
   final VoidCallback? onBookTrip;
@@ -114,13 +142,21 @@ class _Body extends StatelessWidget {
         state: state,
         onBookTrip: onBookTrip,
         onOpenTicket: onOpenTicket,
+        officialTicketPdf: officialTicketPdf,
       ),
     };
   }
 }
 
 class _TicketsList extends StatelessWidget {
-  const _TicketsList({required this.state, this.onBookTrip, this.onOpenTicket});
+  const _TicketsList({
+    required this.state,
+    this.onBookTrip,
+    this.onOpenTicket,
+    this.officialTicketPdf = false,
+  });
+
+  final bool officialTicketPdf;
 
   final TicketsState state;
   final VoidCallback? onBookTrip;
@@ -143,6 +179,13 @@ class _TicketsList extends StatelessWidget {
             TicketCard(
               ticket: ticket,
               today: state.today,
+              // Un voyage d'un seul billet se télécharge depuis la carte ;
+              // un groupe passe par le détail, voyageur par voyageur.
+              action: officialTicketPdf && ticket.ticketIds.length == 1
+                  ? OfficialTicketDownloadIcon(
+                      ticketId: ticket.ticketIds.single,
+                    )
+                  : null,
               onTap: onOpenTicket == null
                   ? null
                   : () => onOpenTicket!(ticket, state.today),

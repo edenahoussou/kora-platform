@@ -16,12 +16,16 @@ import '../../features/auth/presentation/bloc/auth_flow_bloc.dart';
 import '../../features/booking/data/datasources/booking_data_source.dart';
 import '../../features/booking/data/datasources/booking_remote_data_source.dart';
 import '../../features/booking/data/datasources/reservation_remote_data_source.dart';
+import '../../features/booking/data/datasources/ticket_document_remote_data_source.dart';
+import '../../features/booking/data/datasources/ticket_document_store.dart';
 import '../../features/booking/data/repositories/booking_repository_impl.dart';
 import '../../features/booking/data/repositories/departure_repository_impl.dart';
 import '../../features/booking/data/repositories/reservation_repository_impl.dart';
+import '../../features/booking/data/repositories/ticket_document_repository_impl.dart';
 import '../../features/booking/domain/repositories/booking_repository.dart';
 import '../../features/booking/domain/repositories/departure_repository.dart';
 import '../../features/booking/domain/repositories/reservation_repository.dart';
+import '../../features/booking/domain/repositories/ticket_document_repository.dart';
 import '../../features/booking/domain/usecases/get_cities_usecase.dart';
 import '../../features/booking/domain/usecases/get_next_trip_usecase.dart';
 import '../../features/booking/domain/usecases/get_recent_cities_usecase.dart';
@@ -34,6 +38,7 @@ import '../../features/booking/presentation/bloc/group_quote_cubit.dart';
 import '../../features/booking/presentation/bloc/group_tickets_cubit.dart';
 import '../../features/booking/presentation/bloc/seat_hold_bloc.dart';
 import '../../features/booking/presentation/bloc/seats_bloc.dart';
+import '../../features/booking/presentation/bloc/ticket_document_cubit.dart';
 import '../../features/booking/presentation/bloc/tickets_bloc.dart';
 import '../../features/home/presentation/bloc/home_bloc.dart';
 import '../../features/language/data/datasources/language_local_data_source.dart';
@@ -231,6 +236,21 @@ void _registerBookingFeature() {
   getIt.registerFactory<GroupPayerCubit>(() => GroupPayerCubit(getIt()));
 
   getIt.registerFactory<GroupTicketsCubit>(() => GroupTicketsCubit(getIt()));
+
+  // Le PDF officiel des billets — contrat provisoire, en attente de MEZ-82.
+  // Un seul cubit pour toute l'app : la liste, le détail et les billets du
+  // groupe voient le même téléchargement, et n'en lancent jamais deux pour
+  // le même billet.
+  getIt.registerLazySingleton<TicketDocumentRemoteDataSource>(
+    () => TicketDocumentRemoteDataSource(getIt()),
+  );
+  getIt.registerLazySingleton<TicketDocumentStore>(TicketDocumentStore.new);
+  getIt.registerLazySingleton<TicketDocumentRepository>(
+    () => TicketDocumentRepositoryImpl(remote: getIt(), store: getIt()),
+  );
+  getIt.registerLazySingleton<TicketDocumentCubit>(
+    () => TicketDocumentCubit(getIt()),
+  );
 }
 
 /// Feature `payment` : le catalogue des moyens de paiement.

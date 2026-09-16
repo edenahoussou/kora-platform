@@ -29,6 +29,7 @@ class Ticket extends Equatable {
     required this.status,
     this.reservationId,
     this.qrCode = '',
+    this.ticketIds = const [],
   });
 
   /// Référence imprimée sur le billet : `KE-20260804-78342`, ou le code
@@ -43,6 +44,11 @@ class Ticket extends Equatable {
   /// La charge signée (Ed25519) que la douchette du convoyeur vérifie hors
   /// ligne. Vide pour un billet de démonstration.
   final String qrCode;
+
+  /// Les UUID des billets émis pour ce voyage, un par voyageur. C'est par
+  /// eux — jamais par un identifiant numérique — que se télécharge le PDF
+  /// officiel.
+  final List<String> ticketIds;
 
   final Departure departure;
   final Seat seat;
@@ -85,5 +91,6 @@ class Ticket extends Equatable {
     status,
     reservationId,
     qrCode,
+    ticketIds,
   ];
 }
