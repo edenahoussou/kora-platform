@@ -3,6 +3,7 @@
 namespace App\Modules\IdentityAccess\Models;
 
 use App\Models\User;
+use App\Modules\Cash\Models\CashRegister;
 use App\Modules\IdentityAccess\Data\AgencyStatus;
 use App\Modules\Payments\Models\AgencyPaymentAccount;
 use App\Modules\Support\Models\KoraModel;
@@ -51,5 +52,11 @@ class Agency extends KoraModel
     public function paymentAccounts(): HasMany
     {
         return $this->hasMany(AgencyPaymentAccount::class);
+    }
+
+    /** @return HasMany<CashRegister, $this> */
+    public function cashRegisters(): HasMany
+    {
+        return $this->hasMany(CashRegister::class);
     }
 }

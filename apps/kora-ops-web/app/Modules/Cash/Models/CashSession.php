@@ -20,6 +20,7 @@ use Illuminate\Support\Carbon;
  * @property int $opening_float
  * @property int $total_cash
  * @property int $total_mobile_money
+ * @property int $cash_register_id
  */
 class CashSession extends KoraModel
 {
@@ -35,6 +36,7 @@ class CashSession extends KoraModel
         'uuid',
         'agent_id',
         'agency_id',
+        'cash_register_id',
         'business_date',
         'opening_float',
         'total_cash',
@@ -77,6 +79,12 @@ class CashSession extends KoraModel
     public function agency(): BelongsTo
     {
         return $this->belongsTo(Agency::class);
+    }
+
+    /** @return BelongsTo<CashRegister, $this> */
+    public function cashRegister(): BelongsTo
+    {
+        return $this->belongsTo(CashRegister::class);
     }
 
     /**

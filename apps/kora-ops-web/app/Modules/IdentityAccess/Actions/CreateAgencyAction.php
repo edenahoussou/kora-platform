@@ -2,6 +2,7 @@
 
 namespace App\Modules\IdentityAccess\Actions;
 
+use App\Modules\Cash\Actions\EnsureAgencyCashRegistersAction;
 use App\Modules\IdentityAccess\Models\Agency;
 use Illuminate\Support\Facades\DB;
 
@@ -9,6 +10,7 @@ class CreateAgencyAction
 {
     public function __construct(
         private readonly GenerateAgencyCodeAction $generateAgencyCode,
+        private readonly EnsureAgencyCashRegistersAction $ensureAgencyCashRegisters,
     ) {}
 
     /**
@@ -24,7 +26,10 @@ class CreateAgencyAction
         return DB::transaction(function () use ($attributes): Agency {
             $attributes['code'] = $this->generateAgencyCode->execute();
 
-            return Agency::query()->create($attributes);
+            $agency = Agency::query()->create($attributes);
+            $this->ensureAgencyCashRegisters->execute($agency);
+
+            return $agency;
         });
     }
 }
