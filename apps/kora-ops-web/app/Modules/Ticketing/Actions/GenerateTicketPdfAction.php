@@ -90,9 +90,24 @@ class GenerateTicketPdfAction
 
         $html = view('tickets.show', $data)->render();
         $profile = config('pdf.profiles.ticket', []);
+        $configuredCommonArgs = config('pdf.common_args', []);
+        $commonArgs = is_array($configuredCommonArgs)
+            ? array_values(array_filter($configuredCommonArgs, 'is_string'))
+            : [];
+        $profileArgs = is_array($profile['args'] ?? null)
+            ? array_values(array_filter($profile['args'], 'is_string'))
+            : [];
+        $chromiumArguments = array_values(array_unique(array_map(
+            static fn (string $argument): string => ltrim($argument, '-'),
+            array_merge($commonArgs, $profileArgs),
+        )));
 
         $browsershot = Browsershot::html($html)
             ->noSandbox()
+            ->addChromiumArguments(array_values(array_filter(
+                $chromiumArguments,
+                static fn (string $argument): bool => $argument !== 'no-sandbox',
+            )))
             ->showBackground()
             ->emulateMedia($profile['emulate_media'] ?? 'print')
             ->windowSize(...($profile['window_size'] ?? [302, 1200]))
@@ -109,6 +124,15 @@ class GenerateTicketPdfAction
         $nodeBinary = config('pdf.node_binary');
         if (is_string($nodeBinary) && $nodeBinary !== '') {
             $browsershot->setNodeBinary($nodeBinary);
+        }
+
+        $chromeHome = config('pdf.home_dir');
+        if (is_string($chromeHome) && $chromeHome !== '') {
+            if (! is_dir($chromeHome) && ! mkdir($chromeHome, 0775, true) && ! is_dir($chromeHome)) {
+                throw new \RuntimeException('Unable to prepare the Chromium home directory.');
+            }
+
+            $browsershot->setEnvironmentOptions(['HOME' => $chromeHome]);
         }
 
         if ($profile['wait_until_network_idle'] ?? false) {

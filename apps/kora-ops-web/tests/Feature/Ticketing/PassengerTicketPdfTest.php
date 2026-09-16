@@ -156,6 +156,15 @@ it('returns a stable error when PDF generation fails', function (): void {
         ->not->toContain('private filesystem path');
 });
 
+it('generates a PDF with the configured Chromium environment', function (): void {
+    $scenario = ticketPdfScenario();
+
+    $result = app(GenerateTicketPdfAction::class)->execute($scenario['ticket']);
+
+    expect($result['content'])->toStartWith('%PDF-')
+        ->and($result['filename'])->toBe('billet-KAB12CD.pdf');
+});
+
 it('passes multi-segment ticket data to the shared PDF generator', function (): void {
     $scenario = ticketPdfScenario(roundTrip: true);
 
