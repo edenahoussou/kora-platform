@@ -126,6 +126,9 @@ class GenerateTicketPdfAction
             $browsershot->setNodeBinary($nodeBinary);
         }
 
+        /** @var string|false|null $previousHome */
+        $previousHome = null;
+        $homeOverridden = false;
         $chromeHome = config('pdf.home_dir');
         if (is_string($chromeHome) && $chromeHome !== '') {
             if (! is_dir($chromeHome) && ! mkdir($chromeHome, 0775, true) && ! is_dir($chromeHome)) {
@@ -133,13 +136,26 @@ class GenerateTicketPdfAction
             }
 
             $browsershot->setEnvironmentOptions(['HOME' => $chromeHome]);
+            $previousHome = getenv('HOME');
+            putenv("HOME={$chromeHome}");
+            $homeOverridden = true;
         }
 
         if ($profile['wait_until_network_idle'] ?? false) {
             $browsershot->waitUntilNetworkIdle();
         }
 
-        $content = $browsershot->pdf();
+        try {
+            $content = $browsershot->pdf();
+        } finally {
+            if ($homeOverridden) {
+                if (is_string($previousHome)) {
+                    putenv("HOME={$previousHome}");
+                } else {
+                    putenv('HOME');
+                }
+            }
+        }
 
         return [
             'content' => $content,
