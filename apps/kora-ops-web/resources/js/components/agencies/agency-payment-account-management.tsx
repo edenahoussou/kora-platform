@@ -17,10 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import agencies from '@/routes/agencies';
 
-export type MobileMoneyNetwork =
-    | 'mtn_momo'
-    | 'moov_flooz'
-    | 'celtiis_cash';
+export type MobileMoneyNetwork = 'mtn_momo' | 'moov_flooz' | 'celtiis_cash';
 
 export type AgencyPaymentAccount = {
     uuid: string;
@@ -44,7 +41,9 @@ const NETWORKS: Array<{ value: MobileMoneyNetwork; label: string }> = [
 ];
 
 function networkLabel(network: MobileMoneyNetwork): string {
-    return NETWORKS.find((option) => option.value === network)?.label ?? network;
+    return (
+        NETWORKS.find((option) => option.value === network)?.label ?? network
+    );
 }
 
 function money(value: number): string {
@@ -67,9 +66,7 @@ export function AgencyPaymentAccountManagement({
     const [network, setNetwork] = useState<MobileMoneyNetwork>('mtn_momo');
     const [label, setLabel] = useState('');
     const [identifier, setIdentifier] = useState('');
-    const [replacementUuid, setReplacementUuid] = useState<string | null>(
-        null,
-    );
+    const [replacementUuid, setReplacementUuid] = useState<string | null>(null);
     const [processing, setProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -95,7 +92,8 @@ export function AgencyPaymentAccountManagement({
     const openCreate = (accountToReplace?: AgencyPaymentAccount) => {
         const suggestedNetwork =
             accountToReplace?.network ??
-            NETWORKS.find((option) => !activeAccounts.has(option.value))?.value ??
+            NETWORKS.find((option) => !activeAccounts.has(option.value))
+                ?.value ??
             'mtn_momo';
 
         setEditing(null);
@@ -233,7 +231,8 @@ export function AgencyPaymentAccountManagement({
                             Comptes Mobile Money partagés
                         </h2>
                         <p className="mt-1 text-xs text-muted-foreground">
-                            Un seul compte actif par réseau. Les comptes historiques restent visibles et comptabilisés.
+                            Un seul compte actif par réseau. Les comptes
+                            historiques restent visibles et comptabilisés.
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -259,7 +258,8 @@ export function AgencyPaymentAccountManagement({
                                 Aucun compte Mobile Money configuré
                             </p>
                             <p className="mt-1 text-xs text-muted-foreground">
-                                Ajoutez le compte partagé de chaque réseau utilisé par cette agence.
+                                Ajoutez le compte partagé de chaque réseau
+                                utilisé par cette agence.
                             </p>
                             {canManage && (
                                 <Button
@@ -269,7 +269,8 @@ export function AgencyPaymentAccountManagement({
                                     className="mt-4"
                                     onClick={() => openCreate()}
                                 >
-                                    <Plus className="size-4" /> Ajouter un compte
+                                    <Plus className="size-4" /> Ajouter un
+                                    compte
                                 </Button>
                             )}
                         </div>
@@ -329,7 +330,9 @@ export function AgencyPaymentAccountManagement({
                                                 variant="ghost"
                                                 size="icon"
                                                 aria-label={`Remplacer ${account.label}`}
-                                                onClick={() => openCreate(account)}
+                                                onClick={() =>
+                                                    openCreate(account)
+                                                }
                                             >
                                                 <RotateCcw className="size-4" />
                                             </Button>
@@ -339,7 +342,9 @@ export function AgencyPaymentAccountManagement({
                                             variant="ghost"
                                             size="icon"
                                             aria-label={`${account.status === 'active' ? 'Désactiver' : 'Activer'} ${account.label}`}
-                                            onClick={() => toggleStatus(account)}
+                                            onClick={() =>
+                                                toggleStatus(account)
+                                            }
                                         >
                                             {account.status === 'active' ? (
                                                 <Power className="size-4" />
@@ -403,9 +408,8 @@ export function AgencyPaymentAccountManagement({
                                         id="payment-account-network"
                                         value={network}
                                         onChange={(event) => {
-                                            const nextNetwork =
-                                                event.target
-                                                    .value as MobileMoneyNetwork;
+                                            const nextNetwork = event.target
+                                                .value as MobileMoneyNetwork;
 
                                             setNetwork(nextNetwork);
                                             setReplacementUuid(
@@ -467,7 +471,11 @@ export function AgencyPaymentAccountManagement({
                         </div>
 
                         <div className="mt-7 flex justify-end gap-2">
-                            <Button type="button" variant="ghost" onClick={resetDialog}>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                onClick={resetDialog}
+                            >
                                 Annuler
                             </Button>
                             <Button

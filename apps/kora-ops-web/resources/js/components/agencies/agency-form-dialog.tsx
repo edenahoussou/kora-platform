@@ -397,7 +397,11 @@ export function AgencyFormDialog({
                                                                     type="button"
                                                                     className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
                                                                     aria-label={`${account.status === 'active' ? 'Désactiver' : 'Activer'} ${account.label}`}
-                                                                    onClick={() => toggleAccountStatus(account)}
+                                                                    onClick={() =>
+                                                                        toggleAccountStatus(
+                                                                            account,
+                                                                        )
+                                                                    }
                                                                 >
                                                                     <Power className="size-3.5" />
                                                                 </button>
