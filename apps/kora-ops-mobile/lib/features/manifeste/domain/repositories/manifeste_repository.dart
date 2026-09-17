@@ -1,4 +1,5 @@
 import '../../../../core/result/result.dart';
+import '../../../ops/domain/entities/passenger.dart';
 import '../entities/manifest_snapshot.dart';
 
 /// Couche DOMAIN : charger le manifeste d'un départ, avec vérification de
@@ -15,4 +16,15 @@ abstract class ManifesteRepository {
   ///   retélécharge seulement si elle a changé, sert le cache tel quel
   ///   sinon (`isFromCache: true`, `isStale: false` : vérifié à jour).
   Future<Result<ManifestSnapshot>> load(String departureUuid);
+
+  /// Répercute dans le cache local un changement de statut déjà appliqué
+  /// en mémoire (voir `ManifesteCubit.markSeatReleaseAccepted`/
+  /// `markBoardingReversed`) — pour que ce statut survive à un
+  /// redémarrage à froid avant le prochain rafraîchissement complet
+  /// (MEZ-87, critère d'acceptation "restaurer... les statuts").
+  Future<void> persistStatusUpdate({
+    required String departureUuid,
+    required String ticketUuid,
+    required BoardingStatus statut,
+  });
 }

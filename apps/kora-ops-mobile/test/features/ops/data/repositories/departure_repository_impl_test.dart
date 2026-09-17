@@ -88,8 +88,7 @@ void main() {
   group('show', () {
     test('403 (départ non affecté) → AuthenticationFailure', () async {
       when(() => remote.show('dep-uuid-1')).thenThrow(
-        _dioError(
-            const ForbiddenApiException('Ce départ ne vous est pas affecté.')),
+        _dioError(const ForbiddenApiException('Ce départ ne vous est pas affecté.')),
       );
 
       final result = await repository.show('dep-uuid-1');

@@ -23,6 +23,9 @@ class Passenger extends Equatable {
     required this.segmentDestination,
     required this.ticketId,
     this.telephone,
+    this.originStopUuid,
+    this.destinationStopUuid,
+    this.boardingEventUuid,
   });
 
   final String id;
@@ -42,6 +45,22 @@ class Passenger extends Equatable {
   final String ticketId;
   final String? telephone;
 
+  /// UUID de l'arrêt d'origine/destination du segment (voir
+  /// `OpsManifestRowResource.originStop`/`destinationStop`) — utilisés
+  /// pour calculer les arrêts compatibles d'une descente anticipée (voir
+  /// `compatibleStopsFor`, MEZ-87). `null` si le manifeste vient du cache
+  /// local d'une version antérieure à MEZ-87 (redemandera un
+  /// rafraîchissement).
+  final String? originStopUuid;
+  final String? destinationStopUuid;
+
+  /// UUID du dernier `BoardingEvent` accepté pour ce billet sur ce départ
+  /// — `null` si jamais embarqué. Reste renseigné même après une
+  /// annulation (voir note côté backend, `OpsManifestRowResource`) : ne
+  /// jamais s'y fier seul, toujours croiser avec `statut ==
+  /// BoardingStatus.embarque` avant de proposer "Annuler l'embarquement".
+  final String? boardingEventUuid;
+
   Passenger copyWith({BoardingStatus? statut}) => Passenger(
         id: id,
         nomComplet: nomComplet,
@@ -51,6 +70,9 @@ class Passenger extends Equatable {
         segmentDestination: segmentDestination,
         ticketId: ticketId,
         telephone: telephone,
+        originStopUuid: originStopUuid,
+        destinationStopUuid: destinationStopUuid,
+        boardingEventUuid: boardingEventUuid,
       );
 
   @override
@@ -63,5 +85,8 @@ class Passenger extends Equatable {
         segmentDestination,
         ticketId,
         telephone,
+        originStopUuid,
+        destinationStopUuid,
+        boardingEventUuid,
       ];
 }

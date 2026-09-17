@@ -1,30 +1,59 @@
 import 'package:dio/dio.dart';
 
 import '../../../../core/constants/api_constants.dart';
-import '../../../boarding/domain/entities/boarding_outcome.dart';
-import '../../../boarding/domain/entities/boarding_outcome_status.dart';
-import '../../../boarding/domain/entities/pending_boarding_operation.dart';
 
-/// Résultat d'une opération individuelle telle que renvoyée par le lot —
-/// miroir de `SyncBatchResource.operations[]`.
-class SyncOperationResult {
-  const SyncOperationResult(this.operationUuid, this.outcome);
+/// Une opération prête à être envoyée dans un lot — forme générique
+/// commune aux 3 types (`boarding.scan`, `seat_release`, `boarding.
+/// no_show`, voir `SyncOperationType` côté backend). Construite par
+/// `SyncRepositoryImpl` à partir de `PendingBoardingOperation`/
+/// `PendingSeatReleaseOperation` — ce datasource ne connaît aucun des
+/// deux types métier, seulement le format du lot.
+class SyncWireOperation {
+  const SyncWireOperation({
+    required this.operationUuid,
+    required this.operationType,
+    required this.localRecordedAt,
+    required this.payload,
+  });
 
   final String operationUuid;
-  final BoardingOutcome outcome;
+  final String operationType;
+  final DateTime localRecordedAt;
+  final Map<String, dynamic> payload;
+}
+
+/// Résultat brut d'une opération individuelle, tel que renvoyé par le
+/// lot — miroir de `SyncBatchResource.operations[].result`, non encore
+/// traduit en `BoardingOutcome`/`SeatReleaseOutcome` (voir
+/// `SyncRepositoryImpl`, qui sait lequel des deux appliquer selon la
+/// provenance de `operationUuid`).
+class SyncOperationRawResult {
+  const SyncOperationRawResult({
+    required this.operationUuid,
+    this.status,
+    this.code,
+    this.message,
+    this.recommendedAction,
+  });
+
+  final String operationUuid;
+  final String? status;
+  final String? code;
+  final String? message;
+  final String? recommendedAction;
 }
 
 class SyncBatchFetchResult {
   const SyncBatchFetchResult(this.processedAt, this.results);
 
   final DateTime processedAt;
-  final List<SyncOperationResult> results;
+  final List<SyncOperationRawResult> results;
 }
 
 abstract class SyncRemoteDataSource {
   Future<SyncBatchFetchResult> submitBatch({
     required String batchUuid,
-    required List<PendingBoardingOperation> operations,
+    required List<SyncWireOperation> operations,
   });
 }
 
@@ -36,7 +65,7 @@ class SyncRemoteDataSourceImpl implements SyncRemoteDataSource {
   @override
   Future<SyncBatchFetchResult> submitBatch({
     required String batchUuid,
-    required List<PendingBoardingOperation> operations,
+    required List<SyncWireOperation> operations,
   }) async {
     final response = await _dio.post<dynamic>(
       ApiConstants.opsSyncBatches,
@@ -45,13 +74,9 @@ class SyncRemoteDataSourceImpl implements SyncRemoteDataSource {
         'operations': operations
             .map((op) => <String, dynamic>{
                   'operation_uuid': op.operationUuid,
-                  'operation_type': 'boarding.scan',
+                  'operation_type': op.operationType,
                   'local_recorded_at': op.localRecordedAt.toIso8601String(),
-                  'payload': <String, dynamic>{
-                    'departure_uuid': op.departureUuid,
-                    if (op.qrPayload != null) 'qr_payload': op.qrPayload,
-                    if (op.shortCode != null) 'short_code': op.shortCode,
-                  },
+                  'payload': op.payload,
                 })
             .toList(),
       },
@@ -77,41 +102,17 @@ class SyncRemoteDataSourceImpl implements SyncRemoteDataSource {
     return Map<String, dynamic>.from(body);
   }
 
-  SyncOperationResult _resultOf(Map<String, dynamic> op) {
+  SyncOperationRawResult _resultOf(Map<String, dynamic> op) {
     final Object? rawResult = op['result'];
     final Map<String, dynamic> result =
         rawResult is Map ? Map<String, dynamic>.from(rawResult) : const {};
-    final String? status = result['status'] as String?;
-    final String? code = result['code'] as String?;
-    final String? message = result['message'] as String?;
 
-    final BoardingOutcomeStatus outcomeStatus = switch (status) {
-      'accepted' => BoardingOutcomeStatus.valid,
-      'conflict' => BoardingOutcomeStatus.conflict,
-      'pending' => BoardingOutcomeStatus.pendingSync,
-      _ => switch (code) {
-          'ticket_cancelled' => BoardingOutcomeStatus.cancelled,
-          'wrong_departure' ||
-          'leg_not_active' =>
-            BoardingOutcomeStatus.wrongDeparture,
-          'ticket_already_boarded' => BoardingOutcomeStatus.alreadyBoarded,
-          _ => BoardingOutcomeStatus.error,
-        },
-    };
-
-    return SyncOperationResult(
-      '${op['operationUuid']}',
-      BoardingOutcome(
-        status: outcomeStatus,
-        message: message ?? outcomeStatus.defaultMessage,
-        // `entityUuid` est l'identifiant de l'événement d'embarquement créé
-        // (`entityType: boarding_event`), pas le `ticketUuid` — le lot ne
-        // le renvoie pas (voir SyncBatchResource). Le manifeste local est
-        // donc rafraîchi en bloc après synchro plutôt que patché par
-        // billet — voir `SyncCubit.syncNow`.
-        ticketUuid: null,
-        operationUuid: '${op['operationUuid']}',
-      ),
+    return SyncOperationRawResult(
+      operationUuid: '${op['operationUuid']}',
+      status: result['status'] as String?,
+      code: result['code'] as String?,
+      message: result['message'] as String?,
+      recommendedAction: result['recommendedAction'] as String?,
     );
   }
 }

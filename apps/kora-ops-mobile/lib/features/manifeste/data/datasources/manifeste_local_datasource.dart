@@ -33,6 +33,19 @@ abstract class ManifesteLocalDataSource {
     List<Passenger> passengers, {
     String? manifestVersion,
   });
+
+  /// Répercute dans le cache local le statut d'un passager mis à jour de
+  /// façon optimiste (scan accepté, descente anticipée/no-show acceptés
+  /// — voir `ManifesteCubit`) : sans ça, un redémarrage à froid juste
+  /// après l'action restaurerait l'ancien statut depuis le dernier
+  /// téléchargement complet, pas celui affiché à l'écran — voir critère
+  /// d'acceptation MEZ-87 "restaurer... les statuts". Silencieux si
+  /// [ticketUuid] n'est pas (ou plus) dans le cache.
+  Future<void> updateCachedStatus({
+    required String departureUuid,
+    required String ticketUuid,
+    required BoardingStatus statut,
+  });
 }
 
 class ManifesteLocalDataSourceImpl implements ManifesteLocalDataSource {
@@ -61,8 +74,8 @@ class ManifesteLocalDataSourceImpl implements ManifesteLocalDataSource {
     return CachedManifest(
       passengers: rows.map(_passengerOf).toList(),
       version: metaRows.first['manifest_version'] as String?,
-      fetchedAt:
-          DateTime.tryParse(metaRows.first['fetched_at'] as String? ?? ''),
+      fetchedAt: DateTime.tryParse(
+          metaRows.first['fetched_at'] as String? ?? ''),
     );
   }
 
@@ -90,6 +103,9 @@ class ManifesteLocalDataSourceImpl implements ManifesteLocalDataSource {
           'seat_code': passenger.siege,
           'origin_stop': passenger.segmentOrigine,
           'destination_stop': passenger.segmentDestination,
+          'origin_stop_uuid': passenger.originStopUuid,
+          'destination_stop_uuid': passenger.destinationStopUuid,
+          'boarding_event_uuid': passenger.boardingEventUuid,
           'segment_status': passenger.statut.name,
           'fetched_at': fetchedAt,
         });
@@ -111,6 +127,21 @@ class ManifesteLocalDataSourceImpl implements ManifesteLocalDataSource {
     });
   }
 
+  @override
+  Future<void> updateCachedStatus({
+    required String departureUuid,
+    required String ticketUuid,
+    required BoardingStatus statut,
+  }) async {
+    final Database db = await _database.database;
+    await db.update(
+      'manifest_cache',
+      <String, Object?>{'segment_status': statut.name},
+      where: 'departure_uuid = ? AND ticket_uuid = ?',
+      whereArgs: <Object?>[departureUuid, ticketUuid],
+    );
+  }
+
   Passenger _passengerOf(Map<String, Object?> row) => Passenger(
         id: row['ticket_uuid'] as String? ?? '',
         nomComplet: row['passenger_name'] as String? ?? 'Passager',
@@ -122,5 +153,8 @@ class ManifesteLocalDataSourceImpl implements ManifesteLocalDataSource {
         segmentOrigine: row['origin_stop'] as String? ?? '—',
         segmentDestination: row['destination_stop'] as String? ?? '—',
         ticketId: row['short_code'] as String? ?? '',
+        originStopUuid: row['origin_stop_uuid'] as String?,
+        destinationStopUuid: row['destination_stop_uuid'] as String?,
+        boardingEventUuid: row['boarding_event_uuid'] as String?,
       );
 }

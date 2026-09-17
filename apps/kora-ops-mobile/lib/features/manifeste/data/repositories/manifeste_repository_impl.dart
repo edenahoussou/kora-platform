@@ -10,6 +10,7 @@ import 'package:flutter_networking/flutter_networking.dart'
 
 import '../../../../core/errors/failures.dart';
 import '../../../../core/result/result.dart';
+import '../../../ops/domain/entities/passenger.dart';
 import '../../domain/entities/manifest_snapshot.dart';
 import '../../domain/repositories/manifeste_repository.dart';
 import '../datasources/manifeste_local_datasource.dart';
@@ -56,8 +57,7 @@ class ManifesteRepositoryImpl implements ManifesteRepository {
 
     try {
       if (cached == null) {
-        return Result<ManifestSnapshot>.success(
-            await _fetchFresh(departureUuid));
+        return Result<ManifestSnapshot>.success(await _fetchFresh(departureUuid));
       }
 
       final ManifestVersionCheck check =
@@ -70,8 +70,7 @@ class ManifesteRepositoryImpl implements ManifesteRepository {
       }
 
       if (check.stale) {
-        return Result<ManifestSnapshot>.success(
-            await _fetchFresh(departureUuid));
+        return Result<ManifestSnapshot>.success(await _fetchFresh(departureUuid));
       }
 
       // Vérifié à jour : on sert le cache tel quel, sans le
@@ -99,6 +98,18 @@ class ManifesteRepositoryImpl implements ManifesteRepository {
       return Result<ManifestSnapshot>.failure(_failureOf(error));
     }
   }
+
+  @override
+  Future<void> persistStatusUpdate({
+    required String departureUuid,
+    required String ticketUuid,
+    required BoardingStatus statut,
+  }) =>
+      _local.updateCachedStatus(
+        departureUuid: departureUuid,
+        ticketUuid: ticketUuid,
+        statut: statut,
+      );
 
   Future<ManifestSnapshot> _fetchFresh(String departureUuid) async {
     final ManifesteFetchResult fetched = await _remote.fetch(departureUuid);

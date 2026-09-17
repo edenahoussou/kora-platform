@@ -46,8 +46,7 @@ class AppConfig {
   }
 
   static void init() {
-    const String rawEnv =
-        String.fromEnvironment('ENV', defaultValue: 'staging');
+    const String rawEnv = String.fromEnvironment('ENV', defaultValue: 'dev');
     final Environment env = EnvironmentX.fromString(rawEnv);
 
     const String rawUseMockHardware =

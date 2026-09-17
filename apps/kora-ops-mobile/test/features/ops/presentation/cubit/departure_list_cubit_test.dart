@@ -47,8 +47,9 @@ void main() {
   blocTest<DepartureListCubit, DepartureListState>(
     'aucun départ affecté : loading puis empty',
     setUp: () {
-      when(() => repository.listAssigned(date: null, status: null)).thenAnswer(
-          (_) async => const Result<List<Depart>>.success(<Depart>[]));
+      when(() => repository.listAssigned(date: null, status: null))
+          .thenAnswer(
+              (_) async => const Result<List<Depart>>.success(<Depart>[]));
     },
     build: () => DepartureListCubit(repository),
     act: (cubit) => cubit.load(),
@@ -82,8 +83,7 @@ void main() {
   blocTest<DepartureListCubit, DepartureListState>(
     'filtres date/status transmis au repository',
     setUp: () {
-      when(() =>
-              repository.listAssigned(date: '2026-10-01', status: 'scheduled'))
+      when(() => repository.listAssigned(date: '2026-10-01', status: 'scheduled'))
           .thenAnswer((_) async => const Result<List<Depart>>.success(
                 <Depart>[depart],
               ));
@@ -91,9 +91,8 @@ void main() {
     build: () => DepartureListCubit(repository),
     act: (cubit) => cubit.load(date: '2026-10-01', status: 'scheduled'),
     verify: (_) {
-      verify(() =>
-              repository.listAssigned(date: '2026-10-01', status: 'scheduled'))
-          .called(1);
+      verify(() => repository.listAssigned(
+          date: '2026-10-01', status: 'scheduled')).called(1);
     },
   );
 }
