@@ -124,6 +124,15 @@ class ApiConstants {
   /// Tous les billets du voyageur connecté, paginés — `GET`.
   static const String tickets = '$_v1/tickets';
 
+  /// Le PDF officiel d'un billet, tel que le backend le génère — `GET`,
+  /// réponse binaire.
+  ///
+  /// Livrée par MEZ-82 : réservée au créateur ou au payeur de la
+  /// réservation, pour un billet `issued` ou `used`.
+  /// Seul l'UUID du billet y figure, jamais son identifiant numérique.
+  static String ticketPdf(String ticketUuid) =>
+      '$_v1/tickets/${Uri.encodeComponent(ticketUuid)}/pdf';
+
   /// Libération d'un blocage avant son échéance (`DELETE`, authentifié).
   /// La clé est l'identifiant de la **réservation**, pas du départ.
   ///

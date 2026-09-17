@@ -1,4 +1,6 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.kora_app_passager.app">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.kora_app_passager.app">
     <!-- Écran « Autorisations » : suivi du bus en direct et points KORA
          proches. La position approchée suffit à la plupart des écrans,
          mais le suivi du véhicule demande la position précise. -->
@@ -12,6 +14,16 @@
          dans un build release : l'APK s'installe et s'ouvre, mais ne
          joint jamais l'API. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- `open_filex` déclare l'accès aux photos, vidéos, sons et au
+         stockage partagé. L'app n'ouvre que ses propres billets PDF, rangés
+         dans son espace privé et transmis par FileProvider : aucune de ces
+         permissions ne lui sert, et le Play Store exige de justifier les
+         permissions média. -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" tools:node="remove"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" tools:node="remove"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" tools:node="remove"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" tools:node="remove"/>
 
     <application
         android:label="KORA Passenger"
@@ -76,6 +88,13 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- « Ouvrir le billet » : depuis Android 11, sans cette
+             déclaration, les lecteurs PDF sont invisibles pour l'app et
+             l'ouverture répond qu'aucune application ne sait le faire. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:mimeType="application/pdf"/>
         </intent>
     </queries>
 </manifest>

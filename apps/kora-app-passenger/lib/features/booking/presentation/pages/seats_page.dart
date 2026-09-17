@@ -233,6 +233,15 @@ class _SeatsContent extends StatelessWidget {
         const SizedBox(height: 11),
         const HoldCountdown(margin: EdgeInsets.only(bottom: 11)),
         SeatMap(
+          // « Embarqué » et « Bloqué » regardent l'exploitation : le
+          // voyageur ne choisit pas entre eux, et ils encombraient la
+          // légende de deux états qu'il ne rencontre pas.
+          legendStatuses: const {
+            KoraSeatStatus.available,
+            KoraSeatStatus.selected,
+            KoraSeatStatus.held,
+            KoraSeatStatus.paid,
+          },
           seats: [
             for (final seat in state.seats)
               KoraSeat(

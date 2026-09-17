@@ -64,18 +64,19 @@ class HomeState extends Equatable {
   /// le seul cas où l'écran le lit.
   final String? errorMessage;
 
-  /// La recherche n'est lançable que si le trajet est complet et cohérent
-  /// (on ne cherche pas un Cotonou → Cotonou).
-  ///
-  /// Deux villes distinctes suffisent à chercher.
-  ///
-  /// La date de retour, elle, est facultative même sur un aller-retour :
-  /// on choisit souvent son aller avant de savoir quand on rentre, et
-  /// retenir la recherche pour ça faisait abandonner le formulaire. Sans
-  /// elle, [criteria] ne porte pas de retour et la recherche se ramène à
-  /// l'aller — le retour se rajoutera plus tard.
-  bool get canSearch =>
+  /// Deux villes distinctes : le trajet est complet et cohérent (on ne
+  /// cherche pas un Cotonou → Cotonou).
+  bool get hasRoute =>
       origin != null && destination != null && origin != destination;
+
+  /// Un aller-retour sans date de retour : il manque la seule chose qui en
+  /// fait un aller-retour.
+  bool get isMissingReturnDate =>
+      tripType == TripType.roundtrip && returnDate == null;
+
+  /// La recherche n'est lançable que sur un trajet complet — et, en
+  /// aller-retour, avec sa date de retour, désormais obligatoire.
+  bool get canSearch => hasRoute && !isMissingReturnDate;
 
   /// Les critères prêts à être passés à l'écran de résultats, ou `null`
   /// tant que le formulaire est incomplet.

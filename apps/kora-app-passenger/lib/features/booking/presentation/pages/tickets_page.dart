@@ -9,6 +9,7 @@ import '../../../../core/widgets/screen_header.dart';
 import '../../../../core/widgets/section_title.dart';
 import '../../domain/entities/ticket.dart';
 import '../bloc/tickets_bloc.dart';
+import '../widgets/official_ticket_download.dart';
 import '../widgets/state_view.dart';
 import '../widgets/ticket_card.dart';
 
@@ -143,6 +144,13 @@ class _TicketsList extends StatelessWidget {
             TicketCard(
               ticket: ticket,
               today: state.today,
+              // Un voyage d'un seul billet se télécharge depuis la carte ;
+              // un groupe passe par le détail, voyageur par voyageur.
+              action: ticket.ticketIds.length == 1
+                  ? OfficialTicketDownloadIcon(
+                      ticketId: ticket.ticketIds.single,
+                    )
+                  : null,
               onTap: onOpenTicket == null
                   ? null
                   : () => onOpenTicket!(ticket, state.today),

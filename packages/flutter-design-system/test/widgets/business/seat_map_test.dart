@@ -133,6 +133,21 @@ void main() {
           expect(find.text(label), findsOneWidget, reason: 'état $label');
         }
       });
+
+      testWidgets('ne montre que les états demandés', (tester) async {
+        await pumpKoraWidget(
+          tester,
+          const SeatMap(
+            seats: seats,
+            legendStatuses: {KoraSeatStatus.available, KoraSeatStatus.selected},
+          ),
+        );
+
+        expect(find.text('Libre'), findsOneWidget);
+        expect(find.text('Votre choix'), findsOneWidget);
+        expect(find.text('Embarqué'), findsNothing);
+        expect(find.text('Bloqué'), findsNothing);
+      });
     });
   });
 }

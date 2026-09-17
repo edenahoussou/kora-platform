@@ -8,17 +8,29 @@ import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kora_app_passenger/core/di/injector.dart';
 import 'package:kora_app_passenger/core/error/failures.dart';
 import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/group_ticket.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/group_tickets_cubit.dart';
+import 'package:kora_app_passenger/features/booking/presentation/bloc/ticket_document_cubit.dart';
 import 'package:kora_app_passenger/features/booking/presentation/pages/group_tickets_page.dart';
 import 'package:kora_app_passenger/features/booking/presentation/widgets/kora_qr.dart';
 
 import '../../../../support/seat_hold_harness.dart';
+import '../../../../support/stub_ticket_document_repository.dart';
 
 void main() {
   setUpAll(() => AppLocalization.preloadAll());
+
+  // La boîte du QR porte le PDF officiel, dont l'état vit dans le cubit
+  // partagé par toute l'app.
+  setUp(
+    () => getIt.registerSingleton<TicketDocumentCubit>(
+      TicketDocumentCubit(StubTicketDocumentRepository()),
+    ),
+  );
+  tearDown(() => getIt.unregister<TicketDocumentCubit>());
 
   const tickets = [
     GroupTicket(

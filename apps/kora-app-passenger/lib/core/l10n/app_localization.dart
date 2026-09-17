@@ -295,6 +295,8 @@ class AppLocalization {
   String get searchCta => translate('search_cta');
   String get searchCtaRoundtrip => translate('search_cta_roundtrip');
   String get searchReturnDate => translate('search_return_date');
+
+  String get searchMissingReturn => translate('search_missing_return');
   String get searchReturnPick => translate('search_return_pick');
   String get searchRecent => translate('search_recent');
   String get searchMissingCities => translate('search_missing_cities');
@@ -763,13 +765,41 @@ class AppLocalization {
 
   String get ticketsOneNotice => translate('tickets_one_notice');
 
-  String get ticketsDownload => translate('tickets_download');
-
   String get ticketsShare => translate('tickets_share');
 
   String get ticketsDownloadDone => translate('tickets_download_done');
 
-  String get ticketsDownloadFailed => translate('tickets_download_failed');
+  String get ticketsPdfDownload => translate('tickets_pdf_download');
+
+  String get ticketsPdfDownloading => translate('tickets_pdf_downloading');
+
+  String get ticketsPdfRedownload => translate('tickets_pdf_redownload');
+
+  String get ticketsPdfReady => translate('tickets_pdf_ready');
+
+  String get ticketsPdfOffline => translate('tickets_pdf_offline');
+
+  String get ticketsPdfOpen => translate('tickets_pdf_open');
+
+  String get ticketsPdfSaveCopy => translate('tickets_pdf_save_copy');
+
+  String get ticketsPdfOpenFailed => translate('tickets_pdf_open_failed');
+
+  String get ticketsPdfErrorNetwork => translate('tickets_pdf_error_network');
+
+  String get ticketsPdfErrorSession => translate('tickets_pdf_error_session');
+
+  String get ticketsPdfErrorInaccessible =>
+      translate('tickets_pdf_error_inaccessible');
+
+  String get ticketsPdfErrorUnavailable =>
+      translate('tickets_pdf_error_unavailable');
+
+  String get ticketsPdfErrorNotDownloadable =>
+      translate('tickets_pdf_error_not_downloadable');
+
+  String get ticketsPdfErrorUnexpected =>
+      translate('tickets_pdf_error_unexpected');
 
   String get ticketsOnePending => translate('tickets_one_pending');
 
