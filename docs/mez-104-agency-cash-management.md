@@ -18,6 +18,31 @@ Les comptes MTN MoMo, Moov Flooz et Celtiis Cash restent des comptes agence
 partagés. Leur solde ne doit être additionné qu’une fois par compte, même si
 plusieurs sessions ont utilisé le compte comme sous-journal d’audit.
 
+## Cycle de vie des comptes Mobile Money
+
+Un compte Mobile Money est une identité financière stable de l’agence. Le
+premier compte d’un réseau est actif immédiatement. Une agence ne peut avoir
+qu’un seul compte actif par réseau ; les comptes inactifs restent conservés
+dans l’historique et ne sont plus proposés pour une nouvelle session ou un
+nouveau paiement.
+
+Depuis la fiche agence, un responsable peut modifier le libellé, désactiver un
+compte ou remplacer son identifiant. Un remplacement est confirmé explicitement
+et exécuté dans une transaction : l’ancien compte devient historique et le
+nouveau compte actif commence avec un solde nul. Aucun transfert automatique de
+solde n’est effectué. Le solde historique de l’ancien compte reste rattaché à
+son identité et continue d’être inclus dans le total Mobile Money de l’agence.
+
+Une désactivation, un remplacement ou une réactivation guidée est refusé si une
+session ouverte utilise le compte concerné. La réactivation d’un compte
+historique alors qu’un autre compte du même réseau est actif suit le même
+parcours de changement : le compte historique devient actif et le compte
+courant devient historique. Les paiements et écritures publiées ne sont jamais
+réaffectés ni supprimés.
+
+Cette décision de conservation de l’identité financière est formalisée dans
+[l’ADR 0006](adr/0006-compte-mobile-money-agence.md).
+
 ## Écritures et transferts
 
 `CashMovement` est le journal permanent. `cash_session_id` et

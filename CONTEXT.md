@@ -95,3 +95,19 @@ _Avoid_: Lier un bus ou un depart a une agence; confondre l'arret avec l'agence
 **Agence de vente**:
 Agence qui réalise commercialement une vente de billets. Elle est conservée dans l’historique, même si le vendeur change ensuite d’agence, et couvre aussi les ventes à crédit entreprise. Les ventes en ligne sans intervention d’une agence et les anciennes ventes dont l’agence ne peut être établie avec certitude restent sans agence de vente connue.
 _Avoid_: Agence actuelle du vendeur ; agence du départ ; réaffecter les ventes historiques lors d’une mutation
+
+**Compte Mobile Money partagé**:
+Compte de paiement rattaché à une agence et partagé par ses sessions de caisse. Il porte l’identité financière, les paiements et les journaux Mobile Money de l’agence ; il ne doit pas être recréé à chaque session ni additionné une seconde fois par guichet.
+_Avoid_: Compte personnel de l’agent ; compte propre à une session ; additionner le même compte pour chaque guichet
+
+**Compte actif**:
+Compte Mobile Money partagé actuellement autorisé pour les nouvelles ouvertures de session et les nouveaux paiements. Une agence ne peut avoir qu’un seul compte actif par réseau.
+_Avoid_: Tous les comptes historiques ; compte actif sur plusieurs réseaux ; compte sélectionnable sans session ouverte
+
+**Compte historique**:
+Ancien compte Mobile Money partagé conservé pour ses paiements, ses ledgers et son solde. Il reste visible et inclus dans la supervision financière, mais il est exclu des nouvelles sessions et des nouveaux paiements.
+_Avoid_: Compte supprimé ; compte disponible pour encaisser ; solde transféré automatiquement vers le compte courant
+
+**Remplacement de compte**:
+Opération guidée qui désactive un compte actif et crée ou réactive un autre compte du même réseau. Elle exige une confirmation explicite, est atomique, et est refusée tant qu’une session ouverte utilise le compte sortant.
+_Avoid_: Modifier l’identifiant en place ; supprimer l’ancien compte ; changer de compte sans conserver l’historique
