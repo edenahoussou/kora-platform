@@ -4,7 +4,6 @@ import {
     Banknote,
     Building2,
     Check,
-    CreditCard,
     Edit3,
     HelpCircle,
     LockKeyhole,
@@ -17,6 +16,8 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { AgencyPaymentAccountManagement } from '@/components/agencies/agency-payment-account-management';
+import type { AgencyPaymentAccount } from '@/components/agencies/agency-payment-account-management';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { OnboardingTour } from '@/components/onboarding/onboarding-tour';
 import type { OnboardingStep } from '@/components/onboarding/onboarding-tour';
@@ -48,14 +49,6 @@ type Register = {
     lastMovementAt: string | null;
     authorizedUsers: UserOption[];
 };
-type PaymentAccount = {
-    uuid: string;
-    network: string;
-    label: string;
-    accountIdentifier: string;
-    status: string;
-    balance: number;
-};
 type Props = {
     agency: {
         uuid: string;
@@ -68,7 +61,7 @@ type Props = {
     };
     cashSummary: { cash: number; mobile_money: number; global: number };
     cashRegisters: Register[];
-    paymentAccounts: PaymentAccount[];
+    paymentAccounts: AgencyPaymentAccount[];
     agentCandidates: UserOption[];
     permissions: {
         canManage: boolean;
@@ -108,6 +101,12 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
         title: 'Statuts et contrôle',
         body: 'Une caisse avec une session ouverte, un solde ou une sortie en attente ne peut pas être désactivée.',
         side: 'left',
+    },
+    {
+        target: '[data-onboarding="agency-payment-accounts"]',
+        title: 'Comptes Mobile Money',
+        body: 'Les comptes partagés se gèrent ici. Un compte historique conserve son solde mais ne peut plus recevoir de nouveaux paiements.',
+        side: 'top',
     },
 ];
 
@@ -583,55 +582,11 @@ export default function AgencyDetailPage({
                         </section>
                     </div>
 
-                    <section className="rounded-[18px] border border-border bg-card shadow-sm">
-                        <div className="flex items-center justify-between border-b border-border px-5 py-4">
-                            <div>
-                                <h2 className="font-extrabold">
-                                    Comptes Mobile Money partagés
-                                </h2>
-                                <p className="mt-1 text-xs text-muted-foreground">
-                                    Un solde agence par compte, sans double
-                                    comptage entre sessions.
-                                </p>
-                            </div>
-                            <CreditCard className="size-5 text-digital" />
-                        </div>
-                        <div className="grid gap-3 p-5 md:grid-cols-3">
-                            {paymentAccounts.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">
-                                    Aucun compte configuré.
-                                </p>
-                            ) : (
-                                paymentAccounts.map((account) => (
-                                    <div
-                                        key={account.uuid}
-                                        className="rounded-xl border border-border bg-muted/25 p-4"
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xs font-bold">
-                                                {account.label}
-                                            </span>
-                                            <KoraStatusBadge
-                                                label={
-                                                    account.status === 'active'
-                                                        ? 'Actif'
-                                                        : 'Inactif'
-                                                }
-                                                tone={tone(account.status)}
-                                            />
-                                        </div>
-                                        <p className="mt-2 text-xs text-muted-foreground">
-                                            {account.network} ·{' '}
-                                            {account.accountIdentifier}
-                                        </p>
-                                        <strong className="mt-4 block text-lg font-extrabold">
-                                            {money(account.balance)}
-                                        </strong>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </section>
+                    <AgencyPaymentAccountManagement
+                        agencyUuid={agency.uuid}
+                        accounts={paymentAccounts}
+                        canManage={permissions.canManage}
+                    />
                 </div>
             )}
 
