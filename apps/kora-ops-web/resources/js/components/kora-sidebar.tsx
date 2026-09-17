@@ -103,12 +103,22 @@ const navItems: NavEntry[] = [
         title: 'Réseau commercial',
         href: '/dynamic-pricing',
         icon: Store,
-        permission: ['pricing.view', 'pricing.manage'],
+        permission: [
+            'pricing.view',
+            'pricing.manage',
+            'company-accounts.view',
+            'company-accounts.manage',
+        ],
         children: [
             {
                 title: 'Tarification dynamique',
                 href: '/dynamic-pricing',
                 permission: ['pricing.view', 'pricing.manage'],
+            },
+            {
+                title: 'Comptes entreprises',
+                href: '/companies',
+                permission: 'company-accounts.view',
             },
         ],
     },

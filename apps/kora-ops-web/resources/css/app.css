@@ -7889,8 +7889,70 @@
     animation: kora-onboarding-enter 0.25s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
+@keyframes kora-companies-panel-in {
+    from {
+        transform: translateX(100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes kora-companies-backdrop-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.companies-panel {
+    animation: kora-companies-panel-in 0.42s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+.companies-panel-backdrop {
+    animation: kora-companies-backdrop-in 0.28s cubic-bezier(0.32, 0.72, 0, 1)
+        both;
+}
+
+.companies-ledger-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.companies-fields-grid {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.companies-metrics-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--muted) 35%, var(--card));
+}
+
+@media (max-width: 1180px) {
+    .companies-ledger-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .companies-ledger-grid,
+    .companies-fields-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
-    .kora-onboarding-tooltip-enter {
+    .kora-onboarding-tooltip-enter,
+    .companies-panel,
+    .companies-panel-backdrop {
         animation: none;
     }
 }
