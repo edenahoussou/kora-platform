@@ -5,6 +5,7 @@ namespace App\Modules\Payments\Models;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\Payments\Data\MobileMoneyNetwork;
 use App\Modules\Support\Models\KoraModel;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
@@ -42,6 +43,15 @@ class AgencyPaymentAccount extends KoraModel
     protected function casts(): array
     {
         return ['network' => MobileMoneyNetwork::class];
+    }
+
+    /**
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('status', 'active');
     }
 
     /**

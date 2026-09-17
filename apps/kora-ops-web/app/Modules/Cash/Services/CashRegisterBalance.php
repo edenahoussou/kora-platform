@@ -66,7 +66,6 @@ class CashRegisterBalance
         $cash = $registers->sum(fn (CashRegister $register): int => $this->published($register));
         $mobileMoney = AgencyPaymentAccount::query()
             ->where('agency_id', $agencyId)
-            ->where('status', 'active')
             ->get()
             ->sum(fn (AgencyPaymentAccount $account): int => $this->mobileMoneyPublished($account));
 

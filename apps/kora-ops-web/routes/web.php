@@ -153,7 +153,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('agencies/{agency:uuid}', [AgencyController::class, 'update'])->name('agencies.update');
     Route::patch('agencies/{agency:uuid}/status', [AgencyController::class, 'changeStatus'])->name('agencies.status');
     Route::post('agencies/{agency:uuid}/payment-accounts', [AgencyPaymentAccountController::class, 'store'])->name('agencies.payment-accounts.store');
-    Route::patch('agencies/{agency:uuid}/payment-accounts/{account:uuid}/status', [AgencyPaymentAccountController::class, 'changeStatus'])->name('agencies.payment-accounts.status');
+    Route::put('agencies/{agency:uuid}/payment-accounts/{account:uuid}', [AgencyPaymentAccountController::class, 'update'])->withoutScopedBindings()->name('agencies.payment-accounts.update');
+    Route::patch('agencies/{agency:uuid}/payment-accounts/{account:uuid}/status', [AgencyPaymentAccountController::class, 'changeStatus'])->withoutScopedBindings()->name('agencies.payment-accounts.status');
     Route::post('agencies/{agency:uuid}/cash-registers', [AgencyController::class, 'storeCashRegister'])->name('agencies.cash-registers.store');
     Route::put('cash-registers/{cashRegister:uuid}', [AgencyController::class, 'updateCashRegister'])->name('agencies.cash-registers.update');
     Route::patch('cash-registers/{cashRegister:uuid}/status', [AgencyController::class, 'changeCashRegisterStatus'])->name('agencies.cash-registers.status');

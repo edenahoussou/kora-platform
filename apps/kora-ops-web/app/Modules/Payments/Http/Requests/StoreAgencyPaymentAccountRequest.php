@@ -4,6 +4,7 @@ namespace App\Modules\Payments\Http\Requests;
 
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\Payments\Data\MobileMoneyNetwork;
+use App\Modules\Payments\Models\AgencyPaymentAccount;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -35,12 +36,18 @@ class StoreAgencyPaymentAccountRequest extends FormRequest
                         ->where('network', $this->string('network')->value())
                 ),
             ],
-            'status' => ['nullable', 'in:active,inactive'],
+            'replace_account_uuid' => [
+                'nullable',
+                'uuid',
+                Rule::exists((new AgencyPaymentAccount)->getTable(), 'uuid')->where(
+                    fn ($query) => $query->where('agency_id', $agency->getKey())
+                ),
+            ],
         ];
     }
 
     /**
-     * @return array{agency: Agency, network: MobileMoneyNetwork, label: string, account_identifier: string, status: string}
+     * @return array{agency: Agency, network: MobileMoneyNetwork, label: string, account_identifier: string, replace_account_uuid: string|null}
      */
     public function payload(): array
     {
@@ -52,7 +59,9 @@ class StoreAgencyPaymentAccountRequest extends FormRequest
             'network' => MobileMoneyNetwork::from($this->string('network')->value()),
             'label' => $this->string('label')->trim()->value(),
             'account_identifier' => $this->string('account_identifier')->trim()->value(),
-            'status' => $this->string('status')->value() ?: 'active',
+            'replace_account_uuid' => $this->filled('replace_account_uuid')
+                ? $this->string('replace_account_uuid')->trim()->value()
+                : null,
         ];
     }
 }
