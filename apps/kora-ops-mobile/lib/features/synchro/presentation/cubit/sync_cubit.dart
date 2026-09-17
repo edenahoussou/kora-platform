@@ -4,15 +4,17 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../boarding/domain/repositories/boarding_repository.dart';
+import '../../../seat_release/domain/repositories/seat_release_repository.dart';
 import '../../domain/entities/pending_operation.dart';
 import '../../domain/entities/sync_summary.dart';
 import '../../domain/repositories/sync_repository.dart';
 
 part 'sync_state.dart';
 
-/// État de connexion + synchronisation des embarquements enregistrés
-/// hors ligne (MEZ-88) — voir document.md § Synchro. Détecte la
-/// connectivité en continu (`connectivity_plus`) et relance
+/// État de connexion + synchronisation des opérations terrain
+/// enregistrées hors ligne — embarquements (MEZ-88), descentes
+/// anticipées et no-show (MEZ-87) — voir document.md § Synchro. Détecte
+/// la connectivité en continu (`connectivity_plus`) et relance
 /// automatiquement `syncNow()` dès le retour du réseau ; la bascule
 /// manuelle depuis `SynchroPage` reste disponible (utile en test/démo,
 /// ou pour forcer une resynchronisation immédiate).
@@ -22,13 +24,15 @@ part 'sync_state.dart';
 class SyncCubit extends Cubit<SyncState> {
   SyncCubit(
     this._syncRepository,
-    this._boardingRepository, {
+    this._boardingRepository,
+    this._seatReleaseRepository, {
     Connectivity? connectivity,
   })  : _connectivity = connectivity ?? Connectivity(),
         super(const SyncState());
 
   final SyncRepository _syncRepository;
   final BoardingRepository _boardingRepository;
+  final SeatReleaseRepository _seatReleaseRepository;
   final Connectivity _connectivity;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
@@ -94,17 +98,17 @@ class SyncCubit extends Cubit<SyncState> {
   }
 
   Future<void> refreshPendingCount() async {
-    final int count = await _boardingRepository.totalPendingCount();
+    final int count = await _totalPendingCount();
     emit(state.copyWith(
-      pendingBoardingCount: count,
+      pendingOperationsCount: count,
       lastSyncSummary: state.lastSyncSummary,
       lastSyncError: state.lastSyncError,
     ));
   }
 
-  /// Envoie la file d'embarquements en attente (MEZ-88). Ne fait rien si
-  /// hors ligne ou si une synchro est déjà en cours — jamais deux lots
-  /// simultanés depuis ce terminal.
+  /// Envoie la file d'opérations en attente, tous types confondus
+  /// (MEZ-87/MEZ-88). Ne fait rien si hors ligne ou si une synchro est
+  /// déjà en cours — jamais deux lots simultanés depuis ce terminal.
   Future<void> syncNow() async {
     if (!state.isOnline || state.isSyncing) return;
 
@@ -114,23 +118,29 @@ class SyncCubit extends Cubit<SyncState> {
       lastSyncError: state.lastSyncError,
     ));
 
-    final result = await _syncRepository.syncPendingBoardingOperations();
-    final int remaining = await _boardingRepository.totalPendingCount();
+    final result = await _syncRepository.syncPending();
+    final int remaining = await _totalPendingCount();
 
     result.when(
       onSuccess: (summary) => emit(state.copyWith(
         isSyncing: false,
-        pendingBoardingCount: remaining,
+        pendingOperationsCount: remaining,
         lastSyncSummary: summary,
         lastSyncError: null,
       )),
       onFailure: (failure) => emit(state.copyWith(
         isSyncing: false,
-        pendingBoardingCount: remaining,
+        pendingOperationsCount: remaining,
         lastSyncSummary: state.lastSyncSummary,
         lastSyncError: failure.message,
       )),
     );
+  }
+
+  Future<int> _totalPendingCount() async {
+    final int boarding = await _boardingRepository.totalPendingCount();
+    final int seatReleases = await _seatReleaseRepository.totalPendingCount();
+    return boarding + seatReleases;
   }
 
   @override

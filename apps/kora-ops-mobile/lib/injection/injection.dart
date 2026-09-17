@@ -44,6 +44,10 @@ import '../features/printing/domain/usecases/print_ticket.dart';
 import '../features/printing/domain/usecases/scan_barcode.dart';
 import '../features/printing/presentation/cubit/printing_cubit.dart';
 import '../features/scan/presentation/cubit/scan_boarding_cubit.dart';
+import '../features/seat_release/data/datasources/seat_release_local_datasource.dart';
+import '../features/seat_release/data/datasources/seat_release_remote_datasource.dart';
+import '../features/seat_release/data/repositories/seat_release_repository_impl.dart';
+import '../features/seat_release/domain/repositories/seat_release_repository.dart';
 import '../features/synchro/data/datasources/sync_remote_datasource.dart';
 import '../features/synchro/data/repositories/sync_repository_impl.dart';
 import '../features/synchro/domain/repositories/sync_repository.dart';
@@ -289,10 +293,27 @@ Future<void> configureDependencies() async {
     ),
   );
 
+  // --- Feature: seat_release (MEZ-87 — réel : POST ops/seat-releases,
+  // POST ops/seat-releases/no-show-closure, avec anti-doublon local et
+  // file hors ligne — voir SeatReleaseRepositoryImpl). Enregistrée avant
+  // Synchro : elle en dépend, comme Boarding.
+  getIt.registerLazySingleton<SeatReleaseRemoteDataSource>(
+    () => SeatReleaseRemoteDataSourceImpl(opsDioClient.dio),
+  );
+  getIt.registerLazySingleton<SeatReleaseLocalDataSource>(
+    () => SeatReleaseLocalDataSourceImpl(getIt<AppDatabase>()),
+  );
+  getIt.registerLazySingleton<SeatReleaseRepository>(
+    () => SeatReleaseRepositoryImpl(
+      getIt<SeatReleaseRemoteDataSource>(),
+      getIt<SeatReleaseLocalDataSource>(),
+    ),
+  );
+
   // --- Feature: synchro (MEZ-88 — réel : POST ops/sync/batches, envoi
-  // par lot de la file `boarding_operations`, détection de connectivité
-  // continue et reprise automatique — voir SyncCubit.bootstrap, appelé
-  // depuis SplashPage) ---
+  // par lot des files boarding_operations + seat_release_operations en
+  // un seul lot, détection de connectivité continue et reprise
+  // automatique — voir SyncCubit.bootstrap, appelé depuis SplashPage) ---
   getIt.registerLazySingleton<SyncRemoteDataSource>(
     () => SyncRemoteDataSourceImpl(opsDioClient.dio),
   );
@@ -300,10 +321,15 @@ Future<void> configureDependencies() async {
     () => SyncRepositoryImpl(
       getIt<SyncRemoteDataSource>(),
       getIt<BoardingRepository>(),
+      getIt<SeatReleaseRepository>(),
     ),
   );
   getIt.registerSingleton<SyncCubit>(
-    SyncCubit(getIt<SyncRepository>(), getIt<BoardingRepository>()),
+    SyncCubit(
+      getIt<SyncRepository>(),
+      getIt<BoardingRepository>(),
+      getIt<SeatReleaseRepository>(),
+    ),
   );
 
   // --- Feature: manifeste (MEZ-91 — réel : GET ops/departures/{uuid}/

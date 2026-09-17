@@ -11,6 +11,7 @@ import 'package:kora_ops_mobile/features/ops/data/datasources/selected_departure
 import 'package:kora_ops_mobile/features/ops/domain/entities/depart.dart';
 import 'package:kora_ops_mobile/features/ops/domain/entities/passenger.dart';
 import 'package:kora_ops_mobile/features/ops/presentation/cubit/selected_depart_cubit.dart';
+import 'package:kora_ops_mobile/features/seat_release/domain/repositories/seat_release_repository.dart';
 import 'package:kora_ops_mobile/features/synchro/domain/repositories/sync_repository.dart';
 import 'package:kora_ops_mobile/features/synchro/presentation/cubit/sync_cubit.dart';
 import 'package:mocktail/mocktail.dart';
@@ -18,6 +19,8 @@ import 'package:mocktail/mocktail.dart';
 class MockManifesteRepository extends Mock implements ManifesteRepository {}
 
 class MockSyncRepository extends Mock implements SyncRepository {}
+
+class MockSeatReleaseRepository extends Mock implements SeatReleaseRepository {}
 
 class MockBoardingRepository extends Mock implements BoardingRepository {}
 
@@ -37,6 +40,7 @@ void main() {
       totalPlaces: 0,
       placesOccupees: 0,
     ));
+    registerFallbackValue(BoardingStatus.enAttente);
   });
 
   late SelectedDepartCubit selectedDepartCubit;
@@ -97,14 +101,20 @@ void main() {
     final MockSelectedDepartureLocalDataSource local =
         MockSelectedDepartureLocalDataSource();
     when(() => local.saveSnapshot(any())).thenAnswer((_) async {});
-    when(local.clear).thenAnswer((_) async {});
+    when(() => local.clear()).thenAnswer((_) async {});
     final MockAuthCubit authCubit = MockAuthCubit();
     when(() => authCubit.stream).thenAnswer((_) => const Stream.empty());
     selectedDepartCubit = SelectedDepartCubit(local, authCubit);
     // Mocks jamais stubbés : ManifesteCubit n'exerce que `enqueue()` (via
     // `updateStatut`), qui ne les appelle pas — voir SyncCubit.enqueue.
-    syncCubit = SyncCubit(MockSyncRepository(), MockBoardingRepository());
+    syncCubit = SyncCubit(MockSyncRepository(), MockBoardingRepository(),
+        MockSeatReleaseRepository());
     repository = MockManifesteRepository();
+    when(() => repository.persistStatusUpdate(
+          departureUuid: any(named: 'departureUuid'),
+          ticketUuid: any(named: 'ticketUuid'),
+          statut: any(named: 'statut'),
+        )).thenAnswer((_) async {});
   });
 
   test('état initial : noDepart tant qu\'aucun départ n\'est sélectionné', () {
@@ -189,13 +199,13 @@ void main() {
     ],
   );
 
-  test('markBoarded met à jour le statut sans enfiler de synchro mock',
-      () async {
+  test('markBoarded met à jour le statut, persiste, sans enfiler de synchro '
+      'mock', () async {
     when(() => repository.load(depart.id))
         .thenAnswer((_) async => Result<ManifestSnapshot>.success(
               snapshotOf(<Passenger>[passenger]),
             ));
-    await selectedDepartCubit.select(depart);
+    selectedDepartCubit.select(depart);
     final cubit = ManifesteCubit(
       selectedDepartCubit: selectedDepartCubit,
       syncCubit: syncCubit,
@@ -204,10 +214,100 @@ void main() {
     await cubit.stream
         .firstWhere((ManifesteState s) => s.status == ManifesteStatus.success);
 
-    cubit.markBoarded('ticket-1');
+    await cubit.markBoarded('ticket-1');
 
     expect(cubit.byId('ticket-1')?.statut, BoardingStatus.embarque);
     expect(syncCubit.state.pending, isEmpty);
+    verify(() => repository.persistStatusUpdate(
+          departureUuid: depart.id,
+          ticketUuid: 'ticket-1',
+          statut: BoardingStatus.embarque,
+        )).called(1);
+  });
+
+  test('markSeatReleaseAccepted met à jour le statut, persiste, et efface '
+      "l'indicateur \"en attente de sync\"", () async {
+    when(() => repository.load(depart.id))
+        .thenAnswer((_) async => Result<ManifestSnapshot>.success(
+              snapshotOf(<Passenger>[passenger]),
+            ));
+    selectedDepartCubit.select(depart);
+    final cubit = ManifesteCubit(
+      selectedDepartCubit: selectedDepartCubit,
+      syncCubit: syncCubit,
+      repository: repository,
+    );
+    await cubit.stream
+        .firstWhere((ManifesteState s) => s.status == ManifesteStatus.success);
+    cubit.markSeatReleasePending('ticket-1');
+    expect(cubit.state.pendingReleaseTicketUuids, contains('ticket-1'));
+
+    await cubit.markSeatReleaseAccepted(
+        'ticket-1', BoardingStatus.descenduAnticipe);
+
+    expect(cubit.byId('ticket-1')?.statut, BoardingStatus.descenduAnticipe);
+    expect(cubit.state.pendingReleaseTicketUuids, isNot(contains('ticket-1')));
+    verify(() => repository.persistStatusUpdate(
+          departureUuid: depart.id,
+          ticketUuid: 'ticket-1',
+          statut: BoardingStatus.descenduAnticipe,
+        )).called(1);
+  });
+
+  test('markSeatReleasePending ne modifie jamais le statut affiché',
+      () async {
+    when(() => repository.load(depart.id))
+        .thenAnswer((_) async => Result<ManifestSnapshot>.success(
+              snapshotOf(<Passenger>[passenger]),
+            ));
+    selectedDepartCubit.select(depart);
+    final cubit = ManifesteCubit(
+      selectedDepartCubit: selectedDepartCubit,
+      syncCubit: syncCubit,
+      repository: repository,
+    );
+    await cubit.stream
+        .firstWhere((ManifesteState s) => s.status == ManifesteStatus.success);
+
+    cubit.markSeatReleasePending('ticket-1');
+
+    expect(cubit.byId('ticket-1')?.statut, BoardingStatus.enAttente);
+    expect(cubit.state.pendingReleaseTicketUuids, <String>{'ticket-1'});
+  });
+
+  test('markBoardingReversed repasse le passager "en attente" et persiste',
+      () async {
+    const Passenger boarded = Passenger(
+      id: 'ticket-1',
+      nomComplet: 'Aïcha Hounkpé',
+      siege: '12A',
+      statut: BoardingStatus.embarque,
+      segmentOrigine: 'Cotonou',
+      segmentDestination: 'Porto-Novo',
+      ticketId: 'AB12CD',
+      boardingEventUuid: 'event-uuid-1',
+    );
+    when(() => repository.load(depart.id))
+        .thenAnswer((_) async => Result<ManifestSnapshot>.success(
+              snapshotOf(<Passenger>[boarded]),
+            ));
+    selectedDepartCubit.select(depart);
+    final cubit = ManifesteCubit(
+      selectedDepartCubit: selectedDepartCubit,
+      syncCubit: syncCubit,
+      repository: repository,
+    );
+    await cubit.stream
+        .firstWhere((ManifesteState s) => s.status == ManifesteStatus.success);
+
+    await cubit.markBoardingReversed('ticket-1');
+
+    expect(cubit.byId('ticket-1')?.statut, BoardingStatus.enAttente);
+    verify(() => repository.persistStatusUpdate(
+          departureUuid: depart.id,
+          ticketUuid: 'ticket-1',
+          statut: BoardingStatus.enAttente,
+        )).called(1);
   });
 
   test('searchByShortCode filtre localement, sans appel réseau', () async {
@@ -215,7 +315,7 @@ void main() {
         .thenAnswer((_) async => Result<ManifestSnapshot>.success(
               snapshotOf(<Passenger>[passenger]),
             ));
-    await selectedDepartCubit.select(depart);
+    selectedDepartCubit.select(depart);
     final cubit = ManifesteCubit(
       selectedDepartCubit: selectedDepartCubit,
       syncCubit: syncCubit,
@@ -236,7 +336,7 @@ void main() {
           .thenAnswer((_) async => Result<ManifestSnapshot>.success(
                 snapshotOf(<Passenger>[passenger]),
               ));
-      await selectedDepartCubit.select(depart);
+      selectedDepartCubit.select(depart);
       final cubit = ManifesteCubit(
         selectedDepartCubit: selectedDepartCubit,
         syncCubit: syncCubit,
@@ -264,7 +364,7 @@ void main() {
                 snapshotOf(<Passenger>[autrePassenger]),
               ));
 
-      await selectedDepartCubit.select(depart);
+      selectedDepartCubit.select(depart);
       final cubit = ManifesteCubit(
         selectedDepartCubit: selectedDepartCubit,
         syncCubit: syncCubit,
@@ -274,7 +374,7 @@ void main() {
           (ManifesteState s) => s.status == ManifesteStatus.success);
       expect(cubit.state.passengers.single.id, 'ticket-1');
 
-      await selectedDepartCubit.select(autreDepart);
+      selectedDepartCubit.select(autreDepart);
       await cubit.stream.firstWhere((ManifesteState s) =>
           s.status == ManifesteStatus.success &&
           s.passengers.any((p) => p.id == 'ticket-2'));

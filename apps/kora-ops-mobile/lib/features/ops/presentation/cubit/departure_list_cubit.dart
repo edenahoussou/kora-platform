@@ -18,7 +18,8 @@ class DepartureListCubit extends Cubit<DepartureListState> {
   Future<void> load({String? date, String? status}) async {
     emit(state.copyWith(status: DepartureListStatus.loading));
 
-    final result = await _repository.listAssigned(date: date, status: status);
+    final result =
+        await _repository.listAssigned(date: date, status: status);
     result.when(
       onSuccess: (departs) => emit(state.copyWith(
         status: departs.isEmpty

@@ -64,6 +64,11 @@ class ManifesteCubit extends Cubit<ManifesteState> {
         fetchedAt: snapshot.fetchedAt,
         isStale: snapshot.isStale,
         isFromCache: snapshot.isFromCache,
+        // Un rafraîchissement complet fait foi : les indicateurs "en
+        // attente de sync" purement locaux n'ont plus lieu d'être — le
+        // vrai statut serveur (ou, à défaut, l'état persistant de la
+        // file — voir SyncStatusBanner) prend le relai.
+        pendingReleaseTicketUuids: const <String>{},
       )),
       onFailure: (Failure failure) => emit(state.copyWith(
           status: ManifesteStatus.error, errorMessage: failure.message)),
@@ -95,13 +100,15 @@ class ManifesteCubit extends Cubit<ManifesteState> {
   /// Reflète localement un embarquement déjà validé par `BoardingRepository`
   /// (voir `ScanBoardingCubit`) — met à jour l'affichage et le compteur
   /// sans attendre le rafraîchissement complet du manifeste (critère
-  /// d'acceptation MEZ-91). Contrairement à [updateStatut], n'enfile rien
-  /// dans `SyncCubit` : la synchronisation de cette opération est déjà
-  /// suivie dans `boarding_operations` (sqlite) par `BoardingRepository`,
-  /// pas dans la file mock de `SyncCubit` — ne rien afficher en double.
-  /// Silencieux si [ticketUuid] n'est pas dans le manifeste en cache (ex.
-  /// scan accepté hors ligne, manifeste pas encore rafraîchi).
-  void markBoarded(String ticketUuid) {
+  /// d'acceptation MEZ-91), et persiste ce statut dans le cache local
+  /// (restaurable après un redémarrage à froid — MEZ-87). Contrairement à
+  /// [updateStatut], n'enfile rien dans `SyncCubit` : la synchronisation
+  /// de cette opération est déjà suivie dans `boarding_operations`
+  /// (sqlite) par `BoardingRepository`, pas dans la file mock de
+  /// `SyncCubit` — ne rien afficher en double. Silencieux si
+  /// [ticketUuid] n'est pas dans le manifeste en cache (ex. scan accepté
+  /// hors ligne, manifeste pas encore rafraîchi).
+  Future<void> markBoarded(String ticketUuid) async {
     final bool exists =
         state.passengers.any((Passenger p) => p.id == ticketUuid);
     if (!exists) return;
@@ -113,6 +120,88 @@ class ManifesteCubit extends Cubit<ManifesteState> {
               : p)
           .toList(),
     ));
+
+    final Depart? depart = _depart;
+    if (depart != null) {
+      await _repository.persistStatusUpdate(
+        departureUuid: depart.id,
+        ticketUuid: ticketUuid,
+        statut: BoardingStatus.embarque,
+      );
+    }
+  }
+
+  /// Reflète localement une libération de siège **acceptée** par le
+  /// serveur (descente anticipée ou no-show — voir `SeatReleaseRepository`)
+  /// et persiste ce statut (MEZ-87, restaurable après redémarrage à
+  /// froid). N'appeler que pour un résultat `accepted` — jamais pour
+  /// `pendingSync`/`conflict`/`rejected` : afficher "libéré" avant
+  /// acceptation serveur violerait le critère d'acceptation MEZ-87
+  /// "empêcher une nouvelle vente locale fondée sur une libération non
+  /// acceptée" (voir [markSeatReleasePending] pour le cas hors ligne).
+  Future<void> markSeatReleaseAccepted(
+      String ticketUuid, BoardingStatus statut) async {
+    final bool exists =
+        state.passengers.any((Passenger p) => p.id == ticketUuid);
+    if (!exists) return;
+
+    final Set<String> stillPending =
+        Set<String>.of(state.pendingReleaseTicketUuids)..remove(ticketUuid);
+    emit(state.copyWith(
+      passengers: state.passengers
+          .map((Passenger p) =>
+              p.id == ticketUuid ? p.copyWith(statut: statut) : p)
+          .toList(),
+      pendingReleaseTicketUuids: stillPending,
+    ));
+
+    final Depart? depart = _depart;
+    if (depart != null) {
+      await _repository.persistStatusUpdate(
+        departureUuid: depart.id,
+        ticketUuid: ticketUuid,
+        statut: statut,
+      );
+    }
+  }
+
+  /// Signale une libération de siège enregistrée hors ligne, en attente
+  /// de synchronisation — n'altère jamais [Passenger.statut] (voir
+  /// docstring [markSeatReleaseAccepted]), seulement un indicateur visuel
+  /// sur la ligne du manifeste (voir `ManifestePage`, badge "en attente
+  /// de sync").
+  void markSeatReleasePending(String ticketUuid) {
+    emit(state.copyWith(
+      pendingReleaseTicketUuids:
+          Set<String>.of(state.pendingReleaseTicketUuids)..add(ticketUuid),
+    ));
+  }
+
+  /// Reflète localement une annulation exceptionnelle d'embarquement
+  /// (voir `BoardingRepository.reverse`) : le passager redevient "en
+  /// attente" (le segment repasse "ticketed" côté serveur — voir
+  /// `ReverseBoardingEventAction` — donc de nouveau scannable).
+  Future<void> markBoardingReversed(String ticketUuid) async {
+    final bool exists =
+        state.passengers.any((Passenger p) => p.id == ticketUuid);
+    if (!exists) return;
+
+    emit(state.copyWith(
+      passengers: state.passengers
+          .map((Passenger p) => p.id == ticketUuid
+              ? p.copyWith(statut: BoardingStatus.enAttente)
+              : p)
+          .toList(),
+    ));
+
+    final Depart? depart = _depart;
+    if (depart != null) {
+      await _repository.persistStatusUpdate(
+        departureUuid: depart.id,
+        ticketUuid: ticketUuid,
+        statut: BoardingStatus.enAttente,
+      );
+    }
   }
 
   Passenger? byId(String id) {

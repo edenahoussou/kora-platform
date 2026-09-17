@@ -150,7 +150,7 @@ class SynchroPage extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: AppSpacing.sm),
-                  if (state.pendingBoardingCount > 0)
+                  if (state.pendingOperationsCount > 0)
                     KoraCard(
                       padding: const EdgeInsets.symmetric(
                           horizontal: AppSpacing.md, vertical: AppSpacing.sm),
@@ -161,7 +161,7 @@ class SynchroPage extends StatelessWidget {
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: Text(
-                              '${state.pendingBoardingCount} embarquement(s) en '
+                              '${state.pendingOperationsCount} opération(s) en '
                               'attente de synchronisation',
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),

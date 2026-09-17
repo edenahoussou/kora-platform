@@ -30,6 +30,15 @@ abstract class BoardingRemoteDataSource {
     required String operationUuid,
     required DateTime localRecordedAt,
   });
+
+  /// Annulation exceptionnelle d'un embarquement — voir
+  /// `ReverseBoardingEventAction`. Toujours en ligne, jamais mis en file
+  /// hors ligne (action de correction délibérée, pas un geste terrain
+  /// répété comme le scan) : voir `BoardingRepositoryImpl.reverse`.
+  Future<void> reverse({
+    required String boardingEventUuid,
+    required String reason,
+  });
 }
 
 class BoardingRemoteDataSourceImpl implements BoardingRemoteDataSource {
@@ -74,6 +83,28 @@ class BoardingRemoteDataSourceImpl implements BoardingRemoteDataSource {
       throw BoardingApiException(
         code,
         BoardingDtos.errorMessage(error.response?.data) ?? 'Billet inconnu.',
+      );
+    }
+  }
+
+  @override
+  Future<void> reverse({
+    required String boardingEventUuid,
+    required String reason,
+  }) async {
+    try {
+      await _dio.post<dynamic>(
+        ApiConstants.opsBoardingReverse(boardingEventUuid),
+        data: <String, dynamic>{'reason': reason},
+      );
+    } on DioException catch (error) {
+      final code = BoardingDtos.errorCode(error.response?.data);
+      if (code == null) rethrow;
+
+      throw BoardingApiException(
+        code,
+        BoardingDtos.errorMessage(error.response?.data) ??
+            'Impossible d’annuler cet embarquement.',
       );
     }
   }

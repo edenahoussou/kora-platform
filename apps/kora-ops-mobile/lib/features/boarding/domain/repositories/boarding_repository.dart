@@ -54,4 +54,16 @@ abstract class BoardingRepository {
     required BoardingOutcome outcome,
     required DateTime serverRecordedAt,
   });
+
+  /// Annulation exceptionnelle d'un embarquement (permission
+  /// `boarding.reverse`, distincte de `boarding.scan` — voir
+  /// `BoardingEventPolicy`). Toujours en ligne : contrairement au scan,
+  /// ce n'est jamais mis en file hors ligne — une correction
+  /// exceptionnelle se refait quand le réseau revient plutôt que de
+  /// rester en attente silencieuse. [reason] : 5 à 500 caractères
+  /// (validation serveur).
+  Future<Result<Null>> reverse({
+    required String boardingEventUuid,
+    required String reason,
+  });
 }

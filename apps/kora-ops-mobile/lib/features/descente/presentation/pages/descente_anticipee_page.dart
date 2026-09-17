@@ -6,53 +6,45 @@ import '../../../../core/widgets/kora_card.dart';
 import '../../../../core/widgets/kora_skeleton.dart';
 import '../../../../core/widgets/main_app_bar.dart';
 import '../../../../core/widgets/seat_map.dart';
-import '../../../ops/data/mock_ops_data_source.dart';
+import '../../../manifeste/presentation/cubit/manifeste_cubit.dart';
 import '../../../ops/domain/entities/depart.dart';
+import '../../../ops/domain/entities/passenger.dart';
 import '../../../ops/domain/entities/seat.dart';
 import '../../../ops/presentation/cubit/selected_depart_cubit.dart';
 import '../../../synchro/presentation/widgets/sync_status_banner.dart';
 
-/// Onglet Descente anticipée : sièges libérés sur les segments suivants du
-/// départ courant, sous forme de plan de bus (`SeatMap`).
-class DescenteAnticipeePage extends StatefulWidget {
+/// Onglet Descente anticipée : plan de bus du départ courant, sièges
+/// libérés (descente anticipée acceptée ou billet refusé/no-show) en
+/// vert — source de données réelle depuis MEZ-87 (`ManifesteCubit`,
+/// déjà chargé pour ce départ, aucun rechargement séparé nécessaire).
+///
+/// Simplification assumée : contrairement à l'ancienne version mockée,
+/// on ne distingue plus "se libère bientôt à tel arrêt" (orange) — cette
+/// donnée (arrêt réel d'une descente anticipée) n'est pas conservée sur
+/// `Passenger` aujourd'hui, seul le statut final l'est. Un siège est donc
+/// soit occupé, soit déjà libéré.
+class DescenteAnticipeePage extends StatelessWidget {
   const DescenteAnticipeePage({super.key});
 
-  @override
-  State<DescenteAnticipeePage> createState() => _DescenteAnticipeePageState();
-}
+  List<Seat> _seatsFromManifest(List<Passenger> passengers) {
+    final List<Passenger> sorted = List<Passenger>.of(passengers)
+      ..sort((Passenger a, Passenger b) => a.siege.compareTo(b.siege));
 
-class _DescenteAnticipeePageState extends State<DescenteAnticipeePage> {
-  bool _loading = true;
-  List<Seat> _seats = <Seat>[];
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final Depart? depart = context.read<SelectedDepartCubit>().state;
-    if (depart == null) {
-      setState(() => _loading = false);
-      return;
-    }
-    setState(() => _loading = true);
-    await Future<void>.delayed(const Duration(milliseconds: 600));
-    if (!mounted) return;
-    setState(() {
-      _seats = MockOpsDataSource.seatsFor(depart.id);
-      _loading = false;
-    });
+    return sorted.map((Passenger p) {
+      final bool freed = p.statut == BoardingStatus.refuse ||
+          p.statut == BoardingStatus.descenduAnticipe;
+      return Seat(
+        numero: p.siege,
+        statut: freed ? SeatStatus.libere : SeatStatus.occupe,
+        passengerName: freed ? null : p.nomComplet,
+      );
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     final Depart? depart = context.watch<SelectedDepartCubit>().state;
-    final List<Seat> liberes = _seats
-        .where((Seat s) =>
-            s.libereAPartirDe != null || s.statut == SeatStatus.libere)
-        .toList();
+    final ManifesteState manifesteState = context.watch<ManifesteCubit>().state;
 
     return Scaffold(
       appBar: const MainAppBar(eyebrow: 'Gestion', title: 'Descente anticipée'),
@@ -71,30 +63,54 @@ class _DescenteAnticipeePageState extends State<DescenteAnticipeePage> {
                         message:
                             'Sélectionnez un départ à gérer pour voir les places libérées.',
                       )
-                    : _loading
-                        ? const SkeletonCard(height: 260)
-                        : RefreshIndicator(
-                            onRefresh: _load,
-                            child: ListView(
-                              children: <Widget>[
-                                Text(depart.route,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium),
-                                const SizedBox(height: AppSpacing.md),
-                                KoraCard(child: SeatMap(seats: _seats)),
-                                const SizedBox(height: AppSpacing.lg),
-                                Text(
-                                  '${liberes.length} place(s) concernée(s) par une descente anticipée',
-                                  style: Theme.of(context).textTheme.bodyMedium,
-                                ),
-                              ],
-                            ),
+                    : switch (manifesteState.status) {
+                        ManifesteStatus.loading =>
+                          const SkeletonCard(height: 260),
+                        ManifesteStatus.error => AppStatePlaceholder.error(
+                            message: manifesteState.errorMessage ??
+                                'Erreur inattendue.',
+                            actionLabel: 'Réessayer',
+                            onAction: () =>
+                                context.read<ManifesteCubit>().load(),
                           ),
+                        _ => _SeatMapView(
+                            depart: depart,
+                            seats: _seatsFromManifest(manifesteState.passengers),
+                          ),
+                      },
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _SeatMapView extends StatelessWidget {
+  const _SeatMapView({required this.depart, required this.seats});
+
+  final Depart depart;
+  final List<Seat> seats;
+
+  @override
+  Widget build(BuildContext context) {
+    final int liberes =
+        seats.where((Seat s) => s.statut == SeatStatus.libere).length;
+
+    return RefreshIndicator(
+      onRefresh: () => context.read<ManifesteCubit>().load(),
+      child: ListView(
+        children: <Widget>[
+          Text(depart.route, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: AppSpacing.md),
+          KoraCard(child: SeatMap(seats: seats)),
+          const SizedBox(height: AppSpacing.lg),
+          Text(
+            '$liberes place(s) libérée(s) (descente anticipée ou no-show)',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ],
       ),
     );
   }

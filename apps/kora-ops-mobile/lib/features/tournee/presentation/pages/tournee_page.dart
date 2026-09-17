@@ -95,8 +95,8 @@ class _TourneePageState extends State<TourneePage> {
                     return switch (state.status) {
                       DepartureListStatus.loading =>
                         const SkeletonList(itemCount: 4),
-                      DepartureListStatus.empty =>
-                        const AppStatePlaceholder.empty(
+                      DepartureListStatus.empty => const AppStatePlaceholder
+                          .empty(
                           message:
                               'Aucun départ ne vous est affecté pour le moment.',
                         ),
@@ -114,7 +114,8 @@ class _TourneePageState extends State<TourneePage> {
                           itemBuilder: (BuildContext context, int index) {
                             final Depart depart = state.departs[index];
                             final bool isSelected = depart.id == current?.id;
-                            final bool isSelecting = _selectingId == depart.id;
+                            final bool isSelecting =
+                                _selectingId == depart.id;
 
                             return KoraCard(
                               variant: isSelected
@@ -155,7 +156,8 @@ class _TourneePageState extends State<TourneePage> {
                                             color: isSelected
                                                 ? AppColors.onGold
                                                     .withValues(alpha: 0.7)
-                                                : context.koraColors.textMuted,
+                                                : context
+                                                    .koraColors.textMuted,
                                             fontSize: 12,
                                           ),
                                         ),

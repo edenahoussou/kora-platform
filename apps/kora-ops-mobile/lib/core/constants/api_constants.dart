@@ -37,4 +37,9 @@ abstract final class ApiConstants {
   static const String opsSyncManifestVersions =
       '$_v1/ops/sync/manifest-versions';
   static const String opsSyncBatches = '$_v1/ops/sync/batches';
+
+  // OPS Mobile — descente anticipée et no-show (MEZ-87).
+  static const String opsSeatReleases = '$_v1/ops/seat-releases';
+  static const String opsSeatReleasesNoShowClosure =
+      '$_v1/ops/seat-releases/no-show-closure';
 }
