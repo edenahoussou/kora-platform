@@ -201,6 +201,7 @@ export default function AgenciesPage({
                                     variant="ghost"
                                     size="icon"
                                     aria-label={`Actions pour ${agency.name}`}
+                                    onClick={(event) => event.stopPropagation()}
                                 >
                                     <MoreHorizontal className="size-4" />
                                 </Button>
@@ -300,6 +301,9 @@ export default function AgenciesPage({
                 columns={columns}
                 data={agencies.data}
                 rowKey={(agency) => agency.uuid}
+                onRowClick={(agency) =>
+                    router.visit(agencyRoutes.show.url({ agency: agency.uuid }))
+                }
                 emptyTitle="Aucune agence trouvée"
                 emptyMessage="Ajustez votre recherche ou créez la première agence du référentiel."
                 emptyIcon={Building2}

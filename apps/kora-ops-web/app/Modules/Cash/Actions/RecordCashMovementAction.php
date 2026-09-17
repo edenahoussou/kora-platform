@@ -6,9 +6,12 @@ use App\Models\User;
 use App\Modules\Cash\Data\CashLedgerStatus;
 use App\Modules\Cash\Data\CashMovementDirection;
 use App\Modules\Cash\Data\CashMovementStatus;
+use App\Modules\Cash\Data\CashRegisterKind;
+use App\Modules\Cash\Data\CashRegisterStatus;
 use App\Modules\Cash\Data\CashSessionStatus;
 use App\Modules\Cash\Models\CashLedger;
 use App\Modules\Cash\Models\CashMovement;
+use App\Modules\Cash\Models\CashRegister;
 use App\Modules\Cash\Models\CashSession;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -50,9 +53,34 @@ class RecordCashMovementAction
                 ]);
             }
 
+            $register = $session->cashRegister;
+            if (! $register instanceof CashRegister) {
+                $register = CashRegister::query()->firstOrCreate(
+                    [
+                        'agency_id' => $session->agency_id,
+                        'code' => 'LEGACY-SESSION-'.$session->getKey(),
+                    ],
+                    [
+                        'label' => 'Caisse historique de '.$session->agent?->name,
+                        'kind' => CashRegisterKind::Counter,
+                        'status' => CashRegisterStatus::Active,
+                    ],
+                );
+                $session->update(['cash_register_id' => $register->getKey()]);
+            }
+            if ((int) $ledger->expected_balance - (int) $ledger->movements()
+                ->where('status', CashMovementStatus::Pending->value)
+                ->where('direction', CashMovementDirection::Out->value)
+                ->sum('amount') < (int) $attributes['amount']) {
+                throw ValidationException::withMessages([
+                    'amount' => 'Le solde disponible est insuffisant pour cette sortie.',
+                ]);
+            }
+
             $movement = CashMovement::query()->create([
                 'cash_session_id' => $session->getKey(),
                 'cash_ledger_id' => $ledger->getKey(),
+                'cash_register_id' => $register->getKey(),
                 'type' => $attributes['type'],
                 'direction' => CashMovementDirection::Out,
                 'status' => CashMovementStatus::Pending,

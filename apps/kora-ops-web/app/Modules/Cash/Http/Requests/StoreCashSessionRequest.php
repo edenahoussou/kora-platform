@@ -22,6 +22,7 @@ class StoreCashSessionRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'cash_register_uuid' => ['nullable', 'uuid'],
             'ledgers' => ['required', 'array', 'min:1'],
             'ledgers.*.kind' => ['required', 'string', 'in:cash,mobile_money'],
             'ledgers.*.account_uuid' => ['nullable', 'uuid'],
@@ -41,7 +42,7 @@ class StoreCashSessionRequest extends FormRequest
         ];
     }
 
-    /** @return list<array{kind: string, account_uuid: string|null, opening_balance: int, opening_comment: string|null, evidence: UploadedFile, evidence_captured_at: string}> */
+    /** @return array{cash_register_uuid: string|null, ledgers: list<array{kind: string, account_uuid: string|null, opening_balance: int, opening_comment: string|null, evidence: UploadedFile, evidence_captured_at: string}>} */
     public function ledgerData(): array
     {
         $data = $this->validated();
@@ -60,7 +61,10 @@ class StoreCashSessionRequest extends FormRequest
             ];
         }
 
-        return $result;
+        return [
+            'cash_register_uuid' => isset($data['cash_register_uuid']) ? (string) $data['cash_register_uuid'] : null,
+            'ledgers' => $result,
+        ];
     }
 
     private function evidenceFor(string $key): UploadedFile

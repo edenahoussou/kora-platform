@@ -36,6 +36,7 @@ use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\BusNetwork\Services\BusCatalogService;
 use App\Modules\Cash\Data\CashLedgerKind;
 use App\Modules\Cash\Data\CashSessionStatus;
+use App\Modules\Cash\Models\CashRegister;
 use App\Modules\Cash\Models\CashSession;
 use App\Modules\CompanyAccounts\Services\CompanyAccountCatalogService;
 use App\Modules\Departures\Models\Departure;
@@ -1068,7 +1069,7 @@ class CounterSaleController extends Controller
         ];
     }
 
-    /** @return array{isOpen: bool, canOpen: bool, uuid: string|null, businessDate: string|null, totalCash: int, totalMobileMoney: int} */
+    /** @return array{isOpen: bool, canOpen: bool, uuid: string|null, businessDate: string|null, totalCash: int, totalMobileMoney: int, cashRegisters: array<int, array{uuid: string, code: string, label: string}>} */
     private function serializeCashSession(): array
     {
         $session = $this->resolveOpenCashSession();
@@ -1081,6 +1082,7 @@ class CounterSaleController extends Controller
             'status' => $session?->status->value,
             'totalCash' => $session === null ? 0 : (int) $session->total_cash,
             'totalMobileMoney' => $session === null ? 0 : (int) $session->total_mobile_money,
+            'cashRegisters' => $this->serializeCashRegisters(),
             'ledgers' => $session === null ? [] : $session->ledgers->map(fn ($ledger): array => [
                 'uuid' => $ledger->uuid,
                 'kind' => $ledger->kind->value,
@@ -1094,6 +1096,33 @@ class CounterSaleController extends Controller
                 'accountIdentifier' => $ledger->agencyPaymentAccount ? $this->maskAccountIdentifier($ledger->agencyPaymentAccount->account_identifier) : null,
             ])->values()->all(),
         ];
+    }
+
+    /** @return array<int, array{uuid: string, code: string, label: string}> */
+    private function serializeCashRegisters(): array
+    {
+        $user = auth()->user();
+        if ($user?->agency_id === null) {
+            return [];
+        }
+
+        return CashRegister::query()
+            ->where('agency_id', $user->agency_id)
+            ->where('kind', 'counter')
+            ->where('status', 'active')
+            ->where(function ($query) use ($user): void {
+                $query->whereDoesntHave('authorizedUsers')
+                    ->orWhereHas('authorizedUsers', fn ($users) => $users->whereKey($user->getKey()));
+            })
+            ->orderBy('code')
+            ->get()
+            ->map(fn (CashRegister $register): array => [
+                'uuid' => $register->uuid,
+                'code' => $register->code,
+                'label' => $register->label,
+            ])
+            ->values()
+            ->all();
     }
 
     private function resolveOpenCashSession(): ?CashSession

@@ -38,6 +38,12 @@ beforeEach(function (): void {
     ]);
     // Désactive le délai anti-blocage de 30-60s pour ne pas ralentir les tests.
     config(['services.waha.new_contact_delay_seconds' => 0]);
+
+    // La génération PDF est couverte séparément ; ces tests vérifient le
+    // routage et la persistance des livraisons sans lancer Chromium.
+    $this->mock(GenerateTicketPdfAction::class)
+        ->shouldReceive('execute')
+        ->andReturn(['content' => '%PDF-test', 'filename' => 'billet-test.pdf']);
 });
 
 afterEach(function (): void {

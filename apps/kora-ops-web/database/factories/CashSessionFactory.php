@@ -27,6 +27,7 @@ class CashSessionFactory extends Factory
         return [
             'agent_id' => User::factory(),
             'agency_id' => Agency::factory(),
+            'cash_register_id' => null,
             'business_date' => now()->toDateString(),
             'opening_float' => $openingFloat,
             'total_cash' => 0,

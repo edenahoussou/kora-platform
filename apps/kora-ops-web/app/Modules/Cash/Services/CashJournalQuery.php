@@ -21,7 +21,7 @@ class CashJournalQuery
             ->where('agent_id', $user->getKey())
             ->where('agency_id', $user->agency_id)
             ->whereDate('business_date', now()->toDateString())
-            ->with(['agent', 'agency', 'ledgers' => fn ($query) => $query
+            ->with(['agent', 'agency', 'cashRegister', 'ledgers' => fn ($query) => $query
                 ->with(['agencyPaymentAccount', 'media'])
                 ->withCount('movements')
                 ->withSum(['movements as inflows' => fn ($movements) => $movements->whereIn('status', ['posted', 'approved'])->where('direction', 'in')], 'amount')

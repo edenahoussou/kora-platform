@@ -5,8 +5,11 @@ namespace App\Modules\Cash\Actions;
 use App\Models\User;
 use App\Modules\Cash\Data\CashLedgerKind;
 use App\Modules\Cash\Data\CashLedgerStatus;
+use App\Modules\Cash\Data\CashRegisterKind;
+use App\Modules\Cash\Data\CashRegisterStatus;
 use App\Modules\Cash\Data\CashSessionStatus;
 use App\Modules\Cash\Models\CashLedger;
+use App\Modules\Cash\Models\CashRegister;
 use App\Modules\Cash\Models\CashSession;
 use App\Modules\Payments\Models\AgencyPaymentAccount;
 use Illuminate\Support\Facades\DB;
@@ -16,9 +19,9 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 class OpenCashSessionAction
 {
     /**
-     * @param  list<array{kind: string, account_uuid: string|null, opening_balance: int, opening_comment?: string|null, evidence: UploadedFile, evidence_captured_at?: string}>  $ledgers
+     * @param  array{cash_register_uuid: string|null, ledgers: list<array{kind: string, account_uuid: string|null, opening_balance: int, opening_comment?: string|null, evidence: UploadedFile, evidence_captured_at?: string}>}  $attributes
      */
-    public function execute(User $agent, array $ledgers): CashSession
+    public function execute(User $agent, array $attributes): CashSession
     {
         if ($agent->agency_id === null) {
             throw ValidationException::withMessages([
@@ -26,17 +29,33 @@ class OpenCashSessionAction
             ]);
         }
 
-        return DB::transaction(function () use ($agent, $ledgers): CashSession {
-            $existing = CashSession::query()
+        return DB::transaction(function () use ($agent, $attributes): CashSession {
+            $ledgers = $attributes['ledgers'];
+            $register = $this->resolveRegister($agent, $attributes['cash_register_uuid']);
+
+            $existingForAgent = CashSession::query()
                 ->where('agent_id', $agent->getKey())
                 ->where('agency_id', $agent->agency_id)
                 ->whereDate('business_date', now()->toDateString())
+                ->where('status', CashSessionStatus::Open->value)
                 ->lockForUpdate()
                 ->first();
 
-            if ($existing !== null) {
+            if ($existingForAgent !== null) {
                 throw ValidationException::withMessages([
-                    'cash_session' => 'Une caisse existe déjà pour cet agent et cette date.',
+                    'cash_session' => 'Cet agent possède déjà une session de caisse ouverte.',
+                ]);
+            }
+
+            $existingForRegister = CashSession::query()
+                ->where('cash_register_id', $register->getKey())
+                ->where('status', CashSessionStatus::Open->value)
+                ->lockForUpdate()
+                ->first();
+
+            if ($existingForRegister !== null) {
+                throw ValidationException::withMessages([
+                    'cash_register_uuid' => 'Cette caisse possède déjà une session ouverte.',
                 ]);
             }
 
@@ -67,6 +86,7 @@ class OpenCashSessionAction
             $session = CashSession::query()->create([
                 'agent_id' => $agent->getKey(),
                 'agency_id' => $agent->agency_id,
+                'cash_register_id' => $register->getKey(),
                 'business_date' => now()->toDateString(),
                 'opening_float' => (int) $cashLedger['opening_balance'],
                 'expected_balance' => (int) $cashLedger['opening_balance'],
@@ -90,11 +110,57 @@ class OpenCashSessionAction
                 ->withProperties([
                     'cash_session_uuid' => $session->uuid,
                     'ledger_count' => $session->ledgers()->count(),
+                    'cash_register_uuid' => $register->uuid,
                 ])
                 ->log('Session de caisse ouverte');
 
             return $session->load('ledgers.agencyPaymentAccount');
         });
+    }
+
+    private function resolveRegister(User $agent, ?string $registerUuid): CashRegister
+    {
+        $query = CashRegister::query()
+            ->where('agency_id', $agent->agency_id)
+            ->where('kind', CashRegisterKind::Counter->value)
+            ->where('status', CashRegisterStatus::Active->value);
+
+        if ($registerUuid !== null && $registerUuid !== '') {
+            $register = (clone $query)->where('uuid', $registerUuid)->first();
+        } else {
+            $register = (clone $query)
+                ->whereHas('authorizedUsers', fn ($users) => $users->whereKey($agent->getKey()))
+                ->orderBy('id')
+                ->first() ?? (clone $query)->orderBy('id')->first();
+        }
+
+        if (! $register instanceof CashRegister && ($registerUuid === null || $registerUuid === '')) {
+            $register = CashRegister::query()->firstOrCreate(
+                [
+                    'agency_id' => $agent->agency_id,
+                    'code' => 'LEGACY-'.$agent->getKey(),
+                ],
+                [
+                    'label' => 'Caisse historique de '.$agent->name,
+                    'kind' => CashRegisterKind::Counter,
+                    'status' => CashRegisterStatus::Active,
+                ],
+            );
+        }
+
+        if (! $register instanceof CashRegister) {
+            throw ValidationException::withMessages([
+                'cash_register_uuid' => 'Aucune caisse guichet active n’est disponible pour cette agence.',
+            ]);
+        }
+
+        if ($register->authorizedUsers()->exists() && ! $register->authorizedUsers()->whereKey($agent->getKey())->exists()) {
+            throw ValidationException::withMessages([
+                'cash_register_uuid' => 'Vous n’êtes pas autorisé à ouvrir cette caisse.',
+            ]);
+        }
+
+        return $register;
     }
 
     /**

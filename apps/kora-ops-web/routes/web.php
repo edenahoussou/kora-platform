@@ -62,6 +62,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('cash/movements', [CashSessionController::class, 'storeMovement'])->name('cash.movements.store');
     Route::post('cash/movements/{movement:uuid}/approve', [CashSessionController::class, 'approveMovement'])->name('cash.movements.approve');
     Route::post('cash/movements/{movement:uuid}/reject', [CashSessionController::class, 'rejectMovement'])->name('cash.movements.reject');
+    Route::post('cash/transfers', [CashSessionController::class, 'storeTransfer'])->name('cash.transfers.store');
+    Route::post('cash/transfers/{cashTransfer:uuid}/approve', [CashSessionController::class, 'approveTransfer'])->name('cash.transfers.approve');
+    Route::post('cash/transfers/{cashTransfer:uuid}/reject', [CashSessionController::class, 'rejectTransfer'])->name('cash.transfers.reject');
     Route::get('cash/media/{mediaUuid}', [CashMediaController::class, 'show'])->name('cash.media');
 
     // V1 MVP — Départs (CRUD)
@@ -145,11 +148,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // V1 MVP — Agences (Ressources — référentiel parent de la flotte et des utilisateurs)
     Route::get('agencies', [AgencyController::class, 'index'])->name('agencies.index');
+    Route::get('agencies/{agency:uuid}', [AgencyController::class, 'show'])->name('agencies.show');
     Route::post('agencies', [AgencyController::class, 'store'])->name('agencies.store');
     Route::put('agencies/{agency:uuid}', [AgencyController::class, 'update'])->name('agencies.update');
     Route::patch('agencies/{agency:uuid}/status', [AgencyController::class, 'changeStatus'])->name('agencies.status');
     Route::post('agencies/{agency:uuid}/payment-accounts', [AgencyPaymentAccountController::class, 'store'])->name('agencies.payment-accounts.store');
     Route::patch('agencies/{agency:uuid}/payment-accounts/{account:uuid}/status', [AgencyPaymentAccountController::class, 'changeStatus'])->name('agencies.payment-accounts.status');
+    Route::post('agencies/{agency:uuid}/cash-registers', [AgencyController::class, 'storeCashRegister'])->name('agencies.cash-registers.store');
+    Route::put('cash-registers/{cashRegister:uuid}', [AgencyController::class, 'updateCashRegister'])->name('agencies.cash-registers.update');
+    Route::patch('cash-registers/{cashRegister:uuid}/status', [AgencyController::class, 'changeCashRegisterStatus'])->name('agencies.cash-registers.status');
 
     // Terminaux P501 — services/endpoints backend (MEZ-XX). L'écran
     // d'administration lui-même (page "terminals" ci-dessous, toujours en
