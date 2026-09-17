@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CompanyAccountWebController;
 use App\Http\Controllers\FiscalizationController;
 use App\Modules\Booking\Http\Controllers\CounterSaleController;
 use App\Modules\BusNetwork\Http\Controllers\BusAmenityController;
@@ -229,7 +230,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('commissions', $comingSoon('Commissions', 'Contrôlez les commissions calculées sur les opérations éligibles.', 'Réseau commercial — V2'))->name('commissions');
     Route::get('settlements', $comingSoon('Reversements', 'Rapprochez et validez les reversements du réseau.', 'Réseau commercial — V2'))->name('settlements');
     Route::get('promotions', $comingSoon('Promotions', 'Configurez les offres et codes promotionnels applicables aux nouvelles ventes.', 'Réseau commercial — V2'))->name('promotions');
-    Route::get('companies', $comingSoon('Comptes entreprise', 'Gérez les plafonds de crédit, référents, factures et déplacements des organisations.', 'Réseau commercial — V2'))->name('companies');
+    Route::prefix('companies')->name('companies.')->group(function (): void {
+        Route::get('/', [CompanyAccountWebController::class, 'index'])->name('index');
+        Route::post('/', [CompanyAccountWebController::class, 'store'])->name('store');
+        Route::put('{companyAccount:uuid}', [CompanyAccountWebController::class, 'update'])->name('update');
+        Route::patch('{companyAccount:uuid}/status', [CompanyAccountWebController::class, 'changeStatus'])->name('status');
+        Route::post('{companyAccount:uuid}/members', [CompanyAccountWebController::class, 'addMember'])->name('members.store');
+    });
 
     // Ressources — V2 (sauf fleet qui est V1)
     Route::get('resources', $comingSoon('Ressources', 'Pilotez la disponibilité et les affectations des véhicules.', 'Ressources — V2'))->name('resources');
