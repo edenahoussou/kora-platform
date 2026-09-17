@@ -91,6 +91,22 @@ export function AgencyFormDialog({
             return;
         }
 
+        const activeAccount = agency.paymentAccounts.find(
+            (account) =>
+                account.network === accountNetwork &&
+                account.status === 'active',
+        );
+        const replaceAccountUuid = activeAccount?.uuid;
+
+        if (
+            activeAccount &&
+            !window.confirm(
+                `${activeAccount.label} est déjà actif pour ce réseau. Le nouveau compte le remplacera. Continuer ?`,
+            )
+        ) {
+            return;
+        }
+
         setAccountProcessing(true);
         router.post(
             agencies.paymentAccounts.store.url({ agency: agency.uuid }),
@@ -98,6 +114,7 @@ export function AgencyFormDialog({
                 network: accountNetwork,
                 label: accountLabel,
                 account_identifier: accountIdentifier,
+                replace_account_uuid: replaceAccountUuid,
             },
             {
                 preserveScroll: true,
@@ -107,6 +124,51 @@ export function AgencyFormDialog({
                     setAccountIdentifier('');
                 },
             },
+        );
+    };
+
+    const toggleAccountStatus = (account: AgencyPaymentAccountRecord) => {
+        const nextStatus = account.status === 'active' ? 'inactive' : 'active';
+        const activeAccount = agency?.paymentAccounts.find(
+            (candidate) =>
+                candidate.network === account.network &&
+                candidate.status === 'active',
+        );
+        let replaceAccountUuid: string | undefined;
+
+        if (
+            nextStatus === 'inactive' &&
+            !window.confirm(`Désactiver ${account.label} ?`)
+        ) {
+            return;
+        }
+
+        if (
+            nextStatus === 'active' &&
+            activeAccount &&
+            activeAccount.uuid !== account.uuid
+        ) {
+            if (
+                !window.confirm(
+                    `${account.label} remplacera ${activeAccount.label} comme compte actif. Continuer ?`,
+                )
+            ) {
+                return;
+            }
+
+            replaceAccountUuid = activeAccount.uuid;
+        }
+
+        router.patch(
+            agencies.paymentAccounts.status.url({
+                agency: agency!.uuid,
+                account: account.uuid,
+            }),
+            {
+                status: nextStatus,
+                replace_account_uuid: replaceAccountUuid,
+            },
+            { preserveScroll: true },
         );
     };
 
@@ -335,28 +397,7 @@ export function AgencyFormDialog({
                                                                     type="button"
                                                                     className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
                                                                     aria-label={`${account.status === 'active' ? 'Désactiver' : 'Activer'} ${account.label}`}
-                                                                    onClick={() =>
-                                                                        router.patch(
-                                                                            agencies.paymentAccounts.status.url(
-                                                                                {
-                                                                                    agency: agency!
-                                                                                        .uuid,
-                                                                                    account:
-                                                                                        account.uuid,
-                                                                                },
-                                                                            ),
-                                                                            {
-                                                                                status:
-                                                                                    account.status ===
-                                                                                    'active'
-                                                                                        ? 'inactive'
-                                                                                        : 'active',
-                                                                            },
-                                                                            {
-                                                                                preserveScroll: true,
-                                                                            },
-                                                                        )
-                                                                    }
+                                                                    onClick={() => toggleAccountStatus(account)}
                                                                 >
                                                                     <Power className="size-3.5" />
                                                                 </button>
