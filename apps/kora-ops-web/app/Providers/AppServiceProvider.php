@@ -13,7 +13,10 @@ use App\Modules\Cash\Models\CashSession;
 use App\Modules\CompanyAccounts\Models\CompanyAccount;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Models\Fare;
+use App\Modules\Expenses\Models\Expense;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
+use App\Modules\Fiscalization\Services\DatabaseFiscalSyncAttemptRecorder;
+use App\Modules\Fiscalization\Services\FiscalSyncAttemptRecorder;
 use App\Modules\IdentityAccess\Contracts\PassengerIdentityResolver;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\IdentityAccess\Models\TerminalP501;
@@ -28,6 +31,7 @@ use App\Policies\BusPolicy;
 use App\Policies\CashSessionPolicy;
 use App\Policies\CompanyAccountPolicy;
 use App\Policies\DeparturePolicy;
+use App\Policies\ExpensePolicy;
 use App\Policies\FarePolicy;
 use App\Policies\FiscalInvoicePolicy;
 use App\Policies\LinePolicy;
@@ -58,6 +62,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->registerPaymentProviders();
         $this->app->bind(PassengerIdentityResolver::class, PhonePassengerIdentityResolver::class);
+        $this->app->bind(FiscalSyncAttemptRecorder::class, DatabaseFiscalSyncAttemptRecorder::class);
     }
 
     /**
@@ -128,6 +133,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Departure::class, DeparturePolicy::class);
         Gate::policy(Fare::class, FarePolicy::class);
         Gate::policy(FiscalInvoice::class, FiscalInvoicePolicy::class);
+        Gate::policy(Expense::class, ExpensePolicy::class);
         Gate::policy(Line::class, LinePolicy::class);
         Gate::policy(Reservation::class, ReservationPolicy::class);
         Gate::policy(CompanyAccount::class, CompanyAccountPolicy::class);

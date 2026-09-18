@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\CompanyAccountWebController;
-use App\Http\Controllers\FiscalizationController;
 use App\Modules\AssistedBooking\Http\Controllers\AssistedBookingController;
 use App\Modules\Booking\Http\Controllers\CounterSaleController;
 use App\Modules\BusNetwork\Http\Controllers\BusAmenityController;
@@ -17,6 +16,8 @@ use App\Modules\DynamicPricing\Http\Controllers\FareController;
 use App\Modules\DynamicPricing\Http\Controllers\PricingRuleController;
 use App\Modules\DynamicPricing\Http\Controllers\PromotionController;
 use App\Modules\DynamicPricing\Http\Controllers\TaxRuleController;
+use App\Modules\Expenses\Http\Controllers\ExpenseController;
+use App\Modules\Fiscalization\Http\Controllers\FiscalInvoiceController;
 use App\Modules\IdentityAccess\Http\Controllers\AgencyController;
 use App\Modules\IdentityAccess\Http\Controllers\TerminalP501Controller;
 use App\Modules\Payments\Http\Controllers\AgencyPaymentAccountController;
@@ -65,7 +66,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('{assistedBooking:uuid}/refuse', [AssistedBookingController::class, 'refuse'])->name('refuse');
         Route::post('{assistedBooking:uuid}/prepare-sale', [AssistedBookingController::class, 'prepareSale'])->name('prepare-sale');
     });
-    Route::post('fiscalization/{fiscalInvoice:uuid}/retry', [FiscalizationController::class, 'retry'])->name('fiscalization.retry');
+    Route::get('fiscal-invoices', [FiscalInvoiceController::class, 'index'])->name('fiscal-invoices.index');
+    Route::get('fiscal-invoices/export', [FiscalInvoiceController::class, 'export'])->name('fiscal-invoices.export');
+    Route::get('fiscal-invoices/{fiscalInvoice:uuid}', [FiscalInvoiceController::class, 'show'])->name('fiscal-invoices.show');
+    Route::post('fiscal-invoices/{fiscalInvoice:uuid}/retry', [FiscalInvoiceController::class, 'retry'])->name('fiscal-invoices.retry');
+    Route::get('expenses', [ExpenseController::class, 'index'])->name('expenses.index');
+    Route::get('expenses/export', [ExpenseController::class, 'export'])->name('expenses.export');
+    Route::post('expenses', [ExpenseController::class, 'store'])->name('expenses.store');
+    Route::get('expenses/{expense:uuid}', [ExpenseController::class, 'show'])->name('expenses.show');
+    Route::post('expenses/{expense:uuid}/approve', [ExpenseController::class, 'approve'])->name('expenses.approve');
+    Route::post('expenses/{expense:uuid}/reject', [ExpenseController::class, 'reject'])->name('expenses.reject');
+    Route::post('expenses/{expense:uuid}/reverse', [ExpenseController::class, 'reverse'])->name('expenses.reverse');
+    Route::get('expenses/{expense:uuid}/media/{mediaUuid}', [ExpenseController::class, 'media'])->name('expenses.media');
     Route::get('cash', [CashSessionController::class, 'index'])->name('cash');
     Route::get('cash/export', [CashSessionController::class, 'export'])->name('cash.export');
     Route::post('cash/open', [CashSessionController::class, 'store'])->name('cash.open');
@@ -265,7 +277,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Finance — V2
     Route::get('finance', $comingSoon('Finance', 'Analysez les encaissements par canal et par activité.', 'Finance — V2'))->name('finance');
     Route::get('revenue', $comingSoon('Recettes consolidées', 'Analysez les encaissements par canal et par activité.', 'Finance — V2'))->name('revenue');
-    Route::get('expenses', $comingSoon('Dépenses opérationnelles', 'Suivez les dépenses et leur circuit de validation.', 'Finance — V2'))->name('expenses');
     Route::get('reconciliation', $comingSoon('Rapprochements', 'Identifiez et traitez les écarts entre les sources.', 'Finance — V2'))->name('reconciliation');
     Route::get('casskai', $comingSoon('CassKai', 'Supervisez les transactions et les rapprochements CassKai.', 'Finance — V2'))->name('casskai');
     Route::get('mecef', $comingSoon('Conformité MECeF', 'Suivez les transmissions et traitez les anomalies fiscales.', 'Finance — V2'))->name('mecef');

@@ -8,7 +8,14 @@ use App\Modules\Payments\Models\Payment;
 use App\Modules\Support\Models\KoraModel;
 use Codianselme\LaraSygmef\Models\EmecfInvoice;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property FiscalInvoiceStatus $status
+ * @property int $total_with_tax
+ * @property Carbon|null $fiscalized_at
+ */
 class FiscalInvoice extends KoraModel
 {
     protected $fillable = [
@@ -52,5 +59,11 @@ class FiscalInvoice extends KoraModel
     public function emecfInvoice(): BelongsTo
     {
         return $this->belongsTo(EmecfInvoice::class);
+    }
+
+    /** @return HasMany<FiscalSyncAttempt, $this> */
+    public function syncAttempts(): HasMany
+    {
+        return $this->hasMany(FiscalSyncAttempt::class);
     }
 }

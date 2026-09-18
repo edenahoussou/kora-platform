@@ -8,6 +8,7 @@ import {
     LayoutDashboard,
     PanelLeftClose,
     PanelLeftOpen,
+    ReceiptText,
     Store,
     Ticket,
     Users,
@@ -64,6 +65,16 @@ const navItems: NavEntry[] = [
         href: '/cash',
         icon: Wallet,
         permission: 'cash.view',
+    },
+    {
+        title: 'Finance',
+        href: '/fiscal-invoices',
+        icon: ReceiptText,
+        permission: ['fiscalization.view', 'expenses.view-own', 'expenses.view-agency', 'expenses.view-network'],
+        children: [
+            { title: 'Factures fiscales', href: '/fiscal-invoices', permission: 'fiscalization.view' },
+            { title: 'Dépenses & sorties', href: '/expenses', permission: ['expenses.view-own', 'expenses.view-agency', 'expenses.view-network'] },
+        ],
     },
     {
         title: 'Exploitation',
