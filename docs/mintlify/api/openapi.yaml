@@ -17,6 +17,9 @@ tags:
     name: 'Company Accounts'
     description: "\nCompany account management for group purchases and credit-based billing."
   -
+    name: Endpoints
+    description: ''
+  -
     name: 'Group Discounts'
     description: "\nGroup discount rule management and group booking settings."
   -
@@ -4212,6 +4215,147 @@ paths:
       -
         in: path
         name: companyAccount_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  /api/v1/assisted-bookings/agencies:
+    get:
+      summary: ''
+      operationId: getApiV1AssistedBookingsAgencies
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Endpoints
+      security: []
+  '/api/v1/bookings/{reservation_uuid}/assistance':
+    post:
+      summary: ''
+      operationId: postApiV1BookingsReservation_uuidAssistance
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Endpoints
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                agency_uuid:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
+                  example: 00000000-0000-4000-8000-000000000000
+                channel:
+                  type: string
+                  description: ''
+                  example: call
+                  enum:
+                    - call
+                    - whatsapp
+                contact_name:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 120 caractères.'
+                  example: g
+                contact_phone:
+                  type: string
+                  description: 'Must match the regex /^\+[1-9][0-9]{7,14}$/.'
+                  example: '+36425593142326'
+                idempotency_key:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 100 caractères.'
+                  example: 'y'
+              required:
+                - agency_uuid
+                - channel
+                - contact_name
+                - contact_phone
+                - idempotency_key
+      security: []
+    get:
+      summary: ''
+      operationId: getApiV1BookingsReservation_uuidAssistance
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Endpoints
+      security: []
+    parameters:
+      -
+        in: path
+        name: reservation_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/bookings/{reservation_uuid}/assistance/resume-online':
+    post:
+      summary: ''
+      operationId: postApiV1BookingsReservation_uuidAssistanceResumeOnline
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Endpoints
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                idempotency_key:
+                  type: string
+                  description: 'Le champ value ne doit pas dépasser 100 caractères.'
+                  example: b
+                passengers:
+                  type: array
+                  description: 'Le champ value doit contenir au moins 1 éléments.'
+                  example:
+                    - []
+                  items:
+                    type: object
+                    properties:
+                      passenger_index:
+                        type: integer
+                        description: 'Le champ value doit être au moins 0.'
+                        example: 27
+                      seat_assignments:
+                        type: array
+                        description: 'Le champ value doit contenir au moins 1 éléments.'
+                        example:
+                          - []
+                        items:
+                          type: object
+                          properties:
+                            leg_order:
+                              type: integer
+                              description: 'Le champ value doit être au moins 1.'
+                              example: 16
+                            seat_uuid:
+                              type: string
+                              description: 'Le champ value doit être un UUID valide.'
+                              example: 00000000-0000-4000-8000-000000000000
+                          required:
+                            - leg_order
+                            - seat_uuid
+                    required:
+                      - passenger_index
+                      - seat_assignments
+              required:
+                - idempotency_key
+                - passengers
+      security: []
+    parameters:
+      -
+        in: path
+        name: reservation_uuid
         description: ''
         example: 00000000-0000-4000-8000-000000000000
         required: true
