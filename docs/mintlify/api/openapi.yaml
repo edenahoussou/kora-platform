@@ -1222,6 +1222,11 @@ paths:
                   type: integer
                   description: 'Number of passengers. Defaults to 1.'
                   example: 16
+                promo_code:
+                  type: string
+                  description: 'Optional promotion code applied to eligible legs (after dynamic pricing, before group discount).'
+                  example: architecto
+                  nullable: true
                 legs:
                   type: array
                   description: 'Ordered itinerary legs, including a direct itinerary with one leg. For a round trip, include outbound legs first, then inbound legs.'

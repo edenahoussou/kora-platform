@@ -6,6 +6,7 @@ use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\CompanyAccounts\Data\CompanyCreditHoldStatus;
 use App\Modules\CompanyAccounts\Services\CompanyCreditService;
+use App\Modules\DynamicPricing\Actions\RecordPromotionRedemptionAction;
 use App\Modules\Payments\Data\PaymentMethod;
 use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
@@ -15,7 +16,10 @@ use Illuminate\Validation\ValidationException;
 
 class ConfirmPaymentAction
 {
-    public function __construct(private readonly CompanyCreditService $companyCredit) {}
+    public function __construct(
+        private readonly CompanyCreditService $companyCredit,
+        private readonly RecordPromotionRedemptionAction $recordPromotionRedemption,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $providerPayload
@@ -65,6 +69,7 @@ class ConfirmPaymentAction
                     }
                     $reservation->update(['status' => ReservationStatus::Paid]);
                     $reservation->segments()->update(['status' => ReservationSegmentStatus::Paid]);
+                    $this->recordPromotionRedemption->execute($reservation);
                     $reservationId = $reservation->id;
                 }
             } else {

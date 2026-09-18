@@ -37,6 +37,7 @@ class ConfirmCounterSaleRequest extends JsonValidationRequest
             'passengers.*.seat_assignments.*.direction' => ['nullable', 'in:outbound,inbound'],
             'passengers.*.seat_assignments.*.seat_uuid' => ['required', 'uuid', 'exists:seats,uuid'],
             'idempotency_key' => ['nullable', 'string', 'max:100'],
+            'promo_code' => ['nullable', 'string', 'max:32'],
             'trip_type' => ['nullable', 'in:one_way,round_trip'],
             'return_date' => ['nullable', 'date_format:Y-m-d'],
             'date' => ['required', 'date_format:Y-m-d'],
@@ -51,7 +52,7 @@ class ConfirmCounterSaleRequest extends JsonValidationRequest
     }
 
     /**
-     * @return array{passenger_count: int, outbound_legs: list<array{departure_uuid: string, origin_stop_uuid: string, destination_stop_uuid: string}>, inbound_legs: list<array{departure_uuid: string, origin_stop_uuid: string, destination_stop_uuid: string}>, idempotency_key: string, payer: array<string, mixed>|null, passengers: list<array<string, mixed>>}
+     * @return array{passenger_count: int, promo_code: string|null, outbound_legs: list<array{departure_uuid: string, origin_stop_uuid: string, destination_stop_uuid: string}>, inbound_legs: list<array{departure_uuid: string, origin_stop_uuid: string, destination_stop_uuid: string}>, idempotency_key: string, payer: array<string, mixed>|null, passengers: list<array<string, mixed>>}
      */
     public function confirmData(): array
     {
@@ -60,6 +61,7 @@ class ConfirmCounterSaleRequest extends JsonValidationRequest
             'outbound_legs' => array_values($this->input('outbound_legs', [])),
             'inbound_legs' => array_values($this->input('inbound_legs', [])),
             'idempotency_key' => $this->string('idempotency_key')->trim()->value() ?: Str::uuid()->toString(),
+            'promo_code' => $this->string('promo_code')->trim()->value() ?: null,
             'payer' => $this->input('payer'),
             'passengers' => $this->input('passengers', []),
         ];

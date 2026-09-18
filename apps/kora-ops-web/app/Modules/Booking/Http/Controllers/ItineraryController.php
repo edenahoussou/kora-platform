@@ -223,6 +223,7 @@ class ItineraryController extends Controller
      * @authenticated
      *
      * @bodyParam passenger_count integer Number of passengers. Defaults to 1.
+     * @bodyParam promo_code string Optional promotion code applied to eligible legs (after dynamic pricing, before group discount).
      * @bodyParam legs array required Ordered itinerary legs, including a direct itinerary with one leg. For a round trip, include outbound legs first, then inbound legs.
      * @bodyParam legs.*.leg_order integer Leg order, starting at 1.
      * @bodyParam legs.*.departure_uuid string required Departure UUID.
@@ -287,7 +288,13 @@ class ItineraryController extends Controller
         $legs = $this->buildLegQuoteRequests($request);
         $passengerCount = (int) $request->integer('passenger_count', 1);
 
-        $result = $calculateQuote->handle($legs, $passengerCount, $request->user());
+        $result = $calculateQuote->handle(
+            $legs,
+            $passengerCount,
+            $request->user(),
+            $request->string('promo_code')->trim()->value() ?: null,
+            ReservationChannel::Mobile,
+        );
 
         $tripType = collect($legs)->contains(fn (ItineraryLegQuoteRequest $leg): bool => $leg->direction === 'inbound')
             ? 'round_trip'
@@ -314,6 +321,8 @@ class ItineraryController extends Controller
             'pricing' => [
                 'subtotal_amount' => $result->snapshot['subtotal_amount'],
                 'dynamic_adjustment_amount' => $result->snapshot['dynamic_adjustment_amount'],
+                'promotion' => $result->snapshot['promotion'] ?? null,
+                'promotion_discount_amount' => $result->snapshot['promotion_discount_amount'] ?? 0,
                 'group_discount' => $result->snapshot['group_discount'],
                 'passenger_allocations' => $result->snapshot['passenger_allocations'],
                 'total_amount' => $result->totalAmount,

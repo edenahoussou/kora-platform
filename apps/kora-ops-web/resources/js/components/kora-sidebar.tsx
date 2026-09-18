@@ -126,6 +126,11 @@ const navItems: NavEntry[] = [
                 permission: ['pricing.view', 'pricing.manage'],
             },
             {
+                title: 'Promotions',
+                href: '/promotions',
+                permission: ['pricing.view', 'pricing.manage'],
+            },
+            {
                 title: 'Comptes entreprises',
                 href: '/companies',
                 permission: 'company-accounts.view',

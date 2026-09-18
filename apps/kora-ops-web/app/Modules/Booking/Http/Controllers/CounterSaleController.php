@@ -171,7 +171,13 @@ class CounterSaleController extends Controller
             ...$buildLegs($data['outbound_legs'], 'outbound'),
             ...$buildLegs($data['inbound_legs'], 'inbound'),
         ]);
-        $result = $calculateItineraryQuote->handle($legs, $data['passenger_count'], $request->user());
+        $result = $calculateItineraryQuote->handle(
+            $legs,
+            $data['passenger_count'],
+            $request->user(),
+            $data['promo_code'],
+            ReservationChannel::Counter,
+        );
 
         return to_route('sale', $request->saleQuery(null, $result->itineraryQuote->uuid));
     }
@@ -230,6 +236,8 @@ class CounterSaleController extends Controller
             $legs,
             $data['passenger_count'],
             $request->user(),
+            $data['promo_code'],
+            ReservationChannel::Counter,
         );
 
         $payer = $data['payer'] !== null
@@ -644,6 +652,13 @@ class CounterSaleController extends Controller
             'subtotalAmount' => (int) $quote->subtotal_amount,
             'dynamicAdjustmentAmount' => (int) $quote->dynamic_adjustment_amount,
             'groupDiscountAmount' => (int) $quote->group_discount_amount,
+            'promotionDiscountAmount' => (int) $quote->promotion_discount_amount,
+            'promotion' => isset($snapshot['promotion']) ? [
+                'uuid' => $snapshot['promotion']['uuid'] ?? null,
+                'code' => $snapshot['promotion']['code'] ?? null,
+                'name' => $snapshot['promotion']['name'] ?? null,
+                'discountAmount' => (int) ($snapshot['promotion']['discount_amount'] ?? 0),
+            ] : null,
             'totalAmount' => (int) $quote->total_amount,
             'currency' => $quote->currency,
             'groupDiscount' => $snapshot['group_discount'] ?? null,

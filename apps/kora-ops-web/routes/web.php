@@ -15,6 +15,7 @@ use App\Modules\Departures\Http\Controllers\ManifestController;
 use App\Modules\Departures\Http\Controllers\ProgrammingController;
 use App\Modules\DynamicPricing\Http\Controllers\FareController;
 use App\Modules\DynamicPricing\Http\Controllers\PricingRuleController;
+use App\Modules\DynamicPricing\Http\Controllers\PromotionController;
 use App\Modules\DynamicPricing\Http\Controllers\TaxRuleController;
 use App\Modules\IdentityAccess\Http\Controllers\AgencyController;
 use App\Modules\IdentityAccess\Http\Controllers\TerminalP501Controller;
@@ -239,7 +240,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('kora-points', $comingSoon('Réseau KORA POINT', 'Suivez l’activité et la performance de chaque point.', 'Réseau commercial — V2'))->name('kora-points');
     Route::get('commissions', $comingSoon('Commissions', 'Contrôlez les commissions calculées sur les opérations éligibles.', 'Réseau commercial — V2'))->name('commissions');
     Route::get('settlements', $comingSoon('Reversements', 'Rapprochez et validez les reversements du réseau.', 'Réseau commercial — V2'))->name('settlements');
-    Route::get('promotions', $comingSoon('Promotions', 'Configurez les offres et codes promotionnels applicables aux nouvelles ventes.', 'Réseau commercial — V2'))->name('promotions');
+    // Promotions à code (MEZ-73) : offres commerciales déclenchées par la
+    // saisie du code au devis — jamais rétroactives sur les ventes confirmées.
+    Route::prefix('promotions')->name('promotions.')->group(function (): void {
+        Route::get('/', [PromotionController::class, 'index'])->name('index');
+        Route::post('/', [PromotionController::class, 'store'])->name('store');
+        Route::put('{promotion:uuid}', [PromotionController::class, 'update'])->name('update');
+        Route::patch('{promotion:uuid}/status', [PromotionController::class, 'changeStatus'])->name('status');
+    });
     Route::prefix('companies')->name('companies.')->group(function (): void {
         Route::get('/', [CompanyAccountWebController::class, 'index'])->name('index');
         Route::post('/', [CompanyAccountWebController::class, 'store'])->name('store');

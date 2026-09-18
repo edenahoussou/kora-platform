@@ -3,6 +3,7 @@
 namespace App\Modules\Booking\Actions;
 
 use App\Models\User;
+use App\Modules\Booking\Data\ReservationChannel;
 use App\Modules\Booking\Models\GroupBookingSetting;
 use App\Modules\Booking\Models\ItineraryQuote;
 use App\Modules\Booking\Models\ItineraryQuoteLeg;
@@ -11,7 +12,10 @@ use App\Modules\Booking\Services\GroupPricingService;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Actions\CalculateQuoteAction;
+use App\Modules\DynamicPricing\Actions\ResolvePromotionAction;
 use App\Modules\DynamicPricing\Data\PricingBreakdownData;
+use App\Modules\DynamicPricing\Data\PromotionBenefitType;
+use App\Modules\DynamicPricing\Data\ResolvedPromotion;
 use App\Modules\DynamicPricing\Models\PriceQuote;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -66,6 +70,7 @@ class CalculateItineraryQuoteAction
         private CalculateQuoteAction $calculateQuote,
         private DepartureStopTimeResolver $stopTimeResolver,
         private GroupPricingService $groupPricing,
+        private ResolvePromotionAction $resolvePromotion,
     ) {}
 
     /**
@@ -77,6 +82,8 @@ class CalculateItineraryQuoteAction
         array $legs,
         int $passengerCount = 1,
         ?User $user = null,
+        ?string $promoCode = null,
+        ?ReservationChannel $channel = null,
     ): ItineraryQuoteResult {
         if ($legs === []) {
             throw ValidationException::withMessages([
@@ -92,7 +99,11 @@ class CalculateItineraryQuoteAction
 
         $this->validateLegs($legs);
 
-        return DB::transaction(function () use ($legs, $passengerCount, $user): ItineraryQuoteResult {
+        $resolvedPromotion = $promoCode !== null && trim($promoCode) !== ''
+            ? $this->resolvePromotion->execute($promoCode, $legs, $channel)
+            : null;
+
+        return DB::transaction(function () use ($legs, $passengerCount, $user, $resolvedPromotion): ItineraryQuoteResult {
             $legQuotes = [];
             $legSnapshots = [];
             $totalAmount = 0;
@@ -145,13 +156,27 @@ class CalculateItineraryQuoteAction
                 }
             }
 
+            $promotionDiscount = $this->promotionDiscount($resolvedPromotion, $legQuotes, $passengerCount);
+
             $pricing = $this->groupPricing->calculate(
                 unitAmounts: array_map(fn (PriceQuote $quote): int => (int) $quote->final_amount, $legQuotes),
                 passengerCount: $passengerCount,
                 currency: $currency,
                 dynamicAdjustments: array_map(fn (PriceQuote $quote): int => (int) $quote->final_amount - (int) $quote->base_amount, $legQuotes),
                 expiresAt: $earliestExpiry,
+                promotionDiscount: $promotionDiscount,
             );
+
+            $promotion = $resolvedPromotion?->promotion;
+            $pricing['promotions'] = $promotion !== null ? [[
+                'uuid' => $promotion->uuid,
+                'code' => $promotion->code,
+                'name' => $promotion->name,
+                'benefit_type' => $promotion->benefit_type->value,
+                'benefit_value' => (float) $promotion->benefit_value,
+                'discount_amount' => $promotionDiscount,
+                'eligible_leg_indexes' => $resolvedPromotion->eligibleLegIndexes,
+            ]] : [];
 
             $totalAmount = $pricing['total_amount'];
             $breakdown = PricingBreakdownData::fromGroupPricing($pricing);
@@ -166,6 +191,13 @@ class CalculateItineraryQuoteAction
                 'total_amount' => $totalAmount,
                 'subtotal_amount' => $pricing['subtotal_amount'],
                 'dynamic_adjustment_amount' => $pricing['dynamic_adjustment_amount'],
+                'promotion' => $promotion !== null ? [
+                    'uuid' => $promotion->uuid,
+                    'code' => $promotion->code,
+                    'name' => $promotion->name,
+                    'discount_amount' => $promotionDiscount,
+                ] : null,
+                'promotion_discount_amount' => $promotionDiscount,
                 'group' => $pricing['group'],
                 'group_discount' => $pricing['group_discount'],
                 'passenger_allocations' => $pricing['passenger_allocations'],
@@ -178,6 +210,8 @@ class CalculateItineraryQuoteAction
                 'passenger_count' => $passengerCount,
                 'subtotal_amount' => $pricing['subtotal_amount'],
                 'dynamic_adjustment_amount' => $pricing['dynamic_adjustment_amount'],
+                'promotion_id' => $promotion?->getKey(),
+                'promotion_discount_amount' => $promotionDiscount,
                 'group_discount_amount' => $pricing['group_discount']['amount'],
                 'total_amount' => $totalAmount,
                 'currency' => $currency,
@@ -207,6 +241,37 @@ class CalculateItineraryQuoteAction
                 expiresAt: $earliestExpiry,
             );
         });
+    }
+
+    /**
+     * Remise promotion en FCFA : un pourcentage se décline sur le sous-total
+     * des seules jambes couvertes par le périmètre ; un montant fixe se
+     * déduit une fois du total de la réservation.
+     *
+     * @param  list<PriceQuote>  $legQuotes
+     */
+    private function promotionDiscount(?ResolvedPromotion $resolved, array $legQuotes, int $passengerCount): int
+    {
+        if ($resolved === null) {
+            return 0;
+        }
+
+        $promotion = $resolved->promotion;
+        $subtotal = array_sum(array_map(
+            fn (PriceQuote $quote): int => (int) $quote->final_amount,
+            $legQuotes,
+        )) * $passengerCount;
+
+        if ($promotion->benefit_type === PromotionBenefitType::Percentage) {
+            $eligibleSubtotal = array_sum(array_map(
+                fn (int $index): int => (int) $legQuotes[$index]->final_amount,
+                $resolved->eligibleLegIndexes,
+            )) * $passengerCount;
+
+            return min((int) round($eligibleSubtotal * (float) $promotion->benefit_value / 100), $subtotal);
+        }
+
+        return min((int) round((float) $promotion->benefit_value), $subtotal);
     }
 
     /**

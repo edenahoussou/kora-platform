@@ -17,6 +17,7 @@ use App\Modules\Cash\Models\CashMovement;
 use App\Modules\Cash\Models\CashSession;
 use App\Modules\CompanyAccounts\Data\CompanyCreditHoldStatus;
 use App\Modules\CompanyAccounts\Services\CompanyCreditService;
+use App\Modules\DynamicPricing\Actions\RecordPromotionRedemptionAction;
 use App\Modules\Fiscalization\Data\FiscalInvoiceStatus;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
 use App\Modules\Payments\Data\MobileMoneyNetwork;
@@ -35,6 +36,7 @@ class RecordCounterSalePaymentAction
 {
     public function __construct(
         private readonly CompanyCreditService $companyCredit,
+        private readonly RecordPromotionRedemptionAction $recordPromotionRedemption,
     ) {}
 
     /**
@@ -137,6 +139,10 @@ class RecordCounterSalePaymentAction
                 'draft_data' => null,
             ]);
             $lockedReservation->segments()->update(['status' => ReservationSegmentStatus::Paid]);
+
+            // La promotion gelée sur le devis se consomme uniquement ici, au
+            // passage payé — jamais au devis ni au hold abandonné.
+            $this->recordPromotionRedemption->execute($lockedReservation);
 
             $fiscalInvoice = FiscalInvoice::query()->firstOrCreate(
                 ['reservation_id' => $lockedReservation->getKey()],

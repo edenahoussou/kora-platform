@@ -4,6 +4,7 @@ namespace App\Modules\Booking\Models;
 
 use App\Models\Concerns\HasPublicUuid;
 use App\Models\User;
+use App\Modules\DynamicPricing\Models\Promotion;
 use App\Modules\Support\Models\KoraModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -24,6 +25,8 @@ class ItineraryQuote extends KoraModel
         'subtotal_amount',
         'dynamic_adjustment_amount',
         'group_discount_amount',
+        'promotion_id',
+        'promotion_discount_amount',
         'total_amount',
         'currency',
         'snapshot',
@@ -42,6 +45,12 @@ class ItineraryQuote extends KoraModel
         return $this->hasMany(ItineraryQuoteLeg::class)->orderBy('leg_order');
     }
 
+    /** @return BelongsTo<Promotion, $this> */
+    public function promotion(): BelongsTo
+    {
+        return $this->belongsTo(Promotion::class);
+    }
+
     protected function casts(): array
     {
         return [
@@ -49,6 +58,7 @@ class ItineraryQuote extends KoraModel
             'subtotal_amount' => 'integer',
             'dynamic_adjustment_amount' => 'integer',
             'group_discount_amount' => 'integer',
+            'promotion_discount_amount' => 'integer',
             'total_amount' => 'integer',
             'snapshot' => 'array',
             'expires_at' => 'datetime',
