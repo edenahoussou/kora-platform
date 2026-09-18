@@ -24,6 +24,10 @@ curl -X POST https://staging.koraexpress.app/api/v1/bus/itinerary-quotes \
 
 La réponse est enveloppée dans `data` et contient l'UUID du devis, le montant total, la devise, l'expiration, les devis de chaque leg et le détail de tarification dynamique.
 
+### Code promo
+
+Un code promotionnel se saisit **à l'étape du devis** via le champ optionnel `promo_code` — jamais au hold ni au paiement. Pour appliquer, modifier ou retirer un code, recréez le devis avec la valeur souhaitée puis créez le hold depuis le nouveau `itinerary_quote_uuid`. La remise est visible dans `pricing.promotion` et `pricing.promotion_discount_amount` ; un code refusé renvoie `422` sur le champ `promo_code`. Le code n'est consommé qu'au paiement confirmé : un devis ou un hold abandonné n'utilise pas de quota.
+
 ## 2. Créer le hold
 
 ```bash

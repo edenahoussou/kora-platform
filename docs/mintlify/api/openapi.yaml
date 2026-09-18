@@ -1067,7 +1067,7 @@ paths:
                   data:
                     itinerary_quote_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
                     trip_type: round_trip
-                    total_amount: 27500
+                    total_amount: 24750
                     currency: XOF
                     expires_at: '2026-09-10T08:00:00Z'
                     legs:
@@ -1096,10 +1096,17 @@ paths:
                     pricing:
                       subtotal_amount: 27500
                       dynamic_adjustment_amount: 0
+                      promotion:
+                        uuid: 3f9a1c2e-8b7d-4a10-b5c6-2b0d7b3dcb70
+                        code: KORA10
+                        name: 'Promo lancement'
+                        discount_amount: 2750
+                      promotion_discount_amount: 2750
                       group_discount: {}
                       passenger_allocations:
-                        - 27500
-                      total_amount: 27500
+                        - 12375
+                        - 12375
+                      total_amount: 24750
                       currency: XOF
                 properties:
                   data:
@@ -1113,7 +1120,7 @@ paths:
                         example: round_trip
                       total_amount:
                         type: integer
-                        example: 27500
+                        example: 24750
                       currency:
                         type: string
                         example: XOF
@@ -1194,18 +1201,43 @@ paths:
                           dynamic_adjustment_amount:
                             type: integer
                             example: 0
+                          promotion:
+                            type: object
+                            properties:
+                              uuid:
+                                type: string
+                                example: 00000000-0000-4000-8000-000000000000
+                                description: 'UUID public de la promotion appliquée.'
+                              code:
+                                type: string
+                                example: KORA10
+                                description: 'Code promotionnel appliqué (normalisé en majuscules).'
+                              name:
+                                type: string
+                                example: 'Promo lancement'
+                                description: 'Nom de la promotion.'
+                              discount_amount:
+                                type: integer
+                                example: 2750
+                                description: 'Remise promotionnelle appliquée en XOF.'
+                            description: 'Promotion appliquée au devis, ou null sans code promo.'
+                          promotion_discount_amount:
+                            type: integer
+                            example: 2750
+                            description: 'Remise promotionnelle totale en XOF (0 sans code promo).'
                           group_discount:
                             type: object
                             properties: {}
                           passenger_allocations:
                             type: array
                             example:
-                              - 27500
+                              - 12375
+                              - 12375
                             items:
                               type: integer
                           total_amount:
                             type: integer
-                            example: 27500
+                            example: 24750
                           currency:
                             type: string
                             example: XOF
@@ -1225,7 +1257,7 @@ paths:
                 promo_code:
                   type: string
                   description: 'Optional promotion code applied to eligible legs (after dynamic pricing, before group discount).'
-                  example: architecto
+                  example: KORA10
                   nullable: true
                 legs:
                   type: array
