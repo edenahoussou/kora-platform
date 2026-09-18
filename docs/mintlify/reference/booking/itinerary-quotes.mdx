@@ -13,6 +13,7 @@ Crée un devis serveur pour un itinéraire direct, avec correspondances, ou alle
 ```json
 {
   "passenger_count": 2,
+  "promo_code": "KORA10",
   "legs": [
     {
       "leg_order": 1,
@@ -35,6 +36,7 @@ Crée un devis serveur pour un itinéraire direct, avec correspondances, ou alle
 | Champ | Type | Requis | Description |
 |---|---|---:|---|
 | `passenger_count` | integer | non | Nombre de passagers, de 1 à 10. |
+| `promo_code` | string | non | Code promotionnel (max 32 caractères, normalisé en majuscules). Appliqué après la tarification dynamique et avant la remise groupe. Le canal `mobile` est déduit automatiquement : une promotion limitée à un autre canal est refusée. |
 | `legs` | array | oui | Un à six legs ordonnés (max 3 par direction). |
 | `legs[].leg_order` | integer | non | Ordre 1-based ; l'ordre du tableau reste la référence. |
 | `legs[].direction` | string | non | `outbound` (défaut) ou `inbound`. Requis pour les legs de retour d'un aller-retour. |
@@ -49,7 +51,7 @@ Crée un devis serveur pour un itinéraire direct, avec correspondances, ou alle
   "data": {
     "itinerary_quote_uuid": "itinerary-quote-uuid",
     "trip_type": "round_trip",
-    "total_amount": 27500,
+    "total_amount": 24750,
     "currency": "XOF",
     "expires_at": "2026-09-10T08:00:00Z",
     "legs": [
@@ -59,16 +61,29 @@ Crée un devis serveur pour un itinéraire direct, avec correspondances, ou alle
     "pricing": {
       "subtotal_amount": 27500,
       "dynamic_adjustment_amount": 0,
+      "promotion": {
+        "uuid": "promotion-uuid",
+        "code": "KORA10",
+        "name": "Promo lancement",
+        "discount_amount": 2750
+      },
+      "promotion_discount_amount": 2750,
       "group_discount": {},
-      "passenger_allocations": [13750, 13750],
-      "total_amount": 27500,
+      "passenger_allocations": [12375, 12375],
+      "total_amount": 24750,
       "currency": "XOF"
     }
   }
 }
 ```
 
-Le montant et l'expiration retournés par le serveur sont la référence du hold. Le mobile ne doit pas reconstruire le snapshot tarifaire.
+| Champ | Type | Description |
+|---|---|---|
+| `pricing.promotion` | object \| null | Promotion appliquée (`uuid`, `code`, `name`, `discount_amount`), ou `null` sans code. |
+| `pricing.promotion_discount_amount` | integer | Remise promotionnelle totale en XOF (0 sans code). |
+| `pricing.total_amount` | integer | Montant final net de toutes les remises (tarification dynamique, promotion, remise groupe). |
+
+Le montant et l'expiration retournés par le serveur sont la référence du hold. Le mobile ne doit pas reconstruire le snapshot tarifaire. La promotion est portée par le devis (`itinerary_quote_uuid`) jusqu'à la réservation : elle n'a pas à être renvoyée au hold ni au paiement, et sa consommation n'est comptabilisée qu'au paiement confirmé.
 
 ## Règles de validation aller-retour
 
@@ -83,4 +98,4 @@ Le montant et l'expiration retournés par le serveur sont la référence du hold
 |---|---|
 | `200` | Devis créé. |
 | `401` | Authentification absente ou invalide. |
-| `422` | Leg invalide, itinéraire discontinu, aller-retour incohérent, vente fermée ou devise incohérente. |
+| `422` | Leg invalide, itinéraire discontinu, aller-retour incohérent, vente fermée ou devise incohérente. Code promo refusé sur le champ `promo_code` : `Ce code promotionnel est inconnu.`, `Ce code promotionnel n'est pas applicable actuellement.`, `Ce code promotionnel a atteint sa limite d'utilisation.` ou `Ce code promotionnel ne s'applique pas à cet itinéraire.` |

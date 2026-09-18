@@ -223,7 +223,7 @@ class ItineraryController extends Controller
      * @authenticated
      *
      * @bodyParam passenger_count integer Number of passengers. Defaults to 1.
-     * @bodyParam promo_code string Optional promotion code applied to eligible legs (after dynamic pricing, before group discount).
+     * @bodyParam promo_code string Optional promotion code applied to eligible legs (after dynamic pricing, before group discount). Example: KORA10
      * @bodyParam legs array required Ordered itinerary legs, including a direct itinerary with one leg. For a round trip, include outbound legs first, then inbound legs.
      * @bodyParam legs.*.leg_order integer Leg order, starting at 1.
      * @bodyParam legs.*.departure_uuid string required Departure UUID.
@@ -238,12 +238,18 @@ class ItineraryController extends Controller
      * @responseField data.legs.pricing_rule_uuid string UUID de la règle de tarification dynamique appliquée, ou null si aucune règle n'a matché.
      * @responseField data.legs.fill_rate number Taux de remplissage du segment au moment du devis (0-100).
      * @responseField data.legs.hours_before_departure number Délai en heures entre le devis et le départ (négatif si le départ est passé).
+     * @responseField data.pricing.promotion object Promotion appliquée au devis, ou null sans code promo.
+     * @responseField data.pricing.promotion.uuid string UUID public de la promotion appliquée.
+     * @responseField data.pricing.promotion.code string Code promotionnel appliqué (normalisé en majuscules).
+     * @responseField data.pricing.promotion.name string Nom de la promotion.
+     * @responseField data.pricing.promotion.discount_amount integer Remise promotionnelle appliquée en XOF.
+     * @responseField data.pricing.promotion_discount_amount integer Remise promotionnelle totale en XOF (0 sans code promo).
      *
      * @response 200 scenario="Quote calculated" {
      *   "data": {
      *     "itinerary_quote_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
      *     "trip_type": "round_trip",
-     *     "total_amount": 27500,
+     *     "total_amount": 24750,
      *     "currency": "XOF",
      *     "expires_at": "2026-09-10T08:00:00Z",
      *     "legs": [
@@ -275,9 +281,16 @@ class ItineraryController extends Controller
      *     "pricing": {
      *       "subtotal_amount": 27500,
      *       "dynamic_adjustment_amount": 0,
+     *       "promotion": {
+     *         "uuid": "3f9a1c2e-8b7d-4a10-b5c6-2b0d7b3dcb70",
+     *         "code": "KORA10",
+     *         "name": "Promo lancement",
+     *         "discount_amount": 2750
+     *       },
+     *       "promotion_discount_amount": 2750,
      *       "group_discount": {},
-     *       "passenger_allocations": [27500],
-     *       "total_amount": 27500,
+     *       "passenger_allocations": [12375, 12375],
+     *       "total_amount": 24750,
      *       "currency": "XOF"
      *     }
      *   }
