@@ -1,0 +1,57 @@
+import '../../../ops/domain/entities/passenger.dart';
+
+/// Couche DATA : lecture de `GET /ops/departures/{uuid}/manifest` — miroir
+/// de `OpsManifestRowResource` côté backend. Ne contient jamais de prix —
+/// l'API elle-même n'en renvoie pas sur cet endpoint.
+abstract final class ManifesteDtos {
+  /// Une ligne sans ticket résolu (`ticketUuid` null) ne peut pas être
+  /// embarquée ni affichée utilement (voir `OpsManifestRowResource`,
+  /// `$this->ticket?->uuid`) — filtrée par l'appelant plutôt que mappée en
+  /// `Passenger` avec des champs vides.
+  static Passenger? passenger(Map<String, dynamic> row) {
+    final String? ticketUuid = row['ticketUuid'] as String?;
+    if (ticketUuid == null) return null;
+
+    final origin = row['originStop'];
+    final destination = row['destinationStop'];
+
+    return Passenger(
+      id: ticketUuid,
+      nomComplet: row['name'] as String? ?? 'Passager',
+      siege: row['seatCode'] as String? ?? '—',
+      statut: _statutOf(row['segmentStatus'] as String?),
+      segmentOrigine: origin is Map ? '${origin['name']}' : '—',
+      segmentDestination: destination is Map ? '${destination['name']}' : '—',
+      ticketId: row['shortCode'] as String? ?? '',
+    );
+  }
+
+  static List<Passenger> passengers(Object? body) {
+    final rows = body is Map ? body['data'] : null;
+    if (rows is! List) return const <Passenger>[];
+
+    return rows
+        .whereType<Map<dynamic, dynamic>>()
+        .map((row) => passenger(Map<String, dynamic>.from(row)))
+        .whereType<Passenger>()
+        .toList();
+  }
+
+  static String? manifestVersion(Object? body) {
+    if (body is! Map) return null;
+    final version = body['manifestVersion'];
+    return version?.toString();
+  }
+
+  /// `paid` et tout statut inconnu → `enAttente` (le passager reste à
+  /// embarquer) ; `boarded` → `embarque` ; `cancelled`/`no_show` →
+  /// `refuse` (voir `ManifestSegmentStatus` côté backend — ni l'un ni
+  /// l'autre ne correspond à `descenduAnticipe`, propre au parcours
+  /// mobile, jamais renvoyé par le serveur).
+  static BoardingStatus _statutOf(String? segmentStatus) =>
+      switch (segmentStatus) {
+        'boarded' => BoardingStatus.embarque,
+        'cancelled' || 'no_show' => BoardingStatus.refuse,
+        _ => BoardingStatus.enAttente,
+      };
+}

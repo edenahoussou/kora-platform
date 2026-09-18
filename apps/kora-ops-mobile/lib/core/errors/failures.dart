@@ -58,3 +58,25 @@ class UnknownFailure extends Failure {
 class HardwareFailure extends Failure {
   const HardwareFailure([super.message = 'Erreur matérielle (P501).']);
 }
+
+/// Le numéro de série saisi ne correspond à aucun terminal P501 enregistré
+/// côté serveur (`terminal_unknown`, 404 — voir `TerminalOpsMobileController.
+/// handshake`).
+class TerminalUnknownFailure extends Failure {
+  const TerminalUnknownFailure(
+      [super.message =
+          'Ce terminal n’est pas enregistré. Contactez votre agence.']);
+}
+
+/// Terminal enregistré mais inutilisable en l'état (`terminal_lost`,
+/// `terminal_maintenance` ou `terminal_inactive`, 403). [code] permet à la
+/// présentation d'adapter le message/l'action proposée sans reparser la
+/// chaîne.
+class TerminalNotUsableFailure extends Failure {
+  const TerminalNotUsableFailure(this.code, super.message);
+
+  final String code;
+
+  @override
+  List<Object?> get props => <Object?>[message, code];
+}

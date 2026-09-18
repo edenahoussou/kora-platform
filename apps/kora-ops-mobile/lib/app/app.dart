@@ -6,6 +6,7 @@ import '../features/manifeste/presentation/cubit/manifeste_cubit.dart';
 import '../features/ops/presentation/cubit/selected_depart_cubit.dart';
 import '../features/scan/presentation/cubit/scan_boarding_cubit.dart';
 import '../features/synchro/presentation/cubit/sync_cubit.dart';
+import '../features/terminal/presentation/cubit/terminal_cubit.dart';
 import '../injection/injection.dart';
 import 'config/app_config.dart';
 import 'router/app_router.dart';
@@ -21,6 +22,7 @@ class App extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider<AuthCubit>.value(value: getIt<AuthCubit>()),
+        BlocProvider<TerminalCubit>.value(value: getIt<TerminalCubit>()),
         BlocProvider<ThemeCubit>.value(value: getIt<ThemeCubit>()),
         // Cubits partagés par les 5 onglets ET les écrans empilés
         // au-dessus (détail passager, résultat de scan…) — voir
@@ -80,7 +82,8 @@ class _AppRouterHost extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AuthGuard authGuard = AuthGuard(context.read<AuthCubit>());
+    final AuthGuard authGuard =
+        AuthGuard(context.read<AuthCubit>(), context.read<TerminalCubit>());
     final AppRouter appRouter = AppRouter(authGuard);
 
     // ScreenUtilInit calibre .w / .h / .sp / .r sur un design de référence

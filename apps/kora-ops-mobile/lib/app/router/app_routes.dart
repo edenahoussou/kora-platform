@@ -3,6 +3,12 @@
 abstract final class AppRoutes {
   static const String splash = '/';
 
+  /// Présentation Tournée/Scan/Synchro, affichée une seule fois au tout
+  /// premier lancement (voir `OnboardingStore`) — avant l'écran de
+  /// connexion, jamais après (voir `AuthGuard`, qui ne redirige jamais
+  /// depuis cette route, comme pour `splash`).
+  static const String onboarding = '/onboarding';
+
   // Flux d'authentification (voir document.md § Flux d'authentification) :
   // première connexion sur un appareil = email + mot de passe, puis PIN,
   // puis OTP d'activation de l'appareil ; appareil déjà reconnu (email déjà
@@ -13,6 +19,12 @@ abstract final class AppRoutes {
   static const String loginOtp = '/login/otp';
   static const String loginOtpInvalid = '/login/otp-invalid';
   static const String loginNewPin = '/login/new-pin';
+
+  /// Liaison du terminal P501 (voir `AuthGuard`, MEZ-91) — affichée entre
+  /// la connexion et `/home` tant qu'aucun terminal actif n'est lié à cet
+  /// appareil. Jamais la cible d'une navigation explicite, uniquement de
+  /// `AuthGuard`/`resolveAuthDestination`.
+  static const String terminalSetup = '/terminal/setup';
 
   // Bottom nav (5 onglets) — voir document.md § Navigation.
   static const String home = '/home';
