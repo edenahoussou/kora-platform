@@ -13,11 +13,16 @@ class GroupPricingService
     /**
      * @param  list<int>  $unitAmounts
      * @param  list<int>  $dynamicAdjustments
+     * @param  int  $promotionDiscount  Remise promotion appliquée avant la
+     *                                  remise groupe : le pourcentage de remise groupe se calcule sur le
+     *                                  sous-total diminué de la promotion (ordre tarif → dynamique →
+     *                                  promotion → remise groupe).
      * @return array{
      *     subtotal_amount: int,
      *     dynamic_adjustment_amount: int,
      *     group: bool,
      *     group_discount: array{applied: bool, threshold: int|null, percentage: float, amount: int, rule_uuid: string|null},
+     *     promotion_discount_amount: int,
      *     total_amount: int,
      *     currency: string,
      *     passenger_allocations: list<int>,
@@ -33,6 +38,7 @@ class GroupPricingService
         string $currency,
         array $dynamicAdjustments = [],
         ?CarbonInterface $expiresAt = null,
+        int $promotionDiscount = 0,
     ): array {
         if ($unitAmounts === [] || $passengerCount < 1) {
             throw ValidationException::withMessages(['passenger_count' => 'Le devis doit contenir au moins un passager et une jambe.']);
@@ -57,8 +63,9 @@ class GroupPricingService
         $threshold = $rule?->passenger_threshold;
         $percentage = $rule ? (float) $rule->percentage : 0.0;
         $discountApplied = $rule !== null && $group && $threshold !== null && $passengerCount >= $threshold;
-        $discountAmount = $discountApplied ? (int) round($subtotal * $percentage / 100) : 0;
-        $total = $subtotal - $discountAmount;
+        $promotionDiscount = min(max($promotionDiscount, 0), $subtotal);
+        $discountAmount = $discountApplied ? (int) round(($subtotal - $promotionDiscount) * $percentage / 100) : 0;
+        $total = $subtotal - $promotionDiscount - $discountAmount;
         $expiration = $expiresAt ?? now()->addMinutes(10);
 
         return [
@@ -72,6 +79,7 @@ class GroupPricingService
                 'amount' => $discountAmount,
                 'rule_uuid' => $rule?->uuid,
             ],
+            'promotion_discount_amount' => $promotionDiscount,
             'total_amount' => $total,
             'currency' => $currency,
             'passenger_allocations' => $this->allocate($total, $passengerCount),

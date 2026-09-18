@@ -5186,6 +5186,40 @@
         border-bottom: 1px solid var(--border);
     }
 
+    .summary-promo-row {
+        align-items: center;
+        gap: 10px;
+    }
+
+    .summary-promo-row .field-label {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        color: var(--foreground);
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .summary-promo-input {
+        flex: 1;
+        min-width: 0;
+        padding: 6px 10px;
+        border: 1px solid var(--border);
+        border-radius: 0.6rem;
+        background: var(--card);
+        color: var(--foreground);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+
+    .summary-promo-input:focus {
+        outline: none;
+        border-color: var(--gold);
+        box-shadow: 0 0 0 2px rgba(246, 176, 0, 0.25);
+    }
+
     .summary-payer-section .field-label {
         display: flex;
         align-items: center;

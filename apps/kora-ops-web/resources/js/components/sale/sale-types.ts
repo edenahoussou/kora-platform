@@ -358,6 +358,13 @@ export type SaleItineraryQuoteLeg = SaleItineraryLeg & {
 
 export type SaleItineraryQuote = SaleQuote & {
     groupDiscountAmount: number;
+    promotionDiscountAmount: number;
+    promotion: {
+        uuid: string | null;
+        code: string | null;
+        name: string | null;
+        discountAmount: number;
+    } | null;
     legs: SaleItineraryQuoteLeg[];
 };
 

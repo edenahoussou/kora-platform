@@ -191,6 +191,7 @@ export function useCounterSale(props: SaleProps) {
         outbound: SaleItinerary,
         inbound: SaleItinerary | null,
         onSuccess?: () => void,
+        promoCode?: string,
     ) => {
         const toLegPayload = (leg: SaleItinerary['legs'][number]) => ({
             departure_uuid: leg.departureUuid,
@@ -209,6 +210,7 @@ export function useCounterSale(props: SaleProps) {
                   null)
                 : null,
             passenger_count: passengerCount,
+            promo_code: promoCode?.trim() ? promoCode.trim() : null,
             outbound_legs: outbound.legs.map(toLegPayload),
             inbound_legs: inbound ? inbound.legs.map(toLegPayload) : [],
         }));
@@ -327,6 +329,7 @@ export function useCounterSale(props: SaleProps) {
             type: SalePayerType;
             company_account_uuid?: string;
         },
+        promoCode?: string,
     ) => {
         const toLegPayload = (leg: SaleItinerary['legs'][number]) => ({
             departure_uuid: leg.departureUuid,
@@ -346,6 +349,7 @@ export function useCounterSale(props: SaleProps) {
                   null)
                 : null,
             passenger_count: passengerCount,
+            promo_code: promoCode?.trim() ? promoCode.trim() : null,
             outbound_legs: outbound.legs.map(toLegPayload),
             inbound_legs: inbound ? inbound.legs.map(toLegPayload) : [],
             passengers: seatAssignments,

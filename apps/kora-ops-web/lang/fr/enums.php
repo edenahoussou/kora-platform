@@ -170,4 +170,33 @@ return [
         'consular_card' => 'Carte consulaire',
         'cip' => 'CIP',
     ],
+
+    'promotion_status' => [
+        'draft' => 'Brouillon',
+        'active' => 'Active',
+        'inactive' => 'Inactive',
+        'archived' => 'Archivée',
+    ],
+
+    'promotion_display_status' => [
+        'scheduled' => 'Planifiée',
+        'expired' => 'Expirée',
+    ],
+
+    'promotion_scope' => [
+        'network' => 'Réseau national',
+        'channel' => 'Canal de vente',
+        'line' => 'Ligne',
+        'segment' => 'Segment O/D',
+    ],
+
+    'promotion_benefit_type' => [
+        'percentage' => 'Pourcentage',
+        'fixed_amount' => 'Montant fixe',
+    ],
+
+    'promotion_channel' => [
+        'app' => 'Application KORA',
+        'counter' => 'Guichet',
+    ],
 ];

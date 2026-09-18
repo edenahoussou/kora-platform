@@ -131,3 +131,11 @@ _Avoid_: Solde Wallet ; plafond par agence ; limite annuelle
 **Crédit disponible**:
 Montant calculé côté serveur qu’un compte organisationnel peut encore engager à crédit pour le mois courant. Il ne peut jamais être négatif et reste inaccessible aux utilisateurs sans permission Finance.
 _Avoid_: Montant saisi par l’agent ; montant facturé ; encaissement de caisse
+
+**Promotion à code**:
+Offre commerciale déclenchée par la saisie d’un code promo au moment du devis tarifaire. Elle porte un avantage (pourcentage ou montant fixe), un périmètre (réseau, canal de vente, ligne ou segment O/D), une période d’application, une priorité et une limite d’utilisations optionnelle. Elle s’applique après la tarification dynamique et avant la remise groupe, un seul code par devis, et n’est jamais rétroactive sur les ventes confirmées. Son cycle de vie est brouillon → active ⇄ inactive → archivée ; « planifiée » et « expirée » sont des états d’affichage dérivés de la période, jamais stockés. Voir [l’ADR 0008](docs/adr/0008-promotions-a-code.md).
+_Avoid_: Réduction automatique sans code (rôle de la règle de tarification dynamique), remise de volume (rôle de la remise groupe), promotion rétroactive
+
+**Rédemption de promotion**:
+Enregistrement de l’usage réel d’un code promo lorsque la réservation passe à l’état payée. Une seule rédemption existe par couple promotion/réservation ; elle porte le montant de remise gelé dans le devis et incrémente le compteur d’utilisations de façon atomique.
+_Avoid_: Comptage au devis ou au blocage de siège ; double comptage d’une même vente

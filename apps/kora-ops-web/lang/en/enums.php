@@ -170,4 +170,33 @@ return [
         'consular_card' => 'Consular card',
         'cip' => 'CIP',
     ],
+
+    'promotion_status' => [
+        'draft' => 'Draft',
+        'active' => 'Active',
+        'inactive' => 'Inactive',
+        'archived' => 'Archived',
+    ],
+
+    'promotion_display_status' => [
+        'scheduled' => 'Scheduled',
+        'expired' => 'Expired',
+    ],
+
+    'promotion_scope' => [
+        'network' => 'National network',
+        'channel' => 'Sales channel',
+        'line' => 'Line',
+        'segment' => 'O/D segment',
+    ],
+
+    'promotion_benefit_type' => [
+        'percentage' => 'Percentage',
+        'fixed_amount' => 'Fixed amount',
+    ],
+
+    'promotion_channel' => [
+        'app' => 'KORA App',
+        'counter' => 'Counter',
+    ],
 ];

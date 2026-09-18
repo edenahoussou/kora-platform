@@ -79,6 +79,7 @@ export default function SalePage(props: SaleProps) {
     const [payerType, setPayerType] = useState<SalePayerType>(
         (reservation?.payerType as SalePayerType) ?? 'personal',
     );
+    const [promoCode, setPromoCode] = useState('');
     const [selectedCompanyAccountUuid, setSelectedCompanyAccountUuid] =
         useState<string | null>(reservation?.companyAccount?.uuid ?? null);
     const [isSeatPickerOpen, setIsSeatPickerOpen] = useState(false);
@@ -287,6 +288,7 @@ export default function SalePage(props: SaleProps) {
             seatAssignments,
             () => setIsSeatPickerOpen(false),
             payer,
+            promoCode,
         );
     };
 
@@ -485,6 +487,8 @@ export default function SalePage(props: SaleProps) {
                                     selectedCompanyAccountUuid={
                                         selectedCompanyAccountUuid
                                     }
+                                    promoCode={promoCode}
+                                    onPromoCodeChange={setPromoCode}
                                 />
                             )}
                         </div>
