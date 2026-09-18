@@ -9,10 +9,12 @@ enum ReservationStatus: string
     use HasEnumUtilities;
 
     case Held = 'held';
+    case AssistancePending = 'assistance_pending';
     case Confirmed = 'confirmed';
     case Paid = 'paid';
     case Ticketed = 'ticketed';
     case Boarded = 'boarded';
     case Cancelled = 'cancelled';
     case Expired = 'expired';
+    case Unavailable = 'unavailable';
 }

@@ -3,6 +3,8 @@
 namespace App\Modules\Payments\Actions;
 
 use App\Models\User;
+use App\Modules\AssistedBooking\Data\AssistedBookingStatus;
+use App\Modules\AssistedBooking\Models\AssistedBooking;
 use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Models\Reservation;
@@ -43,10 +45,14 @@ class RecordCounterSalePaymentAction
     {
         $result = DB::transaction(function () use ($reservation, $agent, $attributes): array {
             $lockedReservation = Reservation::query()
-                ->with(['segments.departure', 'segments', 'passengers'])
+                ->with(['segments.departure', 'segments', 'passengers', 'assistedBooking'])
                 ->whereKey($reservation->getKey())
                 ->lockForUpdate()
                 ->firstOrFail();
+            $lockedAssistance = AssistedBooking::query()
+                ->where('reservation_id', $lockedReservation->getKey())
+                ->lockForUpdate()
+                ->first();
 
             $idempotencyKey = (string) ($attributes['idempotency_key'] ?? '');
             $existingPayment = Payment::query()
@@ -64,7 +70,7 @@ class RecordCounterSalePaymentAction
                 return $this->completedResult($lockedReservation, $existingPayment);
             }
 
-            $this->ensureReservationCanBePaid($lockedReservation, $agent);
+            $this->ensureReservationCanBePaid($lockedReservation, $agent, $lockedAssistance);
 
             $method = PaymentMethod::from((string) $attributes['method']);
             $cashSession = $method === PaymentMethod::CompanyCredit ? null : $this->openCashSession($agent);
@@ -149,6 +155,28 @@ class RecordCounterSalePaymentAction
                 ],
             );
 
+            if ($lockedAssistance !== null) {
+                $lockedAssistance->update([
+                    'status' => AssistedBookingStatus::Finalized,
+                    'current_total_amount' => $total,
+                    'finalized_at' => now(),
+                    'reason_code' => null,
+                    'reason_note' => null,
+                ]);
+                activity('assisted-bookings')
+                    ->event('finalized')
+                    ->performedOn($lockedAssistance)
+                    ->causedBy($agent)
+                    ->withProperties([
+                        'reservation_reference' => $lockedReservation->reference,
+                        'agency_uuid' => $agent->agency?->uuid,
+                        'payment_uuid' => $payment->uuid,
+                        'amount' => $total,
+                        'currency' => $lockedReservation->currency,
+                    ])
+                    ->log('assisted_booking.finalized');
+            }
+
             return [
                 'reservation' => $lockedReservation->fresh(['segments.departure', 'segments', 'passengers']),
                 'payment' => $payment->fresh(),
@@ -197,8 +225,17 @@ class RecordCounterSalePaymentAction
         ];
     }
 
-    private function ensureReservationCanBePaid(Reservation $reservation, User $agent): void
+    private function ensureReservationCanBePaid(Reservation $reservation, User $agent, ?AssistedBooking $assistedBooking): void
     {
+        if (! $agent->can('manageCounterSale', $reservation)) {
+            throw ValidationException::withMessages(['reservation' => 'Cette vente n’est pas attribuée à cet agent.']);
+        }
+        if ($assistedBooking !== null
+            && ($assistedBooking->status !== AssistedBookingStatus::InProgress
+                || $assistedBooking->assigned_user_id !== $agent->id
+                || $assistedBooking->preferred_agency_id !== $agent->agency_id)) {
+            throw ValidationException::withMessages(['reservation' => 'Le dossier assisté n’est plus attribué à cet agent ou à cette agence.']);
+        }
         if ($reservation->channel?->value !== 'counter') {
             throw ValidationException::withMessages([
                 'reservation' => 'Cette réservation ne provient pas du guichet.',

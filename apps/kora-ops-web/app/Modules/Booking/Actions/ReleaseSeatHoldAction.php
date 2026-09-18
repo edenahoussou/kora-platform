@@ -25,7 +25,7 @@ class ReleaseSeatHoldAction
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($lockedReservation->created_by_user_id !== $user->getKey()) {
+            if (! $user->can('manageCounterSale', $lockedReservation)) {
                 throw new AccessDeniedHttpException;
             }
 

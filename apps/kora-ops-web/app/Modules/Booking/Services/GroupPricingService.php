@@ -59,7 +59,7 @@ class GroupPricingService
         $discountApplied = $rule !== null && $group && $threshold !== null && $passengerCount >= $threshold;
         $discountAmount = $discountApplied ? (int) round($subtotal * $percentage / 100) : 0;
         $total = $subtotal - $discountAmount;
-        $expiration = $expiresAt ?? now()->addMinutes(10);
+        $expiration = $expiresAt ?? now()->addMinutes((int) config('kora.bookings.quote_ttl_minutes', 10));
 
         return [
             'subtotal_amount' => $subtotal,

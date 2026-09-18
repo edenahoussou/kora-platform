@@ -25,7 +25,8 @@ class UpdateReservationPassengersAction
      */
     public function handle(Reservation $reservation, ?User $user, array $passengersData): Reservation
     {
-        if ($user && $reservation->created_by_user_id && $reservation->created_by_user_id !== $user->id) {
+        if ($user && ! $user->can('manageCounterSale', $reservation)
+            && $reservation->created_by_user_id !== $user->id) {
             throw new AuthorizationException('Vous n\'êtes pas autorisé à modifier cette réservation.');
         }
 

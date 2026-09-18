@@ -26,13 +26,15 @@ class StoreAgencyRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'city' => ['required', 'string', 'max:120'],
             'country' => ['required', 'string', 'size:2', 'alpha'],
+            'call_phone' => ['nullable', 'string', 'regex:/^\\+[1-9][0-9]{7,14}$/'],
+            'whatsapp_phone' => ['nullable', 'string', 'regex:/^\\+[1-9][0-9]{7,14}$/'],
             'head_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'status' => ['required', Rule::enum(AgencyStatus::class)],
         ];
     }
 
     /**
-     * @return array{name: string, city: string, country: string, head_user_id: int|null, status: string}
+     * @return array{name: string, city: string, country: string, call_phone: string|null, whatsapp_phone: string|null, head_user_id: int|null, status: string}
      */
     public function payload(): array
     {
@@ -40,7 +42,7 @@ class StoreAgencyRequest extends FormRequest
     }
 
     /**
-     * @return array{name: string, city: string, country: string, head_user_id: int|null, status: string}
+     * @return array{name: string, city: string, country: string, call_phone: string|null, whatsapp_phone: string|null, head_user_id: int|null, status: string}
      */
     protected function normalizedPayload(): array
     {
@@ -48,6 +50,8 @@ class StoreAgencyRequest extends FormRequest
             'name' => $this->string('name')->trim()->value(),
             'city' => $this->string('city')->trim()->value(),
             'country' => strtoupper($this->string('country')->trim()->value()),
+            'call_phone' => $this->filled('call_phone') ? $this->string('call_phone')->trim()->value() : null,
+            'whatsapp_phone' => $this->filled('whatsapp_phone') ? $this->string('whatsapp_phone')->trim()->value() : null,
             'head_user_id' => $this->integer('head_user_id') ?: null,
             'status' => $this->string('status')->trim()->value(),
         ];

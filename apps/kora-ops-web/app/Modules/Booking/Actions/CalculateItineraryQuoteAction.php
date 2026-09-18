@@ -182,7 +182,7 @@ class CalculateItineraryQuoteAction
                 'total_amount' => $totalAmount,
                 'currency' => $currency,
                 'snapshot' => $snapshot,
-                'expires_at' => $earliestExpiry ?? now()->addMinutes(10),
+                'expires_at' => $earliestExpiry ?? now()->addMinutes((int) config('kora.bookings.quote_ttl_minutes', 10)),
             ]);
 
             foreach ($legs as $index => $leg) {

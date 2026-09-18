@@ -16,7 +16,7 @@ class ReleaseCounterSaleHoldRequest extends JsonValidationRequest
         return $user instanceof User
             && $user->can('createCounterSale', Reservation::class)
             && $reservation instanceof Reservation
-            && $reservation->created_by_user_id === $user->getKey();
+            && $user->can('manageCounterSale', $reservation);
     }
 
     /**

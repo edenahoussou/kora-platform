@@ -21,6 +21,8 @@ export type AgencyRecord = {
     name: string;
     city: string;
     country: string;
+    callPhone: string | null;
+    whatsappPhone: string | null;
     headUserId: number | null;
     headName: string | null;
     status: string;
@@ -237,6 +239,45 @@ export function AgencyFormDialog({
                                         Le code est attribué automatiquement par
                                         le système et ne peut pas être modifié.
                                     </p>
+                                </div>
+
+                                <div className="grid gap-5 sm:grid-cols-2">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="agency-call-phone">
+                                            Téléphone d’appel
+                                        </Label>
+                                        <Input
+                                            id="agency-call-phone"
+                                            name="call_phone"
+                                            type="tel"
+                                            defaultValue={
+                                                agency?.callPhone ?? ''
+                                            }
+                                            placeholder="+2290197000000"
+                                            className="h-12 rounded-[0.875rem] border-0 bg-muted shadow-[inset_0_0_0_1px_var(--border)] focus-visible:bg-background"
+                                        />
+                                        <InputError
+                                            message={errors.call_phone}
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="agency-whatsapp-phone">
+                                            Téléphone WhatsApp
+                                        </Label>
+                                        <Input
+                                            id="agency-whatsapp-phone"
+                                            name="whatsapp_phone"
+                                            type="tel"
+                                            defaultValue={
+                                                agency?.whatsappPhone ?? ''
+                                            }
+                                            placeholder="+2290197000000"
+                                            className="h-12 rounded-[0.875rem] border-0 bg-muted shadow-[inset_0_0_0_1px_var(--border)] focus-visible:bg-background"
+                                        />
+                                        <InputError
+                                            message={errors.whatsapp_phone}
+                                        />
+                                    </div>
                                 </div>
 
                                 <div className="grid gap-2">

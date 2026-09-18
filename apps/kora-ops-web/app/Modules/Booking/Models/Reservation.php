@@ -4,6 +4,7 @@ namespace App\Modules\Booking\Models;
 
 use App\Models\Concerns\HasPublicUuid;
 use App\Models\User;
+use App\Modules\AssistedBooking\Models\AssistedBooking;
 use App\Modules\Booking\Data\PayerType;
 use App\Modules\Booking\Data\PurchaseType;
 use App\Modules\Booking\Data\ReservationChannel;
@@ -24,6 +25,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 /**
  * @property ReservationStatus $status
@@ -47,6 +49,7 @@ class Reservation extends KoraModel
 
     protected $fillable = [
         'uuid',
+        'reference',
         'selling_agency_id',
         'created_by_user_id',
         'payer_user_id',
@@ -70,6 +73,27 @@ class Reservation extends KoraModel
         'total_snapshot',
         'draft_data',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Reservation $reservation): void {
+            if ($reservation->reference) {
+                return;
+            }
+
+            do {
+                $reference = 'KBR-'.Str::upper(Str::random(8));
+            } while (self::query()->where('reference', $reference)->exists());
+
+            $reservation->reference = $reference;
+        });
+
+        static::updating(function (Reservation $reservation): void {
+            if ($reservation->isDirty('reference') && $reservation->getOriginal('reference') !== null) {
+                $reservation->reference = $reservation->getOriginal('reference');
+            }
+        });
+    }
 
     /**
      * @return BelongsTo<User, $this>
@@ -155,6 +179,12 @@ class Reservation extends KoraModel
     public function fiscalInvoice(): HasOne
     {
         return $this->hasOne(FiscalInvoice::class);
+    }
+
+    /** @return HasOne<AssistedBooking, $this> */
+    public function assistedBooking(): HasOne
+    {
+        return $this->hasOne(AssistedBooking::class);
     }
 
     /** @return BelongsTo<Agency, $this> */

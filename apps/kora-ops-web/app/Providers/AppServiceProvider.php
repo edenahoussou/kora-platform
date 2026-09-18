@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Modules\AssistedBooking\Models\AssistedBooking;
 use App\Modules\Boarding\Models\BoardingEvent;
 use App\Modules\Boarding\Models\SeatReleaseEvent;
 use App\Modules\Booking\Models\Reservation;
@@ -21,6 +22,7 @@ use App\Modules\Payments\Providers\FedaPayAdapter;
 use App\Modules\Payments\Providers\MtnMomoAdapter;
 use App\Modules\Ticketing\Models\Ticket;
 use App\Policies\AgencyPolicy;
+use App\Policies\AssistedBookingPolicy;
 use App\Policies\BoardingEventPolicy;
 use App\Policies\BusPolicy;
 use App\Policies\CashSessionPolicy;
@@ -119,6 +121,7 @@ class AppServiceProvider extends ServiceProvider
     protected function registerPolicies(): void
     {
         Gate::policy(Agency::class, AgencyPolicy::class);
+        Gate::policy(AssistedBooking::class, AssistedBookingPolicy::class);
         Gate::policy(BoardingEvent::class, BoardingEventPolicy::class);
         Gate::policy(Bus::class, BusPolicy::class);
         Gate::policy(CashSession::class, CashSessionPolicy::class);

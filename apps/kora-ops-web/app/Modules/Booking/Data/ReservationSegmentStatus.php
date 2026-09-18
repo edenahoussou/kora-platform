@@ -9,6 +9,7 @@ enum ReservationSegmentStatus: string
     use HasEnumUtilities;
 
     case Held = 'held';
+    case Requested = 'requested';
     case Confirmed = 'confirmed';
     case Paid = 'paid';
     case Ticketed = 'ticketed';
