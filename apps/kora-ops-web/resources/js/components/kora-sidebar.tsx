@@ -78,12 +78,12 @@ const navItems: NavEntry[] = [
         ],
         children: [
             {
-                title: 'Factures fiscales',
+                title: 'Facturation',
                 href: '/fiscal-invoices',
                 permission: 'fiscalization.view',
             },
             {
-                title: 'Dépenses & sorties',
+                title: 'Dépenses',
                 href: '/expenses',
                 permission: [
                     'expenses.view-own',

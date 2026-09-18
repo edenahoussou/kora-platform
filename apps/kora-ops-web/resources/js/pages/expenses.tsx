@@ -142,7 +142,7 @@ export default function ExpensesPage({
 
     return (
         <>
-            <Head title="Dépenses & sorties" />
+            <Head title="Dépenses" />
             <div className="space-y-6 p-4 md:p-8">
                 <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                     <div>
@@ -150,7 +150,7 @@ export default function ExpensesPage({
                             Finance / Pilotage
                         </p>
                         <h1 className="mt-2 text-3xl font-black tracking-[-0.04em]">
-                            Dépenses & sorties
+                            Dépenses
                         </h1>
                         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
                             Contrôlez les dépenses du réseau, leurs

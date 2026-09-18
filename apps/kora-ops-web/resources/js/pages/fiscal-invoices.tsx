@@ -112,7 +112,7 @@ export default function FiscalInvoicesPage({
 
     return (
         <>
-            <Head title="Factures fiscales" />
+            <Head title="Facturation" />
             <div className="space-y-6 p-4 md:p-8">
                 <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                     <div>
@@ -120,7 +120,7 @@ export default function FiscalInvoicesPage({
                             Finance / Fiscalisation
                         </p>
                         <h1 className="mt-2 text-3xl font-black tracking-[-0.04em] text-foreground">
-                            Factures fiscales
+                            Facturation
                         </h1>
                         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
                             Surveillez les transmissions MECeF, identifiez les
