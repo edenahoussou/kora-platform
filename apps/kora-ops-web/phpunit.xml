@@ -19,6 +19,7 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
+        <env name="APP_KEY" value="base64:S0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0s="/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
@@ -34,5 +35,7 @@
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
         <env name="KORA_TICKET_SIGNING_KEY" value="test-signing-key-for-phpunit-ci"/>
+        <env name="KORA_TICKET_SIGNING_PRIVATE_KEY" value="S0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t+oOO9UuIHydOw66ZcBwTmb8otjhZaF1IYsXT8QWDkEw=="/>
+        <env name="KORA_TICKET_SIGNING_PUBLIC_KEY" value="fqDjvVLiB8nTsOumXAcE5m/KLY4WWhdSGLF0/EFg5BM="/>
     </php>
 </phpunit>

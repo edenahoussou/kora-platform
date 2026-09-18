@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\CompanyAccountWebController;
 use App\Http\Controllers\FiscalizationController;
+use App\Modules\AssistedBooking\Http\Controllers\AssistedBookingController;
 use App\Modules\Booking\Http\Controllers\CounterSaleController;
 use App\Modules\BusNetwork\Http\Controllers\BusAmenityController;
 use App\Modules\BusNetwork\Http\Controllers\BusController;
@@ -55,6 +56,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('sale/{reservation:uuid}/passengers', [CounterSaleController::class, 'storePassengers'])->name('sale.passengers');
     Route::post('sale/{reservation:uuid}/payment', [CounterSaleController::class, 'storePayment'])->name('sale.payment');
     Route::post('sale/{reservation:uuid}/tickets/retry', [CounterSaleController::class, 'retryTicketIssuance'])->name('sale.tickets.retry');
+    Route::prefix('assisted-bookings')->name('assisted-bookings.')->group(function (): void {
+        Route::get('/', [AssistedBookingController::class, 'index'])->name('index');
+        Route::get('{assistedBooking:uuid}', [AssistedBookingController::class, 'show'])->name('show');
+        Route::post('{assistedBooking:uuid}/claim', [AssistedBookingController::class, 'claim'])->name('claim');
+        Route::post('{assistedBooking:uuid}/release', [AssistedBookingController::class, 'release'])->name('release');
+        Route::post('{assistedBooking:uuid}/reassign', [AssistedBookingController::class, 'reassign'])->name('reassign');
+        Route::post('{assistedBooking:uuid}/refuse', [AssistedBookingController::class, 'refuse'])->name('refuse');
+        Route::post('{assistedBooking:uuid}/prepare-sale', [AssistedBookingController::class, 'prepareSale'])->name('prepare-sale');
+    });
     Route::post('fiscalization/{fiscalInvoice:uuid}/retry', [FiscalizationController::class, 'retry'])->name('fiscalization.retry');
     Route::get('cash', [CashSessionController::class, 'index'])->name('cash');
     Route::get('cash/export', [CashSessionController::class, 'export'])->name('cash.export');

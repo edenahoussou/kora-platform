@@ -29,14 +29,16 @@ class CompanyCreditService
             throw ValidationException::withMessages(['payer.company_account_uuid' => 'Le crédit mensuel disponible est insuffisant.']);
         }
 
-        return CompanyCreditHold::query()->create([
-            'company_account_id' => $companyAccount->getKey(),
-            'reservation_id' => $reservation->getKey(),
-            'amount' => $amount,
-            'period_key' => $periodKey,
-            'status' => CompanyCreditHoldStatus::Reserved,
-            'expires_at' => $reservation->expires_at ?? now()->addMinutes(15),
-        ]);
+        return CompanyCreditHold::query()->updateOrCreate(
+            ['reservation_id' => $reservation->getKey()],
+            [
+                'company_account_id' => $companyAccount->getKey(),
+                'amount' => $amount,
+                'period_key' => $periodKey,
+                'status' => CompanyCreditHoldStatus::Reserved,
+                'expires_at' => $reservation->expires_at ?? now()->addMinutes(15),
+            ],
+        );
     }
 
     public function convert(CompanyCreditHold $hold, Payment $payment): CompanyCreditTransaction

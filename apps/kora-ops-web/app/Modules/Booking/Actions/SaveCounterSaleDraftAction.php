@@ -16,7 +16,7 @@ class SaveCounterSaleDraftAction
      */
     public function handle(Reservation $reservation, User $user, array $passengersData): Reservation
     {
-        if ($reservation->created_by_user_id !== $user->getKey()) {
+        if (! $user->can('manageCounterSale', $reservation)) {
             throw new AuthorizationException('Vous n\'êtes pas autorisé à modifier cette réservation.');
         }
 

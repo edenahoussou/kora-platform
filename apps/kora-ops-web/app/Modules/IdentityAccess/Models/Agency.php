@@ -29,6 +29,8 @@ class Agency extends KoraModel
         'name',
         'city',
         'country',
+        'call_phone',
+        'whatsapp_phone',
         'head_user_id',
         'status',
     ];

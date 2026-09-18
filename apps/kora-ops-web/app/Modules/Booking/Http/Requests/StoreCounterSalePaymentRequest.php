@@ -18,8 +18,7 @@ class StoreCounterSalePaymentRequest extends JsonValidationRequest
 
         return $reservation instanceof Reservation
             && $user instanceof User
-            && $reservation->created_by_user_id === $user->getKey()
-            && $user->can('createCounterSale', Reservation::class);
+            && $user->can('manageCounterSale', $reservation);
     }
 
     /**

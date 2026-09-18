@@ -83,6 +83,12 @@ class InitiatePaymentAction
                     ]);
                 }
 
+                if (! in_array($lockedReservation->status, [ReservationStatus::Held, ReservationStatus::Confirmed], true)) {
+                    throw ValidationException::withMessages([
+                        'reservation_uuid' => 'Cette réservation doit d’abord être reprise avant de lancer un paiement en ligne.',
+                    ]);
+                }
+
                 if ($lockedReservation->expires_at && $lockedReservation->expires_at->isPast()) {
                     throw ValidationException::withMessages([
                         'reservation_uuid' => 'La réservation a expiré.',

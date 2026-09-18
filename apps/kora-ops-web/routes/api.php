@@ -1,5 +1,7 @@
 <?php
 
+use App\Modules\AssistedBooking\Http\Controllers\AssistedBookingAgencyController;
+use App\Modules\AssistedBooking\Http\Controllers\AssistedBookingApiController;
 use App\Modules\Boarding\Http\Controllers\OpsBoardingController;
 use App\Modules\Boarding\Http\Controllers\OpsSeatReleaseController;
 use App\Modules\Booking\Http\Controllers\ItineraryController;
@@ -146,6 +148,19 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         });
 
     Route::middleware('auth:sanctum')->group(function (): void {
+        Route::get('assisted-bookings/agencies', [AssistedBookingAgencyController::class, 'index'])
+            ->middleware('throttle:bus-itinerary-actions')
+            ->name('assisted-bookings.agencies.index');
+        Route::post('bookings/{reservation:uuid}/assistance', [AssistedBookingApiController::class, 'store'])
+            ->middleware('throttle:bus-itinerary-actions')
+            ->name('bookings.assistance.store');
+        Route::get('bookings/{reservation:uuid}/assistance', [AssistedBookingApiController::class, 'show'])
+            ->middleware('throttle:bus-itinerary-actions')
+            ->name('bookings.assistance.show');
+        Route::post('bookings/{reservation:uuid}/assistance/resume-online', [AssistedBookingApiController::class, 'resumeOnline'])
+            ->middleware('throttle:bus-itinerary-actions')
+            ->name('bookings.assistance.resume-online');
+
         Route::get('company-accounts', [CompanyAccountController::class, 'index'])->name('company-accounts.index');
         Route::post('company-accounts', [CompanyAccountController::class, 'store'])->name('company-accounts.store');
         Route::put('company-accounts/{companyAccount:uuid}', [CompanyAccountController::class, 'update'])->name('company-accounts.update');

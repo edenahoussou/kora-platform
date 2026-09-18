@@ -14,8 +14,7 @@ class StoreCounterSalePassengersRequest extends StorePassengersRequest
 
         return $reservation instanceof Reservation
             && $user instanceof User
-            && $reservation->created_by_user_id === $user->getKey()
-            && $user->can('createCounterSale', Reservation::class);
+            && $user->can('manageCounterSale', $reservation);
     }
 
     /** @return array<string, array<int, mixed>> */

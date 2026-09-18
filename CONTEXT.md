@@ -48,6 +48,10 @@ _Avoid_: Siege reserve definitif
 Prix final calcule cote serveur pour une demande de reservation, fige pendant la duree du blocage de siege.
 _Avoid_: Prix indicatif
 
+**Reservation assistee**:
+Reservation Bus initiee par un passager puis confiee a une agence pour etre terminee par telephone ou WhatsApp. Elle conserve la meme reference et le meme itineraire, ne bloque ni siege ni credit pendant l'attente, et doit etre reprise par un agent autorise avec un nouveau devis et une nouvelle validation atomique des sieges.
+_Avoid_: Deuxieme reservation creee par l'agence, siege bloque dans la file d'assistance, reference WhatsApp utilisee comme autorisation
+
 **Descente anticipee**:
 Evenement enregistre par le convoyeur lorsqu'un passager descend avant sa destination initiale, afin de liberer les segments non parcourus.
 _Avoid_: Annulation

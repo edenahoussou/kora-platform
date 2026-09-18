@@ -19,6 +19,10 @@ return [
 
     'api_version' => env('KORA_API_VERSION', 'v1'),
 
+    'bookings' => [
+        'quote_ttl_minutes' => env('KORA_QUOTE_TTL_MINUTES', 10),
+    ],
+
     'departures' => [
         'sellability' => [
             'default_cutoff_minutes' => env('KORA_SALE_CUTOFF_MINUTES', 30),

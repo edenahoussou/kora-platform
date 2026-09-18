@@ -4,6 +4,7 @@ import {
     Bell,
     Bus,
     FileText,
+    HandHelping,
     LayoutDashboard,
     PanelLeftClose,
     PanelLeftOpen,
@@ -48,6 +49,15 @@ const navItems: NavEntry[] = [
         href: '/sale',
         icon: Ticket,
         permission: 'counter-sales.create',
+    },
+    {
+        title: 'Réservations assistées',
+        href: '/assisted-bookings',
+        icon: HandHelping,
+        permission: [
+            'assisted-bookings.view-agency',
+            'assisted-bookings.view-network',
+        ],
     },
     {
         title: 'Caisse',

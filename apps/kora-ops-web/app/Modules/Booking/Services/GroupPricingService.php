@@ -66,7 +66,7 @@ class GroupPricingService
         $promotionDiscount = min(max($promotionDiscount, 0), $subtotal);
         $discountAmount = $discountApplied ? (int) round(($subtotal - $promotionDiscount) * $percentage / 100) : 0;
         $total = $subtotal - $promotionDiscount - $discountAmount;
-        $expiration = $expiresAt ?? now()->addMinutes(10);
+        $expiration = $expiresAt ?? now()->addMinutes((int) config('kora.bookings.quote_ttl_minutes', 10));
 
         return [
             'subtotal_amount' => $subtotal,

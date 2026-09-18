@@ -58,6 +58,8 @@ enum SystemRole: string
                 'departures.view',
                 'tickets.issue',
                 'tickets.view',
+                'assisted-bookings.view-agency',
+                'assisted-bookings.claim',
             ],
             self::AgencyManager => [
                 'agencies.view',
@@ -78,6 +80,10 @@ enum SystemRole: string
                 'terminals.view',
                 'tickets.issue',
                 'tickets.view',
+                'assisted-bookings.view-agency',
+                'assisted-bookings.claim',
+                'assisted-bookings.manage-agency',
+                'assisted-bookings.refuse',
             ],
             self::OperationsDirector => [
                 'tickets.view-network',
@@ -103,6 +109,9 @@ enum SystemRole: string
                 'terminals.view',
                 'terminals.manage',
                 'tickets.view',
+                'assisted-bookings.view-network',
+                'assisted-bookings.reassign-network',
+                'assisted-bookings.refuse',
             ],
             self::CommercialDirector => [
                 'tickets.view-network',
@@ -125,6 +134,9 @@ enum SystemRole: string
                 'group-discounts.manage',
                 'seat-releases.view',
                 'tickets.view',
+                'assisted-bookings.view-network',
+                'assisted-bookings.reassign-network',
+                'assisted-bookings.refuse',
             ],
             self::Daf => [
                 'tickets.view-network',
@@ -157,6 +169,7 @@ enum SystemRole: string
                 'pricing.view',
                 'seat-releases.view',
                 'tickets.view',
+                'assisted-bookings.view-network',
             ],
             self::SystemAdmin => self::allPermissions(),
         };
@@ -221,6 +234,12 @@ enum SystemRole: string
             'company-credit.view',
             'company-credit.manage',
             'company-reports.export',
+            'assisted-bookings.view-agency',
+            'assisted-bookings.claim',
+            'assisted-bookings.manage-agency',
+            'assisted-bookings.view-network',
+            'assisted-bookings.reassign-network',
+            'assisted-bookings.refuse',
         ];
     }
 

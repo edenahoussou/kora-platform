@@ -4,6 +4,7 @@ namespace App\Modules\Booking\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Modules\AssistedBooking\Services\AssistedBookingWorkflow;
 use App\Modules\Booking\Actions\CalculateItineraryQuoteAction;
 use App\Modules\Booking\Actions\CreateItineraryHoldAction;
 use App\Modules\Booking\Actions\ItineraryLegQuoteRequest;
@@ -372,7 +373,7 @@ class CounterSaleController extends Controller
     public function retryTicketIssuance(Reservation $reservation): RedirectResponse
     {
         $user = auth()->user();
-        abort_unless($user instanceof User && $reservation->created_by_user_id === $user->getKey(), 403);
+        abort_unless($user instanceof User && $user->can('manageCounterSale', $reservation), 403);
         abort_unless($reservation->status === ReservationStatus::Paid, 422);
 
         $reservation->update([
@@ -388,8 +389,14 @@ class CounterSaleController extends Controller
         ReleaseCounterSaleHoldRequest $request,
         Reservation $reservation,
         ReleaseSeatHoldAction $releaseSeatHold,
+        AssistedBookingWorkflow $assistedBookingWorkflow,
     ): RedirectResponse {
-        $releaseSeatHold->handle($reservation, $request->user());
+        $assistance = $reservation->assistedBooking;
+        if ($assistance !== null && $assistance->status->value === 'in_progress') {
+            $assistedBookingWorkflow->release($assistance, $request->user(), 'Libération depuis le parcours guichet.');
+        } else {
+            $releaseSeatHold->handle($reservation, $request->user());
+        }
 
         return to_route('sale', $request->saleQuery());
     }
@@ -730,10 +737,10 @@ class CounterSaleController extends Controller
             return null;
         }
 
-        return Reservation::query()
+        $reservation = Reservation::query()
             ->where('uuid', $context['reservation_uuid'])
-            ->where('created_by_user_id', auth()->id())
             ->with([
+                'assistedBooking',
                 'segments.departure.line',
                 'segments.departure.bus',
                 'segments.seat',
@@ -746,6 +753,10 @@ class CounterSaleController extends Controller
                 'companyAccount',
             ])
             ->firstOrFail();
+
+        abort_unless(auth()->user()?->can('manageCounterSale', $reservation), 403);
+
+        return $reservation;
     }
 
     private function latestActiveCounterSale(): ?Reservation
@@ -757,7 +768,10 @@ class CounterSaleController extends Controller
         }
 
         return Reservation::query()
-            ->where('created_by_user_id', $user->getKey())
+            ->where(function ($query) use ($user): void {
+                $query->where('created_by_user_id', $user->getKey())
+                    ->orWhereHas('assistedBooking', fn ($assistance) => $assistance->where('assigned_user_id', $user->getKey())->where('status', 'in_progress'));
+            })
             ->where('channel', ReservationChannel::Counter->value)
             ->where('status', ReservationStatus::Held->value)
             ->where('expires_at', '>', now())
