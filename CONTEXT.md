@@ -60,6 +60,30 @@ _Avoid_: Annulation
 Integration de fiscalisation normalisee associee a chaque vente confirmee, avec reprise idempotente en cas d'indisponibilite.
 _Avoid_: Facture billet
 
+**Facture normalisee**:
+Facture fiscale KORA associee a une reservation et a un paiement confirmes, dont la reference publique, le statut, les tentatives de synchronisation et l'UID MECeF sont suivis dans OPS Web.
+_Avoid_: Réponse fournisseur brute exposée à tous les rôles, facture créée en double
+
+**Tentative de synchronisation fiscale**:
+Enregistrement append-only d'une soumission ou d'une finalisation vers le fournisseur e-MECeF. Le résumé assaini est consultable selon le périmètre Finance ; le payload complet est chiffré et réservé à la DAF et à l'administrateur système.
+_Avoid_: Relance sans idempotence, secret fournisseur dans un export
+
+**Dépense**:
+Sortie opérationnelle XOF saisie par une agence, rattachée facultativement à une session ou à un ledger de caisse, soumise à validation et publiée dans le module Finance avant son rapprochement.
+_Avoid_: CashMovement historique reclassé automatiquement, montant décimal ou devise multiple dans le MVP
+
+**Sortie de caisse**:
+Mouvement financier sortant d'un ledger de caisse. Une dépense approuvée peut en créer une, mais les sorties historiques restent distinctes et ne sont jamais comptées deux fois dans les vues Finance.
+_Avoid_: Dépense métier, écriture publiée modifiable
+
+**Contrepassation**:
+Écriture inverse auditée d'une dépense publiée. Elle conserve la dépense d'origine, exige un motif et ne supprime ni ne modifie l'écriture historique.
+_Avoid_: Suppression de dépense, correction silencieuse d'un ledger
+
+**Rapprochement**:
+Association vérifiable entre une dépense publiée et un ledger ou mouvement de caisse. Une dépense non rapprochée reste visible comme telle et ne modifie pas artificiellement le solde.
+_Avoid_: Déduction automatique sans preuve, double comptage Expense/CashMovement
+
 **Compte voyageur**:
 Identite client KORA retrouvee ou creee automatiquement a partir d'un telephone personnel normalise lors de l'achat ou de l'emission d'un billet. Elle existe avec son Wallet meme sans acces active a l'application ; son titulaire peut voyager, payer pour un tiers ou faire les deux.
 _Avoid_: Inscription obligatoire dans l'application, fiche voyageur sans telephone personnel

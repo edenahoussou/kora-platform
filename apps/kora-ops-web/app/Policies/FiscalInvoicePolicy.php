@@ -15,6 +15,11 @@ class FiscalInvoicePolicy
         return $this->allows($user, 'fiscalization.view');
     }
 
+    public function view(User $user, FiscalInvoice $fiscalInvoice): bool
+    {
+        return $this->allows($user, 'fiscalization.view');
+    }
+
     public function retry(User $user, FiscalInvoice $fiscalInvoice): bool
     {
         return $this->allows($user, 'fiscalization.retry');
@@ -23,5 +28,10 @@ class FiscalInvoicePolicy
     public function credit(User $user, FiscalInvoice $fiscalInvoice): bool
     {
         return $this->allows($user, 'fiscalization.credit');
+    }
+
+    public function viewPayload(User $user, FiscalInvoice $fiscalInvoice): bool
+    {
+        return $this->allows($user, 'fiscalization.payload.view');
     }
 }

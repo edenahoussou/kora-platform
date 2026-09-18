@@ -5,6 +5,7 @@ namespace App\Modules\Cash\Models;
 use App\Models\User;
 use App\Modules\Cash\Data\CashMovementDirection;
 use App\Modules\Cash\Data\CashMovementStatus;
+use App\Modules\Expenses\Models\Expense;
 use App\Modules\Support\Models\KoraModel;
 use Database\Factories\CashMovementFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -42,6 +43,7 @@ class CashMovement extends KoraModel implements HasMedia
                 'cash_ledger_id',
                 'cash_register_id',
                 'cash_transfer_id',
+                'expense_id',
                 'source_type',
                 'source_id',
                 'type',
@@ -73,6 +75,7 @@ class CashMovement extends KoraModel implements HasMedia
         'cash_ledger_id',
         'cash_register_id',
         'cash_transfer_id',
+        'expense_id',
         'source_type',
         'source_id',
         'type',
@@ -112,6 +115,12 @@ class CashMovement extends KoraModel implements HasMedia
     public function cashRegister(): BelongsTo
     {
         return $this->belongsTo(CashRegister::class);
+    }
+
+    /** @return BelongsTo<Expense, $this> */
+    public function expense(): BelongsTo
+    {
+        return $this->belongsTo(Expense::class);
     }
 
     /**

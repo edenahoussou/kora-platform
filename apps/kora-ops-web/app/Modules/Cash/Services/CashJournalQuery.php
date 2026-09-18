@@ -11,7 +11,7 @@ class CashJournalQuery
 {
     public const CHANNELS = ['cash' => 'Espèces', 'mtn_momo' => 'MTN MoMo', 'moov_flooz' => 'Moov Money / Flooz', 'celtiis_cash' => 'Celtiis Cash'];
 
-    public const TYPES = ['counter_sale' => 'Vente guichet', 'counter_sale_cash' => 'Vente guichet espèces', 'counter_sale_mobile_money' => 'Vente guichet Mobile Money', 'mobile_money_payment' => 'Paiement Mobile Money', 'cash_payment' => 'Paiement espèces', 'reversement' => 'Reversement', 'adjustment' => 'Ajustement'];
+    public const TYPES = ['counter_sale' => 'Vente guichet', 'counter_sale_cash' => 'Vente guichet espèces', 'counter_sale_mobile_money' => 'Vente guichet Mobile Money', 'mobile_money_payment' => 'Paiement Mobile Money', 'cash_payment' => 'Paiement espèces', 'reversement' => 'Reversement', 'expense' => 'Dépense', 'adjustment' => 'Ajustement'];
 
     public const STATUSES = ['posted' => 'Publié', 'pending' => 'En attente', 'approved' => 'Approuvé', 'rejected' => 'Rejeté', 'reversed' => 'Contrepassé'];
 

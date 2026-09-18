@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
             KoraDepartureProgrammingSeeder::class,
             Mez57GroupPurchaseSeeder::class,
             KoraCompanyAccountSeeder::class,
+            KoraExpenseCategorySeeder::class,
         ]);
     }
 }

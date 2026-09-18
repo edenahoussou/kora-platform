@@ -20,6 +20,7 @@
         "laravel/socialite": "^5.30",
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.14",
+        "phpoffice/phpspreadsheet": "^2.2",
         "predis/predis": "^3.5",
         "socialiteproviders/tiktok": "^5.2",
         "spatie/browsershot": "^5.4",
