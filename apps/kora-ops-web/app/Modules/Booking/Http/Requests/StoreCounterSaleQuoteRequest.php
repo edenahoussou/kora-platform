@@ -28,6 +28,7 @@ class StoreCounterSaleQuoteRequest extends JsonValidationRequest
             'inbound_legs.*.origin_stop_uuid' => ['required', 'uuid', 'exists:stops,uuid'],
             'inbound_legs.*.destination_stop_uuid' => ['required', 'uuid', 'exists:stops,uuid'],
             'passenger_count' => ['required', 'integer', 'min:1', 'max:'.GroupBookingSetting::current()->maximum_passengers],
+            'promo_code' => ['nullable', 'string', 'max:32'],
             'trip_type' => ['nullable', 'in:one_way,round_trip'],
             'return_date' => ['nullable', 'date_format:Y-m-d'],
             'date' => ['required', 'date_format:Y-m-d'],
@@ -43,6 +44,7 @@ class StoreCounterSaleQuoteRequest extends JsonValidationRequest
     {
         return [
             'passenger_count' => $this->integer('passenger_count'),
+            'promo_code' => $this->string('promo_code')->trim()->value() ?: null,
             'outbound_legs' => $this->input('outbound_legs', []),
             'inbound_legs' => $this->input('inbound_legs', []),
         ];
