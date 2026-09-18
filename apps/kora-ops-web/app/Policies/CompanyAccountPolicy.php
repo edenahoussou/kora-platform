@@ -10,6 +10,12 @@ use function Illuminate\Support\enum_value;
 
 class CompanyAccountPolicy
 {
+    public function viewAny(User $user): bool
+    {
+        return enum_value($user->status) === UserStatus::Active->value
+            && $user->can('company-accounts.view');
+    }
+
     public function view(User $user, CompanyAccount $account): bool
     {
         if (enum_value($user->status) !== UserStatus::Active->value) {

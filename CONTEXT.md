@@ -111,3 +111,23 @@ _Avoid_: Compte supprimé ; compte disponible pour encaisser ; solde transféré
 **Remplacement de compte**:
 Opération guidée qui désactive un compte actif et crée ou réactive un autre compte du même réseau. Elle exige une confirmation explicite, est atomique, et est refusée tant qu’une session ouverte utilise le compte sortant.
 _Avoid_: Modifier l’identifiant en place ; supprimer l’ancien compte ; changer de compte sans conserver l’historique
+
+**Compte organisationnel**:
+Compte entreprise, ONG ou ambassade utilisé comme payeur pour des achats Bus à crédit. Il possède une référence métier KORA, un plafond mensuel et un cycle actif/inactif ; il est distinct des utilisateurs qui peuvent acheter ou référer l’organisation.
+_Avoid_: Compte voyageur ; compte personnel d’un agent ; portefeuille Wallet
+
+**Référent d’organisation**:
+Utilisateur KORA actif, hors personnel interne, désigné comme contact principal d’un compte organisationnel. Affiché « Responsable du compte » dans l’interface. Une seule personne peut être référente active à la fois ; un remplacement conserve l’ancien rattachement comme inactif.
+_Avoid_: Propriétaire du compte voyageur ; agent de caisse ; contact externe non authentifié
+
+**Acheteur d’organisation**:
+Utilisateur KORA actif, hors personnel interne, autorisé à utiliser un compte organisationnel dans le cadre des achats de groupe. Il peut être membre sans être le référent unique.
+_Avoid_: Voyageur automatiquement créé ; référent obligatoire ; payeur personnel
+
+**Plafond de crédit mensuel**:
+Montant maximal en FCFA qu’un compte organisationnel peut engager pendant le mois civil courant. Le disponible soustrait les débits confirmés et les réservations actives, ajoute les remboursements et ne se reporte pas automatiquement au mois suivant.
+_Avoid_: Solde Wallet ; plafond par agence ; limite annuelle
+
+**Crédit disponible**:
+Montant calculé côté serveur qu’un compte organisationnel peut encore engager à crédit pour le mois courant. Il ne peut jamais être négatif et reste inaccessible aux utilisateurs sans permission Finance.
+_Avoid_: Montant saisi par l’agent ; montant facturé ; encaissement de caisse
