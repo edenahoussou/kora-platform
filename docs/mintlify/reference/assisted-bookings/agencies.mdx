@@ -1,0 +1,68 @@
+---
+title: Lister les agences éligibles
+description: GET /api/v1/assisted-bookings/agencies retourne les agences actives pouvant recevoir une réservation assistée, avec leurs canaux de contact publics.
+api: GET /api/v1/assisted-bookings/agencies
+---
+
+# Lister les agences éligibles
+
+Retourne les agences actives qui exposent au moins un canal de contact public (`call_phone` ou `whatsapp_phone`). Le client mobile n'active un bouton (appel ou WhatsApp) que si le numéro correspondant existe.
+
+<RequestExample>
+
+```bash cURL
+curl -X GET https://staging.koraexpress.app/api/v1/assisted-bookings/agencies \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Accept: application/json'
+```
+
+```javascript JavaScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/assisted-bookings/agencies', {
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+const { data } = await res.json();
+```
+
+```typescript TypeScript
+const res = await fetch('https://staging.koraexpress.app/api/v1/assisted-bookings/agencies', {
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+const agencies: Agency[] = (await res.json()).data;
+```
+
+```dart Dart
+final res = await authDio.get('/api/v1/assisted-bookings/agencies');
+final agencies = res.data['data'];
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "data": [
+    {
+      "uuid": "9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f",
+      "code": "AG-000001",
+      "name": "Agence Dantokpa",
+      "city": "Cotonou",
+      "call_phone": "+229010000001",
+      "whatsapp_phone": "+229010000002"
+    }
+  ]
+}
+```
+
+</ResponseExample>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `200` | Liste des agences éligibles (peut être vide). |
+| `401` | Token absent ou invalide. |
+
+<Info>
+  Une agence est éligible si elle est `active` et possède au moins un numéro `call_phone` ou `whatsapp_phone`. Aucun lien n'existe entre une agence et un départ, un véhicule ou un arrêt.
+</Info>

@@ -1,0 +1,144 @@
+---
+title: Reprendre le paiement en ligne
+description: POST /api/v1/bookings/{uuid}/assistance/resume-online arbitre contre la prise en charge agence, recalcule le devis et réacquiert les sièges sur la même réservation.
+api: POST /api/v1/bookings/{reservation_uuid}/assistance/resume-online
+---
+
+# Reprendre le paiement en ligne
+
+Arbitre contre une éventuelle prise en charge agence : l'opération n'est valide que tant que le dossier est `pending`. Le devis est recalculé et les sièges sont réacquis **atomiquement** sur le même itinéraire et les mêmes départs — la première opération validée gagne, l'autre reçoit un conflit `409`. Aucune nouvelle réservation n'est créée.
+
+## Paramètres
+
+<ParamField path="reservation_uuid" type="UUID" required>
+  UUID de la réservation (route model binding sur colonne `uuid`).
+</ParamField>
+
+<ParamField body="idempotency_key" type="string" required>
+  Clé d'idempotence générée par le client.
+</ParamField>
+
+<ParamField body="passengers" type="array" required>
+  Affectations de sièges par passager : `passenger_index` puis `seat_assignments` (`leg_order` + `seat_uuid`) pour chaque jambe.
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X POST https://staging.koraexpress.app/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70/assistance/resume-online \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "idempotency_key": "1f3d5b7a-9c2e-4f6a-8b0d-2e4f6a8c0d2f",
+    "passengers": [
+      {
+        "passenger_index": 0,
+        "seat_assignments": [
+          { "leg_order": 1, "seat_uuid": "8d3f6a2c-1e4b-4c5d-9a2f-4b6d8e0f2a4c" }
+        ]
+      }
+    ]
+  }'
+```
+
+```javascript JavaScript
+const res = await fetch(`https://staging.koraexpress.app/api/v1/bookings/${reservationUuid}/assistance/resume-online`, {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    idempotency_key: crypto.randomUUID(),
+    passengers: [
+      {
+        passenger_index: 0,
+        seat_assignments: [{ leg_order: 1, seat_uuid: seatUuid }],
+      },
+    ],
+  }),
+});
+const { data } = await res.json();
+```
+
+```typescript TypeScript
+const res = await fetch(`https://staging.koraexpress.app/api/v1/bookings/${reservationUuid}/assistance/resume-online`, {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify(payload),
+});
+const resumed: Reservation = (await res.json()).data;
+```
+
+```dart Dart
+final res = await authDio.post(
+  '/api/v1/bookings/$reservationUuid/assistance/resume-online',
+  data: {
+    'idempotency_key': idempotencyKey,
+    'passengers': [
+      {
+        'passenger_index': 0,
+        'seat_assignments': [
+          {'leg_order': 1, 'seat_uuid': seatUuid},
+        ],
+      },
+    ],
+  },
+);
+final reservation = res.data['data'];
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "data": {
+    "uuid": "5b0d2f4a-6c8e-4a1b-9d3f-1a3c5e7b9d2f",
+    "reference": "KBR-7X2K9P4Q",
+    "status": "held",
+    "channel": "mobile",
+    "amount": 8500,
+    "currency": "XOF",
+    "expires_at": "2026-09-20T11:45:00+00:00",
+    "seats": [
+      {
+        "segment_uuid": "2c4e6a8b-0d2f-4a6c-8e0b-2d4f6a8c0e2b",
+        "passenger_index": 0,
+        "leg_order": 1,
+        "seat_uuid": "8d3f6a2c-1e4b-4c5d-9a2f-4b6d8e0f2a4c",
+        "seat_code": "2A"
+      }
+    ]
+  }
+}
+```
+
+```json 409
+{
+  "message": "Le siège 2A n'est plus disponible sur ce segment.",
+  "conflicting_seat_uuid": "8d3f6a2c-1e4b-4c5d-9a2f-4b6d8e0f2a4c",
+  "seat_code": "2A"
+}
+```
+
+</ResponseExample>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `200` | Reprise réussie : devis recalculé, sièges bloqués, réservation `held`. |
+| `401` | Token absent ou invalide. |
+| `403` | Réservation appartenant à un autre utilisateur. |
+| `409` | Dossier déjà pris en charge par un agent, ou siège demandé devenu indisponible (`seat_code` retourné). |
+| `422` | Payload invalide ou dossier expiré/indisponible. |
+
+<Warning>
+  En cas de conflit de siège (`409`), renvoyer le voyageur vers la sélection des sièges en utilisant `conflicting_seat_uuid` / `seat_code` — aucune réservation supplémentaire n'est créée. Un changement de trajet impose une nouvelle réservation.
+</Warning>
