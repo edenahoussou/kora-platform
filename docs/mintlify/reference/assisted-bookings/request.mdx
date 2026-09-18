@@ -1,0 +1,146 @@
+---
+title: Envoyer une réservation en assistance
+description: POST /api/v1/bookings/{uuid}/assistance transforme la réservation existante en dossier assisté auprès d'une agence, sans créer de doublon.
+api: POST /api/v1/bookings/{reservation_uuid}/assistance
+---
+
+# Envoyer une réservation en assistance
+
+Transforme la réservation existante : les sièges et le crédit entreprise sont libérés, les segments passent en `requested`, et le dossier entre dans la file de l'agence choisie avec le statut `pending`. Rejouer la même `idempotency_key` retourne le dossier existant (`200`) sans créer de doublon.
+
+## Paramètres
+
+<ParamField path="reservation_uuid" type="UUID" required>
+  UUID de la réservation (route model binding sur colonne `uuid`).
+</ParamField>
+
+<ParamField body="agency_uuid" type="UUID" required>
+  UUID de l'agence choisie (issue de `GET /api/v1/assisted-bookings/agencies`).
+</ParamField>
+
+<ParamField body="channel" type="string" required>
+  Canal de contact initial : `call` ou `whatsapp`.
+</ParamField>
+
+<ParamField body="contact_name" type="string" required>
+  Prénom du contact présenté à l'agence (max 120 caractères).
+</ParamField>
+
+<ParamField body="contact_phone" type="string" required>
+  Téléphone du contact au format international (ex. `+2290197000000`).
+</ParamField>
+
+<ParamField body="idempotency_key" type="string" required>
+  Clé d'idempotence générée par le client.
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X POST https://staging.koraexpress.app/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70/assistance \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "agency_uuid": "9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f",
+    "channel": "whatsapp",
+    "contact_name": "Afi",
+    "contact_phone": "+2290197000000",
+    "idempotency_key": "1f3d5b7a-9c2e-4f6a-8b0d-2e4f6a8c0d2f"
+  }'
+```
+
+```javascript JavaScript
+const res = await fetch(`https://staging.koraexpress.app/api/v1/bookings/${reservationUuid}/assistance`, {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    agency_uuid: agencyUuid,
+    channel: 'whatsapp',
+    contact_name: 'Afi',
+    contact_phone: '+2290197000000',
+    idempotency_key: crypto.randomUUID(),
+  }),
+});
+const { data } = await res.json();
+```
+
+```typescript TypeScript
+const res = await fetch(`https://staging.koraexpress.app/api/v1/bookings/${reservationUuid}/assistance`, {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify(payload),
+});
+const dossier: AssistedBooking = (await res.json()).data;
+```
+
+```dart Dart
+final res = await authDio.post(
+  '/api/v1/bookings/$reservationUuid/assistance',
+  data: {
+    'agency_uuid': agencyUuid,
+    'channel': 'whatsapp',
+    'contact_name': 'Afi',
+    'contact_phone': '+2290197000000',
+    'idempotency_key': idempotencyKey,
+  },
+);
+final dossier = res.data['data'];
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 201
+{
+  "data": {
+    "uuid": "7a1e9c3b-4d5f-4a2b-8c1d-3e5f7a9b1c2d",
+    "status": "pending",
+    "channel": "whatsapp",
+    "reservation": {
+      "uuid": "5b0d2f4a-6c8e-4a1b-9d3f-1a3c5e7b9d2f",
+      "reference": "KBR-7X2K9P4Q",
+      "status": "assistance_pending"
+    },
+    "agency": {
+      "uuid": "9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f",
+      "name": "Agence Dantokpa",
+      "city": "Cotonou"
+    },
+    "contact": { "name": "Afi", "phone": "+2290197000000" },
+    "channels": {
+      "call_phone": "+229010000001",
+      "whatsapp_phone": "+229010000002",
+      "call_url": "tel:+229010000001",
+      "whatsapp_url": "https://wa.me/229010000002?text=Bonjour%20KORA%20BUS"
+    },
+    "whatsapp_message": "Bonjour KORA BUS ...",
+    "amount": { "original": 8500, "current": 8500, "currency": "XOF" },
+    "valid_until": "2026-09-20T11:30:00+00:00",
+    "actions": { "resume_online": true }
+  }
+}
+```
+
+</ResponseExample>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `201` | Dossier d'assistance créé. |
+| `200` | Rejeu idempotent : dossier existant retourné. |
+| `401` | Token absent ou invalide. |
+| `403` | Réservation appartenant à un autre utilisateur. |
+| `422` | Réservation non éligible (statut, expiration) ou payload invalide. |
+
+<Warning>
+  Pendant l'attente, ni les sièges ni le crédit entreprise ne sont bloqués. La `reference` (`KBR-XXXXXXXX`) est affichable dans WhatsApp mais ne constitue jamais une autorisation.
+</Warning>

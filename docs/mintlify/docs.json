@@ -121,6 +121,16 @@
                 ]
               },
               {
+                "group": "Réservation assistée",
+                "icon": "headset",
+                "pages": [
+                  "reference/assisted-bookings/agencies",
+                  "reference/assisted-bookings/request",
+                  "reference/assisted-bookings/show",
+                  "reference/assisted-bookings/resume-online"
+                ]
+              },
+              {
                 "group": "Paiements",
                 "icon": "credit-card",
                 "pages": [
