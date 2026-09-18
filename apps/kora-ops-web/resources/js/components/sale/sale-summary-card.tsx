@@ -3,6 +3,7 @@ import {
     CheckCircle2,
     Clock3,
     LayoutGrid,
+    Tag,
     Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -41,6 +42,8 @@ type Props = {
     selectedCompanyAccountUuid?: string | null;
     onPayerTypeChange?: (type: SalePayerType) => void;
     onCompanyAccountChange?: (uuid: string | null) => void;
+    promoCode?: string;
+    onPromoCodeChange?: (code: string) => void;
 };
 
 export function SaleSummaryCard({
@@ -56,6 +59,8 @@ export function SaleSummaryCard({
     companyAccounts = [],
     payerType = 'personal',
     selectedCompanyAccountUuid = null,
+    promoCode = '',
+    onPromoCodeChange,
 }: Props) {
     if (!selectedItinerary) {
         return (
@@ -150,6 +155,43 @@ export function SaleSummaryCard({
                         {selectedSeatCodes.join(', ') || 'À choisir'}
                     </strong>
                 </div>
+
+                {!reservation && onPromoCodeChange && (
+                    <div className="summary-row summary-promo-row">
+                        <span className="field-label">
+                            <Tag className="size-3.5" />
+                            Code promo
+                        </span>
+                        <input
+                            type="text"
+                            className="summary-promo-input"
+                            value={promoCode}
+                            onChange={(event) =>
+                                onPromoCodeChange(
+                                    event.target.value.toUpperCase(),
+                                )
+                            }
+                            placeholder="Optionnel"
+                            maxLength={32}
+                        />
+                    </div>
+                )}
+
+                {itineraryQuote &&
+                    (itineraryQuote.promotionDiscountAmount ?? 0) > 0 && (
+                        <div className="summary-row summary-discount-row">
+                            <span>
+                                Promotion {itineraryQuote.promotion?.code ?? ''}
+                            </span>
+                            <strong className="is-discount">
+                                −
+                                {formatMoney(
+                                    itineraryQuote.promotionDiscountAmount,
+                                    currency,
+                                )}
+                            </strong>
+                        </div>
+                    )}
 
                 {itineraryQuote && hasDiscount && (
                     <div className="summary-row summary-discount-row">
