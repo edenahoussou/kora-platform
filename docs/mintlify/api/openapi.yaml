@@ -11,14 +11,14 @@ tags:
     name: Bus
     description: "\nPublic Bus catalog endpoints for KORA BUS search experiences."
   -
+    name: 'Assisted Bookings'
+    description: "\nAssisted booking handoff endpoints for the mobile app."
+  -
     name: Auth
     description: "\nOTP challenge request and verification for registration, login, PIN reset and account unlock."
   -
     name: 'Company Accounts'
     description: "\nCompany account management for group purchases and credit-based billing."
-  -
-    name: Endpoints
-    description: ''
   -
     name: 'Group Discounts'
     description: "\nGroup discount rule management and group booking settings."
@@ -1756,6 +1756,602 @@ paths:
       -
         in: path
         name: passenger_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  /api/v1/assisted-bookings/agencies:
+    get:
+      summary: 'List agencies eligible for assisted booking.'
+      operationId: listAgenciesEligibleForAssistedBooking
+      description: "Returns active agencies that expose at least one public contact\nchannel (call or WhatsApp). The mobile client only enables a channel\nbutton when the matching phone number is present."
+      parameters: []
+      responses:
+        200:
+          description: 'Eligible agencies'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    -
+                      uuid: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
+                      code: AG-000001
+                      name: 'Agence Dantokpa'
+                      city: Cotonou
+                      call_phone: '+229010000001'
+                      whatsapp_phone: '+229010000002'
+                properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        uuid: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
+                        code: AG-000001
+                        name: 'Agence Dantokpa'
+                        city: Cotonou
+                        call_phone: '+229010000001'
+                        whatsapp_phone: '+229010000002'
+                    items:
+                      type: object
+                      properties:
+                        uuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        code:
+                          type: string
+                          example: AG-000001
+                        name:
+                          type: string
+                          example: 'Agence Dantokpa'
+                        city:
+                          type: string
+                          example: Cotonou
+                        call_phone:
+                          type: string
+                          example: '+229010000001'
+                        whatsapp_phone:
+                          type: string
+                          example: '+229010000002'
+      tags:
+        - 'Assisted Bookings'
+      security: []
+  '/api/v1/bookings/{reservation_uuid}/assistance':
+    post:
+      summary: 'Send a reservation to an agency for assisted completion.'
+      operationId: sendAReservationToAnAgencyForAssistedCompletion
+      description: "Transforms the existing reservation (no duplicate is created): seats\nand company credit are released, segments become `requested`, and the\ndossier enters the agency queue as `pending`. Replaying the same\n`idempotency_key` returns the existing dossier."
+      parameters: []
+      responses:
+        200:
+          description: 'Idempotent replay'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 7a1e9c3b-4d5f-4a2b-8c1d-3e5f7a9b1c2d
+                    status: pending
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      status:
+                        type: string
+                        example: pending
+        201:
+          description: 'Assistance requested'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 7a1e9c3b-4d5f-4a2b-8c1d-3e5f7a9b1c2d
+                    status: pending
+                    channel: whatsapp
+                    reservation:
+                      uuid: 5b0d2f4a-6c8e-4a1b-9d3f-1a3c5e7b9d2f
+                      reference: KBR-7X2K9P4Q
+                      status: assistance_pending
+                    agency:
+                      uuid: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
+                      name: 'Agence Dantokpa'
+                      city: Cotonou
+                    contact:
+                      name: Afi
+                      phone: '+2290197000000'
+                    channels:
+                      call_phone: '+229010000001'
+                      whatsapp_phone: '+229010000002'
+                      call_url: 'tel:+229010000001'
+                      whatsapp_url: 'https://wa.me/229010000002?text=Bonjour%20KORA%20BUS'
+                    whatsapp_message: 'Bonjour KORA BUS ...'
+                    amount:
+                      original: 8500
+                      current: 8500
+                      currency: XOF
+                    valid_until: '2026-09-20T11:30:00+00:00'
+                    actions:
+                      resume_online: true
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      status:
+                        type: string
+                        example: pending
+                      channel:
+                        type: string
+                        example: whatsapp
+                      reservation:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          reference:
+                            type: string
+                            example: KBR-7X2K9P4Q
+                          status:
+                            type: string
+                            example: assistance_pending
+                      agency:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          name:
+                            type: string
+                            example: 'Agence Dantokpa'
+                          city:
+                            type: string
+                            example: Cotonou
+                      contact:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                            example: Afi
+                          phone:
+                            type: string
+                            example: '+2290197000000'
+                      channels:
+                        type: object
+                        properties:
+                          call_phone:
+                            type: string
+                            example: '+229010000001'
+                          whatsapp_phone:
+                            type: string
+                            example: '+229010000002'
+                          call_url:
+                            type: string
+                            example: 'tel:+229010000001'
+                          whatsapp_url:
+                            type: string
+                            example: 'https://wa.me/229010000002?text=Bonjour%20KORA%20BUS'
+                      whatsapp_message:
+                        type: string
+                        example: 'Bonjour KORA BUS ...'
+                      amount:
+                        type: object
+                        properties:
+                          original:
+                            type: integer
+                            example: 8500
+                          current:
+                            type: integer
+                            example: 8500
+                          currency:
+                            type: string
+                            example: XOF
+                      valid_until:
+                        type: string
+                        example: '2026-09-20T11:30:00+00:00'
+                      actions:
+                        type: object
+                        properties:
+                          resume_online:
+                            type: boolean
+                            example: false
+        403:
+          description: 'Not the reservation owner'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'This action is unauthorized.'
+                properties:
+                  message:
+                    type: string
+                    example: 'This action is unauthorized.'
+        422:
+          description: 'Reservation not eligible'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'The given data was invalid.'
+                  errors:
+                    reservation:
+                      - 'Cette réservation ne peut pas être envoyée en assistance.'
+                properties:
+                  message:
+                    type: string
+                    example: 'The given data was invalid.'
+                  errors:
+                    type: object
+                    properties:
+                      reservation:
+                        type: array
+                        example:
+                          - 'Cette réservation ne peut pas être envoyée en assistance.'
+                        items:
+                          type: string
+      tags:
+        - 'Assisted Bookings'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                agency_uuid:
+                  type: string
+                  description: 'UUID of the chosen agency.'
+                  example: 00000000-0000-4000-8000-000000000000
+                channel:
+                  type: string
+                  description: 'Initial contact channel: call or whatsapp.'
+                  example: whatsapp
+                contact_name:
+                  type: string
+                  description: 'Contact first name shown to the agency.'
+                  example: Afi
+                contact_phone:
+                  type: string
+                  description: 'Contact phone in international format.'
+                  example: '+2290197000000'
+                idempotency_key:
+                  type: string
+                  description: 'Client-generated idempotency key.'
+                  example: 00000000-0000-4000-8000-000000000000
+              required:
+                - agency_uuid
+                - channel
+                - contact_name
+                - contact_phone
+                - idempotency_key
+      security: []
+    get:
+      summary: 'Show the assisted booking dossier for a reservation.'
+      operationId: showTheAssistedBookingDossierForAReservation
+      description: "Returns the current status, validity window, preferred agency contact\nchannels, the initial snapshot and the actions still allowed."
+      parameters: []
+      responses:
+        200:
+          description: 'Dossier detail'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 7a1e9c3b-4d5f-4a2b-8c1d-3e5f7a9b1c2d
+                    status: pending
+                    channel: whatsapp
+                    reservation:
+                      uuid: 5b0d2f4a-6c8e-4a1b-9d3f-1a3c5e7b9d2f
+                      reference: KBR-7X2K9P4Q
+                      status: assistance_pending
+                    agency:
+                      uuid: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
+                      name: 'Agence Dantokpa'
+                      city: Cotonou
+                    contact:
+                      name: Afi
+                      phone: '+2290197000000'
+                    channels:
+                      call_phone: '+229010000001'
+                      whatsapp_phone: '+229010000002'
+                      call_url: 'tel:+229010000001'
+                      whatsapp_url: 'https://wa.me/229010000002?text=Bonjour%20KORA%20BUS'
+                    whatsapp_message: 'Bonjour KORA BUS ...'
+                    amount:
+                      original: 8500
+                      current: 8500
+                      currency: XOF
+                    valid_until: '2026-09-20T11:30:00+00:00'
+                    actions:
+                      resume_online: true
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      status:
+                        type: string
+                        example: pending
+                      channel:
+                        type: string
+                        example: whatsapp
+                      reservation:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          reference:
+                            type: string
+                            example: KBR-7X2K9P4Q
+                          status:
+                            type: string
+                            example: assistance_pending
+                      agency:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          name:
+                            type: string
+                            example: 'Agence Dantokpa'
+                          city:
+                            type: string
+                            example: Cotonou
+                      contact:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                            example: Afi
+                          phone:
+                            type: string
+                            example: '+2290197000000'
+                      channels:
+                        type: object
+                        properties:
+                          call_phone:
+                            type: string
+                            example: '+229010000001'
+                          whatsapp_phone:
+                            type: string
+                            example: '+229010000002'
+                          call_url:
+                            type: string
+                            example: 'tel:+229010000001'
+                          whatsapp_url:
+                            type: string
+                            example: 'https://wa.me/229010000002?text=Bonjour%20KORA%20BUS'
+                      whatsapp_message:
+                        type: string
+                        example: 'Bonjour KORA BUS ...'
+                      amount:
+                        type: object
+                        properties:
+                          original:
+                            type: integer
+                            example: 8500
+                          current:
+                            type: integer
+                            example: 8500
+                          currency:
+                            type: string
+                            example: XOF
+                      valid_until:
+                        type: string
+                        example: '2026-09-20T11:30:00+00:00'
+                      actions:
+                        type: object
+                        properties:
+                          resume_online:
+                            type: boolean
+                            example: false
+        403:
+          description: 'Not the reservation owner'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'This action is unauthorized.'
+                properties:
+                  message:
+                    type: string
+                    example: 'This action is unauthorized.'
+        404:
+          description: 'No assisted booking'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'No query results for model [App\Modules\AssistedBooking\Models\AssistedBooking].'
+                properties:
+                  message:
+                    type: string
+                    example: 'No query results for model [App\Modules\AssistedBooking\Models\AssistedBooking].'
+      tags:
+        - 'Assisted Bookings'
+      security: []
+    parameters:
+      -
+        in: path
+        name: reservation_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/bookings/{reservation_uuid}/assistance/resume-online':
+    post:
+      summary: 'Resume online payment on the same reservation.'
+      operationId: resumeOnlinePaymentOnTheSameReservation
+      description: "Arbitrates against a concurrent agency claim: only valid while the\ndossier is still `pending`. The quote is recalculated and the seats\nare re-acquired atomically on the same itinerary — the first\nsuccessful operation wins and the loser gets a 409 conflict."
+      parameters: []
+      responses:
+        200:
+          description: 'Resumed online'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 5b0d2f4a-6c8e-4a1b-9d3f-1a3c5e7b9d2f
+                    reference: KBR-7X2K9P4Q
+                    status: held
+                    channel: mobile
+                    amount: 8500
+                    currency: XOF
+                    expires_at: '2026-09-20T11:45:00+00:00'
+                    seats:
+                      -
+                        segment_uuid: 2c4e6a8b-0d2f-4a6c-8e0b-2d4f6a8c0e2b
+                        passenger_index: 0
+                        leg_order: 1
+                        seat_uuid: 8d3f6a2c-1e4b-4c5d-9a2f-4b6d8e0f2a4c
+                        seat_code: 2A
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      reference:
+                        type: string
+                        example: KBR-7X2K9P4Q
+                      status:
+                        type: string
+                        example: held
+                      channel:
+                        type: string
+                        example: mobile
+                      amount:
+                        type: integer
+                        example: 8500
+                      currency:
+                        type: string
+                        example: XOF
+                      expires_at:
+                        type: string
+                        example: '2026-09-20T11:45:00+00:00'
+                      seats:
+                        type: array
+                        example:
+                          -
+                            segment_uuid: 2c4e6a8b-0d2f-4a6c-8e0b-2d4f6a8c0e2b
+                            passenger_index: 0
+                            leg_order: 1
+                            seat_uuid: 8d3f6a2c-1e4b-4c5d-9a2f-4b6d8e0f2a4c
+                            seat_code: 2A
+                        items:
+                          type: object
+                          properties:
+                            segment_uuid:
+                              type: string
+                              example: 00000000-0000-4000-8000-000000000000
+                            passenger_index:
+                              type: integer
+                              example: 0
+                            leg_order:
+                              type: integer
+                              example: 1
+                            seat_uuid:
+                              type: string
+                              example: 00000000-0000-4000-8000-000000000000
+                            seat_code:
+                              type: string
+                              example: 2A
+        403:
+          description: 'Not the reservation owner'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'This action is unauthorized.'
+                properties:
+                  message:
+                    type: string
+                    example: 'This action is unauthorized.'
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  -
+                    description: 'Already claimed by an agency'
+                    type: object
+                    example:
+                      message: 'Le dossier est déjà pris en charge par une agence.'
+                    properties:
+                      message:
+                        type: string
+                        example: 'Le dossier est déjà pris en charge par une agence.'
+                  -
+                    description: 'Seat no longer available'
+                    type: object
+                    example:
+                      message: "Le siège 2A n'est plus disponible sur ce segment."
+                      conflicting_seat_uuid: 8d3f6a2c-1e4b-4c5d-9a2f-4b6d8e0f2a4c
+                      seat_code: 2A
+                    properties:
+                      message:
+                        type: string
+                        example: "Le siège 2A n'est plus disponible sur ce segment."
+                      conflicting_seat_uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      seat_code:
+                        type: string
+                        example: 2A
+      tags:
+        - 'Assisted Bookings'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                idempotency_key:
+                  type: string
+                  description: 'Client-generated idempotency key.'
+                  example: 00000000-0000-4000-8000-000000000000
+                passengers:
+                  type: array
+                  description: 'Per-passenger seat assignments.'
+                  example:
+                    - architecto
+                  items:
+                    type: string
+              required:
+                - idempotency_key
+                - passengers
+      security: []
+    parameters:
+      -
+        in: path
+        name: reservation_uuid
         description: ''
         example: 00000000-0000-4000-8000-000000000000
         required: true
@@ -4215,147 +4811,6 @@ paths:
       -
         in: path
         name: companyAccount_uuid
-        description: ''
-        example: 00000000-0000-4000-8000-000000000000
-        required: true
-        schema:
-          type: string
-  /api/v1/assisted-bookings/agencies:
-    get:
-      summary: ''
-      operationId: getApiV1AssistedBookingsAgencies
-      description: ''
-      parameters: []
-      responses: {}
-      tags:
-        - Endpoints
-      security: []
-  '/api/v1/bookings/{reservation_uuid}/assistance':
-    post:
-      summary: ''
-      operationId: postApiV1BookingsReservation_uuidAssistance
-      description: ''
-      parameters: []
-      responses: {}
-      tags:
-        - Endpoints
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                agency_uuid:
-                  type: string
-                  description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
-                  example: 00000000-0000-4000-8000-000000000000
-                channel:
-                  type: string
-                  description: ''
-                  example: call
-                  enum:
-                    - call
-                    - whatsapp
-                contact_name:
-                  type: string
-                  description: 'Le champ value ne doit pas dépasser 120 caractères.'
-                  example: g
-                contact_phone:
-                  type: string
-                  description: 'Must match the regex /^\+[1-9][0-9]{7,14}$/.'
-                  example: '+36425593142326'
-                idempotency_key:
-                  type: string
-                  description: 'Le champ value ne doit pas dépasser 100 caractères.'
-                  example: 'y'
-              required:
-                - agency_uuid
-                - channel
-                - contact_name
-                - contact_phone
-                - idempotency_key
-      security: []
-    get:
-      summary: ''
-      operationId: getApiV1BookingsReservation_uuidAssistance
-      description: ''
-      parameters: []
-      responses: {}
-      tags:
-        - Endpoints
-      security: []
-    parameters:
-      -
-        in: path
-        name: reservation_uuid
-        description: ''
-        example: 00000000-0000-4000-8000-000000000000
-        required: true
-        schema:
-          type: string
-  '/api/v1/bookings/{reservation_uuid}/assistance/resume-online':
-    post:
-      summary: ''
-      operationId: postApiV1BookingsReservation_uuidAssistanceResumeOnline
-      description: ''
-      parameters: []
-      responses: {}
-      tags:
-        - Endpoints
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                idempotency_key:
-                  type: string
-                  description: 'Le champ value ne doit pas dépasser 100 caractères.'
-                  example: b
-                passengers:
-                  type: array
-                  description: 'Le champ value doit contenir au moins 1 éléments.'
-                  example:
-                    - []
-                  items:
-                    type: object
-                    properties:
-                      passenger_index:
-                        type: integer
-                        description: 'Le champ value doit être au moins 0.'
-                        example: 27
-                      seat_assignments:
-                        type: array
-                        description: 'Le champ value doit contenir au moins 1 éléments.'
-                        example:
-                          - []
-                        items:
-                          type: object
-                          properties:
-                            leg_order:
-                              type: integer
-                              description: 'Le champ value doit être au moins 1.'
-                              example: 16
-                            seat_uuid:
-                              type: string
-                              description: 'Le champ value doit être un UUID valide.'
-                              example: 00000000-0000-4000-8000-000000000000
-                          required:
-                            - leg_order
-                            - seat_uuid
-                    required:
-                      - passenger_index
-                      - seat_assignments
-              required:
-                - idempotency_key
-                - passengers
-      security: []
-    parameters:
-      -
-        in: path
-        name: reservation_uuid
         description: ''
         example: 00000000-0000-4000-8000-000000000000
         required: true
