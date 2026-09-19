@@ -1,11 +1,23 @@
 import { Head, router } from '@inertiajs/react';
-import { Download, FileCheck2, RefreshCw, Search, X } from 'lucide-react';
-import { useState } from 'react';
-import type { FormEvent } from 'react';
+import {
+    AlertTriangle,
+    Ban,
+    CheckCircle2,
+    ChevronRight,
+    FileCheck2,
+    FileSpreadsheet,
+    RefreshCw,
+    Search,
+    SlidersHorizontal,
+    Table,
+    X,
+} from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { formatMoney } from '@/components/sale/sale-utils';
 import { cn } from '@/lib/utils';
-import { index, exportMethod, retry } from '@/routes/fiscal-invoices';
+import { exportMethod, index, retry } from '@/routes/fiscal-invoices';
+import type { BreadcrumbItem } from '@/types';
 
 type Invoice = {
     uuid: string;
@@ -35,7 +47,10 @@ type Attempt = {
     completedAt: string | null;
     canViewPayload?: boolean;
 };
-type InvoiceDetail = Invoice & { attempts: Attempt[]; canViewPayload: boolean };
+type InvoiceDetail = Invoice & {
+    attempts: Attempt[];
+    canViewPayload: boolean;
+};
 type Paginated<T> = {
     data: T[];
     current_page: number;
@@ -72,6 +87,157 @@ function formatDate(value: string | null): string {
         : '—';
 }
 
+function FilterSelect({
+    label,
+    value,
+    onChange,
+    options,
+}: {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    options: [string, string][];
+}) {
+    return (
+        <label className="cash-filter-field relative block">
+            <span className="sr-only">{label}</span>
+            <select
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+                className="cash-filter-select h-11 w-full appearance-none rounded-xl bg-muted/55 px-3 pr-8 text-xs font-bold text-foreground ring-1 ring-black/[0.045] transition-[box-shadow,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] outline-none focus:bg-card focus:ring-2 focus:ring-gold/35"
+            >
+                {options.map(([optionValue, optionLabel]) => (
+                    <option key={optionValue} value={optionValue}>
+                        {optionLabel}
+                    </option>
+                ))}
+            </select>
+            <ChevronRight
+                className="pointer-events-none absolute top-1/2 right-3 size-3.5 -translate-y-1/2 rotate-90 text-muted-foreground"
+                strokeWidth={1.7}
+            />
+        </label>
+    );
+}
+
+function FilterDate({
+    label,
+    value,
+    onChange,
+}: {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+}) {
+    return (
+        <label className="cash-filter-field relative block">
+            <span className="sr-only">{label}</span>
+            <input
+                type="date"
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+                className="cash-filter-select h-11 w-full rounded-xl bg-muted/55 px-3 text-xs font-bold text-foreground ring-1 ring-black/[0.045] transition-[box-shadow,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] outline-none focus:bg-card focus:ring-2 focus:ring-gold/35"
+            />
+        </label>
+    );
+}
+
+function KpiCard({
+    icon: Icon,
+    label,
+    value,
+    tone,
+}: {
+    icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+    label: string;
+    value: string | number;
+    tone: 'navy' | 'gold' | 'blue' | 'muted' | 'green' | 'destructive';
+}) {
+    const toneStyles = {
+        navy: 'bg-kora text-white',
+        gold: 'bg-gold/15 text-gold',
+        blue: 'bg-digital/10 text-digital',
+        muted: 'bg-muted text-muted-foreground',
+        green: 'bg-emerald-500/10 text-emerald-600',
+        destructive: 'bg-destructive/10 text-destructive',
+    };
+    const iconBg = toneStyles[tone] ?? toneStyles.muted;
+
+    return (
+        <article className="cash-ledger-card cash-ledger-card-cash">
+            <div className="cash-ledger-head">
+                <div className="cash-ledger-identity">
+                    <span className={cn('cash-ledger-brand', iconBg)}>
+                        <Icon className="size-4" strokeWidth={1.7} />
+                    </span>
+                    <div>
+                        <span className="cash-ledger-title">{label}</span>
+                        <small>Factures</small>
+                    </div>
+                </div>
+            </div>
+            <div className="cash-ledger-balance">
+                <span>Valeur</span>
+                <strong>{value}</strong>
+            </div>
+        </article>
+    );
+}
+
+function Pagination({
+    currentPage,
+    totalPages,
+    total,
+    from,
+    to,
+    onPageChange,
+}: {
+    currentPage: number;
+    totalPages: number;
+    total: number;
+    from: number | null;
+    to: number | null;
+    onPageChange: (page: number) => void;
+}) {
+    if (total === 0) {
+        return null;
+    }
+
+    return (
+        <div className="flex items-center justify-between border-t border-black/[0.045] px-4 py-3 text-xs text-muted-foreground">
+            <span>
+                {from}–{to} sur {total}
+            </span>
+            <div className="flex items-center gap-1.5">
+                <button
+                    type="button"
+                    className="grid size-[31px] place-items-center rounded-[8px] bg-muted text-foreground transition-[transform,opacity,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-x-0.5 hover:bg-gold/15 disabled:pointer-events-none disabled:opacity-35"
+                    onClick={() => onPageChange(currentPage - 1)}
+                    disabled={currentPage <= 1}
+                    aria-label="Page précédente"
+                >
+                    <ChevronRight
+                        className="size-3.5 rotate-180"
+                        strokeWidth={1.7}
+                    />
+                </button>
+                <span className="px-2 font-bold text-foreground">
+                    {currentPage} / {totalPages}
+                </span>
+                <button
+                    type="button"
+                    className="grid size-[31px] place-items-center rounded-[8px] bg-muted text-foreground transition-[transform,opacity,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:translate-x-0.5 hover:bg-gold/15 disabled:pointer-events-none disabled:opacity-35"
+                    onClick={() => onPageChange(currentPage + 1)}
+                    disabled={currentPage >= totalPages}
+                    aria-label="Page suivante"
+                >
+                    <ChevronRight className="size-3.5" strokeWidth={1.7} />
+                </button>
+            </div>
+        </div>
+    );
+}
+
 export default function FiscalInvoicesPage({
     invoices,
     filters,
@@ -81,21 +247,99 @@ export default function FiscalInvoicesPage({
     invoiceDetail,
 }: Props) {
     const [query, setQuery] = useState(filters.q);
-    const submitFilters = (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
+    const [status, setStatus] = useState(filters.status);
+    const [from, setFrom] = useState(filters.from);
+    const [to, setTo] = useState(filters.to);
+
+    const statusOptions: [string, string][] = useMemo(
+        () => [
+            ['all', 'Tous les statuts'],
+            ...(Object.entries(statuses) as [string, string][]),
+        ],
+        [statuses],
+    );
+
+    const applyFilters = () => {
+        const params: Record<string, string> = {};
+
+        if (query.trim() !== '') {
+            params.q = query.trim();
+        }
+
+        if (status !== 'all') {
+            params.status = status;
+        }
+
+        if (from !== '') {
+            params.from = from;
+        }
+
+        if (to !== '') {
+            params.to = to;
+        }
+
         router.get(
-            index.url({
-                query: {
-                    q: query,
-                    status: filters.status,
-                    from: filters.from,
-                    to: filters.to,
-                },
-            }),
+            index.url({ query: params }),
             {},
-            { preserveState: true, preserveScroll: true },
+            {
+                preserveScroll: true,
+                preserveState: true,
+            },
         );
     };
+
+    const resetFilters = () => {
+        setQuery('');
+        setStatus('all');
+        setFrom('');
+        setTo('');
+        router.get(
+            index.url(),
+            {},
+            { preserveScroll: true, preserveState: true },
+        );
+    };
+
+    const goToPage = (page: number) => {
+        const params: Record<string, string> = { page: String(page) };
+
+        if (query.trim() !== '') {
+            params.q = query.trim();
+        }
+
+        if (status !== 'all') {
+            params.status = status;
+        }
+
+        if (from !== '') {
+            params.from = from;
+        }
+
+        if (to !== '') {
+            params.to = to;
+        }
+
+        router.get(
+            index.url({ query: params }),
+            {},
+            {
+                preserveScroll: true,
+                preserveState: true,
+            },
+        );
+    };
+
+    const exportQuery = (format: 'csv' | 'xlsx') =>
+        exportMethod.url({
+            query: {
+                q: filters.q,
+                status: filters.status,
+                from: filters.from,
+                to: filters.to,
+                format,
+            },
+        });
+
     const closeDetail = () =>
         router.get(
             index.url({
@@ -113,235 +357,114 @@ export default function FiscalInvoicesPage({
     return (
         <>
             <Head title="Facturation" />
-            <div className="space-y-6 p-4 md:p-8">
-                <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="cash-page">
+                <div className="kora-page-head cash-reveal mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                     <div>
-                        <p className="text-[0.65rem] font-black tracking-[0.22em] text-muted-foreground uppercase">
-                            Finance / Fiscalisation
-                        </p>
-                        <h1 className="mt-2 text-3xl font-black tracking-[-0.04em] text-foreground">
+                        <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
+                            KORA OPS / Finance / Facturation
+                        </div>
+                        <h1 className="text-[clamp(1.8rem,3vw,2.65rem)] font-extrabold tracking-[-0.055em] text-foreground">
                             Facturation
                         </h1>
-                        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+                        <p className="mt-1.5 text-[0.8125rem] leading-6 text-muted-foreground">
                             Surveillez les transmissions MECeF, identifiez les
                             échecs et relancez-les avec une trace complète.
                         </p>
                     </div>
                     <div className="flex gap-2">
-                        <a
-                            className="inline-flex items-center gap-2 rounded-[0.7rem] border border-border px-3 py-2 text-xs font-bold hover:bg-muted"
-                            href={exportMethod.url({
-                                query: { ...filters, format: 'csv' },
-                            })}
-                        >
-                            <Download className="size-3.5" /> CSV
+                        <a className="btn btn-ghost" href={exportQuery('csv')}>
+                            <Table className="size-3.5" /> Exporter en CSV
                         </a>
                         <a
-                            className="inline-flex items-center gap-2 rounded-[0.7rem] bg-gold px-3 py-2 text-xs font-black text-kora hover:bg-gold/90"
-                            href={exportMethod.url({
-                                query: { ...filters, format: 'xlsx' },
-                            })}
+                            className="btn btn-primary"
+                            href={exportQuery('xlsx')}
                         >
-                            <Download className="size-3.5" /> XLSX
+                            <FileSpreadsheet className="size-3.5" /> Exporter en
+                            Excel
                         </a>
                     </div>
-                </header>
+                </div>
 
-                <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                    {[
-                        ['Total filtré', counters.total, 'muted'],
-                        ['En attente', counters.pending, 'gold'],
-                        ['Certifiées', counters.certified, 'navy'],
-                        ['En échec', counters.failed, 'destructive'],
-                        ['Annulées', counters.canceled, 'muted'],
-                    ].map(([label, value, tone]) => (
-                        <article
-                            key={label as string}
-                            className="rounded-[1.1rem] border border-border bg-card p-4 shadow-sm"
-                        >
-                            <p className="text-xs font-bold text-muted-foreground">
-                                {label}
-                            </p>
-                            <strong
-                                className={cn(
-                                    'mt-2 block text-2xl font-black',
-                                    tone === 'destructive' &&
-                                        'text-destructive',
-                                    tone === 'gold' && 'text-gold',
-                                )}
-                            >
-                                {value}
-                            </strong>
-                        </article>
-                    ))}
+                <section className="cash-ledger-grid cash-reveal cash-reveal-delay-1">
+                    <KpiCard
+                        icon={FileCheck2}
+                        label="Total filtré"
+                        value={counters.total}
+                        tone="muted"
+                    />
+                    <KpiCard
+                        icon={CheckCircle2}
+                        label="Certifiées"
+                        value={counters.certified}
+                        tone="navy"
+                    />
+                    <KpiCard
+                        icon={AlertTriangle}
+                        label="En échec"
+                        value={counters.failed}
+                        tone="destructive"
+                    />
+                    <KpiCard
+                        icon={Ban}
+                        label="Annulées"
+                        value={counters.canceled}
+                        tone="muted"
+                    />
                 </section>
 
-                <section className="rounded-[1.25rem] border border-border bg-card p-4 shadow-sm">
-                    <form
-                        onSubmit={submitFilters}
-                        className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_150px_150px_auto] md:items-end"
+                <div className="cash-reveal cash-reveal-delay-2 cash-section-intro">
+                    <div>
+                        <span className="section-kicker">
+                            Journal de fiscalisation
+                        </span>
+                        <h2>Liste des factures</h2>
+                    </div>
+                </div>
+
+                <form
+                    className="cash-filterbar cash-reveal cash-reveal-delay-2"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        applyFilters();
+                    }}
+                >
+                    <Search className="cash-filter-icon size-4" />
+                    <input
+                        value={query}
+                        onChange={(event) => setQuery(event.target.value)}
+                        onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                                applyFilters();
+                            }
+                        }}
+                        placeholder="KORA, MECeF, réservation…"
+                        className="cash-filter-search"
+                    />
+                    <FilterSelect
+                        label="Statut"
+                        value={status}
+                        onChange={setStatus}
+                        options={statusOptions}
+                    />
+                    <FilterDate label="Du" value={from} onChange={setFrom} />
+                    <FilterDate label="Au" value={to} onChange={setTo} />
+                    <button
+                        type="submit"
+                        className="btn btn-navy cash-filter-submit"
                     >
-                        <label className="text-xs font-bold text-muted-foreground">
-                            Recherche
-                            <input
-                                value={query}
-                                onChange={(event) =>
-                                    setQuery(event.target.value)
-                                }
-                                placeholder="KORA, MECeF, réservation…"
-                                className="mt-1.5 h-10 w-full rounded-[0.7rem] border border-border bg-background px-3 text-sm outline-none focus:border-gold"
-                            />
-                        </label>
-                        <label className="text-xs font-bold text-muted-foreground">
-                            Statut
-                            <select
-                                value={filters.status}
-                                onChange={(event) =>
-                                    router.get(
-                                        index.url({
-                                            query: {
-                                                ...filters,
-                                                status: event.target.value,
-                                            },
-                                        }),
-                                        {},
-                                        { preserveState: true },
-                                    )
-                                }
-                                className="mt-1.5 h-10 w-full rounded-[0.7rem] border border-border bg-background px-3 text-sm"
-                            >
-                                <option value="all">Tous</option>
-                                {Object.entries(statuses).map(
-                                    ([value, label]) => (
-                                        <option key={value} value={value}>
-                                            {label}
-                                        </option>
-                                    ),
-                                )}
-                            </select>
-                        </label>
-                        <label className="text-xs font-bold text-muted-foreground">
-                            Du
-                            <input
-                                type="date"
-                                value={filters.from}
-                                onChange={(event) =>
-                                    router.get(
-                                        index.url({
-                                            query: {
-                                                ...filters,
-                                                from: event.target.value,
-                                            },
-                                        }),
-                                        {},
-                                        { preserveState: true },
-                                    )
-                                }
-                                className="mt-1.5 h-10 w-full rounded-[0.7rem] border border-border bg-background px-3 text-sm"
-                            />
-                        </label>
-                        <label className="text-xs font-bold text-muted-foreground">
-                            Au
-                            <input
-                                type="date"
-                                value={filters.to}
-                                onChange={(event) =>
-                                    router.get(
-                                        index.url({
-                                            query: {
-                                                ...filters,
-                                                to: event.target.value,
-                                            },
-                                        }),
-                                        {},
-                                        { preserveState: true },
-                                    )
-                                }
-                                className="mt-1.5 h-10 w-full rounded-[0.7rem] border border-border bg-background px-3 text-sm"
-                            />
-                        </label>
-                        <button
-                            type="submit"
-                            className="inline-flex h-10 items-center justify-center gap-2 rounded-[0.7rem] bg-kora px-4 text-xs font-black text-white"
-                        >
-                            <Search className="size-3.5" /> Filtrer
-                        </button>
-                    </form>
-                </section>
+                        <SlidersHorizontal className="size-4" /> Filtrer
+                    </button>
+                    <button
+                        type="button"
+                        className="btn btn-ghost cash-filter-reset"
+                        onClick={resetFilters}
+                    >
+                        Réinitialiser
+                    </button>
+                </form>
 
-                <section className="overflow-hidden rounded-[1.25rem] border border-border bg-card shadow-sm">
-                    <div className="overflow-x-auto">
-                        <table className="w-full min-w-[760px] text-left text-sm">
-                            <thead className="border-b border-border bg-muted/40 text-[0.65rem] font-black tracking-[0.12em] text-muted-foreground uppercase">
-                                <tr>
-                                    <th className="px-5 py-4">Facture</th>
-                                    <th className="px-5 py-4">Réservation</th>
-                                    <th className="px-5 py-4">Montant</th>
-                                    <th className="px-5 py-4">Statut</th>
-                                    <th className="px-5 py-4">Tentatives</th>
-                                    <th className="px-5 py-4">Créée le</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border">
-                                {invoices.data.map((invoice) => (
-                                    <tr
-                                        key={invoice.uuid}
-                                        onClick={() =>
-                                            router.get(
-                                                index.url({
-                                                    query: {
-                                                        ...filters,
-                                                        invoice: invoice.uuid,
-                                                    },
-                                                }),
-                                                {},
-                                                {
-                                                    preserveState: true,
-                                                    preserveScroll: true,
-                                                },
-                                            )
-                                        }
-                                        className="cursor-pointer transition-colors hover:bg-muted/30"
-                                    >
-                                        <td className="px-5 py-4">
-                                            <div className="font-black text-foreground">
-                                                {invoice.reference}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground">
-                                                {invoice.mecefUid ??
-                                                    'UID MECeF à venir'}
-                                            </div>
-                                        </td>
-                                        <td className="px-5 py-4 text-muted-foreground">
-                                            {invoice.reservationReference ??
-                                                invoice.reservationUuid ??
-                                                '—'}
-                                        </td>
-                                        <td className="px-5 py-4 font-black">
-                                            {formatMoney(invoice.amount)}{' '}
-                                            {invoice.currency}
-                                        </td>
-                                        <td className="px-5 py-4">
-                                            <KoraStatusBadge
-                                                label={invoice.statusLabel}
-                                                tone={
-                                                    tones[invoice.status] ??
-                                                    'blue'
-                                                }
-                                            />
-                                        </td>
-                                        <td className="px-5 py-4 text-muted-foreground">
-                                            {invoice.attemptCount}
-                                        </td>
-                                        <td className="px-5 py-4 text-muted-foreground">
-                                            {formatDate(invoice.createdAt)}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    {invoices.data.length === 0 && (
+                <section className="cash-table-card cash-reveal cash-reveal-delay-3">
+                    {invoices.data.length === 0 ? (
                         <div className="px-6 py-16 text-center">
                             <FileCheck2 className="mx-auto size-8 text-muted-foreground/50" />
                             <h2 className="mt-3 font-black">
@@ -352,58 +475,157 @@ export default function FiscalInvoicesPage({
                                 vente confirmée.
                             </p>
                         </div>
+                    ) : (
+                        <div className="cash-table-scroll overflow-x-auto">
+                            <table className="w-full min-w-[860px] text-left">
+                                <thead className="bg-muted/45 text-[0.625rem] font-black tracking-[0.14em] text-muted-foreground uppercase">
+                                    <tr>
+                                        <th className="px-4 py-3">Facture</th>
+                                        <th className="px-4 py-3">
+                                            Réservation
+                                        </th>
+                                        <th className="px-4 py-3 text-right">
+                                            Montant
+                                        </th>
+                                        <th className="px-4 py-3">Statut</th>
+                                        <th className="px-4 py-3">
+                                            Tentatives
+                                        </th>
+                                        <th className="px-4 py-3">Créée le</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {invoices.data.map((invoice) => (
+                                        <tr
+                                            key={invoice.uuid}
+                                            className="group cursor-pointer border-b border-black/[0.045] transition-[background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-muted/30"
+                                            onClick={() =>
+                                                router.get(
+                                                    index.url({
+                                                        query: {
+                                                            q: filters.q,
+                                                            status: filters.status,
+                                                            from: filters.from,
+                                                            to: filters.to,
+                                                            invoice:
+                                                                invoice.uuid,
+                                                        },
+                                                    }),
+                                                    {},
+                                                    {
+                                                        preserveState: true,
+                                                        preserveScroll: true,
+                                                    },
+                                                )
+                                            }
+                                        >
+                                            <td className="px-4 py-3.5">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-gold/12 text-[var(--kora)]">
+                                                        <FileCheck2
+                                                            className="size-4"
+                                                            strokeWidth={1.6}
+                                                        />
+                                                    </span>
+                                                    <div>
+                                                        <p className="text-xs font-black text-foreground">
+                                                            {invoice.reference}
+                                                        </p>
+                                                        <p className="mt-0.5 text-[0.625rem] text-muted-foreground">
+                                                            {invoice.mecefUid ??
+                                                                'UID MECeF à venir'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3.5 text-xs font-bold text-foreground">
+                                                {invoice.reservationReference ??
+                                                    invoice.reservationUuid ??
+                                                    '—'}
+                                            </td>
+                                            <td className="px-4 py-3.5 text-right text-xs font-black text-foreground">
+                                                {formatMoney(invoice.amount)}{' '}
+                                                {invoice.currency}
+                                            </td>
+                                            <td className="px-4 py-3.5">
+                                                <KoraStatusBadge
+                                                    label={invoice.statusLabel}
+                                                    tone={
+                                                        tones[invoice.status] ??
+                                                        'blue'
+                                                    }
+                                                />
+                                            </td>
+                                            <td className="px-4 py-3.5 text-xs text-muted-foreground">
+                                                {invoice.attemptCount}
+                                            </td>
+                                            <td className="px-4 py-3.5 text-xs text-muted-foreground">
+                                                {formatDate(invoice.createdAt)}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     )}
-                    <div className="flex items-center justify-between border-t border-border px-5 py-3 text-xs text-muted-foreground">
-                        <span>
-                            {invoices.from ?? 0}–{invoices.to ?? 0} sur{' '}
-                            {invoices.total}
-                        </span>
-                        <span>
-                            Page {invoices.current_page} / {invoices.last_page}
-                        </span>
-                    </div>
+                    <Pagination
+                        currentPage={invoices.current_page}
+                        totalPages={invoices.last_page}
+                        total={invoices.total}
+                        from={invoices.from}
+                        to={invoices.to}
+                        onPageChange={goToPage}
+                    />
                 </section>
             </div>
+
             {invoiceDetail && (
                 <aside className="fixed inset-y-0 right-0 z-40 w-full max-w-xl overflow-y-auto border-l border-border bg-card p-6 shadow-2xl">
                     <div className="flex items-start justify-between">
                         <div>
-                            <p className="text-xs font-black tracking-[0.15em] text-muted-foreground uppercase">
+                            <span className="section-kicker">
                                 Détail fiscal
-                            </p>
-                            <h2 className="mt-2 text-2xl font-black">
+                            </span>
+                            <h2 className="mt-2 text-[1.8125rem] font-extrabold tracking-[-0.035em]">
                                 {invoiceDetail.reference}
                             </h2>
                         </div>
                         <button
                             type="button"
                             onClick={closeDetail}
-                            className="rounded-full p-2 hover:bg-muted"
+                            className="grid size-8 place-items-center rounded-full bg-muted text-foreground transition-[background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-gold/15"
                             aria-label="Fermer"
                         >
-                            <X className="size-5" />
+                            <X className="size-4" strokeWidth={1.7} />
                         </button>
                     </div>
                     <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                        <div className="rounded-xl border border-border p-4">
+                        <div className="rounded-xl border border-black/[0.045] p-4">
                             <p className="text-xs text-muted-foreground">
                                 Statut
                             </p>
-                            <KoraStatusBadge
-                                label={invoiceDetail.statusLabel}
-                                tone={tones[invoiceDetail.status] ?? 'blue'}
-                            />
+                            <div className="mt-1.5">
+                                <KoraStatusBadge
+                                    label={invoiceDetail.statusLabel}
+                                    tone={tones[invoiceDetail.status] ?? 'blue'}
+                                />
+                            </div>
                         </div>
-                        <div className="rounded-xl border border-border p-4">
+                        <div className="rounded-xl border border-black/[0.045] p-4">
                             <p className="text-xs text-muted-foreground">
                                 Montant
                             </p>
-                            <strong>
+                            <strong className="mt-1.5 block">
                                 {formatMoney(invoiceDetail.amount)}{' '}
                                 {invoiceDetail.currency}
                             </strong>
                         </div>
                     </div>
+                    {invoiceDetail.lastError && (
+                        <p className="mt-4 rounded-xl bg-destructive/10 px-4 py-3 text-sm font-bold text-destructive">
+                            {invoiceDetail.lastError}
+                        </p>
+                    )}
                     {invoiceDetail.status === 'failed' &&
                         permissions.canRetry && (
                             <button
@@ -411,7 +633,7 @@ export default function FiscalInvoicesPage({
                                 onClick={() =>
                                     router.post(retry.url(invoiceDetail.uuid))
                                 }
-                                className="mt-5 inline-flex items-center gap-2 rounded-[0.7rem] bg-gold px-4 py-2.5 text-xs font-black text-kora"
+                                className="btn btn-primary mt-5"
                             >
                                 <RefreshCw className="size-3.5" /> Relancer
                             </button>
@@ -429,7 +651,7 @@ export default function FiscalInvoicesPage({
                             {invoiceDetail.attempts.map((attempt) => (
                                 <article
                                     key={attempt.uuid}
-                                    className="rounded-xl border border-border p-4"
+                                    className="rounded-xl border border-black/[0.045] p-4"
                                 >
                                     <div className="flex items-center justify-between">
                                         <span className="text-xs font-black uppercase">
@@ -472,3 +694,12 @@ export default function FiscalInvoicesPage({
         </>
     );
 }
+
+FiscalInvoicesPage.layout = {
+    breadcrumbs: [
+        {
+            title: 'Facturation',
+            href: '/fiscal-invoices',
+        } satisfies BreadcrumbItem,
+    ],
+};

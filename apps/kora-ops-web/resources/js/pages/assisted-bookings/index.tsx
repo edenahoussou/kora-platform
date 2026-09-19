@@ -1,14 +1,27 @@
-import { Head, Link, router } from '@inertiajs/react';
-import { Clock3, HandHelping, Search } from 'lucide-react';
-import { useState } from 'react';
-import type { FormEvent } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Head, router } from '@inertiajs/react';
+import {
+    CheckCircle2,
+    ChevronRight,
+    Clock3,
+    Eye,
+    HandHelping,
+    Inbox,
+    MessageCircle,
+    Phone,
+    Search,
+    SlidersHorizontal,
+    TimerOff,
+} from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { KoraStatusBadge } from '@/components/kora-status-badge';
+import { cn } from '@/lib/utils';
 import { index, show } from '@/routes/assisted-bookings';
+import type { BreadcrumbItem } from '@/types';
 
 type QueueItem = {
     uuid: string;
     status: string;
+    channel: string;
     reference: string;
     contactName: string;
     contactPhone: string;
@@ -26,7 +39,14 @@ type Props = {
         current_page: number;
         last_page: number;
         total: number;
-        links: { url: string | null; label: string; active: boolean }[];
+        from: number | null;
+        to: number | null;
+    };
+    counters: {
+        pending: number;
+        inProgress: number;
+        expired: number;
+        finalized: number;
     };
     filters: { q?: string; status?: string; agency?: string; date?: string };
     statuses: Record<string, string>;
@@ -43,6 +63,24 @@ const labels: Record<string, string> = {
     finalized: 'Finalisée',
 };
 
+const statusTones: Record<
+    string,
+    'navy' | 'gold' | 'blue' | 'muted' | 'destructive'
+> = {
+    pending: 'gold',
+    in_progress: 'blue',
+    finalized: 'navy',
+    refused: 'destructive',
+    unavailable: 'muted',
+    cancelled: 'muted',
+    expired: 'muted',
+};
+
+const channelLabels: Record<string, string> = {
+    whatsapp: 'WhatsApp',
+    call: 'Téléphone',
+};
+
 function money(amount: number, currency: string): string {
     return new Intl.NumberFormat('fr-FR', {
         style: 'currency',
@@ -51,201 +89,518 @@ function money(amount: number, currency: string): string {
     }).format(amount);
 }
 
+function formatDate(value: string): string {
+    return new Intl.DateTimeFormat('fr-FR', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+    }).format(new Date(value));
+}
+
+function FilterSelect({
+    label,
+    value,
+    onChange,
+    options,
+}: {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    options: [string, string][];
+}) {
+    return (
+        <label className="cash-filter-field relative block">
+            <span className="sr-only">{label}</span>
+            <select
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+                className="cash-filter-select h-11 w-full appearance-none rounded-xl bg-muted/55 px-3 pr-8 text-xs font-bold text-foreground ring-1 ring-black/[0.045] transition-[box-shadow,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] outline-none focus:bg-card focus:ring-2 focus:ring-gold/35"
+            >
+                {options.map(([optionValue, optionLabel]) => (
+                    <option key={optionValue} value={optionValue}>
+                        {optionLabel}
+                    </option>
+                ))}
+            </select>
+            <ChevronRight
+                className="pointer-events-none absolute top-1/2 right-3 size-3.5 -translate-y-1/2 rotate-90 text-muted-foreground"
+                strokeWidth={1.7}
+            />
+        </label>
+    );
+}
+
+function FilterDate({
+    label,
+    value,
+    onChange,
+}: {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+}) {
+    return (
+        <label className="cash-filter-field relative block">
+            <span className="sr-only">{label}</span>
+            <input
+                type="date"
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+                className="cash-filter-select h-11 w-full rounded-xl bg-muted/55 px-3 text-xs font-bold text-foreground ring-1 ring-black/[0.045] transition-[box-shadow,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] outline-none focus:bg-card focus:ring-2 focus:ring-gold/35"
+            />
+        </label>
+    );
+}
+
+function KpiCard({
+    icon: Icon,
+    label,
+    value,
+    tone,
+}: {
+    icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+    label: string;
+    value: string | number;
+    tone: 'navy' | 'gold' | 'blue' | 'muted' | 'green' | 'destructive';
+}) {
+    const toneStyles = {
+        navy: 'bg-kora text-white',
+        gold: 'bg-gold/15 text-gold',
+        blue: 'bg-digital/10 text-digital',
+        muted: 'bg-muted text-muted-foreground',
+        green: 'bg-emerald-500/10 text-emerald-600',
+        destructive: 'bg-destructive/10 text-destructive',
+    };
+    const iconBg = toneStyles[tone] ?? toneStyles.muted;
+
+    return (
+        <article className="cash-ledger-card cash-ledger-card-cash">
+            <div className="cash-ledger-head">
+                <div className="cash-ledger-identity">
+                    <span className={cn('cash-ledger-brand', iconBg)}>
+                        <Icon className="size-4" strokeWidth={1.7} />
+                    </span>
+                    <div>
+                        <span className="cash-ledger-title">{label}</span>
+                        <small>Assistance</small>
+                    </div>
+                </div>
+            </div>
+            <div className="cash-ledger-balance">
+                <span>Dossiers</span>
+                <strong>{value}</strong>
+            </div>
+        </article>
+    );
+}
+
+function Pagination({
+    currentPage,
+    totalPages,
+    total,
+    from,
+    to,
+    onPageChange,
+}: {
+    currentPage: number;
+    totalPages: number;
+    total: number;
+    from: number | null;
+    to: number | null;
+    onPageChange: (page: number) => void;
+}) {
+    if (total === 0) {
+        return null;
+    }
+
+    return (
+        <div className="flex items-center justify-between border-t border-black/[0.045] px-4 py-3 text-xs text-muted-foreground">
+            <span>
+                {from}–{to} sur {total}
+            </span>
+            <div className="flex items-center gap-1.5">
+                <button
+                    type="button"
+                    className="grid size-[31px] place-items-center rounded-[8px] bg-muted text-foreground transition-[transform,opacity,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-x-0.5 hover:bg-gold/15 disabled:pointer-events-none disabled:opacity-35"
+                    onClick={() => onPageChange(currentPage - 1)}
+                    disabled={currentPage <= 1}
+                    aria-label="Page précédente"
+                >
+                    <ChevronRight
+                        className="size-3.5 rotate-180"
+                        strokeWidth={1.7}
+                    />
+                </button>
+                <span className="px-2 font-bold text-foreground">
+                    {currentPage} / {totalPages}
+                </span>
+                <button
+                    type="button"
+                    className="grid size-[31px] place-items-center rounded-[8px] bg-muted text-foreground transition-[transform,opacity,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:translate-x-0.5 hover:bg-gold/15 disabled:pointer-events-none disabled:opacity-35"
+                    onClick={() => onPageChange(currentPage + 1)}
+                    disabled={currentPage >= totalPages}
+                    aria-label="Page suivante"
+                >
+                    <ChevronRight className="size-3.5" strokeWidth={1.7} />
+                </button>
+            </div>
+        </div>
+    );
+}
+
 export default function AssistedBookingsIndex({
     assistedBookings,
+    counters,
     filters,
     statuses,
     agencies,
 }: Props) {
     const [query, setQuery] = useState(filters.q ?? '');
-    const [status, setStatus] = useState(filters.status ?? '');
-    const [agency, setAgency] = useState(filters.agency ?? '');
+    const [status, setStatus] = useState(filters.status ?? 'all');
+    const [agency, setAgency] = useState(filters.agency ?? 'all');
     const [date, setDate] = useState(filters.date ?? '');
 
-    const filter = (event: FormEvent) => {
-        event.preventDefault();
+    const statusOptions: [string, string][] = useMemo(
+        () => [
+            ['all', 'Tous les états'],
+            ...(Object.keys(statuses).map((value) => [
+                value,
+                labels[value] ?? statuses[value],
+            ]) as [string, string][]),
+        ],
+        [statuses],
+    );
+
+    const agencyOptions: [string, string][] = useMemo(
+        () => [
+            ['all', 'Toutes les agences'],
+            ...agencies.map(
+                (item) =>
+                    [item.uuid, `${item.name} — ${item.city}`] as [
+                        string,
+                        string,
+                    ],
+            ),
+        ],
+        [agencies],
+    );
+
+    const filterParams = (): Record<string, string> => {
+        const params: Record<string, string> = {};
+
+        if (query.trim() !== '') {
+            params.q = query.trim();
+        }
+
+        if (status !== 'all') {
+            params.status = status;
+        }
+
+        if (agency !== 'all') {
+            params.agency = agency;
+        }
+
+        if (date !== '') {
+            params.date = date;
+        }
+
+        return params;
+    };
+
+    const applyFilters = () => {
+        router.get(index.url(), filterParams(), {
+            preserveScroll: true,
+            preserveState: true,
+        });
+    };
+
+    const resetFilters = () => {
+        setQuery('');
+        setStatus('all');
+        setAgency('all');
+        setDate('');
         router.get(
             index.url(),
-            { q: query, status, agency, date },
-            { preserveState: true, replace: true },
+            {},
+            { preserveScroll: true, preserveState: true },
+        );
+    };
+
+    const goToPage = (page: number) => {
+        router.get(
+            index.url(),
+            { ...filterParams(), page: String(page) },
+            { preserveScroll: true, preserveState: true },
         );
     };
 
     return (
         <>
-            <Head title="Réservations assistées" />
-            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                    <div className="mb-2 text-[0.6875rem] font-bold tracking-[0.11em] text-muted-foreground uppercase">
-                        KORA OPS / Vente / Assistance
-                    </div>
-                    <h1 className="text-[1.8125rem] font-extrabold tracking-[-0.035em]">
-                        Réservations assistées
-                    </h1>
-                    <p className="mt-1.5 text-sm text-muted-foreground">
-                        Reprenez les réservations mobiles confiées au réseau
-                        d’agences.
-                    </p>
-                </div>
-                <div className="rounded-xl bg-gold/15 px-4 py-2 text-sm font-bold text-[var(--kora)]">
-                    {assistedBookings.total} dossier
-                    {assistedBookings.total > 1 ? 's' : ''}
-                </div>
-            </div>
-
-            <form
-                onSubmit={filter}
-                className="mb-5 grid gap-3 rounded-2xl border border-border/70 bg-card p-4 shadow-sm md:grid-cols-[minmax(14rem,1fr)_12rem_14rem_11rem_auto]"
-            >
-                <div className="relative">
-                    <Search className="absolute top-3.5 left-3 size-4 text-muted-foreground" />
-                    <Input
-                        value={query}
-                        onChange={(event) => setQuery(event.target.value)}
-                        placeholder="Référence, contact…"
-                        className="h-11 pl-9"
-                    />
-                </div>
-                <select
-                    value={status}
-                    onChange={(event) => setStatus(event.target.value)}
-                    className="h-11 rounded-md border bg-background px-3 text-sm"
-                >
-                    <option value="">Tous les états</option>
-                    {Object.keys(statuses).map((value) => (
-                        <option key={value} value={value}>
-                            {labels[value] ?? value}
-                        </option>
-                    ))}
-                </select>
-                <select
-                    value={agency}
-                    onChange={(event) => setAgency(event.target.value)}
-                    className="h-11 rounded-md border bg-background px-3 text-sm"
-                >
-                    <option value="">Toutes les agences</option>
-                    {agencies.map((item) => (
-                        <option key={item.uuid} value={item.uuid}>
-                            {item.name} — {item.city}
-                        </option>
-                    ))}
-                </select>
-                <Input
-                    type="date"
-                    value={date}
-                    onChange={(event) => setDate(event.target.value)}
-                    className="h-11"
-                />
-                <Button type="submit" className="h-11 bg-[var(--kora)]">
-                    Filtrer
-                </Button>
-            </form>
-
-            <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
-                <div className="flex items-center gap-3 border-b p-5">
-                    <span className="grid size-10 place-items-center rounded-xl bg-gold/15 text-[var(--kora)]">
-                        <HandHelping className="size-5" />
-                    </span>
+            <Head title="Réservations en attente" />
+            <div className="cash-page">
+                <div className="kora-page-head cash-reveal mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                     <div>
-                        <h2 className="font-bold">File d’assistance</h2>
-                        <p className="text-xs text-muted-foreground">
-                            Un dossier n’occupe aucun siège tant qu’il reste
-                            dans cette file.
+                        <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
+                            KORA OPS / Vente / Réservations en attente
+                        </div>
+                        <h1 className="text-[clamp(1.8rem,3vw,2.65rem)] font-extrabold tracking-[-0.055em] text-foreground">
+                            Réservations en attente
+                        </h1>
+                        <p className="mt-1.5 text-[0.8125rem] leading-6 text-muted-foreground">
+                            Reprenez les réservations mobiles confiées aux
+                            agences. Un dossier n’occupe aucun siège tant qu’il
+                            reste dans cette file.
                         </p>
                     </div>
                 </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                        <thead className="bg-muted/40 text-left text-xs tracking-wide text-muted-foreground uppercase">
-                            <tr>
-                                <th className="p-4">Réservation</th>
-                                <th className="p-4">Contact</th>
-                                <th className="p-4">Agence</th>
-                                <th className="p-4">État</th>
-                                <th className="p-4">Montant</th>
-                                <th className="p-4">Validité</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                            {assistedBookings.data.map((item) => (
-                                <tr
-                                    key={item.uuid}
-                                    className="transition-colors hover:bg-muted/35"
-                                >
-                                    <td className="p-4">
-                                        <Link
-                                            href={show.url(item.uuid)}
-                                            className="font-extrabold text-[var(--kora)] hover:underline"
-                                        >
-                                            {item.reference}
-                                        </Link>
-                                        <span className="mt-1 block text-xs text-muted-foreground">
-                                            {item.assignee?.name ??
-                                                'Non attribuée'}
-                                        </span>
-                                    </td>
-                                    <td className="p-4">
-                                        <strong className="block">
-                                            {item.contactName}
-                                        </strong>
-                                        <span className="text-xs text-muted-foreground">
-                                            {item.contactPhone}
-                                        </span>
-                                    </td>
-                                    <td className="p-4">{item.agency.name}</td>
-                                    <td className="p-4">
-                                        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-bold">
-                                            {labels[item.status] ?? item.status}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 font-semibold">
-                                        {money(
-                                            item.currentAmount ??
-                                                item.originalAmount,
-                                            item.currency,
-                                        )}
-                                    </td>
-                                    <td className="p-4 text-xs text-muted-foreground">
-                                        <span className="flex items-center gap-1">
-                                            <Clock3 className="size-3.5" />
-                                            {new Date(
-                                                item.expiresAt,
-                                            ).toLocaleString('fr-FR')}
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
-                            {assistedBookings.data.length === 0 && (
-                                <tr>
-                                    <td
-                                        colSpan={6}
-                                        className="p-12 text-center text-muted-foreground"
-                                    >
-                                        Aucun dossier ne correspond aux filtres.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-                {assistedBookings.last_page > 1 && (
-                    <div className="flex flex-wrap gap-2 border-t p-4">
-                        {assistedBookings.links.map(
-                            (link, i) =>
-                                link.url && (
-                                    <Link
-                                        key={i}
-                                        href={link.url}
-                                        className={`rounded-lg px-3 py-1.5 text-xs ${link.active ? 'bg-[var(--kora)] text-white' : 'bg-muted'}`}
-                                        dangerouslySetInnerHTML={{
-                                            __html: link.label,
-                                        }}
-                                    />
-                                ),
-                        )}
+
+                <section className="cash-ledger-grid cash-reveal cash-reveal-delay-1">
+                    <KpiCard
+                        icon={Inbox}
+                        label="À prendre en charge"
+                        value={counters.pending}
+                        tone="gold"
+                    />
+                    <KpiCard
+                        icon={HandHelping}
+                        label="En cours"
+                        value={counters.inProgress}
+                        tone="blue"
+                    />
+                    <KpiCard
+                        icon={TimerOff}
+                        label="Expirés"
+                        value={counters.expired}
+                        tone="destructive"
+                    />
+                    <KpiCard
+                        icon={CheckCircle2}
+                        label="Finalisés"
+                        value={counters.finalized}
+                        tone="navy"
+                    />
+                </section>
+
+                <div className="cash-reveal cash-reveal-delay-2 cash-section-intro">
+                    <div>
+                        <span className="section-kicker">
+                            File d’assistance
+                        </span>
+                        <h2>Liste des dossiers</h2>
                     </div>
-                )}
+                </div>
+
+                <form
+                    className="cash-filterbar cash-reveal cash-reveal-delay-2"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        applyFilters();
+                    }}
+                >
+                    <Search className="cash-filter-icon size-4" />
+                    <input
+                        value={query}
+                        onChange={(event) => setQuery(event.target.value)}
+                        onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                                applyFilters();
+                            }
+                        }}
+                        placeholder="Référence, nom ou téléphone du contact…"
+                        className="cash-filter-search"
+                    />
+                    <FilterSelect
+                        label="État"
+                        value={status}
+                        onChange={setStatus}
+                        options={statusOptions}
+                    />
+                    <FilterSelect
+                        label="Agence"
+                        value={agency}
+                        onChange={setAgency}
+                        options={agencyOptions}
+                    />
+                    <FilterDate label="Date" value={date} onChange={setDate} />
+                    <button
+                        type="submit"
+                        className="btn btn-navy cash-filter-submit"
+                    >
+                        <SlidersHorizontal className="size-4" /> Filtrer
+                    </button>
+                    <button
+                        type="button"
+                        className="btn btn-ghost cash-filter-reset"
+                        onClick={resetFilters}
+                    >
+                        Réinitialiser
+                    </button>
+                </form>
+
+                <section className="cash-table-card cash-reveal cash-reveal-delay-3">
+                    {assistedBookings.data.length === 0 ? (
+                        <div className="px-6 py-16 text-center">
+                            <HandHelping className="mx-auto size-8 text-muted-foreground/50" />
+                            <h2 className="mt-3 font-black">
+                                Aucun dossier dans cette file
+                            </h2>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Ajustez vos filtres ou attendez le prochain
+                                transfert depuis l’application mobile.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="cash-table-scroll overflow-x-auto">
+                            <table className="w-full min-w-[900px] text-left">
+                                <thead className="bg-muted/45 text-[0.625rem] font-black tracking-[0.14em] text-muted-foreground uppercase">
+                                    <tr>
+                                        <th className="px-4 py-3">
+                                            Réservation
+                                        </th>
+                                        <th className="px-4 py-3">Contact</th>
+                                        <th className="px-4 py-3">Agence</th>
+                                        <th className="px-4 py-3">État</th>
+                                        <th className="px-4 py-3 text-right">
+                                            Montant indicatif
+                                        </th>
+                                        <th className="px-4 py-3">Validité</th>
+                                        <th className="px-4 py-3 text-right">
+                                            Actions
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {assistedBookings.data.map((item) => (
+                                        <tr
+                                            key={item.uuid}
+                                            className="group cursor-pointer border-b border-black/[0.045] transition-[background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-muted/30"
+                                            onClick={() =>
+                                                router.get(show.url(item.uuid))
+                                            }
+                                        >
+                                            <td className="px-4 py-3.5">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-gold/12 text-[var(--kora)]">
+                                                        {item.channel ===
+                                                        'whatsapp' ? (
+                                                            <MessageCircle
+                                                                className="size-4"
+                                                                strokeWidth={
+                                                                    1.6
+                                                                }
+                                                            />
+                                                        ) : (
+                                                            <Phone
+                                                                className="size-4"
+                                                                strokeWidth={
+                                                                    1.6
+                                                                }
+                                                            />
+                                                        )}
+                                                    </span>
+                                                    <div>
+                                                        <p className="text-xs font-black text-foreground">
+                                                            {item.reference}
+                                                        </p>
+                                                        <p className="mt-0.5 text-[0.625rem] text-muted-foreground">
+                                                            {item.assignee
+                                                                ?.name ??
+                                                                'Non attribuée'}{' '}
+                                                            ·{' '}
+                                                            {channelLabels[
+                                                                item.channel
+                                                            ] ?? item.channel}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3.5">
+                                                <p className="text-xs font-bold text-foreground">
+                                                    {item.contactName}
+                                                </p>
+                                                <p className="mt-0.5 text-[0.625rem] text-muted-foreground">
+                                                    {item.contactPhone}
+                                                </p>
+                                            </td>
+                                            <td className="px-4 py-3.5 text-xs font-medium text-foreground">
+                                                {item.agency.name}
+                                            </td>
+                                            <td className="px-4 py-3.5">
+                                                <KoraStatusBadge
+                                                    label={
+                                                        labels[item.status] ??
+                                                        item.status
+                                                    }
+                                                    tone={
+                                                        statusTones[
+                                                            item.status
+                                                        ] ?? 'muted'
+                                                    }
+                                                />
+                                            </td>
+                                            <td className="px-4 py-3.5 text-right text-xs font-black text-foreground">
+                                                {money(
+                                                    item.currentAmount ??
+                                                        item.originalAmount,
+                                                    item.currency,
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3.5 text-xs text-muted-foreground">
+                                                <span className="flex items-center gap-1">
+                                                    <Clock3 className="size-3.5" />
+                                                    {formatDate(item.expiresAt)}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3.5">
+                                                <div
+                                                    className="flex justify-end gap-1.5"
+                                                    onClick={(event) =>
+                                                        event.stopPropagation()
+                                                    }
+                                                >
+                                                    <button
+                                                        type="button"
+                                                        className="grid size-8 place-items-center rounded-full bg-muted text-foreground transition-[transform,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-105 hover:bg-gold/15"
+                                                        onClick={() =>
+                                                            router.get(
+                                                                show.url(
+                                                                    item.uuid,
+                                                                ),
+                                                            )
+                                                        }
+                                                        aria-label="Voir le dossier"
+                                                    >
+                                                        <Eye
+                                                            className="size-3.5"
+                                                            strokeWidth={1.7}
+                                                        />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                    <Pagination
+                        currentPage={assistedBookings.current_page}
+                        totalPages={assistedBookings.last_page}
+                        total={assistedBookings.total}
+                        from={assistedBookings.from}
+                        to={assistedBookings.to}
+                        onPageChange={goToPage}
+                    />
+                </section>
             </div>
         </>
     );
 }
+
+AssistedBookingsIndex.layout = {
+    breadcrumbs: [
+        {
+            title: 'Réservations en attente',
+            href: '/assisted-bookings',
+        } satisfies BreadcrumbItem,
+    ],
+};

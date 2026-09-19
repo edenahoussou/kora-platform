@@ -4,7 +4,6 @@ import {
     Bell,
     Bus,
     FileText,
-    HandHelping,
     LayoutDashboard,
     PanelLeftClose,
     PanelLeftOpen,
@@ -46,18 +45,28 @@ const navItems: NavEntry[] = [
         permission: null,
     },
     {
-        title: 'Vente guichet',
+        title: 'Vente',
         href: '/sale',
         icon: Ticket,
-        permission: 'counter-sales.create',
-    },
-    {
-        title: 'Réservations assistées',
-        href: '/assisted-bookings',
-        icon: HandHelping,
         permission: [
+            'counter-sales.create',
             'assisted-bookings.view-agency',
             'assisted-bookings.view-network',
+        ],
+        children: [
+            {
+                title: 'Vente au guichet',
+                href: '/sale',
+                permission: 'counter-sales.create',
+            },
+            {
+                title: 'Réservations en attente',
+                href: '/assisted-bookings',
+                permission: [
+                    'assisted-bookings.view-agency',
+                    'assisted-bookings.view-network',
+                ],
+            },
         ],
     },
     {

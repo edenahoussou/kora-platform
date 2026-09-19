@@ -43,7 +43,7 @@ class FiscalInvoiceQuery
      */
     public function counters(array $filters): array
     {
-        $counts = $this->build($filters)->toBase()
+        $counts = $this->build($filters)->reorder()->toBase()
             ->selectRaw("count(*) as total, count(case when status = 'pending' then 1 end) as pending, count(case when status = 'certified' then 1 end) as certified, count(case when status = 'failed' then 1 end) as failed, count(case when status = 'canceled' then 1 end) as canceled")
             ->first();
 

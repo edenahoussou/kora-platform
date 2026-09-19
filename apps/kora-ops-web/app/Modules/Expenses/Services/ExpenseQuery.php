@@ -50,7 +50,7 @@ class ExpenseQuery
      */
     public function counters(User $user, array $filters): array
     {
-        $counts = $this->build($user, $filters)->toBase()
+        $counts = $this->build($user, $filters)->reorder()->toBase()
             ->selectRaw("count(*) as total, coalesce(sum(case when status = 'approved' then amount else 0 end), 0) as approved_amount, count(case when status = 'pending' then 1 end) as pending, count(case when status = 'approved' then 1 end) as approved, count(case when status = 'rejected' then 1 end) as rejected, count(case when status = 'reversed' then 1 end) as reversed")
             ->first();
 

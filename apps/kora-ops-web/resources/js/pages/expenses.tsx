@@ -1,25 +1,33 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import {
     Check,
-    Download,
+    ChevronRight,
+    Clock3,
+    FileSpreadsheet,
     FileText,
     Plus,
     RotateCcw,
     Search,
+    SlidersHorizontal,
+    Table,
+    Wallet,
     X,
+    XCircle,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { formatMoney } from '@/components/sale/sale-utils';
+import { cn } from '@/lib/utils';
 import {
+    approve,
     exportMethod,
     index,
-    store,
-    approve,
     reject,
     reverse,
+    store,
 } from '@/routes/expenses';
+import type { BreadcrumbItem } from '@/types';
 
 type Expense = {
     uuid: string;
@@ -94,6 +102,157 @@ function formatDate(value: string | null): string {
         : '—';
 }
 
+function FilterSelect({
+    label,
+    value,
+    onChange,
+    options,
+}: {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    options: [string, string][];
+}) {
+    return (
+        <label className="cash-filter-field relative block">
+            <span className="sr-only">{label}</span>
+            <select
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+                className="cash-filter-select h-11 w-full appearance-none rounded-xl bg-muted/55 px-3 pr-8 text-xs font-bold text-foreground ring-1 ring-black/[0.045] transition-[box-shadow,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] outline-none focus:bg-card focus:ring-2 focus:ring-gold/35"
+            >
+                {options.map(([optionValue, optionLabel]) => (
+                    <option key={optionValue} value={optionValue}>
+                        {optionLabel}
+                    </option>
+                ))}
+            </select>
+            <ChevronRight
+                className="pointer-events-none absolute top-1/2 right-3 size-3.5 -translate-y-1/2 rotate-90 text-muted-foreground"
+                strokeWidth={1.7}
+            />
+        </label>
+    );
+}
+
+function FilterDate({
+    label,
+    value,
+    onChange,
+}: {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+}) {
+    return (
+        <label className="cash-filter-field relative block">
+            <span className="sr-only">{label}</span>
+            <input
+                type="date"
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+                className="cash-filter-select h-11 w-full rounded-xl bg-muted/55 px-3 text-xs font-bold text-foreground ring-1 ring-black/[0.045] transition-[box-shadow,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] outline-none focus:bg-card focus:ring-2 focus:ring-gold/35"
+            />
+        </label>
+    );
+}
+
+function KpiCard({
+    icon: Icon,
+    label,
+    value,
+    tone,
+}: {
+    icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+    label: string;
+    value: string | number;
+    tone: 'navy' | 'gold' | 'blue' | 'muted' | 'green' | 'destructive';
+}) {
+    const toneStyles = {
+        navy: 'bg-kora text-white',
+        gold: 'bg-gold/15 text-gold',
+        blue: 'bg-digital/10 text-digital',
+        muted: 'bg-muted text-muted-foreground',
+        green: 'bg-emerald-500/10 text-emerald-600',
+        destructive: 'bg-destructive/10 text-destructive',
+    };
+    const iconBg = toneStyles[tone] ?? toneStyles.muted;
+
+    return (
+        <article className="cash-ledger-card cash-ledger-card-cash">
+            <div className="cash-ledger-head">
+                <div className="cash-ledger-identity">
+                    <span className={cn('cash-ledger-brand', iconBg)}>
+                        <Icon className="size-4" strokeWidth={1.7} />
+                    </span>
+                    <div>
+                        <span className="cash-ledger-title">{label}</span>
+                        <small>Dépenses</small>
+                    </div>
+                </div>
+            </div>
+            <div className="cash-ledger-balance">
+                <span>Valeur</span>
+                <strong>{value}</strong>
+            </div>
+        </article>
+    );
+}
+
+function Pagination({
+    currentPage,
+    totalPages,
+    total,
+    from,
+    to,
+    onPageChange,
+}: {
+    currentPage: number;
+    totalPages: number;
+    total: number;
+    from: number | null;
+    to: number | null;
+    onPageChange: (page: number) => void;
+}) {
+    if (total === 0) {
+        return null;
+    }
+
+    return (
+        <div className="flex items-center justify-between border-t border-black/[0.045] px-4 py-3 text-xs text-muted-foreground">
+            <span>
+                {from}–{to} sur {total}
+            </span>
+            <div className="flex items-center gap-1.5">
+                <button
+                    type="button"
+                    className="grid size-[31px] place-items-center rounded-[8px] bg-muted text-foreground transition-[transform,opacity,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-x-0.5 hover:bg-gold/15 disabled:pointer-events-none disabled:opacity-35"
+                    onClick={() => onPageChange(currentPage - 1)}
+                    disabled={currentPage <= 1}
+                    aria-label="Page précédente"
+                >
+                    <ChevronRight
+                        className="size-3.5 rotate-180"
+                        strokeWidth={1.7}
+                    />
+                </button>
+                <span className="px-2 font-bold text-foreground">
+                    {currentPage} / {totalPages}
+                </span>
+                <button
+                    type="button"
+                    className="grid size-[31px] place-items-center rounded-[8px] bg-muted text-foreground transition-[transform,opacity,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:translate-x-0.5 hover:bg-gold/15 disabled:pointer-events-none disabled:opacity-35"
+                    onClick={() => onPageChange(currentPage + 1)}
+                    disabled={currentPage >= totalPages}
+                    aria-label="Page suivante"
+                >
+                    <ChevronRight className="size-3.5" strokeWidth={1.7} />
+                </button>
+            </div>
+        </div>
+    );
+}
+
 export default function ExpensesPage({
     expenses,
     filters,
@@ -106,6 +265,11 @@ export default function ExpensesPage({
     expenseDetail,
 }: Props) {
     const [query, setQuery] = useState(filters.q);
+    const [status, setStatus] = useState(filters.status);
+    const [channel, setChannel] = useState(filters.channel);
+    const [category, setCategory] = useState(filters.category);
+    const [from, setFrom] = useState(filters.from);
+    const [to, setTo] = useState(filters.to);
     const [createOpen, setCreateOpen] = useState(false);
     const form = useForm({
         category_uuid: categories[0]?.uuid ?? '',
@@ -118,16 +282,102 @@ export default function ExpensesPage({
         occurred_at: new Date().toISOString().slice(0, 16),
         evidence: null as File | null,
     });
-    const applyQuery = (next: Record<string, string>) =>
-        router.get(
-            index.url({ query: { ...filters, ...next } }),
-            {},
-            { preserveState: true, preserveScroll: true },
-        );
-    const submitFilters = (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        applyQuery({ q: query });
+
+    const statusOptions: [string, string][] = useMemo(
+        () => [
+            ['all', 'Tous les statuts'],
+            ...(Object.entries(statuses) as [string, string][]),
+        ],
+        [statuses],
+    );
+
+    const channelOptions: [string, string][] = useMemo(
+        () => [
+            ['all', 'Tous les moyens'],
+            ...(Object.entries(channels) as [string, string][]),
+        ],
+        [channels],
+    );
+
+    const categoryOptions: [string, string][] = useMemo(
+        () => [
+            ['', 'Toutes les catégories'],
+            ...categories.map((item): [string, string] => [
+                item.uuid,
+                item.label,
+            ]),
+        ],
+        [categories],
+    );
+
+    const buildParams = (extra: Record<string, string> = {}) => {
+        const params: Record<string, string> = { ...extra };
+
+        if (query.trim() !== '') {
+            params.q = query.trim();
+        }
+
+        if (status !== 'all') {
+            params.status = status;
+        }
+
+        if (channel !== 'all') {
+            params.channel = channel;
+        }
+
+        if (category !== '') {
+            params.category = category;
+        }
+
+        if (from !== '') {
+            params.from = from;
+        }
+
+        if (to !== '') {
+            params.to = to;
+        }
+
+        return params;
     };
+
+    const applyFilters = () => {
+        router.get(
+            index.url({ query: buildParams() }),
+            {},
+            {
+                preserveScroll: true,
+                preserveState: true,
+            },
+        );
+    };
+
+    const resetFilters = () => {
+        setQuery('');
+        setStatus('all');
+        setChannel('all');
+        setCategory('');
+        setFrom('');
+        setTo('');
+        router.get(
+            index.url(),
+            {},
+            { preserveScroll: true, preserveState: true },
+        );
+    };
+
+    const goToPage = (page: number) => {
+        router.get(
+            index.url({ query: buildParams({ page: String(page) }) }),
+            {},
+            { preserveScroll: true, preserveState: true },
+        );
+    };
+
+    const exportQuery = (format: 'csv' | 'xlsx') =>
+        exportMethod.url({
+            query: { ...filters, format },
+        });
+
     const submitExpense = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         form.post(store.url(), {
@@ -138,76 +388,87 @@ export default function ExpensesPage({
             },
         });
     };
-    const closeDetail = () => applyQuery({ expense: '' });
+
+    const closeDetail = () =>
+        router.get(
+            index.url({ query: { ...filters } }),
+            {},
+            { preserveState: true, preserveScroll: true },
+        );
 
     return (
         <>
             <Head title="Dépenses" />
-            <div className="space-y-6 p-4 md:p-8">
-                <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="cash-page">
+                <div className="kora-page-head cash-reveal mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                     <div>
-                        <p className="text-[0.65rem] font-black tracking-[0.22em] text-muted-foreground uppercase">
-                            Finance / Pilotage
-                        </p>
-                        <h1 className="mt-2 text-3xl font-black tracking-[-0.04em]">
+                        <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground">
+                            KORA OPS / Finance / Dépenses
+                        </div>
+                        <h1 className="text-[clamp(1.8rem,3vw,2.65rem)] font-extrabold tracking-[-0.055em] text-foreground">
                             Dépenses
                         </h1>
-                        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+                        <p className="mt-1.5 text-[0.8125rem] leading-6 text-muted-foreground">
                             Contrôlez les dépenses du réseau, leurs
                             justificatifs et leur publication dans les journaux
                             de caisse.
                         </p>
                     </div>
                     <div className="flex gap-2">
+                        {permissions.canExport && (
+                            <>
+                                <a
+                                    className="btn btn-ghost"
+                                    href={exportQuery('csv')}
+                                >
+                                    <Table className="size-3.5" /> Exporter en
+                                    CSV
+                                </a>
+                                <a
+                                    className="btn btn-ghost"
+                                    href={exportQuery('xlsx')}
+                                >
+                                    <FileSpreadsheet className="size-3.5" />{' '}
+                                    Exporter en Excel
+                                </a>
+                            </>
+                        )}
                         {permissions.canCreate && (
                             <button
                                 type="button"
                                 onClick={() => setCreateOpen((value) => !value)}
-                                className="inline-flex items-center gap-2 rounded-[0.7rem] bg-gold px-4 py-2 text-xs font-black text-kora"
+                                className="btn btn-primary"
                             >
                                 <Plus className="size-3.5" /> Nouvelle dépense
                             </button>
                         )}
-                        {permissions.canExport && (
-                            <>
-                                <a
-                                    className="inline-flex items-center gap-2 rounded-[0.7rem] border border-border px-3 py-2 text-xs font-bold hover:bg-muted"
-                                    href={exportMethod.url({
-                                        query: { ...filters, format: 'csv' },
-                                    })}
-                                >
-                                    <Download className="size-3.5" /> CSV
-                                </a>
-                                <a
-                                    className="inline-flex items-center gap-2 rounded-[0.7rem] border border-border px-3 py-2 text-xs font-bold hover:bg-muted"
-                                    href={exportMethod.url({
-                                        query: { ...filters, format: 'xlsx' },
-                                    })}
-                                >
-                                    <Download className="size-3.5" /> XLSX
-                                </a>
-                            </>
-                        )}
                     </div>
-                </header>
+                </div>
 
                 {createOpen && (
-                    <section className="rounded-[1.25rem] border border-gold/40 bg-card p-5 shadow-sm">
-                        <div className="flex items-center justify-between">
-                            <h2 className="font-black">Saisir une dépense</h2>
+                    <section className="cash-table-card cash-reveal mb-5 p-5">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <span className="section-kicker">Saisie</span>
+                                <h2 className="mt-1 font-black">
+                                    Nouvelle dépense
+                                </h2>
+                            </div>
                             <button
                                 type="button"
                                 onClick={() => setCreateOpen(false)}
+                                className="grid size-8 place-items-center rounded-full bg-muted text-foreground transition-[background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-gold/15"
+                                aria-label="Fermer"
                             >
-                                <X className="size-4" />
+                                <X className="size-4" strokeWidth={1.7} />
                             </button>
                         </div>
                         <form
                             onSubmit={submitExpense}
                             className="mt-4 grid gap-3 md:grid-cols-3"
                         >
-                            <label className="text-xs font-bold text-muted-foreground">
-                                Catégorie
+                            <label className="field">
+                                <span>Catégorie</span>
                                 <select
                                     value={form.data.category_uuid}
                                     onChange={(event) =>
@@ -216,20 +477,20 @@ export default function ExpensesPage({
                                             event.target.value,
                                         )
                                     }
-                                    className="mt-1.5 h-10 w-full rounded-[0.7rem] border border-border bg-background px-3 text-sm"
+                                    className="control"
                                 >
-                                    {categories.map((category) => (
+                                    {categories.map((item) => (
                                         <option
-                                            key={category.uuid}
-                                            value={category.uuid}
+                                            key={item.uuid}
+                                            value={item.uuid}
                                         >
-                                            {category.label}
+                                            {item.label}
                                         </option>
                                     ))}
                                 </select>
                             </label>
-                            <label className="text-xs font-bold text-muted-foreground">
-                                Moyen
+                            <label className="field">
+                                <span>Moyen</span>
                                 <select
                                     value={form.data.payment_channel}
                                     onChange={(event) =>
@@ -238,7 +499,7 @@ export default function ExpensesPage({
                                             event.target.value,
                                         )
                                     }
-                                    className="mt-1.5 h-10 w-full rounded-[0.7rem] border border-border bg-background px-3 text-sm"
+                                    className="control"
                                 >
                                     {Object.entries(channels).map(
                                         ([value, label]) => (
@@ -249,8 +510,8 @@ export default function ExpensesPage({
                                     )}
                                 </select>
                             </label>
-                            <label className="text-xs font-bold text-muted-foreground">
-                                Ledger (optionnel)
+                            <label className="field">
+                                <span>Ledger (optionnel)</span>
                                 <select
                                     value={form.data.ledger_uuid}
                                     onChange={(event) =>
@@ -259,7 +520,7 @@ export default function ExpensesPage({
                                             event.target.value,
                                         )
                                     }
-                                    className="mt-1.5 h-10 w-full rounded-[0.7rem] border border-border bg-background px-3 text-sm"
+                                    className="control"
                                 >
                                     <option value="">
                                         À rapprocher plus tard
@@ -274,8 +535,8 @@ export default function ExpensesPage({
                                     ))}
                                 </select>
                             </label>
-                            <label className="text-xs font-bold text-muted-foreground">
-                                Montant XOF
+                            <label className="field">
+                                <span>Montant XOF</span>
                                 <input
                                     required
                                     type="number"
@@ -287,11 +548,12 @@ export default function ExpensesPage({
                                             event.target.value,
                                         )
                                     }
-                                    className="mt-1.5 h-10 w-full rounded-[0.7rem] border border-border bg-background px-3 text-sm"
+                                    className="control"
+                                    aria-invalid={!!form.errors.amount}
                                 />
                             </label>
-                            <label className="text-xs font-bold text-muted-foreground">
-                                Bénéficiaire
+                            <label className="field">
+                                <span>Bénéficiaire</span>
                                 <input
                                     required
                                     value={form.data.payee_label}
@@ -301,11 +563,12 @@ export default function ExpensesPage({
                                             event.target.value,
                                         )
                                     }
-                                    className="mt-1.5 h-10 w-full rounded-[0.7rem] border border-border bg-background px-3 text-sm"
+                                    className="control"
+                                    aria-invalid={!!form.errors.payee_label}
                                 />
                             </label>
-                            <label className="text-xs font-bold text-muted-foreground">
-                                Date
+                            <label className="field">
+                                <span>Date</span>
                                 <input
                                     required
                                     type="datetime-local"
@@ -316,11 +579,12 @@ export default function ExpensesPage({
                                             event.target.value,
                                         )
                                     }
-                                    className="mt-1.5 h-10 w-full rounded-[0.7rem] border border-border bg-background px-3 text-sm"
+                                    className="control"
+                                    aria-invalid={!!form.errors.occurred_at}
                                 />
                             </label>
-                            <label className="text-xs font-bold text-muted-foreground md:col-span-2">
-                                Description
+                            <label className="field md:col-span-2">
+                                <span>Description</span>
                                 <textarea
                                     value={form.data.description}
                                     onChange={(event) =>
@@ -329,11 +593,11 @@ export default function ExpensesPage({
                                             event.target.value,
                                         )
                                     }
-                                    className="mt-1.5 min-h-10 w-full rounded-[0.7rem] border border-border bg-background px-3 py-2 text-sm"
+                                    className="control min-h-10 py-2"
                                 />
                             </label>
-                            <label className="text-xs font-bold text-muted-foreground">
-                                Justificatif
+                            <label className="field">
+                                <span>Justificatif</span>
                                 <input
                                     required
                                     type="file"
@@ -344,177 +608,146 @@ export default function ExpensesPage({
                                             event.target.files?.[0] ?? null,
                                         )
                                     }
-                                    className="mt-1.5 block w-full text-xs"
+                                    className="control"
+                                    aria-invalid={!!form.errors.evidence}
                                 />
                             </label>
-                            <div className="md:col-span-3">
+                            {(form.errors.amount ??
+                                form.errors.payee_label ??
+                                form.errors.evidence ??
+                                form.errors.category_uuid ??
+                                form.errors.payment_channel ??
+                                form.errors.occurred_at) && (
+                                <div
+                                    className="cash-form-error md:col-span-3"
+                                    role="alert"
+                                >
+                                    {form.errors.amount ??
+                                        form.errors.payee_label ??
+                                        form.errors.evidence ??
+                                        form.errors.category_uuid ??
+                                        form.errors.payment_channel ??
+                                        form.errors.occurred_at}
+                                </div>
+                            )}
+                            <div className="flex gap-2 md:col-span-3">
                                 <button
+                                    type="submit"
                                     disabled={form.processing}
-                                    className="rounded-[0.7rem] bg-kora px-4 py-2 text-xs font-black text-white"
+                                    className={cn(
+                                        'btn btn-primary',
+                                        form.processing && 'opacity-60',
+                                    )}
                                 >
                                     {form.processing
                                         ? 'Enregistrement…'
                                         : 'Envoyer pour validation'}
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn btn-ghost"
+                                    onClick={() => setCreateOpen(false)}
+                                    disabled={form.processing}
+                                >
+                                    Annuler
                                 </button>
                             </div>
                         </form>
                     </section>
                 )}
 
-                <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                    {[
-                        ['Total filtré', counters.total],
-                        ['À valider', counters.pending],
-                        ['Publié', counters.approvedAmount, 'amount'],
-                        ['Rejeté', counters.rejected],
-                        ['Contrepassé', counters.reversed],
-                    ].map(([label, value, kind]) => (
-                        <article
-                            key={label as string}
-                            className="rounded-[1.1rem] border border-border bg-card p-4 shadow-sm"
-                        >
-                            <p className="text-xs font-bold text-muted-foreground">
-                                {label}
-                            </p>
-                            <strong className="mt-2 block text-2xl font-black">
-                                {kind === 'amount'
-                                    ? `${formatMoney(Number(value))} XOF`
-                                    : value}
-                            </strong>
-                        </article>
-                    ))}
+                <section className="cash-ledger-grid cash-reveal cash-reveal-delay-1">
+                    <KpiCard
+                        icon={FileText}
+                        label="Total filtré"
+                        value={counters.total}
+                        tone="muted"
+                    />
+                    <KpiCard
+                        icon={Clock3}
+                        label="À valider"
+                        value={counters.pending}
+                        tone="gold"
+                    />
+                    <KpiCard
+                        icon={Wallet}
+                        label="Publié"
+                        value={`${formatMoney(counters.approvedAmount)} XOF`}
+                        tone="navy"
+                    />
+                    <KpiCard
+                        icon={XCircle}
+                        label="Rejeté"
+                        value={counters.rejected}
+                        tone="destructive"
+                    />
                 </section>
 
-                <section className="rounded-[1.25rem] border border-border bg-card p-4 shadow-sm">
-                    <form
-                        onSubmit={submitFilters}
-                        className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_180px_auto] md:items-end"
-                    >
-                        <label className="text-xs font-bold text-muted-foreground">
-                            Recherche
-                            <input
-                                value={query}
-                                onChange={(event) =>
-                                    setQuery(event.target.value)
-                                }
-                                placeholder="Référence, bénéficiaire, catégorie…"
-                                className="mt-1.5 h-10 w-full rounded-[0.7rem] border border-border bg-background px-3 text-sm"
-                            />
-                        </label>
-                        <label className="text-xs font-bold text-muted-foreground">
-                            Statut
-                            <select
-                                value={filters.status}
-                                onChange={(event) =>
-                                    applyQuery({ status: event.target.value })
-                                }
-                                className="mt-1.5 h-10 w-full rounded-[0.7rem] border border-border bg-background px-3 text-sm"
-                            >
-                                <option value="all">Tous</option>
-                                {Object.entries(statuses).map(
-                                    ([value, label]) => (
-                                        <option key={value} value={value}>
-                                            {label}
-                                        </option>
-                                    ),
-                                )}
-                            </select>
-                        </label>
-                        <label className="text-xs font-bold text-muted-foreground">
-                            Catégorie
-                            <select
-                                value={filters.category}
-                                onChange={(event) =>
-                                    applyQuery({ category: event.target.value })
-                                }
-                                className="mt-1.5 h-10 w-full rounded-[0.7rem] border border-border bg-background px-3 text-sm"
-                            >
-                                <option value="">Toutes</option>
-                                {categories.map((category) => (
-                                    <option
-                                        key={category.uuid}
-                                        value={category.uuid}
-                                    >
-                                        {category.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                        <button
-                            type="submit"
-                            className="inline-flex h-10 items-center justify-center gap-2 rounded-[0.7rem] bg-kora px-4 text-xs font-black text-white"
-                        >
-                            <Search className="size-3.5" /> Filtrer
-                        </button>
-                    </form>
-                </section>
-
-                <section className="overflow-hidden rounded-[1.25rem] border border-border bg-card shadow-sm">
-                    <div className="overflow-x-auto">
-                        <table className="w-full min-w-[900px] text-left text-sm">
-                            <thead className="border-b border-border bg-muted/40 text-[0.65rem] font-black tracking-[0.12em] text-muted-foreground uppercase">
-                                <tr>
-                                    <th className="px-5 py-4">Dépense</th>
-                                    <th className="px-5 py-4">Catégorie</th>
-                                    <th className="px-5 py-4">Moyen</th>
-                                    <th className="px-5 py-4">Montant</th>
-                                    <th className="px-5 py-4">Statut</th>
-                                    <th className="px-5 py-4">Date</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border">
-                                {expenses.data.map((expense) => (
-                                    <tr
-                                        key={expense.uuid}
-                                        onClick={() =>
-                                            applyQuery({
-                                                expense: expense.uuid,
-                                            })
-                                        }
-                                        className="cursor-pointer transition-colors hover:bg-muted/30"
-                                    >
-                                        <td className="px-5 py-4">
-                                            <div className="font-black">
-                                                {expense.reference}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground">
-                                                {expense.payeeLabel} ·{' '}
-                                                {expense.agency ?? 'Réseau'}
-                                            </div>
-                                        </td>
-                                        <td className="px-5 py-4">
-                                            {expense.category ?? '—'}
-                                        </td>
-                                        <td className="px-5 py-4 text-muted-foreground">
-                                            {expense.paymentChannelLabel}
-                                            {!expense.isReconciled && (
-                                                <span className="ml-2 text-[0.65rem] text-gold">
-                                                    À rapprocher
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-5 py-4 font-black">
-                                            {formatMoney(expense.amount)}{' '}
-                                            {expense.currency}
-                                        </td>
-                                        <td className="px-5 py-4">
-                                            <KoraStatusBadge
-                                                label={expense.statusLabel}
-                                                tone={
-                                                    tones[expense.status] ??
-                                                    'blue'
-                                                }
-                                            />
-                                        </td>
-                                        <td className="px-5 py-4 text-muted-foreground">
-                                            {formatDate(expense.occurredAt)}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                <div className="cash-reveal cash-reveal-delay-2 cash-section-intro">
+                    <div>
+                        <span className="section-kicker">
+                            Journal des dépenses
+                        </span>
+                        <h2>Liste des dépenses</h2>
                     </div>
-                    {expenses.data.length === 0 && (
+                </div>
+
+                <form
+                    className="cash-filterbar cash-reveal cash-reveal-delay-2"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        applyFilters();
+                    }}
+                >
+                    <Search className="cash-filter-icon size-4" />
+                    <input
+                        value={query}
+                        onChange={(event) => setQuery(event.target.value)}
+                        onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                                applyFilters();
+                            }
+                        }}
+                        placeholder="Référence, bénéficiaire, catégorie…"
+                        className="cash-filter-search"
+                    />
+                    <FilterSelect
+                        label="Statut"
+                        value={status}
+                        onChange={setStatus}
+                        options={statusOptions}
+                    />
+                    <FilterSelect
+                        label="Moyen"
+                        value={channel}
+                        onChange={setChannel}
+                        options={channelOptions}
+                    />
+                    <FilterSelect
+                        label="Catégorie"
+                        value={category}
+                        onChange={setCategory}
+                        options={categoryOptions}
+                    />
+                    <FilterDate label="Du" value={from} onChange={setFrom} />
+                    <FilterDate label="Au" value={to} onChange={setTo} />
+                    <button
+                        type="submit"
+                        className="btn btn-navy cash-filter-submit"
+                    >
+                        <SlidersHorizontal className="size-4" /> Filtrer
+                    </button>
+                    <button
+                        type="button"
+                        className="btn btn-ghost cash-filter-reset"
+                        onClick={resetFilters}
+                    >
+                        Réinitialiser
+                    </button>
+                </form>
+
+                <section className="cash-table-card cash-reveal cash-reveal-delay-3">
+                    {expenses.data.length === 0 ? (
                         <div className="px-6 py-16 text-center">
                             <FileText className="mx-auto size-8 text-muted-foreground/50" />
                             <h2 className="mt-3 font-black">
@@ -524,36 +757,126 @@ export default function ExpensesPage({
                                 Créez une dépense ou ajustez vos filtres.
                             </p>
                         </div>
+                    ) : (
+                        <div className="cash-table-scroll overflow-x-auto">
+                            <table className="w-full min-w-[900px] text-left">
+                                <thead className="bg-muted/45 text-[0.625rem] font-black tracking-[0.14em] text-muted-foreground uppercase">
+                                    <tr>
+                                        <th className="px-4 py-3">Dépense</th>
+                                        <th className="px-4 py-3">Catégorie</th>
+                                        <th className="px-4 py-3">Moyen</th>
+                                        <th className="px-4 py-3 text-right">
+                                            Montant
+                                        </th>
+                                        <th className="px-4 py-3">Statut</th>
+                                        <th className="px-4 py-3">Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {expenses.data.map((expense) => (
+                                        <tr
+                                            key={expense.uuid}
+                                            className="group cursor-pointer border-b border-black/[0.045] transition-[background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-muted/30"
+                                            onClick={() =>
+                                                router.get(
+                                                    index.url({
+                                                        query: {
+                                                            ...filters,
+                                                            expense:
+                                                                expense.uuid,
+                                                        },
+                                                    }),
+                                                    {},
+                                                    {
+                                                        preserveState: true,
+                                                        preserveScroll: true,
+                                                    },
+                                                )
+                                            }
+                                        >
+                                            <td className="px-4 py-3.5">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-gold/12 text-[var(--kora)]">
+                                                        <FileText
+                                                            className="size-4"
+                                                            strokeWidth={1.6}
+                                                        />
+                                                    </span>
+                                                    <div>
+                                                        <p className="text-xs font-black text-foreground">
+                                                            {expense.reference}
+                                                        </p>
+                                                        <p className="mt-0.5 text-[0.625rem] text-muted-foreground">
+                                                            {expense.payeeLabel}{' '}
+                                                            ·{' '}
+                                                            {expense.agency ??
+                                                                'Réseau'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3.5 text-xs font-medium text-foreground">
+                                                {expense.category ?? '—'}
+                                            </td>
+                                            <td className="px-4 py-3.5 text-xs text-muted-foreground">
+                                                {expense.paymentChannelLabel}
+                                                {!expense.isReconciled && (
+                                                    <span className="ml-2 text-[0.625rem] font-bold text-gold">
+                                                        À rapprocher
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3.5 text-right text-xs font-black text-foreground">
+                                                {formatMoney(expense.amount)}{' '}
+                                                {expense.currency}
+                                            </td>
+                                            <td className="px-4 py-3.5">
+                                                <KoraStatusBadge
+                                                    label={expense.statusLabel}
+                                                    tone={
+                                                        tones[expense.status] ??
+                                                        'blue'
+                                                    }
+                                                />
+                                            </td>
+                                            <td className="px-4 py-3.5 text-xs text-muted-foreground">
+                                                {formatDate(expense.occurredAt)}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     )}
-                    <div className="flex items-center justify-between border-t border-border px-5 py-3 text-xs text-muted-foreground">
-                        <span>
-                            {expenses.from ?? 0}–{expenses.to ?? 0} sur{' '}
-                            {expenses.total}
-                        </span>
-                        <span>
-                            Page {expenses.current_page} / {expenses.last_page}
-                        </span>
-                    </div>
+                    <Pagination
+                        currentPage={expenses.current_page}
+                        totalPages={expenses.last_page}
+                        total={expenses.total}
+                        from={expenses.from}
+                        to={expenses.to}
+                        onPageChange={goToPage}
+                    />
                 </section>
             </div>
+
             {expenseDetail && (
                 <aside className="fixed inset-y-0 right-0 z-40 w-full max-w-xl overflow-y-auto border-l border-border bg-card p-6 shadow-2xl">
                     <div className="flex items-start justify-between">
                         <div>
-                            <p className="text-xs font-black tracking-[0.15em] text-muted-foreground uppercase">
+                            <span className="section-kicker">
                                 Détail dépense
-                            </p>
-                            <h2 className="mt-2 text-2xl font-black">
+                            </span>
+                            <h2 className="mt-2 text-[1.8125rem] font-extrabold tracking-[-0.035em]">
                                 {expenseDetail.reference}
                             </h2>
                         </div>
                         <button
                             type="button"
                             onClick={closeDetail}
-                            className="rounded-full p-2 hover:bg-muted"
+                            className="grid size-8 place-items-center rounded-full bg-muted text-foreground transition-[background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-gold/15"
                             aria-label="Fermer"
                         >
-                            <X className="size-5" />
+                            <X className="size-4" strokeWidth={1.7} />
                         </button>
                     </div>
                     <div className="mt-6 flex items-center justify-between">
@@ -606,7 +929,7 @@ export default function ExpensesPage({
                                             approve.url(expenseDetail.uuid),
                                         )
                                     }
-                                    className="inline-flex items-center gap-2 rounded-[0.7rem] bg-kora px-4 py-2 text-xs font-black text-white"
+                                    className="btn btn-primary"
                                 >
                                     <Check className="size-3.5" /> Approuver
                                 </button>
@@ -623,7 +946,7 @@ export default function ExpensesPage({
                                             );
                                         }
                                     }}
-                                    className="rounded-[0.7rem] border border-destructive/40 px-4 py-2 text-xs font-black text-destructive"
+                                    className="btn btn-ghost border-destructive/40 text-destructive"
                                 >
                                     Rejeter
                                 </button>
@@ -645,7 +968,7 @@ export default function ExpensesPage({
                                         );
                                     }
                                 }}
-                                className="mt-6 inline-flex items-center gap-2 rounded-[0.7rem] border border-border px-4 py-2 text-xs font-black"
+                                className="btn btn-ghost mt-6"
                             >
                                 <RotateCcw className="size-3.5" /> Contrepasser
                             </button>
@@ -662,7 +985,7 @@ export default function ExpensesPage({
                                 <a
                                     key={media.uuid}
                                     href={media.url}
-                                    className="flex items-center gap-2 rounded-lg border border-border p-3 text-sm font-bold hover:bg-muted"
+                                    className="flex items-center gap-2 rounded-lg border border-black/[0.045] p-3 text-sm font-bold transition-colors hover:bg-muted"
                                 >
                                     <FileText className="size-4 text-gold" />{' '}
                                     {media.name}
@@ -675,3 +998,9 @@ export default function ExpensesPage({
         </>
     );
 }
+
+ExpensesPage.layout = {
+    breadcrumbs: [
+        { title: 'Dépenses', href: '/expenses' } satisfies BreadcrumbItem,
+    ],
+};

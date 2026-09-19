@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Modules\Expenses\Models\ExpenseCategory;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class KoraExpenseCategorySeeder extends Seeder
 {
@@ -17,9 +18,13 @@ class KoraExpenseCategorySeeder extends Seeder
             ['code' => 'services', 'label' => 'Services'],
             ['code' => 'other', 'label' => 'Autres'],
         ] as $category) {
-            ExpenseCategory::query()->updateOrCreate(
+            ExpenseCategory::query()->firstOrCreate(
                 ['code' => $category['code']],
-                ['label' => $category['label'], 'is_active' => true],
+                [
+                    'uuid' => (string) Str::uuid(),
+                    'label' => $category['label'],
+                    'is_active' => true,
+                ],
             );
         }
     }

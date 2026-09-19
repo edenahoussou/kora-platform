@@ -53,8 +53,18 @@ class AssistedBookingController extends Controller
             $query->whereDate('created_at', $date);
         }
 
+        $counts = (clone $query)->reorder()->toBase()
+            ->selectRaw("count(*) as total, count(case when status = 'pending' then 1 end) as pending, count(case when status = 'in_progress' then 1 end) as in_progress, count(case when status = 'expired' then 1 end) as expired, count(case when status = 'finalized' then 1 end) as finalized")
+            ->first();
+
         return Inertia::render('assisted-bookings/index', [
             'assistedBookings' => $query->paginate(20)->withQueryString()->through(fn (AssistedBooking $item): array => $this->serializeListItem($item)),
+            'counters' => [
+                'pending' => (int) ($counts->pending ?? 0),
+                'inProgress' => (int) ($counts->in_progress ?? 0),
+                'expired' => (int) ($counts->expired ?? 0),
+                'finalized' => (int) ($counts->finalized ?? 0),
+            ],
             'filters' => $request->only(['q', 'status', 'agency', 'date']),
             'statuses' => AssistedBookingStatus::options(),
             'agencies' => $this->eligibleAgencies($request)->map(fn (Agency $agency): array => [
