@@ -3,8 +3,26 @@ import 'package:sqflite/sqflite.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../ops/domain/entities/passenger.dart';
 
+/// Manifeste en cache pour un départ, avec ses métadonnées — voir
+/// `manifest_meta` (`AppDatabase`).
+class CachedManifest {
+  const CachedManifest({
+    required this.passengers,
+    this.version,
+    this.fetchedAt,
+  });
+
+  final List<Passenger> passengers;
+  final String? version;
+  final DateTime? fetchedAt;
+}
+
 abstract class ManifesteLocalDataSource {
-  Future<List<Passenger>> readCache(String departureUuid);
+  /// `null` si aucun manifeste n'a jamais été mis en cache pour ce
+  /// départ (jamais une liste vide sans métadonnées — voir
+  /// `ManifesteRepositoryImpl.load`, qui distingue "jamais chargé" de
+  /// "chargé mais aucun passager").
+  Future<CachedManifest?> readCache(String departureUuid);
 
   /// Remplace tout le manifeste en cache pour [departureUuid] — un
   /// manifeste tient sur un bus (quelques dizaines à ~200 lignes), un
@@ -23,15 +41,29 @@ class ManifesteLocalDataSourceImpl implements ManifesteLocalDataSource {
   final AppDatabase _database;
 
   @override
-  Future<List<Passenger>> readCache(String departureUuid) async {
+  Future<CachedManifest?> readCache(String departureUuid) async {
     final Database db = await _database.database;
+
+    final List<Map<String, Object?>> metaRows = await db.query(
+      'manifest_meta',
+      where: 'departure_uuid = ?',
+      whereArgs: <Object?>[departureUuid],
+      limit: 1,
+    );
+    if (metaRows.isEmpty) return null;
+
     final List<Map<String, Object?>> rows = await db.query(
       'manifest_cache',
       where: 'departure_uuid = ?',
       whereArgs: <Object?>[departureUuid],
     );
 
-    return rows.map(_passengerOf).toList();
+    return CachedManifest(
+      passengers: rows.map(_passengerOf).toList(),
+      version: metaRows.first['manifest_version'] as String?,
+      fetchedAt:
+          DateTime.tryParse(metaRows.first['fetched_at'] as String? ?? ''),
+    );
   }
 
   @override
@@ -63,17 +95,19 @@ class ManifesteLocalDataSourceImpl implements ManifesteLocalDataSource {
         });
       }
 
-      if (manifestVersion != null) {
-        await txn.insert(
-          'manifest_meta',
-          <String, Object?>{
-            'departure_uuid': departureUuid,
-            'manifest_version': manifestVersion,
-            'fetched_at': fetchedAt,
-          },
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
-      }
+      // Toujours écrite, même sans manifestVersion (jamais renvoyé par le
+      // backend en pratique) : c'est cette ligne qui marque "ce départ a
+      // déjà été téléchargé au moins une fois" — voir readCache, qui s'en
+      // sert pour distinguer un cache vide d'une absence de cache.
+      await txn.insert(
+        'manifest_meta',
+        <String, Object?>{
+          'departure_uuid': departureUuid,
+          'manifest_version': manifestVersion,
+          'fetched_at': fetchedAt,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
     });
   }
 

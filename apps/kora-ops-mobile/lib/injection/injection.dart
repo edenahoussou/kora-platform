@@ -28,6 +28,11 @@ import '../features/manifeste/data/repositories/manifeste_repository_impl.dart';
 import '../features/manifeste/domain/repositories/manifeste_repository.dart';
 import '../features/manifeste/presentation/cubit/manifeste_cubit.dart';
 import '../features/onboarding/data/onboarding_store.dart';
+import '../features/ops/data/datasources/departure_remote_datasource.dart';
+import '../features/ops/data/datasources/selected_departure_local_datasource.dart';
+import '../features/ops/data/repositories/departure_repository_impl.dart';
+import '../features/ops/domain/repositories/departure_repository.dart';
+import '../features/ops/presentation/cubit/departure_list_cubit.dart';
 import '../features/ops/presentation/cubit/selected_depart_cubit.dart';
 import '../features/printing/data/services/mock_barcode_scanner.dart';
 import '../features/printing/data/services/mock_thermal_printer.dart';
@@ -246,9 +251,27 @@ Future<void> configureDependencies() async {
         scanBarcode: getIt<ScanBarcode>(), printTicket: getIt<PrintTicket>()),
   );
 
-  // --- Feature: ops (MEZ-11 — Tournée encore mockée, hors périmètre
-  // MEZ-91 : voir docstring de ManifesteCubit) ---
-  getIt.registerSingleton<SelectedDepartCubit>(SelectedDepartCubit());
+  // --- Feature: ops (MEZ-92 — départs réels : GET /ops/departures,
+  // GET /ops/departures/{uuid}) ---
+  getIt.registerLazySingleton<DepartureRemoteDataSource>(
+    () => DepartureRemoteDataSourceImpl(opsDioClient.dio),
+  );
+  getIt.registerLazySingleton<DepartureRepository>(
+    () => DepartureRepositoryImpl(getIt<DepartureRemoteDataSource>()),
+  );
+  getIt.registerSingleton<DepartureListCubit>(
+    DepartureListCubit(getIt<DepartureRepository>()),
+  );
+
+  getIt.registerLazySingleton<SelectedDepartureLocalDataSource>(
+    () => SelectedDepartureLocalDataSourceImpl(getIt<FlutterSecureStorage>()),
+  );
+  getIt.registerSingleton<SelectedDepartCubit>(
+    SelectedDepartCubit(
+      getIt<SelectedDepartureLocalDataSource>(),
+      getIt<AuthCubit>(),
+    ),
+  );
 
   // --- Feature: boarding (MEZ-91 — réel : POST ops/boarding, avec
   // anti-double-scan local et file hors ligne — voir BoardingRepositoryImpl).
@@ -295,6 +318,7 @@ Future<void> configureDependencies() async {
     () => ManifesteRepositoryImpl(
       getIt<ManifesteRemoteDataSource>(),
       getIt<ManifesteLocalDataSource>(),
+      isOnline: () async => getIt<SyncCubit>().state.isOnline,
     ),
   );
   getIt.registerSingleton<ManifesteCubit>(

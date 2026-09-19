@@ -33,4 +33,12 @@ abstract final class StorageKeys {
   /// démarrage pour un affichage immédiat avant confirmation réseau — voir
   /// `TerminalCubit.bootstrap`.
   static const String terminalSnapshot = 'terminal_snapshot';
+
+  /// Dernier départ sélectionné par l'agent (JSON de `Depart`), relu au
+  /// démarrage pour restaurer le départ géré après un redémarrage à froid
+  /// du P501 (MEZ-92) — voir `SelectedDepartCubit.bootstrap`. Purgé à la
+  /// déconnexion (contrairement au terminal) : un autre agent qui se
+  /// connecte sur le même appareil ne doit pas hériter du départ du
+  /// précédent.
+  static const String selectedDepartureSnapshot = 'selected_departure_snapshot';
 }

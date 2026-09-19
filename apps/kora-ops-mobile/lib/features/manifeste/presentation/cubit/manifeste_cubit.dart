@@ -15,11 +15,9 @@ part 'manifeste_state.dart';
 /// change de départ (que ce soit depuis `AccueilPage` ou le sélecteur de
 /// l'en-tête du Manifeste — voir document.md § Sélection du départ).
 ///
-/// [Depart.id] doit être un UUID de départ réel (`GET /ops/departures/
-/// {uuid}/manifest`) — la sélection de départ elle-même (onglet Tournée)
-/// reste mockée pour l'instant (hors périmètre MEZ-91, voir `MockOpsData
-/// Source`) ; ce cubit fonctionnera dès que la sélection de départ fournira
-/// de vrais UUID, sans changement ici.
+/// [Depart.id] est un UUID de départ réel (`GET /ops/departures/{uuid}/
+/// manifest`) — la sélection de départ (onglet Tournée) est réelle depuis
+/// MEZ-92 (`GET /ops/departures`, voir `DepartureListCubit`).
 class ManifesteCubit extends Cubit<ManifesteState> {
   ManifesteCubit({
     required SelectedDepartCubit selectedDepartCubit,
@@ -59,8 +57,14 @@ class ManifesteCubit extends Cubit<ManifesteState> {
 
     final result = await _repository.load(depart.id);
     result.when(
-      onSuccess: (passengers) => emit(state.copyWith(
-          status: ManifesteStatus.success, passengers: passengers)),
+      onSuccess: (snapshot) => emit(state.copyWith(
+        status: ManifesteStatus.success,
+        passengers: snapshot.passengers,
+        manifestVersion: snapshot.version,
+        fetchedAt: snapshot.fetchedAt,
+        isStale: snapshot.isStale,
+        isFromCache: snapshot.isFromCache,
+      )),
       onFailure: (Failure failure) => emit(state.copyWith(
           status: ManifesteStatus.error, errorMessage: failure.message)),
     );

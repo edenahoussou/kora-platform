@@ -22,11 +22,22 @@ use function Illuminate\Support\enum_value;
  */
 class OpsManifestRowResource extends JsonResource
 {
+    /**
+     * @param  array<int, string>  $boardingEventUuidsByTicketId  UUID du
+     *                                                            dernier BoardingEvent accepté pour ce départ, indexé par
+     *                                                            ticket_id — voir OpsDepartureController::manifest(). Permet
+     *                                                            à l'app OPS Mobile de proposer l'annulation exceptionnelle
+     *                                                            d'un embarquement (POST /ops/boarding/{uuid}/reverse) sans
+     *                                                            connaître déjà cet UUID (le manifeste ne l'exposait pas
+     *                                                            jusqu'ici). Reste renseigné même après une annulation — voir
+     *                                                            la note sur `boardingEventUuid` dans toArray().
+     */
     public function __construct(
         ReservationSegment $resource,
         private readonly ?Ticket $ticket,
         private readonly ?ManifestSegmentStatus $segmentStatus,
         private readonly bool $includeBorderControlFields,
+        private readonly array $boardingEventUuidsByTicketId = [],
     ) {
         parent::__construct($resource);
     }
@@ -54,6 +65,16 @@ class OpsManifestRowResource extends JsonResource
             ],
             'segmentStatus' => enum_value($this->segmentStatus),
             'ticketStatus' => $this->ticket === null ? null : enum_value($this->ticket->status),
+            // `null` si jamais embarqué sur ce départ. Note : après une
+            // annulation exceptionnelle (reverse), le BoardingEvent
+            // d'origine garde volontairement son statut `accepted`
+            // (jamais modifié — voir ReverseBoardingEventAction) ; seul
+            // `segmentStatus` reflète l'annulation (repasse à "ticketed").
+            // Le mobile doit donc croiser les deux : ne proposer
+            // "annuler l'embarquement" que si `segmentStatus === 'boarded'`.
+            'boardingEventUuid' => $this->ticket === null
+                ? null
+                : ($this->boardingEventUuidsByTicketId[$this->ticket->id] ?? null),
             ...($this->includeBorderControlFields ? [
                 'document' => $passenger === null || $passenger->document_type === null ? null : [
                     'type' => enum_value($passenger->document_type),
