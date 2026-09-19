@@ -62,6 +62,17 @@ class StubReservationRepository implements ReservationRepository {
 
   final List<String> calls = [];
 
+  /// Renvoyé par [groupQuote] quand un code promo est soumis : le refus du
+  /// serveur (inconnu, expiré, hors périmètre, quota atteint).
+  Failure? promoFailure;
+
+  /// Échec rendu par [release] — une libération refusée par le serveur.
+  Failure? releaseFailure;
+
+  /// Échecs à rendre, dans l'ordre, par les prochains [holdGroup] — un siège
+  /// pris entre la libération et le nouveau blocage.
+  final List<Failure> nextHoldFailures = [];
+
   /// Le devis groupé rendu par le stub : sous-total pour tous, et une
   /// remise seulement au-delà du seuil.
   final GroupQuote? groupQuoteValue;
@@ -71,28 +82,39 @@ class StubReservationRepository implements ReservationRepository {
     required Departure departure,
     required int passengers,
     Departure? returnDeparture,
+    String? promoCode,
   }) async {
     calls.add(
-      returnDeparture == null
-          ? 'groupQuote:$passengers'
-          : 'groupQuote:$passengers:aller-retour',
+      (returnDeparture == null
+              ? 'groupQuote:$passengers'
+              : 'groupQuote:$passengers:aller-retour') +
+          (promoCode == null ? '' : ':promo=$promoCode'),
     );
     final failure = this.failure;
     if (failure != null) return Left(failure);
 
+    // Un code refusé par le serveur : 422 sur `promo_code`.
+    final promoFailure = this.promoFailure;
+    if (promoCode != null && promoFailure != null) return Left(promoFailure);
+
     final value = groupQuoteValue;
     if (value != null) return Right(value);
 
-    // Le barème du staging : 10 % à partir de cinq voyageurs.
+    // Le barème du staging : 10 % à partir de cinq voyageurs. Un code promo
+    // retire 10 % avant la remise groupe, dans l'ordre du serveur.
     final subtotal = 12500 * passengers;
+    final promo = promoCode == null ? 0 : subtotal ~/ 10;
     final applies = passengers >= 5;
-    final discount = applies ? subtotal ~/ 10 : 0;
+    final discount = applies ? (subtotal - promo) ~/ 10 : 0;
 
     return Right(
       GroupQuote(
         id: 'itinerary-quote-1',
         subtotal: Price(subtotal),
-        total: Price(subtotal - discount),
+        total: Price(subtotal - promo - discount),
+        promotion: promoCode == null
+            ? null
+            : QuotePromotion(code: promoCode, discount: Price(promo)),
         passengerCount: passengers,
         discount: applies
             ? GroupDiscount(
@@ -146,6 +168,10 @@ class StubReservationRepository implements ReservationRepository {
   /// simple.
   List<Seat>? groupReturnSeats;
 
+  /// Le total du dernier blocage : le serveur le garde sur la réservation,
+  /// et le rend tel quel avec les voyageurs.
+  Price? heldTotal;
+
   @override
   Future<Either<Failure, SeatHold>> holdGroup({
     required GroupQuote quote,
@@ -164,7 +190,9 @@ class StubReservationRepository implements ReservationRepository {
 
     final failure = this.failure;
     if (failure != null) return Left(failure);
+    if (nextHoldFailures.isNotEmpty) return Left(nextHoldFailures.removeAt(0));
 
+    heldTotal = quote.total;
     return Right(
       SeatHold(
         id: 'hold-groupe-1',
@@ -194,7 +222,7 @@ class StubReservationRepository implements ReservationRepository {
         id: reservationId,
         expiresAt: now.add(holdDuration),
         seatLabels: [for (final p in passengers) p.seat.label],
-        total: Price(12500 * passengers.length),
+        total: heldTotal ?? Price(12500 * passengers.length),
       ),
     );
   }
@@ -202,6 +230,8 @@ class StubReservationRepository implements ReservationRepository {
   @override
   Future<Either<Failure, void>> release(String reservationId) async {
     calls.add('release:$reservationId');
+    final releaseFailure = this.releaseFailure;
+    if (releaseFailure != null) return Left(releaseFailure);
     return const Right(null);
   }
 }

@@ -35,7 +35,11 @@ class HoldExpiredPage extends StatelessWidget {
               StateView(
                 icon: Icons.hourglass_empty_rounded,
                 title: l10n.holdExpiredTitle,
-                message: l10n.holdExpiredText,
+                // La raison du serveur quand il y en a une — un siège pris
+                // pendant qu'on rebloquait pour un code promo, par exemple.
+                // Une simple expiration n'en a pas, et garde le texte
+                // habituel.
+                message: holdState.failure?.message ?? l10n.holdExpiredText,
                 primaryLabel: l10n.holdExpiredPrimary,
                 // On repart d'un plan neuf plutôt que de revenir en
                 // arrière : l'écran quitté — le formulaire passagers, le

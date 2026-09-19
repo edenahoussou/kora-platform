@@ -17,23 +17,28 @@ import '../../domain/repositories/reservation_repository.dart';
 part 'seat_hold_event.dart';
 part 'seat_hold_state.dart';
 
-/// Le blocage des sièges, du « Continuer » du plan jusqu'au paiement.
+/// Le devis et le blocage des sièges, du récapitulatif jusqu'au paiement.
 ///
-/// **Il vit au-dessus des écrans, pas dans l'un d'eux.** Le décompte
-/// commence sur le plan des sièges, s'affiche sur le formulaire passagers
-/// puis sur le récapitulatif, et doit survivre à un retour en arrière. Un
-/// Bloc par écran l'aurait remis à zéro à chaque navigation ; celui-ci est
+/// **Le blocage part du récapitulatif**, au « Continuer vers le paiement »,
+/// et non plus du plan des sièges. MEZ-73 n'accepte le code promo qu'au
+/// devis, et le blocage fige ce devis : bloquer plus tôt obligeait à
+/// libérer puis rebloquer pour appliquer un code. Le plan et le formulaire
+/// passagers ne font donc que choisir ; le récapitulatif demande le devis
+/// — avec ou sans code — puis bloque, puis envoie les identités.
+///
+/// **Il vit au-dessus des écrans, pas dans l'un d'eux.** Le décompte doit
+/// survivre aux allers-retours entre le récapitulatif et le paiement ; un
+/// Bloc par écran l'aurait remis à zéro à chaque navigation. Celui-ci est
 /// fourni par la route mère du tunnel (voir `AppRouter`).
 class SeatHoldBloc extends Bloc<SeatHoldEvent, SeatHoldState> {
   SeatHoldBloc(this._repository, {DateTime Function()? clock})
     : _clock = clock ?? DateTime.now,
       super(const SeatHoldState()) {
-    on<SeatHoldRequested>(_onRequested);
-    on<SeatHoldGroupRequested>(_onGroupRequested);
+    on<SeatHoldCheckoutRequested>(_onCheckoutRequested);
     on<SeatHoldReleased>(_onReleased);
     on<SeatHoldSettled>(_onSettled);
-    on<SeatHoldPassengersSubmitted>(_onPassengersSubmitted);
     on<SeatHoldTicked>(_onTicked);
+    on<SeatHoldRepriceRequested>(_onRepriceRequested);
   }
 
   final ReservationRepository _repository;
@@ -44,120 +49,161 @@ class SeatHoldBloc extends Bloc<SeatHoldEvent, SeatHoldState> {
 
   Timer? _ticker;
 
+  /// Marge sous laquelle un devis est tenu pour périmé : le blocage part
+  /// quelques instants après, et un devis qui expire en route serait
+  /// refusé.
+  static const _quoteMargin = Duration(seconds: 30);
+
   @override
   Future<void> close() {
     _ticker?.cancel();
     return super.close();
   }
 
-  Future<void> _onRequested(
-    SeatHoldRequested event,
+  /// « Continuer vers le paiement » : devis, blocage, puis identités.
+  ///
+  /// Le devis est celui que le récapitulatif affiche, pour que le voyageur
+  /// paie le prix qu'il a lu — remise de groupe et code promo compris. Il
+  /// n'est redemandé, avec le même code, que s'il manque ou va expirer.
+  ///
+  /// Revenu du paiement, le voyageur a déjà ses sièges : on ne rebloque
+  /// pas, on renvoie seulement les identités, qu'il a pu corriger.
+  Future<void> _onCheckoutRequested(
+    SeatHoldCheckoutRequested event,
     Emitter<SeatHoldState> emit,
   ) async {
+    if (state.isCheckingOut || state.isRepricing) return;
+
+    final current = state.hold;
+    if (state.isHeld && current != null) {
+      emit(
+        state.copyWith(
+          checkingOut: true,
+          passengersStatus: PassengersStatus.saving,
+          clearError: true,
+        ),
+      );
+      await _savePassengers(current, event.passengers, emit);
+      return;
+    }
+
     emit(
-      state.copyWith(
+      SeatHoldState(
         status: SeatHoldStatus.holding,
         departure: event.departure,
-        passengers: event.seats.length,
-        clearError: true,
+        passengers: event.passengers.length,
+        quote: state.quote,
+        checkingOut: true,
       ),
     );
 
-    // Le devis d'abord : le blocage réclame son identifiant, et il fige le
-    // tarif pour que le montant vu au moment du choix soit celui qu'on
-    // paiera.
-    //
-    // Par `bus/itinerary-quotes` puis `bus/itinerary-holds`, comme un
-    // groupe : MEZ-63 a retiré `bus/quotes` et `bus/holds`, et il ne reste
-    // donc qu'un seul chemin. Un voyageur seul est simplement un groupe
-    // d'un.
-    final quote = await _repository.groupQuote(
-      departure: event.departure,
-      passengers: event.seats.length,
-      returnDeparture: event.returnDeparture,
-    );
+    final quoted = await _freshQuote(event);
+    final quoteFailure = quoted.fold((failure) => failure, (_) => null);
+    if (quoteFailure != null) {
+      emit(_failed(quoteFailure));
+      return;
+    }
+    final quote = quoted.getOrElse(() => throw StateError('devis absent'));
 
-    final held = await quote.fold(
-      (failure) async => Left<Failure, SeatHold>(failure),
-      (quote) => _repository.holdGroup(
-        quote: quote,
-        seats: event.seats,
-        // Le devis d'un aller-retour porte deux tronçons, et le serveur
-        // exige un siège pour chacun : taire les sièges du retour ferait
-        // refuser le blocage entier.
-        returnSeats: event.returnSeats,
-        payer: const GroupPayer.personal(),
-        // Déterministe : un réseau qui coupe après l'envoi laisse le
-        // voyageur réappuyer, et le serveur rend alors le blocage déjà
-        // ouvert plutôt que d'en créer un second sur d'autres sièges.
-        idempotencyKey: 'kora-${quote.id}',
-      ),
-    );
-
-    held.fold(
-      (failure) => emit(
-        state.copyWith(status: SeatHoldStatus.failure, errorMessage: failure),
-      ),
-      (hold) {
-        emit(
-          SeatHoldState(
-            status: SeatHoldStatus.held,
-            hold: hold,
-            remaining: hold.remaining(_clock()),
-            departure: event.departure,
-            passengers: event.seats.length,
-          ),
-        );
-        _startTicking();
-      },
-    );
-  }
-
-  Future<void> _onGroupRequested(
-    SeatHoldGroupRequested event,
-    Emitter<SeatHoldState> emit,
-  ) async {
-    emit(
-      state.copyWith(
-        status: SeatHoldStatus.holding,
-        departure: event.departure,
-        passengers: event.seats.length,
-        clearError: true,
-      ),
-    );
-
-    // Pas de devis à demander ici : le groupe l'a déjà obtenu en amont, sur
-    // l'écran qui lui a montré la remise. Le redemander risquerait d'en
-    // rendre un autre — le barème peut bouger entre deux appels — et le
-    // voyageur paierait un prix qu'il n'a pas vu.
     final held = await _repository.holdGroup(
-      quote: event.quote,
-      seats: event.seats,
+      quote: quote,
+      seats: [for (final passenger in event.passengers) passenger.seat],
+      // Le devis d'un aller-retour porte deux tronçons, et le serveur
+      // exige un siège pour chacun : taire les sièges du retour ferait
+      // refuser le blocage entier.
+      returnSeats: event.returnSeats,
       payer: event.payer,
-      // Déterministe : un réseau qui coupe après l'envoi laisse le voyageur
-      // réappuyer, et le serveur rend alors le blocage déjà créé plutôt que
-      // d'en ouvrir un second sur d'autres sièges.
-      idempotencyKey: 'kora-groupe-${event.quote.id}',
+      // Déterministe : un réseau qui coupe après l'envoi laisse le
+      // voyageur réappuyer, et le serveur rend alors le blocage déjà
+      // ouvert plutôt que d'en créer un second.
+      idempotencyKey: 'kora-${quote.id}',
     );
 
-    held.fold(
-      (failure) => emit(
-        state.copyWith(status: SeatHoldStatus.failure, errorMessage: failure),
+    final holdFailure = held.fold((failure) => failure, (_) => null);
+    if (holdFailure != null) {
+      emit(_failed(holdFailure));
+      return;
+    }
+    final hold = held.getOrElse(() => throw StateError('blocage absent'));
+
+    emit(
+      state.copyWith(
+        status: SeatHoldStatus.held,
+        hold: hold,
+        remaining: hold.remaining(_clock()),
+        quote: quote,
+        passengersStatus: PassengersStatus.saving,
       ),
-      (hold) {
-        emit(
-          SeatHoldState(
-            status: SeatHoldStatus.held,
-            hold: hold,
-            remaining: hold.remaining(_clock()),
-            departure: event.departure,
-            passengers: event.seats.length,
-          ),
-        );
-        _startTicking();
-      },
+    );
+    _startTicking();
+
+    await _savePassengers(hold, event.passengers, emit);
+  }
+
+  /// Le devis affiché s'il est encore valable, un nouveau sinon — avec le
+  /// même code, pour ne pas perdre la remise en route.
+  Future<Either<Failure, GroupQuote>> _freshQuote(
+    SeatHoldCheckoutRequested event,
+  ) async {
+    final shown = event.quote;
+    final expiresAt = shown?.expiresAt;
+    if (shown != null &&
+        (expiresAt == null || expiresAt.isAfter(_clock().add(_quoteMargin)))) {
+      return Right(shown);
+    }
+
+    return _repository.groupQuote(
+      departure: event.departure,
+      passengers: event.passengers.length,
+      returnDeparture: event.returnDeparture,
+      promoCode: shown?.promotion?.code,
     );
   }
+
+  /// Rattache les identités à la réservation, puis se recale sur ce que
+  /// rend le serveur : `status` et `expires_at` reviennent avec la
+  /// réponse, c'est lui qui fait autorité sur le temps restant.
+  ///
+  /// Un refus laisse le blocage en place : le voyageur corrige et
+  /// réappuie, sans reperdre ses sièges.
+  Future<void> _savePassengers(
+    SeatHold hold,
+    List<Passenger> passengers,
+    Emitter<SeatHoldState> emit,
+  ) async {
+    final result = await _repository.savePassengers(
+      reservationId: hold.id,
+      passengers: passengers,
+    );
+
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          checkingOut: false,
+          passengersStatus: PassengersStatus.failure,
+          errorMessage: failure,
+        ),
+      ),
+      (refreshed) => emit(
+        state.copyWith(
+          checkingOut: false,
+          hold: refreshed,
+          remaining: refreshed.remaining(_clock()),
+          passengersStatus: PassengersStatus.saved,
+        ),
+      ),
+    );
+  }
+
+  /// Le checkout s'arrête sans rien retenir. Le devis affiché reste : le
+  /// récapitulatif garde son prix et son code.
+  SeatHoldState _failed(Failure failure) => SeatHoldState(
+    status: SeatHoldStatus.failure,
+    departure: state.departure,
+    passengers: state.passengers,
+    quote: state.quote,
+    failure: failure,
+  );
 
   Future<void> _onReleased(
     SeatHoldReleased event,
@@ -175,47 +221,6 @@ class SeatHoldBloc extends Bloc<SeatHoldEvent, SeatHoldState> {
     // l'échéance. Faire patienter le voyageur devant un appel qui ne peut
     // que réussir plus tard serait gratuit.
     if (hold != null) await _repository.release(hold.id);
-  }
-
-  /// Envoie les identités, puis se recale sur ce que rend le serveur.
-  ///
-  /// `status` et `expires_at` reviennent avec la réponse : c'est le
-  /// serveur qui fait autorité sur le temps restant, et cet appel est
-  /// l'occasion de rattraper une horloge qui aurait dérivé.
-  Future<void> _onPassengersSubmitted(
-    SeatHoldPassengersSubmitted event,
-    Emitter<SeatHoldState> emit,
-  ) async {
-    final hold = state.hold;
-    if (hold == null) return;
-
-    emit(
-      state.copyWith(
-        passengersStatus: PassengersStatus.saving,
-        clearError: true,
-      ),
-    );
-
-    final result = await _repository.savePassengers(
-      reservationId: hold.id,
-      passengers: event.passengers,
-    );
-
-    result.fold(
-      (failure) => emit(
-        state.copyWith(
-          passengersStatus: PassengersStatus.failure,
-          errorMessage: failure,
-        ),
-      ),
-      (refreshed) => emit(
-        state.copyWith(
-          hold: refreshed,
-          remaining: refreshed.remaining(_clock()),
-          passengersStatus: PassengersStatus.saved,
-        ),
-      ),
-    );
   }
 
   /// Coupe le décompte sans rien rendre : la réservation est payée.
@@ -246,6 +251,122 @@ class SeatHoldBloc extends Bloc<SeatHoldEvent, SeatHoldState> {
         passengers: state.passengers,
       ),
     );
+  }
+
+  /// Applique ou remplace un code promo.
+  ///
+  /// MEZ-73 n'accepte le code qu'au devis. **Avant le blocage** — le cas
+  /// normal, le récapitulatif précédant le paiement — c'est donc un simple
+  /// devis : accepté, il devient le prix affiché puis bloqué ; refusé,
+  /// rien ne change et le message du serveur s'affiche.
+  ///
+  /// **Après le blocage** — le voyageur revient du paiement — le blocage
+  /// a figé l'ancien devis : il faut libérer puis rebloquer les mêmes
+  /// sièges au nouveau prix. Le devis passe d'abord, pour qu'un code
+  /// refusé ne lâche rien ; si la libération est refusée, la réservation
+  /// reste au tarif normal plutôt que d'être perdue.
+  Future<void> _onRepriceRequested(
+    SeatHoldRepriceRequested event,
+    Emitter<SeatHoldState> emit,
+  ) async {
+    if (state.isRepricing || state.isCheckingOut) return;
+
+    final code = event.promoCode.trim().toUpperCase();
+    // Un champ vide ne demande rien.
+    if (code.isEmpty) return;
+
+    emit(
+      state.copyWith(
+        promoStatus: PromoStatus.applying,
+        clearPromoError: true,
+        promoUnavailable: false,
+      ),
+    );
+
+    final quoted = await _repository.groupQuote(
+      departure: event.departure,
+      passengers: event.passengers.length,
+      returnDeparture: event.returnDeparture,
+      promoCode: code,
+    );
+
+    final refused = quoted.fold((failure) => failure, (_) => null);
+    if (refused != null) {
+      emit(
+        state.copyWith(
+          promoStatus: PromoStatus.idle,
+          promoError: refused.message,
+        ),
+      );
+      return;
+    }
+    final quote = quoted.getOrElse(() => throw StateError('devis absent'));
+
+    final current = state.hold;
+    if (current == null) {
+      emit(state.copyWith(promoStatus: PromoStatus.idle, quote: quote));
+      return;
+    }
+
+    _ticker?.cancel();
+    final released = await _repository.release(current.id);
+
+    // Sans libération, l'ancienne réservation garde les sièges : le
+    // nouveau blocage serait refusé, et le voyageur perdrait tout. On
+    // garde donc la réservation au tarif normal plutôt que de la risquer.
+    if (released.isLeft()) {
+      emit(
+        state.copyWith(promoStatus: PromoStatus.idle, promoUnavailable: true),
+      );
+      _startTicking();
+      return;
+    }
+
+    final held = await _repository.holdGroup(
+      quote: quote,
+      seats: [for (final passenger in event.passengers) passenger.seat],
+      returnSeats: event.returnSeats,
+      payer: event.payer,
+      idempotencyKey: 'kora-${quote.id}',
+    );
+
+    final lost = held.fold((failure) => failure, (_) => null);
+    if (lost != null) {
+      emit(
+        SeatHoldState(
+          status: SeatHoldStatus.expired,
+          departure: state.departure,
+          passengers: state.passengers,
+          failure: lost,
+        ),
+      );
+      return;
+    }
+    final hold = held.getOrElse(() => throw StateError('blocage absent'));
+
+    // Les identités vivaient sur l'ancienne réservation : sans elles, la
+    // nouvelle ne serait pas payable.
+    final saved = await _repository.savePassengers(
+      reservationId: hold.id,
+      passengers: event.passengers,
+    );
+    final refreshed = saved.getOrElse(() => hold);
+
+    emit(
+      SeatHoldState(
+        status: SeatHoldStatus.held,
+        hold: refreshed,
+        remaining: refreshed.remaining(_clock()),
+        departure: state.departure,
+        passengers: state.passengers,
+        passengersStatus: saved.isRight()
+            ? PassengersStatus.saved
+            : PassengersStatus.failure,
+        failure: saved.fold((failure) => failure, (_) => null),
+        quote: quote,
+      ),
+    );
+    _startTicking();
   }
 
   /// Une seconde : c'est la granularité qu'affiche le décompte (`MM:SS`).

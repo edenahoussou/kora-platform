@@ -17,6 +17,7 @@ class GroupQuote extends Equatable {
     required this.passengerCount,
     this.discount = GroupDiscount.none,
     this.expiresAt,
+    this.promotion,
   });
 
   /// `itinerary_quote_uuid` : ce que réclame le blocage atomique.
@@ -35,6 +36,10 @@ class GroupQuote extends Equatable {
   /// Le devis expire avant le blocage, et plus tôt.
   final DateTime? expiresAt;
 
+  /// La promotion appliquée par le serveur, `null` sans code. Son montant
+  /// est déjà déduit de [total] : l'app ne recalcule rien.
+  final QuotePromotion? promotion;
+
   /// Le tarif d'un voyageur, avant remise.
   ///
   /// Arrondi à l'entier inférieur : le serveur ne publie que le sous-total,
@@ -51,6 +56,7 @@ class GroupQuote extends Equatable {
     passengerCount,
     discount,
     expiresAt,
+    promotion,
   ];
 }
 
@@ -99,4 +105,22 @@ class GroupDiscount extends Equatable {
 
   @override
   List<Object?> get props => [applied, threshold, percentage, amount];
+}
+
+/// Couche DOMAIN : le code promo retenu par le serveur dans un devis
+/// (`pricing.promotion`, MEZ-73).
+class QuotePromotion extends Equatable {
+  const QuotePromotion({required this.code, required this.discount, this.name});
+
+  /// Le code tel que le serveur l'a normalisé (`PROMO10`).
+  final String code;
+
+  /// Le nom de la campagne, pour l'affichage.
+  final String? name;
+
+  /// La remise en FCFA, calculée par le serveur — jamais par l'app.
+  final Price discount;
+
+  @override
+  List<Object?> get props => [code, name, discount];
 }

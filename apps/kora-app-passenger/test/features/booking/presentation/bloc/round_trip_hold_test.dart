@@ -9,11 +9,26 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/passenger.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/seat.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/seat_hold_bloc.dart';
 
 import '../../../../support/seat_hold_harness.dart';
+
+/// Un voyageur par siège, dans l'ordre du plan.
+List<Passenger> travellersFor(List<Seat> seats) => [
+  for (final (index, seat) in seats.indexed)
+    Passenger(
+      firstName: 'Voyageur',
+      lastName: 'N${index + 1}',
+      phone: '+2290197421${index}0',
+      seat: seat,
+    ),
+];
+
+/// Le checkout terminé : blocage et voyageurs.
+bool _done(SeatHoldState state) => state.isHeld && !state.isCheckingOut;
 
 void main() {
   late Departure outbound;
@@ -56,14 +71,14 @@ void main() {
     addTearDown(bloc.close);
 
     bloc.add(
-      SeatHoldRequested(
+      SeatHoldCheckoutRequested(
         departure: outbound,
-        seats: outboundSeats,
+        passengers: travellersFor(outboundSeats),
         returnDeparture: inbound,
         returnSeats: inboundSeats,
       ),
     );
-    await bloc.stream.firstWhere((state) => state.isHeld);
+    await bloc.stream.firstWhere(_done);
 
     expect(repository.calls.first, 'groupQuote:2:aller-retour');
   });
@@ -74,14 +89,14 @@ void main() {
     addTearDown(bloc.close);
 
     bloc.add(
-      SeatHoldRequested(
+      SeatHoldCheckoutRequested(
         departure: outbound,
-        seats: outboundSeats,
+        passengers: travellersFor(outboundSeats),
         returnDeparture: inbound,
         returnSeats: inboundSeats,
       ),
     );
-    await bloc.stream.firstWhere((state) => state.isHeld);
+    await bloc.stream.firstWhere(_done);
 
     expect(repository.calls, contains('holdGroup:2+2'));
     expect(repository.groupReturnSeats, inboundSeats);
@@ -94,8 +109,13 @@ void main() {
     final bloc = SeatHoldBloc(repository);
     addTearDown(bloc.close);
 
-    bloc.add(SeatHoldRequested(departure: outbound, seats: outboundSeats));
-    await bloc.stream.firstWhere((state) => state.isHeld);
+    bloc.add(
+      SeatHoldCheckoutRequested(
+        departure: outbound,
+        passengers: travellersFor(outboundSeats),
+      ),
+    );
+    await bloc.stream.firstWhere(_done);
 
     expect(repository.calls.first, 'groupQuote:2');
     expect(repository.calls, contains('holdGroup:2'));
@@ -111,14 +131,14 @@ void main() {
     addTearDown(bloc.close);
 
     bloc.add(
-      SeatHoldRequested(
+      SeatHoldCheckoutRequested(
         departure: outbound,
-        seats: outboundSeats,
+        passengers: travellersFor(outboundSeats),
         returnDeparture: inbound,
         returnSeats: inboundSeats,
       ),
     );
-    await bloc.stream.firstWhere((state) => state.isHeld);
+    await bloc.stream.firstWhere(_done);
 
     expect(bloc.state.departure, outbound);
   });

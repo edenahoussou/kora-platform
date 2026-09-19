@@ -563,11 +563,11 @@ class AppRouter {
         ),
         // Les trois écrans du tunnel partagent un seul [SeatHoldBloc].
         //
-        // Le décompte commence sur le plan des sièges, s'affiche sur le
-        // formulaire passagers puis sur le récapitulatif, et doit survivre
-        // à un retour en arrière. Fourni par chaque écran, il serait remis
-        // à zéro à chaque navigation — et les sièges resteraient retenus
-        // côté serveur sans que l'app le sache.
+        // Le blocage part du récapitulatif, le décompte suit le voyageur
+        // jusqu'au paiement, et tous deux doivent survivre à un retour en
+        // arrière. Fourni par chaque écran, il serait remis à zéro à chaque
+        // navigation — et les sièges resteraient retenus côté serveur sans
+        // que l'app le sache.
         ShellRoute(
           builder: (context, state, child) => MultiBlocProvider(
             providers: [

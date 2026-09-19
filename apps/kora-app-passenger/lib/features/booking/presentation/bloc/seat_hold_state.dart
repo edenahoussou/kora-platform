@@ -4,7 +4,7 @@ part of 'seat_hold_bloc.dart';
 ///
 /// [idle] n'est pas un état d'attente mais l'état **normal** de la
 /// première visite : rien n'est retenu, donc pas de carte de décompte —
-/// c'est le choix des sièges qui n'a pas encore été confirmé.
+/// le blocage ne part qu'à la validation du récapitulatif.
 enum SeatHoldStatus { idle, holding, held, expired, failure }
 
 /// Où en est l'envoi des identités des voyageurs.
@@ -13,6 +13,9 @@ enum SeatHoldStatus { idle, holding, held, expired, failure }
 /// et le décompte doit continuer de courir. Les mêler aurait fait
 /// disparaître la carte de décompte le temps de l'appel.
 enum PassengersStatus { untouched, saving, saved, failure }
+
+/// Un code promo en cours d'application.
+enum PromoStatus { idle, applying }
 
 class SeatHoldState extends Equatable {
   const SeatHoldState({
@@ -23,6 +26,11 @@ class SeatHoldState extends Equatable {
     this.departure,
     this.passengers = 1,
     this.passengersStatus = PassengersStatus.untouched,
+    this.quote,
+    this.promoStatus = PromoStatus.idle,
+    this.promoError,
+    this.promoUnavailable = false,
+    this.checkingOut = false,
   });
 
   final SeatHoldStatus status;
@@ -46,6 +54,30 @@ class SeatHoldState extends Equatable {
 
   final Failure? failure;
 
+  /// Le devis du récapitulatif une fois qu'un code promo a été appliqué ou
+  /// retiré, puis celui sur lequel les sièges ont été retenus — celui que
+  /// le paiement débitera. `null` tant que ni l'un ni l'autre n'a eu lieu :
+  /// le récapitulatif affiche alors le devis ordinaire du tunnel.
+  final GroupQuote? quote;
+
+  final PromoStatus promoStatus;
+
+  /// Le message du serveur pour le dernier code refusé.
+  final String? promoError;
+
+  /// Le code était valable, mais la réservation n'a pas pu être libérée
+  /// pour être rebloquée à son prix : elle reste au tarif normal.
+  final bool promoUnavailable;
+
+  bool get isRepricing => promoStatus != PromoStatus.idle;
+
+  /// « Continuer vers le paiement » est en cours : devis, blocage puis
+  /// voyageurs. Sa fin — succès ou échec — est le signal qu'attend le
+  /// récapitulatif pour ouvrir le paiement ou dire ce qui a bloqué.
+  final bool checkingOut;
+
+  bool get isCheckingOut => checkingOut;
+
   /// Des sièges sont retenus : le décompte court, sur tous les écrans du
   /// tunnel.
   bool get isHeld => status == SeatHoldStatus.held && hold != null;
@@ -66,6 +98,12 @@ class SeatHoldState extends Equatable {
     int? passengers,
     PassengersStatus? passengersStatus,
     bool clearError = false,
+    GroupQuote? quote,
+    PromoStatus? promoStatus,
+    String? promoError,
+    bool clearPromoError = false,
+    bool? promoUnavailable,
+    bool? checkingOut,
   }) {
     return SeatHoldState(
       status: status ?? this.status,
@@ -75,6 +113,11 @@ class SeatHoldState extends Equatable {
       departure: departure ?? this.departure,
       passengers: passengers ?? this.passengers,
       passengersStatus: passengersStatus ?? this.passengersStatus,
+      quote: quote ?? this.quote,
+      promoStatus: promoStatus ?? this.promoStatus,
+      promoError: clearPromoError ? null : (promoError ?? this.promoError),
+      promoUnavailable: promoUnavailable ?? this.promoUnavailable,
+      checkingOut: checkingOut ?? this.checkingOut,
     );
   }
 
@@ -87,5 +130,10 @@ class SeatHoldState extends Equatable {
     departure,
     passengers,
     passengersStatus,
+    quote,
+    promoStatus,
+    promoError,
+    promoUnavailable,
+    checkingOut,
   ];
 }

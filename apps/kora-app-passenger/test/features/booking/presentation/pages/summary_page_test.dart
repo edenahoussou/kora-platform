@@ -82,6 +82,12 @@ void main() {
 
     sentToPayment = null;
 
+    // Le blocage et le devis parlent au même serveur : un devis refusé
+    // l'est pour l'un comme pour l'autre.
+    if (repository != null) {
+      holdBloc = SeatHoldBloc(repository);
+      addTearDown(holdBloc.close);
+    }
     final quote = GroupQuoteCubit(repository ?? StubReservationRepository());
     final router = GoRouter(
       routes: [
@@ -184,6 +190,19 @@ void main() {
     });
   });
 
+  /// « Continuer vers le paiement » : le checkout tourne en temps réel,
+  /// hors du temps simulé du test, puis l'écran suit.
+  Future<void> checkout(WidgetTester tester) async {
+    await tester.tap(find.text('Continuer vers le paiement'));
+    await tester.pump();
+    await tester.runAsync(() async {
+      for (var i = 0; i < 100 && holdBloc.state.isCheckingOut; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+    });
+    await tester.pumpAndSettle();
+  }
+
   group('montant transmis au paiement', () {
     testWidgets('un groupe transmet le total remisé, pas le produit', (
       tester,
@@ -194,8 +213,7 @@ void main() {
       // serveur débite ensuite le bon montant.
       await pumpSummary(tester, passengers: 5);
 
-      await tester.tap(find.text('Continuer vers le paiement'));
-      await tester.pumpAndSettle();
+      await checkout(tester);
 
       // Barème du stub : 12 500 par voyageur, 10 % dès cinq.
       expect(sentToPayment!.total, const Price(56250));
@@ -204,15 +222,16 @@ void main() {
     testWidgets('un voyageur seul transmet le tarif du départ', (tester) async {
       await pumpSummary(tester);
 
-      await tester.tap(find.text('Continuer vers le paiement'));
-      await tester.pumpAndSettle();
+      await checkout(tester);
 
       expect(sentToPayment!.total, departure.price);
     });
 
-    testWidgets('sans devis, le produit local prend le relais', (tester) async {
-      // Un devis refusé ne doit pas barrer le paiement : le prix reste
-      // juste à la remise près, et le serveur tranchera de toute façon.
+    testWidgets('sans devis, rien n’est bloqué et l’écran le dit', (
+      tester,
+    ) async {
+      // Le blocage réclame un devis : sans lui, le serveur refuserait de
+      // retenir les sièges. Le voyageur reste ici, averti.
       await pumpSummary(
         tester,
         passengers: 3,
@@ -221,10 +240,14 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text('Continuer vers le paiement'));
-      await tester.pumpAndSettle();
+      await checkout(tester);
 
-      expect(sentToPayment!.total, departure.price * 3);
+      expect(sentToPayment, isNull);
+      expect(holdBloc.state.isHeld, isFalse);
+      expect(find.text('Devis indisponible.'), findsOneWidget);
+      // Le toast de KoraToaster : pause, puis sortie.
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pumpAndSettle();
     });
   });
 
