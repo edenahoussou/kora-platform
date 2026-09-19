@@ -18,7 +18,7 @@ import AppLogoIcon from '@/components/app-logo-icon';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { usePermissions } from '@/hooks/use-permissions';
 import { cn } from '@/lib/utils';
-import { dashboard } from '@/routes';
+import { dashboard, revenue } from '@/routes';
 import programming from '@/routes/programming';
 
 type NavPermission = string | string[] | null;
@@ -84,8 +84,14 @@ const navItems: NavEntry[] = [
             'expenses.view-own',
             'expenses.view-agency',
             'expenses.view-network',
+            'revenue.view',
         ],
         children: [
+            {
+                title: 'Recettes',
+                href: revenue().url,
+                permission: 'revenue.view',
+            },
             {
                 title: 'Facturation',
                 href: '/fiscal-invoices',
