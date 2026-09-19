@@ -16,6 +16,7 @@ use App\Modules\IdentityAccess\Http\Controllers\AuthDeviceController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthOAuthController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthOtpController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthSessionController;
+use App\Modules\IdentityAccess\Http\Controllers\OpsSessionController;
 use App\Modules\IdentityAccess\Http\Controllers\TerminalOpsMobileController;
 use App\Modules\IdentityAccess\Http\Controllers\UserPreferenceController;
 use App\Modules\Payments\Http\Controllers\PaymentController;
@@ -71,9 +72,26 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 ->middleware('throttle:terminal-handshake')
                 ->name('handshake');
 
-            Route::middleware('terminal.active')->group(function (): void {
+            Route::middleware('ops.session')->group(function (): void {
                 Route::post('sync', [TerminalOpsMobileController::class, 'sync'])->name('sync');
                 Route::post('activity', [TerminalOpsMobileController::class, 'activity'])->name('activity');
+            });
+        });
+
+    // OPS Mobile — session OPS liée au terminal (MEZ-95). L'ouverture est le
+    // handshake ci-dessus ; la consultation et le renouvellement exigent une
+    // session valide sur CE terminal, la déconnexion non (toujours possible).
+    Route::prefix('ops-mobile/session')
+        ->name('ops-mobile.session.')
+        ->middleware('auth:sanctum')
+        ->group(function (): void {
+            Route::delete('/', [OpsSessionController::class, 'destroy'])->name('destroy');
+
+            Route::middleware('ops.session')->group(function (): void {
+                Route::get('/', [OpsSessionController::class, 'show'])->name('show');
+                Route::post('renew', [OpsSessionController::class, 'renew'])
+                    ->middleware('throttle:terminal-handshake')
+                    ->name('renew');
             });
         });
 
@@ -82,7 +100,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     // session existante (auth:sanctum) + terminal enregistré et actif.
     Route::prefix('ops/departures')
         ->name('ops.departures.')
-        ->middleware(['auth:sanctum', 'terminal.active'])
+        ->middleware(['auth:sanctum', 'ops.session'])
         ->group(function (): void {
             Route::get('/', [OpsDepartureController::class, 'index'])->name('index');
             Route::get('{departure:uuid}', [OpsDepartureController::class, 'show'])->name('show');
@@ -99,7 +117,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->middleware('auth:sanctum')
         ->group(function (): void {
             Route::post('/', [OpsBoardingController::class, 'store'])
-                ->middleware('terminal.active')
+                ->middleware('ops.session')
                 ->name('store');
             Route::post('{boardingEvent:uuid}/reverse', [OpsBoardingController::class, 'reverse'])->name('reverse');
 
@@ -107,7 +125,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             // terminal P501, donc pas d'imprimante thermique). Voir ticket
             // "Supporter le scan par caméra téléphone en alternative au P501".
             Route::get('{departure:uuid}/tickets/{ticket:uuid}/pdf', [OpsBoardingController::class, 'pdf'])
-                ->middleware('terminal.active')
+                ->middleware('ops.session')
                 ->name('ticket-pdf');
         });
 
@@ -116,7 +134,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     // depuis le P501, contrairement à l'annulation d'embarquement.
     Route::prefix('ops/seat-releases')
         ->name('ops.seat-releases.')
-        ->middleware(['auth:sanctum', 'terminal.active'])
+        ->middleware(['auth:sanctum', 'ops.session'])
         ->group(function (): void {
             Route::post('/', [OpsSeatReleaseController::class, 'store'])->name('store');
             Route::post('no-show-closure', [OpsSeatReleaseController::class, 'closeNoShows'])->name('no-show-closure');
@@ -128,7 +146,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     // les autres actions terrain.
     Route::prefix('ops/sync')
         ->name('ops.sync.')
-        ->middleware(['auth:sanctum', 'terminal.active'])
+        ->middleware(['auth:sanctum', 'ops.session'])
         ->group(function (): void {
             Route::post('manifest-versions', [OpsSyncController::class, 'manifestVersions'])->name('manifest-versions');
             Route::post('batches', [OpsSyncController::class, 'submitBatch'])->name('batches');

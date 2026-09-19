@@ -2,6 +2,7 @@
 
 namespace App\Modules\IdentityAccess\Exceptions;
 
+use App\Modules\IdentityAccess\Data\OpsSessionAction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use RuntimeException;
@@ -23,6 +24,7 @@ class TerminalUnknownException extends RuntimeException
             'error' => [
                 'code' => 'terminal_unknown',
                 'message' => 'Ce terminal n’est pas enregistré. Contactez votre agence.',
+                'action' => OpsSessionAction::ContactAgency->value,
             ],
         ], 404);
     }
