@@ -30,8 +30,8 @@ class ManifestePage extends StatelessWidget {
 
   bool _canCloseNoShows(Depart depart, ManifesteState state) {
     if (state.status != ManifesteStatus.success) return false;
-    final bool hasUncontrolled =
-        state.passengers.any((Passenger p) => p.statut == BoardingStatus.enAttente);
+    final bool hasUncontrolled = state.passengers
+        .any((Passenger p) => p.statut == BoardingStatus.enAttente);
     if (!hasUncontrolled) return false;
 
     // Confort d'UX seulement : si le statut du départ n'est pas encore
@@ -157,7 +157,8 @@ class ManifestePage extends StatelessWidget {
                         ),
                     };
 
-                    final Widget body = (state.status != ManifesteStatus.success ||
+                    final Widget body = (state.status !=
+                                ManifesteStatus.success ||
                             !state.isStale)
                         ? content
                         : Column(

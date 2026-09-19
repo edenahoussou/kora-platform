@@ -100,6 +100,13 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 ->middleware('terminal.active')
                 ->name('store');
             Route::post('{boardingEvent:uuid}/reverse', [OpsBoardingController::class, 'reverse'])->name('reverse');
+
+            // PDF de confirmation d'embarquement — mode téléphone (pas de
+            // terminal P501, donc pas d'imprimante thermique). Voir ticket
+            // "Supporter le scan par caméra téléphone en alternative au P501".
+            Route::get('{departure:uuid}/tickets/{ticket:uuid}/pdf', [OpsBoardingController::class, 'pdf'])
+                ->middleware('terminal.active')
+                ->name('ticket-pdf');
         });
 
     // OPS Mobile — descente anticipée et clôture no-show (MEZ-84 suite).

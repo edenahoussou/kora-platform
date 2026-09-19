@@ -10,9 +10,15 @@ use App\Modules\Boarding\Http\Requests\BoardingScanRequest;
 use App\Modules\Boarding\Http\Requests\ReverseBoardingEventRequest;
 use App\Modules\Boarding\Http\Resources\BoardingEventResource;
 use App\Modules\Boarding\Models\BoardingEvent;
+use App\Modules\Booking\Models\ReservationSegment;
+use App\Modules\Departures\Models\Departure;
 use App\Modules\IdentityAccess\Models\TerminalP501;
+use App\Modules\Ticketing\Actions\GenerateTicketPdfAction;
+use App\Modules\Ticketing\Models\Ticket;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
+use Throwable;
 
 /**
  * @group OPS Mobile — Boarding
@@ -131,6 +137,77 @@ class OpsBoardingController extends Controller
         $event = $reverseEvent->execute($boardingEvent, $request->user(), $request->reason());
 
         return response()->json(['data' => new BoardingEventResource($event)]);
+    }
+
+    /**
+     * PDF de confirmation d'embarquement pour l'app OPS Mobile en mode
+     * téléphone (pas de terminal P501, donc pas d'imprimante thermique —
+     * voir ticket "Supporter le scan par caméra téléphone en alternative
+     * au P501"). Réutilise le même document/action que le billet
+     * passager (`TicketController::downloadPdf`, `GenerateTicketPdfAction`)
+     * pour un rendu identique, mais SANS jamais exposer le montant payé
+     * ni le numéro MECeF au convoyeur — voir `hideAmount` sur l'action.
+     *
+     * Autorisation par affectation au départ (même permission que le
+     * scan, `scanBoarding`), pas par propriété de la réservation : le
+     * convoyeur n'est ni le créateur ni le payeur du billet.
+     *
+     * @authenticated
+     *
+     * @header X-Terminal-Serial Numéro de série du terminal. Example: P501-000123
+     *
+     * @urlParam departure string required UUID public du départ. Example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+     * @urlParam ticket string required UUID public du billet. Example: 3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e41
+     *
+     * @response 200 scenario="PDF de confirmation" <<binary>>
+     * @response 422 scenario="Billet hors périmètre de ce départ" {
+     *   "error": { "code": "ticket_not_for_departure", "message": "Ce billet ne correspond pas à ce départ." }
+     * }
+     * @response 500 scenario="Génération échouée" {
+     *   "error": { "code": "ticket_pdf_generation_failed", "message": "Le PDF de confirmation n'a pas pu être généré." }
+     * }
+     */
+    public function pdf(
+        Departure $departure,
+        Ticket $ticket,
+        GenerateTicketPdfAction $generatePdf,
+    ): Response|JsonResponse {
+        Gate::authorize('scanBoarding', $departure);
+
+        $belongsToDeparture = ReservationSegment::query()
+            ->where('reservation_passenger_id', $ticket->reservation_passenger_id)
+            ->where('departure_id', $departure->id)
+            ->exists();
+
+        if (! $belongsToDeparture) {
+            return response()->json([
+                'error' => [
+                    'code' => 'ticket_not_for_departure',
+                    'message' => 'Ce billet ne correspond pas à ce départ.',
+                ],
+            ], 422);
+        }
+
+        try {
+            $pdf = $generatePdf->execute($ticket, hideAmount: true);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'error' => [
+                    'code' => 'ticket_pdf_generation_failed',
+                    'message' => "Le PDF de confirmation n'a pas pu être généré.",
+                ],
+            ], 500);
+        }
+
+        return response($pdf['content'], Response::HTTP_OK, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$pdf['filename'].'"',
+            'Content-Length' => (string) strlen($pdf['content']),
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     private function httpStatusFor(BoardingEvent $event): int

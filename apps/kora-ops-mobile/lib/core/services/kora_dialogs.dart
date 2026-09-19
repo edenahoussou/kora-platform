@@ -196,8 +196,8 @@ abstract final class KoraDialogs {
             builder: (context, valid, _) => FilledButton(
               style: FilledButton.styleFrom(backgroundColor: AppColors.kora),
               onPressed: valid
-                  ? () => Navigator.of(dialogContext)
-                      .pop(controller.text.trim())
+                  ? () =>
+                      Navigator.of(dialogContext).pop(controller.text.trim())
                   : null,
               child: Text(confirmLabel),
             ),

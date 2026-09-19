@@ -13,6 +13,17 @@ abstract class TerminalRepository {
   /// jamais été lié sur cet appareil.
   Future<Terminal?> cachedTerminal();
 
+  /// Numéro de série à envoyer au handshake en mode téléphone — un
+  /// identifiant matériel stable (voir `DeviceInfoDataSource.
+  /// phoneTerminalSerial`, format `TEL-ANDROID-...`/`TEL-IOS-...`), pas
+  /// une saisie manuelle et pas l'empreinte d'auth (qui change à chaque
+  /// réinstallation). Voir ticket "Supporter le scan par caméra téléphone
+  /// en alternative au P501" : suppose qu'un enregistrement terminal
+  /// existe déjà côté serveur pour ce numéro de série (provisioning hors
+  /// périmètre mobile — l'agent le lit à cet écran et le communique à son
+  /// agence pour l'enregistrement, voir `TerminalSetupPage`).
+  Future<String> phoneSerialNumber();
+
   /// Lie ce terminal à l'appareil : appelle le serveur, puis met le
   /// résultat en cache localement. À appeler juste après le login (voir
   /// docstring `TerminalOpsMobileController.handshake`) ou depuis l'écran

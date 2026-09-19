@@ -415,16 +415,18 @@
                             <div class="ticket-field-label">N° billet</div>
                             <div class="ticket-field-value">{{ $shortCode }}</div>
                         </div>
-                        @if (!empty($mecefUid))
+                        @unless($hideAmount ?? false)
+                            @if (!empty($mecefUid))
+                                <div class="ticket-field">
+                                    <div class="ticket-field-label">N° MECeF</div>
+                                    <div class="ticket-field-value">{{ $mecefUid }}</div>
+                                </div>
+                            @endif
                             <div class="ticket-field">
-                                <div class="ticket-field-label">N° MECeF</div>
-                                <div class="ticket-field-value">{{ $mecefUid }}</div>
+                                <div class="ticket-field-label">Montant</div>
+                                <div class="ticket-field-value">{{ $amountLabel }}</div>
                             </div>
-                        @endif
-                        <div class="ticket-field">
-                            <div class="ticket-field-label">Montant</div>
-                            <div class="ticket-field-value">{{ $amountLabel }}</div>
-                        </div>
+                        @endunless
                         <div class="ticket-field">
                             <div class="ticket-field-label">Émis le</div>
                             <div class="ticket-field-value">{{ $issuedAtLabel }}</div>

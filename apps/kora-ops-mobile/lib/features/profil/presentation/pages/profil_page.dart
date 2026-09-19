@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../app/config/app_config.dart';
+import '../../../../app/config/terminal_mode.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radius.dart';
@@ -35,14 +37,21 @@ class ProfilPage extends StatelessWidget {
 
   /// Oublie le terminal lié et renvoie vers l'écran de liaison — voir
   /// `AuthGuard`, qui redirige automatiquement dès que `TerminalCubit`
-  /// repasse à `TerminalUnlinked` (MEZ-91).
+  /// repasse à `TerminalUnlinked` (MEZ-91). En mode téléphone, la liaison
+  /// se refait aussitôt automatiquement (même empreinte d'appareil) : ce
+  /// n'est pas un « changement » de terminal, juste une reliaison forcée
+  /// (ex. terminal réactivé côté agence après une perte/désactivation).
   Future<void> _confirmChangeTerminal(BuildContext context) async {
+    final bool isPhoneMode =
+        AppConfig.instance.terminalMode == TerminalMode.phone;
     final bool confirmed = await KoraDialogs.confirm(
       context,
-      title: 'Changer de terminal ?',
-      description: 'Vous devrez saisir le numéro de série du nouveau '
-          'terminal P501 avant de pouvoir scanner à nouveau.',
-      confirmLabel: 'Changer',
+      title: isPhoneMode ? 'Relier ce téléphone ?' : 'Changer de terminal ?',
+      description: isPhoneMode
+          ? 'La liaison de ce téléphone sera refaite immédiatement.'
+          : 'Vous devrez saisir le numéro de série du nouveau '
+              'terminal P501 avant de pouvoir scanner à nouveau.',
+      confirmLabel: isPhoneMode ? 'Relier' : 'Changer',
       cancelLabel: 'Annuler',
     );
     if (confirmed && context.mounted) {
@@ -125,7 +134,10 @@ class ProfilPage extends StatelessWidget {
                     const SizedBox(height: AppSpacing.sm),
                     _AccountTile(
                       icon: Icons.point_of_sale,
-                      title: 'Terminal P501',
+                      title:
+                          AppConfig.instance.terminalMode == TerminalMode.phone
+                              ? 'Terminal (téléphone)'
+                              : 'Terminal P501',
                       subtitle: switch (context.watch<TerminalCubit>().state) {
                         TerminalLinked(:final terminal) =>
                           'Lié — ${terminal.serialNumber}',

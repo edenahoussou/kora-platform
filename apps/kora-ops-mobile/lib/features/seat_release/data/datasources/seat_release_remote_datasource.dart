@@ -10,7 +10,8 @@ import '../models/seat_release_dtos.dart';
 /// billet ne pouvant tout simplement pas être résolu) — même convention
 /// que `BoardingApiException`.
 class SeatReleaseApiException implements Exception {
-  const SeatReleaseApiException(this.code, this.message, this.recommendedAction);
+  const SeatReleaseApiException(
+      this.code, this.message, this.recommendedAction);
 
   static const String ticketUnknown = 'ticket_unknown';
 

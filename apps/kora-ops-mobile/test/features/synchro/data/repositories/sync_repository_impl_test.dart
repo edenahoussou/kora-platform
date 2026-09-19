@@ -82,7 +82,8 @@ void main() {
         ));
   });
 
-  test('lot mixte (embarquement + descente anticipée) : chaque résultat '
+  test(
+      'lot mixte (embarquement + descente anticipée) : chaque résultat '
       'appliqué au bon repository', () async {
     when(() => boardingRepository.listPending()).thenAnswer(
       (_) async => <PendingBoardingOperation>[
@@ -183,7 +184,8 @@ void main() {
     );
   });
 
-  test('résultat pour une opération inconnue (autre lot/terminal) : '
+  test(
+      'résultat pour une opération inconnue (autre lot/terminal) : '
       'ignoré sans erreur', () async {
     when(() => boardingRepository.listPending()).thenAnswer(
       (_) async => <PendingBoardingOperation>[

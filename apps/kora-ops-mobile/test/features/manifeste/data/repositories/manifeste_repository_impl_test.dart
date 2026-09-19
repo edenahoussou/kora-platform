@@ -50,14 +50,16 @@ void main() {
     local = MockManifesteLocalDataSource();
   });
 
-  test('cache vide (jamais chargé) : télécharge tout, sans vérifier de '
+  test(
+      'cache vide (jamais chargé) : télécharge tout, sans vérifier de '
       'version', () async {
     when(() => local.readCache(departureUuid)).thenAnswer((_) async => null);
     when(() => remote.fetch(departureUuid)).thenAnswer(
       (_) async => const ManifesteFetchResult(<Passenger>[passenger], 'v1'),
     );
     when(() => local.replaceCache(departureUuid, any(),
-        manifestVersion: any(named: 'manifestVersion'))).thenAnswer((_) async {});
+            manifestVersion: any(named: 'manifestVersion')))
+        .thenAnswer((_) async {});
 
     final result = await repositoryOnline().load(departureUuid);
 
@@ -72,7 +74,8 @@ void main() {
     verifyNever(() => remote.checkVersion(any(), any()));
   });
 
-  test('cache valide (version vérifiée à jour) : sert le cache sans '
+  test(
+      'cache valide (version vérifiée à jour) : sert le cache sans '
       'retélécharger', () async {
     when(() => local.readCache(departureUuid)).thenAnswer((_) async =>
         CachedManifest(
@@ -111,7 +114,8 @@ void main() {
       (_) async => const ManifesteFetchResult(<Passenger>[passenger], 'v2'),
     );
     when(() => local.replaceCache(departureUuid, any(),
-        manifestVersion: any(named: 'manifestVersion'))).thenAnswer((_) async {});
+            manifestVersion: any(named: 'manifestVersion')))
+        .thenAnswer((_) async {});
 
     final result = await repositoryOnline().load(departureUuid);
 
@@ -178,7 +182,8 @@ void main() {
     );
   });
 
-  test('la vérification de version échoue en réseau (avec cache) : repli '
+  test(
+      'la vérification de version échoue en réseau (avec cache) : repli '
       'sur le cache, marqué non vérifié', () async {
     when(() => local.readCache(departureUuid)).thenAnswer((_) async =>
         CachedManifest(

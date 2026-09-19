@@ -101,7 +101,7 @@ void main() {
     final MockSelectedDepartureLocalDataSource local =
         MockSelectedDepartureLocalDataSource();
     when(() => local.saveSnapshot(any())).thenAnswer((_) async {});
-    when(() => local.clear()).thenAnswer((_) async {});
+    when(local.clear).thenAnswer((_) async {});
     final MockAuthCubit authCubit = MockAuthCubit();
     when(() => authCubit.stream).thenAnswer((_) => const Stream.empty());
     selectedDepartCubit = SelectedDepartCubit(local, authCubit);
@@ -199,13 +199,14 @@ void main() {
     ],
   );
 
-  test('markBoarded met à jour le statut, persiste, sans enfiler de synchro '
+  test(
+      'markBoarded met à jour le statut, persiste, sans enfiler de synchro '
       'mock', () async {
     when(() => repository.load(depart.id))
         .thenAnswer((_) async => Result<ManifestSnapshot>.success(
               snapshotOf(<Passenger>[passenger]),
             ));
-    selectedDepartCubit.select(depart);
+    await selectedDepartCubit.select(depart);
     final cubit = ManifesteCubit(
       selectedDepartCubit: selectedDepartCubit,
       syncCubit: syncCubit,
@@ -225,13 +226,14 @@ void main() {
         )).called(1);
   });
 
-  test('markSeatReleaseAccepted met à jour le statut, persiste, et efface '
+  test(
+      'markSeatReleaseAccepted met à jour le statut, persiste, et efface '
       "l'indicateur \"en attente de sync\"", () async {
     when(() => repository.load(depart.id))
         .thenAnswer((_) async => Result<ManifestSnapshot>.success(
               snapshotOf(<Passenger>[passenger]),
             ));
-    selectedDepartCubit.select(depart);
+    await selectedDepartCubit.select(depart);
     final cubit = ManifesteCubit(
       selectedDepartCubit: selectedDepartCubit,
       syncCubit: syncCubit,
@@ -254,13 +256,12 @@ void main() {
         )).called(1);
   });
 
-  test('markSeatReleasePending ne modifie jamais le statut affiché',
-      () async {
+  test('markSeatReleasePending ne modifie jamais le statut affiché', () async {
     when(() => repository.load(depart.id))
         .thenAnswer((_) async => Result<ManifestSnapshot>.success(
               snapshotOf(<Passenger>[passenger]),
             ));
-    selectedDepartCubit.select(depart);
+    await selectedDepartCubit.select(depart);
     final cubit = ManifesteCubit(
       selectedDepartCubit: selectedDepartCubit,
       syncCubit: syncCubit,
@@ -291,7 +292,7 @@ void main() {
         .thenAnswer((_) async => Result<ManifestSnapshot>.success(
               snapshotOf(<Passenger>[boarded]),
             ));
-    selectedDepartCubit.select(depart);
+    await selectedDepartCubit.select(depart);
     final cubit = ManifesteCubit(
       selectedDepartCubit: selectedDepartCubit,
       syncCubit: syncCubit,
@@ -315,7 +316,7 @@ void main() {
         .thenAnswer((_) async => Result<ManifestSnapshot>.success(
               snapshotOf(<Passenger>[passenger]),
             ));
-    selectedDepartCubit.select(depart);
+    await selectedDepartCubit.select(depart);
     final cubit = ManifesteCubit(
       selectedDepartCubit: selectedDepartCubit,
       syncCubit: syncCubit,
@@ -336,7 +337,7 @@ void main() {
           .thenAnswer((_) async => Result<ManifestSnapshot>.success(
                 snapshotOf(<Passenger>[passenger]),
               ));
-      selectedDepartCubit.select(depart);
+      await selectedDepartCubit.select(depart);
       final cubit = ManifesteCubit(
         selectedDepartCubit: selectedDepartCubit,
         syncCubit: syncCubit,
@@ -364,7 +365,7 @@ void main() {
                 snapshotOf(<Passenger>[autrePassenger]),
               ));
 
-      selectedDepartCubit.select(depart);
+      await selectedDepartCubit.select(depart);
       final cubit = ManifesteCubit(
         selectedDepartCubit: selectedDepartCubit,
         syncCubit: syncCubit,
@@ -374,7 +375,7 @@ void main() {
           (ManifesteState s) => s.status == ManifesteStatus.success);
       expect(cubit.state.passengers.single.id, 'ticket-1');
 
-      selectedDepartCubit.select(autreDepart);
+      await selectedDepartCubit.select(autreDepart);
       await cubit.stream.firstWhere((ManifesteState s) =>
           s.status == ManifesteStatus.success &&
           s.passengers.any((p) => p.id == 'ticket-2'));

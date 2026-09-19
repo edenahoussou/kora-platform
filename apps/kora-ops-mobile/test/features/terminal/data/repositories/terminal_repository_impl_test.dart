@@ -3,6 +3,7 @@ import 'package:flutter_networking/flutter_networking.dart'
     show ForbiddenApiException, NetworkApiException, ValidationApiException;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_ops_mobile/core/errors/failures.dart';
+import 'package:kora_ops_mobile/features/auth/data/datasources/device_info_datasource.dart';
 import 'package:kora_ops_mobile/features/terminal/data/datasources/terminal_local_datasource.dart';
 import 'package:kora_ops_mobile/features/terminal/data/datasources/terminal_remote_datasource.dart';
 import 'package:kora_ops_mobile/features/terminal/data/repositories/terminal_repository_impl.dart';
@@ -16,6 +17,8 @@ class MockTerminalRemoteDataSource extends Mock
 
 class MockTerminalLocalDataSource extends Mock
     implements TerminalLocalDataSource {}
+
+class MockDeviceInfoDataSource extends Mock implements DeviceInfoDataSource {}
 
 DioException _dioError(Object apiException) {
   return DioException(
@@ -38,7 +41,6 @@ void main() {
   late MockTerminalRemoteDataSource remote;
   late MockTerminalLocalDataSource local;
   late TerminalRepositoryImpl repository;
-
   const Terminal terminal = Terminal(
     uuid: 't-1',
     serialNumber: 'P501-000123',
@@ -48,7 +50,22 @@ void main() {
   setUp(() {
     remote = MockTerminalRemoteDataSource();
     local = MockTerminalLocalDataSource();
-    repository = TerminalRepositoryImpl(remote, local);
+    repository =
+        TerminalRepositoryImpl(remote, local, MockDeviceInfoDataSource());
+  });
+
+  group('phoneSerialNumber', () {
+    test('délègue à DeviceInfoDataSource.phoneTerminalSerial', () async {
+      final deviceInfo = MockDeviceInfoDataSource();
+      when(deviceInfo.phoneTerminalSerial)
+          .thenAnswer((_) async => 'TEL-ANDROID-ABC123DEF456');
+      final repositoryWithDevice =
+          TerminalRepositoryImpl(remote, local, deviceInfo);
+
+      final serial = await repositoryWithDevice.phoneSerialNumber();
+
+      expect(serial, 'TEL-ANDROID-ABC123DEF456');
+    });
   });
 
   group('handshake', () {

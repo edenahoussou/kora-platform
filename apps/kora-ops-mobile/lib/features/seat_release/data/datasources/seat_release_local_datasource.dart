@@ -88,8 +88,7 @@ class SeatReleaseLocalDataSourceImpl implements SeatReleaseLocalDataSource {
         'ticket_uuid': ticketUuid,
         'actual_stop_uuid': actualStopUuid,
         'local_recorded_at': localRecordedAt.toIso8601String(),
-        'server_recorded_at':
-            synced ? DateTime.now().toIso8601String() : null,
+        'server_recorded_at': synced ? DateTime.now().toIso8601String() : null,
         'sync_status': synced ? 'synced' : 'pending',
         'result_status': outcome.status.name,
         'result_message': outcome.message,

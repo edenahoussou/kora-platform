@@ -69,9 +69,9 @@ class AccueilPage extends StatelessWidget {
                     bottom:
                         -140, // ✅ CORRIGÉ : La carte descend un peu plus (était à -126)
                     child: _DepartCard(
-                      depart: depart,
-                      embarques: embarques,
-                      totalPassagers: totalPassagers),
+                        depart: depart,
+                        embarques: embarques,
+                        totalPassagers: totalPassagers),
                   ),
                 ],
               ),
@@ -442,9 +442,8 @@ class _DepartCard extends StatelessWidget {
                   Expanded(
                     child: _MiniStat(
                       label: 'EMBARQUÉS',
-                      value: depart != null
-                          ? '$embarques / $totalPassagers'
-                          : '—',
+                      value:
+                          depart != null ? '$embarques / $totalPassagers' : '—',
                     ),
                   ),
                 ],

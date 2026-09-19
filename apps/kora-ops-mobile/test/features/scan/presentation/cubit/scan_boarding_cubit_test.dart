@@ -100,7 +100,7 @@ void main() {
         MockSelectedDepartureLocalDataSource();
     when(() => selectedDepartLocal.saveSnapshot(any()))
         .thenAnswer((_) async {});
-    when(() => selectedDepartLocal.clear()).thenAnswer((_) async {});
+    when(selectedDepartLocal.clear).thenAnswer((_) async {});
     final MockAuthCubit authCubit = MockAuthCubit();
     when(() => authCubit.stream).thenAnswer((_) => const Stream.empty());
     selectedDepartCubit = SelectedDepartCubit(selectedDepartLocal, authCubit);
@@ -114,7 +114,7 @@ void main() {
     when(() => manifesteRepository.load(depart.id)).thenAnswer(
       (_) async => Result<ManifestSnapshot>.success(
         ManifestSnapshot(
-          passengers: <Passenger>[passenger],
+          passengers: const <Passenger>[passenger],
           version: 'v1',
           fetchedAt: DateTime(2026, 8, 16, 7),
           isStale: false,
@@ -132,7 +132,7 @@ void main() {
           context: any(named: 'context'),
         )).thenAnswer((_) async {});
 
-    selectedDepartCubit.select(depart);
+    await selectedDepartCubit.select(depart);
     manifesteCubit = ManifesteCubit(
       selectedDepartCubit: selectedDepartCubit,
       syncCubit: syncCubit,

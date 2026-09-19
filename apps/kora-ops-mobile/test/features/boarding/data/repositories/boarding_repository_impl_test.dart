@@ -346,8 +346,7 @@ void main() {
       );
     });
 
-    test('hors ligne : NetworkFailure explicite, jamais mis en file',
-        () async {
+    test('hors ligne : NetworkFailure explicite, jamais mis en file', () async {
       when(() => remote.reverse(
             boardingEventUuid: 'event-3',
             reason: 'Erreur de scan',
