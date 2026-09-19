@@ -34,6 +34,7 @@ class SeatHoldBloc extends Bloc<SeatHoldEvent, SeatHoldState> {
     on<SeatHoldSettled>(_onSettled);
     on<SeatHoldPassengersSubmitted>(_onPassengersSubmitted);
     on<SeatHoldTicked>(_onTicked);
+    on<SeatHoldRepriceRequested>(_onRepriceRequested);
   }
 
   final ReservationRepository _repository;
@@ -249,6 +250,120 @@ class SeatHoldBloc extends Bloc<SeatHoldEvent, SeatHoldState> {
   }
 
   /// Une seconde : c'est la granularité qu'affiche le décompte (`MM:SS`).
+  /// Applique, remplace ou retire un code promo sur la réservation bloquée.
+  ///
+  /// MEZ-73 n'accepte le code qu'au devis, et le blocage fige ce devis :
+  /// changer de prix, c'est donc redemander un devis puis rebloquer.
+  ///
+  /// L'ordre protège le siège autant que possible :
+  /// 1. le devis d'abord, avec le code — un code refusé (inconnu, expiré,
+  ///    hors périmètre, quota atteint) s'arrête là, **sans rien lâcher** ;
+  /// 2. seulement s'il est accepté : libération, nouveau blocage des mêmes
+  ///    sièges au prix remisé, puis les identités, attachées à l'ancienne
+  ///    réservation.
+  ///
+  /// Si un siège est pris entre la libération et le nouveau blocage, le
+  /// blocage est perdu : l'état passe en expiré et l'écran de fin de délai
+  /// propose d'en choisir un autre.
+  Future<void> _onRepriceRequested(
+    SeatHoldRepriceRequested event,
+    Emitter<SeatHoldState> emit,
+  ) async {
+    final current = state.hold;
+    if (current == null || state.isRepricing) return;
+
+    final code = event.promoCode?.trim().toUpperCase();
+    // Un champ vide n'est pas un retrait : on ne touche à rien.
+    if (event.promoCode != null && (code == null || code.isEmpty)) return;
+
+    emit(
+      state.copyWith(
+        promoStatus: code == null ? PromoStatus.removing : PromoStatus.applying,
+        clearPromoError: true,
+        promoUnavailable: false,
+      ),
+    );
+
+    final quoted = await _repository.groupQuote(
+      departure: event.departure,
+      passengers: event.passengers.length,
+      returnDeparture: event.returnDeparture,
+      promoCode: code,
+    );
+
+    final refused = quoted.fold((failure) => failure, (_) => null);
+    if (refused != null) {
+      emit(
+        state.copyWith(
+          promoStatus: PromoStatus.idle,
+          promoError: refused.message,
+        ),
+      );
+      return;
+    }
+    final quote = quoted.getOrElse(() => throw StateError('devis absent'));
+
+    _ticker?.cancel();
+    final released = await _repository.release(current.id);
+
+    // Sans libération, l'ancienne réservation garde les sièges : le
+    // nouveau blocage serait refusé, et le voyageur perdrait tout. On
+    // garde donc la réservation au tarif normal plutôt que de la risquer.
+    if (released.isLeft()) {
+      emit(
+        state.copyWith(promoStatus: PromoStatus.idle, promoUnavailable: true),
+      );
+      _startTicking();
+      return;
+    }
+
+    final held = await _repository.holdGroup(
+      quote: quote,
+      seats: [for (final passenger in event.passengers) passenger.seat],
+      returnSeats: event.returnSeats,
+      payer: event.payer,
+      idempotencyKey: 'kora-${quote.id}',
+    );
+
+    final lost = held.fold((failure) => failure, (_) => null);
+    if (lost != null) {
+      emit(
+        SeatHoldState(
+          status: SeatHoldStatus.expired,
+          departure: state.departure,
+          passengers: state.passengers,
+          failure: lost,
+        ),
+      );
+      return;
+    }
+    final hold = held.getOrElse(() => throw StateError('blocage absent'));
+
+    // Les identités vivaient sur l'ancienne réservation : sans elles, la
+    // nouvelle ne serait pas payable.
+    final saved = await _repository.savePassengers(
+      reservationId: hold.id,
+      passengers: event.passengers,
+    );
+    final refreshed = saved.getOrElse(() => hold);
+
+    emit(
+      SeatHoldState(
+        status: SeatHoldStatus.held,
+        hold: refreshed,
+        remaining: refreshed.remaining(_clock()),
+        departure: state.departure,
+        passengers: state.passengers,
+        passengersStatus: saved.isRight()
+            ? PassengersStatus.saved
+            : PassengersStatus.failure,
+        failure: saved.fold((failure) => failure, (_) => null),
+        quote: quote,
+      ),
+    );
+    _startTicking();
+  }
+
   void _startTicking() {
     _ticker?.cancel();
     _ticker = Timer.periodic(

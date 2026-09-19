@@ -14,6 +14,9 @@ enum SeatHoldStatus { idle, holding, held, expired, failure }
 /// disparaître la carte de décompte le temps de l'appel.
 enum PassengersStatus { untouched, saving, saved, failure }
 
+/// Un code promo en cours d'application ou de retrait.
+enum PromoStatus { idle, applying, removing }
+
 class SeatHoldState extends Equatable {
   const SeatHoldState({
     this.status = SeatHoldStatus.idle,
@@ -23,6 +26,10 @@ class SeatHoldState extends Equatable {
     this.departure,
     this.passengers = 1,
     this.passengersStatus = PassengersStatus.untouched,
+    this.quote,
+    this.promoStatus = PromoStatus.idle,
+    this.promoError,
+    this.promoUnavailable = false,
   });
 
   final SeatHoldStatus status;
@@ -46,6 +53,22 @@ class SeatHoldState extends Equatable {
 
   final Failure? failure;
 
+  /// Le devis sur lequel la réservation a été rebloquée après un code promo
+  /// appliqué ou retiré — celui que le paiement débitera. `null` tant que
+  /// le voyageur n'a touché à aucun code.
+  final GroupQuote? quote;
+
+  final PromoStatus promoStatus;
+
+  /// Le message du serveur pour le dernier code refusé.
+  final String? promoError;
+
+  /// Le code était valable, mais la réservation n'a pas pu être libérée
+  /// pour être rebloquée à son prix : elle reste au tarif normal.
+  final bool promoUnavailable;
+
+  bool get isRepricing => promoStatus != PromoStatus.idle;
+
   /// Des sièges sont retenus : le décompte court, sur tous les écrans du
   /// tunnel.
   bool get isHeld => status == SeatHoldStatus.held && hold != null;
@@ -66,6 +89,11 @@ class SeatHoldState extends Equatable {
     int? passengers,
     PassengersStatus? passengersStatus,
     bool clearError = false,
+    GroupQuote? quote,
+    PromoStatus? promoStatus,
+    String? promoError,
+    bool clearPromoError = false,
+    bool? promoUnavailable,
   }) {
     return SeatHoldState(
       status: status ?? this.status,
@@ -75,6 +103,10 @@ class SeatHoldState extends Equatable {
       departure: departure ?? this.departure,
       passengers: passengers ?? this.passengers,
       passengersStatus: passengersStatus ?? this.passengersStatus,
+      quote: quote ?? this.quote,
+      promoStatus: promoStatus ?? this.promoStatus,
+      promoError: clearPromoError ? null : (promoError ?? this.promoError),
+      promoUnavailable: promoUnavailable ?? this.promoUnavailable,
     );
   }
 
@@ -87,5 +119,9 @@ class SeatHoldState extends Equatable {
     departure,
     passengers,
     passengersStatus,
+    quote,
+    promoStatus,
+    promoError,
+    promoUnavailable,
   ];
 }

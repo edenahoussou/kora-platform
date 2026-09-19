@@ -42,11 +42,15 @@ class ReservationRemoteDataSource {
     required Departure departure,
     required int passengers,
     Departure? returnDeparture,
+    String? promoCode,
   }) async {
     final response = await _dio.post<dynamic>(
       ApiConstants.itineraryQuotes,
       data: {
         'passenger_count': passengers,
+        // MEZ-73 : le code se donne au devis, et seulement là. Le serveur
+        // calcule la remise ; un code refusé répond 422 sur `promo_code`.
+        'promo_code': ?promoCode,
         'legs': [
           // `direction` reste tu sur un aller simple : le serveur retombe
           // sur `outbound`, et la requête garde la forme éprouvée en ligne.

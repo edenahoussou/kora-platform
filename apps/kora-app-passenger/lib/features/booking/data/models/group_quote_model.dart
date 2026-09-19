@@ -24,6 +24,31 @@ class GroupQuoteModel {
       passengerCount: passengerCount,
       discount: _discount(pricing),
       expiresAt: _dateOrNull(_json['expires_at']),
+      promotion: _promotion(pricing),
+    );
+  }
+
+  /// `pricing.promotion` (MEZ-73) : le code retenu et sa remise, déjà
+  /// déduite du total. Sans code, le serveur rend `null` — et `promotions`,
+  /// le tableau du découpage tarifaire, sert de repli.
+  QuotePromotion? _promotion(Map<String, dynamic> pricing) {
+    final list = pricing['promotions'];
+    final raw =
+        pricing['promotion'] ??
+        (list is List && list.isNotEmpty ? list.first : null);
+    if (raw is! Map) return null;
+
+    final promotion = ApiJson.map(raw);
+    final code = ApiJson.stringOrNull(promotion['code']);
+    if (code == null) return null;
+
+    return QuotePromotion(
+      code: code,
+      name: ApiJson.stringOrNull(promotion['name']),
+      discount:
+          _price(promotion['discount_amount']) ??
+          _price(pricing['promotion_discount_amount']) ??
+          const Price(0),
     );
   }
 

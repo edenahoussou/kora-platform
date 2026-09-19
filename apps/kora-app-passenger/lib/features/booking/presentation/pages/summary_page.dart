@@ -12,10 +12,13 @@ import '../../../../core/widgets/section_title.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../payment/presentation/pages/payment_args.dart';
 import '../../domain/entities/departure.dart';
+import '../../domain/entities/group_quote.dart';
 import '../../domain/entities/passenger.dart';
 import '../../domain/entities/price.dart';
 import '../../domain/entities/seat.dart';
+import '../bloc/group_payer_cubit.dart';
 import '../bloc/group_quote_cubit.dart';
+import '../bloc/seat_hold_bloc.dart';
 import '../widgets/booking_progress.dart';
 import '../widgets/hold_countdown.dart';
 import '../widgets/state_view.dart';
@@ -141,6 +144,13 @@ class _SummaryContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+
+    // Un code en cours d'application change le prix et la réservation : on
+    // ne part pas payer pendant que le serveur les refait.
+    final repricing = context.select<SeatHoldBloc, bool>(
+      (bloc) => bloc.state.isRepricing,
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -166,6 +176,13 @@ class _SummaryContent extends StatelessWidget {
                 onActionTap: () => Navigator.of(context).pop(),
               ),
               _PassengersCard(passengers: passengers),
+              SectionTitle(title: l10n.summaryPromoTitle),
+              _PromoCodeCard(
+                departure: departure,
+                passengers: passengers,
+                returnDeparture: returnDeparture,
+                returnSeats: returnSeats,
+              ),
               SectionTitle(title: l10n.summaryPriceDetail),
               _PriceCard(departure: departure, passengers: passengers),
               const SizedBox(height: AppSpacing.lg),
@@ -176,29 +193,35 @@ class _SummaryContent extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: AppSpacing.lg),
           child: KoraButton(
             label: l10n.summaryContinue,
-            onPressed: () => context.push(
-              AppRouter.paymentMethodPath,
-              // Le total est arrêté ici, puis transporté : le recalculer
-              // sur chaque écran de paiement ferait dépendre la somme du
-              // chemin emprunté.
-              //
-              // Celui du serveur quand il l'a donné — c'est le seul qui
-              // porte la remise de groupe. Le produit local ne sert que de
-              // repli : afficher 280 000 au paiement après 252 000 au
-              // récapitulatif suffit à faire abandonner un achat, alors
-              // même que le serveur débitera le bon montant.
-              extra: PaymentArgs(
-                total: _payableTotal(context, departure, passengers.length),
-                // Le numéro du compte, proposé au débit Mobile Money :
-                // c'est celui que le voyageur a sous la main, et le
-                // retaper à ce stade n'apporte rien.
-                phone: context.read<AuthBloc>().state.session?.user.phone,
-                departure: departure,
-                seatLabel: passengers
-                    .map((passenger) => passenger.seat.label)
-                    .join(', '),
-              ),
-            ),
+            onPressed: repricing
+                ? null
+                : () => context.push(
+                    AppRouter.paymentMethodPath,
+                    // Le total est arrêté ici, puis transporté : le recalculer
+                    // sur chaque écran de paiement ferait dépendre la somme du
+                    // chemin emprunté.
+                    //
+                    // Celui du serveur quand il l'a donné — c'est le seul qui
+                    // porte la remise de groupe. Le produit local ne sert que de
+                    // repli : afficher 280 000 au paiement après 252 000 au
+                    // récapitulatif suffit à faire abandonner un achat, alors
+                    // même que le serveur débitera le bon montant.
+                    extra: PaymentArgs(
+                      total: _payableTotal(
+                        context,
+                        departure,
+                        passengers.length,
+                      ),
+                      // Le numéro du compte, proposé au débit Mobile Money :
+                      // c'est celui que le voyageur a sous la main, et le
+                      // retaper à ce stade n'apporte rien.
+                      phone: context.read<AuthBloc>().state.session?.user.phone,
+                      departure: departure,
+                      seatLabel: passengers
+                          .map((passenger) => passenger.seat.label)
+                          .join(', '),
+                    ),
+                  ),
           ),
         ),
       ],
@@ -214,6 +237,11 @@ class _SummaryContent extends StatelessWidget {
 /// c'est justement pour cela qu'il doit s'accorder avec le récapitulatif
 /// que le voyageur vient de lire.
 Price _payableTotal(BuildContext context, Departure departure, int count) {
+  // Après un code promo, la réservation a été rebloquée sur un nouveau
+  // devis : c'est son total que le serveur débitera.
+  final repriced = context.read<SeatHoldBloc>().state.quote;
+  if (repriced != null) return repriced.total;
+
   final state = context.read<GroupQuoteCubit>().state;
   if (state.matches(departure.id, count)) {
     final quote = state.quote;
@@ -445,7 +473,14 @@ class _PriceCard extends StatelessWidget {
 
     return BlocBuilder<GroupQuoteCubit, GroupQuoteState>(
       builder: (context, state) {
-        final quote = state.matches(departure.id, count) ? state.quote : null;
+        // Le devis de la réservation rebloquée l'emporte : sous-total,
+        // remise promo et total viennent tous du serveur.
+        final repriced = context.select<SeatHoldBloc, GroupQuote?>(
+          (bloc) => bloc.state.quote,
+        );
+        final quote =
+            repriced ??
+            (state.matches(departure.id, count) ? state.quote : null);
 
         // Le tarif unitaire du serveur s'il l'a donné, celui de la
         // recherche sinon.
@@ -466,6 +501,16 @@ class _PriceCard extends StatelessWidget {
               if (count > 1) ...[
                 const Divider(height: 26),
                 _PriceRow(label: l10n.summaryUnitPrice, value: unit.formatted),
+              ],
+              // Avant la remise groupe : c'est l'ordre du calcul serveur,
+              // qui applique la remise groupe au sous-total déjà remisé.
+              if (quote?.promotion case final promotion?) ...[
+                const Divider(height: 26),
+                _PriceRow(
+                  label: l10n.summaryPromoLine(promotion.code),
+                  value: '−${promotion.discount.formatted}',
+                  isCredit: true,
+                ),
               ],
               if (discount != null && discount.isVisible) ...[
                 const Divider(height: 26),
@@ -580,6 +625,144 @@ class _MissingReservation extends StatelessWidget {
           onPrimary: () => Navigator.of(context).pop(),
         ),
       ],
+    );
+  }
+}
+
+/// Le code promo : le saisir, l'appliquer, le remplacer ou le retirer.
+///
+/// Rien ne se calcule ici. Appliquer un code demande au serveur un devis
+/// avec ce code, puis rebloque les mêmes sièges à ce prix ; le retirer
+/// fait de même sans code. Un code refusé ne lâche rien : il affiche la
+/// raison du serveur, et le voyageur peut payer au tarif normal.
+class _PromoCodeCard extends StatefulWidget {
+  const _PromoCodeCard({
+    required this.departure,
+    required this.passengers,
+    this.returnDeparture,
+    this.returnSeats,
+  });
+
+  final Departure departure;
+  final List<Passenger> passengers;
+  final Departure? returnDeparture;
+  final List<Seat>? returnSeats;
+
+  @override
+  State<_PromoCodeCard> createState() => _PromoCodeCardState();
+}
+
+class _PromoCodeCardState extends State<_PromoCodeCard> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _reprice(BuildContext context, {String? code}) {
+    context.read<SeatHoldBloc>().add(
+      SeatHoldRepriceRequested(
+        departure: widget.departure,
+        passengers: widget.passengers,
+        promoCode: code,
+        returnDeparture: widget.returnDeparture,
+        returnSeats: widget.returnSeats,
+        payer: context.read<GroupPayerCubit>().state.payer,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final koraColors = context.koraColors;
+
+    return BlocBuilder<SeatHoldBloc, SeatHoldState>(
+      buildWhen: (previous, current) =>
+          previous.hold?.id != current.hold?.id ||
+          previous.quote != current.quote ||
+          previous.promoStatus != current.promoStatus ||
+          previous.promoError != current.promoError ||
+          previous.promoUnavailable != current.promoUnavailable,
+      builder: (context, state) {
+        // Sans réservation bloquée, il n'y a rien à quoi appliquer un code.
+        if (state.hold == null) return const SizedBox.shrink();
+
+        final promotion = state.quote?.promotion;
+        final busy = state.isRepricing;
+
+        void apply() => _reprice(context, code: _controller.text);
+
+        return KoraCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (promotion != null) ...[
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.check_circle_rounded,
+                      color: AppColors.success,
+                      size: 20,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        l10n.summaryPromoApplied(promotion.code),
+                        style: TextStyle(
+                          color: context.koraTitleColor,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: busy ? null : () => _reprice(context),
+                      child: Text(l10n.summaryPromoRemove),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.sm),
+              ],
+              // Le champ reste ouvert après un code appliqué : remplacer un
+              // code, c'est en saisir un autre.
+              TextField(
+                controller: _controller,
+                enabled: !busy,
+                textCapitalization: TextCapitalization.characters,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => apply(),
+                decoration: InputDecoration(hintText: l10n.summaryPromoHint),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              KoraButton(
+                label: state.promoStatus == PromoStatus.applying
+                    ? l10n.summaryPromoChecking
+                    : l10n.summaryPromoApply,
+                variant: KoraButtonVariant.ghost,
+                isLoading: state.promoStatus == PromoStatus.applying,
+                onPressed: busy ? null : apply,
+              ),
+              if (state.promoError != null || state.promoUnavailable) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  state.promoError ?? l10n.summaryPromoUnavailable,
+                  style: AppTextStyles.caption(AppColors.danger),
+                ),
+                const SizedBox(height: 2),
+                // Un code refusé n'arrête pas l'achat.
+                Text(
+                  l10n.summaryPromoContinue,
+                  style: AppTextStyles.caption(koraColors.textMuted),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }

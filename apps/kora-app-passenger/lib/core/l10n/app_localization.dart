@@ -860,6 +860,17 @@ class AppLocalization {
   String get summaryGroupDiscount => translate('summary_group_discount');
   String summaryGroupDiscountFrom(int min) =>
       _withArgs('summary_group_discount_from', {'min': min});
+  String get summaryPromoTitle => translate('summary_promo_title');
+  String get summaryPromoHint => translate('summary_promo_hint');
+  String get summaryPromoApply => translate('summary_promo_apply');
+  String get summaryPromoChecking => translate('summary_promo_checking');
+  String summaryPromoApplied(String code) =>
+      _withArgs('summary_promo_applied', {'code': code});
+  String get summaryPromoRemove => translate('summary_promo_remove');
+  String summaryPromoLine(String code) =>
+      _withArgs('summary_promo_line', {'code': code});
+  String get summaryPromoContinue => translate('summary_promo_continue');
+  String get summaryPromoUnavailable => translate('summary_promo_unavailable');
   String get summaryServiceFee => translate('summary_service_fee');
   String get summaryServiceFeeValue => translate('summary_service_fee_value');
   // --- Aller-retour ---

@@ -69,12 +69,14 @@ class ReservationRepositoryImpl
     required Departure departure,
     required int passengers,
     Departure? returnDeparture,
+    String? promoCode,
   }) {
     return attempt(
       () => _dataSource.groupQuote(
         departure: departure,
         passengers: passengers,
         returnDeparture: returnDeparture,
+        promoCode: promoCode,
       ),
     );
   }

@@ -67,6 +67,7 @@ abstract class ReservationRepository {
     required Departure departure,
     required int passengers,
     Departure? returnDeparture,
+    String? promoCode,
   });
 
   /// Enregistre les identités des voyageurs sur la réservation retenue.

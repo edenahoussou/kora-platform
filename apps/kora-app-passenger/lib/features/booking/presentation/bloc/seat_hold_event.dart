@@ -100,3 +100,36 @@ class SeatHoldSettled extends SeatHoldEvent {
 class SeatHoldTicked extends SeatHoldEvent {
   const SeatHoldTicked();
 }
+
+/// Applique [promoCode] à la réservation bloquée, ou retire le code quand il
+/// vaut `null`. Porte tout ce qu'il faut pour rebloquer les mêmes sièges.
+class SeatHoldRepriceRequested extends SeatHoldEvent {
+  const SeatHoldRepriceRequested({
+    required this.departure,
+    required this.passengers,
+    this.promoCode,
+    this.returnDeparture,
+    this.returnSeats,
+    this.payer = const GroupPayer.personal(),
+  });
+
+  final Departure departure;
+
+  /// Les voyageurs, chacun avec son siège aller — dans l'ordre du blocage.
+  final List<Passenger> passengers;
+
+  final String? promoCode;
+  final Departure? returnDeparture;
+  final List<Seat>? returnSeats;
+  final GroupPayer payer;
+
+  @override
+  List<Object?> get props => [
+    departure,
+    passengers,
+    promoCode,
+    returnDeparture,
+    returnSeats,
+    payer,
+  ];
+}
