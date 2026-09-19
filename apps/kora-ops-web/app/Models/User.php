@@ -9,11 +9,13 @@ use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\IdentityAccess\Models\UserDevice;
 use App\Modules\IdentityAccess\Models\UserPreference;
 use App\Modules\IdentityAccess\Models\UserSocialAccount;
+use App\Modules\IdentityAccess\Observers\UserOpsSessionObserver;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Notifications\IdentityAccess\ResetPassword;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -54,6 +56,7 @@ use Spatie\Permission\Traits\HasRoles;
  */
 #[Fillable(['uuid', 'name', 'email', 'phone', 'country_code', 'birth_date', 'status', 'pin_hash', 'password'])]
 #[Hidden(['id', 'password', 'pin_hash', 'failed_pin_attempts', 'locked_until', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
+#[ObservedBy([UserOpsSessionObserver::class])]
 class User extends Authenticatable implements HasMedia, PasskeyUser
 {
     /** @use HasFactory<UserFactory> */

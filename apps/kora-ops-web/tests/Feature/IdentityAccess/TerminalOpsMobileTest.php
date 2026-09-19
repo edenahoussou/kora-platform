@@ -25,14 +25,17 @@ function terminalConductorToken(): array
 
 it('opens an ops mobile session for an active, registered terminal', function (): void {
     [$user, $plainToken] = terminalConductorToken();
-    $terminal = TerminalP501::query()->create(['serial_number' => 'P501-100001']);
+    // Depuis MEZ-95, la session n'est ouverte que sur un terminal affecté à l'utilisateur.
+    $terminal = TerminalP501::query()->create(['serial_number' => 'P501-100001', 'assigned_user_id' => $user->id]);
 
     $this->withToken($plainToken)
         ->postJson('/api/v1/ops-mobile/terminal/handshake', ['serial_number' => 'p501-100001'])
         ->assertOk()
         ->assertJsonPath('data.uuid', $terminal->uuid)
         ->assertJsonPath('data.status', 'active')
-        ->assertJsonMissingPath('data.id');
+        ->assertJsonPath('data.session.state', 'active')
+        ->assertJsonMissingPath('data.id')
+        ->assertJsonMissingPath('data.session.id');
 
     expect($terminal->refresh()->last_handshake_at)->not->toBeNull()
         ->and(TerminalSession::query()->where('terminal_p501_id', $terminal->id)->where('user_id', $user->id)->exists())->toBeTrue();
@@ -176,7 +179,7 @@ it('rejects sync and handshake as generic activity types, since each has its own
 
 it('blocks every subsequent operation once the terminal has been reported lost mid-session', function (): void {
     [$user, $plainToken] = terminalConductorToken();
-    $terminal = TerminalP501::query()->create(['serial_number' => 'P501-100006']);
+    $terminal = TerminalP501::query()->create(['serial_number' => 'P501-100006', 'assigned_user_id' => $user->id]);
 
     $this->withToken($plainToken)
         ->postJson('/api/v1/ops-mobile/terminal/handshake', ['serial_number' => 'P501-100006'])

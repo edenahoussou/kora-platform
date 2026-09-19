@@ -73,10 +73,16 @@ class GenerateBorderManifestPdfAction
             $passenger = $segment->reservationPassenger;
 
             $name = $passenger === null ? '' : trim($passenger->first_name.' '.$passenger->last_name);
-            $seat = (string) ($segment->seat?->code ?? '');
-            $destination = (string) ($segment->destinationStop?->name ?? '');
+
+            // ✅ CORRECTION : Suppression de l'opérateur nullsafe (?->) jugé inutile par PHPStan
+            $seat = (string) ($segment->seat->code ?? '');
+            $destination = (string) ($segment->destinationStop->name ?? '');
+
             $nationality = $passenger?->nationality !== null ? strtoupper((string) $passenger->nationality) : '';
-            $documentNumber = (string) ($passenger?->document_number ?? '');
+
+            // ✅ CORRECTION : Suppression de l'opérateur nullsafe (?->) jugé inutile par PHPStan
+            $documentNumber = (string) ($passenger->document_number ?? '');
+
             $documentType = $passenger?->document_type === null ? null : (string) enum_value($passenger->document_type);
 
             if ($international) {
@@ -163,8 +169,6 @@ class GenerateBorderManifestPdfAction
             ->deviceScaleFactor($profile['device_scale_factor'] ?? 2)
             ->paperSize(...($profile['paper_size'] ?? [210, 297]))
             ->margins(...($profile['margins'] ?? [10, 10, 10, 10]))
-            // Browsershot::timeout() attend des SECONDES ; config('pdf.timeout')
-            // est exprimé en millisecondes (60000 = 60 s).
             ->timeout(max(1, (int) ceil(((int) config('pdf.timeout', 60000)) / 1000)));
 
         $chromePath = config('pdf.chrome_path');
