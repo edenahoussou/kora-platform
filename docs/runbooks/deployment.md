@@ -17,6 +17,7 @@ git pull origin main
 docker compose -f docker-compose.staging.yml build app
 docker compose -f docker-compose.staging.yml up -d
 docker compose -f docker-compose.staging.yml exec app php artisan migrate --force
+docker compose -f docker-compose.staging.yml exec app php artisan db:seed --class=KoraBusRolePermissionSeeder --force
 docker compose -f docker-compose.staging.yml exec app php artisan config:cache
 docker compose -f docker-compose.staging.yml exec app php artisan route:cache
 docker compose -f docker-compose.staging.yml exec app php artisan view:cache
@@ -147,6 +148,7 @@ git checkout v0.1.0  # remplacer par le tag voulu
 docker compose -f docker-compose.prod.yml build app
 docker compose -f docker-compose.prod.yml up -d
 docker compose -f docker-compose.prod.yml exec app php artisan migrate --force
+docker compose -f docker-compose.prod.yml exec app php artisan db:seed --class=KoraBusRolePermissionSeeder --force
 docker compose -f docker-compose.prod.yml exec app php artisan config:cache
 docker compose -f docker-compose.prod.yml exec app php artisan route:cache
 docker compose -f docker-compose.prod.yml exec app php artisan view:cache
