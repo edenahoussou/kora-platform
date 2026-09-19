@@ -75,6 +75,8 @@ class CreateItineraryHoldAction
                 'group_size' => $quote->passenger_count,
                 'payer_snapshot' => $payer->snapshot,
                 'itinerary_quote_id' => $quote->id,
+                'promotion_id' => $quote->promotion_id,
+                'promotion_discount_amount' => (int) $quote->promotion_discount_amount,
                 'idempotency_key' => $idempotencyKey,
                 'status' => ReservationStatus::Held,
                 'total_amount' => $quote->total_amount,

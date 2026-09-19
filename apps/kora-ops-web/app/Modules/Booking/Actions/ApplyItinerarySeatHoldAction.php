@@ -175,6 +175,8 @@ class ApplyItinerarySeatHoldAction
                 $reservationExpiresAt = min(now()->addMinutes(15), $quote->expires_at);
                 $lockedReservation->update([
                     'itinerary_quote_id' => $quote->id,
+                    'promotion_id' => $quote->promotion_id,
+                    'promotion_discount_amount' => (int) $quote->promotion_discount_amount,
                     'status' => ReservationStatus::Held,
                     'total_amount' => $quote->total_amount,
                     'currency' => $quote->currency,

@@ -1,0 +1,116 @@
+---
+title: Appliquer un code promo
+description: PUT /api/v1/bookings/{uuid}/promo-code applique ou retire un code promo sur une réservation encore détenue, juste avant le paiement.
+api: PUT /api/v1/bookings/{reservation_uuid}/promo-code
+---
+
+# Appliquer un code promo sur la réservation
+
+Applique ou retire un code promotionnel sur une réservation existante encore `held`, sans recréer le devis ni re-sélectionner les sièges et les passagers. C'est l'endpoint à utiliser quand le code est saisi sur l'écran de paiement : le total de la réservation est recalculé en place et renvoyé dans la réponse.
+
+## Paramètres
+
+<ParamField path="reservation_uuid" type="UUID" required>
+  UUID de la réservation (route model binding sur colonne `uuid`).
+</ParamField>
+
+<ParamField body="promo_code" type="string | null" required>
+  Code promotionnel à appliquer (insensible à la casse). Envoyer `null` pour retirer la remise en cours et restaurer le prix de base.
+</ParamField>
+
+## Règles métier
+
+- La réservation doit être `held` — les statuts `paid`, `assistance_pending`, `expired`, `cancelled` ou toute réservation avec un paiement `pending`/`confirmed` sont refusés en `422`.
+- Le code est résolu sur les jambes réelles de la réservation (ligne, arrêts d'origine/destination, canal) — les promotions hors périmètre, expirées ou épuisées renvoient `422` sur `promo_code`.
+- L'opération est idempotente : renvoyer le même code produit le même total.
+- L'usage du code n'est **jamais** consommé ici : la rédemption est enregistrée uniquement quand le paiement est confirmé.
+- La remise est déclarée à la certification e-MECeF (`originalPrice` + `priceModification` par ligne de facture).
+
+<RequestExample>
+
+```bash cURL
+curl -X PUT https://staging.koraexpress.app/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70/promo-code \
+  -H 'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcdef' \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json' \
+  -d '{"promo_code": "TESTNE10"}'
+```
+
+```javascript JavaScript
+const res = await fetch(`https://staging.koraexpress.app/api/v1/bookings/${reservationUuid}/promo-code`, {
+  method: 'PUT',
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ promo_code: 'TESTNE10' }),
+});
+const { data } = await res.json();
+```
+
+```typescript TypeScript
+const res = await fetch(`https://staging.koraexpress.app/api/v1/bookings/${reservationUuid}/promo-code`, {
+  method: 'PUT',
+  headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ promo_code: 'TESTNE10' }), // null pour retirer
+});
+const data: Reservation = (await res.json()).data;
+```
+
+```dart Dart
+final res = await authDio.put(
+  '/api/v1/bookings/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70/promo-code',
+  data: {'promo_code': 'TESTNE10'},
+);
+final reservation = res.data['data'];
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Promo code appliqué
+{
+  "data": {
+    "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+    "status": "held",
+    "total_amount": 8100,
+    "subtotal_amount": 9000,
+    "promotion_discount_amount": 900,
+    "promotion": {
+      "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6a",
+      "code": "TESTNE10",
+      "name": "Lancement Nord-Est",
+      "benefit_type": "percentage",
+      "benefit_value": 10,
+      "discount_amount": 900
+    },
+    "currency": "XOF"
+  }
+}
+```
+
+```json 422 Code refusé
+{
+  "message": "Ce code promotionnel est inconnu.",
+  "errors": {
+    "promo_code": ["Ce code promotionnel est inconnu."]
+  }
+}
+```
+
+</ResponseExample>
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| `200` | Réservation recalculée (avec ou sans remise). |
+| `401` | Token absent ou invalide. |
+| `403` | Réservation appartenant à un autre utilisateur (policy `updatePromoCode`). |
+| `404` | Réservation introuvable. |
+| `422` | Code invalide/hors périmètre, réservation non modifiable ou paiement déjà en cours. |
+
+<Info>
+  Le champ `promo_code` du devis (`POST /api/v1/bus/itinerary-quotes`) reste supporté pour afficher le prix remisé dès le récapitulatif. Cet endpoint couvre la saisie tardive sur l'écran de paiement : si un paiement est déjà initié, annulez-le (`POST /payments/{uuid}/cancel`) avant de modifier le code.
+</Info>

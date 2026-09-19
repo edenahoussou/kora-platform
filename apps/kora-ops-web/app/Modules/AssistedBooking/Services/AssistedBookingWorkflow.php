@@ -57,6 +57,8 @@ class AssistedBookingWorkflow
             $previousAmount = (int) $reservation->total_amount;
             $reservation->update([
                 'itinerary_quote_id' => $quote->id,
+                'promotion_id' => $quote->promotion_id,
+                'promotion_discount_amount' => (int) $quote->promotion_discount_amount,
                 'total_amount' => $quote->total_amount,
                 'currency' => $quote->currency,
                 'total_snapshot' => $quote->snapshot,

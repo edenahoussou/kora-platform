@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: 'Kora Platforme Web API Documentation'
+  title: 'KORA PLATEFORME WEB API Documentation'
   description: 'KORA BUS MVP REST API.'
   version: 1.0.0
 servers:
@@ -132,7 +132,7 @@ paths:
                             properties:
                               uuid:
                                 type: string
-                                example: 00000000-0000-4000-8000-000000000000
+                                example: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21
                               name:
                                 type: string
                                 example: 'Cotonou · St Michel'
@@ -211,7 +211,7 @@ paths:
                       properties:
                         uuid:
                           type: string
-                          example: 00000000-0000-4000-8000-000000000000
+                          example: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
                         code:
                           type: string
                           example: L1
@@ -310,7 +310,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
                       code:
                         type: string
                         example: L1
@@ -360,7 +360,7 @@ paths:
                           properties:
                             uuid:
                               type: string
-                              example: 00000000-0000-4000-8000-000000000000
+                              example: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21
                             name:
                               type: string
                               example: 'Cotonou · St Michel'
@@ -396,7 +396,7 @@ paths:
         in: path
         name: uuid
         description: ''
-        example: 00000000-0000-4000-8000-000000000000
+        example: 8a8ec7b2-db12-4fa1-a3d0-768cda85474c
         required: true
         schema:
           type: string
@@ -404,7 +404,7 @@ paths:
         in: path
         name: line
         description: 'Public UUID of the line.'
-        example: 00000000-0000-4000-8000-000000000000
+        example: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
         required: true
         schema:
           type: string
@@ -418,22 +418,22 @@ paths:
           in: query
           name: origin_stop_uuid
           description: 'Public UUID of the boarding stop.'
-          example: 00000000-0000-4000-8000-000000000000
+          example: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21
           required: true
           schema:
             type: string
             description: 'Public UUID of the boarding stop.'
-            example: 00000000-0000-4000-8000-000000000000
+            example: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21
         -
           in: query
           name: destination_stop_uuid
           description: 'Public UUID of the drop-off stop.'
-          example: 00000000-0000-4000-8000-000000000000
+          example: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22
           required: true
           schema:
             type: string
             description: 'Public UUID of the drop-off stop.'
-            example: 00000000-0000-4000-8000-000000000000
+            example: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e22
       responses:
         200:
           description: 'Seat map'
@@ -494,7 +494,7 @@ paths:
                       properties:
                         uuid:
                           type: string
-                          example: 00000000-0000-4000-8000-000000000000
+                          example: 6e2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e50
                         code:
                           type: string
                           example: 1A
@@ -503,7 +503,7 @@ paths:
                           example: standard
                         sellable:
                           type: boolean
-                          example: false
+                          example: true
                         availability_status:
                           type: string
                           example: available
@@ -547,11 +547,11 @@ paths:
                 origin_stop_uuid:
                   type: string
                   description: 'Le champ value doit être un UUID valide.'
-                  example: 00000000-0000-4000-8000-000000000000
+                  example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
                 destination_stop_uuid:
                   type: string
                   description: 'Le champ value doit être un UUID valide.'
-                  example: 00000000-0000-4000-8000-000000000000
+                  example: 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
               required:
                 - origin_stop_uuid
                 - destination_stop_uuid
@@ -561,7 +561,7 @@ paths:
         in: path
         name: departure_uuid
         description: ''
-        example: 00000000-0000-4000-8000-000000000000
+        example: 5a0c9204-c52c-4ee8-84ac-3fb392d10d45
         required: true
         schema:
           type: string
@@ -569,7 +569,7 @@ paths:
         in: path
         name: departure
         description: 'Public UUID of the departure.'
-        example: 00000000-0000-4000-8000-000000000000
+        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
         required: true
         schema:
           type: string
@@ -583,22 +583,22 @@ paths:
           in: query
           name: from_physical_stop_uuid
           description: 'UUID of the origin physical stop.'
-          example: 00000000-0000-4000-8000-000000000000
+          example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
           required: true
           schema:
             type: string
             description: 'UUID of the origin physical stop.'
-            example: 00000000-0000-4000-8000-000000000000
+            example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
         -
           in: query
           name: to_physical_stop_uuid
           description: 'UUID of the destination physical stop.'
-          example: 00000000-0000-4000-8000-000000000000
+          example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
           required: true
           schema:
             type: string
             description: 'UUID of the destination physical stop.'
-            example: 00000000-0000-4000-8000-000000000000
+            example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
         -
           in: query
           name: date
@@ -865,7 +865,7 @@ paths:
                                 example: 1
                               departure_uuid:
                                 type: string
-                                example: 00000000-0000-4000-8000-000000000000
+                                example: eaaf800b-90b6-4334-b840-7122d9ed65ac
                               line:
                                 type: object
                                 properties:
@@ -1003,11 +1003,11 @@ paths:
                 from_physical_stop_uuid:
                   type: string
                   description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
-                  example: 00000000-0000-4000-8000-000000000000
+                  example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
                 to_physical_stop_uuid:
                   type: string
                   description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
-                  example: 00000000-0000-4000-8000-000000000000
+                  example: 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
                 date:
                   type: string
                   description: 'Travel date (Y-m-d).'
@@ -1019,7 +1019,7 @@ paths:
                 sort:
                   type: string
                   description: ''
-                  example: departure_time
+                  example: duration
                   enum:
                     - departure_time
                     - arrival_time
@@ -1117,7 +1117,7 @@ paths:
                     properties:
                       itinerary_quote_uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
                       trip_type:
                         type: string
                         example: round_trip
@@ -1209,7 +1209,7 @@ paths:
                             properties:
                               uuid:
                                 type: string
-                                example: 00000000-0000-4000-8000-000000000000
+                                example: 3f9a1c2e-8b7d-4a10-b5c6-2b0d7b3dcb70
                                 description: 'UUID public de la promotion appliquée.'
                               code:
                                 type: string
@@ -1310,7 +1310,7 @@ paths:
                 itinerary_quote_uuid:
                   type: string
                   description: 'Immutable itinerary quote UUID.'
-                  example: 00000000-0000-4000-8000-000000000000
+                  example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
                 idempotency_key:
                   type: string
                   description: 'Client-generated key for safe retries.'
@@ -1323,19 +1323,19 @@ paths:
                     type:
                       type: string
                       description: 'This field is required when <code>payer</code> is present.'
-                      example: personal
+                      example: company
                       enum:
                         - personal
                         - company
                     user_uuid:
                       type: string
                       description: 'Le champ value doit être un UUID valide.'
-                      example: 00000000-0000-4000-8000-000000000000
+                      example: c90237e9-ced5-3af6-88ea-84aeaa148878
                       nullable: true
                     company_account_uuid:
                       type: string
                       description: 'This field is required when <code>payer.type</code> is <code>company</code>. Le champ value doit être un UUID valide. Must match an existing stored value.'
-                      example: 00000000-0000-4000-8000-000000000000
+                      example: a1a0a47d-e8c3-3cf0-8e6e-c1ff9dca5d1f
                 passengers:
                   type: array
                   description: 'Passenger-to-leg seat assignment matrix.'
@@ -1379,7 +1379,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
                       status:
                         type: string
                         example: held
@@ -1397,10 +1397,10 @@ paths:
                         example: mobile
                       departure_uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
                       price_quote_uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6f
                       passenger_count:
                         type: integer
                         example: 2
@@ -1480,7 +1480,139 @@ paths:
         in: path
         name: reservation_uuid
         description: ''
-        example: 00000000-0000-4000-8000-000000000000
+        example: feefa097-4bd0-447d-b676-2816c3f294fb
+        required: true
+        schema:
+          type: string
+  '/api/v1/bookings/{reservation_uuid}/promo-code':
+    put:
+      summary: 'Apply or remove a promo code on a held reservation.'
+      operationId: applyOrRemoveAPromoCodeOnAHeldReservation
+      description: "Lets the passenger enter (or clear) a promo code on the payment screen,\nafter the quote and hold are already created. The reservation total is\nrecalculated in place — seats and passengers are untouched. Only allowed\nwhile the reservation is still held and no payment is in progress. The\npromotion usage is recorded only once the payment is confirmed."
+      parameters: []
+      responses:
+        200:
+          description: 'Promo code applied'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
+                    status: held
+                    total_amount: 8100
+                    currency: XOF
+                    promotion_discount_amount: 900
+                    promotion:
+                      uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6a
+                      code: TESTNE10
+                      name: 'Lancement Nord-Est'
+                      discount_amount: 900
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
+                      status:
+                        type: string
+                        example: held
+                      total_amount:
+                        type: integer
+                        example: 8100
+                      currency:
+                        type: string
+                        example: XOF
+                      promotion_discount_amount:
+                        type: integer
+                        example: 900
+                      promotion:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6a
+                          code:
+                            type: string
+                            example: TESTNE10
+                          name:
+                            type: string
+                            example: 'Lancement Nord-Est'
+                          discount_amount:
+                            type: integer
+                            example: 900
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'This action is unauthorized.'
+                properties:
+                  message:
+                    type: string
+                    example: 'This action is unauthorized.'
+        422:
+          description: 'Promo code rejected'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Ce code promotionnel est inconnu.'
+                  errors:
+                    promo_code:
+                      - 'Ce code promotionnel est inconnu.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Ce code promotionnel est inconnu.'
+                  errors:
+                    type: object
+                    properties:
+                      promo_code:
+                        type: array
+                        example:
+                          - 'Ce code promotionnel est inconnu.'
+                        items:
+                          type: string
+      tags:
+        - Bus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                promo_code:
+                  type: string
+                  description: 'The promo code to apply (max 32 chars). Must be present in the body — send `null` to remove the current discount.'
+                  example: TESTNE10
+                  nullable: true
+              required:
+                - promo_code
+    parameters:
+      -
+        in: path
+        name: reservation_uuid
+        description: 'Public UUID of the reservation.'
+        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
         required: true
         schema:
           type: string
@@ -1524,7 +1656,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
                       status:
                         type: string
                         example: held
@@ -1542,7 +1674,7 @@ paths:
                         example: mobile
                       departure_uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
                       passengers:
                         type: array
                         example:
@@ -1562,7 +1694,7 @@ paths:
                           properties:
                             uuid:
                               type: string
-                              example: 00000000-0000-4000-8000-000000000000
+                              example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb73
                             passenger_index:
                               type: integer
                               example: 0
@@ -1613,7 +1745,7 @@ paths:
         in: path
         name: reservation_uuid
         description: ''
-        example: 00000000-0000-4000-8000-000000000000
+        example: feefa097-4bd0-447d-b676-2816c3f294fb
         required: true
         schema:
           type: string
@@ -1644,7 +1776,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
                       status:
                         type: string
                         example: cancelled
@@ -1691,7 +1823,7 @@ paths:
         in: path
         name: reservation_uuid
         description: ''
-        example: 00000000-0000-4000-8000-000000000000
+        example: feefa097-4bd0-447d-b676-2816c3f294fb
         required: true
         schema:
           type: string
@@ -1722,7 +1854,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
                       status:
                         type: string
                         example: held
@@ -1781,7 +1913,7 @@ paths:
         in: path
         name: reservation_uuid
         description: ''
-        example: 00000000-0000-4000-8000-000000000000
+        example: feefa097-4bd0-447d-b676-2816c3f294fb
         required: true
         schema:
           type: string
@@ -1789,7 +1921,7 @@ paths:
         in: path
         name: passenger_uuid
         description: ''
-        example: 00000000-0000-4000-8000-000000000000
+        example: c29ba34b-324e-4bb4-8128-8dda34811fd0
         required: true
         schema:
           type: string
@@ -1831,7 +1963,7 @@ paths:
                       properties:
                         uuid:
                           type: string
-                          example: 00000000-0000-4000-8000-000000000000
+                          example: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
                         code:
                           type: string
                           example: AG-000001
@@ -1873,7 +2005,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 7a1e9c3b-4d5f-4a2b-8c1d-3e5f7a9b1c2d
                       status:
                         type: string
                         example: pending
@@ -1918,7 +2050,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 7a1e9c3b-4d5f-4a2b-8c1d-3e5f7a9b1c2d
                       status:
                         type: string
                         example: pending
@@ -1930,7 +2062,7 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: 00000000-0000-4000-8000-000000000000
+                            example: 5b0d2f4a-6c8e-4a1b-9d3f-1a3c5e7b9d2f
                           reference:
                             type: string
                             example: KBR-7X2K9P4Q
@@ -1942,7 +2074,7 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: 00000000-0000-4000-8000-000000000000
+                            example: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
                           name:
                             type: string
                             example: 'Agence Dantokpa'
@@ -1996,7 +2128,7 @@ paths:
                         properties:
                           resume_online:
                             type: boolean
-                            example: false
+                            example: true
         403:
           description: 'Not the reservation owner'
           content:
@@ -2045,7 +2177,7 @@ paths:
                 agency_uuid:
                   type: string
                   description: 'UUID of the chosen agency.'
-                  example: 00000000-0000-4000-8000-000000000000
+                  example: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
                 channel:
                   type: string
                   description: 'Initial contact channel: call or whatsapp.'
@@ -2061,7 +2193,7 @@ paths:
                 idempotency_key:
                   type: string
                   description: 'Client-generated idempotency key.'
-                  example: 00000000-0000-4000-8000-000000000000
+                  example: 1f3d5b7a-9c2e-4f6a-8b0d-2e4f6a8c0d2f
               required:
                 - agency_uuid
                 - channel
@@ -2116,7 +2248,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 7a1e9c3b-4d5f-4a2b-8c1d-3e5f7a9b1c2d
                       status:
                         type: string
                         example: pending
@@ -2128,7 +2260,7 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: 00000000-0000-4000-8000-000000000000
+                            example: 5b0d2f4a-6c8e-4a1b-9d3f-1a3c5e7b9d2f
                           reference:
                             type: string
                             example: KBR-7X2K9P4Q
@@ -2140,7 +2272,7 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: 00000000-0000-4000-8000-000000000000
+                            example: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
                           name:
                             type: string
                             example: 'Agence Dantokpa'
@@ -2194,7 +2326,7 @@ paths:
                         properties:
                           resume_online:
                             type: boolean
-                            example: false
+                            example: true
         403:
           description: 'Not the reservation owner'
           content:
@@ -2227,7 +2359,7 @@ paths:
         in: path
         name: reservation_uuid
         description: ''
-        example: 00000000-0000-4000-8000-000000000000
+        example: feefa097-4bd0-447d-b676-2816c3f294fb
         required: true
         schema:
           type: string
@@ -2266,7 +2398,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 5b0d2f4a-6c8e-4a1b-9d3f-1a3c5e7b9d2f
                       reference:
                         type: string
                         example: KBR-7X2K9P4Q
@@ -2299,7 +2431,7 @@ paths:
                           properties:
                             segment_uuid:
                               type: string
-                              example: 00000000-0000-4000-8000-000000000000
+                              example: 2c4e6a8b-0d2f-4a6c-8e0b-2d4f6a8c0e2b
                             passenger_index:
                               type: integer
                               example: 0
@@ -2308,7 +2440,7 @@ paths:
                               example: 1
                             seat_uuid:
                               type: string
-                              example: 00000000-0000-4000-8000-000000000000
+                              example: 8d3f6a2c-1e4b-4c5d-9a2f-4b6d8e0f2a4c
                             seat_code:
                               type: string
                               example: 2A
@@ -2352,7 +2484,7 @@ paths:
                         example: "Le siège 2A n'est plus disponible sur ce segment."
                       conflicting_seat_uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 8d3f6a2c-1e4b-4c5d-9a2f-4b6d8e0f2a4c
                       seat_code:
                         type: string
                         example: 2A
@@ -2368,7 +2500,7 @@ paths:
                 idempotency_key:
                   type: string
                   description: 'Client-generated idempotency key.'
-                  example: 00000000-0000-4000-8000-000000000000
+                  example: 1f3d5b7a-9c2e-4f6a-8b0d-2e4f6a8c0d2f
                 passengers:
                   type: array
                   description: 'Per-passenger seat assignments.'
@@ -2385,7 +2517,7 @@ paths:
         in: path
         name: reservation_uuid
         description: ''
-        example: 00000000-0000-4000-8000-000000000000
+        example: feefa097-4bd0-447d-b676-2816c3f294fb
         required: true
         schema:
           type: string
@@ -2414,7 +2546,7 @@ paths:
                     properties:
                       otp_challenge_uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: b1234567-89ab-cdef-0123-456789abcdef
                       purpose:
                         type: string
                         example: registration
@@ -2531,7 +2663,7 @@ paths:
                     properties:
                       otp_challenge_uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: b1234567-89ab-cdef-0123-456789abcdef
                       purpose:
                         type: string
                         example: registration
@@ -2577,7 +2709,7 @@ paths:
                 otp_challenge_uuid:
                   type: string
                   description: 'Le champ value doit être un UUID valide.'
-                  example: 00000000-0000-4000-8000-000000000000
+                  example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
                 purpose:
                   type: string
                   description: ''
@@ -2633,7 +2765,7 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: 00000000-0000-4000-8000-000000000000
+                            example: 977e5426-8d13-3824-86aa-b092f8ae52c5
                           name:
                             type: string
                             example: 'Aïcha Hounkpè'
@@ -2700,7 +2832,7 @@ paths:
                 otp_challenge_uuid:
                   type: string
                   description: 'Le champ value doit être un UUID valide.'
-                  example: 00000000-0000-4000-8000-000000000000
+                  example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
                 verification_token:
                   type: string
                   description: 'Le champ value doit contenir 64 caractères.'
@@ -2751,7 +2883,7 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: 00000000-0000-4000-8000-000000000000
+                            example: 977e5426-8d13-3824-86aa-b092f8ae52c5
                           name:
                             type: string
                             example: 'Aïcha Hounkpè'
@@ -2818,7 +2950,7 @@ paths:
                 otp_challenge_uuid:
                   type: string
                   description: 'Le champ value doit être un UUID valide.'
-                  example: 00000000-0000-4000-8000-000000000000
+                  example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
                 verification_token:
                   type: string
                   description: 'Le champ value doit contenir 64 caractères.'
@@ -2883,7 +3015,7 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: 00000000-0000-4000-8000-000000000000
+                            example: 977e5426-8d13-3824-86aa-b092f8ae52c5
                           name:
                             type: string
                             example: 'Aïcha Hounkpè'
@@ -2919,7 +3051,7 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: 00000000-0000-4000-8000-000000000000
+                            example: a3091549-9179-454e-8440-58179f2208df
                           name:
                             type: string
                             example: 'iPhone 15 Pro'
@@ -2971,7 +3103,7 @@ paths:
                 otp_challenge_uuid:
                   type: string
                   description: 'Le champ value doit être un UUID valide.'
-                  example: 00000000-0000-4000-8000-000000000000
+                  example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
                 verification_token:
                   type: string
                   description: 'Le champ value doit contenir 64 caractères.'
@@ -3066,7 +3198,7 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: 00000000-0000-4000-8000-000000000000
+                            example: 977e5426-8d13-3824-86aa-b092f8ae52c5
                           name:
                             type: string
                             example: 'Aïcha Hounkpè'
@@ -3102,7 +3234,7 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: 00000000-0000-4000-8000-000000000000
+                            example: a3091549-9179-454e-8440-58179f2208df
                           name:
                             type: string
                             example: 'iPhone 15 Pro'
@@ -3136,10 +3268,10 @@ paths:
                     properties:
                       requires_otp:
                         type: boolean
-                        example: false
+                        example: true
                       otp_challenge_uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: b1234567-89ab-cdef-0123-456789abcdef
                       purpose:
                         type: string
                         example: login
@@ -3234,7 +3366,7 @@ paths:
                 platform:
                   type: string
                   description: ''
-                  example: android
+                  example: web
                   enum:
                     - android
                     - ios
@@ -3252,7 +3384,7 @@ paths:
                 otp_challenge_uuid:
                   type: string
                   description: 'This field is required when <code>verification_token</code> is present. Le champ value doit être un UUID valide.'
-                  example: 00000000-0000-4000-8000-000000000000
+                  example: 977e5426-8d13-3824-86aa-b092f8ae52c5
                   nullable: true
                 verification_token:
                   type: string
@@ -3322,7 +3454,7 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: 00000000-0000-4000-8000-000000000000
+                            example: 977e5426-8d13-3824-86aa-b092f8ae52c5
                           name:
                             type: string
                             example: 'Aïcha Hounkpè'
@@ -3360,7 +3492,7 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: 00000000-0000-4000-8000-000000000000
+                            example: a3091549-9179-454e-8440-58179f2208df
                           name:
                             type: string
                             example: 'iPhone 15 Pro'
@@ -3425,7 +3557,7 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: 00000000-0000-4000-8000-000000000000
+                            example: 977e5426-8d13-3824-86aa-b092f8ae52c5
                           name:
                             type: string
                             example: 'Aïcha Hounkpè'
@@ -3463,7 +3595,7 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: 00000000-0000-4000-8000-000000000000
+                            example: a3091549-9179-454e-8440-58179f2208df
                           name:
                             type: string
                             example: 'iPhone 15 Pro'
@@ -3551,7 +3683,7 @@ paths:
                 provider:
                   type: string
                   description: ''
-                  example: google
+                  example: facebook
                   enum:
                     - google
                     - facebook
@@ -3567,7 +3699,7 @@ paths:
                 platform:
                   type: string
                   description: ''
-                  example: android
+                  example: unknown
                   enum:
                     - android
                     - ios
@@ -3626,7 +3758,7 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: 00000000-0000-4000-8000-000000000000
+                            example: 977e5426-8d13-3824-86aa-b092f8ae52c5
                           name:
                             type: string
                             example: 'Aïcha Hounkpè'
@@ -3707,7 +3839,7 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: 00000000-0000-4000-8000-000000000000
+                            example: 977e5426-8d13-3824-86aa-b092f8ae52c5
                           name:
                             type: string
                             example: 'Aïcha Hounkpè'
@@ -3846,7 +3978,7 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: 00000000-0000-4000-8000-000000000000
+                            example: 977e5426-8d13-3824-86aa-b092f8ae52c5
                           name:
                             type: string
                             example: 'Aïcha Hounkpè'
@@ -3959,13 +4091,13 @@ paths:
                     properties:
                       push_notifications:
                         type: boolean
-                        example: false
+                        example: true
                       whatsapp_notifications:
                         type: boolean
-                        example: false
+                        example: true
                       email_notifications:
                         type: boolean
-                        example: false
+                        example: true
                       locale:
                         type: string
                         example: fr
@@ -4014,10 +4146,10 @@ paths:
                         example: false
                       whatsapp_notifications:
                         type: boolean
-                        example: false
+                        example: true
                       email_notifications:
                         type: boolean
-                        example: false
+                        example: true
                       locale:
                         type: string
                         example: en
@@ -4095,7 +4227,7 @@ paths:
                 theme:
                   type: string
                   description: ''
-                  example: light
+                  example: dark
                   enum:
                     - light
                     - dark
@@ -4139,7 +4271,7 @@ paths:
                       properties:
                         uuid:
                           type: string
-                          example: 00000000-0000-4000-8000-000000000000
+                          example: a3091549-9179-454e-8440-58179f2208df
                         name:
                           type: string
                           example: 'iPhone 15 Pro'
@@ -4214,7 +4346,7 @@ paths:
         in: path
         name: uuid
         description: ''
-        example: 00000000-0000-4000-8000-000000000000
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
         required: true
         schema:
           type: string
@@ -4290,7 +4422,7 @@ paths:
                       properties:
                         uuid:
                           type: string
-                          example: 00000000-0000-4000-8000-000000000000
+                          example: c1234567-89ab-cdef-0123-456789abcdef
                         name:
                           type: string
                           example: 'Société de Transport Bénin SARL'
@@ -4358,7 +4490,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: c1234567-89ab-cdef-0123-456789abcdef
                       name:
                         type: string
                         example: 'Société de Transport Bénin SARL'
@@ -4505,7 +4637,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: c1234567-89ab-cdef-0123-456789abcdef
                       name:
                         type: string
                         example: 'Société de Transport Bénin SARL'
@@ -4594,7 +4726,7 @@ paths:
                 type:
                   type: string
                   description: ''
-                  example: company
+                  example: ngo
                   enum:
                     - company
                     - ngo
@@ -4627,7 +4759,7 @@ paths:
         in: path
         name: companyAccount_uuid
         description: ''
-        example: 00000000-0000-4000-8000-000000000000
+        example: dbfeffa4-3acc-4b38-8856-eaac550e93ba
         required: true
         schema:
           type: string
@@ -4661,7 +4793,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: c1234567-89ab-cdef-0123-456789abcdef
                       name:
                         type: string
                         example: 'Société de Transport Bénin SARL'
@@ -4717,7 +4849,7 @@ paths:
         in: path
         name: companyAccount_uuid
         description: ''
-        example: 00000000-0000-4000-8000-000000000000
+        example: dbfeffa4-3acc-4b38-8856-eaac550e93ba
         required: true
         schema:
           type: string
@@ -4749,7 +4881,7 @@ paths:
                         example: m1234567-89ab-cdef-0123-456789abcdef
                       user_uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 977e5426-8d13-3824-86aa-b092f8ae52c5
                       role:
                         type: string
                         example: buyer
@@ -4828,11 +4960,11 @@ paths:
                 user_uuid:
                   type: string
                   description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
-                  example: 00000000-0000-4000-8000-000000000000
+                  example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
                 role:
                   type: string
                   description: ''
-                  example: referent
+                  example: member
                   enum:
                     - referent
                     - member
@@ -4844,7 +4976,7 @@ paths:
         in: path
         name: companyAccount_uuid
         description: ''
-        example: 00000000-0000-4000-8000-000000000000
+        example: dbfeffa4-3acc-4b38-8856-eaac550e93ba
         required: true
         schema:
           type: string
@@ -4886,7 +5018,7 @@ paths:
                       properties:
                         uuid:
                           type: string
-                          example: 00000000-0000-4000-8000-000000000000
+                          example: d1234567-89ab-cdef-0123-456789abcdef
                         status:
                           type: string
                           example: active
@@ -4955,7 +5087,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: d1234567-89ab-cdef-0123-456789abcdef
                       status:
                         type: string
                         example: active
@@ -5106,7 +5238,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: d1234567-89ab-cdef-0123-456789abcdef
                       status:
                         type: string
                         example: active
@@ -5210,7 +5342,7 @@ paths:
         in: path
         name: groupDiscountRule_uuid
         description: ''
-        example: 00000000-0000-4000-8000-000000000000
+        example: 49d01883-e6ef-4a8a-a692-7b3970f1a470
         required: true
         schema:
           type: string
@@ -5526,19 +5658,19 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 4b1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e61
                       status:
                         type: string
                         example: accepted
                       ticketUuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e41
                       departureUuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
                       operationUuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 6f1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e99
                       localRecordedAt:
                         type: string
                         example: '2026-10-01T07:58:03.000Z'
@@ -5591,7 +5723,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 5c1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e71
                       status:
                         type: string
                         example: conflict
@@ -5619,7 +5751,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 6d1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e81
                       status:
                         type: string
                         example: rejected
@@ -5641,7 +5773,7 @@ paths:
                 departure_uuid:
                   type: string
                   description: 'UUID public du départ scanné.'
-                  example: 00000000-0000-4000-8000-000000000000
+                  example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
                 qr_payload:
                   type: string
                   description: 'Contenu signé du QR (requis si short_code absent).'
@@ -5655,7 +5787,7 @@ paths:
                 operation_uuid:
                   type: string
                   description: 'UUID généré par le terminal, unique par tentative — les retries avec le même operation_uuid sont sans effet secondaire.'
-                  example: 00000000-0000-4000-8000-000000000000
+                  example: 6f1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e99
                 local_recorded_at:
                   type: string
                   description: "Horodatage local de l'appareil au moment du scan (ISO 8601)."
@@ -5689,16 +5821,16 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 4b1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e61
                       status:
                         type: string
                         example: accepted
                       ticketUuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e41
                       departureUuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
       tags:
         - 'OPS Mobile — Boarding'
       requestBody:
@@ -5719,7 +5851,7 @@ paths:
         in: path
         name: boardingEvent_uuid
         description: ''
-        example: 00000000-0000-4000-8000-000000000000
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
         required: true
         schema:
           type: string
@@ -5727,7 +5859,7 @@ paths:
         in: path
         name: boardingEvent
         description: "UUID public de l'événement d'embarquement à annuler."
-        example: 00000000-0000-4000-8000-000000000000
+        example: 4b1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e61
         required: true
         schema:
           type: string
@@ -5853,7 +5985,7 @@ paths:
                       properties:
                         uuid:
                           type: string
-                          example: 00000000-0000-4000-8000-000000000000
+                          example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
                         status:
                           type: string
                           example: scheduled
@@ -5871,7 +6003,7 @@ paths:
                           properties:
                             uuid:
                               type: string
-                              example: 00000000-0000-4000-8000-000000000000
+                              example: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21
                             code:
                               type: string
                               example: COT-LFW
@@ -5883,7 +6015,7 @@ paths:
                               example: internationale
                             international:
                               type: boolean
-                              example: false
+                              example: true
                         stops:
                           type: string
                           example: null
@@ -5893,7 +6025,7 @@ paths:
                           properties:
                             uuid:
                               type: string
-                              example: 00000000-0000-4000-8000-000000000000
+                              example: 7c1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e33
                             registrationNumber:
                               type: string
                               example: AB-1234-RB
@@ -6026,7 +6158,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
                       status:
                         type: string
                         example: scheduled
@@ -6044,7 +6176,7 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: 00000000-0000-4000-8000-000000000000
+                            example: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21
                           code:
                             type: string
                             example: COT-LFW
@@ -6056,7 +6188,7 @@ paths:
                             example: internationale
                           international:
                             type: boolean
-                            example: false
+                            example: true
                       stops:
                         type: array
                         example:
@@ -6077,7 +6209,7 @@ paths:
                           properties:
                             uuid:
                               type: string
-                              example: 00000000-0000-4000-8000-000000000000
+                              example: 3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e41
                             name:
                               type: string
                               example: 'Cotonou Gare'
@@ -6095,7 +6227,7 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: 00000000-0000-4000-8000-000000000000
+                            example: 7c1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e33
                           registrationNumber:
                             type: string
                             example: AB-1234-RB
@@ -6110,7 +6242,7 @@ paths:
                             properties:
                               uuid:
                                 type: string
-                                example: 00000000-0000-4000-8000-000000000000
+                                example: 1a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e51
                               name:
                                 type: string
                                 example: 'Jean Dossou'
@@ -6123,7 +6255,7 @@ paths:
                             properties:
                               uuid:
                                 type: string
-                                example: 00000000-0000-4000-8000-000000000000
+                                example: 2a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e52
                               name:
                                 type: string
                                 example: 'Awa Traoré'
@@ -6173,7 +6305,7 @@ paths:
         in: path
         name: uuid
         description: ''
-        example: 00000000-0000-4000-8000-000000000000
+        example: 5a0c9204-c52c-4ee8-84ac-3fb392d10d45
         required: true
         schema:
           type: string
@@ -6181,7 +6313,7 @@ paths:
         in: path
         name: departure
         description: 'UUID public du départ.'
-        example: 00000000-0000-4000-8000-000000000000
+        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
         required: true
         schema:
           type: string
@@ -6278,7 +6410,7 @@ paths:
                       properties:
                         ticketUuid:
                           type: string
-                          example: 00000000-0000-4000-8000-000000000000
+                          example: 4b1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e61
                         shortCode:
                           type: string
                           example: AB12CD
@@ -6293,7 +6425,7 @@ paths:
                           properties:
                             uuid:
                               type: string
-                              example: 00000000-0000-4000-8000-000000000000
+                              example: 3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e41
                             name:
                               type: string
                               example: 'Cotonou Gare'
@@ -6302,7 +6434,7 @@ paths:
                           properties:
                             uuid:
                               type: string
-                              example: 00000000-0000-4000-8000-000000000000
+                              example: 3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e42
                             name:
                               type: string
                               example: 'Lomé Gare'
@@ -6369,7 +6501,7 @@ paths:
         in: path
         name: departure_uuid
         description: ''
-        example: 00000000-0000-4000-8000-000000000000
+        example: 5a0c9204-c52c-4ee8-84ac-3fb392d10d45
         required: true
         schema:
           type: string
@@ -6377,7 +6509,7 @@ paths:
         in: path
         name: departure
         description: 'UUID public du départ.'
-        example: 00000000-0000-4000-8000-000000000000
+        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
         required: true
         schema:
           type: string
@@ -6425,19 +6557,19 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 4b1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e61
                       status:
                         type: string
                         example: accepted
                       ticketUuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e41
                       departureUuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
                       actualStopUuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21
                       releasedSegments:
                         type: array
                         example:
@@ -6450,16 +6582,16 @@ paths:
                           properties:
                             segment_uuid:
                               type: string
-                              example: 00000000-0000-4000-8000-000000000000
+                              example: 7c1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e33
                             leg_order:
                               type: integer
                               example: 0
                             departure_uuid:
                               type: string
-                              example: 00000000-0000-4000-8000-000000000000
+                              example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
                       operationUuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 6f1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e99
                       localRecordedAt:
                         type: string
                         example: '2026-10-01T09:12:00.000Z'
@@ -6524,7 +6656,7 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: 00000000-0000-4000-8000-000000000000
+                            example: 6d1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e81
                           status:
                             type: string
                             example: rejected
@@ -6553,7 +6685,7 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: 00000000-0000-4000-8000-000000000000
+                            example: 8f1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0ea5
                           status:
                             type: string
                             example: conflict
@@ -6585,7 +6717,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 7e1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e91
                       status:
                         type: string
                         example: rejected
@@ -6610,19 +6742,19 @@ paths:
                 departure_uuid:
                   type: string
                   description: 'UUID public du départ (la jambe en cours).'
-                  example: 00000000-0000-4000-8000-000000000000
+                  example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
                 ticket_uuid:
                   type: string
                   description: 'UUID public du billet.'
-                  example: 00000000-0000-4000-8000-000000000000
+                  example: 3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e41
                 actual_stop_uuid:
                   type: string
                   description: "UUID public de l'arrêt où le passager est réellement descendu."
-                  example: 00000000-0000-4000-8000-000000000000
+                  example: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21
                 operation_uuid:
                   type: string
                   description: 'UUID généré par le terminal, unique par tentative — les retries sont sans effet secondaire.'
-                  example: 00000000-0000-4000-8000-000000000000
+                  example: 6f1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e99
                 local_recorded_at:
                   type: string
                   description: "Horodatage local de l'appareil (ISO 8601)."
@@ -6674,16 +6806,16 @@ paths:
                       properties:
                         uuid:
                           type: string
-                          example: 00000000-0000-4000-8000-000000000000
+                          example: 9b1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0eb1
                         status:
                           type: string
                           example: accepted
                         ticketUuid:
                           type: string
-                          example: 00000000-0000-4000-8000-000000000000
+                          example: 3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e41
                         departureUuid:
                           type: string
-                          example: 00000000-0000-4000-8000-000000000000
+                          example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
         422:
           description: 'Départ pas encore parti'
           content:
@@ -6716,11 +6848,11 @@ paths:
                 departure_uuid:
                   type: string
                   description: 'UUID public du départ à clôturer.'
-                  example: 00000000-0000-4000-8000-000000000000
+                  example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
                 operation_uuid:
                   type: string
                   description: 'UUID généré par le terminal pour cette clôture — les retries sont sans effet secondaire (chaque billet no-show obtient un identifiant dérivé, déterministe).'
-                  example: 00000000-0000-4000-8000-000000000000
+                  example: 8a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0ea1
                 local_recorded_at:
                   type: string
                   description: "Horodatage local de l'appareil (ISO 8601)."
@@ -6790,16 +6922,16 @@ paths:
                       properties:
                         departureUuid:
                           type: string
-                          example: 00000000-0000-4000-8000-000000000000
+                          example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
                         currentVersion:
                           type: string
                           example: a1b2c3d4e5f60718
                         stale:
                           type: boolean
-                          example: false
+                          example: true
                         accessible:
                           type: boolean
-                          example: false
+                          example: true
       tags:
         - 'OPS Mobile — Sync'
       requestBody:
@@ -6880,7 +7012,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 1c9c3b2a-8f1a-4b3e-9a1a-2f4b6c8d0f01
                       status:
                         type: string
                         example: completed
@@ -6935,7 +7067,7 @@ paths:
                           properties:
                             operationUuid:
                               type: string
-                              example: 00000000-0000-4000-8000-000000000000
+                              example: 6f1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e99
                             operationType:
                               type: string
                               example: boarding.scan
@@ -6965,7 +7097,7 @@ paths:
                                   example: boarding_event
                                 entityUuid:
                                   type: string
-                                  example: 00000000-0000-4000-8000-000000000000
+                                  example: 4b1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e61
       tags:
         - 'OPS Mobile — Sync'
       requestBody:
@@ -6978,7 +7110,7 @@ paths:
                 batch_uuid:
                   type: string
                   description: 'UUID généré par le terminal pour ce lot — un rejeu du même batch_uuid renvoie le résultat déjà calculé, sans retraiter.'
-                  example: 00000000-0000-4000-8000-000000000000
+                  example: 1c9c3b2a-8f1a-4b3e-9a1a-2f4b6c8d0f01
                 operations:
                   type: array
                   description: "Liste des opérations du lot (max 200). `payload` accepte librement tout champ additionnel utile à l'audit — notamment `manifest_version`, la version du manifeste que le terminal avait en cache au moment de l'action (stockée telle quelle, jamais interprétée pour bloquer le traitement)."
@@ -7022,7 +7154,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: b3091549-9179-454e-8440-58179f2208df
                       serial_number:
                         type: string
                         example: P501-000123
@@ -7124,7 +7256,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: b3091549-9179-454e-8440-58179f2208df
                       serial_number:
                         type: string
                         example: P501-000123
@@ -7276,7 +7408,7 @@ paths:
                 type:
                   type: string
                   description: ''
-                  example: handshake
+                  example: print
                   enum:
                     - handshake
                     - sync
@@ -7384,7 +7516,7 @@ paths:
                               example: 'Mobile Money'
                             enabled:
                               type: boolean
-                              example: false
+                              example: true
                             providers:
                               type: array
                               example:
@@ -7411,7 +7543,7 @@ paths:
                                     example: 'MTN MoMo'
                                   enabled:
                                     type: boolean
-                                    example: false
+                                    example: true
                                   networks:
                                     type: array
                                     example:
@@ -7486,7 +7618,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80
                       status:
                         type: string
                         example: pending
@@ -7550,7 +7682,7 @@ paths:
                 reservation_uuid:
                   type: string
                   description: 'UUID of the held reservation.'
-                  example: 00000000-0000-4000-8000-000000000000
+                  example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
                 method:
                   type: string
                   description: 'Payment method: `mobile_money` or `wallet`. Wallet is currently disabled.'
@@ -7620,7 +7752,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80
                       status:
                         type: string
                         example: confirmed
@@ -7644,13 +7776,13 @@ paths:
                         properties:
                           uuid:
                             type: string
-                            example: 00000000-0000-4000-8000-000000000000
+                            example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
                           status:
                             type: string
                             example: paid
                           departure_uuid:
                             type: string
-                            example: 00000000-0000-4000-8000-000000000000
+                            example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
       tags:
         - Payments
     parameters:
@@ -7658,7 +7790,7 @@ paths:
         in: path
         name: uuid
         description: ''
-        example: 00000000-0000-4000-8000-000000000000
+        example: f4f9e68d-db8d-40e2-bcb7-9e770ca71d8b
         required: true
         schema:
           type: string
@@ -7700,7 +7832,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80
                       status:
                         type: string
                         example: confirmed
@@ -7795,7 +7927,7 @@ paths:
         in: path
         name: payment_uuid
         description: ''
-        example: 00000000-0000-4000-8000-000000000000
+        example: f4f9e68d-db8d-40e2-bcb7-9e770ca71d8b
         required: true
         schema:
           type: string
@@ -7837,7 +7969,7 @@ paths:
                     properties:
                       uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80
                       status:
                         type: string
                         example: cancelled
@@ -7922,7 +8054,7 @@ paths:
         in: path
         name: payment_uuid
         description: ''
-        example: 00000000-0000-4000-8000-000000000000
+        example: f4f9e68d-db8d-40e2-bcb7-9e770ca71d8b
         required: true
         schema:
           type: string
@@ -7950,10 +8082,10 @@ paths:
                     example: confirmed
                   payment_uuid:
                     type: string
-                    example: 00000000-0000-4000-8000-000000000000
+                    example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80
                   reservation_uuid:
                     type: string
-                    example: 00000000-0000-4000-8000-000000000000
+                    example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
                   reservation_status:
                     type: string
                     example: paid
@@ -7993,7 +8125,7 @@ paths:
                 status:
                   type: string
                   description: ''
-                  example: success
+                  example: confirmed
                   enum:
                     - success
                     - confirmed
@@ -8017,7 +8149,7 @@ paths:
         in: path
         name: payment_uuid
         description: ''
-        example: 00000000-0000-4000-8000-000000000000
+        example: f4f9e68d-db8d-40e2-bcb7-9e770ca71d8b
         required: true
         schema:
           type: string
@@ -8045,10 +8177,10 @@ paths:
                     example: confirmed
                   payment_uuid:
                     type: string
-                    example: 00000000-0000-4000-8000-000000000000
+                    example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80
                   reservation_uuid:
                     type: string
-                    example: 00000000-0000-4000-8000-000000000000
+                    example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
                   reservation_status:
                     type: string
                     example: paid
@@ -8115,10 +8247,10 @@ paths:
                     example: confirmed
                   payment_uuid:
                     type: string
-                    example: 00000000-0000-4000-8000-000000000000
+                    example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80
                   reservation_uuid:
                     type: string
-                    example: 00000000-0000-4000-8000-000000000000
+                    example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
                   reservation_status:
                     type: string
                     example: paid
@@ -8185,10 +8317,10 @@ paths:
                     example: confirmed
                   payment_uuid:
                     type: string
-                    example: 00000000-0000-4000-8000-000000000000
+                    example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb80
                   reservation_uuid:
                     type: string
-                    example: 00000000-0000-4000-8000-000000000000
+                    example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
                   reservation_status:
                     type: string
                     example: paid
@@ -8298,7 +8430,7 @@ paths:
                           example: '2026-08-20T08:10:00+00:00'
                         reservation_uuid:
                           type: string
-                          example: 00000000-0000-4000-8000-000000000000
+                          example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
                         passenger:
                           type: object
                           properties:
@@ -8377,7 +8509,7 @@ paths:
         in: path
         name: reservation_uuid
         description: ''
-        example: 00000000-0000-4000-8000-000000000000
+        example: feefa097-4bd0-447d-b676-2816c3f294fb
         required: true
         schema:
           type: string
@@ -8492,7 +8624,7 @@ paths:
                           example: '2026-08-20T08:10:00+00:00'
                         reservation_uuid:
                           type: string
-                          example: 00000000-0000-4000-8000-000000000000
+                          example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
                         amount:
                           type: integer
                           example: 12500
@@ -8640,7 +8772,7 @@ paths:
                         example: '2026-08-20T08:10:00+00:00'
                       reservation_uuid:
                         type: string
-                        example: 00000000-0000-4000-8000-000000000000
+                        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
                       passenger:
                         type: object
                         properties:
@@ -8731,7 +8863,7 @@ paths:
         in: path
         name: uuid
         description: ''
-        example: 00000000-0000-4000-8000-000000000000
+        example: d53bb8bf-1aeb-4541-b5a5-3e9626576ba2
         required: true
         schema:
           type: string
@@ -8745,7 +8877,7 @@ paths:
         200:
           description: ''
           content:
-            application/pdf:
+            application/octet-stream:
               schema:
                 type: string
                 format: binary
@@ -8832,7 +8964,7 @@ paths:
         in: path
         name: ticket_uuid
         description: 'Public UUID of the ticket.'
-        example: 00000000-0000-4000-8000-000000000000
+        example: f1a2b3c4-d5e6-7890-abcd-ef1234567890
         required: true
         schema:
           type: string

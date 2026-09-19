@@ -83,7 +83,7 @@ Crée un devis serveur pour un itinéraire direct, avec correspondances, ou alle
 | `pricing.promotion_discount_amount` | integer | Remise promotionnelle totale en XOF (0 sans code). |
 | `pricing.total_amount` | integer | Montant final net de toutes les remises (tarification dynamique, promotion, remise groupe). |
 
-Le montant et l'expiration retournés par le serveur sont la référence du hold. Le mobile ne doit pas reconstruire le snapshot tarifaire. La promotion est portée par le devis (`itinerary_quote_uuid`) jusqu'à la réservation : elle n'a pas à être renvoyée au hold ni au paiement, et sa consommation n'est comptabilisée qu'au paiement confirmé.
+Le montant et l'expiration retournés par le serveur sont la référence du hold. Le mobile ne doit pas reconstruire le snapshot tarifaire. La promotion est portée par le devis (`itinerary_quote_uuid`) puis recopiée sur la réservation au hold : elle n'a pas à être renvoyée au paiement, et sa consommation n'est comptabilisée qu'au paiement confirmé. Pour une saisie tardive du code sur l'écran de paiement, utilisez [PUT /api/v1/bookings/{uuid}/promo-code](/reference/booking/promo-code) — la remise déclarée ici ou au devis apparaît sur la facture certifiée e-MECeF (`originalPrice`/`priceModification`).
 
 ## Règles de validation aller-retour
 

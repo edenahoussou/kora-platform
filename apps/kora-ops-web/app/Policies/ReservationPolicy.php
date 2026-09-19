@@ -34,6 +34,16 @@ class ReservationPolicy
         return $this->allows($user, 'counter-sales.create');
     }
 
+    /**
+     * Appliquer/retirer un code promo sur la réservation : réservé au
+     * voyageur propriétaire (créateur ou payeur), comme l'annulation.
+     */
+    public function updatePromoCode(User $user, Reservation $reservation): bool
+    {
+        return $reservation->created_by_user_id === $user->id
+            || $reservation->payer_user_id === $user->id;
+    }
+
     public function requestAssistance(User $user, Reservation $reservation): bool
     {
         return ($reservation->created_by_user_id === $user->id || $reservation->payer_user_id === $user->id)

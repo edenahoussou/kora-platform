@@ -3,9 +3,11 @@
 namespace App\Modules\Booking\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Booking\Actions\ApplyReservationPromoCodeAction;
 use App\Modules\Booking\Actions\CancelReservationAction;
 use App\Modules\Booking\Actions\ReleaseSeatHoldAction;
 use App\Modules\Booking\Http\Requests\ReleaseSeatHoldRequest;
+use App\Modules\Booking\Http\Requests\UpdateReservationPromoCodeRequest;
 use App\Modules\Booking\Http\Resources\ReservationResource;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationPassenger;
@@ -65,6 +67,61 @@ class ReservationController extends Controller
         ]);
 
         return (new ReservationResource($reservation))
+            ->response()
+            ->setStatusCode(200);
+    }
+
+    /**
+     * Apply or remove a promo code on a held reservation.
+     *
+     * Lets the passenger enter (or clear) a promo code on the payment screen,
+     * after the quote and hold are already created. The reservation total is
+     * recalculated in place — seats and passengers are untouched. Only allowed
+     * while the reservation is still held and no payment is in progress. The
+     * promotion usage is recorded only once the payment is confirmed.
+     *
+     * @authenticated
+     *
+     * @urlParam reservation_uuid string required Public UUID of the reservation. Example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70
+     *
+     * @bodyParam promo_code string required The promo code to apply (max 32 chars). Must be present in the body — send `null` to remove the current discount. Example: TESTNE10
+     *
+     * @response 200 scenario="Promo code applied" {
+     *   "data": {
+     *     "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb70",
+     *     "status": "held",
+     *     "total_amount": 8100,
+     *     "currency": "XOF",
+     *     "promotion_discount_amount": 900,
+     *     "promotion": {
+     *       "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6a",
+     *       "code": "TESTNE10",
+     *       "name": "Lancement Nord-Est",
+     *       "discount_amount": 900
+     *     }
+     *   }
+     * }
+     * @response 401 scenario="Unauthenticated" {
+     *   "message": "Unauthenticated."
+     * }
+     * @response 403 scenario="Forbidden" {
+     *   "message": "This action is unauthorized."
+     * }
+     * @response 422 scenario="Promo code rejected" {
+     *   "message": "Ce code promotionnel est inconnu.",
+     *   "errors": {
+     *     "promo_code": ["Ce code promotionnel est inconnu."]
+     *   }
+     * }
+     */
+    public function updatePromoCode(
+        UpdateReservationPromoCodeRequest $request,
+        Reservation $reservation,
+        ApplyReservationPromoCodeAction $applyPromoCode,
+    ): JsonResponse {
+        Gate::forUser($request->user())->authorize('updatePromoCode', $reservation);
+
+        return (new ReservationResource($applyPromoCode->handle($reservation, $request->promoCode())))
             ->response()
             ->setStatusCode(200);
     }

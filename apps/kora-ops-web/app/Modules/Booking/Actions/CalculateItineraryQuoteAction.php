@@ -11,11 +11,10 @@ use App\Modules\Booking\Services\DepartureStopTimeResolver;
 use App\Modules\Booking\Services\GroupPricingService;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
+use App\Modules\DynamicPricing\Actions\CalculatePromotionDiscountAction;
 use App\Modules\DynamicPricing\Actions\CalculateQuoteAction;
 use App\Modules\DynamicPricing\Actions\ResolvePromotionAction;
 use App\Modules\DynamicPricing\Data\PricingBreakdownData;
-use App\Modules\DynamicPricing\Data\PromotionBenefitType;
-use App\Modules\DynamicPricing\Data\ResolvedPromotion;
 use App\Modules\DynamicPricing\Models\PriceQuote;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -71,6 +70,7 @@ class CalculateItineraryQuoteAction
         private DepartureStopTimeResolver $stopTimeResolver,
         private GroupPricingService $groupPricing,
         private ResolvePromotionAction $resolvePromotion,
+        private CalculatePromotionDiscountAction $promotionDiscount,
     ) {}
 
     /**
@@ -156,7 +156,11 @@ class CalculateItineraryQuoteAction
                 }
             }
 
-            $promotionDiscount = $this->promotionDiscount($resolvedPromotion, $legQuotes, $passengerCount);
+            $promotionDiscount = $resolvedPromotion !== null ? $this->promotionDiscount->execute(
+                $resolvedPromotion,
+                array_map(fn (PriceQuote $quote): int => (int) $quote->final_amount, $legQuotes),
+                $passengerCount,
+            ) : 0;
 
             $pricing = $this->groupPricing->calculate(
                 unitAmounts: array_map(fn (PriceQuote $quote): int => (int) $quote->final_amount, $legQuotes),
@@ -241,37 +245,6 @@ class CalculateItineraryQuoteAction
                 expiresAt: $earliestExpiry,
             );
         });
-    }
-
-    /**
-     * Remise promotion en FCFA : un pourcentage se décline sur le sous-total
-     * des seules jambes couvertes par le périmètre ; un montant fixe se
-     * déduit une fois du total de la réservation.
-     *
-     * @param  list<PriceQuote>  $legQuotes
-     */
-    private function promotionDiscount(?ResolvedPromotion $resolved, array $legQuotes, int $passengerCount): int
-    {
-        if ($resolved === null) {
-            return 0;
-        }
-
-        $promotion = $resolved->promotion;
-        $subtotal = array_sum(array_map(
-            fn (PriceQuote $quote): int => (int) $quote->final_amount,
-            $legQuotes,
-        )) * $passengerCount;
-
-        if ($promotion->benefit_type === PromotionBenefitType::Percentage) {
-            $eligibleSubtotal = array_sum(array_map(
-                fn (int $index): int => (int) $legQuotes[$index]->final_amount,
-                $resolved->eligibleLegIndexes,
-            )) * $passengerCount;
-
-            return min((int) round($eligibleSubtotal * (float) $promotion->benefit_value / 100), $subtotal);
-        }
-
-        return min((int) round((float) $promotion->benefit_value), $subtotal);
     }
 
     /**
