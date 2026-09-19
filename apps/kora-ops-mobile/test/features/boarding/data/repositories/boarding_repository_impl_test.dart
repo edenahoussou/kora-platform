@@ -310,4 +310,57 @@ void main() {
           synced: any(named: 'synced'),
         ));
   });
+
+  group('reverse (annulation exceptionnelle d\'embarquement)', () {
+    test('succès : Result.success', () async {
+      when(() => remote.reverse(
+            boardingEventUuid: 'event-1',
+            reason: 'Erreur de scan',
+          )).thenAnswer((_) async {});
+
+      final result = await repository.reverse(
+        boardingEventUuid: 'event-1',
+        reason: 'Erreur de scan',
+      );
+
+      expect(result.isSuccess, isTrue);
+    });
+
+    test('422 (déjà non-accepté) : ValidationFailure', () async {
+      when(() => remote.reverse(
+            boardingEventUuid: 'event-2',
+            reason: 'Erreur de scan',
+          )).thenThrow(const BoardingApiException(
+        'boarding_event_not_reversible',
+        'Seul un embarquement accepté peut être annulé.',
+      ));
+
+      final result = await repository.reverse(
+        boardingEventUuid: 'event-2',
+        reason: 'Erreur de scan',
+      );
+
+      result.when(
+        onSuccess: (_) => fail('devait échouer'),
+        onFailure: (failure) => expect(failure, isA<ValidationFailure>()),
+      );
+    });
+
+    test('hors ligne : NetworkFailure explicite, jamais mis en file', () async {
+      when(() => remote.reverse(
+            boardingEventUuid: 'event-3',
+            reason: 'Erreur de scan',
+          )).thenThrow(_networkError());
+
+      final result = await repository.reverse(
+        boardingEventUuid: 'event-3',
+        reason: 'Erreur de scan',
+      );
+
+      result.when(
+        onSuccess: (_) => fail('devait échouer (pas de file hors ligne ici)'),
+        onFailure: (failure) => expect(failure, isA<NetworkFailure>()),
+      );
+    });
+  });
 }

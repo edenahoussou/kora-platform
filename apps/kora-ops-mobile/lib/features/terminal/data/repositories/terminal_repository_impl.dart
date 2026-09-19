@@ -11,6 +11,7 @@ import 'package:flutter_networking/flutter_networking.dart'
 
 import '../../../../core/errors/failures.dart';
 import '../../../../core/result/result.dart';
+import '../../../auth/data/datasources/device_info_datasource.dart';
 import '../../domain/entities/terminal.dart';
 import '../../domain/entities/terminal_activity_type.dart';
 import '../../domain/repositories/terminal_repository.dart';
@@ -22,16 +23,21 @@ import '../datasources/terminal_remote_datasource.dart';
 class TerminalRepositoryImpl implements TerminalRepository {
   TerminalRepositoryImpl(
     this._remote,
-    this._local, {
+    this._local,
+    this._deviceInfo, {
     DateTime Function()? now,
   }) : _now = now ?? DateTime.now;
 
   final TerminalRemoteDataSource _remote;
   final TerminalLocalDataSource _local;
+  final DeviceInfoDataSource _deviceInfo;
   final DateTime Function() _now;
 
   @override
   Future<Terminal?> cachedTerminal() => _local.readSnapshot();
+
+  @override
+  Future<String> phoneSerialNumber() => _deviceInfo.phoneTerminalSerial();
 
   @override
   Future<Result<Terminal>> handshake(String serialNumber) async {

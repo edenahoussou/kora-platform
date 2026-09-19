@@ -14,6 +14,7 @@ import 'package:kora_ops_mobile/features/ops/domain/entities/passenger.dart';
 import 'package:kora_ops_mobile/features/ops/presentation/cubit/selected_depart_cubit.dart';
 import 'package:kora_ops_mobile/features/printing/domain/usecases/scan_barcode.dart';
 import 'package:kora_ops_mobile/features/scan/presentation/cubit/scan_boarding_cubit.dart';
+import 'package:kora_ops_mobile/features/seat_release/domain/repositories/seat_release_repository.dart';
 import 'package:kora_ops_mobile/features/synchro/domain/repositories/sync_repository.dart';
 import 'package:kora_ops_mobile/features/synchro/presentation/cubit/sync_cubit.dart';
 import 'package:kora_ops_mobile/features/terminal/domain/entities/terminal_activity_type.dart';
@@ -30,6 +31,8 @@ class MockManifesteRepository extends Mock implements ManifesteRepository {}
 class MockTerminalRepository extends Mock implements TerminalRepository {}
 
 class MockSyncRepository extends Mock implements SyncRepository {}
+
+class MockSeatReleaseRepository extends Mock implements SeatReleaseRepository {}
 
 class MockSelectedDepartureLocalDataSource extends Mock
     implements SelectedDepartureLocalDataSource {}
@@ -48,6 +51,7 @@ void main() {
       totalPlaces: 0,
       placesOccupees: 0,
     ));
+    registerFallbackValue(BoardingStatus.enAttente);
   });
 
   late MockScanBarcode scanBarcode;
@@ -104,7 +108,8 @@ void main() {
     // `updateStatut`), qui ne les appelle pas — voir SyncCubit.enqueue.
     // `markBoarded` (utilisé par ScanBoardingCubit) ne passe pas non plus
     // par SyncCubit.
-    syncCubit = SyncCubit(MockSyncRepository(), MockBoardingRepository());
+    syncCubit = SyncCubit(MockSyncRepository(), MockBoardingRepository(),
+        MockSeatReleaseRepository());
 
     when(() => manifesteRepository.load(depart.id)).thenAnswer(
       (_) async => Result<ManifestSnapshot>.success(
@@ -117,6 +122,11 @@ void main() {
         ),
       ),
     );
+    when(() => manifesteRepository.persistStatusUpdate(
+          departureUuid: any(named: 'departureUuid'),
+          ticketUuid: any(named: 'ticketUuid'),
+          statut: any(named: 'statut'),
+        )).thenAnswer((_) async {});
     when(() => terminalRepository.logActivity(
           any(),
           context: any(named: 'context'),

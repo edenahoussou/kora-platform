@@ -58,8 +58,11 @@ class TerminalCubit extends Cubit<TerminalState> {
     );
   }
 
-  /// Appelé depuis `TerminalSetupPage` : saisie manuelle d'un numéro de
-  /// série (premier lancement, ou terminal remplacé après `forget()`).
+  /// Appelé depuis `TerminalSetupPage` : soit la saisie manuelle d'un
+  /// numéro de série P501, soit — en mode téléphone — la liaison
+  /// automatique avec l'empreinte de l'appareil (voir
+  /// `TerminalRepository.phoneSerialNumber`, ticket "Supporter le scan
+  /// par caméra téléphone en alternative au P501").
   Future<void> link(String serialNumber) async {
     emit(const TerminalLinking());
     final result = await _repository.handshake(serialNumber);

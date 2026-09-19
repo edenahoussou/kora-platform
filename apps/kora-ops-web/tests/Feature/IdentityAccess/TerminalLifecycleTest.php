@@ -55,9 +55,33 @@ it('lists and registers terminals without exposing numeric ids', function (): vo
         ->postJson(route('terminals.store'), ['serial_number' => 'p501-000002'])
         ->assertCreated()
         ->assertJsonPath('data.serial_number', 'P501-000002')
+        ->assertJsonPath('data.type', 'p501')
         ->assertJsonPath('data.status', 'active');
 
     expect(Activity::query()->where('description', 'terminal_registered')->where('causer_id', $admin->id)->exists())->toBeTrue();
+});
+
+it('registers a phone terminal with an explicit type, and defaults existing/omitted registrations to p501', function (): void {
+    // Voir ticket "Supporter le scan par caméra téléphone en alternative
+    // au P501" : même table, même contrat — seul `type` distingue un
+    // téléphone (`serial_number` = empreinte matérielle de l'appareil,
+    // ex. TEL-ANDROID-A1B2C3D4) d'un boîtier P501.
+    $admin = terminalOperationsDirector();
+
+    $this->actingAs($admin)
+        ->postJson(route('terminals.store'), [
+            'serial_number' => 'tel-android-a1b2c3d4',
+            'type' => 'phone',
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.serial_number', 'TEL-ANDROID-A1B2C3D4')
+        ->assertJsonPath('data.type', 'phone');
+
+    // Un terminal créé directement en base (avant ce ticket, ou sans
+    // préciser `type`) reste 'p501' par défaut — colonne DB par défaut,
+    // pas de backfill requis.
+    $legacyTerminal = TerminalP501::query()->create(['serial_number' => 'P501-000099']);
+    expect($legacyTerminal->fresh()->type->value)->toBe('p501');
 });
 
 it('lets a view-only role see terminals but blocks every mutating action', function (): void {

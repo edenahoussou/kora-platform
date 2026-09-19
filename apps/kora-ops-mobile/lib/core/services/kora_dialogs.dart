@@ -139,4 +139,75 @@ abstract final class KoraDialogs {
       Navigator.of(context, rootNavigator: true).pop();
     }
   }
+
+  /// Demande une courte saisie texte obligatoire (ex. motif d'annulation
+  /// d'embarquement, MEZ-87) — retourne le texte saisi, ou `null` si
+  /// annulé. `pro_dialog` n'offre pas de variante avec champ de saisie ;
+  /// ce dialogue reste néanmoins le seul point d'entrée pour ce besoin
+  /// (voir docstring de la classe), stylé pour rester cohérent (mêmes
+  /// rayons, mêmes couleurs) même s'il n'est pas construit sur pro_dialog.
+  static Future<String?> prompt(
+    BuildContext context, {
+    required String title,
+    String? description,
+    String confirmLabel = 'Confirmer',
+    String cancelLabel = 'Annuler',
+    int minLength = 1,
+    String? hintText,
+  }) async {
+    final TextEditingController controller = TextEditingController();
+    final ValueNotifier<bool> isValid = ValueNotifier<bool>(false);
+    controller.addListener(
+      () => isValid.value = controller.text.trim().length >= minLength,
+    );
+
+    final String? result = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        title: Text(title),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            if (description != null) ...<Widget>[
+              Text(description),
+              const SizedBox(height: 12),
+            ],
+            TextField(
+              controller: controller,
+              autofocus: true,
+              minLines: 2,
+              maxLines: 4,
+              decoration: InputDecoration(hintText: hintText),
+            ),
+          ],
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(cancelLabel),
+          ),
+          ValueListenableBuilder<bool>(
+            valueListenable: isValid,
+            builder: (context, valid, _) => FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: AppColors.kora),
+              onPressed: valid
+                  ? () =>
+                      Navigator.of(dialogContext).pop(controller.text.trim())
+                  : null,
+              child: Text(confirmLabel),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    controller.dispose();
+    isValid.dispose();
+    return result;
+  }
 }

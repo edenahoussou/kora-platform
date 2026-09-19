@@ -25,9 +25,16 @@ class GenerateTicketPdfAction
     ) {}
 
     /**
+     * @param  bool  $hideAmount  Omit financial fields (amount, MECeF UID)
+     *                            from the rendered document — used by the
+     *                            OPS Mobile boarding-confirmation endpoint,
+     *                            which must never expose pricing to crew.
+     *                            Defaults to false so every existing caller
+     *                            (passenger download, web preview, WhatsApp
+     *                            attachment) is unaffected.
      * @return array{content: string, filename: string}
      */
-    public function execute(Ticket $ticket): array
+    public function execute(Ticket $ticket, bool $hideAmount = false): array
     {
         $ticket->loadMissing([
             'reservation.sellingAgency',
@@ -70,6 +77,7 @@ class GenerateTicketPdfAction
 
         $data = [
             'isPdf' => true,
+            'hideAmount' => $hideAmount,
             'shortCode' => $ticket->short_code,
             'statusLabel' => 'Payé',
             'originCity' => $originCity,

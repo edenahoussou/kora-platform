@@ -123,6 +123,31 @@ class BoardingRepositoryImpl implements BoardingRepository {
         serverRecordedAt: serverRecordedAt,
       );
 
+  @override
+  Future<Result<Null>> reverse({
+    required String boardingEventUuid,
+    required String reason,
+  }) async {
+    try {
+      await _remote.reverse(
+          boardingEventUuid: boardingEventUuid, reason: reason);
+      return const Result<Null>.success(null);
+    } on BoardingApiException catch (error) {
+      return Result<Null>.failure(ValidationFailure(error.message));
+    } on DioException catch (error) {
+      if (_isNetworkUnreachable(error)) {
+        return const Result<Null>.failure(
+          NetworkFailure(
+            'Aucun réseau — réessayez l’annulation une fois en ligne.',
+          ),
+        );
+      }
+      return const Result<Null>.failure(
+        ServerFailure('Le serveur est momentanément indisponible.'),
+      );
+    }
+  }
+
   Future<BoardingOutcome> _queueOffline({
     required String operationUuid,
     required String departureUuid,

@@ -23,6 +23,10 @@ abstract final class ManifesteDtos {
       segmentOrigine: origin is Map ? '${origin['name']}' : '—',
       segmentDestination: destination is Map ? '${destination['name']}' : '—',
       ticketId: row['shortCode'] as String? ?? '',
+      originStopUuid: origin is Map ? origin['uuid'] as String? : null,
+      destinationStopUuid:
+          destination is Map ? destination['uuid'] as String? : null,
+      boardingEventUuid: row['boardingEventUuid'] as String?,
     );
   }
 

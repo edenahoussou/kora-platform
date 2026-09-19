@@ -13,6 +13,20 @@ import '../../domain/entities/device_platform.dart';
 /// connexion. Porté de kora-app-passenger.
 abstract class DeviceInfoDataSource {
   Future<DeviceRegistration> currentDevice({String? pushToken});
+
+  /// Numéro de série pour l'enregistrement en tant que terminal
+  /// (`TerminalP501.type = phone`) — voir `TerminalRepository.
+  /// phoneSerialNumber` et le ticket "Supporter le scan par caméra
+  /// téléphone en alternative au P501". Volontairement DISTINCT de
+  /// l'empreinte d'auth (`_fingerprint`/`device_fingerprint`) : celle-ci
+  /// inclut un sel aléatoire régénéré à chaque réinstallation — bon pour
+  /// éviter un re-OTP, inadapté pour identifier un terminal (perdrait
+  /// l'historique d'affectation à chaque réinstall). Ici, l'identifiant
+  /// matériel brut (`androidId`/`identifierForVendor`), stable tant que
+  /// l'appareil n'est pas réinitialisé — le plus proche d'un numéro de
+  /// série qu'une app puisse lire (aucune plateforme n'expose l'IMEI/le
+  /// numéro de série physique à une app tierce).
+  Future<String> phoneTerminalSerial();
 }
 
 class DeviceInfoDataSourceImpl implements DeviceInfoDataSource {
@@ -31,6 +45,32 @@ class DeviceInfoDataSourceImpl implements DeviceInfoDataSource {
       fingerprint: await _fingerprint(),
       pushToken: pushToken,
     );
+  }
+
+  @override
+  Future<String> phoneTerminalSerial() async {
+    final DevicePlatform platform = DevicePlatform.current();
+
+    final String rawId = switch (platform) {
+      DevicePlatform.android => (await _deviceInfo.androidInfo).id,
+      DevicePlatform.ios =>
+        (await _deviceInfo.iosInfo).identifierForVendor ?? '',
+      DevicePlatform.web || DevicePlatform.unknown => '',
+    };
+
+    final String prefix = switch (platform) {
+      DevicePlatform.android => 'TEL-ANDROID',
+      DevicePlatform.ios => 'TEL-IOS',
+      DevicePlatform.web || DevicePlatform.unknown => 'TEL',
+    };
+
+    // Nettoyage : le serveur uppercase et valide `max:64` côté
+    // enregistrement (voir `RegisterTerminalRequest`) — mais autant lui
+    // envoyer quelque chose de propre plutôt qu'un UUID avec tirets.
+    final String cleaned =
+        rawId.replaceAll(RegExp('[^A-Za-z0-9]'), '').toUpperCase();
+
+    return '$prefix-${cleaned.isEmpty ? 'INCONNU' : cleaned}';
   }
 
   Future<String> _readName(DevicePlatform platform) async {

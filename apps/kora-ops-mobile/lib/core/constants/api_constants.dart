@@ -34,7 +34,18 @@ abstract final class ApiConstants {
   static const String opsBoarding = '$_v1/ops/boarding';
   static String opsBoardingReverse(String boardingEventUuid) =>
       '$_v1/ops/boarding/$boardingEventUuid/reverse';
+
+  /// PDF de confirmation d'embarquement — mode téléphone uniquement (pas
+  /// d'imprimante thermique). Voir ticket "Supporter le scan par caméra
+  /// téléphone en alternative au P501".
+  static String opsBoardingTicketPdf(String departureUuid, String ticketUuid) =>
+      '$_v1/ops/boarding/$departureUuid/tickets/$ticketUuid/pdf';
   static const String opsSyncManifestVersions =
       '$_v1/ops/sync/manifest-versions';
   static const String opsSyncBatches = '$_v1/ops/sync/batches';
+
+  // OPS Mobile — descente anticipée et no-show (MEZ-87).
+  static const String opsSeatReleases = '$_v1/ops/seat-releases';
+  static const String opsSeatReleasesNoShowClosure =
+      '$_v1/ops/seat-releases/no-show-closure';
 }

@@ -11,6 +11,7 @@ class ManifesteState extends Equatable {
     this.fetchedAt,
     this.isStale = false,
     this.isFromCache = false,
+    this.pendingReleaseTicketUuids = const <String>{},
   });
 
   final ManifesteStatus status;
@@ -36,6 +37,15 @@ class ManifesteState extends Equatable {
   /// `isStale: false`.
   final bool isFromCache;
 
+  /// UUID de billet ayant une libération de siège (descente anticipée ou
+  /// no-show) **en attente de synchronisation** — MEZ-87. N'affecte
+  /// jamais [Passenger.statut] : un badge "en attente de sync" purement
+  /// informatif sur la ligne du manifeste, jamais un statut "libéré"
+  /// avant acceptation serveur (critère d'acceptation MEZ-87 — empêcher
+  /// une nouvelle vente locale fondée sur une libération non acceptée).
+  /// Vidé à chaque [load] réussi (un rafraîchissement fait foi).
+  final Set<String> pendingReleaseTicketUuids;
+
   int get embarques => passengers
       .where((Passenger p) => p.statut == BoardingStatus.embarque)
       .length;
@@ -48,6 +58,7 @@ class ManifesteState extends Equatable {
     DateTime? fetchedAt,
     bool? isStale,
     bool? isFromCache,
+    Set<String>? pendingReleaseTicketUuids,
   }) {
     return ManifesteState(
       status: status ?? this.status,
@@ -57,6 +68,8 @@ class ManifesteState extends Equatable {
       fetchedAt: fetchedAt ?? this.fetchedAt,
       isStale: isStale ?? this.isStale,
       isFromCache: isFromCache ?? this.isFromCache,
+      pendingReleaseTicketUuids:
+          pendingReleaseTicketUuids ?? this.pendingReleaseTicketUuids,
     );
   }
 
@@ -69,5 +82,6 @@ class ManifesteState extends Equatable {
         fetchedAt,
         isStale,
         isFromCache,
+        pendingReleaseTicketUuids,
       ];
 }

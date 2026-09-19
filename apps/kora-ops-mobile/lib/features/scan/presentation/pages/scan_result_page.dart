@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../app/config/app_config.dart';
+import '../../../../app/config/terminal_mode.dart';
+import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/kora_colors.dart';
 import '../../../../core/widgets/kora_button.dart';
 import '../../../../core/widgets/kora_card.dart';
 import '../../../../core/widgets/screen_header.dart';
+import '../../../ops/presentation/cubit/selected_depart_cubit.dart';
+import '../../../printing/presentation/pages/boarding_pdf_preview_page.dart';
 import '../cubit/scan_boarding_cubit.dart';
 
 /// Détail du scan — feedback plein écran pour chacun des 7 états requis
@@ -144,8 +149,45 @@ class ScanResultPage extends StatelessWidget {
                         // sur MockOpsDataSource.ticketFor — retiré tant que
                         // MEZ-91 ne dispose pas d'un vrai objet Ticket côté
                         // scan (BoardingEventResource ne renvoie qu'un
-                        // ticketUuid, volontairement minimal). À reprendre
-                        // avec le module Impression (MEZ-10) si besoin.
+                        // ticketUuid, volontairement minimal). Repris ici
+                        // en mode téléphone uniquement (voir ticket
+                        // "Supporter le scan par caméra téléphone en
+                        // alternative au P501") : pas d'imprimante
+                        // thermique dans ce mode, le PDF de confirmation
+                        // la remplace.
+                        if (AppConfig.instance.terminalMode ==
+                                TerminalMode.phone &&
+                            state.status == ScanBoardingStatus.valide &&
+                            state.matchedPassenger?.ticketId != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: AppSpacing.lg),
+                            child: KoraButton(
+                              label: 'Voir la confirmation (PDF)',
+                              variant: KoraButtonVariant.ghost,
+                              icon: Icons.picture_as_pdf_outlined,
+                              onPressed: () {
+                                final String? departureUuid = context
+                                    .read<SelectedDepartCubit>()
+                                    .state
+                                    ?.id;
+                                final String? ticketUuid =
+                                    state.matchedPassenger?.ticketId;
+                                if (departureUuid == null ||
+                                    ticketUuid == null) {
+                                  return;
+                                }
+                                context.push(
+                                  AppRoutes.boardingPdfPreview,
+                                  extra: BoardingPdfPreviewArgs(
+                                    departureUuid: departureUuid,
+                                    ticketUuid: ticketUuid,
+                                    passengerName:
+                                        state.matchedPassenger?.nomComplet,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
                       ],
                     );
                   },
