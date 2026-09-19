@@ -1,8 +1,8 @@
 // Le blocage atomique d'un groupe.
 //
-// Ce qui distingue ce chemin de l'ordinaire : un seul appel retient les N
-// sièges, il s'appuie sur le devis déjà montré au voyageur, et il porte le
-// payeur — qui n'est pas forcément l'un des voyageurs.
+// Ce qui distingue un groupe : un seul appel retient les N sièges, il
+// s'appuie sur le devis déjà montré au voyageur, et il porte le payeur —
+// qui n'est pas forcément l'un des voyageurs.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_app_passenger/core/error/failures.dart';
@@ -10,12 +10,27 @@ import 'package:kora_app_passenger/features/booking/data/datasources/booking_moc
 import 'package:kora_app_passenger/features/booking/domain/entities/departure.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/group_payer.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/group_quote.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/passenger.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/price.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/search_criteria.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/seat.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/seat_hold_bloc.dart';
 
 import '../../../../support/seat_hold_harness.dart';
+
+/// Un voyageur par siège, dans l'ordre du plan.
+List<Passenger> travellersFor(List<Seat> seats) => [
+  for (final (index, seat) in seats.indexed)
+    Passenger(
+      firstName: 'Voyageur',
+      lastName: 'N${index + 1}',
+      phone: '+2290197421${index}0',
+      seat: seat,
+    ),
+];
+
+/// Le checkout terminé : blocage et voyageurs.
+bool _done(SeatHoldState state) => state.isHeld && !state.isCheckingOut;
 
 void main() {
   late Departure departure;
@@ -56,11 +71,15 @@ void main() {
     addTearDown(bloc.close);
 
     bloc.add(
-      SeatHoldGroupRequested(departure: departure, quote: quote, seats: seats),
+      SeatHoldCheckoutRequested(
+        departure: departure,
+        quote: quote,
+        passengers: travellersFor(seats),
+      ),
     );
-    await bloc.stream.firstWhere((state) => state.isHeld);
+    await bloc.stream.firstWhere(_done);
 
-    expect(repository.calls, ['holdGroup:5']);
+    expect(repository.calls, ['holdGroup:5', 'passengers:5']);
     expect(bloc.state.hold!.seatLabels, hasLength(5));
     expect(bloc.state.passengers, 5);
   });
@@ -74,9 +93,13 @@ void main() {
     addTearDown(bloc.close);
 
     bloc.add(
-      SeatHoldGroupRequested(departure: departure, quote: quote, seats: seats),
+      SeatHoldCheckoutRequested(
+        departure: departure,
+        quote: quote,
+        passengers: travellersFor(seats),
+      ),
     );
-    await bloc.stream.firstWhere((state) => state.isHeld);
+    await bloc.stream.firstWhere(_done);
 
     expect(repository.calls, isNot(contains('quote')));
     expect(repository.calls, isNot(contains('groupQuote:5')));
@@ -88,9 +111,13 @@ void main() {
     addTearDown(bloc.close);
 
     bloc.add(
-      SeatHoldGroupRequested(departure: departure, quote: quote, seats: seats),
+      SeatHoldCheckoutRequested(
+        departure: departure,
+        quote: quote,
+        passengers: travellersFor(seats),
+      ),
     );
-    await bloc.stream.firstWhere((state) => state.isHeld);
+    await bloc.stream.firstWhere(_done);
 
     expect(bloc.state.hold!.total, const Price(56250));
   });
@@ -103,9 +130,13 @@ void main() {
     addTearDown(bloc.close);
 
     bloc.add(
-      SeatHoldGroupRequested(departure: departure, quote: quote, seats: seats),
+      SeatHoldCheckoutRequested(
+        departure: departure,
+        quote: quote,
+        passengers: travellersFor(seats),
+      ),
     );
-    await bloc.stream.firstWhere((state) => state.isHeld);
+    await bloc.stream.firstWhere(_done);
 
     expect(repository.groupPayer!.isCompany, isFalse);
     expect(repository.groupPayer!.toJson(), isNull);
@@ -117,14 +148,14 @@ void main() {
     addTearDown(bloc.close);
 
     bloc.add(
-      SeatHoldGroupRequested(
+      SeatHoldCheckoutRequested(
         departure: departure,
         quote: quote,
-        seats: seats,
+        passengers: travellersFor(seats),
         payer: const GroupPayer.company(accountId: 'ca-1', name: 'STB SARL'),
       ),
     );
-    await bloc.stream.firstWhere((state) => state.isHeld);
+    await bloc.stream.firstWhere(_done);
 
     expect(repository.groupPayer!.toJson(), {
       'type': 'company',
@@ -141,7 +172,11 @@ void main() {
     addTearDown(bloc.close);
 
     bloc.add(
-      SeatHoldGroupRequested(departure: departure, quote: quote, seats: seats),
+      SeatHoldCheckoutRequested(
+        departure: departure,
+        quote: quote,
+        passengers: travellersFor(seats),
+      ),
     );
     await bloc.stream.firstWhere(
       (state) => state.status == SeatHoldStatus.failure,

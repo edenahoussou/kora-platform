@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/error/failures.dart';
 import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/date_formats.dart';
@@ -46,9 +47,10 @@ class SummaryArgs {
 /// du voyage, liste des voyageurs avec leur siège, détail du prix, puis
 /// l'accès au paiement.
 ///
-/// Écran de vérification : il n'affiche que ce qui a été choisi aux étapes
-/// précédentes, sans rien recharger. D'où l'absence de Bloc — il n'y a
-/// aucun état à gérer, seulement des totaux à calculer.
+/// C'est ici que le prix s'arrête et que les sièges sont retenus : le code
+/// promo ne fait qu'un nouveau devis, et « Continuer vers le paiement »
+/// bloque les sièges sur le devis affiché avant d'y rattacher les
+/// voyageurs (voir [SeatHoldBloc]).
 class SummaryPage extends StatefulWidget {
   const SummaryPage({
     super.key,
@@ -145,12 +147,6 @@ class _SummaryContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
 
-    // Un code en cours d'application change le prix et la réservation : on
-    // ne part pas payer pendant que le serveur les refait.
-    final repricing = context.select<SeatHoldBloc, bool>(
-      (bloc) => bloc.state.isRepricing,
-    );
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -191,42 +187,120 @@ class _SummaryContent extends StatelessWidget {
         ),
         Padding(
           padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-          child: KoraButton(
-            label: l10n.summaryContinue,
-            onPressed: repricing
-                ? null
-                : () => context.push(
-                    AppRouter.paymentMethodPath,
-                    // Le total est arrêté ici, puis transporté : le recalculer
-                    // sur chaque écran de paiement ferait dépendre la somme du
-                    // chemin emprunté.
-                    //
-                    // Celui du serveur quand il l'a donné — c'est le seul qui
-                    // porte la remise de groupe. Le produit local ne sert que de
-                    // repli : afficher 280 000 au paiement après 252 000 au
-                    // récapitulatif suffit à faire abandonner un achat, alors
-                    // même que le serveur débitera le bon montant.
-                    extra: PaymentArgs(
-                      total: _payableTotal(
-                        context,
-                        departure,
-                        passengers.length,
-                      ),
-                      // Le numéro du compte, proposé au débit Mobile Money :
-                      // c'est celui que le voyageur a sous la main, et le
-                      // retaper à ce stade n'apporte rien.
-                      phone: context.read<AuthBloc>().state.session?.user.phone,
-                      departure: departure,
-                      seatLabel: passengers
-                          .map((passenger) => passenger.seat.label)
-                          .join(', '),
-                    ),
-                  ),
+          child: _CheckoutButton(
+            departure: departure,
+            passengers: passengers,
+            returnDeparture: returnDeparture,
+            returnSeats: returnSeats,
           ),
         ),
       ],
     );
   }
+}
+
+/// « Continuer vers le paiement » : devis, blocage des sièges, voyageurs,
+/// puis le paiement.
+///
+/// Trois issues à la fin du checkout :
+/// * **tout est retenu** — on ouvre le paiement, avec le total du devis
+///   bloqué ;
+/// * **un siège vient d'être pris** — retour au plan, qui le montre occupé
+///   et le dit ;
+/// * **autre refus** — le message du serveur, et le voyageur reste ici.
+class _CheckoutButton extends StatelessWidget {
+  const _CheckoutButton({
+    required this.departure,
+    required this.passengers,
+    this.returnDeparture,
+    this.returnSeats,
+  });
+
+  final Departure departure;
+  final List<Passenger> passengers;
+  final Departure? returnDeparture;
+  final List<Seat>? returnSeats;
+
+  void _checkout(BuildContext context) {
+    context.read<SeatHoldBloc>().add(
+      SeatHoldCheckoutRequested(
+        departure: departure,
+        passengers: passengers,
+        // Le devis que l'écran affiche : le voyageur paie le prix qu'il
+        // vient de lire.
+        quote: _shownQuote(context, departure, passengers.length),
+        returnDeparture: returnDeparture,
+        returnSeats: returnSeats,
+        // Choisi sur l'écran de groupe, en amont du plan.
+        payer: context.read<GroupPayerCubit>().state.payer,
+      ),
+    );
+  }
+
+  void _openPayment(BuildContext context) {
+    context.push(
+      AppRouter.paymentMethodPath,
+      // Le total est arrêté ici, puis transporté : le recalculer sur chaque
+      // écran de paiement ferait dépendre la somme du chemin emprunté.
+      extra: PaymentArgs(
+        total: _payableTotal(context, departure, passengers.length),
+        // Le numéro du compte, proposé au débit Mobile Money : c'est celui
+        // que le voyageur a sous la main, et le retaper à ce stade
+        // n'apporte rien.
+        phone: context.read<AuthBloc>().state.session?.user.phone,
+        departure: departure,
+        seatLabel: passengers
+            .map((passenger) => passenger.seat.label)
+            .join(', '),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocConsumer<SeatHoldBloc, SeatHoldState>(
+      listenWhen: (previous, current) =>
+          previous.isCheckingOut && !current.isCheckingOut,
+      listener: (context, hold) {
+        if (hold.isHeld && hold.passengersStatus == PassengersStatus.saved) {
+          _openPayment(context);
+          return;
+        }
+
+        final failure = hold.failure;
+        if (failure is SeatUnavailableFailure) {
+          // Le plan écoute le même bloc : il marque le siège occupé et
+          // prévient le voyageur. Il reste à l'y ramener.
+          Navigator.of(context).popUntil(
+            (route) =>
+                route.settings.name == AppRouter.seatsPath || route.isFirst,
+          );
+          return;
+        }
+
+        if (failure != null) KoraToaster.show(context, failure.message);
+      },
+      builder: (context, hold) => KoraButton(
+        label: context.l10n.summaryContinue,
+        isLoading: hold.isCheckingOut,
+        // Un code en cours d'application change le prix : on ne part pas
+        // bloquer pendant que le serveur le recalcule.
+        onPressed: hold.isRepricing || hold.isCheckingOut
+            ? null
+            : () => _checkout(context),
+      ),
+    );
+  }
+}
+
+/// Le devis affiché : celui du code promo quand il y en a un, celui du
+/// tunnel sinon. `null` si le serveur n'a pas encore répondu.
+GroupQuote? _shownQuote(BuildContext context, Departure departure, int count) {
+  final promo = context.read<SeatHoldBloc>().state.quote;
+  if (promo != null) return promo;
+
+  final state = context.read<GroupQuoteCubit>().state;
+  return state.matches(departure.id, count) ? state.quote : null;
 }
 
 /// Le montant à afficher sur les écrans de paiement.
@@ -237,16 +311,10 @@ class _SummaryContent extends StatelessWidget {
 /// c'est justement pour cela qu'il doit s'accorder avec le récapitulatif
 /// que le voyageur vient de lire.
 Price _payableTotal(BuildContext context, Departure departure, int count) {
-  // Après un code promo, la réservation a été rebloquée sur un nouveau
-  // devis : c'est son total que le serveur débitera.
-  final repriced = context.read<SeatHoldBloc>().state.quote;
-  if (repriced != null) return repriced.total;
-
-  final state = context.read<GroupQuoteCubit>().state;
-  if (state.matches(departure.id, count)) {
-    final quote = state.quote;
-    if (quote != null) return quote.total;
-  }
+  // Le devis bloqué, ou à défaut celui qu'affiche l'écran : c'est son total
+  // que le serveur débitera.
+  final quote = _shownQuote(context, departure, count);
+  if (quote != null) return quote.total;
 
   return departure.price * count.clamp(1, 99);
 }
@@ -473,8 +541,8 @@ class _PriceCard extends StatelessWidget {
 
     return BlocBuilder<GroupQuoteCubit, GroupQuoteState>(
       builder: (context, state) {
-        // Le devis de la réservation rebloquée l'emporte : sous-total,
-        // remise promo et total viennent tous du serveur.
+        // Le devis du code promo — puis celui du blocage — l'emporte :
+        // sous-total, remise promo et total viennent tous du serveur.
         final repriced = context.select<SeatHoldBloc, GroupQuote?>(
           (bloc) => bloc.state.quote,
         );
@@ -661,12 +729,12 @@ class _PromoCodeCardState extends State<_PromoCodeCard> {
     super.dispose();
   }
 
-  void _reprice(BuildContext context, {String? code}) {
+  void _apply(BuildContext context) {
     context.read<SeatHoldBloc>().add(
       SeatHoldRepriceRequested(
         departure: widget.departure,
         passengers: widget.passengers,
-        promoCode: code,
+        promoCode: _controller.text,
         returnDeparture: widget.returnDeparture,
         returnSeats: widget.returnSeats,
         payer: context.read<GroupPayerCubit>().state.payer,
@@ -681,19 +749,20 @@ class _PromoCodeCardState extends State<_PromoCodeCard> {
 
     return BlocBuilder<SeatHoldBloc, SeatHoldState>(
       buildWhen: (previous, current) =>
-          previous.hold?.id != current.hold?.id ||
           previous.quote != current.quote ||
           previous.promoStatus != current.promoStatus ||
           previous.promoError != current.promoError ||
           previous.promoUnavailable != current.promoUnavailable,
       builder: (context, state) {
-        // Sans réservation bloquée, il n'y a rien à quoi appliquer un code.
-        if (state.hold == null) return const SizedBox.shrink();
-
         final promotion = state.quote?.promotion;
         final busy = state.isRepricing;
 
-        void apply() => _reprice(context, code: _controller.text);
+        // Le code déjà appliqué ne se réapplique pas : un second appui
+        // redemanderait le même devis — et, sièges retenus, les
+        // relâcherait pour rien. Un autre code saisi rend le bouton.
+        bool alreadyApplied(String text) =>
+            promotion != null &&
+            text.trim().toUpperCase() == promotion.code.toUpperCase();
 
         return KoraCard(
           child: Column(
@@ -719,10 +788,6 @@ class _PromoCodeCardState extends State<_PromoCodeCard> {
                         ),
                       ),
                     ),
-                    TextButton(
-                      onPressed: busy ? null : () => _reprice(context),
-                      child: Text(l10n.summaryPromoRemove),
-                    ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.sm),
@@ -734,17 +799,34 @@ class _PromoCodeCardState extends State<_PromoCodeCard> {
                 enabled: !busy,
                 textCapitalization: TextCapitalization.characters,
                 textInputAction: TextInputAction.done,
-                onSubmitted: (_) => apply(),
+                onSubmitted: (text) {
+                  if (!alreadyApplied(text)) _apply(context);
+                },
                 decoration: InputDecoration(hintText: l10n.summaryPromoHint),
               ),
               const SizedBox(height: AppSpacing.sm),
-              KoraButton(
-                label: state.promoStatus == PromoStatus.applying
-                    ? l10n.summaryPromoChecking
-                    : l10n.summaryPromoApply,
-                variant: KoraButtonVariant.ghost,
-                isLoading: state.promoStatus == PromoStatus.applying,
-                onPressed: busy ? null : apply,
+              // Suit la saisie : le bouton se grise dès que le champ reprend
+              // le code appliqué, et revient dès qu'on en tape un autre.
+              ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _controller,
+                builder: (context, value, _) {
+                  final applied = alreadyApplied(value.text);
+
+                  // Estompé à la main : `KoraButton` désactivé garde son
+                  // libellé en pleine couleur, et le bouton paraissait
+                  // encore actif.
+                  return Opacity(
+                    opacity: applied ? 0.4 : 1,
+                    child: KoraButton(
+                      label: busy
+                          ? l10n.summaryPromoChecking
+                          : l10n.summaryPromoApply,
+                      variant: KoraButtonVariant.ghost,
+                      isLoading: busy,
+                      onPressed: busy || applied ? null : () => _apply(context),
+                    ),
+                  );
+                },
               ),
               if (state.promoError != null || state.promoUnavailable) ...[
                 const SizedBox(height: AppSpacing.sm),
@@ -753,9 +835,13 @@ class _PromoCodeCardState extends State<_PromoCodeCard> {
                   style: AppTextStyles.caption(AppColors.danger),
                 ),
                 const SizedBox(height: 2),
-                // Un code refusé n'arrête pas l'achat.
+                // Un code refusé n'arrête pas l'achat, et ne retire pas celui
+                // qui était déjà appliqué : le dire, plutôt que d'annoncer un
+                // tarif normal que le voyageur ne paiera pas.
                 Text(
-                  l10n.summaryPromoContinue,
+                  promotion != null
+                      ? l10n.summaryPromoKept(promotion.code)
+                      : l10n.summaryPromoContinue,
                   style: AppTextStyles.caption(koraColors.textMuted),
                 ),
               ],

@@ -866,7 +866,8 @@ class AppLocalization {
   String get summaryPromoChecking => translate('summary_promo_checking');
   String summaryPromoApplied(String code) =>
       _withArgs('summary_promo_applied', {'code': code});
-  String get summaryPromoRemove => translate('summary_promo_remove');
+  String summaryPromoKept(String code) =>
+      _withArgs('summary_promo_kept', {'code': code});
   String summaryPromoLine(String code) =>
       _withArgs('summary_promo_line', {'code': code});
   String get summaryPromoContinue => translate('summary_promo_continue');

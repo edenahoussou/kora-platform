@@ -7,21 +7,27 @@ sealed class SeatHoldEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-/// « Continuer » sur le plan : fige le prix, retient les sièges, arme le
-/// décompte.
-class SeatHoldRequested extends SeatHoldEvent {
-  const SeatHoldRequested({
+/// « Continuer vers le paiement » sur le récapitulatif : fige le prix,
+/// retient les sièges, rattache les voyageurs, arme le décompte.
+class SeatHoldCheckoutRequested extends SeatHoldEvent {
+  const SeatHoldCheckoutRequested({
     required this.departure,
-    required this.seats,
+    required this.passengers,
+    this.quote,
     this.returnDeparture,
     this.returnSeats,
+    this.payer = const GroupPayer.personal(),
   });
 
+  /// L'aller, sur un aller-retour : c'est lui que porte le devis.
   final Departure departure;
 
-  /// Dans l'ordre de sélection : c'est cet ordre qui attribue les sièges
-  /// aux voyageurs du formulaire suivant.
-  final List<Seat> seats;
+  /// Les voyageurs, chacun avec son siège aller, dans l'ordre du plan.
+  final List<Passenger> passengers;
+
+  /// Le devis que le récapitulatif affiche — remise de groupe et code promo
+  /// compris. `null` s'il n'a pas pu être chargé : on en redemande un.
+  final GroupQuote? quote;
 
   /// Le retour d'un aller-retour, avec ses propres sièges.
   ///
@@ -30,60 +36,27 @@ class SeatHoldRequested extends SeatHoldEvent {
   /// ce qui donne au voyageur un paiement unique.
   final Departure? returnDeparture;
 
-  /// Un siège de retour par voyageur, dans le même ordre que [seats].
+  /// Un siège de retour par voyageur, dans le même ordre que [passengers].
   final List<Seat>? returnSeats;
 
+  /// Choisi sur l'écran de groupe : personnel ou compte entreprise.
+  final GroupPayer payer;
+
   @override
-  List<Object?> get props => [departure, seats, returnDeparture, returnSeats];
+  List<Object?> get props => [
+    departure,
+    passengers,
+    quote,
+    returnDeparture,
+    returnSeats,
+    payer,
+  ];
 }
 
 /// Le voyageur revient sur ses choix. Rend les sièges à la vente et coupe
 /// le décompte.
-/// Retient d'un coup tous les sièges d'un groupe.
-///
-/// Distinct de [SeatHoldRequested] : le groupe passe par le devis
-/// d'itinéraire, seul à porter la remise, et par un blocage atomique. Un
-/// événement à part plutôt qu'un drapeau sur l'autre — les deux chemins
-/// n'appellent ni les mêmes routes ni les mêmes règles.
-class SeatHoldGroupRequested extends SeatHoldEvent {
-  const SeatHoldGroupRequested({
-    required this.departure,
-    required this.quote,
-    required this.seats,
-    this.payer = const GroupPayer.personal(),
-  });
-
-  final Departure departure;
-
-  /// Le devis déjà obtenu : c'est son `itinerary_quote_uuid` que réclame le
-  /// blocage.
-  final GroupQuote quote;
-
-  /// Dans l'ordre de sélection : le voyageur d'indice `i` occupera le
-  /// i-ième siège, et le formulaire des identités suivra le même ordre.
-  final List<Seat> seats;
-
-  final GroupPayer payer;
-
-  @override
-  List<Object?> get props => [departure, quote, seats, payer];
-}
-
 class SeatHoldReleased extends SeatHoldEvent {
   const SeatHoldReleased();
-}
-
-/// Les identités saisies partent au serveur.
-///
-/// Le blocage existe déjà — c'est lui qui porte le `reservation_uuid` —
-/// donc l'événement ne transporte que les voyageurs.
-class SeatHoldPassengersSubmitted extends SeatHoldEvent {
-  const SeatHoldPassengersSubmitted(this.passengers);
-
-  final List<Passenger> passengers;
-
-  @override
-  List<Object?> get props => [passengers];
 }
 
 /// Le paiement a abouti : les sièges ne sont plus retenus, ils sont
@@ -101,13 +74,13 @@ class SeatHoldTicked extends SeatHoldEvent {
   const SeatHoldTicked();
 }
 
-/// Applique [promoCode] à la réservation bloquée, ou retire le code quand il
-/// vaut `null`. Porte tout ce qu'il faut pour rebloquer les mêmes sièges.
+/// Applique [promoCode] au devis. Porte tout ce qu'il faut pour rebloquer
+/// les mêmes sièges si une réservation est déjà retenue.
 class SeatHoldRepriceRequested extends SeatHoldEvent {
   const SeatHoldRepriceRequested({
     required this.departure,
     required this.passengers,
-    this.promoCode,
+    required this.promoCode,
     this.returnDeparture,
     this.returnSeats,
     this.payer = const GroupPayer.personal(),
@@ -118,7 +91,7 @@ class SeatHoldRepriceRequested extends SeatHoldEvent {
   /// Les voyageurs, chacun avec son siège aller — dans l'ordre du blocage.
   final List<Passenger> passengers;
 
-  final String? promoCode;
+  final String promoCode;
   final Departure? returnDeparture;
   final List<Seat>? returnSeats;
   final GroupPayer payer;

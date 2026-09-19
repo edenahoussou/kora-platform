@@ -9,11 +9,12 @@ import '../bloc/seat_hold_bloc.dart';
 /// `.seat-reservation-clock` : le temps qu'il reste avant que les sièges
 /// repartent à la vente.
 ///
-/// **Ne s'affiche que si des sièges sont réellement retenus.** À la
-/// première visite du plan, rien n'est bloqué : le voyageur choisit
-/// librement, et annoncer un délai avant qu'il n'en existe un
-/// presserait pour rien. La carte apparaît à la confirmation, puis suit le
-/// voyageur jusqu'au paiement.
+/// **Ne s'affiche que si des sièges sont réellement retenus.** Sur le plan,
+/// le formulaire et le récapitulatif, rien n'est bloqué : le voyageur
+/// choisit librement, et annoncer un délai avant qu'il n'en existe un
+/// presserait pour rien. La carte apparaît une fois le récapitulatif
+/// validé, puis suit le voyageur jusqu'au paiement — et sur les écrans
+/// qu'il retraverse en revenant en arrière.
 ///
 /// Rend un espace nul le reste du temps, d'où le `SizedBox.shrink` : les
 /// écrans du tunnel peuvent la poser sans se demander où l'on en est.

@@ -168,6 +168,10 @@ class StubReservationRepository implements ReservationRepository {
   /// simple.
   List<Seat>? groupReturnSeats;
 
+  /// Le total du dernier blocage : le serveur le garde sur la réservation,
+  /// et le rend tel quel avec les voyageurs.
+  Price? heldTotal;
+
   @override
   Future<Either<Failure, SeatHold>> holdGroup({
     required GroupQuote quote,
@@ -188,6 +192,7 @@ class StubReservationRepository implements ReservationRepository {
     if (failure != null) return Left(failure);
     if (nextHoldFailures.isNotEmpty) return Left(nextHoldFailures.removeAt(0));
 
+    heldTotal = quote.total;
     return Right(
       SeatHold(
         id: 'hold-groupe-1',
@@ -217,7 +222,7 @@ class StubReservationRepository implements ReservationRepository {
         id: reservationId,
         expiresAt: now.add(holdDuration),
         seatLabels: [for (final p in passengers) p.seat.label],
-        total: Price(12500 * passengers.length),
+        total: heldTotal ?? Price(12500 * passengers.length),
       ),
     );
   }

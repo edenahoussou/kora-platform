@@ -16,7 +16,6 @@ import '../../../profil/presentation/pages/birth_date_picker_page.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/passenger.dart';
 import '../../domain/entities/seat.dart';
-import '../bloc/seat_hold_bloc.dart';
 import '../widgets/booking_progress.dart';
 import '../widgets/hold_countdown.dart';
 import '../widgets/state_view.dart';
@@ -150,23 +149,11 @@ class _PassengerFormPageState extends State<PassengerFormPage> {
       return;
     }
 
-    final passengers = _collect();
-
-    // Les identités partent au serveur avant le récapitulatif : c'est lui
-    // qui les rattache à la réservation retenue, et qui rend le `status`
-    // et l'`expires_at` à jour. Avancer sans attendre afficherait un
-    // récapitulatif que le serveur ne connaît pas encore.
-    //
-    // Sans blocage en cours — un lien profond, un retour après
-    // expiration — il n'y a aucune réservation à renseigner : on laisse
-    // passer plutôt que de bloquer sur un appel qui échouerait.
-    final bloc = context.read<SeatHoldBloc>();
-    if (bloc.state.hold == null) {
-      _openSummary(passengers);
-      return;
-    }
-
-    bloc.add(SeatHoldPassengersSubmitted(passengers));
+    // Rien ne part au serveur ici : les identités se rattachent à la
+    // réservation, et celle-ci n'est bloquée qu'au récapitulatif, une fois
+    // le prix arrêté — code promo compris. Elles voyagent jusque-là avec
+    // l'écran.
+    _openSummary(_collect());
   }
 
   /// Les champs à reprendre, voyageur par voyageur, en clair.
@@ -313,26 +300,9 @@ class _PassengerFormPageState extends State<PassengerFormPage> {
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                child: BlocConsumer<SeatHoldBloc, SeatHoldState>(
-                  listenWhen: (previous, current) =>
-                      previous.passengersStatus != current.passengersStatus,
-                  listener: (context, hold) {
-                    if (hold.passengersStatus == PassengersStatus.saved) {
-                      _openSummary(_collect());
-                      return;
-                    }
-
-                    final failure = hold.failure;
-                    if (hold.passengersStatus == PassengersStatus.failure &&
-                        failure != null) {
-                      KoraToaster.show(context, failure.message);
-                    }
-                  },
-                  builder: (context, hold) => KoraButton(
-                    label: l10n.passengersSubmit,
-                    isLoading: hold.passengersStatus == PassengersStatus.saving,
-                    onPressed: _submit,
-                  ),
+                child: KoraButton(
+                  label: l10n.passengersSubmit,
+                  onPressed: _submit,
                 ),
               ),
             ],

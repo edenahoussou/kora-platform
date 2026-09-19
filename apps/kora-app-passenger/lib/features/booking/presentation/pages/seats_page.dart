@@ -11,10 +11,8 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../domain/entities/departure.dart';
-import '../../domain/entities/group_booking_limits.dart';
 import '../../domain/entities/price.dart';
 import '../../domain/entities/seat.dart';
-import '../bloc/group_payer_cubit.dart';
 import '../bloc/group_quote_cubit.dart';
 import '../bloc/seat_hold_bloc.dart';
 import '../bloc/seats_bloc.dart';
@@ -344,17 +342,17 @@ class _Checkout extends StatelessWidget {
   }
 }
 
-/// Le bouton qui engage la réservation, et ce qui l'accompagne selon que
+/// Le bouton qui poursuit le parcours, et ce qui l'accompagne selon que
 /// des sièges sont déjà retenus ou non.
 ///
-/// Trois situations, trois comportements :
-/// * **rien de retenu** — « Continuer » bloque les sièges puis mène au
-///   formulaire passagers ;
-/// * **blocage en cours** — le bouton attend la réponse du serveur ;
-/// * **sièges retenus** — on revient sur ses pas : « Continuer » est
-///   grisé, et il faut d'abord annuler pour choisir autrement. Le laisser
-///   actif aurait bloqué une seconde fois les mêmes places, ou d'autres,
-///   sans jamais rendre les premières.
+/// Deux situations, deux comportements :
+/// * **rien de retenu** — le cas normal : « Continuer » mène au plan du
+///   retour ou au formulaire passagers, sans rien bloquer. Le blocage part
+///   du récapitulatif, une fois le prix arrêté — code promo compris ;
+/// * **sièges retenus** — le voyageur revient du paiement : « Continuer »
+///   est grisé, et il faut d'abord annuler pour choisir autrement. Le
+///   laisser actif aurait bloqué une seconde fois les mêmes places, ou
+///   d'autres, sans jamais rendre les premières.
 class _ContinueButton extends StatelessWidget {
   const _ContinueButton({
     required this.state,
@@ -371,42 +369,25 @@ class _ContinueButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocConsumer<SeatHoldBloc, SeatHoldState>(
       listenWhen: (previous, current) => previous.status != current.status,
+      // Le blocage, parti du récapitulatif, a trouvé un siège déjà pris :
+      // le récapitulatif ramène ici, et le plan doit le montrer occupé.
+      // Le laisser en « votre choix » inviterait à retenter une place
+      // perdue.
       listener: (context, hold) {
-        // Les deux plans d'un aller-retour écoutent le même bloc : sans ce
-        // garde-fou, celui de l'aller — resté dans la pile — naviguerait
-        // lui aussi au blocage déclenché depuis le retour.
+        // Les deux plans d'un aller-retour écoutent le même bloc : seul le
+        // dernier, celui qu'on retrouve en revenant, prévient le voyageur.
         if (returnDeparture != null) return;
 
-        if (hold.status == SeatHoldStatus.held) {
-          // Sur un aller-retour, cet écran-ci montrait le retour : le
-          // voyage se raconte au départ de l'aller.
-          final leg = outbound;
-
-          context.push(
-            AppRouter.passengerInfoPath,
-            extra: PassengerFormArgs(
-              departure: leg?.departure ?? state.departure!,
-              seats: leg?.seats ?? state.selectedSeats,
-              returnDeparture: leg == null ? null : state.departure,
-              returnSeats: leg == null ? null : state.selectedSeats,
-            ),
-          );
+        final failure = hold.failure;
+        if (hold.status != SeatHoldStatus.failure ||
+            failure is! SeatUnavailableFailure) {
           return;
         }
 
-        final failure = hold.failure;
-        if (hold.status != SeatHoldStatus.failure || failure == null) return;
-
         KoraToaster.show(context, failure.message);
-
-        // Un siège que le serveur vient d'attribuer à quelqu'un d'autre
-        // doit le montrer sur le plan : le laisser en « votre choix »
-        // inviterait à retaper « Continuer » sur une place perdue.
-        if (failure is SeatUnavailableFailure) {
-          context.read<SeatsBloc>().add(
-            SeatRefused(seatId: failure.seatId, seatLabel: failure.seatLabel),
-          );
-        }
+        context.read<SeatsBloc>().add(
+          SeatRefused(seatId: failure.seatId, seatLabel: failure.seatLabel),
+        );
       },
       builder: (context, hold) {
         final l10n = context.l10n;
@@ -437,7 +418,6 @@ class _ContinueButton extends StatelessWidget {
           // le libellé est calé à gauche, la flèche à droite.
           icon: Icons.arrow_forward_rounded,
           iconPosition: KoraButtonIconPosition.edges,
-          isLoading: hold.status == SeatHoldStatus.holding,
           // Désactivé tant qu'il manque un siège : la maquette laisse le
           // bouton actif et affiche un message d'erreur au clic, ce qui
           // fait faire un aller-retour pour rien.
@@ -450,13 +430,6 @@ class _ContinueButton extends StatelessWidget {
   }
 }
 
-/// Retient les sièges choisis, par le chemin qui convient.
-///
-/// Un groupe passe par le blocage **atomique** : ses N sièges partent
-/// ensemble ou pas du tout, et il s'appuie sur le devis d'itinéraire déjà
-/// obtenu — celui qui portait la remise montrée au voyageur. Sans ce devis
-/// en mémoire, on retombe sur le chemin ordinaire plutôt que de bloquer le
-/// parcours : le prix sera juste, à la remise près.
 /// Le total que le voyageur réglera : celui du devis quand le serveur en a
 /// rendu un, le tarif de la recherche multiplié sinon.
 ///
@@ -477,12 +450,12 @@ Price _payableTotal(SeatsState state, GroupQuoteState quote) {
 }
 
 /// Poursuit le parcours : le plan du retour s'il en reste un à pourvoir,
-/// le blocage sinon.
+/// le formulaire passagers sinon.
 ///
 /// Un aller-retour demande deux plans — les sièges d'un bus ne valent
-/// pas pour l'autre — mais un seul blocage : le serveur réclame un siège
-/// par tronçon du devis, et c'est ce qui donne au voyageur un paiement
-/// unique.
+/// pas pour l'autre — mais un seul blocage, au récapitulatif : le serveur
+/// réclame un siège par tronçon du devis, et c'est ce qui donne au
+/// voyageur un paiement unique.
 void _continue(
   BuildContext context,
   SeatsState state,
@@ -504,43 +477,16 @@ void _continue(
     return;
   }
 
-  _hold(context, state, outbound);
-}
-
-void _hold(BuildContext context, SeatsState state, OutboundLeg? outbound) {
-  final departure = state.departure!;
-  final quoteState = context.read<GroupQuoteCubit>().state;
-  final quote = quoteState.matches(departure.id, state.passengers)
-      ? quoteState.quote
-      : null;
-
-  final bloc = context.read<SeatHoldBloc>();
-
-  if (state.passengers >= kGroupMinimumPassengers && quote != null) {
-    bloc.add(
-      SeatHoldGroupRequested(
-        departure: departure,
-        quote: quote,
-        seats: state.selectedSeats,
-        // Choisi deux écrans plus tôt, sur la réservation de groupe.
-        payer: context.read<GroupPayerCubit>().state.payer,
-      ),
-    );
-    return;
-  }
-
-  // Sur un aller-retour, le départ qui compte est l'aller : c'est lui que
-  // porteront le devis et les écrans suivants. Cet écran-ci montrait le
-  // retour.
-  bloc.add(
-    outbound == null
-        ? SeatHoldRequested(departure: departure, seats: state.selectedSeats)
-        : SeatHoldRequested(
-            departure: outbound.departure,
-            seats: outbound.seats,
-            returnDeparture: departure,
-            returnSeats: state.selectedSeats,
-          ),
+  // Sur un aller-retour, cet écran-ci montrait le retour : le voyage se
+  // raconte au départ de l'aller.
+  context.push(
+    AppRouter.passengerInfoPath,
+    extra: PassengerFormArgs(
+      departure: outbound?.departure ?? state.departure!,
+      seats: outbound?.seats ?? state.selectedSeats,
+      returnDeparture: outbound == null ? null : state.departure,
+      returnSeats: outbound == null ? null : state.selectedSeats,
+    ),
   );
 }
 
