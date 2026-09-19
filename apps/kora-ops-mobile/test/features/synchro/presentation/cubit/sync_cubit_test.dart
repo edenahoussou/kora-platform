@@ -90,8 +90,7 @@ void main() {
       const PendingOperation(
           id: '1', label: 'Refus — Siège 12A', createdAtLabel: 'À l\'instant'),
     ),
-    expect: () =>
-        <dynamic>[predicate<SyncState>((s) => s.pending.length == 1)],
+    expect: () => <dynamic>[predicate<SyncState>((s) => s.pending.length == 1)],
   );
 
   group('syncNow', () {
@@ -158,7 +157,8 @@ void main() {
     'automatique',
     setUp: () {
       when(() => syncRepository.syncPending()).thenAnswer(
-        (_) async => const Result<SyncSummary>.success(SyncSummary(accepted: 1)),
+        (_) async =>
+            const Result<SyncSummary>.success(SyncSummary(accepted: 1)),
       );
     },
     build: buildCubit,

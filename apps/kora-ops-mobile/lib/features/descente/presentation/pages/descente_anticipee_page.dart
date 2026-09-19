@@ -75,7 +75,8 @@ class DescenteAnticipeePage extends StatelessWidget {
                           ),
                         _ => _SeatMapView(
                             depart: depart,
-                            seats: _seatsFromManifest(manifesteState.passengers),
+                            seats:
+                                _seatsFromManifest(manifesteState.passengers),
                           ),
                       },
               ),

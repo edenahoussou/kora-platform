@@ -57,7 +57,8 @@ class ManifesteRepositoryImpl implements ManifesteRepository {
 
     try {
       if (cached == null) {
-        return Result<ManifestSnapshot>.success(await _fetchFresh(departureUuid));
+        return Result<ManifestSnapshot>.success(
+            await _fetchFresh(departureUuid));
       }
 
       final ManifestVersionCheck check =
@@ -70,7 +71,8 @@ class ManifesteRepositoryImpl implements ManifesteRepository {
       }
 
       if (check.stale) {
-        return Result<ManifestSnapshot>.success(await _fetchFresh(departureUuid));
+        return Result<ManifestSnapshot>.success(
+            await _fetchFresh(departureUuid));
       }
 
       // Vérifié à jour : on sert le cache tel quel, sans le

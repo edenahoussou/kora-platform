@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../app/config/app_config.dart';
+import '../../../../app/config/terminal_mode.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_radius.dart';
 import '../../../../app/theme/app_spacing.dart';
@@ -16,12 +18,16 @@ import '../../../synchro/presentation/widgets/sync_status_banner.dart';
 import '../cubit/scan_boarding_cubit.dart';
 
 /// Onglet Scan boarding (MEZ-91) : déclenché uniquement par l'adaptateur
-/// matériel P501 (Mock en dev, scanner réel en production — MEZ-10),
-/// **jamais par la caméra standard du téléphone** (voir critère
-/// d'acceptation MEZ-91 — la version précédente de cet écran utilisait
-/// `mobile_scanner` en chemin principal, retiré ici). Une recherche
-/// manuelle par code court reste disponible pour les QR illisibles, sans
-/// jamais afficher de prix (le manifeste local n'en contient pas).
+/// matériel injecté (`BarcodeScanner`), **jamais par un appel direct à
+/// `mobile_scanner`** — voir critère d'acceptation MEZ-91. En mode P501
+/// (`AppConfig.terminalMode`), c'est le SDK du terminal (Mock en dev,
+/// réel en prod — MEZ-10) ; en mode téléphone, c'est la caméra de
+/// l'appareil (`PhoneCameraBarcodeScanner`, voir ticket "Supporter le
+/// scan par caméra téléphone en alternative au P501") — dans les deux
+/// cas via le même point d'appel `ScanBoardingCubit.scan()`, qui ignore
+/// totalement la source matérielle. Une recherche manuelle par code
+/// court reste disponible pour les QR illisibles, sans jamais afficher
+/// de prix (le manifeste local n'en contient pas).
 class ScanBoardingPage extends StatefulWidget {
   const ScanBoardingPage({super.key});
 
@@ -44,7 +50,7 @@ class _ScanBoardingPageState extends State<ScanBoardingPage> {
 
     if (cubit.state.status == ScanBoardingStatus.erreur) {
       await KoraDialogs.error(context,
-          title: 'Scanner P501', description: cubit.state.message);
+          title: 'Scanner', description: cubit.state.message);
       return;
     }
 
@@ -57,7 +63,7 @@ class _ScanBoardingPageState extends State<ScanBoardingPage> {
     }
   }
 
-  Future<void> _scanWithP501(BuildContext context) async {
+  Future<void> _scan(BuildContext context) async {
     await context.read<ScanBoardingCubit>().scan();
     if (context.mounted) await _afterSubmit(context);
   }
@@ -104,7 +110,7 @@ class _ScanBoardingPageState extends State<ScanBoardingPage> {
                       Text(depart.route,
                           style: Theme.of(context).textTheme.titleMedium),
                       const SizedBox(height: AppSpacing.lg),
-                      _P501ScanCard(onScan: () => _scanWithP501(context)),
+                      _ScanCard(onScan: () => _scan(context)),
                       const SizedBox(height: AppSpacing.lg),
                       Text('QR illisible ? Recherche par code court',
                           style: Theme.of(context).textTheme.titleMedium),
@@ -112,20 +118,44 @@ class _ScanBoardingPageState extends State<ScanBoardingPage> {
                       TextField(
                         controller: _searchController,
                         textCapitalization: TextCapitalization.characters,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           hintText: 'Code court (ex. AB12CD)',
-                          prefixIcon: Icon(Icons.search),
+                          prefixIcon: const Icon(Icons.search),
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.search),
+                            tooltip: 'Rechercher',
+                            onPressed: () => context
+                                .read<ScanBoardingCubit>()
+                                .searchManual(_searchController.text),
+                          ),
                         ),
                         onChanged: (String value) => context
+                            .read<ScanBoardingCubit>()
+                            .searchManual(value),
+                        onSubmitted: (String value) => context
                             .read<ScanBoardingCubit>()
                             .searchManual(value),
                       ),
                       BlocBuilder<ScanBoardingCubit, ScanBoardingState>(
                         buildWhen: (previous, current) =>
-                            previous.manualResults != current.manualResults,
+                            previous.manualResults != current.manualResults ||
+                            previous.manualQuery != current.manualQuery,
                         builder: (context, state) {
                           if (state.manualResults.isEmpty) {
-                            return const SizedBox.shrink();
+                            if (state.manualQuery.trim().isEmpty) {
+                              return const SizedBox.shrink();
+                            }
+                            return Padding(
+                              padding:
+                                  const EdgeInsets.only(top: AppSpacing.sm),
+                              child: Text(
+                                'Aucun billet ne correspond à ce code dans '
+                                'le manifeste chargé. Vérifiez le code, ou '
+                                'que le manifeste est à jour (Manifeste → '
+                                'tirer vers le bas pour rafraîchir).',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            );
                           }
                           return Column(
                             children: state.manualResults
@@ -146,10 +176,13 @@ class _ScanBoardingPageState extends State<ScanBoardingPage> {
   }
 }
 
-class _P501ScanCard extends StatelessWidget {
-  const _P501ScanCard({required this.onScan});
+class _ScanCard extends StatelessWidget {
+  const _ScanCard({required this.onScan});
 
   final VoidCallback onScan;
+
+  bool get _isPhoneMode =>
+      AppConfig.instance.terminalMode == TerminalMode.phone;
 
   @override
   Widget build(BuildContext context) {
@@ -161,10 +194,13 @@ class _P501ScanCard extends StatelessWidget {
       ),
       child: Column(
         children: <Widget>[
-          const Icon(Icons.point_of_sale, size: 48),
+          Icon(_isPhoneMode ? Icons.qr_code_scanner : Icons.point_of_sale,
+              size: 48),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            'Présentez le billet au scanner du terminal P501.',
+            _isPhoneMode
+                ? 'Cadrez le QR code du billet avec la caméra.'
+                : 'Présentez le billet au scanner du terminal P501.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
@@ -172,7 +208,7 @@ class _P501ScanCard extends StatelessWidget {
           BlocBuilder<ScanBoardingCubit, ScanBoardingState>(
             buildWhen: (previous, current) => previous.status != current.status,
             builder: (context, state) => KoraButton(
-              label: 'Scanner (P501)',
+              label: _isPhoneMode ? 'Scanner (caméra)' : 'Scanner (P501)',
               icon: Icons.qr_code_scanner,
               isLoading: state.status == ScanBoardingStatus.scanning,
               onPressed: onScan,

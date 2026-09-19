@@ -21,6 +21,7 @@ class TerminalP501Resource extends JsonResource
         return [
             'uuid' => $this->uuid,
             'serial_number' => $this->serial_number,
+            'type' => enum_value($this->type),
             'status' => enum_value($this->status),
             'assigned_user' => $this->whenLoaded('assignedUser', fn () => $this->assignedUser ? [
                 'uuid' => $this->assignedUser->uuid,

@@ -39,6 +39,7 @@ abstract final class AppRoutes {
   static const String manifeste = '/tournee/manifeste';
   static const String detailPassager = '/tournee/manifeste/passager';
   static const String scanResult = '/scan/resultat';
+  static const String boardingPdfPreview = '/scan/resultat/pdf';
   static const String synchro = '/synchro';
 
   // Sous-écrans du Profil (voir document.md § Profil).

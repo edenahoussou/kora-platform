@@ -172,8 +172,8 @@ class ManifesteCubit extends Cubit<ManifesteState> {
   /// de sync").
   void markSeatReleasePending(String ticketUuid) {
     emit(state.copyWith(
-      pendingReleaseTicketUuids:
-          Set<String>.of(state.pendingReleaseTicketUuids)..add(ticketUuid),
+      pendingReleaseTicketUuids: Set<String>.of(state.pendingReleaseTicketUuids)
+        ..add(ticketUuid),
     ));
   }
 

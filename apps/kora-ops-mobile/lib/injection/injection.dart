@@ -6,6 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../app/config/app_config.dart';
+import '../app/config/terminal_mode.dart';
 import '../app/theme/theme_cubit.dart';
 import '../core/database/app_database.dart';
 import '../core/network/network_client.dart';
@@ -34,10 +35,14 @@ import '../features/ops/data/repositories/departure_repository_impl.dart';
 import '../features/ops/domain/repositories/departure_repository.dart';
 import '../features/ops/presentation/cubit/departure_list_cubit.dart';
 import '../features/ops/presentation/cubit/selected_depart_cubit.dart';
+import '../features/printing/data/datasources/boarding_pdf_remote_datasource.dart';
+import '../features/printing/data/repositories/boarding_pdf_repository_impl.dart';
 import '../features/printing/data/services/mock_barcode_scanner.dart';
 import '../features/printing/data/services/mock_thermal_printer.dart';
 import '../features/printing/data/services/p501_barcode_scanner.dart';
 import '../features/printing/data/services/p501_thermal_printer.dart';
+import '../features/printing/data/services/phone_camera_barcode_scanner.dart';
+import '../features/printing/domain/repositories/boarding_pdf_repository.dart';
 import '../features/printing/domain/services/barcode_scanner.dart';
 import '../features/printing/domain/services/thermal_printer.dart';
 import '../features/printing/domain/usecases/print_ticket.dart';
@@ -199,6 +204,7 @@ Future<void> configureDependencies() async {
     () => TerminalRepositoryImpl(
       getIt<TerminalRemoteDataSource>(),
       getIt<TerminalLocalDataSource>(),
+      getIt<DeviceInfoDataSource>(),
     ),
   );
 
@@ -239,6 +245,14 @@ Future<void> configureDependencies() async {
   // Mock par défaut en dev/staging.
   if (AppConfig.instance.useMockHardware) {
     getIt.registerLazySingleton<BarcodeScanner>(MockBarcodeScanner.new);
+    getIt.registerLazySingleton<ThermalPrinter>(MockThermalPrinter.new);
+  } else if (AppConfig.instance.terminalMode == TerminalMode.phone) {
+    getIt.registerLazySingleton<BarcodeScanner>(PhoneCameraBarcodeScanner.new);
+    // Pas d'imprimante thermique en mode téléphone (voir
+    // BoardingPdfRepository, qui remplace l'impression pour le flux réel
+    // de boarding). ThermalPrinter reste nécessaire à PrinterTestPage
+    // (écran de diagnostic P501 uniquement) : Mock ici pour ne pas le
+    // faire planter en mode téléphone, où aucun matériel réel n'existe.
     getIt.registerLazySingleton<ThermalPrinter>(MockThermalPrinter.new);
   } else {
     getIt.registerLazySingleton<BarcodeScanner>(P501BarcodeScanner.new);
@@ -291,6 +305,17 @@ Future<void> configureDependencies() async {
       getIt<BoardingRemoteDataSource>(),
       getIt<BoardingLocalDataSource>(),
     ),
+  );
+
+  // PDF de confirmation d'embarquement — mode téléphone uniquement, voir
+  // ticket "Supporter le scan par caméra téléphone en alternative au
+  // P501". Même opsDioClient que ci-dessus (Authorization + X-Terminal-
+  // Serial déjà branchés).
+  getIt.registerLazySingleton<BoardingPdfRemoteDataSource>(
+    () => BoardingPdfRemoteDataSourceImpl(opsDioClient.dio),
+  );
+  getIt.registerLazySingleton<BoardingPdfRepository>(
+    () => BoardingPdfRepositoryImpl(getIt<BoardingPdfRemoteDataSource>()),
   );
 
   // --- Feature: seat_release (MEZ-87 — réel : POST ops/seat-releases,

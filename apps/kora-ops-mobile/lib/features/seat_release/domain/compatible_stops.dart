@@ -22,8 +22,7 @@ List<Stop> compatibleStopsFor(Depart depart, Passenger passenger) {
   final String? destinationUuid = passenger.destinationStopUuid;
   if (originUuid == null || destinationUuid == null) return stops;
 
-  final int originIndex =
-      stops.indexWhere((Stop s) => s.uuid == originUuid);
+  final int originIndex = stops.indexWhere((Stop s) => s.uuid == originUuid);
   final int destinationIndex =
       stops.indexWhere((Stop s) => s.uuid == destinationUuid);
   if (originIndex == -1 ||

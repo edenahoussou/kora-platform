@@ -4,6 +4,7 @@ namespace App\Modules\IdentityAccess\Models;
 
 use App\Models\User;
 use App\Modules\IdentityAccess\Data\TerminalP501Status;
+use App\Modules\IdentityAccess\Data\TerminalType;
 use App\Modules\Support\Models\KoraModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,6 +15,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property string $uuid
  * @property string $serial_number
+ * @property TerminalType $type
  * @property int|null $assigned_user_id
  * @property int|null $agency_id
  * @property TerminalP501Status $status
@@ -31,6 +33,7 @@ class TerminalP501 extends KoraModel
     protected $fillable = [
         'uuid',
         'serial_number',
+        'type',
         'assigned_user_id',
         'agency_id',
         'status',
@@ -41,6 +44,7 @@ class TerminalP501 extends KoraModel
     protected function casts(): array
     {
         return [
+            'type' => TerminalType::class,
             'status' => TerminalP501Status::class,
             'last_sync_at' => 'datetime',
             'last_handshake_at' => 'datetime',

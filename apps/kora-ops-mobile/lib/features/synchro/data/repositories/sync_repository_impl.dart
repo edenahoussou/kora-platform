@@ -170,14 +170,16 @@ class SyncRepositoryImpl implements SyncRepository {
     if (result.status == 'conflict') return BoardingOutcomeStatus.conflict;
     return switch (result.code) {
       'ticket_cancelled' => BoardingOutcomeStatus.cancelled,
-      'wrong_departure' || 'leg_not_active' =>
+      'wrong_departure' ||
+      'leg_not_active' =>
         BoardingOutcomeStatus.wrongDeparture,
       'ticket_already_boarded' => BoardingOutcomeStatus.alreadyBoarded,
       _ => BoardingOutcomeStatus.error,
     };
   }
 
-  SeatReleaseOutcomeStatus _seatReleaseStatusOf(SyncOperationRawResult result) =>
+  SeatReleaseOutcomeStatus _seatReleaseStatusOf(
+          SyncOperationRawResult result) =>
       switch (result.status) {
         'accepted' => SeatReleaseOutcomeStatus.accepted,
         'conflict' => SeatReleaseOutcomeStatus.conflict,
@@ -193,7 +195,8 @@ class SyncRepositoryImpl implements SyncRepository {
         _ => _Tally.rejected,
       };
 
-  _Tally _tallyOfSeatRelease(SeatReleaseOutcomeStatus status) => switch (status) {
+  _Tally _tallyOfSeatRelease(SeatReleaseOutcomeStatus status) =>
+      switch (status) {
         SeatReleaseOutcomeStatus.accepted => _Tally.accepted,
         SeatReleaseOutcomeStatus.pendingSync => _Tally.pending,
         SeatReleaseOutcomeStatus.conflict => _Tally.conflict,

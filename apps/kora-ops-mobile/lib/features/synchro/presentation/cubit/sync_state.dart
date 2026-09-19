@@ -48,7 +48,8 @@ class SyncState extends Equatable {
       isOnline: isOnline ?? this.isOnline,
       isSyncing: isSyncing ?? this.isSyncing,
       pending: pending ?? this.pending,
-      pendingOperationsCount: pendingOperationsCount ?? this.pendingOperationsCount,
+      pendingOperationsCount:
+          pendingOperationsCount ?? this.pendingOperationsCount,
       lastSyncSummary: lastSyncSummary,
       lastSyncError: lastSyncError,
     );

@@ -67,8 +67,7 @@ void main() {
   });
 
   group('release (descente anticipée)', () {
-    test('en ligne, nominal : accepté, enregistré comme synchronisé',
-        () async {
+    test('en ligne, nominal : accepté, enregistré comme synchronisé', () async {
       when(() => remote.release(
             departureUuid: departureUuid,
             ticketUuid: ticketUuid,
@@ -106,7 +105,8 @@ void main() {
           )).called(1);
     });
 
-    test('retry idempotent : un résultat déjà connu localement est rendu '
+    test(
+        'retry idempotent : un résultat déjà connu localement est rendu '
         'immédiatement, sans second appel réseau', () async {
       const SeatReleaseOutcome cached = SeatReleaseOutcome(
         status: SeatReleaseOutcomeStatus.accepted,
@@ -167,7 +167,8 @@ void main() {
           expect(outcome.status, SeatReleaseOutcomeStatus.conflict);
           expect(outcome.recommendedAction, isNotNull);
         },
-        onFailure: (_) => fail('devait réussir (résultat métier, pas un échec)'),
+        onFailure: (_) =>
+            fail('devait réussir (résultat métier, pas un échec)'),
       );
       verify(() => local.recordOutcome(
             operationUuid: 'op-2',
@@ -208,7 +209,8 @@ void main() {
       result.when(
         onSuccess: (outcome) =>
             expect(outcome.status, SeatReleaseOutcomeStatus.rejected),
-        onFailure: (_) => fail('devait réussir (résultat métier, pas un échec)'),
+        onFailure: (_) =>
+            fail('devait réussir (résultat métier, pas un échec)'),
       );
     });
 
@@ -237,7 +239,8 @@ void main() {
       result.when(
         onSuccess: (outcome) =>
             expect(outcome.status, SeatReleaseOutcomeStatus.rejected),
-        onFailure: (_) => fail('devait réussir (résultat métier, pas un échec)'),
+        onFailure: (_) =>
+            fail('devait réussir (résultat métier, pas un échec)'),
       );
     });
 
@@ -315,7 +318,8 @@ void main() {
   });
 
   group('closeNoShows', () {
-    test('en ligne : un seul appel groupé, chaque résultat enregistré '
+    test(
+        'en ligne : un seul appel groupé, chaque résultat enregistré '
         'comme synchronisé', () async {
       when(() => remote.closeNoShows(
             departureUuid: departureUuid,
@@ -361,8 +365,7 @@ void main() {
           )).called(2);
     });
 
-    test('liste de billets non contrôlés vide : aucun appel réseau',
-        () async {
+    test('liste de billets non contrôlés vide : aucun appel réseau', () async {
       final result = await repository.closeNoShows(
         departureUuid: departureUuid,
         uncontrolledTicketUuids: const <String>[],
@@ -381,7 +384,8 @@ void main() {
           ));
     });
 
-    test('hors ligne : chaque billet devient sa propre opération '
+    test(
+        'hors ligne : chaque billet devient sa propre opération '
         '`boarding.no_show` en file, jamais de clôture groupée locale',
         () async {
       when(() => remote.closeNoShows(
@@ -400,7 +404,9 @@ void main() {
       result.when(
         onSuccess: (outcomes) {
           expect(outcomes.length, 2);
-          expect(outcomes.every((o) => o.status == SeatReleaseOutcomeStatus.pendingSync),
+          expect(
+              outcomes.every(
+                  (o) => o.status == SeatReleaseOutcomeStatus.pendingSync),
               isTrue);
         },
         onFailure: (_) => fail('l\'absence de réseau n\'est pas un échec'),
@@ -417,7 +423,8 @@ void main() {
           )).called(2);
     });
 
-    test('hors ligne, retry idempotent : un billet déjà en file n\'est pas '
+    test(
+        'hors ligne, retry idempotent : un billet déjà en file n\'est pas '
         'redoublé', () async {
       when(() => remote.closeNoShows(
             departureUuid: departureUuid,
@@ -463,16 +470,17 @@ void main() {
     test('totalPendingCount et listPending délèguent au datasource local',
         () async {
       when(() => local.totalPendingCount()).thenAnswer((_) async => 4);
-      when(() => local.listPending()).thenAnswer((_) async => <PendingSeatReleaseOperation>[
-            PendingSeatReleaseOperation(
-              operationUuid: 'op-1',
-              type: SeatReleaseType.earlyDropOff,
-              departureUuid: departureUuid,
-              ticketUuid: ticketUuid,
-              actualStopUuid: actualStopUuid,
-              localRecordedAt: localRecordedAt,
-            ),
-          ]);
+      when(() => local.listPending())
+          .thenAnswer((_) async => <PendingSeatReleaseOperation>[
+                PendingSeatReleaseOperation(
+                  operationUuid: 'op-1',
+                  type: SeatReleaseType.earlyDropOff,
+                  departureUuid: departureUuid,
+                  ticketUuid: ticketUuid,
+                  actualStopUuid: actualStopUuid,
+                  localRecordedAt: localRecordedAt,
+                ),
+              ]);
 
       expect(await repository.totalPendingCount(), 4);
       expect((await repository.listPending()).single.operationUuid, 'op-1');

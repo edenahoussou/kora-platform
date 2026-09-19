@@ -74,8 +74,8 @@ class ManifesteLocalDataSourceImpl implements ManifesteLocalDataSource {
     return CachedManifest(
       passengers: rows.map(_passengerOf).toList(),
       version: metaRows.first['manifest_version'] as String?,
-      fetchedAt: DateTime.tryParse(
-          metaRows.first['fetched_at'] as String? ?? ''),
+      fetchedAt:
+          DateTime.tryParse(metaRows.first['fetched_at'] as String? ?? ''),
     );
   }
 

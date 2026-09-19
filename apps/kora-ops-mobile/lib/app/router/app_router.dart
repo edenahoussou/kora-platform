@@ -19,6 +19,7 @@ import '../../features/manifeste/presentation/pages/manifeste_page.dart';
 import '../../features/onboarding/data/onboarding_store.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/printing/presentation/cubit/printing_cubit.dart';
+import '../../features/printing/presentation/pages/boarding_pdf_preview_page.dart';
 import '../../features/printing/presentation/pages/printer_test_page.dart';
 import '../../features/profil/presentation/pages/mes_informations_page.dart';
 import '../../features/profil/presentation/pages/preferences_page.dart';
@@ -34,6 +35,7 @@ import '../../features/tournee/presentation/pages/tournee_page.dart';
 import '../../injection/injection.dart';
 import 'app_routes.dart';
 import 'auth_guard.dart';
+import 'root_navigator_key.dart';
 
 class AppRouter {
   AppRouter(this._authGuard);
@@ -49,6 +51,7 @@ class AppRouter {
   }
 
   late final GoRouter router = GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: AppRoutes.splash,
     refreshListenable: _authGuard,
     redirect: (context, state) => _authGuard.redirect(state.matchedLocation),
@@ -112,6 +115,12 @@ class AppRouter {
       GoRoute(
         path: AppRoutes.scanResult,
         builder: (context, state) => const ScanResultPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.boardingPdfPreview,
+        builder: (context, state) => BoardingPdfPreviewPage(
+          args: state.extra! as BoardingPdfPreviewArgs,
+        ),
       ),
       GoRoute(
         path: AppRoutes.synchro,

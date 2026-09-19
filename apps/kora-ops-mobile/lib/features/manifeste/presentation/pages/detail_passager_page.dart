@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_radius.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/kora_colors.dart';
 import '../../../../core/services/kora_dialogs.dart';
@@ -17,6 +18,7 @@ import '../../../ops/data/mock_ops_data_source.dart';
 import '../../../ops/domain/entities/depart.dart';
 import '../../../ops/domain/entities/passenger.dart';
 import '../../../ops/domain/entities/stop.dart';
+import '../../../ops/domain/entities/ticket.dart';
 import '../../../ops/presentation/cubit/selected_depart_cubit.dart';
 import '../../../seat_release/domain/compatible_stops.dart';
 import '../../../seat_release/domain/entities/seat_release_outcome.dart';
@@ -40,8 +42,8 @@ class DetailPassagerPage extends StatelessWidget {
     final Depart? depart = context.watch<SelectedDepartCubit>().state;
     final String departRoute = depart?.route ?? '—';
     final AuthState authState = context.watch<AuthCubit>().state;
-    final bool canReverseBoarding =
-        authState is AuthAuthenticated && authState.user.can('boarding.reverse');
+    final bool canReverseBoarding = authState is AuthAuthenticated &&
+        authState.user.can('boarding.reverse');
     final bool isPendingRelease = context
         .watch<ManifesteCubit>()
         .state
@@ -126,31 +128,43 @@ class DetailPassagerPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: KoraButton(
-                      label: 'Embarquer',
-                      variant: KoraButtonVariant.primary,
-                      onPressed: passenger.statut == BoardingStatus.embarque
-                          ? null
-                          : () =>
-                              _updateStatut(context, BoardingStatus.embarque),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: KoraButton(
-                      label: 'Refuser',
-                      variant: KoraButtonVariant.danger,
-                      onPressed: passenger.statut == BoardingStatus.refuse
-                          ? null
-                          : () => _updateStatut(context, BoardingStatus.refuse),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.sm),
+              // "Embarquer"/"Refuser" (MEZ-11, mock) retirés : ce sont des
+              // restes de l'écran mocké d'origine — ils ne faisaient que
+              // changer un statut local (ManifesteCubit.updateStatut, file
+              // SyncCubit mock), sans jamais appeler le vrai contrat de
+              // boarding. Depuis MEZ-91/92, "embarquer" EST le scan
+              // (ScanBoardingCubit → BoardingRepository.scan) — il n'y a
+              // pas d'action serveur "refuser" côté passager scanné
+              // (BoardingStatus.refuse n'existe qu'en affichage, mappé
+              // depuis un vrai cancelled/no-show serveur — voir
+              // manifeste_dtos.dart et la clôture no-show plus haut).
+              // Garder ces deux boutons ici aurait fait croire au
+              // convoyeur qu'ils font quelque chose de réel.
+              // Row(
+              //   children: <Widget>[
+              //     Expanded(
+              //       child: KoraButton(
+              //         label: 'Embarquer',
+              //         variant: KoraButtonVariant.primary,
+              //         onPressed: passenger.statut == BoardingStatus.embarque
+              //             ? null
+              //             : () =>
+              //                 _updateStatut(context, BoardingStatus.embarque),
+              //       ),
+              //     ),
+              //     const SizedBox(width: AppSpacing.sm),
+              //     Expanded(
+              //       child: KoraButton(
+              //         label: 'Refuser',
+              //         variant: KoraButtonVariant.danger,
+              //         onPressed: passenger.statut == BoardingStatus.refuse
+              //             ? null
+              //             : () => _updateStatut(context, BoardingStatus.refuse),
+              //       ),
+              //     ),
+              //   ],
+              // ),
+              // const SizedBox(height: AppSpacing.sm),
               KoraButton(
                 label: 'Descente anticipée',
                 variant: KoraButtonVariant.ghost,
@@ -170,8 +184,7 @@ class DetailPassagerPage extends StatelessWidget {
                   label: 'Annuler l\'embarquement',
                   variant: KoraButtonVariant.danger,
                   icon: Icons.undo,
-                  onPressed: () =>
-                      _reverseBoarding(context, passenger),
+                  onPressed: () => _reverseBoarding(context, passenger),
                 ),
               ],
               const SizedBox(height: AppSpacing.sm),
@@ -198,30 +211,24 @@ class DetailPassagerPage extends StatelessWidget {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (BuildContext context) => Padding(
-        padding: EdgeInsets.fromLTRB(
-          AppSpacing.md,
-          AppSpacing.lg,
-          AppSpacing.md,
-          MediaQuery.viewInsetsOf(context).bottom + AppSpacing.lg,
-        ),
-        child: TicketCard(
-          ticket: ticket,
-          passengerName: passenger.nomComplet,
-          route: depart.route,
-          date: depart.date,
-          heure: depart.heure,
-        ),
+      builder: (BuildContext context) => _TicketSheet(
+        ticket: ticket,
+        passengerName: passenger.nomComplet,
+        route: depart.route,
+        date: depart.date,
+        heure: depart.heure,
       ),
     );
   }
 
-  Future<void> _updateStatut(
-      BuildContext context, BoardingStatus statut) async {
-    context.read<ManifesteCubit>().updateStatut(passengerId, statut);
-    await KoraDialogs.success(context,
-        title: 'Statut mis à jour', description: statut.label);
-  }
+  // Retiré avec les boutons Embarquer/Refuser ci-dessus — ne touchait que
+  // le manifeste local, jamais le serveur. Voir le commentaire au-dessus.
+  // Future<void> _updateStatut(
+  //     BuildContext context, BoardingStatus statut) async {
+  //   context.read<ManifesteCubit>().updateStatut(passengerId, statut);
+  //   await KoraDialogs.success(context,
+  //       title: 'Statut mis à jour', description: statut.label);
+  // }
 
   /// Descente anticipée réelle (MEZ-87) : sélection de l'arrêt réel parmi
   /// les arrêts compatibles, puis confirmation — voir
@@ -317,7 +324,8 @@ class DetailPassagerPage extends StatelessWidget {
 
     switch (outcome.status) {
       case SeatReleaseOutcomeStatus.accepted:
-        await manifesteCubit.markSeatReleaseAccepted(ticketUuid, acceptedStatut);
+        await manifesteCubit.markSeatReleaseAccepted(
+            ticketUuid, acceptedStatut);
         if (context.mounted) {
           await KoraDialogs.success(context,
               title: 'Libération enregistrée', description: outcome.message);
@@ -347,6 +355,85 @@ class DetailPassagerPage extends StatelessWidget {
   }
 }
 
+class _TicketSheet extends StatelessWidget {
+  const _TicketSheet({
+    required this.ticket,
+    required this.passengerName,
+    required this.route,
+    required this.date,
+    required this.heure,
+  });
+
+  final Ticket ticket;
+  final String passengerName;
+  final String route;
+  final String date;
+  final String heure;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        // Seul le clavier justifie un padding bas ici — plus de marge
+        // fixe en plus, qui laissait un vide sous la carte.
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: Material(
+          color: context.koraColors.surface,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppRadius.lg),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const SizedBox(height: AppSpacing.sm),
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md, AppSpacing.sm, AppSpacing.xs, 0),
+                child: Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: Text('Billet',
+                          style: Theme.of(context).textTheme.titleMedium),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      tooltip: 'Fermer',
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md, 0, AppSpacing.md, AppSpacing.md),
+                child: TicketCard(
+                  ticket: ticket,
+                  passengerName: passengerName,
+                  route: route,
+                  date: date,
+                  heure: heure,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _StopPickerSheet extends StatelessWidget {
   const _StopPickerSheet({required this.stops, required this.passenger});
 
@@ -367,7 +454,8 @@ class _StopPickerSheet extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               'Entre ${passenger.segmentOrigine} et ${passenger.segmentDestination}',
-              style: TextStyle(color: context.koraColors.textMuted, fontSize: 12),
+              style:
+                  TextStyle(color: context.koraColors.textMuted, fontSize: 12),
             ),
             const SizedBox(height: AppSpacing.md),
             if (stops.isEmpty)
@@ -407,8 +495,7 @@ class _PendingSyncTag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: Colors.orange.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(20),
