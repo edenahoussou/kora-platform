@@ -87,6 +87,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::get('/', [OpsDepartureController::class, 'index'])->name('index');
             Route::get('{departure:uuid}', [OpsDepartureController::class, 'show'])->name('show');
             Route::get('{departure:uuid}/manifest', [OpsDepartureController::class, 'manifest'])->name('manifest');
+            // Manifeste frontière PDF (A4) — mode téléphone, MEZ-94.
+            Route::get('{departure:uuid}/manifest/pdf', [OpsDepartureController::class, 'manifestPdf'])->name('manifest-pdf');
         });
 
     // OPS Mobile — validation d'embarquement (MEZ-84 suite). Le scan lui

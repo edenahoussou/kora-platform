@@ -25,6 +25,14 @@ import 'package:sqflite/sqflite.dart';
 ///   operations` plutôt qu'une table générique : schémas différents
 ///   (`actual_stop_uuid`, `operation_type` scan vs no-show) et le
 ///   `operation_uuid` reste la seule clé partagée entre les deux.
+/// - `border_manifest_print_jobs` (v5, MEZ-94) : une ligne par demande
+///   d'impression du manifeste frontière (3 exemplaires) — nombre
+///   d'exemplaires **confirmés** et exemplaire **en cours** persistés
+///   avant/après chaque envoi à l'imprimante, pour reprendre après une
+///   erreur matérielle ou un crash sans jamais imprimer un exemplaire de
+///   trop en silence — voir `BorderManifestPrintRepository`. Le v5 ajoute
+///   aussi `nationality`/`document_number` à `manifest_cache` et
+///   `international` à `manifest_meta` (champs de contrôle frontière).
 ///
 /// Singleton : une seule connexion ouverte pour toute l'app (voir
 /// `injection.dart`), comme `SharedPreferences`/`FlutterSecureStorage`.
@@ -32,7 +40,7 @@ class AppDatabase {
   AppDatabase();
 
   static const String _fileName = 'kora_ops.db';
-  static const int _schemaVersion = 4;
+  static const int _schemaVersion = 5;
 
   Database? _database;
 
@@ -57,6 +65,7 @@ class AppDatabase {
         await _createManifestTables(db);
         await _createBoardingOperations(db);
         await _createSeatReleaseOperations(db);
+        await _createBorderManifestPrintJobs(db);
       },
       onUpgrade: (Database db, int oldVersion, int newVersion) async {
         if (oldVersion < 2) {
@@ -68,6 +77,10 @@ class AppDatabase {
         }
         if (oldVersion < 4) {
           await _addManifestCacheStopColumns(db);
+        }
+        if (oldVersion < 5) {
+          await _addBorderControlColumns(db);
+          await _createBorderManifestPrintJobs(db);
         }
       },
     );
@@ -110,6 +123,8 @@ class AppDatabase {
         boarding_event_uuid TEXT,
         segment_status TEXT,
         ticket_status TEXT,
+        nationality TEXT,
+        document_number TEXT,
         fetched_at TEXT NOT NULL
       )
     ''');
@@ -124,6 +139,7 @@ class AppDatabase {
       CREATE TABLE manifest_meta (
         departure_uuid TEXT PRIMARY KEY,
         manifest_version TEXT NOT NULL,
+        international INTEGER,
         fetched_at TEXT NOT NULL
       )
     ''');
@@ -134,14 +150,76 @@ class AppDatabase {
   /// recréer, le cache existant reste valide (juste sans ces champs
   /// jusqu'au prochain téléchargement complet, qui les remplit).
   Future<void> _addManifestCacheStopColumns(Database db) async {
+    // Idempotent (voir `_addColumnIfMissing`) : un schéma < 2 vient de
+    // recréer `manifest_cache` avec ces colonnes déjà présentes.
+    await _addColumnIfMissing(db, 'manifest_cache', 'origin_stop_uuid', 'TEXT');
+    await _addColumnIfMissing(
+        db, 'manifest_cache', 'destination_stop_uuid', 'TEXT');
+    await _addColumnIfMissing(
+        db, 'manifest_cache', 'boarding_event_uuid', 'TEXT');
+  }
+
+  /// Terminal déjà en service avant MEZ-94 : `manifest_cache`/`manifest_meta`
+  /// existent sans les champs de contrôle frontière — `ALTER TABLE ADD
+  /// COLUMN`, le cache existant reste valide (sans ces champs jusqu'au
+  /// prochain téléchargement complet, qui les remplit ; `international`
+  /// reste `NULL` = « inconnu » d'ici là, jamais assimilé à `false`).
+  /// Idempotent : un terminal parti d'un schéma < 2 a déjà les colonnes
+  /// après `_createManifestTables` (définition à jour).
+  Future<void> _addBorderControlColumns(Database db) async {
+    await _addColumnIfMissing(db, 'manifest_cache', 'nationality', 'TEXT');
+    await _addColumnIfMissing(db, 'manifest_cache', 'document_number', 'TEXT');
+    await _addColumnIfMissing(db, 'manifest_meta', 'international', 'INTEGER');
+  }
+
+  Future<void> _addColumnIfMissing(
+    Database db,
+    String table,
+    String column,
+    String type,
+  ) async {
+    final List<Map<String, Object?>> columns =
+        await db.rawQuery('PRAGMA table_info($table)');
+    final bool exists =
+        columns.any((Map<String, Object?> c) => c['name'] == column);
+    if (exists) return;
+    await db.execute('ALTER TABLE $table ADD COLUMN $column $type');
+  }
+
+  /// Une ligne par demande d'impression du manifeste frontière (MEZ-94).
+  ///
+  /// - `requested_copies` : nombre demandé (3 en pratique).
+  /// - `confirmed_copies` : exemplaires dont l'imprimante a confirmé la
+  ///   sortie — jamais incrémenté avant cette confirmation.
+  /// - `in_flight_copy` : exemplaire envoyé à l'imprimante dont le résultat
+  ///   n'est pas encore connu. Non `NULL` après un redémarrage = résultat
+  ///   **ambigu** (l'exemplaire est peut-être sorti) : l'app ne réimprime
+  ///   jamais seule, elle demande au convoyeur.
+  /// - `status` : `inProgress`, `interrupted` ou `completed`.
+  ///
+  /// `user_uuid`/`terminal_serial` : qui a demandé l'impression et sur quel
+  /// terminal (journalisation). Aucune donnée passager (nom, document)
+  /// n'est stockée ici.
+  Future<void> _createBorderManifestPrintJobs(Database db) async {
+    await db.execute('''
+      CREATE TABLE border_manifest_print_jobs (
+        job_uuid TEXT PRIMARY KEY,
+        departure_uuid TEXT NOT NULL,
+        requested_copies INTEGER NOT NULL,
+        confirmed_copies INTEGER NOT NULL DEFAULT 0,
+        in_flight_copy INTEGER,
+        status TEXT NOT NULL,
+        last_error TEXT,
+        manifest_version TEXT,
+        user_uuid TEXT,
+        terminal_serial TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    ''');
     await db.execute(
-      'ALTER TABLE manifest_cache ADD COLUMN origin_stop_uuid TEXT',
-    );
-    await db.execute(
-      'ALTER TABLE manifest_cache ADD COLUMN destination_stop_uuid TEXT',
-    );
-    await db.execute(
-      'ALTER TABLE manifest_cache ADD COLUMN boarding_event_uuid TEXT',
+      'CREATE INDEX idx_border_print_departure '
+      'ON border_manifest_print_jobs(departure_uuid, status)',
     );
   }
 

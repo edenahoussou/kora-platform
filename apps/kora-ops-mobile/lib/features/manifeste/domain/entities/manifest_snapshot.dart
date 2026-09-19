@@ -10,6 +10,7 @@ class ManifestSnapshot extends Equatable {
     this.fetchedAt,
     required this.isStale,
     required this.isFromCache,
+    this.isInternational,
   });
 
   final List<Passenger> passengers;
@@ -34,7 +35,20 @@ class ManifestSnapshot extends Equatable {
   /// retéléchargement, voir `ManifesteRepositoryImpl.load`).
   final bool isFromCache;
 
+  /// `true` si le départ est sur une ligne internationale (les champs de
+  /// contrôle frontière sont alors renvoyés par le serveur — MEZ-94).
+  /// `null` = inconnu (cache antérieur à MEZ-94) : jamais assimilé à
+  /// `false`, l'impression du manifeste frontière demande alors un
+  /// rafraîchissement.
+  final bool? isInternational;
+
   @override
-  List<Object?> get props =>
-      <Object?>[passengers, version, fetchedAt, isStale, isFromCache];
+  List<Object?> get props => <Object?>[
+        passengers,
+        version,
+        fetchedAt,
+        isStale,
+        isFromCache,
+        isInternational,
+      ];
 }

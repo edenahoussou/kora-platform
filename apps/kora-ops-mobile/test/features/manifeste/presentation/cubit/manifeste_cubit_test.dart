@@ -385,4 +385,74 @@ void main() {
       verify(() => repository.load(autreDepart.id)).called(1);
     },
   );
+
+  group('indicateur international (MEZ-94)', () {
+    ManifestSnapshot snapshotWithFlag(List<Passenger> passengers,
+            {bool? isInternational}) =>
+        ManifestSnapshot(
+          passengers: passengers,
+          version: 'v1',
+          fetchedAt: DateTime(2026, 8, 16, 7),
+          isStale: false,
+          isFromCache: false,
+          isInternational: isInternational,
+        );
+
+    test('le flag du snapshot est exposé dans l\'état', () async {
+      when(() => repository.load(depart.id)).thenAnswer((_) async =>
+          Result<ManifestSnapshot>.success(
+              snapshotWithFlag(<Passenger>[passenger], isInternational: true)));
+
+      await selectedDepartCubit.select(depart);
+      final ManifesteCubit cubit = ManifesteCubit(
+        selectedDepartCubit: selectedDepartCubit,
+        syncCubit: syncCubit,
+        repository: repository,
+      );
+      await cubit.stream.firstWhere(
+          (ManifesteState s) => s.status == ManifesteStatus.success);
+
+      expect(cubit.state.isInternational, isTrue);
+      await cubit.close();
+    });
+
+    test(
+        'un flag inconnu (null) remplace la valeur du départ précédent au lieu '
+        'de la conserver', () async {
+      when(() => repository.load(depart.id)).thenAnswer((_) async =>
+          Result<ManifestSnapshot>.success(
+              snapshotWithFlag(<Passenger>[passenger], isInternational: true)));
+      when(() => repository.load(autreDepart.id)).thenAnswer((_) async =>
+          Result<ManifestSnapshot>.success(
+              snapshotWithFlag(<Passenger>[autrePassenger])));
+
+      await selectedDepartCubit.select(depart);
+      final ManifesteCubit cubit = ManifesteCubit(
+        selectedDepartCubit: selectedDepartCubit,
+        syncCubit: syncCubit,
+        repository: repository,
+      );
+      await cubit.stream.firstWhere(
+          (ManifesteState s) => s.status == ManifesteStatus.success);
+      expect(cubit.state.isInternational, isTrue);
+
+      await selectedDepartCubit.select(autreDepart);
+      await cubit.stream.firstWhere((ManifesteState s) =>
+          s.status == ManifesteStatus.success &&
+          s.passengers.any((Passenger p) => p.id == 'ticket-2'));
+
+      expect(cubit.state.isInternational, isNull);
+      await cubit.close();
+    });
+
+    test('copyWith conserve le flag quand il n\'est pas fourni', () {
+      const ManifesteState state = ManifesteState(isInternational: true);
+
+      expect(state.copyWith(status: ManifesteStatus.loading).isInternational,
+          isTrue);
+      expect(state.copyWith(isInternational: null).isInternational, isNull);
+      expect(state.copyWith(isInternational: false).isInternational, isFalse);
+    });
+  });
 }
+

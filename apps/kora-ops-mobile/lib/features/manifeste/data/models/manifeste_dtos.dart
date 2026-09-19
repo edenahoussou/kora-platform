@@ -14,6 +14,7 @@ abstract final class ManifesteDtos {
 
     final origin = row['originStop'];
     final destination = row['destinationStop'];
+    final document = row['document'];
 
     return Passenger(
       id: ticketUuid,
@@ -27,7 +28,19 @@ abstract final class ManifesteDtos {
       destinationStopUuid:
           destination is Map ? destination['uuid'] as String? : null,
       boardingEventUuid: row['boardingEventUuid'] as String?,
+      // Champs de contrôle frontière (MEZ-94) : absents pour un départ
+      // national, `null` si non renseignés côté réservation.
+      nationalite: _nonBlank(row['nationality']),
+      documentNumero: document is Map ? _nonBlank(document['number']) : null,
     );
+  }
+
+  /// `null` pour une valeur absente, non textuelle ou vide — une chaîne
+  /// blanche ne doit jamais passer pour une information renseignée.
+  static String? _nonBlank(Object? value) {
+    if (value is! String) return null;
+    final String trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
   }
 
   static List<Passenger> passengers(Object? body) {
@@ -39,6 +52,15 @@ abstract final class ManifesteDtos {
         .map((row) => passenger(Map<String, dynamic>.from(row)))
         .whereType<Passenger>()
         .toList();
+  }
+
+  /// Indicateur `international` posé à la racine de la réponse (MEZ-94) —
+  /// `null` si le serveur ne le renvoie pas (version antérieure) : l'état
+  /// est alors « inconnu », jamais assimilé à `false`.
+  static bool? isInternational(Object? body) {
+    if (body is! Map) return null;
+    final Object? value = body['international'];
+    return value is bool ? value : null;
   }
 
   static String? manifestVersion(Object? body) {

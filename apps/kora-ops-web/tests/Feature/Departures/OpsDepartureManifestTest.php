@@ -12,6 +12,9 @@ use App\Modules\BusNetwork\Models\Line;
 use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
+use App\Modules\Departures\Actions\ComputeManifestVersionAction;
+use App\Modules\Departures\Actions\GenerateBorderManifestPdfAction;
+use App\Modules\Departures\Actions\ResolveManifestSegmentsAction;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\IdentityAccess\Models\TerminalP501;
 use App\Modules\Payments\Models\Payment;
@@ -626,3 +629,171 @@ function manifestFindNumericIdKey(mixed $value): ?string
 
     return null;
 }
+
+// ---------------------------------------------------------------------
+// MEZ-94 — flag `international` et manifeste frontière (PDF, mode téléphone)
+// ---------------------------------------------------------------------
+
+it('exposes the international flag at the root of the manifest response', function (): void {
+    [$user, $token] = manifestCrewToken('conductor');
+    $terminal = manifestActiveTerminal();
+    $headers = ['X-Terminal-Serial' => $terminal->serial_number];
+
+    $domesticLine = manifestLine(international: false);
+    [$dOrigin, $dDestination] = manifestStops($domesticLine);
+    [$bus, $seat1] = manifestBusWithSeat();
+    $domestic = manifestOpsDeparture($domesticLine, $bus, ['conductor_id' => $user->id]);
+    manifestBookedPassenger($domestic, $dOrigin, $dDestination, $seat1);
+
+    $internationalLine = manifestLine(international: true);
+    [$iOrigin, $iDestination] = manifestStops($internationalLine, destinationCountry: 'TG');
+    $seat2 = Seat::query()->create(['bus_id' => $bus->id, 'code' => '1B', 'type' => 'standard', 'sellable' => true, 'status' => 'active']);
+    $international = manifestOpsDeparture($internationalLine, $bus, ['conductor_id' => $user->id]);
+    manifestBookedPassenger($international, $iOrigin, $iDestination, $seat2);
+
+    $this->withToken($token)->withHeaders($headers)
+        ->getJson("/api/v1/ops/departures/{$domestic->uuid}/manifest")
+        ->assertOk()->assertJsonPath('international', false);
+
+    $this->withToken($token)->withHeaders($headers)
+        ->getJson("/api/v1/ops/departures/{$international->uuid}/manifest")
+        ->assertOk()->assertJsonPath('international', true);
+});
+
+/**
+ * @return array{departure: Departure, token: string, terminal: TerminalP501}
+ */
+function borderManifestScenario(bool $international = true, array $passengerOverrides = []): array
+{
+    [$user, $token] = manifestCrewToken('conductor');
+    $terminal = manifestActiveTerminal();
+    $line = manifestLine(international: $international);
+    [$origin, $destination] = manifestStops($line, destinationCountry: $international ? 'TG' : 'BJ');
+    [$bus, $seat] = manifestBusWithSeat();
+    $departure = manifestOpsDeparture($line, $bus, ['conductor_id' => $user->id]);
+    manifestBookedPassenger($departure, $origin, $destination, $seat, passengerOverrides: $passengerOverrides);
+
+    return compact('departure', 'token', 'terminal');
+}
+
+/**
+ * Action réelle (résolution des passagers, validation, rendu Blade) dont
+ * seul `renderPdf` — l'appel à Chromium — est remplaçable : un vrai
+ * Browsershot n'est pas disponible en test.
+ */
+function borderManifestAction(): Mockery\MockInterface
+{
+    return Mockery::mock(GenerateBorderManifestPdfAction::class, [
+        app(ResolveManifestSegmentsAction::class),
+        app(ComputeManifestVersionAction::class),
+    ])->makePartial()->shouldAllowMockingProtectedMethods();
+}
+
+it('returns the border manifest PDF for a complete international departure, without any amount', function (): void {
+    $scenario = borderManifestScenario();
+
+    $action = borderManifestAction();
+    $action->shouldReceive('renderPdf')
+        ->once()
+        ->withArgs(function (string $html): bool {
+            expect($html)->toContain('Traoré')
+                ->toContain('PP123456')
+                ->toContain('BJ')
+                ->toContain('Destination Gare')
+                ->not->toContain('10000')
+                ->not->toContain('XOF')
+                ->not->toContain('FCFA');
+
+            return true;
+        })
+        ->andReturn('%PDF-KORA border manifest');
+    $this->instance(GenerateBorderManifestPdfAction::class, $action);
+
+    $this->withToken($scenario['token'])
+        ->withHeader('X-Terminal-Serial', $scenario['terminal']->serial_number)
+        ->get("/api/v1/ops/departures/{$scenario['departure']->uuid}/manifest/pdf")
+        ->assertOk()
+        ->assertHeader('Content-Type', 'application/pdf');
+});
+
+it('refuses the border manifest when an international passenger lacks a mandatory field', function (): void {
+    $scenario = borderManifestScenario(passengerOverrides: ['nationality' => null, 'document_number' => null]);
+
+    $action = borderManifestAction();
+    $action->shouldReceive('renderPdf')->never();
+    $this->instance(GenerateBorderManifestPdfAction::class, $action);
+
+    $this->withToken($scenario['token'])
+        ->withHeader('X-Terminal-Serial', $scenario['terminal']->serial_number)
+        ->getJson("/api/v1/ops/departures/{$scenario['departure']->uuid}/manifest/pdf")
+        ->assertUnprocessable()
+        ->assertJsonPath('error.code', 'manifest_incomplete')
+        ->assertJsonPath('error.passengers.0.seat', '1A')
+        ->assertJsonPath('error.passengers.0.missing', ['nationalité', 'numéro de document']);
+});
+
+it('refuses the border manifest when no passenger is left to list', function (): void {
+    [$user, $token] = manifestCrewToken('conductor');
+    $terminal = manifestActiveTerminal();
+    $line = manifestLine(international: true);
+    $bus = manifestBusWithSeat()[0];
+    $departure = manifestOpsDeparture($line, $bus, ['conductor_id' => $user->id]);
+
+    $this->withToken($token)
+        ->withHeader('X-Terminal-Serial', $terminal->serial_number)
+        ->getJson("/api/v1/ops/departures/{$departure->uuid}/manifest/pdf")
+        ->assertUnprocessable()
+        ->assertJsonPath('error.code', 'manifest_incomplete');
+});
+
+it('denies the border manifest to a crew member not assigned to the departure', function (): void {
+    $scenario = borderManifestScenario();
+    [, $otherToken] = manifestCrewToken('conductor');
+
+    $this->withToken($otherToken)
+        ->withHeader('X-Terminal-Serial', $scenario['terminal']->serial_number)
+        ->getJson("/api/v1/ops/departures/{$scenario['departure']->uuid}/manifest/pdf")
+        ->assertForbidden();
+});
+
+it('requires a registered, active terminal for the border manifest', function (): void {
+    $scenario = borderManifestScenario();
+
+    $this->withToken($scenario['token'])
+        ->withHeader('X-Terminal-Serial', 'UNKNOWN-TERMINAL')
+        ->getJson("/api/v1/ops/departures/{$scenario['departure']->uuid}/manifest/pdf")
+        ->assertNotFound()
+        ->assertJsonPath('error.code', 'terminal_unknown');
+});
+
+it('returns a stable, non-leaking error when border manifest generation fails', function (): void {
+    $scenario = borderManifestScenario();
+
+    $action = borderManifestAction();
+    $action->shouldReceive('renderPdf')
+        ->once()
+        ->andThrow(new RuntimeException('Chromium crashed at /var/private/path.'));
+    $this->instance(GenerateBorderManifestPdfAction::class, $action);
+
+    $response = $this->withToken($scenario['token'])
+        ->withHeader('X-Terminal-Serial', $scenario['terminal']->serial_number)
+        ->getJson("/api/v1/ops/departures/{$scenario['departure']->uuid}/manifest/pdf");
+
+    $response->assertServerError()
+        ->assertJsonPath('error.code', 'manifest_pdf_generation_failed');
+
+    expect($response->getContent())->not->toContain('Chromium crashed')
+        ->not->toContain('/var/private/path');
+});
+
+it('keeps the document number on an international manifest row even without a document type', function (): void {
+    $scenario = borderManifestScenario(passengerOverrides: ['document_type' => null, 'document_number' => 'NO-TYPE-42']);
+
+    $row = $this->withToken($scenario['token'])
+        ->withHeader('X-Terminal-Serial', $scenario['terminal']->serial_number)
+        ->getJson("/api/v1/ops/departures/{$scenario['departure']->uuid}/manifest")
+        ->assertOk()->json('data.0');
+
+    expect($row['document']['number'])->toBe('NO-TYPE-42')
+        ->and($row['document']['type'])->toBeNull();
+});

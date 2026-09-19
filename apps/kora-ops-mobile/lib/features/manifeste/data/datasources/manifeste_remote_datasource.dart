@@ -5,10 +5,18 @@ import '../../../ops/domain/entities/passenger.dart';
 import '../models/manifeste_dtos.dart';
 
 class ManifesteFetchResult {
-  const ManifesteFetchResult(this.passengers, this.manifestVersion);
+  const ManifesteFetchResult(
+    this.passengers,
+    this.manifestVersion, {
+    this.isInternational,
+  });
 
   final List<Passenger> passengers;
   final String? manifestVersion;
+
+  /// Indicateur `international` de la réponse (MEZ-94) — `null` si le
+  /// serveur ne le renvoie pas.
+  final bool? isInternational;
 }
 
 /// Résultat de `POST /ops/sync/manifest-versions` pour un départ — voir
@@ -62,6 +70,7 @@ class ManifesteRemoteDataSourceImpl implements ManifesteRemoteDataSource {
     return ManifesteFetchResult(
       ManifesteDtos.passengers(response.data),
       ManifesteDtos.manifestVersion(response.data),
+      isInternational: ManifesteDtos.isInternational(response.data),
     );
   }
 

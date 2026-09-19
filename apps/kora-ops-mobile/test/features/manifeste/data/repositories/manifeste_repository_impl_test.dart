@@ -58,7 +58,8 @@ void main() {
       (_) async => const ManifesteFetchResult(<Passenger>[passenger], 'v1'),
     );
     when(() => local.replaceCache(departureUuid, any(),
-            manifestVersion: any(named: 'manifestVersion')))
+            manifestVersion: any(named: 'manifestVersion'),
+            isInternational: any(named: 'isInternational')))
         .thenAnswer((_) async {});
 
     final result = await repositoryOnline().load(departureUuid);
@@ -81,7 +82,8 @@ void main() {
         CachedManifest(
             passengers: <Passenger>[passenger],
             version: 'v1',
-            fetchedAt: fetchedAt));
+            fetchedAt: fetchedAt,
+            isInternational: true));
     when(() => remote.checkVersion(departureUuid, 'v1')).thenAnswer(
       (_) async => const ManifestVersionCheck(
           currentVersion: 'v1', stale: false, accessible: true),
@@ -94,10 +96,84 @@ void main() {
         expect(snapshot.passengers.single, passenger);
         expect(snapshot.isFromCache, isTrue);
         expect(snapshot.isStale, isFalse);
+        expect(snapshot.isInternational, isTrue);
       },
       onFailure: (_) => fail('devait réussir'),
     );
     verifyNever(() => remote.fetch(any()));
+  });
+
+  test(
+      'cache antérieur à MEZ-94 (indicateur international inconnu) : '
+      'retélécharge même si la version est à jour', () async {
+    when(() => local.readCache(departureUuid)).thenAnswer((_) async =>
+        CachedManifest(
+            passengers: <Passenger>[passenger],
+            version: 'v1',
+            fetchedAt: fetchedAt));
+    when(() => remote.checkVersion(departureUuid, 'v1')).thenAnswer(
+      (_) async => const ManifestVersionCheck(
+          currentVersion: 'v1', stale: false, accessible: true),
+    );
+    when(() => remote.fetch(departureUuid)).thenAnswer(
+      (_) async => const ManifesteFetchResult(<Passenger>[passenger], 'v1',
+          isInternational: true),
+    );
+    when(() => local.replaceCache(departureUuid, any(),
+            manifestVersion: any(named: 'manifestVersion'),
+            isInternational: any(named: 'isInternational')))
+        .thenAnswer((_) async {});
+
+    final result = await repositoryOnline().load(departureUuid);
+
+    result.when(
+      onSuccess: (snapshot) {
+        expect(snapshot.isFromCache, isFalse);
+        expect(snapshot.isInternational, isTrue);
+      },
+      onFailure: (_) => fail('devait réussir'),
+    );
+    verify(() => remote.fetch(departureUuid)).called(1);
+    verify(() => local.replaceCache(departureUuid, any(),
+        manifestVersion: 'v1', isInternational: true)).called(1);
+  });
+
+  test(
+      'l\'indicateur international et les champs frontière du '
+      'téléchargement sont persistés dans le cache', () async {
+    const Passenger border = Passenger(
+      id: 'ticket-2',
+      nomComplet: 'Awa Traoré',
+      siege: '1A',
+      statut: BoardingStatus.enAttente,
+      segmentOrigine: 'Cotonou',
+      segmentDestination: 'Lomé',
+      ticketId: 'ZZ99YY',
+      nationalite: 'BJ',
+      documentNumero: 'PP123456',
+    );
+    when(() => local.readCache(departureUuid)).thenAnswer((_) async => null);
+    when(() => remote.fetch(departureUuid)).thenAnswer(
+      (_) async => const ManifesteFetchResult(<Passenger>[border], 'v9',
+          isInternational: true),
+    );
+    when(() => local.replaceCache(departureUuid, any(),
+            manifestVersion: any(named: 'manifestVersion'),
+            isInternational: any(named: 'isInternational')))
+        .thenAnswer((_) async {});
+
+    final result = await repositoryOnline().load(departureUuid);
+
+    result.when(
+      onSuccess: (snapshot) {
+        expect(snapshot.isInternational, isTrue);
+        expect(snapshot.passengers.single.nationalite, 'BJ');
+        expect(snapshot.passengers.single.documentNumero, 'PP123456');
+      },
+      onFailure: (_) => fail('devait réussir'),
+    );
+    verify(() => local.replaceCache(departureUuid, <Passenger>[border],
+        manifestVersion: 'v9', isInternational: true)).called(1);
   });
 
   test('cache périmé (version différente) : retélécharge', () async {
@@ -114,7 +190,8 @@ void main() {
       (_) async => const ManifesteFetchResult(<Passenger>[passenger], 'v2'),
     );
     when(() => local.replaceCache(departureUuid, any(),
-            manifestVersion: any(named: 'manifestVersion')))
+            manifestVersion: any(named: 'manifestVersion'),
+            isInternational: any(named: 'isInternational')))
         .thenAnswer((_) async {});
 
     final result = await repositoryOnline().load(departureUuid);

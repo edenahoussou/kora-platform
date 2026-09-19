@@ -10,11 +10,16 @@ class CachedManifest {
     required this.passengers,
     this.version,
     this.fetchedAt,
+    this.isInternational,
   });
 
   final List<Passenger> passengers;
   final String? version;
   final DateTime? fetchedAt;
+
+  /// `null` = inconnu (cache écrit avant MEZ-94, ou serveur qui ne renvoie
+  /// pas l'indicateur) — jamais assimilé à `false`.
+  final bool? isInternational;
 }
 
 abstract class ManifesteLocalDataSource {
@@ -32,6 +37,7 @@ abstract class ManifesteLocalDataSource {
     String departureUuid,
     List<Passenger> passengers, {
     String? manifestVersion,
+    bool? isInternational,
   });
 
   /// Répercute dans le cache local le statut d'un passager mis à jour de
@@ -76,6 +82,11 @@ class ManifesteLocalDataSourceImpl implements ManifesteLocalDataSource {
       version: metaRows.first['manifest_version'] as String?,
       fetchedAt:
           DateTime.tryParse(metaRows.first['fetched_at'] as String? ?? ''),
+      isInternational: switch (metaRows.first['international']) {
+        1 => true,
+        0 => false,
+        _ => null,
+      },
     );
   }
 
@@ -84,6 +95,7 @@ class ManifesteLocalDataSourceImpl implements ManifesteLocalDataSource {
     String departureUuid,
     List<Passenger> passengers, {
     String? manifestVersion,
+    bool? isInternational,
   }) async {
     final Database db = await _database.database;
     final String fetchedAt = DateTime.now().toIso8601String();
@@ -107,6 +119,8 @@ class ManifesteLocalDataSourceImpl implements ManifesteLocalDataSource {
           'destination_stop_uuid': passenger.destinationStopUuid,
           'boarding_event_uuid': passenger.boardingEventUuid,
           'segment_status': passenger.statut.name,
+          'nationality': passenger.nationalite,
+          'document_number': passenger.documentNumero,
           'fetched_at': fetchedAt,
         });
       }
@@ -120,6 +134,9 @@ class ManifesteLocalDataSourceImpl implements ManifesteLocalDataSource {
         <String, Object?>{
           'departure_uuid': departureUuid,
           'manifest_version': manifestVersion,
+          'international': isInternational == null
+              ? null
+              : (isInternational ? 1 : 0),
           'fetched_at': fetchedAt,
         },
         conflictAlgorithm: ConflictAlgorithm.replace,
@@ -156,5 +173,7 @@ class ManifesteLocalDataSourceImpl implements ManifesteLocalDataSource {
         originStopUuid: row['origin_stop_uuid'] as String?,
         destinationStopUuid: row['destination_stop_uuid'] as String?,
         boardingEventUuid: row['boarding_event_uuid'] as String?,
+        nationalite: row['nationality'] as String?,
+        documentNumero: row['document_number'] as String?,
       );
 }

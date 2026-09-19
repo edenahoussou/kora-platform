@@ -76,8 +76,11 @@ class OpsManifestRowResource extends JsonResource
                 ? null
                 : ($this->boardingEventUuidsByTicketId[$this->ticket->id] ?? null),
             ...($this->includeBorderControlFields ? [
-                'document' => $passenger === null || $passenger->document_type === null ? null : [
-                    'type' => enum_value($passenger->document_type),
+                // Présent dès qu'un type OU un numéro est renseigné : le
+                // n° de document seul suffit au manifeste frontière (MEZ-94),
+                // il ne doit pas disparaître faute de type de pièce.
+                'document' => $passenger === null || ($passenger->document_type === null && blank($passenger->document_number)) ? null : [
+                    'type' => $passenger->document_type === null ? null : enum_value($passenger->document_type),
                     'number' => $passenger->document_number,
                 ],
                 'nationality' => $passenger?->nationality,

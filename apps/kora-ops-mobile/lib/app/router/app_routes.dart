@@ -38,6 +38,11 @@ abstract final class AppRoutes {
   // Tournée (voir document.md § Navigation).
   static const String manifeste = '/tournee/manifeste';
   static const String detailPassager = '/tournee/manifeste/passager';
+
+  /// Manifeste frontière (MEZ-94) : impression thermique 58 mm sur P501,
+  /// ou PDF A4 en mode téléphone.
+  static const String borderManifestPrint = '/tournee/manifeste/frontiere';
+  static const String borderManifestPdf = '/tournee/manifeste/frontiere/pdf';
   static const String scanResult = '/scan/resultat';
   static const String boardingPdfPreview = '/scan/resultat/pdf';
   static const String synchro = '/synchro';
