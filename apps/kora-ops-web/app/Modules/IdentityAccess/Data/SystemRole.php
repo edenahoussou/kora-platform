@@ -160,6 +160,8 @@ enum SystemRole: string
                 'expenses.approve-network',
                 'expenses.reverse',
                 'expenses.export',
+                'revenue.view',
+                'revenue.export',
             ],
             self::GeneralManagement => [
                 'tickets.view-network',
@@ -181,6 +183,8 @@ enum SystemRole: string
                 'fiscalization.view',
                 'expenses.view-network',
                 'expenses.export',
+                'revenue.view',
+                'revenue.export',
                 'pricing.view',
                 'seat-releases.view',
                 'tickets.view',
@@ -264,6 +268,8 @@ enum SystemRole: string
             'expenses.approve-network',
             'expenses.reverse',
             'expenses.export',
+            'revenue.view',
+            'revenue.export',
         ];
     }
 
