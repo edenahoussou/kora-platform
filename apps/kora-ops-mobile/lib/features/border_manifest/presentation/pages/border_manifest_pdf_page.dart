@@ -46,13 +46,7 @@ class _BorderManifestPdfPageState extends State<BorderManifestPdfPage> {
     _pdfBytes = _load();
   }
 
-  void _retry() {
-    // Bloc (et non `=>`) : la fermeture de setState ne doit jamais renvoyer
-    // le Future de l'affectation.
-    setState(() {
-      _pdfBytes = _load();
-    });
-  }
+  void _retry() => setState(() => _pdfBytes = _load());
 
   Future<Uint8List> _load() async {
     final result = await getIt<BorderManifestPdfRepository>()
