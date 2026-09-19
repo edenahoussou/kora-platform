@@ -31,6 +31,10 @@ abstract final class ApiConstants {
       '$_v1/ops/departures/$departureUuid';
   static String opsDepartureManifest(String departureUuid) =>
       '$_v1/ops/departures/$departureUuid/manifest';
+  /// Manifeste frontière en PDF A4 — mode téléphone uniquement (MEZ-94) :
+  /// remplace l'impression thermique 58 mm du P501.
+  static String opsDepartureManifestPdf(String departureUuid) =>
+      '$_v1/ops/departures/$departureUuid/manifest/pdf';
   static const String opsBoarding = '$_v1/ops/boarding';
   static String opsBoardingReverse(String boardingEventUuid) =>
       '$_v1/ops/boarding/$boardingEventUuid/reverse';

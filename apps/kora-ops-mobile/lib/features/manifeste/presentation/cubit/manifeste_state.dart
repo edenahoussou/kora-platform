@@ -12,6 +12,7 @@ class ManifesteState extends Equatable {
     this.isStale = false,
     this.isFromCache = false,
     this.pendingReleaseTicketUuids = const <String>{},
+    this.isInternational,
   });
 
   final ManifesteStatus status;
@@ -46,6 +47,11 @@ class ManifesteState extends Equatable {
   /// Vidé à chaque [load] réussi (un rafraîchissement fait foi).
   final Set<String> pendingReleaseTicketUuids;
 
+  /// Le départ est-il sur une ligne internationale ? `null` = inconnu
+  /// (voir `ManifestSnapshot.isInternational`). Conditionne le manifeste
+  /// frontière (MEZ-94).
+  final bool? isInternational;
+
   int get embarques => passengers
       .where((Passenger p) => p.statut == BoardingStatus.embarque)
       .length;
@@ -59,6 +65,7 @@ class ManifesteState extends Equatable {
     bool? isStale,
     bool? isFromCache,
     Set<String>? pendingReleaseTicketUuids,
+    Object? isInternational = _unset,
   }) {
     return ManifesteState(
       status: status ?? this.status,
@@ -70,8 +77,16 @@ class ManifesteState extends Equatable {
       isFromCache: isFromCache ?? this.isFromCache,
       pendingReleaseTicketUuids:
           pendingReleaseTicketUuids ?? this.pendingReleaseTicketUuids,
+      // Sentinelle plutôt que `??` : « inconnu » (`null`) est une valeur
+      // légitime qui doit pouvoir REMPLACER une valeur précédente (départ
+      // différent, cache ancien) au lieu de la conserver.
+      isInternational: identical(isInternational, _unset)
+          ? this.isInternational
+          : isInternational as bool?,
     );
   }
+
+  static const Object _unset = Object();
 
   @override
   List<Object?> get props => <Object?>[
@@ -83,5 +98,6 @@ class ManifesteState extends Equatable {
         isStale,
         isFromCache,
         pendingReleaseTicketUuids,
+        isInternational,
       ];
 }

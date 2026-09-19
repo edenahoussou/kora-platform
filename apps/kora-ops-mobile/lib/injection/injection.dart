@@ -23,6 +23,13 @@ import '../features/boarding/data/datasources/boarding_local_datasource.dart';
 import '../features/boarding/data/datasources/boarding_remote_datasource.dart';
 import '../features/boarding/data/repositories/boarding_repository_impl.dart';
 import '../features/boarding/domain/repositories/boarding_repository.dart';
+import '../features/border_manifest/data/datasources/border_manifest_pdf_remote_datasource.dart';
+import '../features/border_manifest/data/datasources/border_manifest_print_local_datasource.dart';
+import '../features/border_manifest/data/repositories/border_manifest_pdf_repository_impl.dart';
+import '../features/border_manifest/data/repositories/border_manifest_print_repository_impl.dart';
+import '../features/border_manifest/domain/repositories/border_manifest_pdf_repository.dart';
+import '../features/border_manifest/domain/repositories/border_manifest_print_repository.dart';
+import '../features/border_manifest/presentation/cubit/border_manifest_print_cubit.dart';
 import '../features/manifeste/data/datasources/manifeste_local_datasource.dart';
 import '../features/manifeste/data/datasources/manifeste_remote_datasource.dart';
 import '../features/manifeste/data/repositories/manifeste_repository_impl.dart';
@@ -316,6 +323,42 @@ Future<void> configureDependencies() async {
   );
   getIt.registerLazySingleton<BoardingPdfRepository>(
     () => BoardingPdfRepositoryImpl(getIt<BoardingPdfRemoteDataSource>()),
+  );
+
+  // --- Feature: border_manifest (MEZ-94 — manifeste frontière) ---
+  //
+  // P501 : impression thermique 58 mm, 3 exemplaires, reprise sans doublon
+  // (jobs persistés dans sqlite — voir BorderManifestPrintRepositoryImpl).
+  // Mode téléphone : PDF A4 généré par le serveur (même opsDioClient que le
+  // PDF de confirmation d'embarquement ci-dessus).
+  getIt.registerLazySingleton<BorderManifestPrintLocalDataSource>(
+    () => BorderManifestPrintLocalDataSourceImpl(getIt<AppDatabase>()),
+  );
+  getIt.registerLazySingleton<BorderManifestPrintRepository>(
+    () => BorderManifestPrintRepositoryImpl(
+      getIt<BorderManifestPrintLocalDataSource>(),
+    ),
+  );
+  getIt.registerLazySingleton<BorderManifestPdfRemoteDataSource>(
+    () => BorderManifestPdfRemoteDataSourceImpl(opsDioClient.dio),
+  );
+  getIt.registerLazySingleton<BorderManifestPdfRepository>(
+    () => BorderManifestPdfRepositoryImpl(
+      getIt<BorderManifestPdfRemoteDataSource>(),
+    ),
+  );
+  // Un cubit par ouverture de l'écran (factory) : l'état d'impression
+  // durable vit dans sqlite, pas dans le cubit.
+  getIt.registerFactory<BorderManifestPrintCubit>(
+    () => BorderManifestPrintCubit(
+      printer: getIt<ThermalPrinter>(),
+      repository: getIt<BorderManifestPrintRepository>(),
+      terminalRepository: getIt<TerminalRepository>(),
+      currentUserUuid: () async {
+        final AuthState auth = getIt<AuthCubit>().state;
+        return auth is AuthAuthenticated ? auth.user.uuid : null;
+      },
+    ),
   );
 
   // --- Feature: seat_release (MEZ-87 — réel : POST ops/seat-releases,

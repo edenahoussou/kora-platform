@@ -26,6 +26,8 @@ class Passenger extends Equatable {
     this.originStopUuid,
     this.destinationStopUuid,
     this.boardingEventUuid,
+    this.nationalite,
+    this.documentNumero,
   });
 
   final String id;
@@ -61,6 +63,17 @@ class Passenger extends Equatable {
   /// BoardingStatus.embarque` avant de proposer "Annuler l'embarquement".
   final String? boardingEventUuid;
 
+  /// Code pays ISO 2 lettres (ex : "BJ") — champ de contrôle frontière,
+  /// renvoyé par le serveur **uniquement** pour les départs sur ligne
+  /// internationale (`OpsManifestRowResource`). `null` sinon, ou si le
+  /// passager n'a pas renseigné cette information (MEZ-94).
+  final String? nationalite;
+
+  /// Numéro du document d'identité/voyage (`document.number`) — même
+  /// périmètre que [nationalite]. Donnée sensible : jamais journalisée
+  /// (voir `BorderManifestPrintCubit`).
+  final String? documentNumero;
+
   Passenger copyWith({BoardingStatus? statut}) => Passenger(
         id: id,
         nomComplet: nomComplet,
@@ -73,6 +86,8 @@ class Passenger extends Equatable {
         originStopUuid: originStopUuid,
         destinationStopUuid: destinationStopUuid,
         boardingEventUuid: boardingEventUuid,
+        nationalite: nationalite,
+        documentNumero: documentNumero,
       );
 
   @override
@@ -88,5 +103,7 @@ class Passenger extends Equatable {
         originStopUuid,
         destinationStopUuid,
         boardingEventUuid,
+        nationalite,
+        documentNumero,
       ];
 }

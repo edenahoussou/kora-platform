@@ -46,6 +46,7 @@ class ManifesteRepositoryImpl implements ManifesteRepository {
           fetchedAt: cached.fetchedAt,
           isStale: true,
           isFromCache: true,
+          isInternational: cached.isInternational,
         ));
       }
       return const Result<ManifestSnapshot>.failure(
@@ -70,7 +71,13 @@ class ManifesteRepositoryImpl implements ManifesteRepository {
         );
       }
 
-      if (check.stale) {
+      // Cache écrit avant MEZ-94 (ou serveur qui ne renvoyait pas encore
+      // `international`) : la version du manifeste n'a pas changé, mais ce
+      // cache ne porte ni nationalité, ni n° de document, ni l'indicateur
+      // international — un seul retéléchargement le complète (le serveur
+      // renvoie alors le flag ; s'il ne le renvoie jamais, on retélécharge
+      // à chaque chargement, ce qui reste léger : une page, ≤ 200 lignes).
+      if (check.stale || cached.isInternational == null) {
         return Result<ManifestSnapshot>.success(
             await _fetchFresh(departureUuid));
       }
@@ -83,6 +90,7 @@ class ManifesteRepositoryImpl implements ManifesteRepository {
         fetchedAt: cached.fetchedAt,
         isStale: false,
         isFromCache: true,
+        isInternational: cached.isInternational,
       ));
     } on DioException catch (error) {
       if (_isNetworkUnreachable(error) && cached != null) {
@@ -95,6 +103,7 @@ class ManifesteRepositoryImpl implements ManifesteRepository {
           fetchedAt: cached.fetchedAt,
           isStale: true,
           isFromCache: true,
+          isInternational: cached.isInternational,
         ));
       }
       return Result<ManifestSnapshot>.failure(_failureOf(error));
@@ -119,6 +128,7 @@ class ManifesteRepositoryImpl implements ManifesteRepository {
       departureUuid,
       fetched.passengers,
       manifestVersion: fetched.manifestVersion,
+      isInternational: fetched.isInternational,
     );
     return ManifestSnapshot(
       passengers: fetched.passengers,
@@ -126,6 +136,7 @@ class ManifesteRepositoryImpl implements ManifesteRepository {
       fetchedAt: DateTime.now(),
       isStale: false,
       isFromCache: false,
+      isInternational: fetched.isInternational,
     );
   }
 

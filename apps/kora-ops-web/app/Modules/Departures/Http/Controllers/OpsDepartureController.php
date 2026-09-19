@@ -8,7 +8,9 @@ use App\Modules\Boarding\Models\BoardingEvent;
 use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Data\LineType;
 use App\Modules\Departures\Actions\ComputeManifestVersionAction;
+use App\Modules\Departures\Actions\GenerateBorderManifestPdfAction;
 use App\Modules\Departures\Actions\ResolveManifestSegmentsAction;
+use App\Modules\Departures\Exceptions\BorderManifestIncompleteException;
 use App\Modules\Departures\Http\Resources\OpsDepartureResource;
 use App\Modules\Departures\Http\Resources\OpsManifestRowResource;
 use App\Modules\Departures\Models\Departure;
@@ -17,6 +19,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Gate;
+use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 /**
  * @group OPS Mobile — Departures
@@ -251,6 +255,63 @@ class OpsDepartureController extends Controller
             })->values(),
             'meta' => $this->paginationMeta($paginated),
             'manifestVersion' => $manifestVersion,
+            // Le mobile n'a sinon aucun moyen fiable de savoir si ce départ
+            // est international (les champs frontière ne sont présents que
+            // sur ce type de ligne) — nécessaire au manifeste frontière
+            // (MEZ-94), y compris hors ligne (mis en cache avec le manifeste).
+            'international' => $international,
+        ]);
+    }
+
+    /**
+     * Manifeste frontière du départ en PDF A4 — mode téléphone (pas de
+     * terminal P501, donc pas d'imprimante thermique 58 mm). Même ensemble
+     * de passagers que `manifest()`, jamais de montant.
+     *
+     * Sur une ligne internationale, refuse (422 `manifest_incomplete`) si un
+     * passager n'a pas toutes les informations obligatoires au contrôle.
+     *
+     * @authenticated
+     *
+     * @header X-Terminal-Serial Numéro de série du terminal. Example: P501-000123
+     *
+     * @urlParam departure string required UUID public du départ. Example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+     *
+     * @response 200 scenario="Manifeste frontière" <<binary>>
+     * @response 422 scenario="Manifeste incomplet" {
+     *   "error": { "code": "manifest_incomplete", "message": "Manifeste frontière incomplet : 1 passager(s) sans toutes les informations obligatoires.", "passengers": [ { "name": "Awa Traoré", "seat": "1A", "missing": ["nationalité"] } ] }
+     * }
+     * @response 500 scenario="Génération échouée" {
+     *   "error": { "code": "manifest_pdf_generation_failed", "message": "Le manifeste frontière n'a pas pu être généré." }
+     * }
+     */
+    public function manifestPdf(Departure $departure, GenerateBorderManifestPdfAction $generatePdf): Response|JsonResponse
+    {
+        Gate::authorize('viewAsCrew', $departure);
+
+        try {
+            $pdf = $generatePdf->execute($departure);
+        } catch (BorderManifestIncompleteException $exception) {
+            // Rendue en 422 par l'exception elle-même (render()) — on la
+            // relance telle quelle plutôt que de la confondre avec une panne.
+            throw $exception;
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'error' => [
+                    'code' => 'manifest_pdf_generation_failed',
+                    'message' => "Le manifeste frontière n'a pas pu être généré.",
+                ],
+            ], 500);
+        }
+
+        return response($pdf['content'], Response::HTTP_OK, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$pdf['filename'].'"',
+            'Content-Length' => (string) strlen($pdf['content']),
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 

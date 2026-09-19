@@ -398,6 +398,32 @@ Feature `lib/features/printing/` — interfaces `BarcodeScanner`/`ThermalPrinter
 
 Testé sans hardware via `flutter test test/features/printing/` et l'écran `PrinterTestPage` (`/printer-test`, accessible depuis le bandeau promo de l'Accueil). Le scan d'embarquement (§ 17bis) réutilise directement `ScanBarcode` de cette feature comme chemin matériel alternatif à la caméra.
 
+## 18bis. Manifeste frontière — impression P501 / PDF téléphone (MEZ-94)
+
+Bouton **« Imprimer le manifeste frontière »** en bas de `ManifestePage` (visible si le manifeste est chargé, non vide, et que le départ n'est pas connu comme national). Feature `lib/features/border_manifest/`, formatage et adaptateur dans `lib/features/printing/`.
+
+**Deux modes, selon `AppConfig.terminalMode`** :
+
+- **P501** → `BorderManifestPrintPage` (`/tournee/manifeste/frontiere`) : **3 exemplaires** (`kBorderManifestCopies`) sur commande explicite, état de chaque exemplaire (en attente / en cours / imprimé / échec / à confirmer), reprise sans doublon. Format 58 mm, 32 caractères, ASCII (`BorderManifestFormatter`) : **2 lignes par passager** (`01 DIOP FATOU` / `SN A1234567 > Porto-Novo 12A`), texte replié et **jamais tronqué** (nom, n° de document).
+- **Téléphone** → `BorderManifestPdfPage` (`/tournee/manifeste/frontiere/pdf`) : un PDF A4 généré par le serveur (`GET /ops/departures/{uuid}/manifest/pdf`, Browsershot, même mécanisme que les billets), affiché/partagé/imprimé via le système. Pas de notion de « 3 exemplaires ».
+
+**Refus si incomplet** — `BorderManifestBuilder` (miroir de la règle serveur, 422 `manifest_incomplete`) exige, pour chaque passager encore du voyage : nom, nationalité, n° de document, siège, destination. Un départ non international, ou dont le type est inconnu (cache antérieur à MEZ-94 → « rafraîchissez le manifeste »), est refusé. Sont exclus du manifeste les passagers `refuse` (annulé/no-show) et `descenduAnticipe`.
+
+**Reprise sans doublon** — table sqlite `border_manifest_print_jobs` (schéma v5). Séquence par exemplaire : `markCopyStarted` (persisté **avant** l'appel imprimante) → impression → `markCopyConfirmed` / `markCopyFailed`. Machine à états dans `BorderManifestPrintRepositoryImpl` (transition interdite = `StateError`, jamais plus d'exemplaires que demandé, jamais deux jobs non terminés pour un même départ).
+
+| Situation | Comportement |
+| --- | --- |
+| Papier absent / imprimante absente | Job « interrompu », exemplaire non compté, message dédié (`PrinterFailureKind`), reprise à l'exemplaire en échec |
+| App tuée pendant un exemplaire | Au redémarrage : « l'exemplaire N est-il sorti ? » — l'app ne réimprime **jamais** seule ; le constat du convoyeur tranche |
+| Impression déjà terminée | Réimpression seulement après confirmation explicite |
+| Double appui | Ignoré (`_running`) |
+
+**Journalisation** — `TerminalRepository.logActivity(print, …)` à chaque exemplaire, fin d'impression, constat après crash et refus : terminal, utilisateur, heure, nombre d'exemplaires, résultat. Jamais de nom, nationalité ni n° de document dans le journal.
+
+**Code natif Android à écrire** (`MainActivity.kt`, hors périmètre — SDK P501 requis) : handler `printBorderManifest` du canal `kora.ops/p501_printer` — voir la docstring de `P501ThermalPrinter` pour le contrat exact (arguments, codes d'erreur `NO_PRINTER`/`PRINTER_DISCONNECTED`/`OUT_OF_PAPER`/`NO_PAPER`/`OVERHEAT`).
+
+Tests : `flutter test test/features/border_manifest test/features/printing test/features/manifeste`.
+
 ## 19. Build
 
 ```bash

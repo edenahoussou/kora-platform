@@ -12,6 +12,9 @@ import '../../features/auth/presentation/pages/new_pin_page.dart';
 import '../../features/auth/presentation/pages/otp_invalid_page.dart';
 import '../../features/auth/presentation/pages/otp_verification_page.dart';
 import '../../features/auth/presentation/pages/pin_entry_page.dart';
+import '../../features/border_manifest/presentation/cubit/border_manifest_print_cubit.dart';
+import '../../features/border_manifest/presentation/pages/border_manifest_pdf_page.dart';
+import '../../features/border_manifest/presentation/pages/border_manifest_print_page.dart';
 import '../../features/descente/presentation/pages/descente_anticipee_page.dart';
 import '../../features/home/presentation/pages/accueil_page.dart';
 import '../../features/manifeste/presentation/pages/detail_passager_page.dart';
@@ -111,6 +114,19 @@ class AppRouter {
         path: AppRoutes.detailPassager,
         builder: (context, state) =>
             DetailPassagerPage(passengerId: state.extra as String? ?? ''),
+      ),
+      GoRoute(
+        path: AppRoutes.borderManifestPrint,
+        builder: (context, state) => BlocProvider<BorderManifestPrintCubit>(
+          create: (_) => getIt<BorderManifestPrintCubit>(),
+          child: const BorderManifestPrintPage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.borderManifestPdf,
+        builder: (context, state) => BorderManifestPdfPage(
+          args: state.extra! as BorderManifestPdfArgs,
+        ),
       ),
       GoRoute(
         path: AppRoutes.scanResult,

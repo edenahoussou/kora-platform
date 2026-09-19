@@ -36,5 +36,21 @@ return [
                 '--enable-font-antialiasing',
             ],
         ],
+
+        // A4 portrait — manifeste frontière (OPS Mobile, mode téléphone :
+        // remplace l'impression thermique 58 mm du P501). Marges de 10 mm.
+        'manifest' => [
+            'paper_size' => [210, 297], // mm — A4 portrait
+            'margins' => [10, 10, 10, 10],
+            'window_size' => [794, 1123], // A4 @ 96dpi
+            'device_scale_factor' => 2,
+            'wait_until_network_idle' => false,
+            'emulate_media' => 'print',
+            'args' => [
+                '--disable-crash-reporter',
+                '--font-render-hinting=medium',
+                '--enable-font-antialiasing',
+            ],
+        ],
     ],
 ];

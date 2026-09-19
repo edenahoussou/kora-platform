@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
+import '../../../../app/config/app_config.dart';
+import '../../../../app/config/terminal_mode.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/kora_colors.dart';
@@ -12,6 +14,8 @@ import '../../../../core/widgets/kora_skeleton.dart';
 import '../../../../core/widgets/passenger_list_tile.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../../injection/injection.dart';
+import '../../../border_manifest/domain/services/border_manifest_builder.dart';
+import '../../../border_manifest/presentation/pages/border_manifest_pdf_page.dart';
 import '../../../ops/domain/entities/depart.dart';
 import '../../../ops/domain/entities/passenger.dart';
 import '../../../ops/presentation/cubit/selected_depart_cubit.dart';
@@ -40,6 +44,54 @@ class ManifestePage extends StatelessWidget {
     // Action`) plutôt que de priver l'agent de l'action.
     if (depart.status == null) return true;
     return depart.status == 'departed' || depart.status == 'arrived';
+  }
+
+  /// Le manifeste frontière n'a de sens que pour un départ international ;
+  /// tant que ce n'est pas connu (`isInternational == null`, cache antérieur
+  /// à MEZ-94) le bouton reste visible et l'écran d'impression demande un
+  /// rafraîchissement plutôt que de faire disparaître silencieusement
+  /// l'action.
+  bool _canPrintBorderManifest(ManifesteState state) =>
+      state.status == ManifesteStatus.success &&
+      state.passengers.isNotEmpty &&
+      state.isInternational != false;
+
+  /// P501 : écran d'impression thermique (3 exemplaires). Mode téléphone :
+  /// pas d'imprimante — PDF A4 généré par le serveur, après la même
+  /// vérification de complétude côté mobile.
+  Future<void> _openBorderManifest(
+      BuildContext context, Depart depart, ManifesteState state) async {
+    if (AppConfig.instance.terminalMode != TerminalMode.phone) {
+      await context.push(AppRoutes.borderManifestPrint);
+      return;
+    }
+
+    final BorderManifestBuild build = BorderManifestBuilder.build(
+      BorderManifestInput(
+        depart: depart,
+        passengers: state.passengers,
+        isInternational: state.isInternational,
+        manifestVersion: state.manifestVersion,
+        fetchedAt: state.fetchedAt,
+      ),
+    );
+    if (!build.isReady) {
+      await KoraDialogs.warning(
+        context,
+        title: 'Manifeste frontière impossible',
+        description: build.issues.join('\n'),
+      );
+      return;
+    }
+    if (!context.mounted) return;
+
+    await context.push(
+      AppRoutes.borderManifestPdf,
+      extra: BorderManifestPdfArgs(
+        departureUuid: depart.id,
+        label: depart.route,
+      ),
+    );
   }
 
   Future<void> _closeNoShows(
@@ -170,20 +222,35 @@ class ManifestePage extends StatelessWidget {
                             ],
                           );
 
-                    if (!_canCloseNoShows(depart, state)) return body;
+                    final bool canPrintBorder = _canPrintBorderManifest(state);
+                    final bool canCloseNoShows =
+                        _canCloseNoShows(depart, state);
+                    if (!canPrintBorder && !canCloseNoShows) return body;
 
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: <Widget>[
                         Expanded(child: body),
-                        const SizedBox(height: AppSpacing.sm),
-                        KoraButton(
-                          label: 'Clôturer les no-show',
-                          variant: KoraButtonVariant.danger,
-                          icon: Icons.event_busy,
-                          onPressed: () =>
-                              _closeNoShows(context, depart, state),
-                        ),
+                        if (canPrintBorder) ...<Widget>[
+                          const SizedBox(height: AppSpacing.sm),
+                          KoraButton(
+                            label: 'Imprimer le manifeste frontière',
+                            variant: KoraButtonVariant.secondary,
+                            icon: Icons.print,
+                            onPressed: () =>
+                                _openBorderManifest(context, depart, state),
+                          ),
+                        ],
+                        if (canCloseNoShows) ...<Widget>[
+                          const SizedBox(height: AppSpacing.sm),
+                          KoraButton(
+                            label: 'Clôturer les no-show',
+                            variant: KoraButtonVariant.danger,
+                            icon: Icons.event_busy,
+                            onPressed: () =>
+                                _closeNoShows(context, depart, state),
+                          ),
+                        ],
                         const SizedBox(height: AppSpacing.sm),
                       ],
                     );
