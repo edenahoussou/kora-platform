@@ -19,6 +19,7 @@ use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\Payments\Models\AgencyPaymentAccount;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Ticketing\Data\TicketIssuanceStatus;
+use App\Modules\Ticketing\Jobs\IssueReservationTicketsJob;
 use App\Modules\Ticketing\Models\Ticket;
 use Database\Seeders\KoraBusReferenceSeeder;
 use Database\Seeders\KoraBusRolePermissionSeeder;
@@ -26,11 +27,16 @@ use Database\Seeders\KoraCounterSaleSeeder;
 use Database\Seeders\KoraDemoUserSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Bus as BusFacade;
 use Illuminate\Support\Str;
 
 beforeEach(function (): void {
     Carbon::setTestNow('2026-08-19 07:00:00');
     $this->seed(KoraBusRolePermissionSeeder::class);
+    // L'émission des billets est couverte par les tests du job : ici on
+    // vérifie seulement qu'elle est déclenchée après le paiement, sinon le
+    // dispatchSync exécute toute la chaîne post-émission dans le test.
+    BusFacade::fake();
 });
 
 afterEach(function (): void {
@@ -103,8 +109,8 @@ it('records an exact cash payment, change, cash movement and one ticket per pass
 
     $response->assertRedirect();
     expect($reservation->fresh()->selling_agency_id)->toBe($scenario['agency']->id);
-    expect($reservation->fresh()->status)->toBe(ReservationStatus::Ticketed);
-    expect($reservation->fresh()->ticket_issuance_status)->toBe(TicketIssuanceStatus::Issued);
+    expect($reservation->fresh()->status)->toBe(ReservationStatus::Paid);
+    expect($reservation->fresh()->ticket_issuance_status)->toBe(TicketIssuanceStatus::Pending);
     expect($reservation->fresh()->draft_data)->toBeNull();
     $this->assertDatabaseHas('payments', [
         'reservation_id' => $reservation->id,
@@ -120,18 +126,12 @@ it('records an exact cash payment, change, cash movement and one ticket per pass
         'amount' => 11000,
         'created_by' => $scenario['agent']->id,
     ]);
-    $this->assertDatabaseHas('tickets', ['reservation_id' => $reservation->id]);
-    expect(Ticket::query()->where('reservation_id', $reservation->id)->count())->toBe(1);
     expect(CashSession::query()->firstOrFail()->total_cash)->toBe(11000);
 
-    $ticket = Ticket::query()->where('reservation_id', $reservation->id)->firstOrFail();
-    $location = $response->headers->get('Location');
-    expect($location)->toContain('/tickets/'.$ticket->uuid);
-
-    $this->actingAs($scenario['agent'])
-        ->get($location)
-        ->assertOk()
-        ->assertViewIs('tickets.show');
+    BusFacade::assertDispatchedSync(
+        IssueReservationTicketsJob::class,
+        fn (IssueReservationTicketsJob $job): bool => $job->reservationId === $reservation->getKey(),
+    );
 });
 
 it('rejects an insufficient cash payment without creating a payment or ticket', function (): void {
@@ -195,6 +195,7 @@ it('records a manually verified Mobile Money payment on the agency account', fun
     ]);
     expect(CashSession::query()->firstOrFail()->total_cash)->toBe(0);
     expect(CashSession::query()->firstOrFail()->total_mobile_money)->toBe(11000);
+    BusFacade::assertDispatchedSync(IssueReservationTicketsJob::class);
 });
 
 it('requires an open cash session and blocks duplicate Mobile Money references', function (): void {
@@ -233,6 +234,7 @@ it('requires an open cash session and blocks duplicate Mobile Money references',
             'idempotency_key' => (string) Str::uuid(),
         ]))
         ->assertSessionHasErrors('provider_reference');
+    BusFacade::assertDispatchedSync(IssueReservationTicketsJob::class, 1);
 });
 
 it('is idempotent when the same request is submitted twice', function (): void {
@@ -253,8 +255,9 @@ it('is idempotent when the same request is submitted twice', function (): void {
     $this->actingAs($scenario['agent'])->post(route('sale.payment', $reservation), $payload)->assertRedirect();
 
     expect(Payment::query()->where('reservation_id', $reservation->id)->count())->toBe(1);
-    expect(Ticket::query()->where('reservation_id', $reservation->id)->count())->toBe(1);
+    expect(Ticket::query()->where('reservation_id', $reservation->id)->count())->toBe(0);
     expect(CashSession::query()->firstOrFail()->total_cash)->toBe(11000);
+    BusFacade::assertDispatchedSync(IssueReservationTicketsJob::class, 2);
 });
 
 /** @return array{agent: User, agency: Agency, departure: object, seats: array<string, object>} */

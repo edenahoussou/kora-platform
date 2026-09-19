@@ -26,7 +26,12 @@ La réponse est enveloppée dans `data` et contient l'UUID du devis, le montant 
 
 ### Code promo
 
-Un code promotionnel se saisit **à l'étape du devis** via le champ optionnel `promo_code` — jamais au hold ni au paiement. Pour appliquer, modifier ou retirer un code, recréez le devis avec la valeur souhaitée puis créez le hold depuis le nouveau `itinerary_quote_uuid`. La remise est visible dans `pricing.promotion` et `pricing.promotion_discount_amount` ; un code refusé renvoie `422` sur le champ `promo_code`. Le code n'est consommé qu'au paiement confirmé : un devis ou un hold abandonné n'utilise pas de quota.
+Un code promotionnel peut se saisir à deux moments :
+
+- **Au devis** via le champ optionnel `promo_code` — la remise est visible dès le récapitulatif dans `pricing.promotion` et `pricing.promotion_discount_amount`.
+- **Sur la réservation** via `PUT /api/v1/bookings/{uuid}/promo-code` — pour une saisie tardive sur l'écran de paiement, sans recréer le devis ni les sièges. Envoyez `null` pour retirer la remise. Voir [Appliquer un code promo](/reference/booking/promo-code).
+
+Un code refusé renvoie `422` sur le champ `promo_code`. Le code n'est consommé qu'au paiement confirmé : un devis, un hold ou une remise appliquée puis abandonnée n'utilise pas de quota. La remise appliquée est déclarée à la certification e-MECeF sur la facture émise après paiement.
 
 ## 2. Créer le hold
 

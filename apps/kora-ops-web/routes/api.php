@@ -178,6 +178,9 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->name('bookings.show');
         Route::delete('bookings/{reservation:uuid}', [ReservationController::class, 'destroy'])
             ->name('bookings.destroy');
+        Route::put('bookings/{reservation:uuid}/promo-code', [ReservationController::class, 'updatePromoCode'])
+            ->middleware('throttle:bus-itinerary-actions')
+            ->name('bookings.promo-code.update');
         Route::post('bookings/{reservation:uuid}/passengers', [ReservationPassengerController::class, 'store'])
             ->name('bookings.passengers.store');
         Route::post('bookings/{reservation:uuid}/cancel', [ReservationController::class, 'cancel'])

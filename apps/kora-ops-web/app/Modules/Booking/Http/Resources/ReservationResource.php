@@ -20,6 +20,8 @@ class ReservationResource extends JsonResource
         $rawStatus = (string) $this->getRawOriginal('ticket_issuance_status');
         $ticketStatus = TicketIssuanceStatus::tryFrom($rawStatus) ?? TicketIssuanceStatus::NotStarted;
 
+        $this->resource->loadMissing('promotion');
+
         return [
             'uuid' => $this->uuid,
             'status' => $this->status->value,
@@ -27,6 +29,16 @@ class ReservationResource extends JsonResource
             'ticket_issued_at' => $this->ticket_issued_at?->toIso8601String(),
             'expires_at' => $this->expires_at?->toIso8601String(),
             'total_amount' => $this->total_amount,
+            'subtotal_amount' => (int) ($this->total_snapshot['subtotal_amount'] ?? $this->total_amount),
+            'promotion_discount_amount' => (int) $this->promotion_discount_amount,
+            'promotion' => $this->promotion === null ? null : [
+                'uuid' => $this->promotion->uuid,
+                'code' => $this->promotion->code,
+                'name' => $this->promotion->name,
+                'benefit_type' => $this->promotion->benefit_type->value,
+                'benefit_value' => (float) $this->promotion->benefit_value,
+                'discount_amount' => (int) $this->promotion_discount_amount,
+            ],
             'currency' => $this->currency,
             'channel' => $this->channel?->value,
             'purchase_type' => $this->purchase_type->value,

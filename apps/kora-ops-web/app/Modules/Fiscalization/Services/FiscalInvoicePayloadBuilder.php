@@ -3,6 +3,7 @@
 namespace App\Modules\Fiscalization\Services;
 
 use App\Modules\Booking\Models\Reservation;
+use App\Modules\DynamicPricing\Models\Promotion;
 use App\Modules\Payments\Data\PaymentMethod;
 use Illuminate\Support\Str;
 
@@ -11,13 +12,21 @@ class FiscalInvoicePayloadBuilder
     /** @return array<string, mixed> */
     public function build(Reservation $reservation): array
     {
-        $reservation->loadMissing(['passengers', 'payments', 'payer', 'companyAccount', 'creator.agency']);
+        $reservation->loadMissing(['passengers', 'payments', 'payer', 'companyAccount', 'creator.agency', 'promotion']);
         $payment = $reservation->payments->firstWhere('status', 'confirmed') ?? $reservation->payments->first();
         $passengers = $reservation->passengers->where('status', 'active')->values();
         $passengerCount = max(1, $passengers->count());
         $total = (int) $reservation->total_amount;
         $unitPrice = intdiv($total, $passengerCount);
         $remainder = $total - ($unitPrice * $passengerCount);
+
+        // Prix d'origine avant remises (promo et remise groupe) : e-MECeF
+        // attend une déclaration explicite via originalPrice/priceModification.
+        $originalTotal = (int) ($reservation->total_snapshot['subtotal_amount']
+            ?? ($total + (int) $reservation->promotion_discount_amount + (int) ($reservation->total_snapshot['group_discount']['amount'] ?? 0)));
+        $originalUnitPrice = intdiv($originalTotal, $passengerCount);
+        $originalRemainder = $originalTotal - ($originalUnitPrice * $passengerCount);
+        $priceModification = $this->priceModification($reservation);
 
         $creator = $reservation->creator;
 
@@ -29,12 +38,24 @@ class FiscalInvoicePayloadBuilder
             $clientContact = $payment?->payer_phone;
         }
 
-        $items = $passengers->map(fn ($passenger, int $index): array => [
-            'name' => 'Billet de transport KORA BUS - '.Str::limit(trim($passenger->first_name.' '.$passenger->last_name), 70, ''),
-            'price' => $unitPrice + ($index < $remainder ? 1 : 0),
-            'quantity' => 1,
-            'taxGroup' => 'A',
-        ])->all();
+        $items = $passengers->map(function ($passenger, int $index) use ($unitPrice, $remainder, $originalUnitPrice, $originalRemainder, $priceModification): array {
+            $price = $unitPrice + ($index < $remainder ? 1 : 0);
+            $originalPrice = $originalUnitPrice + ($index < $originalRemainder ? 1 : 0);
+
+            $item = [
+                'name' => 'Billet de transport KORA BUS - '.Str::limit(trim($passenger->first_name.' '.$passenger->last_name), 70, ''),
+                'price' => $price,
+                'quantity' => 1,
+                'taxGroup' => 'A',
+            ];
+
+            if ($originalPrice > $price && $priceModification !== null) {
+                $item['originalPrice'] = $originalPrice;
+                $item['priceModification'] = $priceModification;
+            }
+
+            return $item;
+        })->all();
 
         return [
             'ifu' => (string) config('emecf.default_ifu'),
@@ -53,6 +74,27 @@ class FiscalInvoicePayloadBuilder
                 'amount' => (int) $payment->amount,
             ]],
         ];
+    }
+
+    /**
+     * Motif de la modification de prix déclaré à e-MECeF (remise promotion
+     * et/ou remise groupe). Null quand aucune remise ne s'applique.
+     */
+    private function priceModification(Reservation $reservation): ?string
+    {
+        $reasons = [];
+
+        if ((int) $reservation->promotion_discount_amount > 0) {
+            $promoCode = $reservation->total_snapshot['promotion']['code']
+                ?? Promotion::query()->whereKey($reservation->promotion_id)->value('code');
+            $reasons[] = 'Code promo '.(string) $promoCode;
+        }
+
+        if ((int) ($reservation->total_snapshot['group_discount']['amount'] ?? 0) > 0) {
+            $reasons[] = 'Remise groupe';
+        }
+
+        return $reasons === [] ? null : implode(' · ', $reasons);
     }
 
     private function paymentType(?PaymentMethod $method): string

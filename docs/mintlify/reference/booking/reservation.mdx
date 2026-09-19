@@ -52,6 +52,9 @@ final reservation = res.data['data'];
     "status": "held",
     "expires_at": "2026-08-20T08:15:00.000Z",
     "total_amount": 25000,
+    "subtotal_amount": 25000,
+    "promotion_discount_amount": 0,
+    "promotion": null,
     "currency": "XOF",
     "channel": "mobile",
     "departure_uuid": "a3091549-9179-454e-8440-58179f2208df",
@@ -88,3 +91,13 @@ final reservation = res.data['data'];
 <Info>
   Le mobile ne doit **jamais** reconstruire la réservation depuis son état local. La réponse contient le statut, `expires_at`, les segments, les voyageurs et le montant serveur.
 </Info>
+
+## Champs de remise
+
+| Champ | Description |
+|-------|-------------|
+| `subtotal_amount` | Sous-total avant remise promo et remise groupe (issu du snapshot tarifaire). |
+| `promotion_discount_amount` | Montant de la remise promo appliquée (`0` si aucune). |
+| `promotion` | Promotion appliquée (`uuid`, `code`, `name`, `benefit_type`, `benefit_value`, `discount_amount`) ou `null`. |
+
+La promotion peut provenir du devis (`promo_code` à la création) ou d'une saisie tardive via [PUT /api/v1/bookings/{uuid}/promo-code](/reference/booking/promo-code). La remise est ensuite déclarée à la certification e-MECeF sur la facture.

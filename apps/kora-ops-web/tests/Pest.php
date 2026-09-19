@@ -16,6 +16,14 @@ use Tests\TestCase;
 
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
+    ->beforeEach(function (): void {
+        // Coupe les appels réseau réels (MECeF, WAHA) : ces jobs partent en
+        // sync pendant les tests de paiement et explosent le temps de suite.
+        Queue::fake([
+            FiscalizeReservationInvoiceJob::class,
+            SendReservationWhatsAppNotificationJob::class,
+        ]);
+    })
     ->in('Feature');
 
 /*

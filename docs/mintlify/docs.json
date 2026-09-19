@@ -117,6 +117,7 @@
                   "reference/booking/itinerary-quotes",
                   "reference/booking/itinerary-holds",
                   "reference/booking/reservation",
+                  "reference/booking/promo-code",
                   "reference/booking/passengers"
                 ]
               },
