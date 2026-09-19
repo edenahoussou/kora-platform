@@ -590,6 +590,677 @@
     }
 }
 
+/* ========================================================================
+   KORA OPS — Consolidated revenue overview
+   Mirrors the validated Finance composition: compact page head, navy hero,
+   activity cards, then the financial flow and control panels.
+   ======================================================================== */
+
+@layer kora-revenue {
+    .revenue-page {
+        min-width: 0;
+    }
+
+    .revenue-hero {
+        position: relative;
+        display: grid;
+        grid-template-columns: minmax(0, 1.28fr) minmax(20rem, 0.72fr);
+        align-items: center;
+        gap: 32px;
+        min-height: 320px;
+        margin-bottom: 16px;
+        padding: 32px 40px;
+        overflow: hidden;
+        border-radius: 28px;
+        color: white;
+        background:
+            radial-gradient(
+                circle at 84% 14%,
+                rgba(0, 87, 184, 0.78),
+                transparent 39%
+            ),
+            var(--kora);
+        box-shadow: 0 24px 58px rgba(0, 29, 78, 0.2);
+    }
+
+    .revenue-hero::after {
+        position: absolute;
+        right: -100px;
+        bottom: -154px;
+        width: 900px;
+        height: 190px;
+        border: 3px solid rgba(246, 176, 0, 0.22);
+        border-radius: 50%;
+        content: '';
+        transform: rotate(-8deg);
+        pointer-events: none;
+    }
+
+    .revenue-hero-copy,
+    .revenue-hero-summary {
+        position: relative;
+        z-index: 1;
+    }
+
+    .revenue-hero h2 {
+        margin: 10px 0 14px;
+        color: white;
+        font-size: clamp(2.125rem, 3.5vw, 3.3125rem);
+        font-weight: 800;
+        line-height: 1.01;
+        letter-spacing: -0.045em;
+    }
+
+    .revenue-hero .section-kicker {
+        color: var(--gold);
+    }
+
+    .revenue-hero h2 em {
+        color: var(--gold);
+        font-style: normal;
+    }
+
+    .revenue-hero-copy > p {
+        max-width: 590px;
+        margin: 0;
+        color: rgba(255, 255, 255, 0.62);
+        font-size: 12px;
+        line-height: 1.65;
+    }
+
+    .revenue-hero-total {
+        display: grid;
+        gap: 4px;
+        margin-top: 24px;
+    }
+
+    .revenue-hero-total small {
+        color: rgba(255, 255, 255, 0.54);
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .revenue-hero-total strong {
+        color: white;
+        font-size: clamp(1.8rem, 3vw, 2.65rem);
+        letter-spacing: -0.055em;
+    }
+
+    .revenue-hero-total > span {
+        display: flex;
+        align-items: center;
+        color: var(--gold);
+        font-size: 10px;
+        font-weight: 850;
+    }
+
+    .revenue-hero-total .inline-flex {
+        padding: 0;
+        color: var(--gold);
+        background: transparent;
+    }
+
+    .revenue-hero-summary {
+        align-self: center;
+        padding: 20px 22px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.075);
+        box-shadow: inset 0 1px rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(10px);
+    }
+
+    .revenue-hero-summary-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding-bottom: 13px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        color: rgba(255, 255, 255, 0.58);
+        font-size: 10px;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .revenue-hero-summary dl {
+        display: grid;
+        gap: 0;
+    }
+
+    .revenue-hero-summary dl > div {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 15px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .revenue-hero-summary dt {
+        color: rgba(255, 255, 255, 0.58);
+        font-size: 10px;
+    }
+
+    .revenue-hero-summary dd {
+        color: white;
+        font-size: 14px;
+        font-weight: 900;
+        letter-spacing: -0.025em;
+        text-align: right;
+    }
+
+    .revenue-hero-warning {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin: 15px 0 0;
+        color: #fecaca;
+        font-size: 10px;
+        line-height: 1.4;
+    }
+
+    .revenue-kpis {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 24px;
+    }
+
+    .revenue-kpi-card {
+        position: relative;
+        min-height: 174px;
+        padding: 18px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: var(--card);
+        box-shadow: 0 12px 34px rgba(0, 29, 78, 0.06);
+        transition:
+            transform 0.3s cubic-bezier(0.32, 0.72, 0, 1),
+            box-shadow 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    .revenue-kpi-card:hover {
+        box-shadow: 0 18px 42px rgba(0, 29, 78, 0.1);
+        transform: translateY(-3px);
+    }
+
+    .revenue-kpi-card-disabled {
+        border-style: dashed;
+        background: color-mix(in srgb, var(--muted) 48%, var(--card));
+        box-shadow: none;
+        opacity: 0.72;
+    }
+
+    .revenue-kpi-card-disabled:hover {
+        box-shadow: none;
+        transform: none;
+    }
+
+    .revenue-kpi-icon {
+        position: absolute;
+        top: 17px;
+        right: 17px;
+        display: grid;
+        width: 34px;
+        height: 34px;
+        place-items: center;
+        border-radius: 11px;
+    }
+
+    .revenue-kpi-label {
+        max-width: calc(100% - 42px);
+        margin: 36px 0 0;
+        color: var(--muted-foreground);
+        font-size: 10px;
+        font-weight: 800;
+    }
+
+    .revenue-kpi-value,
+    .revenue-kpi-disabled-label {
+        display: block;
+        margin-top: 16px;
+        color: var(--kora);
+        font-size: clamp(1.05rem, 1.6vw, 1.38rem);
+        letter-spacing: -0.045em;
+        line-height: 1.1;
+    }
+
+    .revenue-kpi-disabled-label {
+        color: var(--muted-foreground);
+        font-size: 14px;
+        letter-spacing: -0.02em;
+    }
+
+    .revenue-kpi-detail {
+        margin: 5px 0 0;
+        color: var(--digital);
+        font-size: 9px;
+        font-weight: 850;
+        line-height: 1.45;
+    }
+
+    .revenue-kpi-card-disabled .revenue-kpi-detail {
+        color: var(--muted-foreground);
+    }
+
+    .revenue-kpi-spark {
+        position: absolute;
+        right: 18px;
+        bottom: 14px;
+        left: 18px;
+        display: flex;
+        align-items: end;
+        gap: 4px;
+        height: 23px;
+    }
+
+    .revenue-kpi-spark i {
+        display: block;
+        width: 7px;
+        border-radius: 3px;
+        background: color-mix(in srgb, var(--digital) 14%, transparent);
+    }
+
+    .revenue-kpi-spark i:nth-last-child(-n + 2) {
+        background: var(--gold);
+    }
+
+    .revenue-kpi-card-disabled .revenue-kpi-spark i {
+        background: var(--border);
+    }
+
+    .revenue-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.5fr);
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+
+    .revenue-panel {
+        min-width: 0;
+        padding: 21px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        background: var(--card);
+        box-shadow: 0 12px 34px rgba(0, 29, 78, 0.055);
+    }
+
+    .revenue-panel-heading h2 {
+        margin: 4px 0 0;
+        color: var(--foreground);
+        font-size: 18px;
+        letter-spacing: -0.035em;
+    }
+
+    .revenue-panel-heading p {
+        margin: 5px 0 0;
+        color: var(--muted-foreground);
+        font-size: 10px;
+        line-height: 1.5;
+    }
+
+    .revenue-panel-heading-row {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .revenue-period-label {
+        flex: 0 0 auto;
+        color: var(--muted-foreground);
+        font-size: 10px;
+        font-weight: 850;
+    }
+
+    .revenue-chart-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 8px;
+        color: var(--muted-foreground);
+        font-size: 10px;
+        font-weight: 800;
+    }
+
+    .revenue-chart-legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+    }
+
+    .revenue-chart-legend i {
+        display: block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+
+    .revenue-chart-data summary {
+        list-style: none;
+    }
+
+    .revenue-chart-data summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .revenue-controls {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .revenue-control-list {
+        display: grid;
+        margin-top: 17px;
+    }
+
+    .revenue-control-card {
+        padding: 13px 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .revenue-control-card > div {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+    }
+
+    .revenue-control-card > div > span {
+        display: grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+        border-radius: 9px;
+        background: color-mix(in srgb, var(--digital) 9%, var(--card));
+        color: var(--digital);
+    }
+
+    .revenue-control-card p {
+        margin: 0;
+        color: var(--foreground);
+        font-size: 10px;
+        font-weight: 900;
+    }
+
+    .revenue-control-card strong {
+        display: block;
+        margin-top: 4px;
+        color: var(--foreground);
+        font-size: 12px;
+    }
+
+    .revenue-control-card p:last-child {
+        color: var(--muted-foreground);
+        font-size: 9px;
+        font-weight: 600;
+        line-height: 1.4;
+    }
+
+    .revenue-breakdowns-grid,
+    .revenue-refunds-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+
+    .revenue-breakdown .revenue-panel-heading {
+        margin-bottom: 1px;
+    }
+
+    .revenue-pie {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        margin-top: 15px;
+    }
+
+    .revenue-pie-empty {
+        margin: 0;
+        color: var(--muted-foreground);
+        font-size: 11px;
+        text-align: center;
+    }
+
+    .revenue-pie-legend {
+        display: grid;
+        gap: 0;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .revenue-pie-legend li {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 9px 0;
+        border-top: 1px solid var(--border);
+    }
+
+    .revenue-pie-legend i {
+        flex: 0 0 auto;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+    }
+
+    .revenue-pie-legend li > div {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .revenue-pie-legend span {
+        display: block;
+        color: var(--foreground);
+        font-size: 11px;
+        font-weight: 800;
+    }
+
+    .revenue-pie-legend small {
+        display: block;
+        margin-top: 2px;
+        color: var(--muted-foreground);
+        font-size: 9px;
+        font-weight: 600;
+    }
+
+    .revenue-pie-legend strong {
+        flex: 0 0 auto;
+        font-size: 11px;
+        font-weight: 900;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .revenue-table {
+        border-collapse: collapse;
+    }
+
+    .revenue-table th {
+        padding: 11px 12px;
+        color: var(--muted-foreground);
+        background: color-mix(in srgb, var(--muted) 65%, var(--card));
+        font-size: 9px;
+        font-weight: 850;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+
+    .revenue-table td,
+    .revenue-table tbody th {
+        padding: 13px 12px;
+        border-top: 1px solid var(--border);
+        font-size: 11px;
+    }
+
+    .revenue-table tbody th {
+        color: var(--foreground);
+        font-weight: 850;
+        text-align: left;
+    }
+
+    .revenue-table tbody tr:hover {
+        background: var(--muted);
+    }
+
+    .revenue-refund-total {
+        display: block;
+        margin-top: 22px;
+        color: var(--kora);
+        font-size: clamp(1.55rem, 2.5vw, 2.2rem);
+        letter-spacing: -0.055em;
+    }
+
+    .revenue-refund-list {
+        display: grid;
+        gap: 0;
+        margin-top: 17px;
+    }
+
+    .revenue-refund-list > div {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 0;
+        border-top: 1px solid var(--border);
+        font-size: 11px;
+    }
+
+    .revenue-refund-list dt {
+        color: var(--muted-foreground);
+    }
+
+    .revenue-refund-list dd {
+        font-weight: 850;
+    }
+
+    .revenue-non-agency-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-top: 17px;
+        padding: 13px 12px;
+        border: 1px dashed color-mix(in srgb, var(--gold) 55%, var(--border));
+        border-radius: 12px;
+        background: color-mix(in srgb, var(--gold) 8%, var(--card));
+    }
+
+    .revenue-non-agency-row strong,
+    .revenue-non-agency-row span {
+        display: block;
+    }
+
+    .revenue-non-agency-row strong {
+        color: var(--foreground);
+        font-size: 11px;
+    }
+
+    .revenue-non-agency-row span {
+        margin-top: 4px;
+        color: var(--muted-foreground);
+        font-size: 9px;
+    }
+
+    .revenue-currency-note {
+        margin-bottom: 15px;
+    }
+
+    .revenue-empty {
+        padding: 64px 24px;
+        text-align: center;
+    }
+
+    .revenue-empty h2 {
+        margin: 16px 0 0;
+        color: var(--foreground);
+        font-size: 18px;
+    }
+
+    .revenue-empty p {
+        max-width: 440px;
+        margin: 8px auto 0;
+        color: var(--muted-foreground);
+        font-size: 12px;
+        line-height: 1.6;
+    }
+
+    @media (max-width: 1250px) {
+        .revenue-kpis {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 1020px) {
+        .revenue-hero {
+            grid-template-columns: 1fr;
+        }
+
+        .revenue-hero-summary {
+            width: min(100%, 460px);
+        }
+
+        .revenue-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 760px) {
+        .revenue-hero {
+            padding: 28px 23px;
+            border-radius: 22px;
+        }
+
+        .revenue-hero h2 {
+            font-size: 2rem;
+        }
+
+        .revenue-hero-summary {
+            width: 100%;
+        }
+
+        .revenue-panel-heading-row {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .revenue-breakdowns-grid,
+        .revenue-refunds-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 600px) {
+        .revenue-breakdowns-grid,
+        .revenue-refunds-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .revenue-kpis {
+            grid-template-columns: 1fr;
+        }
+
+        .revenue-hero-total > span {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .revenue-hero-total > span .ml-2 {
+            margin-left: 0;
+        }
+    }
+}
+
 @layer components {
     .kora-dashboard-hero {
         background:
@@ -7989,4 +8660,8 @@
     .companies-panel-backdrop {
         animation: none;
     }
+}
+
+.revenue-hero .section-kicker {
+    color: var(--gold) !important;
 }
