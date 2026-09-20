@@ -3,6 +3,9 @@
 namespace App\Modules\IdentityAccess\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Modules\IdentityAccess\Actions\RevokeOpsSessionAction;
+use App\Modules\IdentityAccess\Data\OpsSessionRevocationReason;
 use App\Modules\IdentityAccess\Exceptions\AuthLockedException;
 use App\Modules\IdentityAccess\Exceptions\AuthSuspendedException;
 use App\Modules\IdentityAccess\Http\Requests\ChangePinRequest;
@@ -13,7 +16,9 @@ use App\Modules\IdentityAccess\Http\Requests\UnlockAccountRequest;
 use App\Modules\IdentityAccess\Http\Requests\UpdateProfileRequest;
 use App\Modules\IdentityAccess\Http\Resources\AuthUserResource;
 use App\Modules\IdentityAccess\Http\Resources\UserDeviceResource;
+use App\Modules\IdentityAccess\Models\TerminalSession;
 use App\Modules\IdentityAccess\Services\AuthSessionService;
+use App\Modules\IdentityAccess\Services\OpsSessionTokenReader;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -351,9 +356,26 @@ class AuthSessionController extends Controller
      *   "message": "Unauthenticated."
      * }
      */
-    public function logout(Request $request): JsonResponse
+    public function logout(Request $request, OpsSessionTokenReader $tokens, RevokeOpsSessionAction $revokeSession): JsonResponse
     {
-        $request->user()?->currentAccessToken()?->delete();
+        $user = $request->user();
+        $tokenId = $tokens->tokenId($request);
+
+        // Une session OPS liée à ce jeton est fermée avec lui (motif `logout`),
+        // sinon elle resterait « active » en base alors que son jeton n'existe plus.
+        if ($user instanceof User && $tokenId !== null) {
+            $sessions = TerminalSession::query()
+                ->active()
+                ->where('personal_access_token_id', $tokenId)
+                ->where('user_id', $user->id)
+                ->get();
+
+            foreach ($sessions as $session) {
+                $revokeSession->execute($session, OpsSessionRevocationReason::Logout, $user);
+            }
+        }
+
+        $user?->currentAccessToken()?->delete();
 
         return response()->json(status: 204);
     }

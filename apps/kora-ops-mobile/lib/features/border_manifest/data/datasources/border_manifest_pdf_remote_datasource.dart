@@ -17,9 +17,9 @@ abstract class BorderManifestPdfRemoteDataSource {
 /// passagers concernés, déjà formulés pour l'affichage.
 class BorderManifestIncompleteException extends ApiException {
   const BorderManifestIncompleteException(
-    String message, {
+    super.message, {
     this.details = const <String>[],
-  }) : super(message, statusCode: 422);
+  }) : super(statusCode: 422);
 
   final List<String> details;
 }

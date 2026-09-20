@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePoll } from '@inertiajs/react';
 import { ArrowRight, BusFront, Download, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { DepartureFormDialog } from '@/components/departures/departure-form-dialog';
@@ -90,6 +90,11 @@ export default function DeparturesPage({
     stats,
     permissions,
 }: PageProps) {
+    // Un « bus parti » déclaré par le convoyeur sur le terminal (MEZ-98)
+    // apparaît ici sans recharger la page. Le polling s'arrête tout seul
+    // quand l'onglet est masqué.
+    usePoll(30000, { only: ['departures', 'stats'] });
+
     const [dialogOpen, setDialogOpen] = useState(false);
     const [selected, setSelected] = useState<DepartureListItem | null>(null);
 

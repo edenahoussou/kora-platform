@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../features/auth/presentation/cubit/auth_cubit.dart';
 import '../features/manifeste/presentation/cubit/manifeste_cubit.dart';
+import '../features/notifications/presentation/cubit/notification_cubit.dart';
 import '../features/ops/presentation/cubit/departure_list_cubit.dart';
 import '../features/ops/presentation/cubit/selected_depart_cubit.dart';
 import '../features/scan/presentation/cubit/scan_boarding_cubit.dart';
@@ -36,6 +37,8 @@ class App extends StatelessWidget {
         BlocProvider<ManifesteCubit>.value(value: getIt<ManifesteCubit>()),
         BlocProvider<ScanBoardingCubit>.value(
             value: getIt<ScanBoardingCubit>()),
+        BlocProvider<NotificationCubit>.value(
+            value: getIt<NotificationCubit>()),
       ],
       child: const _AppLifecycleListener(child: _AppRouterHost()),
     );

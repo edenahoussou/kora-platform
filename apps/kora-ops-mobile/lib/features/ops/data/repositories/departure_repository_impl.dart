@@ -43,6 +43,38 @@ class DepartureRepositoryImpl implements DepartureRepository {
     }
   }
 
+  @override
+  Future<Result<String>> updateStatus(
+    String departureUuid,
+    String status, {
+    DateTime? occurredAt,
+  }) async {
+    try {
+      final String updated = await _remote.updateStatus(
+        departureUuid,
+        status,
+        occurredAt: occurredAt,
+      );
+      return Result<String>.success(updated);
+    } on DioException catch (error) {
+      return Result<String>.failure(_failureOf(error));
+    }
+  }
+
+  @override
+  Future<Result<void>> recordDelay(
+    String departureUuid,
+    int delayMinutes,
+    String delayReason,
+  ) async {
+    try {
+      await _remote.recordDelay(departureUuid, delayMinutes, delayReason);
+      return const Result<void>.success(null);
+    } on DioException catch (error) {
+      return Result<void>.failure(_failureOf(error));
+    }
+  }
+
   Failure _failureOf(DioException error) {
     final apiError = error.error;
     final message = apiError is ApiException ? apiError.message : null;

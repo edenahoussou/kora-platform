@@ -2,7 +2,11 @@
 
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Modules\IdentityAccess\Http\Middleware\EnsureOpsSession;
 use App\Modules\IdentityAccess\Http\Middleware\EnsureTerminalIsUsable;
+use App\Modules\IdentityAccess\Services\OpsSessionAuthenticationFailureResponder;
+use App\Modules\Notifications\Http\Middleware\EnsureNotificationsAccess;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -16,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    ->withBroadcasting(__DIR__.'/../routes/channels.php', ['prefix' => 'api/v1', 'middleware' => ['auth:sanctum']])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
@@ -31,10 +36,19 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'terminal.active' => EnsureTerminalIsUsable::class,
+            'ops.session' => EnsureOpsSession::class,
+            'ops.notifications' => EnsureNotificationsAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
+        );
+
+        // Routes OPS Mobile : un état d'authentification déterministe
+        // (session_expired / session_revoked / session_invalid) à la place du
+        // 401 générique. Retourne null ailleurs : rendu Laravel par défaut.
+        $exceptions->render(
+            fn (AuthenticationException $exception, Request $request) => app(OpsSessionAuthenticationFailureResponder::class)->respond($request),
         );
     })->create();

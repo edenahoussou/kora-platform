@@ -8,8 +8,10 @@ use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\Departures\Data\DepartureStatus;
+use App\Modules\Notifications\Observers\DepartureOpsNotificationObserver;
 use App\Modules\Support\Models\KoraModel;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -25,7 +27,11 @@ use Illuminate\Support\Carbon;
  * @property int $delay_minutes
  * @property string|null $delay_reason
  * @property CarbonImmutable|null $delay_recorded_at
+ * @property Carbon|null $boarding_started_at
+ * @property Carbon|null $departed_at
+ * @property Carbon|null $arrived_at
  */
+#[ObservedBy([DepartureOpsNotificationObserver::class])]
 class Departure extends KoraModel
 {
     use SoftDeletes;
@@ -45,6 +51,9 @@ class Departure extends KoraModel
         'delay_reason',
         'delay_recorded_at',
         'delay_recorded_by',
+        'boarding_started_at',
+        'departed_at',
+        'arrived_at',
         'estimated_arrival_at',
         'driver_id',
         'conductor_id',
@@ -150,6 +159,9 @@ class Departure extends KoraModel
             'departure_date' => 'date',
             'estimated_arrival_at' => 'datetime',
             'delay_recorded_at' => 'datetime',
+            'boarding_started_at' => 'datetime',
+            'departed_at' => 'datetime',
+            'arrived_at' => 'datetime',
             'delay_minutes' => 'integer',
             'status' => DepartureStatus::class,
         ];

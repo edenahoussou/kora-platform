@@ -6,12 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Modules\IdentityAccess\Actions\HandshakeTerminalAction;
 use App\Modules\IdentityAccess\Actions\LogTerminalActivityAction;
 use App\Modules\IdentityAccess\Actions\RecordTerminalSyncAction;
-use App\Modules\IdentityAccess\Actions\ResolveTerminalBySerialAction;
-use App\Modules\IdentityAccess\Exceptions\TerminalNotUsableException;
+use App\Modules\IdentityAccess\Data\TerminalActivityType;
 use App\Modules\IdentityAccess\Http\Requests\TerminalActivityRequest;
 use App\Modules\IdentityAccess\Http\Requests\TerminalHandshakeRequest;
 use App\Modules\IdentityAccess\Http\Resources\TerminalP501Resource;
 use App\Modules\IdentityAccess\Models\TerminalP501;
+use App\Modules\IdentityAccess\Services\OpsSessionPayloadBuilder;
+use App\Modules\IdentityAccess\Services\OpsSessionTokenReader;
+use App\Modules\Notifications\Services\OpsNotifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -26,39 +28,74 @@ use Illuminate\Http\Request;
 class TerminalOpsMobileController extends Controller
 {
     /**
-     * Handshake du terminal : à appeler juste après le login pour lier la
-     * session au terminal physique utilisé.
+     * Ouverture de session OPS : à appeler juste après le login pour lier la
+     * session (jeton Sanctum) au terminal physique utilisé.
+     *
+     * Vérifie, dans l'ordre : terminal connu et actif, compte actif, rôle
+     * terrain, permission `departures.view`, terminal affecté à
+     * l'utilisateur. Ouvrir une session ferme les précédentes de
+     * l'utilisateur et du terminal (motif `replaced`).
+     *
+     * `data` reprend les champs du terminal (contrat historique) et ajoute la
+     * session (`expires_at`, `renewable_until`), l'utilisateur et ses
+     * permissions OPS (`capabilities`). Après une perte réseau, appeler
+     * `POST ops-mobile/session/renew` AVANT `expires_at` ; une session
+     * expirée impose de se reconnecter puis de refaire ce handshake.
      *
      * @authenticated
      *
-     * @response 200 scenario="Terminal actif" {
+     * @response 200 scenario="Session ouverte" {
      *   "data": {
      *     "uuid": "b3091549-9179-454e-8440-58179f2208df",
      *     "serial_number": "P501-000123",
+     *     "type": "p501",
      *     "status": "active",
      *     "last_sync_at": null,
-     *     "last_handshake_at": "2026-09-14T09:00:00.000Z"
-     *   }
+     *     "last_handshake_at": "2026-09-14T09:00:00.000Z",
+     *     "session": {
+     *       "uuid": "0c9d3e2a-6c0f-4f57-8d0e-0d6a3c1f5b11",
+     *       "state": "active",
+     *       "opened_at": "2026-09-14T09:00:00.000Z",
+     *       "expires_at": "2026-09-14T21:00:00.000Z",
+     *       "renewable_until": "2026-09-15T09:00:00.000Z",
+     *       "renewed_at": null,
+     *       "renewal_count": 0
+     *     },
+     *     "capabilities": { "departures_view": true, "boarding_scan": true, "seat_release": true },
+     *     "user": { "uuid": "977e5426-8d13-3824-86aa-b092f8ae52c5", "name": "Marc Adjagba", "status": "active", "permissions": ["departures.view", "boarding.scan"] }
+     *   },
+     *   "meta": { "server_time": "2026-09-14T09:00:00.000Z" }
      * }
-     * @response 404 scenario="Terminal unknown" {
-     *   "error": { "code": "terminal_unknown", "message": "Ce terminal n’est pas enregistré. Contactez votre agence." }
+     * @response 404 scenario="Terminal inconnu" {
+     *   "error": { "code": "terminal_unknown", "message": "Ce terminal n’est pas enregistré. Contactez votre agence.", "action": "contact_agency" }
      * }
-     * @response 403 scenario="Terminal lost" {
-     *   "error": { "code": "terminal_lost", "message": "Ce terminal a été déclaré perdu. Il ne peut plus être utilisé." }
+     * @response 403 scenario="Terminal perdu" {
+     *   "error": { "code": "terminal_lost", "message": "Ce terminal a été déclaré perdu. Il ne peut plus être utilisé.", "action": "contact_agency" }
+     * }
+     * @response 403 scenario="Terminal affecté à un autre utilisateur" {
+     *   "error": { "code": "terminal_not_assigned", "message": "Ce terminal ne vous est pas affecté. Contactez votre agence.", "action": "contact_agency" }
+     * }
+     * @response 403 scenario="Compte sans rôle OPS" {
+     *   "error": { "code": "role_not_authorized", "message": "Votre compte n’a pas de rôle autorisé sur KORA OPS Mobile.", "action": "contact_agency" }
      * }
      */
     public function handshake(
         TerminalHandshakeRequest $request,
-        ResolveTerminalBySerialAction $resolveTerminal,
         HandshakeTerminalAction $handshakeTerminal,
+        OpsSessionTokenReader $tokens,
+        OpsSessionPayloadBuilder $payload,
     ): JsonResponse {
-        $terminal = $this->resolveUsableTerminal($resolveTerminal, $request->serialNumber());
+        $session = $handshakeTerminal->execute(
+            $request->serialNumber(),
+            $request->user(),
+            $tokens->tokenId($request),
+            $request->ip(),
+        );
 
-        $terminal = $handshakeTerminal
-            ->execute($terminal, $request->user(), $this->currentTokenId($request))
-            ->load(['assignedUser', 'agency']);
-
-        return response()->json(['data' => new TerminalP501Resource($terminal)]);
+        return response()->json([
+            'data' => $payload->build($session, $session->terminal, $request->user(), $request),
+            'meta' => ['server_time' => now()->toISOString()],
+        ]);
     }
 
     /**
@@ -118,45 +155,19 @@ class TerminalOpsMobileController extends Controller
      *   "errors": { "type": ["The selected type is invalid."] }
      * }
      */
-    public function activity(TerminalActivityRequest $request, LogTerminalActivityAction $logActivity): JsonResponse
+    public function activity(TerminalActivityRequest $request, LogTerminalActivityAction $logActivity, OpsNotifier $notifier): JsonResponse
     {
         /** @var TerminalP501 $terminal */
         $terminal = $request->attributes->get('terminal');
 
         $logActivity->execute($terminal, $request->user(), $request->type(), $request->context());
 
+        // Un échec d'impression signalé par le terminal devient une alerte
+        // (notification + e-mail) — les autres activités ne notifient rien.
+        if ($request->type() === TerminalActivityType::Print) {
+            $notifier->printError($terminal, $request->user(), $request->context());
+        }
+
         return response()->json(status: 204);
-    }
-
-    private function resolveUsableTerminal(ResolveTerminalBySerialAction $resolveTerminal, string $serialNumber): TerminalP501
-    {
-        $terminal = $resolveTerminal->execute($serialNumber);
-
-        if (! $terminal->isUsable()) {
-            throw new TerminalNotUsableException($terminal);
-        }
-
-        return $terminal;
-    }
-
-    /**
-     * Extrait l'identifiant numérique (clé primaire) du jeton Sanctum
-     * courant à partir du header Authorization, de la même façon que
-     * Sanctum le fait en interne pour retrouver le jeton
-     * (`{id}|{plainTextToken}`). Volontairement indépendant de
-     * `currentAccessToken()`/`HasApiTokens`, pour rester correct même si
-     * l'app personnalise le modèle de jeton Sanctum ou le guard utilisé.
-     */
-    private function currentTokenId(Request $request): ?int
-    {
-        $bearer = $request->bearerToken();
-
-        if (! $bearer || ! str_contains($bearer, '|')) {
-            return null;
-        }
-
-        [$id] = explode('|', $bearer, 2);
-
-        return ctype_digit($id) ? (int) $id : null;
     }
 }

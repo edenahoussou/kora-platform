@@ -30,11 +30,20 @@ import '../features/border_manifest/data/repositories/border_manifest_print_repo
 import '../features/border_manifest/domain/repositories/border_manifest_pdf_repository.dart';
 import '../features/border_manifest/domain/repositories/border_manifest_print_repository.dart';
 import '../features/border_manifest/presentation/cubit/border_manifest_print_cubit.dart';
+import '../features/incidents/data/datasources/incident_local_datasource.dart';
+import '../features/incidents/data/datasources/incident_remote_datasource.dart';
+import '../features/incidents/data/repositories/incident_repository_impl.dart';
+import '../features/incidents/domain/repositories/incident_repository.dart';
 import '../features/manifeste/data/datasources/manifeste_local_datasource.dart';
 import '../features/manifeste/data/datasources/manifeste_remote_datasource.dart';
 import '../features/manifeste/data/repositories/manifeste_repository_impl.dart';
 import '../features/manifeste/domain/repositories/manifeste_repository.dart';
 import '../features/manifeste/presentation/cubit/manifeste_cubit.dart';
+import '../features/notifications/data/datasources/notification_local_datasource.dart';
+import '../features/notifications/data/datasources/notification_remote_datasource.dart';
+import '../features/notifications/data/repositories/notification_repository_impl.dart';
+import '../features/notifications/domain/repositories/notification_repository.dart';
+import '../features/notifications/presentation/cubit/notification_cubit.dart';
 import '../features/onboarding/data/onboarding_store.dart';
 import '../features/ops/data/datasources/departure_remote_datasource.dart';
 import '../features/ops/data/datasources/selected_departure_local_datasource.dart';
@@ -378,6 +387,22 @@ Future<void> configureDependencies() async {
     ),
   );
 
+  // --- Feature: incidents (MEZ-98 — POST ops/incidents, idempotent via
+  // incident_uuid, file hors ligne — voir IncidentRepositoryImpl).
+  // Enregistrée avant Synchro : elle en dépend, comme Boarding/SeatRelease.
+  getIt.registerLazySingleton<IncidentRemoteDataSource>(
+    () => IncidentRemoteDataSourceImpl(opsDioClient.dio),
+  );
+  getIt.registerLazySingleton<IncidentLocalDataSource>(
+    () => IncidentLocalDataSourceImpl(getIt<AppDatabase>()),
+  );
+  getIt.registerLazySingleton<IncidentRepository>(
+    () => IncidentRepositoryImpl(
+      getIt<IncidentRemoteDataSource>(),
+      getIt<IncidentLocalDataSource>(),
+    ),
+  );
+
   // --- Feature: synchro (MEZ-88 — réel : POST ops/sync/batches, envoi
   // par lot des files boarding_operations + seat_release_operations en
   // un seul lot, détection de connectivité continue et reprise
@@ -397,6 +422,7 @@ Future<void> configureDependencies() async {
       getIt<SyncRepository>(),
       getIt<BoardingRepository>(),
       getIt<SeatReleaseRepository>(),
+      getIt<IncidentRepository>(),
     ),
   );
 
@@ -431,5 +457,26 @@ Future<void> configureDependencies() async {
       selectedDepartCubit: getIt<SelectedDepartCubit>(),
       terminalRepository: getIt<TerminalRepository>(),
     ),
+  );
+
+  // --- Feature: notifications (MEZ-97 — alertes opérationnelles, contrat
+  // MEZ-96 : GET /notifications, GET /notifications/unread-count,
+  // POST /notifications/{uuid}/read, POST /notifications/read-all).
+  // Même opsDioClient que le reste des features ops (Authorization +
+  // X-Terminal-Serial + purge de session sur 401 déjà branchés).
+  getIt.registerLazySingleton<NotificationRemoteDataSource>(
+    () => NotificationRemoteDataSourceImpl(opsDioClient.dio),
+  );
+  getIt.registerLazySingleton<NotificationLocalDataSource>(
+    () => NotificationLocalDataSourceImpl(getIt<AppDatabase>()),
+  );
+  getIt.registerLazySingleton<NotificationRepository>(
+    () => NotificationRepositoryImpl(
+      getIt<NotificationRemoteDataSource>(),
+      getIt<NotificationLocalDataSource>(),
+    ),
+  );
+  getIt.registerSingleton<NotificationCubit>(
+    NotificationCubit(getIt<NotificationRepository>(), getIt<AuthCubit>()),
   );
 }

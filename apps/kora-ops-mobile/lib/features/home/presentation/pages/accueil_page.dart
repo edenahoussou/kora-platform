@@ -2,18 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radius.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../app/theme/kora_colors.dart';
+import '../../../../core/services/kora_dialogs.dart';
 import '../../../../core/widgets/kora_button.dart';
 import '../../../../core/widgets/notification_button.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../manifeste/presentation/cubit/manifeste_cubit.dart';
 import '../../../ops/domain/entities/depart.dart';
 import '../../../ops/presentation/cubit/selected_depart_cubit.dart';
+import '../../../ops/presentation/depart_progress.dart';
 
 /// Onglet Accueil — reproduit trait pour trait la mise en page de l'accueil
 /// `kora-passager` (voir document.md § Design System / Accueil) : en-tête
@@ -41,6 +44,15 @@ class AccueilPage extends StatelessWidget {
     // sélectionné, pas de `Depart.placesOccupees` (toujours à 0 côté
     // données réelles).
     final int totalPassagers = manifesteState.passengers.length;
+    final bool canProgressDeparture = authState is AuthAuthenticated &&
+        authState.user.can('departures.progress');
+    final DepartProgressStep? progressStep =
+        depart != null && canProgressDeparture
+            ? nextDepartProgressStep(depart)
+            : null;
+    final bool canReportIncident = depart != null &&
+        authState is AuthAuthenticated &&
+        authState.user.can('incidents.report');
 
     return Scaffold(
       backgroundColor: context.koraColors.background,
@@ -89,6 +101,36 @@ class AccueilPage extends StatelessWidget {
                       : context.push(AppRoutes.manifeste),
                 ),
               ),
+              // Accès rapide à la progression du départ (embarquement →
+              // parti → arrivé, MEZ-98) — même action que sur Manifeste,
+              // sans avoir à y entrer (voir échange du 20/09/2026).
+              if (progressStep != null) ...<Widget>[
+                const SizedBox(height: AppSpacing.sm),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                  child: KoraButton(
+                    label: progressStep.label,
+                    variant: KoraButtonVariant.secondary,
+                    icon: progressStep.icon,
+                    onPressed: () =>
+                        progressDeparture(context, depart!, progressStep),
+                  ),
+                ),
+              ],
+              if (canReportIncident) ...<Widget>[
+                const SizedBox(height: AppSpacing.sm),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                  child: KoraButton(
+                    label: 'Signaler un incident',
+                    variant: KoraButtonVariant.danger,
+                    icon: Icons.report_problem,
+                    onPressed: () => context.push(AppRoutes.incidentReport),
+                  ),
+                ),
+              ],
               const SizedBox(height: AppSpacing.lg),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
@@ -126,11 +168,23 @@ class AccueilPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: AppSpacing.sm),
+                    // Ancien tile "Synchro" (avant remplacement par
+                    // "Alertes", échange du 20/09/2026) — Synchro reste
+                    // accessible depuis Profil, voir SynchroPage.
+                    // Expanded(
+                    //   child: _QuickTile(
+                    //     icon: Icons.sync_rounded,
+                    //     label: 'Synchro',
+                    //     onTap: () => context.go(AppRoutes.synchro),
+                    //   ),
+                    // ),
                     Expanded(
                       child: _QuickTile(
-                        icon: Icons.sync_rounded,
-                        label: 'Synchro',
-                        onTap: () => context.go(AppRoutes.synchro),
+                        icon: Icons.notifications_rounded,
+                        label: 'Alertes',
+                        onTap: () => depart == null
+                            ? _promptSelectDepart(context)
+                            : context.push(AppRoutes.notifications),
                       ),
                     ),
                   ],
@@ -153,6 +207,18 @@ class AccueilPage extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Convoyeur sans départ sélectionné qui tape sur "Alertes" (Accès rapides)
+/// — on ne l'y envoie pas silencieusement vide : popup explicite, puis
+/// redirection vers Tournée au OK (voir échange du 20/09/2026).
+Future<void> _promptSelectDepart(BuildContext context) async {
+  await KoraDialogs.info(
+    context,
+    title: 'Aucun départ sélectionné',
+    description: 'Veuillez sélectionner un départ.',
+  );
+  if (context.mounted) context.go(AppRoutes.tournee);
 }
 
 /// En-tête marine incurvé — logo KORA à gauche, avatar/bascule de thème à

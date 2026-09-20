@@ -87,11 +87,12 @@ class _BorderManifestPrintPageState extends State<BorderManifestPrintPage> {
       body: SafeArea(
         child: depart == null
             ? const Center(
-                child: Text('Sélectionnez une course depuis l\'onglet Tournée.'),
+                child:
+                    Text('Sélectionnez une course depuis l\'onglet Tournée.'),
               )
             : BlocBuilder<BorderManifestPrintCubit, BorderManifestPrintState>(
-                builder: (BuildContext context,
-                    BorderManifestPrintState state) {
+                builder:
+                    (BuildContext context, BorderManifestPrintState state) {
                   return ListView(
                     padding: const EdgeInsets.all(AppSpacing.md),
                     children: <Widget>[
@@ -121,8 +122,8 @@ class _BorderManifestPrintPageState extends State<BorderManifestPrintPage> {
                             .printCopies(),
                         onResume: () =>
                             context.read<BorderManifestPrintCubit>().resume(),
-                        onReprint: () => _reprint(
-                            context.read<BorderManifestPrintCubit>()),
+                        onReprint: () =>
+                            _reprint(context.read<BorderManifestPrintCubit>()),
                         onConfirm: (bool printed) => context
                             .read<BorderManifestPrintCubit>()
                             .confirmInFlightCopy(printed: printed),
@@ -328,8 +329,8 @@ class _RefusalCard extends StatelessWidget {
           for (final String issue in issues)
             Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-              child: Text('• $issue',
-                  style: TextStyle(color: colors.textPrimary)),
+              child:
+                  Text('• $issue', style: TextStyle(color: colors.textPrimary)),
             ),
         ],
       ),
@@ -370,7 +371,7 @@ class _Actions extends StatelessWidget {
           icon: Icons.print,
           onPressed: onPrint,
         ),
-      BorderManifestPrintPhase.printing => KoraButton(
+      BorderManifestPrintPhase.printing => const KoraButton(
           label: 'Impression en cours…',
           icon: Icons.print,
           isLoading: true,

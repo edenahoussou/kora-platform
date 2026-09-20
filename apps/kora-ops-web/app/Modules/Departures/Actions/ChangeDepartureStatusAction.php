@@ -17,18 +17,26 @@ class ChangeDepartureStatusAction
         'cancelled' => [],
     ];
 
-    public function execute(Departure $departure, DepartureStatus $targetStatus): Departure
+    public function canTransition(DepartureStatus $from, DepartureStatus $to): bool
+    {
+        return in_array($to, self::ALLOWED_TRANSITIONS[$from->value], true);
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes  Colonnes à écrire avec le statut, en une seule sauvegarde
+     *                                            (ex. `departed_at`, posée avant que la notification « bus parti » ne parte).
+     */
+    public function execute(Departure $departure, DepartureStatus $targetStatus, array $attributes = []): Departure
     {
         $current = DepartureStatus::from((string) $departure->getRawOriginal('status'));
-        $allowed = self::ALLOWED_TRANSITIONS[$current->value];
 
-        if (! in_array($targetStatus, $allowed, true)) {
+        if (! $this->canTransition($current, $targetStatus)) {
             throw ValidationException::withMessages([
                 'status' => "Transition invalide : {$current->label()} → {$targetStatus->label()}.",
             ]);
         }
 
-        $departure->update(['status' => $targetStatus]);
+        $departure->update(['status' => $targetStatus, ...$attributes]);
 
         return $departure->refresh();
     }

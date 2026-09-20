@@ -7,7 +7,9 @@ use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
+use App\Modules\Notifications\Observers\ReservationSegmentManifestObserver;
 use App\Modules\Support\Models\KoraModel;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
@@ -16,6 +18,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $released_at
  * @property int|null $passenger_index
  */
+#[ObservedBy([ReservationSegmentManifestObserver::class])]
 class ReservationSegment extends KoraModel
 {
     use HasPublicUuid;

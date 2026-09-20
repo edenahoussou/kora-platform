@@ -12,12 +12,17 @@ use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
+use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\IdentityAccess\Models\TerminalP501;
+use App\Modules\Notifications\Mail\OpsAlertMail;
+use App\Modules\Notifications\Models\OpsNotification;
+use App\Modules\Notifications\Models\OpsNotificationEvent;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Ticketing\Actions\BuildTicketQrPayloadAction;
 use App\Modules\Ticketing\Models\Ticket;
 use Database\Seeders\KoraBusRolePermissionSeeder;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
 
@@ -509,4 +514,61 @@ it('refuses to reverse a boarding event that was not accepted (rejected or confl
         ->postJson("/api/v1/ops/boarding/{$rejectedScan->json('data.uuid')}/reverse", ['reason' => 'Test.'])
         ->assertUnprocessable()
         ->assertJsonPath('error.code', 'boarding_event_not_reversible');
+});
+
+it('raises a critical scan-conflict alert for the crew, the agency ops director and the superadmins, with an e-mail', function (): void {
+    Mail::fake();
+    [$user, $token] = boardingCrewToken('conductor');
+    $agency = Agency::factory()->create();
+    $user->forceFill(['agency_id' => $agency->id])->save();
+    $director = User::factory()->create(['agency_id' => $agency->id]);
+    $director->assignRole('operations_director');
+    $otherAgencyDirector = User::factory()->create(['agency_id' => Agency::factory()->create()->id]);
+    $otherAgencyDirector->assignRole('operations_director');
+    $admin = User::factory()->create();
+    $admin->assignRole('system_admin');
+    [$bystander] = boardingCrewToken('conductor');
+
+    $terminalA = boardingTerminal('P501-CONF-A');
+    $terminalB = boardingTerminal('P501-CONF-B');
+    $line = boardingLine();
+    [$origin, $destination] = boardingStops($line);
+    [$bus, $seat] = boardingBusWithSeat();
+    $departure = boardingDeparture($line, $bus, ['conductor_id' => $user->id]);
+    boardingDeparture($line, $bus, ['conductor_id' => $bystander->id]);
+    [$ticket] = boardingTicketedPassenger([[$departure, $origin, $destination, $seat, 'ticketed']]);
+
+    $this->withToken($token)->withHeaders(['X-Terminal-Serial' => $terminalA->serial_number])
+        ->postJson('/api/v1/ops/boarding', boardingScanPayload($departure, $ticket))->assertOk();
+
+    // Le scan accepté n'est pas un conflit : rien à signaler à ce stade.
+    expect(OpsNotificationEvent::query()->where('type', 'scan_conflict')->count())->toBe(0);
+
+    $conflict = $this->withToken($token)->withHeaders(['X-Terminal-Serial' => $terminalB->serial_number])
+        ->postJson('/api/v1/ops/boarding', boardingScanPayload($departure, $ticket))
+        ->assertStatus(409);
+
+    $events = OpsNotificationEvent::query()->where('type', 'scan_conflict')->get();
+    $notifiedWith = fn (User $who): int => OpsNotification::query()
+        ->where('user_id', $who->id)->whereHas('event', fn ($event) => $event->where('type', 'scan_conflict'))->count();
+
+    expect($events)->toHaveCount(1)
+        ->and($events[0]->dedupe_key)->toBe('scan_conflict:'.$conflict->json('data.uuid'))
+        ->and($events[0]->severity->value)->toBe('critical')
+        ->and($events[0]->departure_id)->toBe($departure->id)
+        ->and($events[0]->data['code'])->toBe('boarding_conflict')
+        ->and($events[0]->data['accepted_terminal_serial'])->toBe('P501-CONF-A')
+        ->and($events[0]->data['conflicting_terminal_serial'])->toBe('P501-CONF-B')
+        ->and($notifiedWith($user))->toBe(1)
+        ->and($notifiedWith($director))->toBe(1)
+        ->and($notifiedWith($admin))->toBe(1)
+        // Ni un autre départ, ni une autre agence.
+        ->and($notifiedWith($bystander))->toBe(0)
+        ->and($notifiedWith($otherAgencyDirector))->toBe(0);
+
+    Mail::assertSent(
+        OpsAlertMail::class,
+        fn ($mail): bool => $mail->hasTo($director->email) && $mail->hasCc($admin->email) && ! $mail->hasTo($otherAgencyDirector->email),
+    );
+    Mail::assertSent(OpsAlertMail::class, 1);
 });

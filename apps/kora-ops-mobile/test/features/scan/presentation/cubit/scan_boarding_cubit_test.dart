@@ -5,6 +5,7 @@ import 'package:kora_ops_mobile/features/auth/presentation/cubit/auth_cubit.dart
 import 'package:kora_ops_mobile/features/boarding/domain/entities/boarding_outcome.dart';
 import 'package:kora_ops_mobile/features/boarding/domain/entities/boarding_outcome_status.dart';
 import 'package:kora_ops_mobile/features/boarding/domain/repositories/boarding_repository.dart';
+import 'package:kora_ops_mobile/features/incidents/domain/repositories/incident_repository.dart';
 import 'package:kora_ops_mobile/features/manifeste/domain/entities/manifest_snapshot.dart';
 import 'package:kora_ops_mobile/features/manifeste/domain/repositories/manifeste_repository.dart';
 import 'package:kora_ops_mobile/features/manifeste/presentation/cubit/manifeste_cubit.dart';
@@ -33,6 +34,8 @@ class MockTerminalRepository extends Mock implements TerminalRepository {}
 class MockSyncRepository extends Mock implements SyncRepository {}
 
 class MockSeatReleaseRepository extends Mock implements SeatReleaseRepository {}
+
+class MockIncidentRepository extends Mock implements IncidentRepository {}
 
 class MockSelectedDepartureLocalDataSource extends Mock
     implements SelectedDepartureLocalDataSource {}
@@ -109,7 +112,7 @@ void main() {
     // `markBoarded` (utilisé par ScanBoardingCubit) ne passe pas non plus
     // par SyncCubit.
     syncCubit = SyncCubit(MockSyncRepository(), MockBoardingRepository(),
-        MockSeatReleaseRepository());
+        MockSeatReleaseRepository(), MockIncidentRepository());
 
     when(() => manifesteRepository.load(depart.id)).thenAnswer(
       (_) async => Result<ManifestSnapshot>.success(

@@ -2,6 +2,7 @@
 
 namespace App\Modules\IdentityAccess\Exceptions;
 
+use App\Modules\IdentityAccess\Data\OpsSessionAction;
 use App\Modules\IdentityAccess\Data\TerminalP501Status;
 use App\Modules\IdentityAccess\Models\TerminalP501;
 use Illuminate\Http\JsonResponse;
@@ -50,6 +51,7 @@ class TerminalNotUsableException extends RuntimeException
             'error' => [
                 'code' => $code,
                 'message' => $messages[$code],
+                'action' => ($code === 'terminal_maintenance' ? OpsSessionAction::RetryLater : OpsSessionAction::ContactAgency)->value,
             ],
         ], 403);
     }

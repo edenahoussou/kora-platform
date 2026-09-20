@@ -10,4 +10,7 @@ enum SyncBatchStatus: string
 
     case Pending = 'pending';
     case Completed = 'completed';
+
+    /** Traitement interrompu par une erreur : le lot peut être rejoué avec le même `batch_uuid`. */
+    case Failed = 'failed';
 }
