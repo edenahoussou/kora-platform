@@ -31,25 +31,47 @@ use Illuminate\Support\Str;
 beforeEach(function (): void {
     $this->travelTo('2026-09-18 08:00:00');
     $this->seed(KoraBusRolePermissionSeeder::class);
+    config()->set('kora.assisted_bookings.support.call_phone', '+2290100000000');
+    config()->set('kora.assisted_bookings.support.whatsapp_phone', '+2290100000001');
 });
 
 afterEach(function (): void {
     $this->travelBack();
 });
 
-it('lists only active agencies with an assistance contact', function (): void {
+it('does not expose an agency selection endpoint', function (): void {
     $scenario = assistedBookingScenario();
-    Agency::factory()->create(['status' => 'suspended', 'call_phone' => '+2290100000002']);
-    Agency::factory()->create(['call_phone' => null, 'whatsapp_phone' => null]);
 
     $this->actingAs($scenario['passenger'])
         ->getJson('/api/v1/assisted-bookings/agencies')
-        ->assertOk()
-        ->assertJsonCount(1, 'data')
-        ->assertJsonPath('data.0.uuid', $scenario['agency']->uuid)
-        ->assertJsonPath('data.0.call_phone', '+2290100000000')
-        ->assertJsonPath('data.0.whatsapp_phone', '+2290100000001')
-        ->assertJsonMissingPath('data.0.id');
+        ->assertNotFound();
+});
+
+it('returns a stable 503 when the requested central support channel is unavailable', function (): void {
+    $scenario = assistedBookingScenario();
+    config()->set('kora.assisted_bookings.support.call_phone', null);
+
+    $this->actingAs($scenario['passenger'])
+        ->postJson("/api/v1/bookings/{$scenario['reservation']->uuid}/assistance", [
+            'channel' => 'call',
+            'contact_name' => 'Afi',
+            'contact_phone' => '+2290197000000',
+            'idempotency_key' => (string) Str::uuid(),
+        ])
+        ->assertStatus(503)
+        ->assertJsonPath('error.code', 'assisted_booking_support_unavailable')
+        ->assertJsonPath('error.channel', 'call');
+
+    $this->actingAs($scenario['passenger'])
+        ->postJson("/api/v1/bookings/{$scenario['reservation']->uuid}/assistance", [
+            'channel' => 'whatsapp',
+            'contact_name' => 'Afi',
+            'contact_phone' => '+2290197000000',
+            'idempotency_key' => (string) Str::uuid(),
+        ])
+        ->assertCreated();
+
+    $this->assertDatabaseCount('assisted_bookings', 1);
 });
 
 it('moves the original reservation to assistance without occupying its requested seat', function (): void {
@@ -57,7 +79,6 @@ it('moves the original reservation to assistance without occupying its requested
 
     $response = $this->actingAs($scenario['passenger'])
         ->postJson("/api/v1/bookings/{$scenario['reservation']->uuid}/assistance", [
-            'agency_uuid' => $scenario['agency']->uuid,
             'channel' => 'whatsapp',
             'contact_name' => 'Afi',
             'contact_phone' => '+2290197000000',
@@ -66,7 +87,7 @@ it('moves the original reservation to assistance without occupying its requested
         ->assertCreated()
         ->assertJsonPath('data.status', 'pending')
         ->assertJsonPath('data.reservation.reference', fn (string $reference): bool => str_starts_with($reference, 'KBR-'))
-        ->assertJsonPath('data.agency.uuid', $scenario['agency']->uuid)
+        ->assertJsonPath('data.handling_agency', null)
         ->assertJsonPath('data.contact.name', 'Afi')
         ->assertJsonPath('data.channels.whatsapp_phone', '+2290100000001')
         ->assertJsonMissingPath('data.reservation.id');
@@ -77,6 +98,7 @@ it('moves the original reservation to assistance without occupying its requested
         ->and($scenario['segment']->fresh()->status)->toBe(ReservationSegmentStatus::Requested)
         ->and($scenario['segment']->fresh()->released_at)->not->toBeNull()
         ->and($assistedBooking->status)->toBe(AssistedBookingStatus::Pending)
+        ->and($assistedBooking->preferred_agency_id)->toBeNull()
         ->and($assistedBooking->snapshot['requested_seats'][0]['code'])->toBe('2A');
 
     $this->assertDatabaseHas('activity_log', [
@@ -91,7 +113,6 @@ it('moves the original reservation to assistance without occupying its requested
 it('replays the same assistance request without creating a duplicate', function (): void {
     $scenario = assistedBookingScenario();
     $payload = [
-        'agency_uuid' => $scenario['agency']->uuid,
         'channel' => 'call',
         'contact_name' => 'Afi',
         'contact_phone' => '+2290197000000',
@@ -115,7 +136,6 @@ it('returns 403 when another passenger requests assistance for the reservation',
 
     $this->actingAs($otherPassenger)
         ->postJson("/api/v1/bookings/{$scenario['reservation']->uuid}/assistance", [
-            'agency_uuid' => $scenario['agency']->uuid,
             'channel' => 'whatsapp',
             'contact_name' => 'Intrus',
             'contact_phone' => '+2290197999999',
@@ -129,7 +149,6 @@ it('returns 403 when another passenger requests assistance for the reservation',
 it('resumes online on the same reservation with a fresh quote and atomic seat hold', function (): void {
     $scenario = assistedBookingScenario();
     $this->actingAs($scenario['passenger'])->postJson("/api/v1/bookings/{$scenario['reservation']->uuid}/assistance", [
-        'agency_uuid' => $scenario['agency']->uuid,
         'channel' => 'whatsapp',
         'contact_name' => 'Afi',
         'contact_phone' => '+2290197000000',
@@ -163,7 +182,6 @@ it('resumes online on the same reservation with a fresh quote and atomic seat ho
 it('lets exactly one eligible agency agent claim the dossier without holding a seat', function (): void {
     $scenario = assistedBookingScenario();
     $this->actingAs($scenario['passenger'])->postJson("/api/v1/bookings/{$scenario['reservation']->uuid}/assistance", [
-        'agency_uuid' => $scenario['agency']->uuid,
         'channel' => 'call',
         'contact_name' => 'Afi',
         'contact_phone' => '+2290197000000',
@@ -171,14 +189,14 @@ it('lets exactly one eligible agency agent claim the dossier without holding a s
     ])->assertCreated();
     $assistance = AssistedBooking::query()->firstOrFail();
     $firstAgent = assistedBookingAgent($scenario['agency']);
-    $secondAgent = assistedBookingAgent($scenario['agency']);
+    $secondAgent = assistedBookingAgent(Agency::factory()->create());
 
     $this->actingAs($firstAgent)
         ->post("/assisted-bookings/{$assistance->uuid}/claim")
         ->assertRedirect();
     $this->actingAs($secondAgent)
         ->post("/assisted-bookings/{$assistance->uuid}/claim")
-        ->assertForbidden();
+        ->assertConflict();
 
     expect($assistance->fresh()->status)->toBe(AssistedBookingStatus::InProgress)
         ->and($assistance->fresh()->assigned_user_id)->toBe($firstAgent->id)
@@ -186,29 +204,27 @@ it('lets exactly one eligible agency agent claim the dossier without holding a s
         ->and($assistance->fresh()->current_total_amount)->toBe(8500);
 });
 
-it('prevents another agency and the finance director from reading an assisted dossier', function (): void {
+it('exposes an unassigned dossier to every authorized agency but not to finance', function (): void {
     $scenario = assistedBookingScenario();
     $this->actingAs($scenario['passenger'])->postJson("/api/v1/bookings/{$scenario['reservation']->uuid}/assistance", [
-        'agency_uuid' => $scenario['agency']->uuid,
         'channel' => 'call',
         'contact_name' => 'Afi',
         'contact_phone' => '+2290197000000',
         'idempotency_key' => (string) Str::uuid(),
     ])->assertCreated();
     $assistance = AssistedBooking::query()->firstOrFail();
-    $otherAgency = Agency::factory()->create(['call_phone' => '+2290100000099']);
+    $otherAgency = Agency::factory()->create();
     $otherManager = assistedBookingAgent($otherAgency, 'agency_manager');
     $financeDirector = User::factory()->create();
     $financeDirector->assignRole('daf');
 
-    $this->actingAs($otherManager)->get("/assisted-bookings/{$assistance->uuid}")->assertForbidden();
+    $this->actingAs($otherManager)->get("/assisted-bookings/{$assistance->uuid}")->assertRedirect();
     $this->actingAs($financeDirector)->get("/assisted-bookings/{$assistance->uuid}")->assertForbidden();
 });
 
 it('requires a manager refusal reason and closes the reservation atomically', function (): void {
     $scenario = assistedBookingScenario();
     $this->actingAs($scenario['passenger'])->postJson("/api/v1/bookings/{$scenario['reservation']->uuid}/assistance", [
-        'agency_uuid' => $scenario['agency']->uuid,
         'channel' => 'call',
         'contact_name' => 'Afi',
         'contact_phone' => '+2290197000000',
@@ -216,6 +232,9 @@ it('requires a manager refusal reason and closes the reservation atomically', fu
     ])->assertCreated();
     $assistance = AssistedBooking::query()->firstOrFail();
     $manager = assistedBookingAgent($scenario['agency'], 'agency_manager');
+    $this->actingAs($manager)
+        ->post("/assisted-bookings/{$assistance->uuid}/claim")
+        ->assertRedirect();
 
     $this->actingAs($manager)
         ->post("/assisted-bookings/{$assistance->uuid}/refuse", ['reason_code' => 'other'])
@@ -234,7 +253,6 @@ it('requires a manager refusal reason and closes the reservation atomically', fu
 it('finalizes assistance in the same transaction as the counter payment and fiscal invoice', function (): void {
     $scenario = assistedBookingScenario();
     $this->actingAs($scenario['passenger'])->postJson("/api/v1/bookings/{$scenario['reservation']->uuid}/assistance", [
-        'agency_uuid' => $scenario['agency']->uuid,
         'channel' => 'call',
         'contact_name' => 'Afi',
         'contact_phone' => '+2290197000000',
@@ -293,7 +311,6 @@ it('finalizes assistance in the same transaction as the counter payment and fisc
 it('expires assistance at the effective commercial cutoff', function (): void {
     $scenario = assistedBookingScenario();
     $this->actingAs($scenario['passenger'])->postJson("/api/v1/bookings/{$scenario['reservation']->uuid}/assistance", [
-        'agency_uuid' => $scenario['agency']->uuid,
         'channel' => 'call',
         'contact_name' => 'Afi',
         'contact_phone' => '+2290197000000',
@@ -311,7 +328,6 @@ it('expires assistance at the effective commercial cutoff', function (): void {
 it('marks the same reservation unavailable when its departure is cancelled', function (): void {
     $scenario = assistedBookingScenario();
     $this->actingAs($scenario['passenger'])->postJson("/api/v1/bookings/{$scenario['reservation']->uuid}/assistance", [
-        'agency_uuid' => $scenario['agency']->uuid,
         'channel' => 'call',
         'contact_name' => 'Afi',
         'contact_phone' => '+2290197000000',
@@ -332,7 +348,6 @@ it('marks the same reservation unavailable when its departure is cancelled', fun
 it('arbitrates a concurrent claim against an online resume: the first wins, the other conflicts', function (): void {
     $scenario = assistedBookingScenario();
     $this->actingAs($scenario['passenger'])->postJson("/api/v1/bookings/{$scenario['reservation']->uuid}/assistance", [
-        'agency_uuid' => $scenario['agency']->uuid,
         'channel' => 'call',
         'contact_name' => 'Afi',
         'contact_phone' => '+2290197000000',
@@ -364,7 +379,6 @@ it('arbitrates a concurrent claim against an online resume: the first wins, the 
 it('lets an agent release a dossier back to the queue, then another agent of the same agency can claim it', function (): void {
     $scenario = assistedBookingScenario();
     $this->actingAs($scenario['passenger'])->postJson("/api/v1/bookings/{$scenario['reservation']->uuid}/assistance", [
-        'agency_uuid' => $scenario['agency']->uuid,
         'channel' => 'call',
         'contact_name' => 'Afi',
         'contact_phone' => '+2290197000000',
@@ -380,6 +394,7 @@ it('lets an agent release a dossier back to the queue, then another agent of the
         ->assertRedirect();
 
     expect($assistance->fresh()->status)->toBe(AssistedBookingStatus::Pending)
+        ->and($assistance->fresh()->preferred_agency_id)->toBeNull()
         ->and($assistance->fresh()->assigned_user_id)->toBeNull();
 
     $this->actingAs($secondAgent)->post("/assisted-bookings/{$assistance->uuid}/claim")->assertRedirect();
@@ -390,7 +405,6 @@ it('lets an agent release a dossier back to the queue, then another agent of the
 it('requires a reason when releasing a dossier', function (): void {
     $scenario = assistedBookingScenario();
     $this->actingAs($scenario['passenger'])->postJson("/api/v1/bookings/{$scenario['reservation']->uuid}/assistance", [
-        'agency_uuid' => $scenario['agency']->uuid,
         'channel' => 'call',
         'contact_name' => 'Afi',
         'contact_phone' => '+2290197000000',
@@ -405,35 +419,42 @@ it('requires a reason when releasing a dossier', function (): void {
         ->assertSessionHasErrors('reason');
 });
 
-it('lets a manager reassign a dossier to another agent within the same agency', function (): void {
+it('lets a network operator reassign a dossier to an agency queue', function (): void {
     $scenario = assistedBookingScenario();
     $this->actingAs($scenario['passenger'])->postJson("/api/v1/bookings/{$scenario['reservation']->uuid}/assistance", [
-        'agency_uuid' => $scenario['agency']->uuid,
         'channel' => 'call',
         'contact_name' => 'Afi',
         'contact_phone' => '+2290197000000',
         'idempotency_key' => (string) Str::uuid(),
     ])->assertCreated();
     $assistance = AssistedBooking::query()->firstOrFail();
-    $manager = assistedBookingAgent($scenario['agency'], 'agency_manager');
-    $newAgent = assistedBookingAgent($scenario['agency']);
+    $networkOperator = User::factory()->create();
+    $networkOperator->assignRole('operations_director');
+    $targetAgency = Agency::factory()->create();
 
-    $this->actingAs($manager)
+    $this->actingAs($networkOperator)
         ->post("/assisted-bookings/{$assistance->uuid}/reassign", [
-            'agency_uuid' => $scenario['agency']->uuid,
-            'assignee_uuid' => $newAgent->uuid,
-            'reason' => 'Réaffectation interne.',
+            'agency_uuid' => $targetAgency->uuid,
+            'reason' => 'Réaffectation réseau.',
         ])
         ->assertRedirect();
 
+    expect($assistance->fresh()->status)->toBe(AssistedBookingStatus::Pending)
+        ->and($assistance->fresh()->preferred_agency_id)->toBe($targetAgency->id)
+        ->and($assistance->fresh()->assigned_user_id)->toBeNull();
+
+    $targetAgent = assistedBookingAgent($targetAgency);
+    $this->actingAs($targetAgent)
+        ->post("/assisted-bookings/{$assistance->uuid}/claim")
+        ->assertRedirect();
+
     expect($assistance->fresh()->status)->toBe(AssistedBookingStatus::InProgress)
-        ->and($assistance->fresh()->assigned_user_id)->toBe($newAgent->id);
+        ->and($assistance->fresh()->assigned_user_id)->toBe($targetAgent->id);
 });
 
 it('forbids an agency manager from reassigning to a different agency without network permission', function (): void {
     $scenario = assistedBookingScenario();
     $this->actingAs($scenario['passenger'])->postJson("/api/v1/bookings/{$scenario['reservation']->uuid}/assistance", [
-        'agency_uuid' => $scenario['agency']->uuid,
         'channel' => 'call',
         'contact_name' => 'Afi',
         'contact_phone' => '+2290197000000',
@@ -441,22 +462,19 @@ it('forbids an agency manager from reassigning to a different agency without net
     ])->assertCreated();
     $assistance = AssistedBooking::query()->firstOrFail();
     $manager = assistedBookingAgent($scenario['agency'], 'agency_manager');
-    $otherAgency = Agency::factory()->create(['call_phone' => '+2290100000088', 'whatsapp_phone' => '+2290100000089']);
-    $otherAgent = assistedBookingAgent($otherAgency);
+    $otherAgency = Agency::factory()->create();
 
     $this->actingAs($manager)
         ->post("/assisted-bookings/{$assistance->uuid}/reassign", [
             'agency_uuid' => $otherAgency->uuid,
-            'assignee_uuid' => $otherAgent->uuid,
             'reason' => 'Tentative interdite.',
         ])
-        ->assertConflict();
+        ->assertForbidden();
 });
 
 it('reports a seat conflict when the requested seat is taken by another reservation on resume', function (): void {
     $scenario = assistedBookingScenario();
     $this->actingAs($scenario['passenger'])->postJson("/api/v1/bookings/{$scenario['reservation']->uuid}/assistance", [
-        'agency_uuid' => $scenario['agency']->uuid,
         'channel' => 'whatsapp',
         'contact_name' => 'Afi',
         'contact_phone' => '+2290197000000',
@@ -544,7 +562,6 @@ it('releases company credit on assistance request and re-reserves it on online r
     ]);
 
     $this->actingAs($scenario['passenger'])->postJson("/api/v1/bookings/{$scenario['reservation']->uuid}/assistance", [
-        'agency_uuid' => $scenario['agency']->uuid,
         'channel' => 'whatsapp',
         'contact_name' => 'Afi',
         'contact_phone' => '+2290197000000',
@@ -569,7 +586,6 @@ it('releases company credit on assistance request and re-reserves it on online r
 it('keeps assistance finalized and does not duplicate tickets when the issuance job is replayed', function (): void {
     $scenario = assistedBookingScenario();
     $this->actingAs($scenario['passenger'])->postJson("/api/v1/bookings/{$scenario['reservation']->uuid}/assistance", [
-        'agency_uuid' => $scenario['agency']->uuid,
         'channel' => 'call',
         'contact_name' => 'Afi',
         'contact_phone' => '+2290197000000',
@@ -650,8 +666,6 @@ function assistedBookingScenario(): array
         'name' => 'Agence Ganhi',
         'city' => 'Cotonou',
         'status' => 'active',
-        'call_phone' => '+2290100000000',
-        'whatsapp_phone' => '+2290100000001',
     ]);
     $line = Line::query()->create([
         'code' => 'AB-L1', 'name' => 'Cotonou - Parakou', 'countries_crossed' => ['BJ'],

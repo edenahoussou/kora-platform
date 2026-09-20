@@ -65,7 +65,7 @@ class AssistedBooking extends KoraModel
     }
 
     /** @return BelongsTo<Agency, $this> */
-    public function preferredAgency(): BelongsTo
+    public function handlingAgency(): BelongsTo
     {
         return $this->belongsTo(Agency::class, 'preferred_agency_id');
     }

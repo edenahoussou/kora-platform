@@ -30,8 +30,6 @@ class AgencyFactory extends Factory
             'name' => 'Agence '.$code,
             'city' => fake()->city(),
             'country' => 'BJ',
-            'call_phone' => null,
-            'whatsapp_phone' => null,
             'status' => AgencyStatus::Active,
         ];
     }

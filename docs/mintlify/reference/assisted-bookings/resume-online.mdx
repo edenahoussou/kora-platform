@@ -6,7 +6,7 @@ api: POST /api/v1/bookings/{reservation_uuid}/assistance/resume-online
 
 # Reprendre le paiement en ligne
 
-Arbitre contre une éventuelle prise en charge agence : l'opération n'est valide que tant que le dossier est `pending`. Le devis est recalculé et les sièges sont réacquis **atomiquement** sur le même itinéraire et les mêmes départs — la première opération validée gagne, l'autre reçoit un conflit `409`. Aucune nouvelle réservation n'est créée.
+Arbitre contre une éventuelle prise en charge agence : l'opération n'est valide que tant que le dossier est `pending` **sans agence traitante**. Le devis est recalculé et les sièges sont réacquis **atomiquement** sur le même itinéraire et les mêmes départs — la première opération validée gagne, l'autre reçoit un conflit `409`. Aucune nouvelle réservation n'est créée.
 
 ## Paramètres
 

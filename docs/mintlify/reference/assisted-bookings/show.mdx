@@ -1,12 +1,12 @@
 ---
 title: Consulter un dossier assisté
-description: GET /api/v1/bookings/{uuid}/assistance retourne l'état du dossier d'assistance, sa validité, l'agence et les actions encore permises.
+description: GET /api/v1/bookings/{uuid}/assistance retourne l'état du dossier d'assistance, sa validité, l'agence traitante et les actions encore permises.
 api: GET /api/v1/bookings/{reservation_uuid}/assistance
 ---
 
 # Consulter un dossier assisté
 
-Retourne l'état courant du dossier : statut (`pending`, `in_progress`, `cancelled`, `refused`, `unavailable`, `expired`, `finalized`), fenêtre de validité, canaux de contact de l'agence, snapshot initial et actions encore permises (`actions.resume_online`).
+Retourne l'état courant du dossier : statut (`pending`, `in_progress`, `cancelled`, `refused`, `unavailable`, `expired`, `finalized`), fenêtre de validité, canaux du support central, snapshot initial et actions encore permises (`actions.resume_online`). `handling_agency` et `assigned_agent` restent nuls avant le claim.
 
 ## Paramètres
 
@@ -56,11 +56,8 @@ final dossier = res.data['data'];
       "reference": "KBR-7X2K9P4Q",
       "status": "assistance_pending"
     },
-    "agency": {
-      "uuid": "9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f",
-      "name": "Agence Dantokpa",
-      "city": "Cotonou"
-    },
+    "handling_agency": null,
+    "assigned_agent": null,
     "contact": { "name": "Afi", "phone": "+2290197000000" },
     "channels": {
       "call_phone": "+229010000001",

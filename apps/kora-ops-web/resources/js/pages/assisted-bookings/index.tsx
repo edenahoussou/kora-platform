@@ -31,7 +31,7 @@ type QueueItem = {
     reference: string;
     contactName: string;
     contactPhone: string;
-    agency: { uuid: string; name: string };
+    handlingAgency: { uuid: string; name: string } | null;
     assignee: { uuid: string; name: string } | null;
     legs: QueueLeg[];
     originalAmount: number;
@@ -452,7 +452,7 @@ export default function AssistedBookingsIndex({
                                         </th>
                                         <th className="px-4 py-3">Trajet</th>
                                         <th className="px-4 py-3">Contact</th>
-                                        <th className="px-4 py-3">Agence</th>
+                                        <th className="px-4 py-3">Agence traitante</th>
                                         <th className="px-4 py-3">État</th>
                                         <th className="px-4 py-3 text-right">
                                             Montant
@@ -547,7 +547,7 @@ export default function AssistedBookingsIndex({
                                                 </p>
                                             </td>
                                             <td className="px-4 py-3.5 text-xs font-medium text-foreground">
-                                                {item.agency.name}
+                                                {item.handlingAgency?.name ?? 'File réseau'}
                                             </td>
                                             <td className="px-4 py-3.5">
                                                 <KoraStatusBadge

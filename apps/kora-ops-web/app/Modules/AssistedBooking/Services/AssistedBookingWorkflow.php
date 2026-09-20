@@ -35,6 +35,7 @@ class AssistedBookingWorkflow
         private CalculateItineraryQuoteAction $calculateItineraryQuote,
         private ApplyItinerarySeatHoldAction $applyItinerarySeatHold,
         private BuildSeatAvailabilityAction $buildSeatAvailability,
+        private AssistedBookingSupportChannels $supportChannels,
     ) {}
 
     public function claim(AssistedBooking $assistedBooking, User $actor): AssistedBooking
@@ -46,8 +47,12 @@ class AssistedBookingWorkflow
             if ($lockedAssistance->status !== AssistedBookingStatus::Pending) {
                 throw new AssistedBookingConflictException('Ce dossier a déjà été pris en charge ou clôturé.');
             }
-            if ($actor->agency_id !== $lockedAssistance->preferred_agency_id) {
-                throw new AssistedBookingConflictException('Ce dossier appartient à une autre agence.');
+            if ($actor->agency_id === null) {
+                throw new AssistedBookingConflictException('Un agent rattaché à une agence est requis pour prendre ce dossier.');
+            }
+            if ($lockedAssistance->preferred_agency_id !== null
+                && $actor->agency_id !== $lockedAssistance->preferred_agency_id) {
+                throw new AssistedBookingConflictException('Ce dossier est placé dans la file d’une autre agence.');
             }
             if (! $this->ensureNotExpired($lockedAssistance, $reservation, $actor)) {
                 return $lockedAssistance;
@@ -64,6 +69,7 @@ class AssistedBookingWorkflow
                 'total_snapshot' => $quote->snapshot,
             ]);
             $lockedAssistance->update([
+                'preferred_agency_id' => $actor->agency_id,
                 'status' => AssistedBookingStatus::InProgress,
                 'assigned_user_id' => $actor->id,
                 'current_total_amount' => $quote->total_amount,
@@ -76,7 +82,7 @@ class AssistedBookingWorkflow
                 'current_amount' => $quote->total_amount,
             ]);
 
-            return $lockedAssistance->load(['reservation', 'preferredAgency', 'assignedUser']);
+            return $lockedAssistance->load(['reservation', 'handlingAgency', 'assignedUser']);
         });
 
         if (in_array($result->status, [AssistedBookingStatus::Expired, AssistedBookingStatus::Unavailable], true)) {
@@ -105,6 +111,9 @@ class AssistedBookingWorkflow
             }
             if ($lockedAssistance->status !== AssistedBookingStatus::Pending) {
                 throw new AssistedBookingConflictException('Un agent a déjà pris en charge ce dossier ou celui-ci est clôturé.');
+            }
+            if ($lockedAssistance->preferred_agency_id !== null) {
+                throw new AssistedBookingConflictException('Ce dossier est déjà placé dans la file d’une agence.');
             }
             if (! $this->ensureNotExpired($lockedAssistance, $reservation, $actor)) {
                 return $lockedAssistance;
@@ -162,7 +171,9 @@ class AssistedBookingWorkflow
             $previousAssignee = $lockedAssistance->assignedUser()->value('uuid');
             $lockedAssistance->update([
                 'status' => AssistedBookingStatus::Pending,
+                'preferred_agency_id' => null,
                 'assigned_user_id' => null,
+                'claimed_at' => null,
                 'released_at' => now(),
                 'reason_code' => 'released',
                 'reason_note' => trim($reason),
@@ -172,7 +183,7 @@ class AssistedBookingWorkflow
                 'reason' => trim($reason),
             ]);
 
-            return $lockedAssistance->load(['reservation', 'preferredAgency', 'assignedUser']);
+            return $lockedAssistance->load(['reservation', 'handlingAgency', 'assignedUser']);
         });
     }
 
@@ -180,44 +191,37 @@ class AssistedBookingWorkflow
         AssistedBooking $assistedBooking,
         User $actor,
         Agency $agency,
-        ?User $assignee,
         string $reason,
     ): AssistedBooking {
-        return DB::transaction(function () use ($assistedBooking, $actor, $agency, $assignee, $reason): AssistedBooking {
+        return DB::transaction(function () use ($assistedBooking, $actor, $agency, $reason): AssistedBooking {
             Reservation::query()->whereKey($assistedBooking->reservation_id)->lockForUpdate()->firstOrFail();
             $lockedAssistance = AssistedBooking::query()->whereKey($assistedBooking->getKey())->lockForUpdate()->firstOrFail();
             if ($lockedAssistance->status->isTerminal()) {
                 throw new AssistedBookingConflictException('Un dossier clôturé ne peut pas être réaffecté.');
             }
-            if (enum_value($agency->status) !== AgencyStatus::Active->value || (! $agency->call_phone && ! $agency->whatsapp_phone)) {
+            if (enum_value($agency->status) !== AgencyStatus::Active->value) {
                 throw ValidationException::withMessages(['agency_uuid' => 'Cette agence n’est pas éligible à l’assistance.']);
             }
-            if ($assignee !== null && ($assignee->agency_id !== $agency->id || ! $assignee->can('assisted-bookings.claim'))) {
-                throw ValidationException::withMessages(['assignee_uuid' => 'Cet agent ne peut pas prendre en charge le dossier dans cette agence.']);
-            }
-            if ($agency->id !== $lockedAssistance->preferred_agency_id && ! $actor->can('assisted-bookings.reassign-network')) {
-                throw new AssistedBookingConflictException('La réaffectation inter-agences est réservée aux directions autorisées.');
-            }
 
-            $previousAgencyUuid = $lockedAssistance->preferredAgency()->value('uuid');
+            $previousAgencyUuid = $lockedAssistance->handlingAgency()->value('uuid');
             $previousAssigneeUuid = $lockedAssistance->assignedUser()->value('uuid');
             $lockedAssistance->update([
                 'preferred_agency_id' => $agency->id,
-                'assigned_user_id' => $assignee?->id,
-                'status' => $assignee ? AssistedBookingStatus::InProgress : AssistedBookingStatus::Pending,
-                'claimed_at' => $assignee ? now() : null,
-                'released_at' => $assignee ? null : now(),
+                'assigned_user_id' => null,
+                'status' => AssistedBookingStatus::Pending,
+                'claimed_at' => null,
+                'released_at' => now(),
                 'reason_code' => 'reassigned',
                 'reason_note' => trim($reason),
             ]);
             $this->audit($lockedAssistance, $actor, 'reassigned', [
                 'previous_agency_uuid' => $previousAgencyUuid,
                 'previous_assignee_uuid' => $previousAssigneeUuid,
-                'assignee_uuid' => $assignee?->uuid,
+                'agency_uuid' => $agency->uuid,
                 'reason' => trim($reason),
             ]);
 
-            return $lockedAssistance->load(['reservation', 'preferredAgency', 'assignedUser']);
+            return $lockedAssistance->load(['reservation', 'handlingAgency', 'assignedUser']);
         });
     }
 
@@ -246,7 +250,7 @@ class AssistedBookingWorkflow
                 'reason_note' => trim($reasonNote),
             ]);
 
-            return $lockedAssistance->load(['reservation', 'preferredAgency', 'assignedUser']);
+            return $lockedAssistance->load(['reservation', 'handlingAgency', 'assignedUser']);
         });
     }
 
@@ -355,7 +359,6 @@ class AssistedBookingWorkflow
     public function request(
         Reservation $reservation,
         User $actor,
-        Agency $agency,
         AssistedBookingChannel $channel,
         string $contactName,
         string $contactPhone,
@@ -370,7 +373,9 @@ class AssistedBookingWorkflow
             return $replayed;
         }
 
-        return DB::transaction(function () use ($reservation, $actor, $agency, $channel, $contactName, $contactPhone, $idempotencyKey): AssistedBooking {
+        $this->supportChannels->ensureAvailable($channel);
+
+        return DB::transaction(function () use ($reservation, $actor, $channel, $contactName, $contactPhone, $idempotencyKey): AssistedBooking {
             $lockedReservation = Reservation::query()
                 ->whereKey($reservation->getKey())
                 ->with(['segments.departure.line', 'segments.originStop', 'segments.destinationStop', 'segments.seat', 'passengers'])
@@ -386,7 +391,7 @@ class AssistedBookingWorkflow
                 throw ValidationException::withMessages(['reservation' => 'Cette réservation possède déjà un dossier d’assistance.']);
             }
 
-            $this->ensureRequestable($lockedReservation, $agency, $channel);
+            $this->ensureRequestable($lockedReservation);
             $sellability = $lockedReservation->segments
                 ->pluck('departure')
                 ->unique('id')
@@ -400,7 +405,7 @@ class AssistedBookingWorkflow
             $snapshot = $this->buildSnapshot($lockedReservation, $expiresAt->toIso8601String());
             $assistedBooking = AssistedBooking::query()->create([
                 'reservation_id' => $lockedReservation->getKey(),
-                'preferred_agency_id' => $agency->getKey(),
+                'preferred_agency_id' => null,
                 'origin_channel' => $lockedReservation->channel ?? ReservationChannel::Online,
                 'handoff_channel' => $channel,
                 'status' => AssistedBookingStatus::Pending,
@@ -430,27 +435,19 @@ class AssistedBookingWorkflow
                 ->performedOn($assistedBooking)
                 ->causedBy($actor)
                 ->withProperties([
-                    'agency_uuid' => $agency->uuid,
                     'reservation_reference' => $lockedReservation->reference,
                     'channel' => $channel->value,
                 ])
                 ->log('assisted_booking.requested');
 
-            return $assistedBooking->load(['reservation', 'preferredAgency']);
+            return $assistedBooking->load(['reservation', 'handlingAgency', 'assignedUser']);
         });
     }
 
-    private function ensureRequestable(Reservation $reservation, Agency $agency, AssistedBookingChannel $channel): void
+    private function ensureRequestable(Reservation $reservation): void
     {
         if ($reservation->status !== ReservationStatus::Held || $reservation->payments()->exists()) {
             throw ValidationException::withMessages(['reservation' => 'Seule une réservation en attente de paiement peut être envoyée en assistance.']);
-        }
-        if (enum_value($agency->status) !== AgencyStatus::Active->value) {
-            throw ValidationException::withMessages(['agency_uuid' => 'Cette agence n’est pas disponible pour l’assistance.']);
-        }
-        $contact = $channel === AssistedBookingChannel::WhatsApp ? $agency->whatsapp_phone : $agency->call_phone;
-        if (! $contact) {
-            throw ValidationException::withMessages(['channel' => 'Ce canal n’est pas disponible pour cette agence.']);
         }
         if ($reservation->segments->isEmpty()) {
             throw ValidationException::withMessages(['reservation' => 'La réservation ne contient aucun trajet.']);
@@ -537,7 +534,7 @@ class AssistedBookingWorkflow
             ->performedOn($assistedBooking)
             ->causedBy($actor)
             ->withProperties(array_merge([
-                'agency_uuid' => $assistedBooking->preferredAgency()->value('uuid'),
+                'agency_uuid' => $assistedBooking->handlingAgency()->value('uuid'),
                 'reservation_reference' => $assistedBooking->reservation()->value('reference'),
             ], $properties))
             ->log('assisted_booking.'.$event);

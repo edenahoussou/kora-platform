@@ -10,7 +10,6 @@ use App\Modules\AssistedBooking\Http\Resources\AssistedBookingResource;
 use App\Modules\AssistedBooking\Models\AssistedBooking;
 use App\Modules\AssistedBooking\Services\AssistedBookingWorkflow;
 use App\Modules\Booking\Models\Reservation;
-use App\Modules\IdentityAccess\Models\Agency;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -18,20 +17,19 @@ use Illuminate\Support\Facades\Gate;
 /**
  * @group Assisted Bookings
  *
- * Assisted booking lifecycle for the mobile app: send a reservation to an
- * agency, inspect the dossier, or resume online payment.
+ * Assisted booking lifecycle for the mobile app: contact central support,
+ * inspect the dossier, or resume online payment.
  */
 class AssistedBookingApiController extends Controller
 {
     /**
-     * Send a reservation to an agency for assisted completion.
+     * Send a reservation to central support for assisted completion.
      *
      * Transforms the existing reservation (no duplicate is created): seats
      * and company credit are released, segments become `requested`, and the
-     * dossier enters the agency queue as `pending`. Replaying the same
+     * dossier enters the network queue as `pending`. Replaying the same
      * `idempotency_key` returns the existing dossier.
      *
-     * @bodyParam agency_uuid string required UUID of the chosen agency. Example: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
      * @bodyParam channel string required Initial contact channel: call or whatsapp. Example: whatsapp
      * @bodyParam contact_name string required Contact first name shown to the agency. Example: Afi
      * @bodyParam contact_phone string required Contact phone in international format. Example: +2290197000000
@@ -47,11 +45,8 @@ class AssistedBookingApiController extends Controller
      *       "reference": "KBR-7X2K9P4Q",
      *       "status": "assistance_pending"
      *     },
-     *     "agency": {
-     *       "uuid": "9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f",
-     *       "name": "Agence Dantokpa",
-     *       "city": "Cotonou"
-     *     },
+     *     "handling_agency": null,
+     *     "assigned_agent": null,
      *     "contact": {"name": "Afi", "phone": "+2290197000000"},
      *     "channels": {
      *       "call_phone": "+229010000001",
@@ -78,6 +73,9 @@ class AssistedBookingApiController extends Controller
      *   "message": "The given data was invalid.",
      *   "errors": {"reservation": ["Cette réservation ne peut pas être envoyée en assistance."]}
      * }
+     * @response 503 scenario="Support channel unavailable" {
+     *   "error": {"code": "assisted_booking_support_unavailable", "channel": "whatsapp"}
+     * }
      */
     public function store(
         StoreAssistedBookingRequest $request,
@@ -85,11 +83,9 @@ class AssistedBookingApiController extends Controller
         AssistedBookingWorkflow $workflow,
     ): JsonResponse {
         $data = $request->validated();
-        $agency = Agency::query()->where('uuid', $data['agency_uuid'])->firstOrFail();
         $assistedBooking = $workflow->request(
             reservation: $reservation,
             actor: $request->user(),
-            agency: $agency,
             channel: AssistedBookingChannel::from($data['channel']),
             contactName: $data['contact_name'],
             contactPhone: $data['contact_phone'],
@@ -97,7 +93,7 @@ class AssistedBookingApiController extends Controller
         );
 
         return response()->json(
-            ['data' => new AssistedBookingResource($assistedBooking->loadMissing(['reservation', 'preferredAgency']))],
+            ['data' => new AssistedBookingResource($assistedBooking->loadMissing(['reservation', 'handlingAgency', 'assignedUser']))],
             $assistedBooking->wasRecentlyCreated ? 201 : 200,
         );
     }
@@ -105,8 +101,8 @@ class AssistedBookingApiController extends Controller
     /**
      * Show the assisted booking dossier for a reservation.
      *
-     * Returns the current status, validity window, preferred agency contact
-     * channels, the initial snapshot and the actions still allowed.
+     * Returns the current status, validity window, central support channels,
+     * the initial snapshot and the actions still allowed.
      *
      * @response 200 scenario="Dossier detail" {
      *   "data": {
@@ -118,11 +114,8 @@ class AssistedBookingApiController extends Controller
      *       "reference": "KBR-7X2K9P4Q",
      *       "status": "assistance_pending"
      *     },
-     *     "agency": {
-     *       "uuid": "9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f",
-     *       "name": "Agence Dantokpa",
-     *       "city": "Cotonou"
-     *     },
+     *     "handling_agency": null,
+     *     "assigned_agent": null,
      *     "contact": {"name": "Afi", "phone": "+2290197000000"},
      *     "channels": {
      *       "call_phone": "+229010000001",
@@ -148,7 +141,7 @@ class AssistedBookingApiController extends Controller
         Gate::authorize('requestAssistance', $reservation);
         $assistedBooking = AssistedBooking::query()
             ->where('reservation_id', $reservation->getKey())
-            ->with(['reservation', 'preferredAgency'])
+            ->with(['reservation', 'handlingAgency', 'assignedUser'])
             ->firstOrFail();
 
         return response()->json(['data' => new AssistedBookingResource($assistedBooking)]);

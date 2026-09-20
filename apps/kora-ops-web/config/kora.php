@@ -23,6 +23,13 @@ return [
         'quote_ttl_minutes' => env('KORA_QUOTE_TTL_MINUTES', 10),
     ],
 
+    'assisted_bookings' => [
+        'support' => [
+            'call_phone' => env('KORA_ASSISTED_BOOKING_SUPPORT_CALL_PHONE'),
+            'whatsapp_phone' => env('KORA_ASSISTED_BOOKING_SUPPORT_WHATSAPP_PHONE'),
+        ],
+    ],
+
     'departures' => [
         'sellability' => [
             'default_cutoff_minutes' => env('KORA_SALE_CUTOFF_MINUTES', 30),
