@@ -28,7 +28,6 @@ class StoreAssistedBookingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'agency_uuid' => ['required', 'uuid', Rule::exists('agencies', 'uuid')->whereNull('deleted_at')],
             'channel' => ['required', Rule::enum(AssistedBookingChannel::class)],
             'contact_name' => ['required', 'string', 'max:120'],
             'contact_phone' => ['required', 'string', 'regex:/^\\+[1-9][0-9]{7,14}$/'],

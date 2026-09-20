@@ -1,6 +1,5 @@
 <?php
 
-use App\Modules\AssistedBooking\Http\Controllers\AssistedBookingAgencyController;
 use App\Modules\AssistedBooking\Http\Controllers\AssistedBookingApiController;
 use App\Modules\Boarding\Http\Controllers\OpsBoardingController;
 use App\Modules\Boarding\Http\Controllers\OpsSeatReleaseController;
@@ -218,9 +217,6 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         });
 
     Route::middleware('auth:sanctum')->group(function (): void {
-        Route::get('assisted-bookings/agencies', [AssistedBookingAgencyController::class, 'index'])
-            ->middleware('throttle:bus-itinerary-actions')
-            ->name('assisted-bookings.agencies.index');
         Route::post('bookings/{reservation:uuid}/assistance', [AssistedBookingApiController::class, 'store'])
             ->middleware('throttle:bus-itinerary-actions')
             ->name('bookings.assistance.store');

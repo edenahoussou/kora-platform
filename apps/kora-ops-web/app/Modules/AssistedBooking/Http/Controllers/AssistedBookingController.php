@@ -33,12 +33,17 @@ class AssistedBookingController extends Controller
                 'reservation.segments.originStop',
                 'reservation.segments.destinationStop',
                 'reservation.segments.departure.line',
-                'preferredAgency',
+                'handlingAgency',
                 'assignedUser',
             ])
             ->latest('created_at');
         if (! $request->user()->can('assisted-bookings.view-network')) {
-            $query->where('preferred_agency_id', $request->user()->agency_id);
+            $query->where(function ($builder) use ($request): void {
+                $builder->where(function ($pending): void {
+                    $pending->whereNull('preferred_agency_id')
+                        ->where('status', AssistedBookingStatus::Pending->value);
+                })->orWhere('preferred_agency_id', $request->user()->agency_id);
+            });
         }
         if ($search = $request->string('q')->trim()->value()) {
             $term = '%'.mb_strtolower($search).'%';
@@ -54,7 +59,7 @@ class AssistedBookingController extends Controller
             }
         }
         if ($agencyUuid = $request->string('agency')->trim()->value()) {
-            $query->whereHas('preferredAgency', fn ($agency) => $agency->where('uuid', $agencyUuid));
+            $query->whereHas('handlingAgency', fn ($agency) => $agency->where('uuid', $agencyUuid));
         }
         if ($date = $request->date('date')) {
             $query->whereDate('created_at', $date);
@@ -101,9 +106,6 @@ class AssistedBookingController extends Controller
             'agencies' => $this->eligibleAgencies($request)->map(fn (Agency $agency): array => [
                 'uuid' => $agency->uuid, 'name' => $agency->name, 'city' => $agency->city,
             ]),
-            'agents' => User::query()->permission('assisted-bookings.claim')->orderBy('name')->get()->map(fn (User $user): array => [
-                'uuid' => $user->uuid, 'name' => $user->name, 'agencyUuid' => $user->agency?->uuid,
-            ]),
             'permissions' => [
                 'canClaim' => Gate::allows('claim', $assistedBooking),
                 'canRelease' => Gate::allows('release', $assistedBooking),
@@ -134,10 +136,7 @@ class AssistedBookingController extends Controller
     public function reassign(ReassignAssistedBookingRequest $request, AssistedBooking $assistedBooking, AssistedBookingWorkflow $workflow): RedirectResponse
     {
         $agency = Agency::query()->where('uuid', $request->validated('agency_uuid'))->firstOrFail();
-        $assignee = $request->validated('assignee_uuid')
-            ? User::query()->where('uuid', $request->validated('assignee_uuid'))->firstOrFail()
-            : null;
-        $workflow->reassign($assistedBooking, $request->user(), $agency, $assignee, $request->validated('reason'));
+        $workflow->reassign($assistedBooking, $request->user(), $agency, $request->validated('reason'));
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Réservation réaffectée.')]);
 
         return back();
@@ -170,7 +169,10 @@ class AssistedBookingController extends Controller
             'reservationStatus' => $item->reservation->status->value,
             'contactName' => $item->contact_name,
             'contactPhone' => $item->contact_phone,
-            'agency' => ['uuid' => $item->preferredAgency->uuid, 'name' => $item->preferredAgency->name],
+            'handlingAgency' => $item->handlingAgency ? [
+                'uuid' => $item->handlingAgency->uuid,
+                'name' => $item->handlingAgency->name,
+            ] : null,
             'assignee' => $item->assignedUser ? ['uuid' => $item->assignedUser->uuid, 'name' => $item->assignedUser->name] : null,
             'legs' => $item->reservation->segments
                 ->unique('leg_order')
@@ -196,7 +198,7 @@ class AssistedBookingController extends Controller
         $assistedBooking->load([
             'reservation.segments.departure.line', 'reservation.segments.originStop',
             'reservation.segments.destinationStop', 'reservation.segments.seat',
-            'reservation.passengers', 'preferredAgency', 'assignedUser',
+            'reservation.passengers', 'handlingAgency', 'assignedUser',
         ]);
         $reservation = $assistedBooking->reservation;
         $legs = $reservation->segments->unique('leg_order')->sortBy('leg_order')->map(function ($segment) use ($buildSeatAvailability, $reservation): array {
@@ -255,7 +257,6 @@ class AssistedBookingController extends Controller
     {
         return Agency::query()
             ->where('status', AgencyStatus::Active)
-            ->where(fn ($query) => $query->whereNotNull('call_phone')->orWhereNotNull('whatsapp_phone'))
             ->when(! $request->user()->can('assisted-bookings.view-network'), fn ($query) => $query->whereKey($request->user()->agency_id))
             ->orderBy('name')
             ->get();
