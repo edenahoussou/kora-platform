@@ -19,8 +19,10 @@ use App\Modules\Notifications\Models\OpsNotificationDelivery;
 use App\Modules\Notifications\Models\OpsNotificationEvent;
 use App\Modules\Notifications\Models\OpsNotificationPreference;
 use Database\Seeders\KoraBusRolePermissionSeeder;
+use Illuminate\Mail\MailManager;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Illuminate\Support\Testing\Fakes\MailFake;
 
 beforeEach(function (): void {
     $this->seed(KoraBusRolePermissionSeeder::class);
@@ -233,7 +235,11 @@ it('retries a failed e-mail on replay without duplicating notifications or resen
     $w = pubWorld();
     $draft = pubDraft(OpsNotificationType::PrintError, 'mail-retry', $w['conductor']);
 
-    Mail::shouldReceive('to')->once()->andThrow(new RuntimeException('smtp down'));
+    // Transport en panne. `Mail::shouldReceive()` puis `Mail::fake()` lève un TypeError (le fake d'un mock n'a
+    // pas de MailManager) : on remplace donc la façade par un mock, puis par un fake construit à la main.
+    $failing = Mockery::mock();
+    $failing->shouldReceive('to')->once()->andThrow(new RuntimeException('smtp down'));
+    Mail::swap($failing);
 
     // Le transport échoue : la publication ne lève pas, les notifications sont déjà en base.
     expect(app(PublishOpsNotificationAction::class)->execute($draft))->toBeNull();
@@ -246,7 +252,7 @@ it('retries a failed e-mail on replay without duplicating notifications or resen
         ->and($mailDeliveries()->first()->error)->toContain('smtp down')
         ->and($mailDeliveries()->first()->attempts)->toBe(1);
 
-    Mail::fake();
+    Mail::swap(new MailFake(Mockery::mock(MailManager::class)));
 
     pubPublish($draft);
 

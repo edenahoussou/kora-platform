@@ -58,4 +58,23 @@ class CrewDepartureScope
     {
         return $this->query($user, 'seat-releases.create')->whereKey($departure->getKey())->exists();
     }
+
+    /**
+     * OPS Mobile : peut faire progresser le départ (embarquement commencé,
+     * bus parti, arrivé) — affecté au départ (non annulé) et permission
+     * `departures.progress`.
+     */
+    public function canProgress(User $user, Departure $departure): bool
+    {
+        return $this->query($user, 'departures.progress')->whereKey($departure->getKey())->exists();
+    }
+
+    /**
+     * OPS Mobile : peut signaler un incident sur ce départ — affecté au
+     * départ (non annulé) et permission `incidents.report`.
+     */
+    public function canReportIncident(User $user, Departure $departure): bool
+    {
+        return $this->query($user, 'incidents.report')->whereKey($departure->getKey())->exists();
+    }
 }

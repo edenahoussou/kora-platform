@@ -5,6 +5,8 @@ namespace App\Modules\Notifications\Services;
 use App\Models\User;
 use App\Modules\Boarding\Models\BoardingEvent;
 use App\Modules\Departures\Models\Departure;
+use App\Modules\FleetLite\Data\IncidentType;
+use App\Modules\FleetLite\Models\Incident;
 use App\Modules\IdentityAccess\Models\TerminalP501;
 use App\Modules\IdentityAccess\Models\TerminalSession;
 use App\Modules\Notifications\Actions\PublishOpsNotificationAction;
@@ -270,6 +272,65 @@ class OpsNotifier
             ['closed_count' => $closedCount],
             $this->resolver->crewOf($departure),
             $agent,
+            $departure,
+            $terminal,
+        );
+    }
+
+    /**
+     * Le bus est parti (statut `departed`), quel que soit le chemin qui a
+     * changé le statut (convoyeur sur le terminal ou OPS Web). Publié une
+     * seule fois par départ. Information : équipage et directeurs des
+     * opérations de l'agence du convoyeur, jamais d'e-mail.
+     */
+    public function departureDeparted(Departure $departure): void
+    {
+        $departure->loadMissing('line');
+
+        $this->publish(
+            OpsNotificationType::DepartureDeparted,
+            'departure_departed:'.$departure->uuid,
+            sprintf('Le bus du départ %s est parti.', $this->describe($departure)),
+            ['departed_at' => $departure->departed_at?->toISOString()],
+            $this->resolver->crewOf($departure),
+            $this->subjectOf($departure),
+            $departure,
+        );
+    }
+
+    /**
+     * Un convoyeur signale un incident. `accident` et `security` sont des
+     * alertes critiques (non désactivables, bloquantes sur le mobile), les
+     * autres types des avertissements. Alerte : e-mail aux directeurs des
+     * opérations de l'agence du convoyeur (To) et aux super-administrateurs
+     * (Cc), et notification à l'équipage du départ.
+     */
+    public function incidentReported(Incident $incident, Departure $departure, User $reporter, ?TerminalP501 $terminal): void
+    {
+        $departure->loadMissing('line');
+
+        $critical = in_array($incident->type, [IncidentType::Accident, IncidentType::Security], true);
+        $label = match ($incident->type) {
+            IncidentType::Breakdown => 'panne',
+            IncidentType::Delay => 'retard',
+            IncidentType::Accident => 'accident',
+            IncidentType::Security => 'sécurité',
+            IncidentType::Other => 'autre',
+        };
+
+        $this->publish(
+            $critical ? OpsNotificationType::IncidentCritical : OpsNotificationType::IncidentReported,
+            'incident_reported:'.$incident->uuid,
+            sprintf(
+                'Incident (%s) signalé par %s sur le départ %s : %s',
+                $label,
+                $reporter->name,
+                $this->describe($departure),
+                mb_strimwidth($incident->description, 0, 200, '…'),
+            ),
+            ['incident_uuid' => $incident->uuid, 'incident_type' => $incident->type->value],
+            $this->resolver->crewOf($departure)->push($reporter),
+            $reporter,
             $departure,
             $terminal,
         );

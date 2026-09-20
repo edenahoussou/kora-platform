@@ -11,7 +11,9 @@ use App\Modules\BusNetwork\Http\Controllers\BusCatalogController;
 use App\Modules\CompanyAccounts\Http\Controllers\CompanyAccountController;
 use App\Modules\Departures\Http\Controllers\BusDepartureController;
 use App\Modules\Departures\Http\Controllers\OpsDepartureController;
+use App\Modules\Departures\Http\Controllers\OpsDepartureProgressController;
 use App\Modules\DynamicPricing\Http\Controllers\GroupDiscountRuleController;
+use App\Modules\FleetLite\Http\Controllers\OpsIncidentController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthDeviceController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthOAuthController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthOtpController;
@@ -127,6 +129,22 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::get('{departure:uuid}/manifest', [OpsDepartureController::class, 'manifest'])->name('manifest');
             // Manifeste frontière PDF (A4) — mode téléphone, MEZ-94.
             Route::get('{departure:uuid}/manifest/pdf', [OpsDepartureController::class, 'manifestPdf'])->name('manifest-pdf');
+
+            // Progression du départ par le convoyeur (MEZ-98) : embarquement
+            // commencé, bus parti, arrivé, retard. Même statut que OPS Web.
+            Route::post('{departure:uuid}/status', [OpsDepartureProgressController::class, 'updateStatus'])->name('status');
+            Route::patch('{departure:uuid}/delay', [OpsDepartureProgressController::class, 'recordDelay'])->name('delay');
+        });
+
+    // OPS Mobile — signalement d'incident par le convoyeur (MEZ-98). Même
+    // garde que les autres routes terrain ; l'envoi est limité (anti-abus).
+    Route::prefix('ops/incidents')
+        ->name('ops.incidents.')
+        ->middleware(['auth:sanctum', 'ops.session'])
+        ->group(function (): void {
+            Route::get('/', [OpsIncidentController::class, 'index'])->name('index');
+            Route::post('/', [OpsIncidentController::class, 'store'])->middleware('throttle:10,1')->name('store');
+            Route::get('{incident}', [OpsIncidentController::class, 'show'])->whereUuid('incident')->name('show');
         });
 
     // OPS Mobile — validation d'embarquement (MEZ-84 suite). Le scan lui

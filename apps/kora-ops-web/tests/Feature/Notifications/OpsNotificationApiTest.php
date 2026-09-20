@@ -284,7 +284,8 @@ it('never exposes financial data or unlisted context in a notification', functio
         ->and($response->json('data.0.data.error_kind'))->toBe('out_of_paper')
         ->and(array_keys($response->json('data.0.data')))->toBe(['result', 'error_kind', 'copy_number', 'copies_confirmed', 'mode'])
         ->and($json)->not->toContain('583917')->not->toContain('748213')->not->toContain('cash')->not->toContain('Fatou')
-        ->and(notifFindKeys($response->json(), ['amount', 'price', 'ticket_price', 'payment', 'total', 'currency']))->toBe([]);
+        // La pagination (`meta.total`) n'est pas une donnée financière : seul `data` est scanné.
+        ->and(notifFindKeys($response->json('data'), ['amount', 'price', 'ticket_price', 'payment', 'total', 'currency']))->toBe([]);
 });
 
 it('exposes effective preferences and refuses to disable critical alerts, saving nothing', function (): void {

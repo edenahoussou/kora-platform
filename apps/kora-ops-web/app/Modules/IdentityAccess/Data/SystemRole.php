@@ -36,14 +36,19 @@ enum SystemRole: string
                 'company-accounts.view',
             ],
             self::BusDriver => [
+                'departures.progress',
+                'incidents.report',
                 'departures.view',
                 'notifications.view',
             ],
             self::Mechanic => [
+                'incidents.report',
                 'departures.view',
                 'notifications.view',
             ],
             self::Conductor => [
+                'departures.progress',
+                'incidents.report',
                 'notifications.view',
                 'departures.view',
                 'boarding.scan',
@@ -52,6 +57,7 @@ enum SystemRole: string
                 'tickets.view',
             ],
             self::AgencyAgent => [
+                'incidents.report',
                 'notifications.view',
                 'bookings.view',
                 'company-accounts.view',
@@ -70,6 +76,7 @@ enum SystemRole: string
                 'expenses.create',
             ],
             self::AgencyManager => [
+                'incidents.report',
                 'notifications.view',
                 'agencies.view',
                 'fleet.view',
@@ -213,6 +220,8 @@ enum SystemRole: string
     public static function allPermissions(): array
     {
         return [
+            'departures.progress',
+            'incidents.report',
             'notifications.view',
             'agencies.view',
             'agencies.create',

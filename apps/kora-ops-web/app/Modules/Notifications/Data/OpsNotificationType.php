@@ -19,12 +19,21 @@ enum OpsNotificationType: string
     case NoShowClosed = 'no_show_closed';
     case PrintError = 'print_error';
 
+    /** Le convoyeur a marqué le bus parti (MEZ-98). Information, sans e-mail. */
+    case DepartureDeparted = 'departure_departed';
+
+    /** Incident signalé par un convoyeur : panne, retard, autre (MEZ-98). */
+    case IncidentReported = 'incident_reported';
+
+    /** Incident grave (accident, sécurité) : alerte critique, non désactivable. */
+    case IncidentCritical = 'incident_critical';
+
     public function severity(): OpsNotificationSeverity
     {
         return match ($this) {
-            self::TerminalRevoked, self::ScanConflict => OpsNotificationSeverity::Critical,
-            self::ManifestStale, self::OperationRejected, self::SyncFailed, self::PrintError => OpsNotificationSeverity::Warning,
-            self::DepartureAssigned, self::DepartureModified, self::SyncCompleted, self::NoShowClosed => OpsNotificationSeverity::Info,
+            self::TerminalRevoked, self::ScanConflict, self::IncidentCritical => OpsNotificationSeverity::Critical,
+            self::ManifestStale, self::OperationRejected, self::SyncFailed, self::PrintError, self::IncidentReported => OpsNotificationSeverity::Warning,
+            self::DepartureAssigned, self::DepartureModified, self::SyncCompleted, self::NoShowClosed, self::DepartureDeparted => OpsNotificationSeverity::Info,
         };
     }
 
@@ -41,13 +50,16 @@ enum OpsNotificationType: string
             self::SyncFailed => 'Synchronisation échouée',
             self::NoShowClosed => 'No-show clôturés',
             self::PrintError => 'Erreur d’impression',
+            self::DepartureDeparted => 'Bus parti',
+            self::IncidentReported => 'Incident signalé',
+            self::IncidentCritical => 'Incident grave signalé',
         };
     }
 
     public function action(): OpsNotificationAction
     {
         return match ($this) {
-            self::DepartureAssigned, self::DepartureModified, self::NoShowClosed => OpsNotificationAction::OpenDeparture,
+            self::DepartureAssigned, self::DepartureModified, self::NoShowClosed, self::DepartureDeparted, self::IncidentReported, self::IncidentCritical => OpsNotificationAction::OpenDeparture,
             self::ManifestStale => OpsNotificationAction::RefreshManifest,
             self::TerminalRevoked => OpsNotificationAction::Reauthenticate,
             self::ScanConflict => OpsNotificationAction::ReviewScanConflict,
@@ -67,7 +79,7 @@ enum OpsNotificationType: string
     public function isAlert(): bool
     {
         return match ($this) {
-            self::TerminalRevoked, self::ScanConflict, self::OperationRejected, self::SyncFailed, self::PrintError => true,
+            self::TerminalRevoked, self::ScanConflict, self::OperationRejected, self::SyncFailed, self::PrintError, self::IncidentReported, self::IncidentCritical => true,
             default => false,
         };
     }

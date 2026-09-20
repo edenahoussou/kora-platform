@@ -81,11 +81,18 @@ class DepartureOpsNotificationObserver
             $changes[] = 'crew_removed';
         }
 
-        if ($assigned === [] && $changes === []) {
+        // Le bus vient de partir (convoyeur ou OPS Web) : information dédiée.
+        $departed = $departure->wasChanged('status') && $departure->status === DepartureStatus::Departed;
+
+        if ($assigned === [] && $changes === [] && ! $departed) {
             return;
         }
 
-        $this->afterCommit(function () use ($departure, $assigned, $changes, $removed): void {
+        $this->afterCommit(function () use ($departure, $assigned, $changes, $removed, $departed): void {
+            if ($departed) {
+                $this->notifier->departureDeparted($departure);
+            }
+
             foreach (User::query()->whereIn('id', $assigned)->get() as $user) {
                 $this->notifier->departureAssigned($departure, $user);
             }

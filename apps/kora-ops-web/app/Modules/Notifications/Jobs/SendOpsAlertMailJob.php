@@ -7,6 +7,7 @@ use App\Modules\Notifications\Data\OpsNotificationDeliveryStatus;
 use App\Modules\Notifications\Mail\OpsAlertMail;
 use App\Modules\Notifications\Models\OpsNotificationDelivery;
 use App\Modules\Notifications\Models\OpsNotificationEvent;
+use App\Modules\Notifications\Services\NotificationLogRecorder;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Queue\Queueable;
@@ -122,6 +123,9 @@ class SendOpsAlertMailJob implements ShouldQueue
                 'error' => $error,
                 'delivered_at' => $status === OpsNotificationDeliveryStatus::Sent ? now() : null,
             ])->save();
+
+            // Trace d'audit dans `notification_logs` (une ligne par destinataire).
+            app(NotificationLogRecorder::class)->recordMail($delivery);
         }
     }
 }
