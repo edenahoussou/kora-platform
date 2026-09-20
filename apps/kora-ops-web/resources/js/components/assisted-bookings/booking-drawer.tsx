@@ -78,7 +78,7 @@ type Detail = {
         reservationStatus: string;
         contactName: string;
         contactPhone: string;
-        agency: { uuid: string; name: string };
+        handlingAgency: { uuid: string; name: string } | null;
         assignee: { uuid: string; name: string } | null;
         originalAmount: number;
         currentAmount: number | null;
@@ -97,7 +97,6 @@ type Detail = {
         }[];
     };
     agencies: { uuid: string; name: string; city: string }[];
-    agents: { uuid: string; name: string; agencyUuid: string | null }[];
     permissions: {
         canClaim: boolean;
         canRelease: boolean;
@@ -237,7 +236,6 @@ export function AssistedBookingDrawer({
     const [reason, setReason] = useState('');
     const [reasonCode, setReasonCode] = useState('customer_request');
     const [agencyUuid, setAgencyUuid] = useState('');
-    const [assigneeUuid, setAssigneeUuid] = useState('');
     const [busy, setBusy] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -260,8 +258,11 @@ export function AssistedBookingDrawer({
                 expired: diff <= 0,
                 soon: diff > 0 && diff < 6 * 3600_000,
             });
-            setAgencyUuid(parsed.assistedBooking.agency.uuid);
-            setAssigneeUuid(parsed.assistedBooking.assignee?.uuid ?? '');
+            setAgencyUuid(
+                parsed.assistedBooking.handlingAgency?.uuid ??
+                    parsed.agencies[0]?.uuid ??
+                    '',
+            );
             setSelections(
                 Object.fromEntries(
                     parsed.assistedBooking.passengers.flatMap((passenger) =>
@@ -385,7 +386,7 @@ export function AssistedBookingDrawer({
                                             {item.contactName}
                                         </span>{' '}
                                         · {item.contactPhone} ·{' '}
-                                        {item.agency.name}
+                                        {item.handlingAgency?.name ?? 'File réseau'}
                                     </SheetDescription>
                                     <div className="mt-3.5 flex flex-wrap items-center gap-2">
                                         <span className="inline-flex items-center gap-1.5 rounded-md bg-white/10 px-2 py-1 text-[0.625rem] font-extrabold text-white ring-1 ring-white/20">
@@ -747,8 +748,8 @@ export function AssistedBookingDrawer({
                                                 }
                                             />
                                             <InfoCell
-                                                label="Agence"
-                                                value={item.agency.name}
+                                                label="Agence traitante"
+                                                value={item.handlingAgency?.name ?? 'File réseau'}
                                             />
                                             <InfoCell
                                                 label="Réservation"
@@ -1101,7 +1102,7 @@ export function AssistedBookingDrawer({
                                         <ActionTile
                                             icon={ArrowLeftRight}
                                             title="Réaffecter"
-                                            hint="Changer d'agence ou d'agent"
+                                            hint="Changer d’agence traitante"
                                             wide
                                             open={openTile === 'reassign'}
                                             onToggle={() =>
@@ -1120,11 +1121,7 @@ export function AssistedBookingDrawer({
                                                     <select
                                                         value={agencyUuid}
                                                         onChange={(event) => {
-                                                            setAgencyUuid(
-                                                                event.target
-                                                                    .value,
-                                                            );
-                                                            setAssigneeUuid('');
+                                                            setAgencyUuid(event.target.value);
                                                         }}
                                                         className="mt-1 h-10 w-full rounded-lg border border-border bg-background px-3 text-xs"
                                                     >
@@ -1148,43 +1145,6 @@ export function AssistedBookingDrawer({
                                                                 </option>
                                                             ),
                                                         )}
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <Label className="text-[0.6875rem]">
-                                                        Agent (facultatif)
-                                                    </Label>
-                                                    <select
-                                                        value={assigneeUuid}
-                                                        onChange={(event) =>
-                                                            setAssigneeUuid(
-                                                                event.target
-                                                                    .value,
-                                                            )
-                                                        }
-                                                        className="mt-1 h-10 w-full rounded-lg border border-border bg-background px-3 text-xs"
-                                                    >
-                                                        <option value="">
-                                                            Retour dans la file
-                                                        </option>
-                                                        {data.agents
-                                                            .filter(
-                                                                (agent) =>
-                                                                    agent.agencyUuid ===
-                                                                    agencyUuid,
-                                                            )
-                                                            .map((agent) => (
-                                                                <option
-                                                                    key={
-                                                                        agent.uuid
-                                                                    }
-                                                                    value={
-                                                                        agent.uuid
-                                                                    }
-                                                                >
-                                                                    {agent.name}
-                                                                </option>
-                                                            ))}
                                                     </select>
                                                 </div>
                                             </div>
@@ -1214,11 +1174,7 @@ export function AssistedBookingDrawer({
                                                     post(
                                                         reassign.url(item.uuid),
                                                         {
-                                                            agency_uuid:
-                                                                agencyUuid,
-                                                            assignee_uuid:
-                                                                assigneeUuid ||
-                                                                null,
+                                                            agency_uuid: agencyUuid,
                                                             reason,
                                                         },
                                                     )
