@@ -13,6 +13,7 @@ use App\Modules\Notifications\Models\NotificationLog;
 use App\Modules\Notifications\Models\OpsNotification;
 use App\Modules\Notifications\Models\OpsNotificationEvent;
 use Database\Seeders\KoraBusRolePermissionSeeder;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
@@ -35,6 +36,10 @@ function incUser(string $role, ?Agency $agency = null): User
 /** @return array<string, string> */
 function incHeaders(User $user, string $serial = 'P501-INC-01'): array
 {
+    // Le garde mémorise l'utilisateur de la requête précédente : sans cela, un 2e jeton (autre utilisateur)
+    // dans le même test est rejeté (401). À chaque en-tête, on repart d'un garde vierge.
+    Auth::forgetGuards();
+
     return ['Authorization' => 'Bearer '.$user->createToken('device:field', ['*'], now()->addDay())->plainTextToken, 'X-Terminal-Serial' => $serial];
 }
 

@@ -33,6 +33,13 @@ import 'package:sqflite/sqflite.dart';
 ///   trop en silence — voir `BorderManifestPrintRepository`. Le v5 ajoute
 ///   aussi `nationality`/`document_number` à `manifest_cache` et
 ///   `international` à `manifest_meta` (champs de contrôle frontière).
+/// - `ops_notifications` (v6, MEZ-97) : cache des alertes opérationnelles
+///   (départ affecté/modifié, manifeste périmé, terminal révoqué, conflit
+///   de scan...) — restaure les alertes non acquittées après redémarrage,
+///   y compris hors ligne — voir `NotificationLocalDataSource`.
+/// - `incident_operations` (v7, MEZ-98) : file de signalements terrain
+///   (panne, retard, accident, sécurité, autre) en attente de
+///   synchronisation — voir `IncidentLocalDataSource`.
 ///
 /// Singleton : une seule connexion ouverte pour toute l'app (voir
 /// `injection.dart`), comme `SharedPreferences`/`FlutterSecureStorage`.
@@ -40,7 +47,7 @@ class AppDatabase {
   AppDatabase();
 
   static const String _fileName = 'kora_ops.db';
-  static const int _schemaVersion = 5;
+  static const int _schemaVersion = 7;
 
   Database? _database;
 
@@ -66,6 +73,8 @@ class AppDatabase {
         await _createBoardingOperations(db);
         await _createSeatReleaseOperations(db);
         await _createBorderManifestPrintJobs(db);
+        await _createOpsNotifications(db);
+        await _createIncidentOperations(db);
       },
       onUpgrade: (Database db, int oldVersion, int newVersion) async {
         if (oldVersion < 2) {
@@ -81,6 +90,12 @@ class AppDatabase {
         if (oldVersion < 5) {
           await _addBorderControlColumns(db);
           await _createBorderManifestPrintJobs(db);
+        }
+        if (oldVersion < 6) {
+          await _createOpsNotifications(db);
+        }
+        if (oldVersion < 7) {
+          await _createIncidentOperations(db);
         }
       },
     );
@@ -291,6 +306,68 @@ class AppDatabase {
     await db.execute(
       'CREATE INDEX idx_seat_release_sync_status '
       'ON seat_release_operations(sync_status)',
+    );
+  }
+
+  /// Cache local des alertes opérationnelles (v6, MEZ-97) — restaure les
+  /// alertes non acquittées après un redémarrage à froid ou hors ligne
+  /// (voir `NotificationLocalDataSource`). `mark_read_pending` : un
+  /// marquage "lu" fait hors ligne, pas encore confirmé par le serveur —
+  /// jamais écrasé par un rafraîchissement tant qu'il n'est pas à 0 (voir
+  /// `NotificationRepositoryImpl.retryPendingReads`).
+  Future<void> _createOpsNotifications(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ops_notifications (
+        uuid TEXT PRIMARY KEY,
+        event_uuid TEXT,
+        type TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        action TEXT NOT NULL,
+        is_read INTEGER NOT NULL DEFAULT 0,
+        read_at TEXT,
+        created_at TEXT NOT NULL,
+        occurred_at TEXT,
+        departure_uuid TEXT,
+        departure_line_code TEXT,
+        departure_date TEXT,
+        departure_time TEXT,
+        data TEXT,
+        mark_read_pending INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_ops_notifications_created '
+      'ON ops_notifications(created_at)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_ops_notifications_unread '
+      'ON ops_notifications(is_read)',
+    );
+  }
+
+  /// File d'incidents en attente de synchronisation (v7, MEZ-98) — voir
+  /// `IncidentLocalDataSource`. Pas d'anti-doublon métier ici (chaque
+  /// signalement est un événement distinct) : `operation_uuid` sert
+  /// uniquement à l'idempotence du rejeu réseau.
+  Future<void> _createIncidentOperations(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS incident_operations (
+        operation_uuid TEXT PRIMARY KEY,
+        departure_uuid TEXT NOT NULL,
+        type TEXT NOT NULL,
+        description TEXT NOT NULL,
+        latitude REAL,
+        longitude REAL,
+        occurred_at TEXT NOT NULL,
+        sync_status TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_incident_operations_sync_status '
+      'ON incident_operations(sync_status)',
     );
   }
 

@@ -111,4 +111,105 @@ void main() {
       );
     });
   });
+
+  group('updateStatus (MEZ-98)', () {
+    test('succès : retourne le statut confirmé par le serveur', () async {
+      when(() => remote.updateStatus('dep-uuid-1', 'boarding'))
+          .thenAnswer((_) async => 'boarding');
+
+      final result = await repository.updateStatus('dep-uuid-1', 'boarding');
+
+      result.when(
+        onSuccess: (status) => expect(status, 'boarding'),
+        onFailure: (_) => fail('devait réussir'),
+      );
+    });
+
+    test('erreur serveur générique (ex. transition impossible) → ServerFailure',
+        () async {
+      when(() => remote.updateStatus('dep-uuid-1', 'arrived'))
+          .thenThrow(_dioError('Transition impossible : Programmé → Arrivé.'));
+
+      final result = await repository.updateStatus('dep-uuid-1', 'arrived');
+
+      result.when(
+        onSuccess: (_) => fail('devait échouer'),
+        onFailure: (failure) => expect(failure, isA<ServerFailure>()),
+      );
+    });
+
+    test('erreur réseau → NetworkFailure', () async {
+      when(() => remote.updateStatus('dep-uuid-1', 'boarding'))
+          .thenThrow(_dioError(const NetworkApiException()));
+
+      final result = await repository.updateStatus('dep-uuid-1', 'boarding');
+
+      result.when(
+        onSuccess: (_) => fail('devait échouer'),
+        onFailure: (failure) => expect(failure, isA<NetworkFailure>()),
+      );
+    });
+
+    test('occurred_at transmis tel quel au datasource', () async {
+      final DateTime occurredAt = DateTime(2026, 9, 21, 8, 7);
+      when(() => remote.updateStatus('dep-uuid-1', 'departed',
+          occurredAt: occurredAt)).thenAnswer((_) async => 'departed');
+
+      await repository.updateStatus('dep-uuid-1', 'departed',
+          occurredAt: occurredAt);
+
+      verify(() => remote.updateStatus('dep-uuid-1', 'departed',
+          occurredAt: occurredAt)).called(1);
+    });
+  });
+
+  group('recordDelay (MEZ-98)', () {
+    test('succès : transmet minutes et motif tels quels', () async {
+      when(() => remote.recordDelay('dep-uuid-1', 25, 'Attente correspondance'))
+          .thenAnswer((_) async {});
+
+      final result = await repository.recordDelay(
+          'dep-uuid-1', 25, 'Attente correspondance');
+
+      expect(result.isSuccess, isTrue);
+      verify(() =>
+              remote.recordDelay('dep-uuid-1', 25, 'Attente correspondance'))
+          .called(1);
+    });
+
+    test('0 minute (annulation d\'un retard) accepté', () async {
+      when(() => remote.recordDelay('dep-uuid-1', 0, 'Retard résorbé'))
+          .thenAnswer((_) async {});
+
+      final result =
+          await repository.recordDelay('dep-uuid-1', 0, 'Retard résorbé');
+
+      expect(result.isSuccess, isTrue);
+    });
+
+    test('422 (départ déjà parti) → ServerFailure', () async {
+      when(() => remote.recordDelay('dep-uuid-1', 10, 'Motif')).thenThrow(
+          _dioError('Le retard ne peut être enregistré que pour un départ '
+              'programmé ou en embarquement.'));
+
+      final result = await repository.recordDelay('dep-uuid-1', 10, 'Motif');
+
+      result.when(
+        onSuccess: (_) => fail('devait échouer'),
+        onFailure: (failure) => expect(failure, isA<ServerFailure>()),
+      );
+    });
+
+    test('erreur réseau → NetworkFailure', () async {
+      when(() => remote.recordDelay('dep-uuid-1', 10, 'Motif'))
+          .thenThrow(_dioError(const NetworkApiException()));
+
+      final result = await repository.recordDelay('dep-uuid-1', 10, 'Motif');
+
+      result.when(
+        onSuccess: (_) => fail('devait échouer'),
+        onFailure: (failure) => expect(failure, isA<NetworkFailure>()),
+      );
+    });
+  });
 }

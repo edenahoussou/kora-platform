@@ -4,6 +4,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../boarding/domain/repositories/boarding_repository.dart';
+import '../../../incidents/domain/repositories/incident_repository.dart';
 import '../../../seat_release/domain/repositories/seat_release_repository.dart';
 import '../../domain/entities/pending_operation.dart';
 import '../../domain/entities/sync_summary.dart';
@@ -13,7 +14,7 @@ part 'sync_state.dart';
 
 /// État de connexion + synchronisation des opérations terrain
 /// enregistrées hors ligne — embarquements (MEZ-88), descentes
-/// anticipées et no-show (MEZ-87) — voir document.md § Synchro. Détecte
+/// anticipées et no-show (MEZ-87), incidents (MEZ-98). Détecte
 /// la connectivité en continu (`connectivity_plus`) et relance
 /// automatiquement `syncNow()` dès le retour du réseau ; la bascule
 /// manuelle depuis `SynchroPage` reste disponible (utile en test/démo,
@@ -25,7 +26,8 @@ class SyncCubit extends Cubit<SyncState> {
   SyncCubit(
     this._syncRepository,
     this._boardingRepository,
-    this._seatReleaseRepository, {
+    this._seatReleaseRepository,
+    this._incidentRepository, {
     Connectivity? connectivity,
   })  : _connectivity = connectivity ?? Connectivity(),
         super(const SyncState());
@@ -33,6 +35,7 @@ class SyncCubit extends Cubit<SyncState> {
   final SyncRepository _syncRepository;
   final BoardingRepository _boardingRepository;
   final SeatReleaseRepository _seatReleaseRepository;
+  final IncidentRepository _incidentRepository;
   final Connectivity _connectivity;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
@@ -107,8 +110,11 @@ class SyncCubit extends Cubit<SyncState> {
   }
 
   /// Envoie la file d'opérations en attente, tous types confondus
-  /// (MEZ-87/MEZ-88). Ne fait rien si hors ligne ou si une synchro est
-  /// déjà en cours — jamais deux lots simultanés depuis ce terminal.
+  /// (MEZ-87/MEZ-88), puis réémet les incidents en attente (MEZ-98, pas
+  /// de lot dédié côté serveur pour ceux-ci — voir
+  /// `IncidentRepository.retryPending`). Ne fait rien si hors ligne ou si
+  /// une synchro est déjà en cours — jamais deux lots simultanés depuis
+  /// ce terminal.
   Future<void> syncNow() async {
     if (!state.isOnline || state.isSyncing) return;
 
@@ -119,6 +125,7 @@ class SyncCubit extends Cubit<SyncState> {
     ));
 
     final result = await _syncRepository.syncPending();
+    await _incidentRepository.retryPending();
     final int remaining = await _totalPendingCount();
 
     result.when(
@@ -140,7 +147,8 @@ class SyncCubit extends Cubit<SyncState> {
   Future<int> _totalPendingCount() async {
     final int boarding = await _boardingRepository.totalPendingCount();
     final int seatReleases = await _seatReleaseRepository.totalPendingCount();
-    return boarding + seatReleases;
+    final int incidents = await _incidentRepository.totalPendingCount();
+    return boarding + seatReleases + incidents;
   }
 
   @override

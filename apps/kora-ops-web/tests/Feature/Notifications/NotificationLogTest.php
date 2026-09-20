@@ -9,10 +9,10 @@ use App\Modules\Notifications\Mail\OpsAlertMail;
 use App\Modules\Notifications\Models\NotificationLog;
 use App\Modules\Notifications\Models\OpsNotificationEvent;
 use Database\Seeders\KoraBusRolePermissionSeeder;
-use Illuminate\Mail\MailManager;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Testing\Fakes\MailFake;
+use Symfony\Component\Mailer\SentMessage;
+use Symfony\Component\Mailer\Transport\AbstractTransport;
 
 beforeEach(function (): void {
     $this->seed(KoraBusRolePermissionSeeder::class);
@@ -42,6 +42,32 @@ function logWorld(): array
 function logDraft(User $subject, string $key = 'log-1'): OpsNotificationDraft
 {
     return new OpsNotificationDraft(OpsNotificationType::PrintError, $key, 'Message', ['error_kind' => 'out_of_paper'], collect([$subject]), $subject, null, null, now());
+}
+
+/**
+ * Remplace le mailer par un transport qui échoue (« smtp down »). Ne touche pas au fake de la façade :
+ * `Mail::shouldReceive()` puis `Mail::fake()` plante (TypeError), et un MailFake construit à la main
+ * n'est pas fiable. Après la panne, `Mail::fake()` repart d'un MailManager réel.
+ */
+function logFailingMail(): void
+{
+    app()->forgetInstance('mail.manager');
+    Mail::clearResolvedInstance('mail.manager');
+
+    Mail::extend('failing', fn () => new class extends AbstractTransport
+    {
+        protected function doSend(SentMessage $message): void
+        {
+            throw new RuntimeException('smtp down');
+        }
+
+        public function __toString(): string
+        {
+            return 'failing://';
+        }
+    });
+
+    config(['mail.mailers.failing' => ['transport' => 'failing'], 'mail.default' => 'failing']);
 }
 
 it('writes one notification_logs row per mail recipient, with type, role and attempts but no message content', function (): void {
@@ -79,10 +105,7 @@ it('updates the same rows on a retry instead of duplicating them', function (): 
     $w = logWorld();
     $draft = logDraft($w['conductor'], 'log-retry');
 
-    // Transport en panne (voir OpsNotificationPublishingTest : jamais `shouldReceive()` puis `Mail::fake()`).
-    $failing = Mockery::mock();
-    $failing->shouldReceive('to')->once()->andThrow(new RuntimeException('smtp down'));
-    Mail::swap($failing);
+    logFailingMail();
     expect(app(PublishOpsNotificationAction::class)->execute($draft))->toBeNull();
 
     $failed = NotificationLog::query()->get();
@@ -92,7 +115,7 @@ it('updates the same rows on a retry instead of duplicating them', function (): 
         ->and($failed->first()->payload['error'])->toContain('smtp down')
         ->and($failed->first()->payload['attempts'])->toBe(1);
 
-    Mail::swap(new MailFake(Mockery::mock(MailManager::class)));
+    Mail::fake();
     app(PublishOpsNotificationAction::class)->execute($draft);
 
     $sent = NotificationLog::query()->get();

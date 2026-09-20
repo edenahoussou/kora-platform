@@ -52,19 +52,6 @@ abstract class ManifesteLocalDataSource {
     required String ticketUuid,
     required BoardingStatus statut,
   });
-
-  /// Répercute dans le cache local le statut d'un passager mis à jour de
-  /// façon optimiste (scan accepté, descente anticipée/no-show acceptés
-  /// — voir `ManifesteCubit`) : sans ça, un redémarrage à froid juste
-  /// après l'action restaurerait l'ancien statut depuis le dernier
-  /// téléchargement complet, pas celui affiché à l'écran — voir critère
-  /// d'acceptation MEZ-87 "restaurer... les statuts". Silencieux si
-  /// [ticketUuid] n'est pas (ou plus) dans le cache.
-  Future<void> updateCachedStatus({
-    required String departureUuid,
-    required String ticketUuid,
-    required BoardingStatus statut,
-  });
 }
 
 class ManifesteLocalDataSourceImpl implements ManifesteLocalDataSource {
@@ -147,9 +134,8 @@ class ManifesteLocalDataSourceImpl implements ManifesteLocalDataSource {
         <String, Object?>{
           'departure_uuid': departureUuid,
           'manifest_version': manifestVersion,
-          'international': isInternational == null
-              ? null
-              : (isInternational ? 1 : 0),
+          'international':
+              isInternational == null ? null : (isInternational ? 1 : 0),
           'fetched_at': fetchedAt,
         },
         conflictAlgorithm: ConflictAlgorithm.replace,

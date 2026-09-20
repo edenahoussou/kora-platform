@@ -12,6 +12,7 @@ use App\Modules\IdentityAccess\Models\TerminalP501;
 use App\Modules\Notifications\Models\OpsNotification;
 use App\Modules\Notifications\Models\OpsNotificationEvent;
 use Database\Seeders\KoraBusRolePermissionSeeder;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -33,6 +34,10 @@ function progUser(string $role, ?Agency $agency = null): User
 /** @return array<string, string> */
 function progHeaders(User $user): array
 {
+    // Le garde mémorise l'utilisateur de la requête précédente : sans cela, un 2e jeton (autre utilisateur)
+    // dans le même test est rejeté (401). À chaque en-tête, on repart d'un garde vierge.
+    Auth::forgetGuards();
+
     return ['Authorization' => 'Bearer '.$user->createToken('device:field', ['*'], now()->addDay())->plainTextToken, 'X-Terminal-Serial' => 'P501-PROG-01'];
 }
 

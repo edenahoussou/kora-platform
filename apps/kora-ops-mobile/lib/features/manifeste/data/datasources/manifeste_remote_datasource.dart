@@ -37,24 +37,6 @@ class ManifestVersionCheck {
   final bool accessible;
 }
 
-/// Résultat de `POST /ops/sync/manifest-versions` pour un départ — voir
-/// `CheckManifestVersionsAction` côté backend.
-class ManifestVersionCheck {
-  const ManifestVersionCheck({
-    required this.currentVersion,
-    required this.stale,
-    required this.accessible,
-  });
-
-  final String? currentVersion;
-  final bool stale;
-
-  /// `false` si ce départ n'est plus affecté/accessible à l'utilisateur
-  /// connecté (masqué comme "inconnu" côté serveur, sans révéler s'il
-  /// existe — même logique que `viewAsCrew`).
-  final bool accessible;
-}
-
 abstract class ManifesteRemoteDataSource {
   /// `per_page=200` (plafond serveur, `MAX_PER_PAGE` — voir
   /// `OpsDepartureController`) : un manifeste tient largement sur un bus,
@@ -89,40 +71,6 @@ class ManifesteRemoteDataSourceImpl implements ManifesteRemoteDataSource {
       ManifesteDtos.passengers(response.data),
       ManifesteDtos.manifestVersion(response.data),
       isInternational: ManifesteDtos.isInternational(response.data),
-    );
-  }
-
-  @override
-  Future<ManifestVersionCheck> checkVersion(
-    String departureUuid,
-    String? knownVersion,
-  ) async {
-    final response = await _dio.post<dynamic>(
-      ApiConstants.opsSyncManifestVersions,
-      data: <String, dynamic>{
-        'departures': <Map<String, dynamic>>[
-          <String, dynamic>{
-            'departure_uuid': departureUuid,
-            'known_version': knownVersion,
-          },
-        ],
-      },
-    );
-
-    final Object? body = response.data;
-    final Object? rawData = body is Map ? body['data'] : null;
-    final List<dynamic> rows = rawData is List ? rawData : const <dynamic>[];
-    if (rows.isEmpty) {
-      return const ManifestVersionCheck(
-          currentVersion: null, stale: true, accessible: false);
-    }
-
-    final Object? rawRow = rows.first;
-    final Map<dynamic, dynamic> row = rawRow is Map ? rawRow : const {};
-    return ManifestVersionCheck(
-      currentVersion: row['currentVersion'] as String?,
-      stale: row['stale'] as bool? ?? true,
-      accessible: row['accessible'] as bool? ?? false,
     );
   }
 

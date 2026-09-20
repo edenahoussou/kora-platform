@@ -32,14 +32,15 @@ void main() {
     });
 
     test('départ national : refusé', () {
-      final BorderManifestBuild build = BorderManifestBuilder.build(
-          borderInput(isInternational: false));
+      final BorderManifestBuild build =
+          BorderManifestBuilder.build(borderInput(isInternational: false));
 
       expect(build.isReady, isFalse);
       expect(build.issues.single, contains('pas international'));
     });
 
-    test('départ dont le type est inconnu : refusé, demande un rafraîchissement',
+    test(
+        'départ dont le type est inconnu : refusé, demande un rafraîchissement',
         () {
       final BorderManifestBuild build =
           BorderManifestBuilder.build(borderInput(isInternational: null));
@@ -151,8 +152,7 @@ void main() {
 
   group('BorderManifestBuilder.departureNumber', () {
     test('8 premiers caractères de l\'UUID, en majuscules', () {
-      expect(BorderManifestBuilder.departureNumber(kDepartureUuid),
-          '9B1DEB4D');
+      expect(BorderManifestBuilder.departureNumber(kDepartureUuid), '9B1DEB4D');
     });
 
     test('identifiant court : conservé tel quel', () {

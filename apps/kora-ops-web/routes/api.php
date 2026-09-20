@@ -162,8 +162,13 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             // PDF de confirmation d'embarquement — mode téléphone (pas de
             // terminal P501, donc pas d'imprimante thermique). Voir ticket
             // "Supporter le scan par caméra téléphone en alternative au P501".
+            // Pas de « scoped binding » : avec deux paramètres `:uuid` consécutifs,
+            // Laravel résout le billet via `$departure->tickets()` (relation qui
+            // n'existe pas). Le contrôleur vérifie lui-même que le billet est
+            // bien sur ce départ (422 `ticket_not_for_departure`).
             Route::get('{departure:uuid}/tickets/{ticket:uuid}/pdf', [OpsBoardingController::class, 'pdf'])
                 ->middleware('ops.session')
+                ->withoutScopedBindings()
                 ->name('ticket-pdf');
         });
 

@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_ops_mobile/core/exceptions/app_exceptions.dart';
@@ -80,8 +78,7 @@ void main() {
           .printBorderManifest(manifest, copyNumber: 1, totalCopies: 3);
 
       expect(result, isTrue);
-      expect(
-          (received!.arguments as Map<Object?, Object?>)['logoPng'], isNull);
+      expect((received!.arguments as Map<Object?, Object?>)['logoPng'], isNull);
     });
 
     test('retourne false si le natif ne confirme pas l\'impression', () async {
@@ -115,22 +112,20 @@ void main() {
     }
 
     test('absence de papier (OUT_OF_PAPER / NO_PAPER)', () async {
-      expect((await failWith('OUT_OF_PAPER')).kind,
-          PrinterFailureKind.outOfPaper);
       expect(
-          (await failWith('NO_PAPER')).kind, PrinterFailureKind.outOfPaper);
+          (await failWith('OUT_OF_PAPER')).kind, PrinterFailureKind.outOfPaper);
+      expect((await failWith('NO_PAPER')).kind, PrinterFailureKind.outOfPaper);
     });
 
     test('imprimante absente ou déconnectée', () async {
-      expect((await failWith('NO_PRINTER')).kind,
-          PrinterFailureKind.notConnected);
+      expect(
+          (await failWith('NO_PRINTER')).kind, PrinterFailureKind.notConnected);
       expect((await failWith('PRINTER_DISCONNECTED')).kind,
           PrinterFailureKind.notConnected);
     });
 
     test('surchauffe', () async {
-      expect(
-          (await failWith('OVERHEAT')).kind, PrinterFailureKind.overheated);
+      expect((await failWith('OVERHEAT')).kind, PrinterFailureKind.overheated);
     });
 
     test('code inconnu : erreur générique avec le message du SDK', () async {
@@ -148,10 +143,8 @@ void main() {
       await expectLater(
         buildPrinter()
             .printBorderManifest(manifest, copyNumber: 1, totalCopies: 3),
-        throwsA(isA<PrinterException>().having(
-            (PrinterException e) => e.kind,
-            'kind',
-            PrinterFailureKind.notConnected)),
+        throwsA(isA<PrinterException>().having((PrinterException e) => e.kind,
+            'kind', PrinterFailureKind.notConnected)),
       );
     });
   });

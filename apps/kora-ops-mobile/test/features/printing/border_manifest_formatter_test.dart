@@ -28,8 +28,7 @@ BorderManifestPayload payload({
       manifestFetchedAt: fetchedAt ?? DateTime(2026, 8, 14, 6, 45),
     );
 
-List<String> format(BorderManifestPayload p,
-        {int copy = 1, int total = 3}) =>
+List<String> format(BorderManifestPayload p, {int copy = 1, int total = 3}) =>
     BorderManifestFormatter.format(p, copyNumber: copy, totalCopies: total);
 
 void main() {
@@ -41,8 +40,7 @@ void main() {
       expect(lines.every((String l) => l.length <= 32), isTrue);
     });
 
-    test('en-tête : marque, titre, départ, ligne, passagers et exemplaire',
-        () {
+    test('en-tête : marque, titre, départ, ligne, passagers et exemplaire', () {
       final String text = format(payload(), copy: 2).join('\n');
 
       expect(text, contains('KORA EXPRESS'));
@@ -218,10 +216,10 @@ void main() {
 
     group('ascii', () {
       test('retire les accents et remplace les caractères sans équivalent', () {
-        expect(BorderManifestFormatter.ascii('Éléonore Ñandú'),
-            'Eleonore Nandu');
-        expect(BorderManifestFormatter.ascii('Cotonou → Lomé'),
-            'Cotonou > Lome');
+        expect(
+            BorderManifestFormatter.ascii('Éléonore Ñandú'), 'Eleonore Nandu');
+        expect(
+            BorderManifestFormatter.ascii('Cotonou → Lomé'), 'Cotonou > Lome');
         expect(BorderManifestFormatter.ascii('Ɛwɛ Ɔdɖ'), 'Ewe Odd');
         expect(BorderManifestFormatter.ascii('日本'), '??');
       });
