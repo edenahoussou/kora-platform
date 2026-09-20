@@ -22,6 +22,7 @@ use App\Modules\Ticketing\Models\Ticket;
 use Database\Seeders\KoraBusRolePermissionSeeder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Mockery\MockInterface;
 
 beforeEach(function (): void {
     $this->seed(KoraBusRolePermissionSeeder::class);
@@ -681,7 +682,7 @@ function borderManifestScenario(bool $international = true, array $passengerOver
  * seul `renderPdf` — l'appel à Chromium — est remplaçable : un vrai
  * Browsershot n'est pas disponible en test.
  */
-function borderManifestAction(): Mockery\MockInterface
+function borderManifestAction(): MockInterface
 {
     return Mockery::mock(GenerateBorderManifestPdfAction::class, [
         app(ResolveManifestSegmentsAction::class),
