@@ -62,10 +62,34 @@ return [
     ],
 
     'reservation_status' => [
+        'held' => 'Held',
+        'assistance_pending' => 'Assistance pending',
         'pending' => 'Pending',
         'confirmed' => 'Confirmed',
+        'paid' => 'Paid',
+        'ticketed' => 'Ticketed',
+        'boarded' => 'Boarded',
         'cancelled' => 'Cancelled',
         'expired' => 'Expired',
+        'unavailable' => 'Unavailable',
+    ],
+
+    'assisted_booking_status' => [
+        'pending' => 'Pending',
+        'in_progress' => 'In progress',
+        'cancelled' => 'Resumed online',
+        'refused' => 'Refused',
+        'unavailable' => 'Unavailable',
+        'expired' => 'Expired',
+        'finalized' => 'Finalized',
+    ],
+
+    'ticket_issuance_status' => [
+        'not_started' => 'Not started',
+        'pending' => 'Pending',
+        'processing' => 'Processing',
+        'issued' => 'Issued',
+        'failed' => 'Issuance failed',
     ],
 
     'reservation_channel' => [
