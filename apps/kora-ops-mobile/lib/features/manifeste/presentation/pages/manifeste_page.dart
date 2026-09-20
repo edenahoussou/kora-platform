@@ -14,11 +14,13 @@ import '../../../../core/widgets/kora_skeleton.dart';
 import '../../../../core/widgets/passenger_list_tile.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../../injection/injection.dart';
+import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../border_manifest/domain/services/border_manifest_builder.dart';
 import '../../../border_manifest/presentation/pages/border_manifest_pdf_page.dart';
 import '../../../ops/domain/entities/depart.dart';
 import '../../../ops/domain/entities/passenger.dart';
 import '../../../ops/presentation/cubit/selected_depart_cubit.dart';
+import '../../../ops/presentation/depart_progress.dart';
 import '../../../seat_release/domain/entities/seat_release_outcome.dart';
 import '../../../seat_release/domain/entities/seat_release_outcome_status.dart';
 import '../../../seat_release/domain/repositories/seat_release_repository.dart';
@@ -158,6 +160,11 @@ class ManifestePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Depart? depart = context.watch<SelectedDepartCubit>().state;
+    final AuthState authState = context.watch<AuthCubit>().state;
+    final bool canProgressDeparture = authState is AuthAuthenticated &&
+        authState.user.can('departures.progress');
+    final bool canReportIncident = authState is AuthAuthenticated &&
+        authState.user.can('incidents.report');
 
     return Scaffold(
       appBar: ScreenHeader(
@@ -225,12 +232,58 @@ class ManifestePage extends StatelessWidget {
                     final bool canPrintBorder = _canPrintBorderManifest(state);
                     final bool canCloseNoShows =
                         _canCloseNoShows(depart, state);
-                    if (!canPrintBorder && !canCloseNoShows) return body;
+                    final DepartProgressStep? progressStep =
+                        canProgressDeparture
+                            ? nextDepartProgressStep(depart)
+                            : null;
+                    // Retard : seulement tant que le départ n'est pas
+                    // parti (même règle que RecordDepartureDelayAction).
+                    final bool canRecordDelay = canProgressDeparture &&
+                        (depart.status == null ||
+                            depart.status == 'scheduled' ||
+                            depart.status == 'boarding');
+                    if (!canPrintBorder &&
+                        !canCloseNoShows &&
+                        progressStep == null &&
+                        !canRecordDelay &&
+                        !canReportIncident) {
+                      return body;
+                    }
 
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: <Widget>[
                         Expanded(child: body),
+                        if (progressStep != null) ...<Widget>[
+                          const SizedBox(height: AppSpacing.sm),
+                          KoraButton(
+                            label: progressStep.label,
+                            variant: KoraButtonVariant.secondary,
+                            icon: progressStep.icon,
+                            onPressed: () => progressDeparture(
+                                context, depart, progressStep),
+                          ),
+                        ],
+                        if (canReportIncident) ...<Widget>[
+                          const SizedBox(height: AppSpacing.sm),
+                          KoraButton(
+                            label: 'Signaler un incident',
+                            variant: KoraButtonVariant.danger,
+                            icon: Icons.report_problem,
+                            onPressed: () =>
+                                context.push(AppRoutes.incidentReport),
+                          ),
+                        ],
+                        if (canRecordDelay) ...<Widget>[
+                          const SizedBox(height: AppSpacing.sm),
+                          KoraButton(
+                            label: 'Signaler un retard',
+                            variant: KoraButtonVariant.ghost,
+                            icon: Icons.schedule,
+                            onPressed: () =>
+                                recordDepartureDelay(context, depart),
+                          ),
+                        ],
                         if (canPrintBorder) ...<Widget>[
                           const SizedBox(height: AppSpacing.sm),
                           KoraButton(

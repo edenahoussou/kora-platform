@@ -163,8 +163,8 @@ class BorderManifestPrintCubit extends Cubit<BorderManifestPrintState> {
             requestedCopies: _copies,
             manifestVersion: input.manifestVersion,
             userUuid: await _currentUserUuid(),
-            terminalSerial: (await _terminalRepository.cachedTerminal())
-                ?.serialNumber,
+            terminalSerial:
+                (await _terminalRepository.cachedTerminal())?.serialNumber,
           );
 
       await _run(job, build.payload!);

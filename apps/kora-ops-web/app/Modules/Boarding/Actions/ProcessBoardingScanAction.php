@@ -10,6 +10,7 @@ use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\IdentityAccess\Models\TerminalP501;
+use App\Modules\Notifications\Services\OpsNotifier;
 use App\Modules\Ticketing\Data\TicketStatus;
 use App\Modules\Ticketing\Models\Ticket;
 use Carbon\CarbonInterface;
@@ -19,6 +20,7 @@ class ProcessBoardingScanAction
 {
     public function __construct(
         private ResolveTicketForBoardingAction $resolveTicket,
+        private OpsNotifier $notifier,
     ) {}
 
     /**
@@ -47,7 +49,7 @@ class ProcessBoardingScanAction
 
         $ticket = $this->resolveTicket->execute($qrPayload, $shortCode);
 
-        return DB::transaction(function () use ($departure, $terminal, $operationUuid, $localRecordedAt, $ticket) {
+        $event = DB::transaction(function () use ($departure, $terminal, $operationUuid, $localRecordedAt, $ticket) {
             // Idempotence sous course concurrente : la contrainte unique
             // sur operation_uuid peut avoir été posée par une requête
             // concurrente entre notre lecture initiale et ce point.
@@ -99,6 +101,15 @@ class ProcessBoardingScanAction
                 'status' => BoardingEventStatus::Accepted,
             ]);
         });
+
+        // Publié après la transaction : le conflit est alors définitif. Un
+        // événement retrouvé (rejeu) n'est pas « recréé » et ne republie rien ;
+        // la déduplication de l'événement couvre de toute façon le retry.
+        if ($event->wasRecentlyCreated && $event->status === BoardingEventStatus::Conflict) {
+            $this->notifier->scanConflict($event, $departure, $terminal);
+        }
+
+        return $event;
     }
 
     private function handleAlreadyBoarded(

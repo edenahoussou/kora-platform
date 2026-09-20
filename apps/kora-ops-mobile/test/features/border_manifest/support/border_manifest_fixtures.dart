@@ -77,12 +77,12 @@ class InMemoryBorderManifestPrintDataSource
   @override
   Future<BorderManifestPrintJob?> find(String jobUuid) async => jobs[jobUuid];
 
-  List<BorderManifestPrintJob> _forDeparture(String departureUuid) => jobs
-      .values
-      .where((BorderManifestPrintJob j) => j.departureUuid == departureUuid)
-      .toList()
-    ..sort((BorderManifestPrintJob a, BorderManifestPrintJob b) =>
-        b.createdAt.compareTo(a.createdAt));
+  List<BorderManifestPrintJob> _forDeparture(String departureUuid) =>
+      jobs.values
+          .where((BorderManifestPrintJob j) => j.departureUuid == departureUuid)
+          .toList()
+        ..sort((BorderManifestPrintJob a, BorderManifestPrintJob b) =>
+            b.createdAt.compareTo(a.createdAt));
 
   @override
   Future<BorderManifestPrintJob?> findUnfinished(String departureUuid) async {

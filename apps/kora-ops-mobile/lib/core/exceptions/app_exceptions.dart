@@ -80,8 +80,8 @@ extension PrinterFailureKindX on PrinterFailureKind {
 /// en erreur…). [kind] précise la panne quand elle est identifiable.
 class PrinterException extends AppException {
   const PrinterException(
-    [super.message = 'Erreur de l\'imprimante.',
-    this.kind = PrinterFailureKind.unknown]);
+      [super.message = 'Erreur de l\'imprimante.',
+      this.kind = PrinterFailureKind.unknown]);
 
   final PrinterFailureKind kind;
 

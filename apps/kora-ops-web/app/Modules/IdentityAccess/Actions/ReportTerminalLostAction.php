@@ -3,6 +3,7 @@
 namespace App\Modules\IdentityAccess\Actions;
 
 use App\Models\User;
+use App\Modules\IdentityAccess\Data\OpsSessionRevocationReason;
 use App\Modules\IdentityAccess\Data\TerminalP501Status;
 use App\Modules\IdentityAccess\Models\TerminalP501;
 
@@ -18,7 +19,7 @@ class ReportTerminalLostAction
 
         $terminal->update(['status' => TerminalP501Status::Lost]);
 
-        $revokedCount = $this->revokeSessions->execute($terminal, 'terminal_lost');
+        $revokedCount = $this->revokeSessions->execute($terminal, OpsSessionRevocationReason::TerminalLost->value);
 
         activity()
             ->performedOn($terminal)

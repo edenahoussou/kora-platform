@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_ops_mobile/core/errors/failures.dart';
 import 'package:kora_ops_mobile/core/result/result.dart';
 import 'package:kora_ops_mobile/features/boarding/domain/repositories/boarding_repository.dart';
+import 'package:kora_ops_mobile/features/incidents/domain/repositories/incident_repository.dart';
 import 'package:kora_ops_mobile/features/seat_release/domain/repositories/seat_release_repository.dart';
 import 'package:kora_ops_mobile/features/synchro/domain/entities/pending_operation.dart';
 import 'package:kora_ops_mobile/features/synchro/domain/entities/sync_summary.dart';
@@ -19,12 +20,15 @@ class MockBoardingRepository extends Mock implements BoardingRepository {}
 
 class MockSeatReleaseRepository extends Mock implements SeatReleaseRepository {}
 
+class MockIncidentRepository extends Mock implements IncidentRepository {}
+
 class MockConnectivity extends Mock implements Connectivity {}
 
 void main() {
   late MockSyncRepository syncRepository;
   late MockBoardingRepository boardingRepository;
   late MockSeatReleaseRepository seatReleaseRepository;
+  late MockIncidentRepository incidentRepository;
   late MockConnectivity connectivity;
   late StreamController<List<ConnectivityResult>> connectivityController;
 
@@ -32,6 +36,7 @@ void main() {
     syncRepository = MockSyncRepository();
     boardingRepository = MockBoardingRepository();
     seatReleaseRepository = MockSeatReleaseRepository();
+    incidentRepository = MockIncidentRepository();
     connectivity = MockConnectivity();
     connectivityController =
         StreamController<List<ConnectivityResult>>.broadcast();
@@ -44,6 +49,9 @@ void main() {
         .thenAnswer((_) async => 0);
     when(() => seatReleaseRepository.totalPendingCount())
         .thenAnswer((_) async => 0);
+    when(() => incidentRepository.totalPendingCount())
+        .thenAnswer((_) async => 0);
+    when(() => incidentRepository.retryPending()).thenAnswer((_) async {});
   });
 
   tearDown(() => connectivityController.close());
@@ -52,23 +60,27 @@ void main() {
         syncRepository,
         boardingRepository,
         seatReleaseRepository,
+        incidentRepository,
         connectivity: connectivity,
       );
 
   blocTest<SyncCubit, SyncState>(
-    'bootstrap() additionne le compteur en attente des deux files '
-    '(embarquements + libérations de siège), sans déclencher de synchro',
+    'bootstrap() additionne le compteur en attente des trois files '
+    '(embarquements + libérations de siège + incidents), sans déclencher '
+    'de synchro',
     setUp: () {
       when(() => boardingRepository.totalPendingCount())
           .thenAnswer((_) async => 3);
       when(() => seatReleaseRepository.totalPendingCount())
           .thenAnswer((_) async => 2);
+      when(() => incidentRepository.totalPendingCount())
+          .thenAnswer((_) async => 1);
     },
     build: buildCubit,
     act: (cubit) => cubit.bootstrap(),
     expect: () => <dynamic>[
       predicate<SyncState>(
-          (s) => s.pendingOperationsCount == 5 && s.isOnline == true),
+          (s) => s.pendingOperationsCount == 6 && s.isOnline == true),
     ],
     verify: (_) {
       verifyNever(() => syncRepository.syncPending());
@@ -95,7 +107,8 @@ void main() {
 
   group('syncNow', () {
     blocTest<SyncCubit, SyncState>(
-      'succès : résumé affiché, compteur (des deux files) mis à jour',
+      'succès : résumé affiché, compteur (des trois files) mis à jour, '
+      'incidents en attente réémis',
       setUp: () {
         when(() => syncRepository.syncPending()).thenAnswer(
           (_) async => const Result<SyncSummary>.success(
@@ -116,6 +129,9 @@ void main() {
             s.lastSyncSummary?.accepted == 2 &&
             s.lastSyncError == null),
       ],
+      verify: (_) {
+        verify(() => incidentRepository.retryPending()).called(1);
+      },
     );
 
     blocTest<SyncCubit, SyncState>(
@@ -129,6 +145,7 @@ void main() {
       expect: () => <dynamic>[],
       verify: (_) {
         verifyNever(() => syncRepository.syncPending());
+        verifyNever(() => incidentRepository.retryPending());
       },
     );
 

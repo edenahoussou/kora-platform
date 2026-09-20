@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/services.dart';
 import '../../../../core/exceptions/app_exceptions.dart';
 import '../../domain/entities/border_manifest_payload.dart';
@@ -20,6 +18,7 @@ import '../formatters/ticket_formatter.dart';
 ///   natif n'a qu'à l'imprimer tel quel et générer le QR à partir de
 ///   `qrData`.
 /// - `printBorderManifest` (MEZ-94) — arguments
+// ignore: unintended_html_in_doc_comment
 ///   `{ "lines": List<String>, "logoPng": Uint8List?, "copyNumber": int,
 ///   "totalCopies": int }` : imprimer d'abord le logo (`logoPng`, PNG
 ///   quelconque à convertir en noir et blanc, ignoré s'il est `null`), puis

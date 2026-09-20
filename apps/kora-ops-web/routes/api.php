@@ -11,13 +11,18 @@ use App\Modules\BusNetwork\Http\Controllers\BusCatalogController;
 use App\Modules\CompanyAccounts\Http\Controllers\CompanyAccountController;
 use App\Modules\Departures\Http\Controllers\BusDepartureController;
 use App\Modules\Departures\Http\Controllers\OpsDepartureController;
+use App\Modules\Departures\Http\Controllers\OpsDepartureProgressController;
 use App\Modules\DynamicPricing\Http\Controllers\GroupDiscountRuleController;
+use App\Modules\FleetLite\Http\Controllers\OpsIncidentController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthDeviceController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthOAuthController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthOtpController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthSessionController;
+use App\Modules\IdentityAccess\Http\Controllers\OpsSessionController;
 use App\Modules\IdentityAccess\Http\Controllers\TerminalOpsMobileController;
 use App\Modules\IdentityAccess\Http\Controllers\UserPreferenceController;
+use App\Modules\Notifications\Http\Controllers\OpsNotificationController;
+use App\Modules\Notifications\Http\Controllers\OpsNotificationPreferenceController;
 use App\Modules\Payments\Http\Controllers\PaymentController;
 use App\Modules\Support\Http\Controllers\HealthController;
 use App\Modules\Sync\Http\Controllers\OpsSyncController;
@@ -71,10 +76,45 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 ->middleware('throttle:terminal-handshake')
                 ->name('handshake');
 
-            Route::middleware('terminal.active')->group(function (): void {
+            Route::middleware('ops.session')->group(function (): void {
                 Route::post('sync', [TerminalOpsMobileController::class, 'sync'])->name('sync');
                 Route::post('activity', [TerminalOpsMobileController::class, 'activity'])->name('activity');
             });
+        });
+
+    // OPS Mobile — session OPS liée au terminal (MEZ-95). L'ouverture est le
+    // handshake ci-dessus ; la consultation et le renouvellement exigent une
+    // session valide sur CE terminal, la déconnexion non (toujours possible).
+    Route::prefix('ops-mobile/session')
+        ->name('ops-mobile.session.')
+        ->middleware('auth:sanctum')
+        ->group(function (): void {
+            Route::delete('/', [OpsSessionController::class, 'destroy'])->name('destroy');
+
+            Route::middleware('ops.session')->group(function (): void {
+                Route::get('/', [OpsSessionController::class, 'show'])->name('show');
+                Route::post('renew', [OpsSessionController::class, 'renew'])
+                    ->middleware('throttle:terminal-handshake')
+                    ->name('renew');
+            });
+        });
+
+    // Notifications opérationnelles boarding (MEZ-96) — un seul contrat pour OPS
+    // Mobile et OPS Web. Permission `notifications.view` ; un jeton lié à une
+    // session OPS doit porter une session valide (sans exiger le terminal, pour
+    // que la récupération reste possible après une reconnexion).
+    Route::prefix('notifications')
+        ->name('notifications.')
+        ->middleware(['auth:sanctum', 'ops.notifications'])
+        ->group(function (): void {
+            Route::get('/', [OpsNotificationController::class, 'index'])->name('index');
+            Route::get('unread-count', [OpsNotificationController::class, 'unreadCount'])->name('unread-count');
+            Route::post('read-all', [OpsNotificationController::class, 'markAllRead'])->name('read-all');
+            Route::get('preferences', [OpsNotificationPreferenceController::class, 'show'])->name('preferences.show');
+            Route::put('preferences', [OpsNotificationPreferenceController::class, 'update'])->name('preferences.update');
+            Route::post('{notification}/read', [OpsNotificationController::class, 'markRead'])
+                ->whereUuid('notification')
+                ->name('read');
         });
 
     // OPS Mobile — planning et manifeste du convoyeur (MEZ-84 suite,
@@ -82,13 +122,29 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     // session existante (auth:sanctum) + terminal enregistré et actif.
     Route::prefix('ops/departures')
         ->name('ops.departures.')
-        ->middleware(['auth:sanctum', 'terminal.active'])
+        ->middleware(['auth:sanctum', 'ops.session'])
         ->group(function (): void {
             Route::get('/', [OpsDepartureController::class, 'index'])->name('index');
             Route::get('{departure:uuid}', [OpsDepartureController::class, 'show'])->name('show');
             Route::get('{departure:uuid}/manifest', [OpsDepartureController::class, 'manifest'])->name('manifest');
             // Manifeste frontière PDF (A4) — mode téléphone, MEZ-94.
             Route::get('{departure:uuid}/manifest/pdf', [OpsDepartureController::class, 'manifestPdf'])->name('manifest-pdf');
+
+            // Progression du départ par le convoyeur (MEZ-98) : embarquement
+            // commencé, bus parti, arrivé, retard. Même statut que OPS Web.
+            Route::post('{departure:uuid}/status', [OpsDepartureProgressController::class, 'updateStatus'])->name('status');
+            Route::patch('{departure:uuid}/delay', [OpsDepartureProgressController::class, 'recordDelay'])->name('delay');
+        });
+
+    // OPS Mobile — signalement d'incident par le convoyeur (MEZ-98). Même
+    // garde que les autres routes terrain ; l'envoi est limité (anti-abus).
+    Route::prefix('ops/incidents')
+        ->name('ops.incidents.')
+        ->middleware(['auth:sanctum', 'ops.session'])
+        ->group(function (): void {
+            Route::get('/', [OpsIncidentController::class, 'index'])->name('index');
+            Route::post('/', [OpsIncidentController::class, 'store'])->middleware('throttle:10,1')->name('store');
+            Route::get('{incident}', [OpsIncidentController::class, 'show'])->whereUuid('incident')->name('show');
         });
 
     // OPS Mobile — validation d'embarquement (MEZ-84 suite). Le scan lui
@@ -99,15 +155,20 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->middleware('auth:sanctum')
         ->group(function (): void {
             Route::post('/', [OpsBoardingController::class, 'store'])
-                ->middleware('terminal.active')
+                ->middleware('ops.session')
                 ->name('store');
             Route::post('{boardingEvent:uuid}/reverse', [OpsBoardingController::class, 'reverse'])->name('reverse');
 
             // PDF de confirmation d'embarquement — mode téléphone (pas de
             // terminal P501, donc pas d'imprimante thermique). Voir ticket
             // "Supporter le scan par caméra téléphone en alternative au P501".
+            // Pas de « scoped binding » : avec deux paramètres `:uuid` consécutifs,
+            // Laravel résout le billet via `$departure->tickets()` (relation qui
+            // n'existe pas). Le contrôleur vérifie lui-même que le billet est
+            // bien sur ce départ (422 `ticket_not_for_departure`).
             Route::get('{departure:uuid}/tickets/{ticket:uuid}/pdf', [OpsBoardingController::class, 'pdf'])
-                ->middleware('terminal.active')
+                ->middleware('ops.session')
+                ->withoutScopedBindings()
                 ->name('ticket-pdf');
         });
 
@@ -116,7 +177,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     // depuis le P501, contrairement à l'annulation d'embarquement.
     Route::prefix('ops/seat-releases')
         ->name('ops.seat-releases.')
-        ->middleware(['auth:sanctum', 'terminal.active'])
+        ->middleware(['auth:sanctum', 'ops.session'])
         ->group(function (): void {
             Route::post('/', [OpsSeatReleaseController::class, 'store'])->name('store');
             Route::post('no-show-closure', [OpsSeatReleaseController::class, 'closeNoShows'])->name('no-show-closure');
@@ -128,7 +189,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     // les autres actions terrain.
     Route::prefix('ops/sync')
         ->name('ops.sync.')
-        ->middleware(['auth:sanctum', 'terminal.active'])
+        ->middleware(['auth:sanctum', 'ops.session'])
         ->group(function (): void {
             Route::post('manifest-versions', [OpsSyncController::class, 'manifestVersions'])->name('manifest-versions');
             Route::post('batches', [OpsSyncController::class, 'submitBatch'])->name('batches');

@@ -4,6 +4,7 @@ import 'package:kora_ops_mobile/core/errors/failures.dart';
 import 'package:kora_ops_mobile/core/result/result.dart';
 import 'package:kora_ops_mobile/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:kora_ops_mobile/features/boarding/domain/repositories/boarding_repository.dart';
+import 'package:kora_ops_mobile/features/incidents/domain/repositories/incident_repository.dart';
 import 'package:kora_ops_mobile/features/manifeste/domain/entities/manifest_snapshot.dart';
 import 'package:kora_ops_mobile/features/manifeste/domain/repositories/manifeste_repository.dart';
 import 'package:kora_ops_mobile/features/manifeste/presentation/cubit/manifeste_cubit.dart';
@@ -23,6 +24,8 @@ class MockSyncRepository extends Mock implements SyncRepository {}
 class MockSeatReleaseRepository extends Mock implements SeatReleaseRepository {}
 
 class MockBoardingRepository extends Mock implements BoardingRepository {}
+
+class MockIncidentRepository extends Mock implements IncidentRepository {}
 
 class MockSelectedDepartureLocalDataSource extends Mock
     implements SelectedDepartureLocalDataSource {}
@@ -108,7 +111,7 @@ void main() {
     // Mocks jamais stubbés : ManifesteCubit n'exerce que `enqueue()` (via
     // `updateStatut`), qui ne les appelle pas — voir SyncCubit.enqueue.
     syncCubit = SyncCubit(MockSyncRepository(), MockBoardingRepository(),
-        MockSeatReleaseRepository());
+        MockSeatReleaseRepository(), MockIncidentRepository());
     repository = MockManifesteRepository();
     when(() => repository.persistStatusUpdate(
           departureUuid: any(named: 'departureUuid'),
@@ -455,4 +458,3 @@ void main() {
     });
   });
 }
-

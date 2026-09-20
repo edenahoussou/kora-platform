@@ -29,8 +29,19 @@ abstract final class ApiConstants {
   static const String opsDepartures = '$_v1/ops/departures';
   static String opsDepartureShow(String departureUuid) =>
       '$_v1/ops/departures/$departureUuid';
+
+  /// Progression du départ par le convoyeur (embarquement → parti →
+  /// arrivé, MEZ-98).
+  static String opsDepartureStatus(String departureUuid) =>
+      '$_v1/ops/departures/$departureUuid/status';
+  static String opsDepartureDelay(String departureUuid) =>
+      '$_v1/ops/departures/$departureUuid/delay';
+
+  /// Signalement d'incident par le convoyeur (MEZ-98).
+  static const String opsIncidents = '$_v1/ops/incidents';
   static String opsDepartureManifest(String departureUuid) =>
       '$_v1/ops/departures/$departureUuid/manifest';
+
   /// Manifeste frontière en PDF A4 — mode téléphone uniquement (MEZ-94) :
   /// remplace l'impression thermique 58 mm du P501.
   static String opsDepartureManifestPdf(String departureUuid) =>
@@ -52,4 +63,13 @@ abstract final class ApiConstants {
   static const String opsSeatReleases = '$_v1/ops/seat-releases';
   static const String opsSeatReleasesNoShowClosure =
       '$_v1/ops/seat-releases/no-show-closure';
+
+  // Notifications opérationnelles (MEZ-96/MEZ-97) — même contrat OPS
+  // Mobile / OPS Web (voir OpsNotificationController).
+  static const String notificationsIndex = '$_v1/notifications';
+  static const String notificationsUnreadCount =
+      '$_v1/notifications/unread-count';
+  static const String notificationsMarkAllRead = '$_v1/notifications/read-all';
+  static String notificationMarkRead(String uuid) =>
+      '$_v1/notifications/$uuid/read';
 }

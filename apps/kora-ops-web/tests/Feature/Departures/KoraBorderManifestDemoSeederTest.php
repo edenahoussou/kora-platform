@@ -10,6 +10,7 @@ use App\Modules\IdentityAccess\Models\TerminalP501;
 use Database\Seeders\KoraBorderManifestDemoSeeder;
 use Database\Seeders\KoraBusRolePermissionSeeder;
 use Database\Seeders\KoraDemoUserSeeder;
+use Mockery\MockInterface;
 
 beforeEach(function (): void {
     $this->seed(KoraBusRolePermissionSeeder::class);
@@ -36,7 +37,7 @@ function seededConductorHeaders(): array
 }
 
 /** Action réelle dont seul l'appel à Chromium est remplacé. */
-function seededBorderManifestAction(): Mockery\MockInterface
+function seededBorderManifestAction(): MockInterface
 {
     return Mockery::mock(GenerateBorderManifestPdfAction::class, [
         app(ResolveManifestSegmentsAction::class),
