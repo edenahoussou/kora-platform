@@ -37,9 +37,14 @@ enum SystemRole: string
             ],
             self::BusDriver => [
                 'departures.view',
+                'notifications.view',
             ],
-            self::Mechanic => ['departures.view'],
+            self::Mechanic => [
+                'departures.view',
+                'notifications.view',
+            ],
             self::Conductor => [
+                'notifications.view',
                 'departures.view',
                 'boarding.scan',
                 'seat-releases.create',
@@ -47,6 +52,7 @@ enum SystemRole: string
                 'tickets.view',
             ],
             self::AgencyAgent => [
+                'notifications.view',
                 'bookings.view',
                 'company-accounts.view',
                 'counter-sales.create',
@@ -64,6 +70,7 @@ enum SystemRole: string
                 'expenses.create',
             ],
             self::AgencyManager => [
+                'notifications.view',
                 'agencies.view',
                 'fleet.view',
                 'network.view',
@@ -92,6 +99,7 @@ enum SystemRole: string
                 'expenses.export',
             ],
             self::OperationsDirector => [
+                'notifications.view',
                 'tickets.view-network',
                 'agencies.view',
                 'fleet.view',
@@ -120,6 +128,7 @@ enum SystemRole: string
                 'assisted-bookings.refuse',
             ],
             self::CommercialDirector => [
+                'notifications.view',
                 'tickets.view-network',
                 'agencies.view',
                 'fleet.view',
@@ -145,6 +154,7 @@ enum SystemRole: string
                 'assisted-bookings.refuse',
             ],
             self::Daf => [
+                'notifications.view',
                 'tickets.view-network',
                 'bookings.view',
                 'company-accounts.view',
@@ -164,6 +174,7 @@ enum SystemRole: string
                 'revenue.export',
             ],
             self::GeneralManagement => [
+                'notifications.view',
                 'tickets.view-network',
                 'agencies.view',
                 'fleet.view',
@@ -202,6 +213,7 @@ enum SystemRole: string
     public static function allPermissions(): array
     {
         return [
+            'notifications.view',
             'agencies.view',
             'agencies.create',
             'agencies.update',

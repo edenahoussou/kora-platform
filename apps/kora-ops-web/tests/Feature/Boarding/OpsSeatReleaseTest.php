@@ -12,11 +12,15 @@ use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
+use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\IdentityAccess\Models\TerminalP501;
+use App\Modules\Notifications\Models\OpsNotification;
+use App\Modules\Notifications\Models\OpsNotificationEvent;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\SeatInventory\Actions\FindOccupiedSeatIdsAction;
 use App\Modules\Ticketing\Models\Ticket;
 use Database\Seeders\KoraBusRolePermissionSeeder;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 beforeEach(function (): void {
@@ -561,4 +565,49 @@ it('denies release for a departure the conductor is not assigned to', function (
         ->withHeaders(['X-Terminal-Serial' => $terminal->serial_number])
         ->postJson('/api/v1/ops/seat-releases', seatReleasePayload($departure, $ticket, $b))
         ->assertForbidden();
+});
+
+it('notifies the crew and the agency ops director when no-shows are closed, once per closure', function (): void {
+    Mail::fake();
+    [$user, $token] = seatReleaseCrewToken('conductor');
+    $agency = Agency::factory()->create();
+    $user->forceFill(['agency_id' => $agency->id])->save();
+    $director = User::factory()->create(['agency_id' => $agency->id]);
+    $director->assignRole('operations_director');
+    $admin = User::factory()->create();
+    $admin->assignRole('system_admin');
+
+    $terminal = seatReleaseTerminal();
+    $line = seatReleaseLine();
+    [$a, , $c] = seatReleaseThreeStops($line);
+    [$bus, $seat] = seatReleaseBusWithSeat();
+    $departure = seatReleaseDeparture($line, $bus, ['conductor_id' => $user->id], status: 'departed');
+    seatReleaseTicketedPassenger([[$departure, $a, $c, $seat, 'ticketed']]);
+
+    $closure = [
+        'departure_uuid' => $departure->uuid,
+        'operation_uuid' => (string) Str::uuid(),
+        'local_recorded_at' => now()->toISOString(),
+    ];
+    $headers = ['X-Terminal-Serial' => $terminal->serial_number];
+
+    $this->withToken($token)->withHeaders($headers)->postJson('/api/v1/ops/seat-releases/no-show-closure', $closure)->assertOk();
+    // Rejeu réseau de la même clôture, puis nouvelle clôture sans plus rien à libérer.
+    $this->withToken($token)->withHeaders($headers)->postJson('/api/v1/ops/seat-releases/no-show-closure', $closure)->assertOk();
+    $this->withToken($token)->withHeaders($headers)->postJson('/api/v1/ops/seat-releases/no-show-closure', [...$closure, 'operation_uuid' => (string) Str::uuid()])->assertOk();
+
+    $events = OpsNotificationEvent::query()->where('type', 'no_show_closed')->get();
+    $notifiedWith = fn (User $who): int => OpsNotification::query()
+        ->where('user_id', $who->id)->whereHas('event', fn ($event) => $event->where('type', 'no_show_closed'))->count();
+
+    expect($events)->toHaveCount(1)
+        ->and($events[0]->dedupe_key)->toBe('no_show_closed:'.$closure['operation_uuid'])
+        ->and($events[0]->data)->toBe(['closed_count' => 1])
+        ->and($events[0]->departure_id)->toBe($departure->id)
+        ->and($notifiedWith($user))->toBe(1)
+        ->and($notifiedWith($director))->toBe(1)
+        // Information simple : ni alerte pour les super-administrateurs, ni e-mail.
+        ->and($notifiedWith($admin))->toBe(0);
+
+    Mail::assertNothingSent();
 });

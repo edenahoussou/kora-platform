@@ -19,6 +19,8 @@ use App\Modules\IdentityAccess\Http\Controllers\AuthSessionController;
 use App\Modules\IdentityAccess\Http\Controllers\OpsSessionController;
 use App\Modules\IdentityAccess\Http\Controllers\TerminalOpsMobileController;
 use App\Modules\IdentityAccess\Http\Controllers\UserPreferenceController;
+use App\Modules\Notifications\Http\Controllers\OpsNotificationController;
+use App\Modules\Notifications\Http\Controllers\OpsNotificationPreferenceController;
 use App\Modules\Payments\Http\Controllers\PaymentController;
 use App\Modules\Support\Http\Controllers\HealthController;
 use App\Modules\Sync\Http\Controllers\OpsSyncController;
@@ -93,6 +95,24 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                     ->middleware('throttle:terminal-handshake')
                     ->name('renew');
             });
+        });
+
+    // Notifications opérationnelles boarding (MEZ-96) — un seul contrat pour OPS
+    // Mobile et OPS Web. Permission `notifications.view` ; un jeton lié à une
+    // session OPS doit porter une session valide (sans exiger le terminal, pour
+    // que la récupération reste possible après une reconnexion).
+    Route::prefix('notifications')
+        ->name('notifications.')
+        ->middleware(['auth:sanctum', 'ops.notifications'])
+        ->group(function (): void {
+            Route::get('/', [OpsNotificationController::class, 'index'])->name('index');
+            Route::get('unread-count', [OpsNotificationController::class, 'unreadCount'])->name('unread-count');
+            Route::post('read-all', [OpsNotificationController::class, 'markAllRead'])->name('read-all');
+            Route::get('preferences', [OpsNotificationPreferenceController::class, 'show'])->name('preferences.show');
+            Route::put('preferences', [OpsNotificationPreferenceController::class, 'update'])->name('preferences.update');
+            Route::post('{notification}/read', [OpsNotificationController::class, 'markRead'])
+                ->whereUuid('notification')
+                ->name('read');
         });
 
     // OPS Mobile — planning et manifeste du convoyeur (MEZ-84 suite,

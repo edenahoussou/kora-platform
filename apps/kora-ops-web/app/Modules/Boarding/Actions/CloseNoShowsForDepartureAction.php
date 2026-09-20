@@ -9,6 +9,7 @@ use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\IdentityAccess\Models\TerminalP501;
+use App\Modules\Notifications\Services\OpsNotifier;
 use App\Modules\Ticketing\Models\Ticket;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
@@ -38,6 +39,7 @@ class CloseNoShowsForDepartureAction
 
     public function __construct(
         private ReleaseTicketSegmentsFromLegAction $releaseSegments,
+        private OpsNotifier $notifier,
     ) {}
 
     /**
@@ -55,7 +57,7 @@ class CloseNoShowsForDepartureAction
             ->where('status', ReservationSegmentStatus::Ticketed)
             ->get();
 
-        return $candidates->map(function (ReservationSegment $segment) use ($departure, $terminal, $agent, $closureOperationUuid, $localRecordedAt) {
+        $events = $candidates->map(function (ReservationSegment $segment) use ($departure, $terminal, $agent, $closureOperationUuid, $localRecordedAt) {
             $ticketOperationUuid = Uuid::uuid5(self::NAMESPACE, $closureOperationUuid.':'.$segment->reservation_passenger_id)->toString();
 
             $existing = SeatReleaseEvent::query()->where('operation_uuid', $ticketOperationUuid)->first();
@@ -101,5 +103,13 @@ class CloseNoShowsForDepartureAction
                 ]);
             });
         })->filter()->values();
+
+        // Un rejeu de la même clôture retombe sur les mêmes lignes et sur le
+        // même identifiant d'opération : la notification n'est publiée qu'une fois.
+        if ($events->isNotEmpty()) {
+            $this->notifier->noShowsClosed($departure, $terminal, $agent, $events->count(), $closureOperationUuid);
+        }
+
+        return $events;
     }
 }

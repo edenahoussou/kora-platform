@@ -23,7 +23,7 @@ describe('SystemRole enum', function (): void {
 
     it('returns permissions for each role', function (): void {
         expect(SystemRole::Passenger->permissions())->toBe(['bookings.create', 'bookings.view-own', 'bookings.cancel', 'tickets.view', 'company-accounts.view'])
-            ->and(SystemRole::BusDriver->permissions())->toBe(['departures.view'])
+            ->and(SystemRole::BusDriver->permissions())->toBe(['departures.view', 'notifications.view'])
             ->and(SystemRole::Conductor->permissions())->toContain('boarding.scan', 'seat-releases.create')
             ->and(SystemRole::CommercialDirector->permissions())->toContain('agencies.view', 'agencies.create', 'agencies.update', 'agencies.deactivate')
             ->and(SystemRole::SystemAdmin->permissions())->toBe(SystemRole::allPermissions());
@@ -33,7 +33,7 @@ describe('SystemRole enum', function (): void {
         $driverPerms = SystemRole::BusDriver->permissions();
         $conductorPerms = SystemRole::Conductor->permissions();
 
-        expect($driverPerms)->toBe(['departures.view'])
+        expect($driverPerms)->toBe(['departures.view', 'notifications.view'])
             ->and($conductorPerms)->not->toBe($driverPerms)
             ->and(count($conductorPerms))->toBeGreaterThan(count($driverPerms));
     });
@@ -47,9 +47,9 @@ describe('SystemRole enum', function (): void {
             ->and($all)->toContain('cash.transfer.create', 'cash.transfer.approve', 'cash.media.view', 'cash.adjust')
             ->and($all)->toContain('assisted-bookings.view-agency', 'assisted-bookings.claim', 'assisted-bookings.view-network', 'assisted-bookings.refuse')
             ->and($all)->toContain('fiscalization.payload.view', 'expenses.create', 'expenses.reverse', 'expenses.export')
-            ->and($all)->toContain('revenue.view', 'revenue.export')
-            ->and($all)->toHaveCount(68)
-            ->and(count(array_unique($all)))->toBe(68);
+            ->and($all)->toContain('notifications.view')
+            ->and($all)->toHaveCount(67)
+            ->and(count(array_unique($all)))->toBe(67);
     });
 
     it('separates internal, field and management roles', function (): void {

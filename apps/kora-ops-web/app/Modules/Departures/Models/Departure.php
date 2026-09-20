@@ -8,8 +8,10 @@ use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\Departures\Data\DepartureStatus;
+use App\Modules\Notifications\Observers\DepartureOpsNotificationObserver;
 use App\Modules\Support\Models\KoraModel;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -26,6 +28,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $delay_reason
  * @property CarbonImmutable|null $delay_recorded_at
  */
+#[ObservedBy([DepartureOpsNotificationObserver::class])]
 class Departure extends KoraModel
 {
     use SoftDeletes;
