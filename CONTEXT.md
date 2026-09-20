@@ -49,8 +49,23 @@ Prix final calcule cote serveur pour une demande de reservation, fige pendant la
 _Avoid_: Prix indicatif
 
 **Reservation assistee**:
-Reservation Bus initiee par un passager puis confiee a une agence pour etre terminee par telephone ou WhatsApp. Elle conserve la meme reference et le meme itineraire, ne bloque ni siege ni credit pendant l'attente, et doit etre reprise par un agent autorise avec un nouveau devis et une nouvelle validation atomique des sieges.
-_Avoid_: Deuxieme reservation creee par l'agence, siege bloque dans la file d'assistance, reference WhatsApp utilisee comme autorisation
+Reservation Bus initiee par un passager puis adressee au support client central par appel ou WhatsApp. Elle conserve la meme reference et le meme itineraire, ne bloque ni siege ni credit pendant l'attente, et entre dans la file reseau jusqu'au claim atomique d'une agence habilitee.
+_Avoid_: Agence choisie au depart, deuxieme reservation creee par l'agence, siege bloque dans la file d'assistance, reference WhatsApp utilisee comme autorisation
+
+**Support client centralise**:
+Point de contact telephonique ou WhatsApp configure dans KORA vers lequel une demande d'assistance est initialement dirigee. Les deux canaux sont independants et aucune coordonnee d'agence ne sert de fallback.
+
+**File reseau d'assistance**:
+Ensemble des dossiers d'assistance `pending` sans agence affectee, visibles par les agences et roles reseau habilites.
+
+**Agence traitante**:
+Agence qui a remporte le claim ou qui a recu une reaffectation. Elle est exposee publiquement sous `handling_agency`.
+
+**Claim**:
+Prise en charge atomique d'un dossier par un agent rattache a une agence. Le premier claim valide enregistre l'agence, l'agent et le statut `in_progress`.
+
+**Reaffectation**:
+Action reseau qui place un dossier `pending` dans la file d'une autre agence, sans choisir d'agent. L'agence cible doit ensuite effectuer un claim.
 
 **Descente anticipee**:
 Evenement enregistre par le convoyeur lorsqu'un passager descend avant sa destination initiale, afin de liberer les segments non parcourus.
