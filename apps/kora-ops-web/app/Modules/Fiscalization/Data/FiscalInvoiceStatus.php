@@ -12,8 +12,6 @@ enum FiscalInvoiceStatus: string
     case Pending = 'pending';
     case Certified = 'certified';
     case Failed = 'failed';
-    // Placeholder pour les factures d'avoir (FA/EA) — non implémenté dans le MVP Bus.
-    // Sera activé quand le workflow d'annulation/avoir e-MECeF sera câblé.
     case Canceled = 'canceled';
 
     public function canTransitionTo(self $target): bool

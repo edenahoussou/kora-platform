@@ -54,7 +54,7 @@ class KoraMarcPhoneTerminalSeeder extends Seeder
 
     public function run(AssignTerminalAction $assign): void
     {
-        $this->withModelEvents(fn() => $this->assignPhone($assign));
+        $this->withModelEvents(fn () => $this->assignPhone($assign));
     }
 
     private function assignPhone(AssignTerminalAction $assign): void
@@ -91,7 +91,7 @@ class KoraMarcPhoneTerminalSeeder extends Seeder
             ], $this->actor($marc));
         }
 
-        $this->command?->info(sprintf(
+        $this->command->info(sprintf(
             'KoraMarcPhoneTerminalSeeder : %s %s — affecté à %s (%s).',
             $terminal->serial_number,
             $created ? 'créé' : 'existant',
@@ -142,7 +142,7 @@ class KoraMarcPhoneTerminalSeeder extends Seeder
         }
 
         $matches = TerminalP501::query()
-            ->where('serial_number', 'like', self::SERIAL_PREFIX . '%' . self::SERIAL_SUFFIX)
+            ->where('serial_number', 'like', self::SERIAL_PREFIX.'%'.self::SERIAL_SUFFIX)
             ->orderBy('id')
             ->pluck('serial_number');
 
@@ -153,14 +153,14 @@ class KoraMarcPhoneTerminalSeeder extends Seeder
         if ($matches->isEmpty()) {
             throw new RuntimeException(sprintf(
                 "Aucun terminal « %s…%s » en base. Lancez l'app sur le téléphone une fois (enregistrement automatique), "
-                    . 'ou complétez FULL_SERIAL dans ce seeder avec le numéro complet.',
+                    .'ou complétez FULL_SERIAL dans ce seeder avec le numéro complet.',
                 self::SERIAL_PREFIX,
                 self::SERIAL_SUFFIX,
             ));
         }
 
         throw new RuntimeException(
-            'Plusieurs terminaux correspondent : ' . $matches->implode(', ') . '. Complétez FULL_SERIAL dans ce seeder.',
+            'Plusieurs terminaux correspondent : '.$matches->implode(', ').'. Complétez FULL_SERIAL dans ce seeder.',
         );
     }
 
@@ -168,7 +168,7 @@ class KoraMarcPhoneTerminalSeeder extends Seeder
     private function actor(User $fallback): User
     {
         return User::query()
-            ->whereHas('roles', fn($roles) => $roles->where('name', SystemRole::SystemAdmin->value))
+            ->whereHas('roles', fn ($roles) => $roles->where('name', SystemRole::SystemAdmin->value))
             ->orderBy('id')
             ->first() ?? $fallback;
     }

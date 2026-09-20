@@ -172,6 +172,7 @@ enum SystemRole: string
                 'tickets.view',
                 'fiscalization.view',
                 'fiscalization.retry',
+                'fiscalization.credit',
                 'fiscalization.payload.view',
                 'expenses.view-network',
                 'expenses.approve-network',

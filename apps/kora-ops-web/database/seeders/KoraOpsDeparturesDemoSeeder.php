@@ -155,11 +155,11 @@ class KoraOpsDeparturesDemoSeeder extends Seeder
             }
         }
 
-        $this->command?->info(sprintf(
+        $this->command->info(sprintf(
             'KoraOpsDeparturesDemoSeeder : %d départs affectés à %s ; passagers créés : %s.',
             count($schedule),
             $this->conductor->email,
-            $this->totals === [] ? 'aucun (déjà en base)' : collect($this->totals)->map(fn(int $n, string $s): string => "{$n} {$s}")->implode(', '),
+            $this->totals === [] ? 'aucun (déjà en base)' : collect($this->totals)->map(fn (int $n, string $s): string => "{$n} {$s}")->implode(', '),
         ));
     }
 
@@ -191,7 +191,7 @@ class KoraOpsDeparturesDemoSeeder extends Seeder
         $layout = [];
         foreach (range(1, self::SEAT_COUNT / 4) as $row) {
             foreach (['A', 'B', 'C', 'D'] as $letter) {
-                $layout[] = $row . $letter;
+                $layout[] = $row.$letter;
             }
         }
 
@@ -231,7 +231,7 @@ class KoraOpsDeparturesDemoSeeder extends Seeder
         );
 
         // Immuable quoi qu'en dise la config de l'app : addMinutes()/subMinutes() ne modifient jamais $scheduled.
-        $scheduled = CarbonImmutable::parse(now()->modify($when)->toDateString() . ' ' . $time);
+        $scheduled = CarbonImmutable::parse(now()->modify($when)->toDateString().' '.$time);
 
         $departure = Departure::query()->where('bus_id', $bus->id)->where('line_id', $this->line->id)->first()
             ?? Departure::query()->create([
@@ -261,7 +261,7 @@ class KoraOpsDeparturesDemoSeeder extends Seeder
         }
 
         // Recalage à chaque exécution, sans déclencher de notification « départ modifié ».
-        Departure::withoutEvents(fn() => $departure->forceFill($attributes)->save());
+        Departure::withoutEvents(fn () => $departure->forceFill($attributes)->save());
 
         return $departure;
     }
@@ -407,10 +407,10 @@ class KoraOpsDeparturesDemoSeeder extends Seeder
             'passenger_index' => 0,
             'first_name' => self::FIRST_NAMES[$number % count(self::FIRST_NAMES)],
             'last_name' => self::LAST_NAMES[intdiv($number, 2) % count(self::LAST_NAMES)],
-            'phone' => '+22996' . str_pad((string) $number, 6, '0', STR_PAD_LEFT),
+            'phone' => '+22996'.str_pad((string) $number, 6, '0', STR_PAD_LEFT),
             'nationality' => $nationality,
             'document_type' => $isNational ? 'national_id' : 'passport',
-            'document_number' => ($isNational ? 'CNI' : 'PP') . str_pad((string) (700000 + $number), 7, '0', STR_PAD_LEFT),
+            'document_number' => ($isNational ? 'CNI' : 'PP').str_pad((string) (700000 + $number), 7, '0', STR_PAD_LEFT),
             'birth_date' => now()->subYears(20 + ($number % 35))->toDateString(),
             'yellow_fever_vaccinated' => true,
         ]);
@@ -436,8 +436,8 @@ class KoraOpsDeparturesDemoSeeder extends Seeder
                 'uuid' => (string) Str::uuid(),
                 'reservation_id' => $reservation->id,
                 'reservation_passenger_id' => $passenger->id,
-                'qr_code' => 'QR-' . Str::random(24),
-                'short_code' => 'OPS' . Str::upper(Str::random(5)),
+                'qr_code' => 'QR-'.Str::random(24),
+                'short_code' => 'OPS'.Str::upper(Str::random(5)),
                 'status' => $ticketStatus,
                 'issued_at' => now(),
             ]);
@@ -481,7 +481,7 @@ class KoraOpsDeparturesDemoSeeder extends Seeder
         $letter = ['A', 'B', 'C', 'D'][$index % 4];
 
         return Seat::query()->firstOrCreate(
-            ['bus_id' => $departure->bus_id, 'code' => $row . $letter],
+            ['bus_id' => $departure->bus_id, 'code' => $row.$letter],
             ['type' => 'standard', 'sellable' => true, 'status' => 'active'],
         );
     }

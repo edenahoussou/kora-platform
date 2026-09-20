@@ -13,9 +13,15 @@ import {
     TimerOff,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import type { QueueLeg } from '@/components/assisted-bookings/booking-drawer';
+import {
+    AssistedBookingDrawer,
+    assistedStatusLabels,
+    assistedStatusTones,
+} from '@/components/assisted-bookings/booking-drawer';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { cn } from '@/lib/utils';
-import { index, show } from '@/routes/assisted-bookings';
+import { index } from '@/routes/assisted-bookings';
 import type { BreadcrumbItem } from '@/types';
 
 type QueueItem = {
@@ -27,6 +33,7 @@ type QueueItem = {
     contactPhone: string;
     agency: { uuid: string; name: string };
     assignee: { uuid: string; name: string } | null;
+    legs: QueueLeg[];
     originalAmount: number;
     currentAmount: number | null;
     currency: string;
@@ -51,29 +58,6 @@ type Props = {
     filters: { q?: string; status?: string; agency?: string; date?: string };
     statuses: Record<string, string>;
     agencies: { uuid: string; name: string; city: string }[];
-};
-
-const labels: Record<string, string> = {
-    pending: 'En attente',
-    in_progress: 'En cours',
-    cancelled: 'Reprise en ligne',
-    refused: 'Refusée',
-    unavailable: 'Indisponible',
-    expired: 'Expirée',
-    finalized: 'Finalisée',
-};
-
-const statusTones: Record<
-    string,
-    'navy' | 'gold' | 'blue' | 'muted' | 'destructive'
-> = {
-    pending: 'gold',
-    in_progress: 'blue',
-    finalized: 'navy',
-    refused: 'destructive',
-    unavailable: 'muted',
-    cancelled: 'muted',
-    expired: 'muted',
 };
 
 const channelLabels: Record<string, string> = {
@@ -186,7 +170,7 @@ function KpiCard({
                 </div>
             </div>
             <div className="cash-ledger-balance">
-                <span>Dossiers</span>
+                <span>Réservations</span>
                 <strong>{value}</strong>
             </div>
         </article>
@@ -258,13 +242,23 @@ export default function AssistedBookingsIndex({
     const [status, setStatus] = useState(filters.status ?? 'all');
     const [agency, setAgency] = useState(filters.agency ?? 'all');
     const [date, setDate] = useState(filters.date ?? '');
+    const [openUuid, setOpenUuid] = useState<string | null>(() =>
+        new URLSearchParams(window.location.search).get('open'),
+    );
+
+    function closeDrawer() {
+        setOpenUuid(null);
+        const url = new URL(window.location.href);
+        url.searchParams.delete('open');
+        window.history.replaceState(null, '', url.toString());
+    }
 
     const statusOptions: [string, string][] = useMemo(
         () => [
             ['all', 'Tous les états'],
             ...(Object.keys(statuses).map((value) => [
                 value,
-                labels[value] ?? statuses[value],
+                assistedStatusLabels[value] ?? statuses[value],
             ]) as [string, string][]),
         ],
         [statuses],
@@ -347,8 +341,8 @@ export default function AssistedBookingsIndex({
                         </h1>
                         <p className="mt-1.5 text-[0.8125rem] leading-6 text-muted-foreground">
                             Reprenez les réservations mobiles confiées aux
-                            agences. Un dossier n’occupe aucun siège tant qu’il
-                            reste dans cette file.
+                            agences. Une réservation n’occupe aucun siège tant
+                            qu’elle reste dans cette file.
                         </p>
                     </div>
                 </div>
@@ -385,7 +379,7 @@ export default function AssistedBookingsIndex({
                         <span className="section-kicker">
                             File d’assistance
                         </span>
-                        <h2>Liste des dossiers</h2>
+                        <h2>File des réservations</h2>
                     </div>
                 </div>
 
@@ -441,7 +435,7 @@ export default function AssistedBookingsIndex({
                         <div className="px-6 py-16 text-center">
                             <HandHelping className="mx-auto size-8 text-muted-foreground/50" />
                             <h2 className="mt-3 font-black">
-                                Aucun dossier dans cette file
+                                Aucune réservation dans cette file
                             </h2>
                             <p className="mt-1 text-sm text-muted-foreground">
                                 Ajustez vos filtres ou attendez le prochain
@@ -456,11 +450,12 @@ export default function AssistedBookingsIndex({
                                         <th className="px-4 py-3">
                                             Réservation
                                         </th>
+                                        <th className="px-4 py-3">Trajet</th>
                                         <th className="px-4 py-3">Contact</th>
                                         <th className="px-4 py-3">Agence</th>
                                         <th className="px-4 py-3">État</th>
                                         <th className="px-4 py-3 text-right">
-                                            Montant indicatif
+                                            Montant
                                         </th>
                                         <th className="px-4 py-3">Validité</th>
                                         <th className="px-4 py-3 text-right">
@@ -474,7 +469,7 @@ export default function AssistedBookingsIndex({
                                             key={item.uuid}
                                             className="group cursor-pointer border-b border-black/[0.045] transition-[background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-muted/30"
                                             onClick={() =>
-                                                router.get(show.url(item.uuid))
+                                                setOpenUuid(item.uuid)
                                             }
                                         >
                                             <td className="px-4 py-3.5">
@@ -514,6 +509,36 @@ export default function AssistedBookingsIndex({
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3.5">
+                                                {item.legs.length > 0 ? (
+                                                    <>
+                                                        <p className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                                                            {item.legs[0].label}
+                                                            {item.legs.length >
+                                                                1 && (
+                                                                <span className="rounded-md bg-gold/15 px-1.5 py-0.5 text-[0.5625rem] font-black text-amber-700 dark:text-amber-300">
+                                                                    +
+                                                                    {item.legs
+                                                                        .length -
+                                                                        1}
+                                                                </span>
+                                                            )}
+                                                        </p>
+                                                        <p className="mt-0.5 text-[0.625rem] text-muted-foreground">
+                                                            {item.legs[0].line}{' '}
+                                                            ·{' '}
+                                                            {formatDate(
+                                                                item.legs[0]
+                                                                    .departureAt,
+                                                            )}
+                                                        </p>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-xs text-muted-foreground">
+                                                        —
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3.5">
                                                 <p className="text-xs font-bold text-foreground">
                                                     {item.contactName}
                                                 </p>
@@ -527,11 +552,12 @@ export default function AssistedBookingsIndex({
                                             <td className="px-4 py-3.5">
                                                 <KoraStatusBadge
                                                     label={
-                                                        labels[item.status] ??
-                                                        item.status
+                                                        assistedStatusLabels[
+                                                            item.status
+                                                        ] ?? item.status
                                                     }
                                                     tone={
-                                                        statusTones[
+                                                        assistedStatusTones[
                                                             item.status
                                                         ] ?? 'muted'
                                                     }
@@ -561,13 +587,11 @@ export default function AssistedBookingsIndex({
                                                         type="button"
                                                         className="grid size-8 place-items-center rounded-full bg-muted text-foreground transition-[transform,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-105 hover:bg-gold/15"
                                                         onClick={() =>
-                                                            router.get(
-                                                                show.url(
-                                                                    item.uuid,
-                                                                ),
+                                                            setOpenUuid(
+                                                                item.uuid,
                                                             )
                                                         }
-                                                        aria-label="Voir le dossier"
+                                                        aria-label="Voir la réservation"
                                                     >
                                                         <Eye
                                                             className="size-3.5"
@@ -592,6 +616,9 @@ export default function AssistedBookingsIndex({
                     />
                 </section>
             </div>
+            {openUuid && (
+                <AssistedBookingDrawer uuid={openUuid} onClose={closeDrawer} />
+            )}
         </>
     );
 }

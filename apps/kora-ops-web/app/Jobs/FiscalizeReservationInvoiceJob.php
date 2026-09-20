@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Fiscalization\Data\FiscalInvoiceStatus;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
+use App\Modules\Fiscalization\Services\EmecfInvoiceSnapshotService;
 use App\Modules\Fiscalization\Services\FiscalInvoicePayloadBuilder;
 use App\Modules\Fiscalization\Services\FiscalSyncAttemptRecorder;
 use Codianselme\LaraSygmef\Models\EmecfInvoice;
@@ -31,9 +32,13 @@ class FiscalizeReservationInvoiceJob implements ShouldBeUnique, ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(FiscalInvoicePayloadBuilder $payloadBuilder, ?FiscalSyncAttemptRecorder $attemptRecorder = null): void
-    {
+    public function handle(
+        FiscalInvoicePayloadBuilder $payloadBuilder,
+        ?FiscalSyncAttemptRecorder $attemptRecorder = null,
+        ?EmecfInvoiceSnapshotService $snapshotService = null,
+    ): void {
         $attemptRecorder ??= app(FiscalSyncAttemptRecorder::class);
+        $snapshotService ??= app(EmecfInvoiceSnapshotService::class);
         $reservation = Reservation::query()->findOrFail($this->reservationId);
         $payment = $reservation->payments()->where('status', 'confirmed')->latest('id')->firstOrFail();
         $invoice = FiscalInvoice::query()->firstOrCreate(['reservation_id' => $reservation->id], [
@@ -78,6 +83,7 @@ class FiscalizeReservationInvoiceJob implements ShouldBeUnique, ShouldQueue
             $attemptRecorder->succeed($submitAttempt, $submission, isset($submission['status']) ? (string) $submission['status'] : null);
             $uid = (string) $submission['data']['uid'];
             $invoice->update(['mecef_uid' => $uid, 'emecf_invoice_id' => $submission['invoice_id'] ?? EmecfInvoice::query()->where('uid', $uid)->value('id')]);
+            $snapshotService->synchronize($invoice->fresh('emecfInvoice'), $payload, $submission);
             $finalizeAttempt = $attemptRecorder->start($invoice, 'finalize', $this->nextAttemptNumber($invoice, 'finalize'), ['uid' => $uid]);
             $activeAttempt = $finalizeAttempt;
             $finalization = $emecf->finalizeInvoice($uid, 'confirm');
@@ -87,6 +93,7 @@ class FiscalizeReservationInvoiceJob implements ShouldBeUnique, ShouldQueue
                 throw $exception;
             }
             $attemptRecorder->succeed($finalizeAttempt, $finalization, isset($finalization['status']) ? (string) $finalization['status'] : null);
+            $snapshotService->synchronize($invoice->fresh('emecfInvoice'), $payload, $submission, $finalization);
             $invoice->update(['status' => FiscalInvoiceStatus::Certified, 'fiscalized_at' => now()]);
         } catch (Throwable $exception) {
             if ($activeAttempt->fresh()?->completed_at === null) {

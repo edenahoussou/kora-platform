@@ -61,6 +61,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('assisted-bookings')->name('assisted-bookings.')->group(function (): void {
         Route::get('/', [AssistedBookingController::class, 'index'])->name('index');
         Route::get('{assistedBooking:uuid}', [AssistedBookingController::class, 'show'])->name('show');
+        Route::get('{assistedBooking:uuid}/detail', [AssistedBookingController::class, 'detail'])->name('detail');
         Route::post('{assistedBooking:uuid}/claim', [AssistedBookingController::class, 'claim'])->name('claim');
         Route::post('{assistedBooking:uuid}/release', [AssistedBookingController::class, 'release'])->name('release');
         Route::post('{assistedBooking:uuid}/reassign', [AssistedBookingController::class, 'reassign'])->name('reassign');
@@ -70,7 +71,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('fiscal-invoices', [FiscalInvoiceController::class, 'index'])->name('fiscal-invoices.index');
     Route::get('fiscal-invoices/export', [FiscalInvoiceController::class, 'export'])->name('fiscal-invoices.export');
     Route::get('fiscal-invoices/{fiscalInvoice:uuid}', [FiscalInvoiceController::class, 'show'])->name('fiscal-invoices.show');
+    Route::get('fiscal-invoices/{fiscalInvoice:uuid}/pdf', [FiscalInvoiceController::class, 'pdf'])->name('fiscal-invoices.pdf');
     Route::post('fiscal-invoices/{fiscalInvoice:uuid}/retry', [FiscalInvoiceController::class, 'retry'])->name('fiscal-invoices.retry');
+    Route::post('fiscal-invoices/{fiscalInvoice:uuid}/credit', [FiscalInvoiceController::class, 'credit'])->name('fiscal-invoices.credit');
     Route::get('expenses', [ExpenseController::class, 'index'])->name('expenses.index');
     Route::get('expenses/export', [ExpenseController::class, 'export'])->name('expenses.export');
     Route::post('expenses', [ExpenseController::class, 'store'])->name('expenses.store');
