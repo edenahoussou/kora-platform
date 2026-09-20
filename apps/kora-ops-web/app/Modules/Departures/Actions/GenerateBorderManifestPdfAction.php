@@ -72,7 +72,7 @@ class GenerateBorderManifestPdfAction
             /** @var ReservationPassenger|null $passenger */
             $passenger = $segment->reservationPassenger;
 
-            $name = $passenger === null ? '' : trim($passenger->first_name.' '.$passenger->last_name);
+            $name = $passenger === null ? '' : trim($passenger->first_name . ' ' . $passenger->last_name);
 
             // ✅ CORRECTION : Suppression de l'opérateur nullsafe (?->) jugé inutile par PHPStan
             $seat = (string) ($segment->seat->code ?? '');
@@ -153,7 +153,7 @@ class GenerateBorderManifestPdfAction
             ? array_values(array_filter($profile['args'], 'is_string'))
             : [];
         $chromiumArguments = array_values(array_unique(array_map(
-            static fn (string $argument): string => ltrim($argument, '-'),
+            static fn(string $argument): string => ltrim($argument, '-'),
             array_merge($commonArgs, $profileArgs),
         )));
 
@@ -161,7 +161,7 @@ class GenerateBorderManifestPdfAction
             ->noSandbox()
             ->addChromiumArguments(array_values(array_filter(
                 $chromiumArguments,
-                static fn (string $argument): bool => $argument !== 'no-sandbox',
+                static fn(string $argument): bool => $argument !== 'no-sandbox',
             )))
             ->showBackground()
             ->emulateMedia($profile['emulate_media'] ?? 'print')
