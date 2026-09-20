@@ -71,7 +71,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('fiscal-invoices', [FiscalInvoiceController::class, 'index'])->name('fiscal-invoices.index');
     Route::get('fiscal-invoices/export', [FiscalInvoiceController::class, 'export'])->name('fiscal-invoices.export');
     Route::get('fiscal-invoices/{fiscalInvoice:uuid}', [FiscalInvoiceController::class, 'show'])->name('fiscal-invoices.show');
+    Route::get('fiscal-invoices/{fiscalInvoice:uuid}/pdf', [FiscalInvoiceController::class, 'pdf'])->name('fiscal-invoices.pdf');
     Route::post('fiscal-invoices/{fiscalInvoice:uuid}/retry', [FiscalInvoiceController::class, 'retry'])->name('fiscal-invoices.retry');
+    Route::post('fiscal-invoices/{fiscalInvoice:uuid}/credit', [FiscalInvoiceController::class, 'credit'])->name('fiscal-invoices.credit');
     Route::get('expenses', [ExpenseController::class, 'index'])->name('expenses.index');
     Route::get('expenses/export', [ExpenseController::class, 'export'])->name('expenses.export');
     Route::post('expenses', [ExpenseController::class, 'store'])->name('expenses.store');

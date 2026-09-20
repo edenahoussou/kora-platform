@@ -73,10 +73,10 @@ class GenerateBorderManifestPdfAction
             $passenger = $segment->reservationPassenger;
 
             $name = $passenger === null ? '' : trim($passenger->first_name.' '.$passenger->last_name);
-            $seat = (string) ($segment->seat?->code ?? '');
-            $destination = (string) ($segment->destinationStop?->name ?? '');
+            $seat = (string) ($segment->seat->code ?? '');
+            $destination = (string) ($segment->destinationStop->name ?? '');
             $nationality = $passenger?->nationality !== null ? strtoupper((string) $passenger->nationality) : '';
-            $documentNumber = (string) ($passenger?->document_number ?? '');
+            $documentNumber = (string) ($passenger === null ? '' : $passenger->document_number);
             $documentType = $passenger?->document_type === null ? null : (string) enum_value($passenger->document_type);
 
             if ($international) {

@@ -52,5 +52,19 @@ return [
                 '--enable-font-antialiasing',
             ],
         ],
+
+        'invoice' => [
+            'paper_size' => [210, 297],
+            'margins' => [10, 10, 10, 10],
+            'window_size' => [794, 1123],
+            'device_scale_factor' => 2,
+            'wait_until_network_idle' => false,
+            'emulate_media' => 'print',
+            'args' => [
+                '--disable-crash-reporter',
+                '--font-render-hinting=medium',
+                '--enable-font-antialiasing',
+            ],
+        ],
     ],
 ];

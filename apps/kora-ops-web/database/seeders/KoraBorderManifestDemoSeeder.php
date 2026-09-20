@@ -81,7 +81,7 @@ class KoraBorderManifestDemoSeeder extends Seeder
 
     public function run(): void
     {
-        $email = (string) env('BORDER_DEMO_CONDUCTOR_EMAIL', 'conductor.marc@kora.demo');
+        $email = (string) config('services.border_demo.conductor_email', 'conductor.marc@kora.demo');
         $conductor = User::query()->where('email', $email)->first();
 
         if ($conductor === null) {
@@ -189,7 +189,7 @@ class KoraBorderManifestDemoSeeder extends Seeder
     {
         $this->terminal('P501-FRONT-01', TerminalType::P501);
 
-        $phoneSerial = trim((string) env('BORDER_DEMO_PHONE_SERIAL', ''));
+        $phoneSerial = trim((string) config('services.border_demo.phone_serial', ''));
         if ($phoneSerial !== '') {
             $this->terminal(strtoupper($phoneSerial), TerminalType::Phone);
         }
