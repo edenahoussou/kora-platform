@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Events\DepartureDelayRecorded;
 use App\Modules\Departures\Models\Departure;
+use App\Modules\Settings\Settings\OperationsSettings;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -14,7 +15,7 @@ class RecordDepartureDelayAction
     public function handle(Departure $departure, User $actor, int $delayMinutes, string $reason): Departure
     {
         $reason = trim($reason);
-        $maxDelayMinutes = max(0, (int) config('kora.departures.sellability.max_delay_minutes', 720));
+        $maxDelayMinutes = max(0, app(OperationsSettings::class)->maxDepartureDelayMinutes);
 
         if ($delayMinutes < 0 || $delayMinutes > $maxDelayMinutes) {
             throw ValidationException::withMessages([

@@ -10,6 +10,7 @@ use App\Modules\IdentityAccess\Data\UserStatus;
 use App\Modules\IdentityAccess\Exceptions\AuthSuspendedException;
 use App\Modules\IdentityAccess\Exceptions\OAuthEmailRequiredException;
 use App\Modules\IdentityAccess\Models\UserSocialAccount;
+use App\Modules\Settings\Settings\IntegrationsSettings;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
@@ -40,6 +41,25 @@ class AuthSocialService
      */
     public function loginWithOAuth(array $input): array
     {
+        $settings = app(IntegrationsSettings::class);
+        config([
+            'services.google' => [
+                'client_id' => $settings->googleOauthClientId,
+                'client_secret' => $settings->googleOauthClientSecret,
+                'redirect' => $settings->googleOauthRedirect,
+            ],
+            'services.facebook' => [
+                'client_id' => $settings->facebookOauthClientId,
+                'client_secret' => $settings->facebookOauthClientSecret,
+                'redirect' => $settings->facebookOauthRedirect,
+            ],
+            'services.tiktok' => [
+                'client_id' => $settings->tiktokOauthClientId,
+                'client_secret' => $settings->tiktokOauthClientSecret,
+                'redirect' => $settings->tiktokOauthRedirect,
+            ],
+        ]);
+
         $socialUser = Socialite::driver($input['provider']->value)
             ->userFromToken($input['provider_token']); // @phpstan-ignore-line — userFromToken() est défini sur Two\Provider, pas sur l'interface Provider
 

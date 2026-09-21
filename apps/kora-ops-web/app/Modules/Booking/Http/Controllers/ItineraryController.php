@@ -18,6 +18,7 @@ use App\Modules\Booking\Services\ItineraryLegData;
 use App\Modules\Booking\Services\ItinerarySearchService;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
+use App\Modules\Settings\Settings\OperationsSettings;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 
@@ -186,7 +187,7 @@ class ItineraryController extends Controller
                     originPhysicalStopUuid: $toUuid,
                     destinationPhysicalStopUuid: $fromUuid,
                     fromDate: $date->addDay(),
-                    days: (int) config('kora.itineraries.default_search_days', 7),
+                    days: app(OperationsSettings::class)->defaultSearchDays,
                     passengerCount: $passengerCount,
                     sortBy: $sortBy,
                     sortDirection: $sortDirection,

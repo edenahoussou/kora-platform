@@ -7,6 +7,7 @@ use App\Modules\Departures\Actions\ResolveManifestSegmentsAction;
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\Notifications\Services\OpsNotifier;
+use App\Modules\Settings\Settings\OperationsSettings;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -33,7 +34,7 @@ class PublishManifestStaleNotificationJob implements ShouldBeUnique, ShouldQueue
 
     public function uniqueFor(): int
     {
-        return (int) config('ops_notifications.manifest_stale_debounce_seconds', 120) + 60;
+        return app(OperationsSettings::class)->manifestStaleDebounceSeconds + 60;
     }
 
     public function handle(

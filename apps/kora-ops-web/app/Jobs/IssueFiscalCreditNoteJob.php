@@ -8,6 +8,7 @@ use App\Modules\Fiscalization\Models\FiscalInvoice;
 use App\Modules\Fiscalization\Services\CreditNotePayloadBuilder;
 use App\Modules\Fiscalization\Services\EmecfInvoiceSnapshotService;
 use App\Modules\Fiscalization\Services\FiscalSyncAttemptRecorder;
+use App\Modules\Settings\Settings\IntegrationsSettings;
 use App\Notifications\Fiscalization\CreditNoteStatusNotification;
 use Codianselme\LaraSygmef\Models\EmecfInvoice;
 use Codianselme\LaraSygmef\Services\EmecfService;
@@ -36,6 +37,7 @@ class IssueFiscalCreditNoteJob implements ShouldBeUnique, ShouldQueue
         FiscalSyncAttemptRecorder $attemptRecorder,
         EmecfInvoiceSnapshotService $snapshotService,
     ): void {
+        $this->applyEmecfSettings();
         $invoice = FiscalInvoice::query()->with(['requestedBy', 'originalFiscalInvoice.emecfInvoice.items'])->findOrFail($this->creditNoteId);
 
         if ($invoice->status === FiscalInvoiceStatus::Certified) {
@@ -128,9 +130,29 @@ class IssueFiscalCreditNoteJob implements ShouldBeUnique, ShouldQueue
 
     private function isEmecfConfigured(): bool
     {
-        $token = (string) config('emecf.token');
-        $ifu = (string) config('emecf.default_ifu');
+        $settings = app(IntegrationsSettings::class);
+        $token = (string) ($settings->emecfToken ?? '');
+        $ifu = $settings->emecfDefaultIfu;
 
         return $token !== '' && $ifu !== '' && $ifu !== '0000000000000';
+    }
+
+    private function applyEmecfSettings(): void
+    {
+        $settings = app(IntegrationsSettings::class);
+
+        config([
+            'emecf.test_mode' => $settings->emecfTestMode,
+            'emecf.token' => $settings->emecfToken,
+            'emecf.default_ifu' => $settings->emecfDefaultIfu,
+            'emecf.http.timeout' => $settings->emecfHttpTimeout,
+            'emecf.http.connect_timeout' => $settings->emecfConnectTimeout,
+            'emecf.http.retry' => $settings->emecfRetry,
+            'emecf.http.retry_delay' => $settings->emecfRetryDelay,
+            'emecf.timeouts.invoice_submission' => $settings->emecfInvoiceSubmissionTimeout,
+            'emecf.timeouts.finalization' => $settings->emecfFinalizationTimeout,
+            'emecf.timeouts.status_check' => $settings->emecfStatusCheckTimeout,
+            'emecf.timeouts.info_request' => $settings->emecfInfoRequestTimeout,
+        ]);
     }
 }

@@ -6,6 +6,7 @@ use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\Notifications\Jobs\PublishManifestStaleNotificationJob;
+use App\Modules\Settings\Settings\OperationsSettings;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Throwable;
@@ -48,7 +49,7 @@ class ReservationSegmentManifestObserver
             DB::afterCommit(function () use ($departureId): void {
                 try {
                     PublishManifestStaleNotificationJob::dispatch($departureId)
-                        ->delay(now()->addSeconds((int) config('ops_notifications.manifest_stale_debounce_seconds', 120)));
+                        ->delay(now()->addSeconds(app(OperationsSettings::class)->manifestStaleDebounceSeconds));
                 } catch (Throwable $exception) {
                     report($exception);
                 }

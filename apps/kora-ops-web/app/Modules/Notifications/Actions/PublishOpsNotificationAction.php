@@ -14,6 +14,7 @@ use App\Modules\Notifications\Models\OpsNotificationDelivery;
 use App\Modules\Notifications\Models\OpsNotificationEvent;
 use App\Modules\Notifications\Services\OpsNotificationPreferences;
 use App\Modules\Notifications\Services\OpsNotificationRecipientResolver;
+use App\Modules\Settings\Settings\OperationsSettings;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
@@ -136,7 +137,7 @@ class PublishOpsNotificationAction
 
     private function scheduleMail(OpsNotificationEvent $event, OpsNotificationDraft $draft): void
     {
-        if (! $draft->type->isAlert() || ! config('ops_notifications.mail.enabled', true)) {
+        if (! $draft->type->isAlert() || ! app(OperationsSettings::class)->notificationsMailEnabled) {
             return;
         }
 

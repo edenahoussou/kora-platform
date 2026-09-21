@@ -5,6 +5,7 @@ namespace App\Modules\Fiscalization\Services;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\DynamicPricing\Models\Promotion;
 use App\Modules\Payments\Data\PaymentMethod;
+use App\Modules\Settings\Settings\IntegrationsSettings;
 use Illuminate\Support\Str;
 
 class FiscalInvoicePayloadBuilder
@@ -61,7 +62,7 @@ class FiscalInvoicePayloadBuilder
         })->all();
 
         return [
-            'ifu' => (string) config('emecf.default_ifu'),
+            'ifu' => app(IntegrationsSettings::class)->emecfDefaultIfu,
             'type' => 'FV',
             'operator' => array_filter([
                 'id' => $creator?->getKey(),

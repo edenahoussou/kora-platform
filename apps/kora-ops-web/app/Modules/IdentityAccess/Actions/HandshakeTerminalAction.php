@@ -11,6 +11,7 @@ use App\Modules\IdentityAccess\Exceptions\TerminalNotUsableException;
 use App\Modules\IdentityAccess\Exceptions\TerminalUnknownException;
 use App\Modules\IdentityAccess\Models\TerminalSession;
 use App\Modules\IdentityAccess\Services\OpsSessionGuard;
+use App\Modules\Settings\Settings\OperationsSettings;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -67,8 +68,9 @@ class HandshakeTerminalAction
 
         $session = DB::transaction(function () use ($terminal, $user, $tokenId): TerminalSession {
             $now = now();
-            $maxLifetime = (int) config('ops_session.max_lifetime_minutes', 1440);
-            $window = min((int) config('ops_session.ttl_minutes', 720), $maxLifetime);
+            $settings = app(OperationsSettings::class);
+            $maxLifetime = $settings->opsSessionMaxLifetimeMinutes;
+            $window = min($settings->opsSessionTtlMinutes, $maxLifetime);
 
             $previousSessions = TerminalSession::query()
                 ->active()

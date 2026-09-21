@@ -25,6 +25,9 @@ use App\Modules\IdentityAccess\Models\TerminalP501;
 use App\Modules\IdentityAccess\Services\PhonePassengerIdentityResolver;
 use App\Modules\Payments\Providers\FedaPayAdapter;
 use App\Modules\Payments\Providers\MtnMomoAdapter;
+use App\Modules\Settings\Contracts\SettingsCoordinator;
+use App\Modules\Settings\Services\DatabaseSettingsCoordinator;
+use App\Modules\Settings\Settings\IntegrationsSettings;
 use App\Modules\Ticketing\Models\Ticket;
 use App\Policies\AgencyPolicy;
 use App\Policies\AssistedBookingPolicy;
@@ -67,6 +70,7 @@ class AppServiceProvider extends ServiceProvider
         $this->registerPaymentProviders();
         $this->app->bind(PassengerIdentityResolver::class, PhonePassengerIdentityResolver::class);
         $this->app->bind(FiscalSyncAttemptRecorder::class, DatabaseFiscalSyncAttemptRecorder::class);
+        $this->app->bind(SettingsCoordinator::class, DatabaseSettingsCoordinator::class);
     }
 
     /**
@@ -75,31 +79,35 @@ class AppServiceProvider extends ServiceProvider
     protected function registerPaymentProviders(): void
     {
         $this->app->bind(FedaPayAdapter::class, function (): FedaPayAdapter {
-            $config = config('payments.providers.fedapay', []);
+            $settings = app(IntegrationsSettings::class);
 
             return new FedaPayAdapter(
-                apiKey: (string) ($config['secret_key'] ?? ''),
-                environment: (string) ($config['environment'] ?? 'sandbox'),
-                callbackUrl: $config['callback_url'] ?? null,
-                webhookSecret: $config['webhook_secret'] ?? null,
-                defaultPhoneCountry: (string) ($config['default_phone_country'] ?? 'bj'),
-                mobileMoneyModes: (array) ($config['mobile_money_modes'] ?? []),
+                apiKey: (string) ($settings->fedapaySecretKey ?? ''),
+                environment: $settings->fedapayEnvironment,
+                callbackUrl: $settings->fedapayCallbackUrl,
+                webhookSecret: $settings->fedapayWebhookSecret,
+                defaultPhoneCountry: $settings->fedapayDefaultPhoneCountry,
+                mobileMoneyModes: [
+                    'mtn_momo' => $settings->fedapayMtnMomoMode,
+                    'moov_flooz' => $settings->fedapayMoovFloozMode,
+                    'celtiis_cash' => $settings->fedapayCeltiisCashMode,
+                ],
             );
         });
 
         $this->app->bind(MtnMomoAdapter::class, function (): MtnMomoAdapter {
-            $config = config('payments.providers.mtn_momo', []);
+            $settings = app(IntegrationsSettings::class);
 
             return new MtnMomoAdapter(
-                subscriptionKey: (string) ($config['subscription_key'] ?? ''),
-                userId: (string) ($config['user_id'] ?? ''),
-                apiKey: (string) ($config['api_key'] ?? ''),
-                environment: (string) ($config['environment'] ?? 'sandbox'),
-                targetEnvironment: (string) ($config['target_environment'] ?? 'mtnbenin'),
-                sandboxCurrency: (string) ($config['sandbox_currency'] ?? 'EUR'),
-                productionCurrency: (string) ($config['production_currency'] ?? 'XOF'),
-                callbackUrl: $config['callback_url'] ?? null,
-                webhookSecret: $config['webhook_secret'] ?? null,
+                subscriptionKey: (string) ($settings->mtnMomoSubscriptionKey ?? ''),
+                userId: (string) ($settings->mtnMomoUserId ?? ''),
+                apiKey: (string) ($settings->mtnMomoApiKey ?? ''),
+                environment: $settings->mtnMomoEnvironment,
+                targetEnvironment: $settings->mtnMomoTargetEnvironment,
+                sandboxCurrency: $settings->mtnMomoSandboxCurrency,
+                productionCurrency: $settings->mtnMomoProductionCurrency,
+                callbackUrl: $settings->mtnMomoCallbackUrl,
+                webhookSecret: $settings->mtnMomoWebhookSecret,
             );
         });
     }

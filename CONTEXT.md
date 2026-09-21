@@ -2,6 +2,20 @@
 
 KORA BUS est le contexte du MVP valide par le client. Ce glossaire fixe le vocabulaire commun entre le client, le pilotage projet et l'equipe technique.
 
+## Paramétrage runtime
+
+**Paramètre administrable**:
+Valeur métier du MVP modifiable par un utilisateur OPS autorisé, persistée dans la base et appliquée aux requêtes et jobs suivants. Elle appartient à un groupe de paramètres et ses mutations sont auditées.
+
+**Paramètre de plateforme**:
+Valeur nécessaire au fonctionnement de l'infrastructure (base de données, cache, file, logs, stockage, URL et clé d'application, mailer, Chromium/PDF). Elle reste fournie par l'environnement de déploiement et n'est pas administrée dans KORA OPS.
+
+**Secret d'intégration**:
+Credential d'un fournisseur métier (e-MECeF, paiement, cartographie, Genuka/WAHA ou OAuth) stocké chiffré en base. Une lecture de snapshot expose uniquement sa présence ; une valeur vide conserve le secret et sa suppression est une action explicite et auditée.
+
+**Groupe de paramètres**:
+Ensemble transactionnel et verrouillable de paramètres partageant une autorisation et un audit : `general`, `operations` ou `integrations`.
+
 ## Language
 
 **Ecosysteme KORA cible**:

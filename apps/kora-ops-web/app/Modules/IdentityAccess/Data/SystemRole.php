@@ -305,6 +305,12 @@ enum SystemRole: string
             'users.manage',
             'roles.view',
             'roles.manage',
+            'settings.general.view',
+            'settings.general.manage',
+            'settings.operations.view',
+            'settings.operations.manage',
+            'settings.integrations.view',
+            'settings.integrations.manage',
         ];
     }
 
