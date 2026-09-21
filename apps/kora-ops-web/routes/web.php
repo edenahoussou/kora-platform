@@ -296,16 +296,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Notifications — V2
     Route::get('notifications', $comingSoon('Notifications', 'Suivez les confirmations, rappels et alertes envoyés sur chaque canal.', 'V2'))->name('notifications');
 
-    // Administration — V2 (sauf settings qui existe déjà)
-    Route::get('administration', $comingSoon('Administration', 'Gérez les comptes, rôles, paramètres et intégrations.', 'Administration'))->name('administration');
-    Route::get('users', $comingSoon('Utilisateurs', 'Gérez les comptes, leurs statuts et leurs périmètres.', 'Administration'))->name('users');
-    Route::get('roles', $comingSoon('Rôles et permissions', 'Maîtrisez précisément les habilitations de chaque profil.', 'Administration'))->name('roles');
-    Route::get('terminals', $comingSoon('Terminaux P501', 'Administrez les terminaux autorisés par numéro de série et affectation.', 'Administration'))->name('terminals');
-    Route::get('integrations', $comingSoon('Intégrations', 'Supervisez CassKai, MECeF, Mobile Money et les files de synchronisation.', 'Administration'))->name('integrations');
-    Route::get('audit', $comingSoon('Journal d’audit', 'Retrouvez chaque action sensible et son contexte.', 'Administration'))->name('audit');
-
     // Alertes — V2
     Route::get('alerts', $comingSoon('Centre des alertes', 'Priorisez les situations qui nécessitent votre attention.', 'V2'))->name('alerts');
 });
 
+require __DIR__.'/administration.php';
 require __DIR__.'/settings.php';
