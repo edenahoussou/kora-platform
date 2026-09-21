@@ -48,8 +48,9 @@ describe('SystemRole enum', function (): void {
             ->and($all)->toContain('assisted-bookings.view-agency', 'assisted-bookings.claim', 'assisted-bookings.view-network', 'assisted-bookings.refuse')
             ->and($all)->toContain('fiscalization.payload.view', 'expenses.create', 'expenses.reverse', 'expenses.export')
             ->and($all)->toContain('notifications.view', 'departures.progress', 'incidents.report')
-            ->and($all)->toHaveCount(71)
-            ->and(count(array_unique($all)))->toBe(71);
+            ->and($all)->toContain('users.view', 'users.manage', 'roles.view', 'roles.manage')
+            ->and($all)->toHaveCount(75)
+            ->and(count(array_unique($all)))->toBe(75);
     });
 
     it('separates internal, field and management roles', function (): void {
@@ -65,6 +66,13 @@ describe('SystemRole enum', function (): void {
                 SystemRole::Daf,
                 SystemRole::GeneralManagement,
             ]);
+    });
+
+    it('classifies system roles for administration and mobile access', function (): void {
+        expect(SystemRole::BusDriver->category()->value)->toBe('terrain')
+            ->and(SystemRole::AgencyManager->category()->value)->toBe('agency')
+            ->and(SystemRole::OperationsDirector->category()->value)->toBe('central')
+            ->and(SystemRole::SystemAdmin->category()->value)->toBe('central');
     });
 
     it('generates correct translation keys', function (): void {
