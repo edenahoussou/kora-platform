@@ -22,6 +22,7 @@ return [
         'agency_manager' => 'Agency Manager',
         'operations_director' => 'Operations Director',
         'commercial_director' => 'Commercial Director',
+        'daf' => 'Finance Director',
         'general_management' => 'General Management',
         'system_admin' => 'System Administrator',
     ],
@@ -30,6 +31,12 @@ return [
         'active' => 'Active',
         'suspended' => 'Suspended',
         'locked' => 'Locked',
+    ],
+
+    'role_category' => [
+        'central' => 'Central',
+        'agency' => 'Agency',
+        'terrain' => 'Field',
     ],
 
     'agency_status' => [

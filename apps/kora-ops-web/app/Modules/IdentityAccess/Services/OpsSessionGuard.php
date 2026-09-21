@@ -4,6 +4,7 @@ namespace App\Modules\IdentityAccess\Services;
 
 use App\Models\User;
 use App\Modules\IdentityAccess\Data\OpsSessionErrorCode;
+use App\Modules\IdentityAccess\Data\RoleCategory;
 use App\Modules\IdentityAccess\Data\SystemRole;
 use App\Modules\IdentityAccess\Data\UserStatus;
 use App\Modules\IdentityAccess\Exceptions\OpsSessionException;
@@ -36,12 +37,25 @@ class OpsSessionGuard
             throw new OpsSessionException(OpsSessionErrorCode::AccountLocked);
         }
 
-        $fieldRoles = array_map(
+        $systemFieldRoleNames = array_map(
             static fn (SystemRole $role): string => $role->value,
             SystemRole::fieldRoles(),
         );
 
-        if (! $user->hasAnyRole($fieldRoles)) {
+        $activeRoles = $user->roles()->where('is_active', true);
+        $hasSystemFieldRole = (clone $activeRoles)
+            ->whereIn('name', $systemFieldRoleNames)
+            ->exists();
+        $hasCustomTerrainRole = (clone $activeRoles)
+            ->where('category', RoleCategory::Terrain->value)
+            ->whereNotIn('name', $systemFieldRoleNames)
+            ->exists();
+
+        if (! $hasSystemFieldRole && ! $hasCustomTerrainRole) {
+            throw new OpsSessionException(OpsSessionErrorCode::RoleNotAuthorized);
+        }
+
+        if ($user->agency_id === null && $hasCustomTerrainRole) {
             throw new OpsSessionException(OpsSessionErrorCode::RoleNotAuthorized);
         }
 

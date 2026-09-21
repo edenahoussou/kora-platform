@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\User;
 use App\Modules\AssistedBooking\Models\AssistedBooking;
 use App\Modules\Boarding\Models\BoardingEvent;
 use App\Modules\Boarding\Models\SeatReleaseEvent;
@@ -19,6 +20,7 @@ use App\Modules\Fiscalization\Services\DatabaseFiscalSyncAttemptRecorder;
 use App\Modules\Fiscalization\Services\FiscalSyncAttemptRecorder;
 use App\Modules\IdentityAccess\Contracts\PassengerIdentityResolver;
 use App\Modules\IdentityAccess\Models\Agency;
+use App\Modules\IdentityAccess\Models\Role;
 use App\Modules\IdentityAccess\Models\TerminalP501;
 use App\Modules\IdentityAccess\Services\PhonePassengerIdentityResolver;
 use App\Modules\Payments\Providers\FedaPayAdapter;
@@ -36,10 +38,12 @@ use App\Policies\FarePolicy;
 use App\Policies\FiscalInvoicePolicy;
 use App\Policies\LinePolicy;
 use App\Policies\ReservationPolicy;
+use App\Policies\RolePolicy;
 use App\Policies\SeatReleaseEventPolicy;
 use App\Policies\StopPolicy;
 use App\Policies\TerminalP501Policy;
 use App\Policies\TicketPolicy;
+use App\Policies\UserPolicy;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -141,6 +145,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Stop::class, StopPolicy::class);
         Gate::policy(TerminalP501::class, TerminalP501Policy::class);
         Gate::policy(Ticket::class, TicketPolicy::class);
+        Gate::policy(User::class, UserPolicy::class);
+        Gate::policy(Role::class, RolePolicy::class);
     }
 
     /**

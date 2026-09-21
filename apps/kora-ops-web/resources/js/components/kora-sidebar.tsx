@@ -8,6 +8,7 @@ import {
     PanelLeftClose,
     PanelLeftOpen,
     ReceiptText,
+    ShieldCheck,
     Store,
     Ticket,
     Users,
@@ -208,6 +209,24 @@ const navItems: NavEntry[] = [
                 title: 'Commodités',
                 href: '/amenities',
                 permission: 'fleet.view',
+            },
+        ],
+    },
+    {
+        title: 'Administration',
+        href: '/users',
+        icon: ShieldCheck,
+        permission: ['users.view', 'roles.view'],
+        children: [
+            {
+                title: 'Utilisateurs',
+                href: '/users',
+                permission: 'users.view',
+            },
+            {
+                title: 'Rôles et permissions',
+                href: '/roles',
+                permission: 'roles.view',
             },
         ],
     },
