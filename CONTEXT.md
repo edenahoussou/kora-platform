@@ -2,6 +2,20 @@
 
 KORA BUS est le contexte du MVP valide par le client. Ce glossaire fixe le vocabulaire commun entre le client, le pilotage projet et l'equipe technique.
 
+## Paramétrage runtime
+
+**Paramètre administrable**:
+Valeur métier du MVP modifiable par un utilisateur OPS autorisé, persistée dans la base et appliquée aux requêtes et jobs suivants. Elle appartient à un groupe de paramètres et ses mutations sont auditées.
+
+**Paramètre de plateforme**:
+Valeur nécessaire au fonctionnement de l'infrastructure (base de données, cache, file, logs, stockage, URL et clé d'application, mailer, Chromium/PDF). Elle reste fournie par l'environnement de déploiement et n'est pas administrée dans KORA OPS.
+
+**Secret d'intégration**:
+Credential d'un fournisseur métier (e-MECeF, paiement, cartographie, Genuka/WAHA ou OAuth) stocké chiffré en base. Une lecture de snapshot expose uniquement sa présence ; une valeur vide conserve le secret et sa suppression est une action explicite et auditée.
+
+**Groupe de paramètres**:
+Ensemble transactionnel et verrouillable de paramètres partageant une autorisation et un audit : `general`, `operations` ou `integrations`.
+
 ## Language
 
 **Ecosysteme KORA cible**:
@@ -49,8 +63,23 @@ Prix final calcule cote serveur pour une demande de reservation, fige pendant la
 _Avoid_: Prix indicatif
 
 **Reservation assistee**:
-Reservation Bus initiee par un passager puis confiee a une agence pour etre terminee par telephone ou WhatsApp. Elle conserve la meme reference et le meme itineraire, ne bloque ni siege ni credit pendant l'attente, et doit etre reprise par un agent autorise avec un nouveau devis et une nouvelle validation atomique des sieges.
-_Avoid_: Deuxieme reservation creee par l'agence, siege bloque dans la file d'assistance, reference WhatsApp utilisee comme autorisation
+Reservation Bus initiee par un passager puis adressee au support client central par appel ou WhatsApp. Elle conserve la meme reference et le meme itineraire, ne bloque ni siege ni credit pendant l'attente, et entre dans la file reseau jusqu'au claim atomique d'une agence habilitee.
+_Avoid_: Agence choisie au depart, deuxieme reservation creee par l'agence, siege bloque dans la file d'assistance, reference WhatsApp utilisee comme autorisation
+
+**Support client centralise**:
+Point de contact telephonique ou WhatsApp configure dans KORA vers lequel une demande d'assistance est initialement dirigee. Les deux canaux sont independants et aucune coordonnee d'agence ne sert de fallback.
+
+**File reseau d'assistance**:
+Ensemble des dossiers d'assistance `pending` sans agence affectee, visibles par les agences et roles reseau habilites.
+
+**Agence traitante**:
+Agence qui a remporte le claim ou qui a recu une reaffectation. Elle est exposee publiquement sous `handling_agency`.
+
+**Claim**:
+Prise en charge atomique d'un dossier par un agent rattache a une agence. Le premier claim valide enregistre l'agence, l'agent et le statut `in_progress`.
+
+**Reaffectation**:
+Action reseau qui place un dossier `pending` dans la file d'une autre agence, sans choisir d'agent. L'agence cible doit ensuite effectuer un claim.
 
 **Descente anticipee**:
 Evenement enregistre par le convoyeur lorsqu'un passager descend avant sa destination initiale, afin de liberer les segments non parcourus.
@@ -83,6 +112,30 @@ _Avoid_: Suppression de dépense, correction silencieuse d'un ledger
 **Rapprochement**:
 Association vérifiable entre une dépense publiée et un ledger ou mouvement de caisse. Une dépense non rapprochée reste visible comme telle et ne modifie pas artificiellement le solde.
 _Avoid_: Déduction automatique sans preuve, double comptage Expense/CashMovement
+
+**Recette brute**:
+Somme des paiements confirmés dont la date de confirmation appartient à la période financière observée. Les billets, sessions et mouvements de caisse servent à contrôler cette somme, jamais à l’augmenter.
+_Avoid_: Additionner paiements, billets et caisse ; reconnaître une vente à sa date de réservation
+
+**Déduction d’annulation**:
+Obligation de remboursement reconnue à la date de création de l’annulation, quel que soit son statut de versement. Le cumul reconnu est plafonné au montant du paiement confirmé lié ; les obligations sans paiement et les dépassements sont signalés séparément.
+_Avoid_: Attendre le versement effectif ; soustraire deux fois le Wallet ou le crédit entreprise ; dépasser le montant encaissé
+
+**Recette nette**:
+Recette brute diminuée des déductions d’annulation reconnues sur la même période économique. Une annulation peut donc diminuer une période différente de celle de l’encaissement d’origine.
+_Avoid_: Marge ou rentabilité ; encaissement diminué uniquement des remboursements déjà versés
+
+**Canal de vente final**:
+Parcours dans lequel la réservation a effectivement été finalisée et payée. Une réservation commencée dans l'application puis finalisée par une agence devient une vente guichet ; une réservation reprise en ligne et confirmée par une intégration reste une vente via l'application passager.
+_Avoid_: Classer une vente d'après le canal d'origine de la demande ; appeler une ancienne valeur technique « en ligne » sans preuve de fournisseur intégré
+
+**Source d'encaissement**:
+Moyen, fournisseur d'intégration et réseau ayant réellement porté le paiement. Le moyen et le fournisseur décrivent comment l'argent a été reçu ; ils ne constituent pas une seconde recette à additionner au canal de vente.
+_Avoid_: Déduire un fournisseur du seul canal ; afficher le réseau Mobile Money d'un guichet comme un fournisseur d'intégration
+
+**Vente via l'application passager**:
+Vente finalisée dans le parcours mobile, dont la source d'encaissement peut être détaillée par fournisseur d'intégration et réseau ou par un moyen mobile reconnu.
+_Avoid_: Fusionner l'application passager avec une ligne générique « En ligne » ; rattacher automatiquement une vente mobile à une agence
 
 **Compte voyageur**:
 Identite client KORA retrouvee ou creee automatiquement a partir d'un telephone personnel normalise lors de l'achat ou de l'emission d'un billet. Elle existe avec son Wallet meme sans acces active a l'application ; son titulaire peut voyager, payer pour un tiers ou faire les deux.
@@ -123,6 +176,10 @@ _Avoid_: Lier un bus ou un depart a une agence; confondre l'arret avec l'agence
 **Agence de vente**:
 Agence qui réalise commercialement une vente de billets. Elle est conservée dans l’historique, même si le vendeur change ensuite d’agence, et couvre aussi les ventes à crédit entreprise. Les ventes en ligne sans intervention d’une agence et les anciennes ventes dont l’agence ne peut être établie avec certitude restent sans agence de vente connue.
 _Avoid_: Agence actuelle du vendeur ; agence du départ ; réaffecter les ventes historiques lors d’une mutation
+
+**Vente hors agence**:
+Vente digitale sans agence historique de vente connue. Elle est présentée séparément du classement des agences afin de ne pas faire passer l'absence d'agence pour une agence commerciale.
+_Avoid_: Afficher « Sans agence » comme une agence ordinaire ; attribuer une vente passager à l'agence qui a seulement été contactée
 
 **Compte Mobile Money partagé**:
 Compte de paiement rattaché à une agence et partagé par ses sessions de caisse. Il porte l’identité financière, les paiements et les journaux Mobile Money de l’agence ; il ne doit pas être recréé à chaque session ni additionné une seconde fois par guichet.

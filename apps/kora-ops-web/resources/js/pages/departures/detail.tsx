@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePoll } from '@inertiajs/react';
 import {
     ArrowLeft,
     BusFront,
@@ -140,6 +140,10 @@ export default function DepartureDetailPage({
     timeline,
     permissions,
 }: PageProps) {
+    // Statut et chronologie suivent les changements faits depuis le terminal
+    // du convoyeur (MEZ-98) sans recharger la page.
+    usePoll(30000, { only: ['departure', 'timeline'] });
+
     const [tab, setTab] = useState<Tab>('exploitation');
     const [editDialog, setEditDialog] = useState(false);
 

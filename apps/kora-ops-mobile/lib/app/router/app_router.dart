@@ -17,8 +17,10 @@ import '../../features/border_manifest/presentation/pages/border_manifest_pdf_pa
 import '../../features/border_manifest/presentation/pages/border_manifest_print_page.dart';
 import '../../features/descente/presentation/pages/descente_anticipee_page.dart';
 import '../../features/home/presentation/pages/accueil_page.dart';
+import '../../features/incidents/presentation/pages/incident_report_page.dart';
 import '../../features/manifeste/presentation/pages/detail_passager_page.dart';
 import '../../features/manifeste/presentation/pages/manifeste_page.dart';
+import '../../features/notifications/presentation/pages/notifications_page.dart';
 import '../../features/onboarding/data/onboarding_store.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/printing/presentation/cubit/printing_cubit.dart';
@@ -153,6 +155,14 @@ class AppRouter {
       GoRoute(
         path: AppRoutes.preferences,
         builder: (context, state) => const PreferencesPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.incidentReport,
+        builder: (context, state) => const IncidentReportPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.notifications,
+        builder: (context, state) => const NotificationsPage(),
       ),
       GoRoute(
         path: AppRoutes.printerTest,

@@ -956,6 +956,96 @@ export function FillGauge({
     );
 }
 
+export function OccupancyRing({
+    occupancy,
+    capacity,
+    size = 84,
+    className,
+}: {
+    occupancy: PlanningItem['occupancy'];
+    capacity?: number | null;
+    size?: number;
+    className?: string;
+}) {
+    const busCapacity = occupancy?.capacity ?? capacity ?? null;
+    const booked = occupancy?.booked ?? 0;
+    const ratio =
+        occupancy?.ratio ??
+        (busCapacity && busCapacity > 0 ? booked / busCapacity : null);
+    const pct = ratio !== null ? Math.min(100, Math.round(ratio * 100)) : null;
+
+    if (occupancy === null && busCapacity === null) {
+        return null;
+    }
+
+    const stroke = 7;
+    const radius = (size - stroke) / 2;
+    const circumference = 2 * Math.PI * radius;
+    const arcTone =
+        pct === null
+            ? 'stroke-white/20'
+            : pct >= 70
+              ? 'stroke-emerald-400'
+              : pct >= 30
+                ? 'stroke-gold'
+                : 'stroke-sky-300';
+
+    return (
+        <div
+            className={cn(
+                'relative grid shrink-0 place-items-center',
+                className,
+            )}
+            style={{ width: size, height: size }}
+            role="img"
+            aria-label={
+                pct !== null
+                    ? `Remplissage : ${pct}% (${booked} sièges sur ${busCapacity ?? '?'})`
+                    : `Capacité : ${busCapacity} places`
+            }
+        >
+            <svg width={size} height={size} className="-rotate-90">
+                <circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    fill="none"
+                    strokeWidth={stroke}
+                    className="stroke-white/15"
+                />
+                {pct !== null && pct > 0 && (
+                    <circle
+                        cx={size / 2}
+                        cy={size / 2}
+                        r={radius}
+                        fill="none"
+                        strokeWidth={stroke}
+                        strokeLinecap="round"
+                        strokeDasharray={circumference}
+                        strokeDashoffset={circumference * (1 - pct / 100)}
+                        className={cn(
+                            'transition-[stroke-dashoffset] duration-700 ease-out',
+                            arcTone,
+                        )}
+                    />
+                )}
+            </svg>
+            <div className="absolute inset-0 grid place-items-center text-center">
+                <div>
+                    <span className="block text-lg leading-none font-extrabold text-white tabular-nums">
+                        {pct !== null ? `${pct}%` : (busCapacity ?? '—')}
+                    </span>
+                    <span className="mt-1 block text-[0.5625rem] font-bold tracking-[0.08em] text-white/60 uppercase">
+                        {pct !== null
+                            ? `${booked}/${busCapacity ?? '?'} pl.`
+                            : 'places'}
+                    </span>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export function PlanningCard({
     item,
     refs,

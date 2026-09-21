@@ -8,6 +8,7 @@ import {
     PanelLeftClose,
     PanelLeftOpen,
     ReceiptText,
+    ShieldCheck,
     Store,
     Ticket,
     Users,
@@ -18,7 +19,7 @@ import AppLogoIcon from '@/components/app-logo-icon';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { usePermissions } from '@/hooks/use-permissions';
 import { cn } from '@/lib/utils';
-import { dashboard } from '@/routes';
+import { dashboard, revenue } from '@/routes';
 import programming from '@/routes/programming';
 
 type NavPermission = string | string[] | null;
@@ -84,8 +85,14 @@ const navItems: NavEntry[] = [
             'expenses.view-own',
             'expenses.view-agency',
             'expenses.view-network',
+            'revenue.view',
         ],
         children: [
+            {
+                title: 'Recettes',
+                href: revenue().url,
+                permission: 'revenue.view',
+            },
             {
                 title: 'Facturation',
                 href: '/fiscal-invoices',
@@ -202,6 +209,24 @@ const navItems: NavEntry[] = [
                 title: 'Commodités',
                 href: '/amenities',
                 permission: 'fleet.view',
+            },
+        ],
+    },
+    {
+        title: 'Administration',
+        href: '/users',
+        icon: ShieldCheck,
+        permission: ['users.view', 'roles.view'],
+        children: [
+            {
+                title: 'Utilisateurs',
+                href: '/users',
+                permission: 'users.view',
+            },
+            {
+                title: 'Rôles et permissions',
+                href: '/roles',
+                permission: 'roles.view',
             },
         ],
     },

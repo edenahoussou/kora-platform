@@ -123,8 +123,8 @@ class BorderManifestPrintLocalDataSourceImpl
       userUuid: row['user_uuid'] as String?,
       terminalSerial: row['terminal_serial'] as String?,
       createdAt: createdAt,
-      updatedAt: DateTime.tryParse(row['updated_at'] as String? ?? '') ??
-          createdAt,
+      updatedAt:
+          DateTime.tryParse(row['updated_at'] as String? ?? '') ?? createdAt,
     );
   }
 }

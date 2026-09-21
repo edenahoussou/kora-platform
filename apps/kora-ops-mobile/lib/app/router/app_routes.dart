@@ -53,4 +53,12 @@ abstract final class AppRoutes {
   static const String preferences = '/profil/preferences';
 
   static const String printerTest = '/printer-test';
+
+  /// Alertes opérationnelles du convoyeur (MEZ-97), accessible depuis la
+  /// cloche de `NotificationButton` sur tous les écrans.
+  static const String notifications = '/notifications';
+
+  /// Formulaire de signalement d'incident (MEZ-98) — accessible depuis
+  /// Accueil et Manifeste.
+  static const String incidentReport = '/tournee/manifeste/incident';
 }

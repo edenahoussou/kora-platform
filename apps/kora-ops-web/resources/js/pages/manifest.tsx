@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePoll } from '@inertiajs/react';
 import { ClipboardList, Users } from 'lucide-react';
 import { useMemo } from 'react';
 import Heading from '@/components/heading';
@@ -57,6 +57,9 @@ export default function ManifestPage({
     departures: departureData,
     statuses,
 }: PageProps) {
+    // Statuts des départs à jour quand le convoyeur les fait avancer (MEZ-98).
+    usePoll(30000, { only: ['departures'] });
+
     const filters: FilterConfig[] = useMemo(
         () => [
             { name: 'date', label: 'Date', type: 'date', options: [] },

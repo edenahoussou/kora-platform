@@ -58,8 +58,7 @@ void main() {
       expect(store.jobs, hasLength(1));
     });
 
-    test('un nouveau job est possible une fois le précédent terminé',
-        () async {
+    test('un nouveau job est possible une fois le précédent terminé', () async {
       final BorderManifestPrintJob first = await newJob(copies: 1);
       await repository.markCopyStarted(first.jobUuid, 1);
       await repository.markCopyConfirmed(first.jobUuid, 1);
@@ -106,8 +105,7 @@ void main() {
   });
 
   group('erreur matérielle', () {
-    test('markCopyFailed : job interrompu, compte confirmé inchangé',
-        () async {
+    test('markCopyFailed : job interrompu, compte confirmé inchangé', () async {
       final BorderManifestPrintJob job = await newJob();
       await repository.markCopyStarted(job.jobUuid, 1);
       await repository.markCopyConfirmed(job.jobUuid, 1);
@@ -152,7 +150,8 @@ void main() {
           repository.markCopyStarted(job.jobUuid, 2), throwsStateError);
     });
 
-    test('impossible de démarrer un exemplaire pendant qu\'un autre est en cours',
+    test(
+        'impossible de démarrer un exemplaire pendant qu\'un autre est en cours',
         () async {
       final BorderManifestPrintJob job = await newJob();
       await repository.markCopyStarted(job.jobUuid, 1);
@@ -221,8 +220,8 @@ void main() {
     test('constat « il est sorti » : compté, jamais réimprimé', () async {
       final BorderManifestPrintJob crashed = await crashedDuringCopy2();
 
-      final BorderManifestPrintJob resolved = await repository
-          .resolveInFlightCopy(crashed.jobUuid, printed: true);
+      final BorderManifestPrintJob resolved =
+          await repository.resolveInFlightCopy(crashed.jobUuid, printed: true);
 
       expect(resolved.confirmedCopies, 2);
       expect(resolved.inFlightCopy, isNull);
@@ -233,8 +232,8 @@ void main() {
     test('constat « il n\'est pas sorti » : sera réimprimé', () async {
       final BorderManifestPrintJob crashed = await crashedDuringCopy2();
 
-      final BorderManifestPrintJob resolved = await repository
-          .resolveInFlightCopy(crashed.jobUuid, printed: false);
+      final BorderManifestPrintJob resolved =
+          await repository.resolveInFlightCopy(crashed.jobUuid, printed: false);
 
       expect(resolved.confirmedCopies, 1);
       expect(resolved.inFlightCopy, isNull);
@@ -242,8 +241,7 @@ void main() {
       expect(resolved.status, BorderManifestPrintJobStatus.interrupted);
     });
 
-    test('constat « sorti » sur le dernier exemplaire : job terminé',
-        () async {
+    test('constat « sorti » sur le dernier exemplaire : job terminé', () async {
       final BorderManifestPrintJob job = await newJob(copies: 1);
       await repository.markCopyStarted(job.jobUuid, 1);
 

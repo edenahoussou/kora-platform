@@ -54,14 +54,13 @@ void main() {
     });
 
     test('document null ou de type inattendu → n° de document null', () {
-      expect(ManifesteDtos.passenger(row(document: null))?.documentNumero,
+      expect(
+          ManifesteDtos.passenger(row(document: null))?.documentNumero, isNull);
+      expect(ManifesteDtos.passenger(row(document: 'PP123456'))?.documentNumero,
           isNull);
       expect(
-          ManifesteDtos.passenger(row(document: 'PP123456'))?.documentNumero,
-          isNull);
-      expect(
-          ManifesteDtos.passenger(row(
-                  document: const <String, dynamic>{'type': 'passport'}))
+          ManifesteDtos.passenger(
+                  row(document: const <String, dynamic>{'type': 'passport'}))
               ?.documentNumero,
           isNull);
     });

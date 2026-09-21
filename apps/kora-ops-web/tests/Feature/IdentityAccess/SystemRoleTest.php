@@ -23,7 +23,7 @@ describe('SystemRole enum', function (): void {
 
     it('returns permissions for each role', function (): void {
         expect(SystemRole::Passenger->permissions())->toBe(['bookings.create', 'bookings.view-own', 'bookings.cancel', 'tickets.view', 'company-accounts.view'])
-            ->and(SystemRole::BusDriver->permissions())->toBe(['departures.view'])
+            ->and(SystemRole::BusDriver->permissions())->toBe(['departures.progress', 'incidents.report', 'departures.view', 'notifications.view'])
             ->and(SystemRole::Conductor->permissions())->toContain('boarding.scan', 'seat-releases.create')
             ->and(SystemRole::CommercialDirector->permissions())->toContain('agencies.view', 'agencies.create', 'agencies.update', 'agencies.deactivate')
             ->and(SystemRole::SystemAdmin->permissions())->toBe(SystemRole::allPermissions());
@@ -33,7 +33,7 @@ describe('SystemRole enum', function (): void {
         $driverPerms = SystemRole::BusDriver->permissions();
         $conductorPerms = SystemRole::Conductor->permissions();
 
-        expect($driverPerms)->toBe(['departures.view'])
+        expect($driverPerms)->toBe(['departures.progress', 'incidents.report', 'departures.view', 'notifications.view'])
             ->and($conductorPerms)->not->toBe($driverPerms)
             ->and(count($conductorPerms))->toBeGreaterThan(count($driverPerms));
     });
@@ -47,8 +47,11 @@ describe('SystemRole enum', function (): void {
             ->and($all)->toContain('cash.transfer.create', 'cash.transfer.approve', 'cash.media.view', 'cash.adjust')
             ->and($all)->toContain('assisted-bookings.view-agency', 'assisted-bookings.claim', 'assisted-bookings.view-network', 'assisted-bookings.refuse')
             ->and($all)->toContain('fiscalization.payload.view', 'expenses.create', 'expenses.reverse', 'expenses.export')
-            ->and($all)->toHaveCount(66)
-            ->and(count(array_unique($all)))->toBe(66);
+            ->and($all)->toContain('notifications.view', 'departures.progress', 'incidents.report')
+            ->and($all)->toContain('users.view', 'users.manage', 'roles.view', 'roles.manage')
+            ->and($all)->toContain('settings.general.view', 'settings.general.manage', 'settings.operations.view', 'settings.operations.manage', 'settings.integrations.view', 'settings.integrations.manage')
+            ->and($all)->toHaveCount(81)
+            ->and(count(array_unique($all)))->toBe(81);
     });
 
     it('separates internal, field and management roles', function (): void {
@@ -64,6 +67,13 @@ describe('SystemRole enum', function (): void {
                 SystemRole::Daf,
                 SystemRole::GeneralManagement,
             ]);
+    });
+
+    it('classifies system roles for administration and mobile access', function (): void {
+        expect(SystemRole::BusDriver->category()->value)->toBe('terrain')
+            ->and(SystemRole::AgencyManager->category()->value)->toBe('agency')
+            ->and(SystemRole::OperationsDirector->category()->value)->toBe('central')
+            ->and(SystemRole::SystemAdmin->category()->value)->toBe('central');
     });
 
     it('generates correct translation keys', function (): void {

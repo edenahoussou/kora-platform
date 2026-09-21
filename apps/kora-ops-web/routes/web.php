@@ -17,6 +17,7 @@ use App\Modules\DynamicPricing\Http\Controllers\PricingRuleController;
 use App\Modules\DynamicPricing\Http\Controllers\PromotionController;
 use App\Modules\DynamicPricing\Http\Controllers\TaxRuleController;
 use App\Modules\Expenses\Http\Controllers\ExpenseController;
+use App\Modules\Finance\Http\Controllers\RevenueController;
 use App\Modules\Fiscalization\Http\Controllers\FiscalInvoiceController;
 use App\Modules\IdentityAccess\Http\Controllers\AgencyController;
 use App\Modules\IdentityAccess\Http\Controllers\TerminalP501Controller;
@@ -60,6 +61,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('assisted-bookings')->name('assisted-bookings.')->group(function (): void {
         Route::get('/', [AssistedBookingController::class, 'index'])->name('index');
         Route::get('{assistedBooking:uuid}', [AssistedBookingController::class, 'show'])->name('show');
+        Route::get('{assistedBooking:uuid}/detail', [AssistedBookingController::class, 'detail'])->name('detail');
         Route::post('{assistedBooking:uuid}/claim', [AssistedBookingController::class, 'claim'])->name('claim');
         Route::post('{assistedBooking:uuid}/release', [AssistedBookingController::class, 'release'])->name('release');
         Route::post('{assistedBooking:uuid}/reassign', [AssistedBookingController::class, 'reassign'])->name('reassign');
@@ -69,7 +71,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('fiscal-invoices', [FiscalInvoiceController::class, 'index'])->name('fiscal-invoices.index');
     Route::get('fiscal-invoices/export', [FiscalInvoiceController::class, 'export'])->name('fiscal-invoices.export');
     Route::get('fiscal-invoices/{fiscalInvoice:uuid}', [FiscalInvoiceController::class, 'show'])->name('fiscal-invoices.show');
+    Route::get('fiscal-invoices/{fiscalInvoice:uuid}/pdf', [FiscalInvoiceController::class, 'pdf'])->name('fiscal-invoices.pdf');
     Route::post('fiscal-invoices/{fiscalInvoice:uuid}/retry', [FiscalInvoiceController::class, 'retry'])->name('fiscal-invoices.retry');
+    Route::post('fiscal-invoices/{fiscalInvoice:uuid}/credit', [FiscalInvoiceController::class, 'credit'])->name('fiscal-invoices.credit');
     Route::get('expenses', [ExpenseController::class, 'index'])->name('expenses.index');
     Route::get('expenses/export', [ExpenseController::class, 'export'])->name('expenses.export');
     Route::post('expenses', [ExpenseController::class, 'store'])->name('expenses.store');
@@ -78,6 +82,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('expenses/{expense:uuid}/reject', [ExpenseController::class, 'reject'])->name('expenses.reject');
     Route::post('expenses/{expense:uuid}/reverse', [ExpenseController::class, 'reverse'])->name('expenses.reverse');
     Route::get('expenses/{expense:uuid}/media/{mediaUuid}', [ExpenseController::class, 'media'])->name('expenses.media');
+    Route::get('revenue', [RevenueController::class, 'index'])->name('revenue');
+    Route::get('revenue/export', [RevenueController::class, 'export'])->name('revenue.export');
     Route::get('cash', [CashSessionController::class, 'index'])->name('cash');
     Route::get('cash/export', [CashSessionController::class, 'export'])->name('cash.export');
     Route::post('cash/open', [CashSessionController::class, 'store'])->name('cash.open');
@@ -276,7 +282,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Finance — V2
     Route::get('finance', $comingSoon('Finance', 'Analysez les encaissements par canal et par activité.', 'Finance — V2'))->name('finance');
-    Route::get('revenue', $comingSoon('Recettes consolidées', 'Analysez les encaissements par canal et par activité.', 'Finance — V2'))->name('revenue');
     Route::get('reconciliation', $comingSoon('Rapprochements', 'Identifiez et traitez les écarts entre les sources.', 'Finance — V2'))->name('reconciliation');
     Route::get('casskai', $comingSoon('CassKai', 'Supervisez les transactions et les rapprochements CassKai.', 'Finance — V2'))->name('casskai');
     Route::get('mecef', $comingSoon('Conformité MECeF', 'Suivez les transmissions et traitez les anomalies fiscales.', 'Finance — V2'))->name('mecef');
@@ -291,16 +296,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Notifications — V2
     Route::get('notifications', $comingSoon('Notifications', 'Suivez les confirmations, rappels et alertes envoyés sur chaque canal.', 'V2'))->name('notifications');
 
-    // Administration — V2 (sauf settings qui existe déjà)
-    Route::get('administration', $comingSoon('Administration', 'Gérez les comptes, rôles, paramètres et intégrations.', 'Administration'))->name('administration');
-    Route::get('users', $comingSoon('Utilisateurs', 'Gérez les comptes, leurs statuts et leurs périmètres.', 'Administration'))->name('users');
-    Route::get('roles', $comingSoon('Rôles et permissions', 'Maîtrisez précisément les habilitations de chaque profil.', 'Administration'))->name('roles');
-    Route::get('terminals', $comingSoon('Terminaux P501', 'Administrez les terminaux autorisés par numéro de série et affectation.', 'Administration'))->name('terminals');
-    Route::get('integrations', $comingSoon('Intégrations', 'Supervisez CassKai, MECeF, Mobile Money et les files de synchronisation.', 'Administration'))->name('integrations');
-    Route::get('audit', $comingSoon('Journal d’audit', 'Retrouvez chaque action sensible et son contexte.', 'Administration'))->name('audit');
-
     // Alertes — V2
     Route::get('alerts', $comingSoon('Centre des alertes', 'Priorisez les situations qui nécessitent votre attention.', 'V2'))->name('alerts');
 });
 
+require __DIR__.'/administration.php';
 require __DIR__.'/settings.php';

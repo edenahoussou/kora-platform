@@ -5,6 +5,7 @@ namespace App\Modules\Fiscalization\Services;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\DynamicPricing\Models\Promotion;
 use App\Modules\Payments\Data\PaymentMethod;
+use App\Modules\Settings\Settings\IntegrationsSettings;
 use Illuminate\Support\Str;
 
 class FiscalInvoicePayloadBuilder
@@ -29,6 +30,7 @@ class FiscalInvoicePayloadBuilder
         $priceModification = $this->priceModification($reservation);
 
         $creator = $reservation->creator;
+        $payerSnapshot = is_array($reservation->payer_snapshot) ? $reservation->payer_snapshot : [];
 
         if ($reservation->payer_type->value === 'company') {
             $clientName = $reservation->companyAccount?->name;
@@ -43,10 +45,12 @@ class FiscalInvoicePayloadBuilder
             $originalPrice = $originalUnitPrice + ($index < $originalRemainder ? 1 : 0);
 
             $item = [
+                'code' => $passenger->uuid,
                 'name' => 'Billet de transport KORA BUS - '.Str::limit(trim($passenger->first_name.' '.$passenger->last_name), 70, ''),
                 'price' => $price,
                 'quantity' => 1,
                 'taxGroup' => 'A',
+                'taxSpecific' => 0,
             ];
 
             if ($originalPrice > $price && $priceModification !== null) {
@@ -58,15 +62,17 @@ class FiscalInvoicePayloadBuilder
         })->all();
 
         return [
-            'ifu' => (string) config('emecf.default_ifu'),
+            'ifu' => app(IntegrationsSettings::class)->emecfDefaultIfu,
             'type' => 'FV',
             'operator' => array_filter([
                 'id' => $creator?->getKey(),
                 'name' => $creator === null ? 'KORA BUS' : $creator->name,
             ], fn ($value): bool => $value !== null && $value !== ''),
             'client' => array_filter([
+                'ifu' => $payerSnapshot['ifu'] ?? null,
                 'name' => $clientName,
                 'contact' => $clientContact,
+                'address' => $payerSnapshot['address'] ?? null,
             ]),
             'items' => $items,
             'payment' => $payment === null ? [] : [[

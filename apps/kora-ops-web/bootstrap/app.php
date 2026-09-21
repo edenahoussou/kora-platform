@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Modules\IdentityAccess\Http\Middleware\EnsureOpsSession;
@@ -19,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    ->withBroadcasting(__DIR__.'/../routes/channels.php', ['prefix' => 'api/v1', 'middleware' => ['auth:sanctum']])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
@@ -27,10 +29,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
 
         $middleware->web(append: [
+            ApplyKoraSettings::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
+            EnsurePasswordChanged::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
+
+        $middleware->api(append: [ApplyKoraSettings::class]);
 
         $middleware->alias([
             'terminal.active' => EnsureTerminalIsUsable::class,

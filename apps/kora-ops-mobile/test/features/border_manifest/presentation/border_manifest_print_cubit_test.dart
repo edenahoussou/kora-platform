@@ -89,8 +89,8 @@ void main() {
         status: TerminalStatus.active,
       ),
     );
-    when(() => terminals.logActivity(any(),
-        context: any(named: 'context'))).thenAnswer((Invocation call) async {
+    when(() => terminals.logActivity(any(), context: any(named: 'context')))
+        .thenAnswer((Invocation call) async {
       final Map<String, dynamic>? context =
           call.namedArguments[#context] as Map<String, dynamic>?;
       if (context != null) logs.add(context);
@@ -129,8 +129,7 @@ void main() {
       await cubit.close();
     });
 
-    test('type de départ inconnu : refusé, rafraîchissement demandé',
-        () async {
+    test('type de départ inconnu : refusé, rafraîchissement demandé', () async {
       final BorderManifestPrintCubit cubit = buildCubit();
 
       await cubit.load(borderInput(isInternational: null));
@@ -177,8 +176,7 @@ void main() {
 
     test('pendant l\'impression, l\'exemplaire en cours est signalé', () async {
       final BorderManifestPrintCubit cubit = buildCubit();
-      final List<List<BorderCopyStatus>> snapshots =
-          <List<BorderCopyStatus>>[];
+      final List<List<BorderCopyStatus>> snapshots = <List<BorderCopyStatus>>[];
       cubit.stream.listen((BorderManifestPrintState s) {
         if (s.phase == BorderManifestPrintPhase.printing) {
           snapshots.add(s.copyStatuses);
@@ -307,8 +305,7 @@ void main() {
       await cubit.printCopies();
 
       expect(cubit.state.phase, BorderManifestPrintPhase.interrupted);
-      expect(cubit.state.message,
-          PrinterFailureKind.outOfPaper.userMessage());
+      expect(cubit.state.message, PrinterFailureKind.outOfPaper.userMessage());
       expect(cubit.state.job?.confirmedCopies, 1);
       expect(cubit.state.copyStatuses, <BorderCopyStatus>[
         BorderCopyStatus.printed,
@@ -372,8 +369,8 @@ void main() {
 
       expect(reopened.state.phase, BorderManifestPrintPhase.interrupted);
       expect(reopened.state.copiesConfirmed, 2);
-      expect(reopened.state.message,
-          PrinterFailureKind.outOfPaper.userMessage());
+      expect(
+          reopened.state.message, PrinterFailureKind.outOfPaper.userMessage());
 
       await reopened.resume();
 
@@ -392,8 +389,8 @@ void main() {
       await cubit.printCopies();
 
       expect(cubit.state.phase, BorderManifestPrintPhase.interrupted);
-      expect(cubit.state.message,
-          PrinterFailureKind.notConnected.userMessage());
+      expect(
+          cubit.state.message, PrinterFailureKind.notConnected.userMessage());
       expect(cubit.state.job?.confirmedCopies, 0);
       await cubit.close();
     });
@@ -633,9 +630,8 @@ void main() {
       await cubit.load(borderInput());
       await cubit.printCopies();
 
-      final String everything = logs.map((Map<String, dynamic> l) => '$l')
-          .join(' ')
-          .toLowerCase();
+      final String everything =
+          logs.map((Map<String, dynamic> l) => '$l').join(' ').toLowerCase();
 
       expect(everything, isNot(contains('traor')));
       expect(everything, isNot(contains('mensah')));

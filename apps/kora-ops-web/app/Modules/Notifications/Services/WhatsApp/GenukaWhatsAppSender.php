@@ -2,6 +2,7 @@
 
 namespace App\Modules\Notifications\Services\WhatsApp;
 
+use App\Modules\Settings\Settings\IntegrationsSettings;
 use Illuminate\Support\Facades\Http;
 
 class GenukaWhatsAppSender implements WhatsAppSender
@@ -9,7 +10,8 @@ class GenukaWhatsAppSender implements WhatsAppSender
     /** @return array{message_id: string|null} */
     public function send(string $phone, string $text, ?string $documentData = null, ?string $documentFilename = null): array
     {
-        $payload = ['connectionId' => config('services.genuka.connection_id'), 'to' => $phone];
+        $settings = app(IntegrationsSettings::class);
+        $payload = ['connectionId' => $settings->genukaConnectionId, 'to' => $phone];
         if ($documentData !== null) {
             $payload['document'] = [
                 'data' => $documentData,
@@ -20,7 +22,7 @@ class GenukaWhatsAppSender implements WhatsAppSender
         } else {
             $payload['text'] = $text;
         }
-        $response = Http::baseUrl((string) config('services.genuka.url'))->withToken((string) config('services.genuka.token'))->timeout(30)->connectTimeout(5)->post('/api/v1/messages', $payload);
+        $response = Http::baseUrl($settings->genukaUrl)->withToken((string) ($settings->genukaToken ?? ''))->timeout(30)->connectTimeout(5)->post('/api/v1/messages', $payload);
         $response->throw();
 
         return ['message_id' => $response->json('id') ?? $response->json('messageId')];

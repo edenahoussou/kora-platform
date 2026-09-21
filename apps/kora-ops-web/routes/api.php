@@ -1,6 +1,5 @@
 <?php
 
-use App\Modules\AssistedBooking\Http\Controllers\AssistedBookingAgencyController;
 use App\Modules\AssistedBooking\Http\Controllers\AssistedBookingApiController;
 use App\Modules\Boarding\Http\Controllers\OpsBoardingController;
 use App\Modules\Boarding\Http\Controllers\OpsSeatReleaseController;
@@ -11,7 +10,9 @@ use App\Modules\BusNetwork\Http\Controllers\BusCatalogController;
 use App\Modules\CompanyAccounts\Http\Controllers\CompanyAccountController;
 use App\Modules\Departures\Http\Controllers\BusDepartureController;
 use App\Modules\Departures\Http\Controllers\OpsDepartureController;
+use App\Modules\Departures\Http\Controllers\OpsDepartureProgressController;
 use App\Modules\DynamicPricing\Http\Controllers\GroupDiscountRuleController;
+use App\Modules\FleetLite\Http\Controllers\OpsIncidentController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthDeviceController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthOAuthController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthOtpController;
@@ -19,6 +20,8 @@ use App\Modules\IdentityAccess\Http\Controllers\AuthSessionController;
 use App\Modules\IdentityAccess\Http\Controllers\OpsSessionController;
 use App\Modules\IdentityAccess\Http\Controllers\TerminalOpsMobileController;
 use App\Modules\IdentityAccess\Http\Controllers\UserPreferenceController;
+use App\Modules\Notifications\Http\Controllers\OpsNotificationController;
+use App\Modules\Notifications\Http\Controllers\OpsNotificationPreferenceController;
 use App\Modules\Payments\Http\Controllers\PaymentController;
 use App\Modules\Support\Http\Controllers\HealthController;
 use App\Modules\Sync\Http\Controllers\OpsSyncController;
@@ -107,6 +110,22 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::get('{departure:uuid}/manifest', [OpsDepartureController::class, 'manifest'])->name('manifest');
             // Manifeste frontière PDF (A4) — mode téléphone, MEZ-94.
             Route::get('{departure:uuid}/manifest/pdf', [OpsDepartureController::class, 'manifestPdf'])->name('manifest-pdf');
+
+            // Progression du départ par le convoyeur (MEZ-98) : embarquement
+            // commencé, bus parti, arrivé, retard. Même statut que OPS Web.
+            Route::post('{departure:uuid}/status', [OpsDepartureProgressController::class, 'updateStatus'])->name('status');
+            Route::patch('{departure:uuid}/delay', [OpsDepartureProgressController::class, 'recordDelay'])->name('delay');
+        });
+
+    // OPS Mobile — signalement d'incident par le convoyeur (MEZ-98). Même
+    // garde que les autres routes terrain ; l'envoi est limité (anti-abus).
+    Route::prefix('ops/incidents')
+        ->name('ops.incidents.')
+        ->middleware(['auth:sanctum', 'ops.session'])
+        ->group(function (): void {
+            Route::get('/', [OpsIncidentController::class, 'index'])->name('index');
+            Route::post('/', [OpsIncidentController::class, 'store'])->middleware('throttle:10,1')->name('store');
+            Route::get('{incident}', [OpsIncidentController::class, 'show'])->whereUuid('incident')->name('show');
         });
 
     // OPS Mobile — validation d'embarquement (MEZ-84 suite). Le scan lui
@@ -124,6 +143,10 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             // PDF de confirmation d'embarquement — mode téléphone (pas de
             // terminal P501, donc pas d'imprimante thermique). Voir ticket
             // "Supporter le scan par caméra téléphone en alternative au P501".
+            // Pas de « scoped binding » : avec deux paramètres `:uuid` consécutifs,
+            // Laravel résout le billet via `$departure->tickets()` (relation qui
+            // n'existe pas). Le contrôleur vérifie lui-même que le billet est
+            // bien sur ce départ (422 `ticket_not_for_departure`).
             Route::get('{departure:uuid}/tickets/{ticket:uuid}/pdf', [OpsBoardingController::class, 'pdf'])
                 ->middleware('ops.session')
                 ->name('ticket-pdf');
@@ -175,9 +198,6 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         });
 
     Route::middleware('auth:sanctum')->group(function (): void {
-        Route::get('assisted-bookings/agencies', [AssistedBookingAgencyController::class, 'index'])
-            ->middleware('throttle:bus-itinerary-actions')
-            ->name('assisted-bookings.agencies.index');
         Route::post('bookings/{reservation:uuid}/assistance', [AssistedBookingApiController::class, 'store'])
             ->middleware('throttle:bus-itinerary-actions')
             ->name('bookings.assistance.store');

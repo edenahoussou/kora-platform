@@ -153,7 +153,7 @@ class TerminalOpsMobileController extends Controller
      *   "errors": { "type": ["The selected type is invalid."] }
      * }
      */
-    public function activity(TerminalActivityRequest $request, LogTerminalActivityAction $logActivity): JsonResponse
+    public function activity(TerminalActivityRequest $request, LogTerminalActivityAction $logActivity, OpsNotifier $notifier): JsonResponse
     {
         /** @var TerminalP501 $terminal */
         $terminal = $request->attributes->get('terminal');

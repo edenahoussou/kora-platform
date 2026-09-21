@@ -12,13 +12,16 @@ tags:
     description: "\nPublic Bus catalog endpoints for KORA BUS search experiences."
   -
     name: 'Assisted Bookings'
-    description: "\nAssisted booking handoff endpoints for the mobile app."
+    description: "\nAssisted booking lifecycle for the mobile app: contact central support,\ninspect the dossier, or resume online payment."
   -
     name: Auth
     description: "\nOTP challenge request and verification for registration, login, PIN reset and account unlock."
   -
     name: 'Company Accounts'
     description: "\nCompany account management for group purchases and credit-based billing."
+  -
+    name: Endpoints
+    description: ''
   -
     name: 'Group Discounts'
     description: "\nGroup discount rule management and group booking settings."
@@ -32,6 +35,12 @@ tags:
     name: 'OPS Mobile — Departures'
     description: "\nDéparts et manifeste pour l'équipage terrain (convoyeur, chauffeur,\nchauffeur second, mécanicien) affecté — remplace les écrans mockés de\nMEZ-11. Authentification : auth:sanctum (login existant) + terminal\nenregistré et actif (middleware terminal.active)."
   -
+    name: 'OPS Mobile — Incidents'
+    description: "\nSignalement d'un incident par le convoyeur (panne, retard, accident,\nsécurité, autre). Un incident déclenche une alerte : notification à\nl'équipage du départ et aux directeurs des opérations de l'agence, e-mail\naux directeurs (destinataires) et super-administrateurs (copie).\n\nIdempotent : le mobile génère `incident_uuid` ; un rejeu (coupure réseau)\nrenvoie l'incident existant (200) sans doublon ni nouvelle alerte.\nChaque convoyeur ne voit que SES incidents. Aucun identifiant numérique,\naucune donnée financière.\n\nErreurs : `{ error: { code, message } }` — `departure_not_assigned` (403),\n`incident_uuid_conflict` (409), plus les codes de session OPS."
+  -
+    name: 'OPS Mobile — Progression du départ'
+    description: "\nLe convoyeur fait avancer SON départ : embarquement commencé, bus parti,\narrivé, et enregistre un retard. C'est le même statut que sur OPS Web\n(`departures.status`) : un « bus parti » déclaré ici est visible côté web,\nbloque la vente du départ et débloque la clôture des no-show.\n\nRéservé à l'équipage affecté (permission `departures.progress`). Annuler\nou modifier un départ reste réservé à OPS Web."
+  -
     name: 'OPS Mobile — Seat releases'
     description: "\nDescente anticipée et clôture no-show : libère les portions de siège\nnon parcourues, le serveur restant seul maître de la disponibilité et\nde la revente."
   -
@@ -43,6 +52,9 @@ tags:
   -
     name: 'OPS Mobile — Terminal'
     description: "\nHandshake et opérations liées au terminal P501 pour l'application OPS\nMobile. L'authentification de l'utilisateur (login, PIN, OTP) reste celle\nde l'app KORA existante (auth:sanctum) ; ces endpoints ajoutent le\ncontrôle du terminal par-dessus une session déjà ouverte."
+  -
+    name: 'OPS — Notifications'
+    description: "\nAlertes opérationnelles boarding pour le convoyeur (OPS Mobile) et les\nopérateurs (OPS Web) : même contrat, mêmes autorisations. Chaque\nutilisateur ne voit que SES notifications ; aucune ne contient de donnée\nfinancière ni d'identifiant numérique.\n\nTypes (`type`) : departure_assigned, departure_modified, manifest_stale,\nterminal_revoked (critique), scan_conflict (critique), operation_rejected,\nsync_completed, sync_failed, no_show_closed, print_error.\n\n`action` dit au client quoi proposer : none, open_departure, refresh_manifest,\nreauthenticate, review_scan_conflict, review_rejected_operations, retry_sync,\ncheck_printer.\n\nRécupération fiable : les notifications sont persistées AVANT toute\ndiffusion temps réel. Après une coupure ou un redémarrage, le client\nappelle `GET /notifications?since=<created_at de la dernière reçue>` et\ndéduplique par `uuid`. Le temps réel (canal privé\n`ops-notifications.{user_uuid}`, événement `ops.notification.published`)\nn'est qu'un accélérateur : sans lui, rien n'est perdu.\n\nErreurs : `{ error: { code, message, action } }` — mêmes codes que les\nsessions OPS (session_expired, session_revoked, permission_denied…)."
   -
     name: Payments
     description: "\nPayment lifecycle endpoints: initiation, polling status, and provider webhook confirmation."
@@ -1987,9 +1999,9 @@ paths:
       security: []
   '/api/v1/bookings/{reservation_uuid}/assistance':
     post:
-      summary: 'Send a reservation to an agency for assisted completion.'
-      operationId: sendAReservationToAnAgencyForAssistedCompletion
-      description: "Transforms the existing reservation (no duplicate is created): seats\nand company credit are released, segments become `requested`, and the\ndossier enters the agency queue as `pending`. Replaying the same\n`idempotency_key` returns the existing dossier."
+      summary: 'Send a reservation to central support for assisted completion.'
+      operationId: sendAReservationToCentralSupportForAssistedCompletion
+      description: "Transforms the existing reservation (no duplicate is created): seats\nand company credit are released, segments become `requested`, and the\ndossier enters the network queue as `pending`. Replaying the same\n`idempotency_key` returns the existing dossier."
       parameters: []
       responses:
         200:
@@ -2027,10 +2039,8 @@ paths:
                       uuid: 5b0d2f4a-6c8e-4a1b-9d3f-1a3c5e7b9d2f
                       reference: KBR-7X2K9P4Q
                       status: assistance_pending
-                    agency:
-                      uuid: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
-                      name: 'Agence Dantokpa'
-                      city: Cotonou
+                    handling_agency: null
+                    assigned_agent: null
                     contact:
                       name: Afi
                       phone: '+2290197000000'
@@ -2168,6 +2178,26 @@ paths:
                           - 'Cette réservation ne peut pas être envoyée en assistance.'
                         items:
                           type: string
+        503:
+          description: 'Support channel unavailable'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: assisted_booking_support_unavailable
+                    channel: whatsapp
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: assisted_booking_support_unavailable
+                      channel:
+                        type: string
+                        example: whatsapp
       tags:
         - 'Assisted Bookings'
       requestBody:
@@ -2198,7 +2228,6 @@ paths:
                   description: 'Client-generated idempotency key.'
                   example: 00000000-0000-4000-8000-000000000000
               required:
-                - agency_uuid
                 - channel
                 - contact_name
                 - contact_phone
@@ -2207,7 +2236,7 @@ paths:
     get:
       summary: 'Show the assisted booking dossier for a reservation.'
       operationId: showTheAssistedBookingDossierForAReservation
-      description: "Returns the current status, validity window, preferred agency contact\nchannels, the initial snapshot and the actions still allowed."
+      description: "Returns the current status, validity window, central support channels,\nthe initial snapshot and the actions still allowed."
       parameters: []
       responses:
         200:
@@ -2225,10 +2254,8 @@ paths:
                       uuid: 5b0d2f4a-6c8e-4a1b-9d3f-1a3c5e7b9d2f
                       reference: KBR-7X2K9P4Q
                       status: assistance_pending
-                    agency:
-                      uuid: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
-                      name: 'Agence Dantokpa'
-                      city: Cotonou
+                    handling_agency: null
+                    assigned_agent: null
                     contact:
                       name: Afi
                       phone: '+2290197000000'
@@ -4983,6 +5010,16 @@ paths:
         required: true
         schema:
           type: string
+  /api/v1/broadcasting/auth:
+    get:
+      summary: 'Authenticate the request for channel access.'
+      operationId: authenticateTheRequestForChannelAccess
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Endpoints
+      security: []
   /api/v1/group-discounts:
     get:
       summary: 'List all group discount rules ordered by start date.'
@@ -6721,6 +6758,891 @@ paths:
         required: true
         schema:
           type: string
+  '/api/v1/ops/departures/{departure_uuid}/manifest/pdf':
+    get:
+      summary: "Manifeste frontière du départ en PDF A4 — mode téléphone (pas de\nterminal P501, donc pas d'imprimante thermique 58 mm). Même ensemble\nde passagers que `manifest()`, jamais de montant."
+      operationId: manifesteFrontireDuDpartEnPDFA4ModeTlphonepasDeTerminalP501DoncPasDimprimanteThermique58MmMmeEnsembleDePassagersQuemanifestJamaisDeMontant
+      description: "Sur une ligne internationale, refuse (422 `manifest_incomplete`) si un\npassager n'a pas toutes les informations obligatoires au contrôle."
+      parameters:
+        -
+          in: header
+          name: X-Terminal-Serial
+          description: ''
+          example: 'Numéro de série du terminal. Example: P501-000123'
+          schema:
+            type: string
+      responses:
+        200:
+          description: ''
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        422:
+          description: 'Manifeste incomplet'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: manifest_incomplete
+                    message: 'Manifeste frontière incomplet : 1 passager(s) sans toutes les informations obligatoires.'
+                    passengers:
+                      -
+                        name: 'Awa Traoré'
+                        seat: 1A
+                        missing:
+                          - nationalité
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      status:
+                        type: string
+                        example: accepted
+                      ticketUuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      departureUuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      actualStopUuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      releasedSegments:
+                        type: array
+                        example:
+                          -
+                            name: 'Awa Traoré'
+                            seat: 1A
+                            missing:
+                              - nationalité
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                              example: 00000000-0000-4000-8000-000000000000
+                            leg_order:
+                              type: integer
+                              example: 0
+                            departure_uuid:
+                              type: string
+                              example: 00000000-0000-4000-8000-000000000000
+                      operationUuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      localRecordedAt:
+                        type: string
+                        example: '2026-10-01T09:12:00.000Z'
+                      serverRecordedAt:
+                        type: string
+                        example: '2026-10-01T09:12:00.400Z'
+                      code:
+                        type: string
+                        example: null
+                        nullable: true
+                      message:
+                        type: string
+                        example: null
+                        nullable: true
+                      recommendedAction:
+                        type: string
+                        example: null
+                        nullable: true
+        404:
+          description: 'Billet inconnu'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: manifest_pdf_generation_failed
+                    message: "Le manifeste frontière n'a pas pu être généré."
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: manifest_pdf_generation_failed
+                      message:
+                        type: string
+                        example: "Le manifeste frontière n'a pas pu être généré."
+      tags:
+        - 'OPS Mobile — Departures'
+    parameters:
+      -
+        in: path
+        name: departure_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+      -
+        in: path
+        name: departure
+        description: 'UUID public du départ.'
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  /api/v1/ops/incidents:
+    get:
+      summary: "Liste MES incidents, les plus récents d'abord."
+      operationId: listeMESIncidentsLesPlusRcentsDabord
+      description: ''
+      parameters:
+        -
+          in: query
+          name: status
+          description: 'open, in_progress, resolved ou cancelled.'
+          example: open
+          required: false
+          schema:
+            type: string
+            description: 'open, in_progress, resolved ou cancelled.'
+            example: open
+        -
+          in: query
+          name: departure_uuid
+          description: 'Filtrer par départ.'
+          example: 00000000-0000-4000-8000-000000000000
+          required: false
+          schema:
+            type: string
+            description: 'Filtrer par départ.'
+            example: 00000000-0000-4000-8000-000000000000
+        -
+          in: query
+          name: per_page
+          description: '1 à 100 (30 par défaut).'
+          example: 30
+          required: false
+          schema:
+            type: integer
+            description: '1 à 100 (30 par défaut).'
+            example: 30
+      responses: {}
+      tags:
+        - 'OPS Mobile — Incidents'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  description: ''
+                  example: open
+                  enum:
+                    - open
+                    - in_progress
+                    - resolved
+                    - cancelled
+                departure_uuid:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                per_page:
+                  type: integer
+                  description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 100.'
+                  example: 7
+                page:
+                  type: integer
+                  description: 'Le champ value doit être au moins 1.'
+                  example: 66
+    post:
+      summary: 'Signale un incident.'
+      operationId: signaleUnIncident
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: 'Rejeu du même incident (idempotent)'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 6f1b0c9e-3f6a-4c0e-9a55-2d7b7d0a1c11
+                    type: breakdown
+                    status: open
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          status:
+                            type: string
+                            example: rejected
+                          code:
+                            type: string
+                            example: segment_not_boarded
+                          message:
+                            type: string
+                            example: 'Ce billet n’a pas été embarqué sur ce départ — impossible de signaler une descente.'
+                          recommendedAction:
+                            type: string
+                            example: 'Embarquez d’abord le billet (scan) avant de signaler une descente anticipée.'
+                  -
+                    description: 'Conflit entre deux terminaux (libéré hors ligne des deux côtés)'
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      type:
+                        type: string
+                        example: breakdown
+                      status:
+                        type: string
+                        example: open
+                      description:
+                        type: string
+                        example: 'Crevaison au niveau de Ouidah, changement de roue en cours.'
+                      latitude:
+                        type: number
+                        example: 6.3654
+                      longitude:
+                        type: number
+                        example: 2.4183
+                      occurred_at:
+                        type: string
+                        example: '2026-09-22T09:14:00.000Z'
+                      created_at:
+                        type: string
+                        example: '2026-09-22T09:14:05.000Z'
+                      departure:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          status:
+                            type: string
+                            example: conflict
+                          code:
+                            type: string
+                            example: COT-LFW
+                          date:
+                            type: string
+                            example: '2026-09-22'
+                          time:
+                            type: string
+                            example: '08:00'
+        403:
+          description: 'Départ inconnu ou non affecté'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: departure_not_assigned
+                    message: 'Ce départ ne vous est pas affecté.'
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      status:
+                        type: string
+                        example: 'Ce départ ne vous est pas affecté.'
+        409:
+          description: 'Identifiant déjà utilisé par un autre utilisateur'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: incident_uuid_conflict
+                    message: 'Cet identifiant d’incident est déjà utilisé.'
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: incident_uuid_conflict
+                      message:
+                        type: string
+                        example: 'Cet identifiant d’incident est déjà utilisé.'
+      tags:
+        - 'OPS Mobile — Incidents'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                incident_uuid:
+                  type: string
+                  description: 'UUID public du départ (la jambe en cours).'
+                  example: 00000000-0000-4000-8000-000000000000
+                ticket_uuid:
+                  type: string
+                  description: 'UUID public du billet.'
+                  example: 00000000-0000-4000-8000-000000000000
+                actual_stop_uuid:
+                  type: string
+                  description: "UUID public de l'arrêt où le passager est réellement descendu."
+                  example: 00000000-0000-4000-8000-000000000000
+                operation_uuid:
+                  type: string
+                  description: 'UUID généré par le terminal, unique par tentative — les retries sont sans effet secondaire.'
+                  example: 00000000-0000-4000-8000-000000000000
+                local_recorded_at:
+                  type: string
+                  description: 'Heure locale du terminal (ISO 8601).'
+                  example: '2026-09-22T09:14:00Z'
+                  nullable: true
+              required:
+                - incident_uuid
+                - type
+                - description
+                - departure_uuid
+  '/api/v1/ops/incidents/{id}':
+    get:
+      summary: "Détail d'un de MES incidents (404 pour celui d'un autre)."
+      operationId: dtailDunDeMESIncidents404PourCeluiDunAutre
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'OPS Mobile — Incidents'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the incident.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+      -
+        in: path
+        name: incident
+        description: "UUID de l'incident."
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/departures/{departure_uuid}/status':
+    post:
+      summary: 'Change le statut du départ (embarquement → parti → arrivé).'
+      operationId: changeLeStatutDuDpartembarquementPartiArriv
+      description: "Transitions : programmé → embarquement → parti → arrivé. Idempotent :\nredemander le statut déjà atteint renvoie 200 sans effet (rejeu hors\nligne). `occurred_at` est l'heure locale du terminal ; à défaut,\nl'heure de réception."
+      parameters: []
+      responses:
+        200:
+          description: 'Statut mis à jour'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                    status: departed
+                    boarding_started_at: '2026-09-22T07:40:00.000Z'
+                    departed_at: '2026-09-22T08:07:00.000Z'
+                    arrived_at: null
+                    delay_minutes: 0
+                    delay_reason: null
+                    delay_recorded_at: null
+                properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        uuid: 9b1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0eb1
+                        status: accepted
+                        ticketUuid: 3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e41
+                        departureUuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                    items:
+                      type: object
+                      properties:
+                        uuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        status:
+                          type: string
+                          example: accepted
+                        ticketUuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        departureUuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+        422:
+          description: 'Transition impossible'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: invalid_transition
+                    message: 'Transition impossible : Programmé → En route.'
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: invalid_transition
+                      message:
+                        type: string
+                        example: 'Transition impossible : Programmé → En route.'
+      tags:
+        - 'OPS Mobile — Progression du départ'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                departure_uuid:
+                  type: string
+                  description: 'UUID public du départ à clôturer.'
+                  example: 00000000-0000-4000-8000-000000000000
+                operation_uuid:
+                  type: string
+                  description: 'UUID généré par le terminal pour cette clôture — les retries sont sans effet secondaire (chaque billet no-show obtient un identifiant dérivé, déterministe).'
+                  example: 00000000-0000-4000-8000-000000000000
+                local_recorded_at:
+                  type: string
+                  description: 'Heure locale du terminal (ISO 8601).'
+                  example: '2026-09-22T08:07:00Z'
+                  nullable: true
+              required:
+                - departure_uuid
+                - operation_uuid
+                - local_recorded_at
+  /api/v1/ops-mobile/session:
+    delete:
+      summary: "Déconnexion : ferme la session OPS du jeton courant (motif `logout`) et\nsupprime ce jeton. Idempotent, sans contrôle du terminal : un convoyeur\ndoit toujours pouvoir se déconnecter, même terminal en maintenance."
+      operationId: dconnexionFermeLaSessionOPSDuJetonCourantmotiflogoutEtSupprimeCeJetonIdempotentSansContrleDuTerminalUnConvoyeurDoitToujoursPouvoirSeDconnecterMmeTerminalEnMaintenance
+      description: ''
+      parameters: []
+      responses:
+        204:
+          description: 'Session fermée'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ''
+        401:
+          description: 'Jeton inconnu ou déjà révoqué'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: session_invalid
+                    message: 'Session invalide. Reconnectez-vous.'
+                    action: reauthenticate
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: session_invalid
+                      message:
+                        type: string
+                        example: 'Session invalide. Reconnectez-vous.'
+                      action:
+                        type: string
+                        example: reauthenticate
+      tags:
+        - 'OPS Mobile — Session'
+    get:
+      summary: "État de la session courante. À appeler au retour du réseau ou au\ndémarrage de l'app pour savoir de façon déterministe s'il faut\ncontinuer, renouveler ou se reconnecter."
+      operationId: tatDeLaSessionCouranteAppelerAuRetourDuRseauOuAuDmarrageDeLappPourSavoirDeFaonDterministeSilFautContinuerRenouvelerOuSeReconnecter
+      description: ''
+      parameters:
+        -
+          in: header
+          name: X-Terminal-Serial
+          description: ''
+          example: 'Numéro de série du terminal. Example: P501-000123'
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Session active'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: b3091549-9179-454e-8440-58179f2208df
+                    serial_number: P501-000123
+                    status: active
+                    session:
+                      uuid: 0c9d3e2a-6c0f-4f57-8d0e-0d6a3c1f5b11
+                      state: active
+                      expires_at: '2026-09-14T21:00:00.000Z'
+                      renewable_until: '2026-09-15T09:00:00.000Z'
+                    capabilities:
+                      departures_view: true
+                      boarding_scan: true
+                      seat_release: true
+                  meta:
+                    server_time: '2026-09-14T10:00:00.000Z'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      serial_number:
+                        type: string
+                        example: P501-000123
+                      status:
+                        type: string
+                        example: active
+                      session:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          state:
+                            type: string
+                            example: active
+                          expires_at:
+                            type: string
+                            example: '2026-09-14T21:00:00.000Z'
+                          renewable_until:
+                            type: string
+                            example: '2026-09-15T09:00:00.000Z'
+                      capabilities:
+                        type: object
+                        properties:
+                          departures_view:
+                            type: boolean
+                            example: false
+                          boarding_scan:
+                            type: boolean
+                            example: false
+                          seat_release:
+                            type: boolean
+                            example: false
+                  meta:
+                    type: object
+                    properties:
+                      server_time:
+                        type: string
+                        example: '2026-09-14T10:00:00.000Z'
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  -
+                    description: 'Session expirée'
+                    type: object
+                    example:
+                      error:
+                        code: session_expired
+                        message: 'Votre session a expiré. Reconnectez-vous.'
+                        action: reauthenticate
+                        reason: expired
+                    properties:
+                      error:
+                        type: object
+                        properties:
+                          code:
+                            type: string
+                            example: session_expired
+                          message:
+                            type: string
+                            example: 'Votre session a expiré. Reconnectez-vous.'
+                          action:
+                            type: string
+                            example: reauthenticate
+                          reason:
+                            type: string
+                            example: expired
+                  -
+                    description: 'Session révoquée'
+                    type: object
+                    example:
+                      error:
+                        code: session_revoked
+                        message: 'Votre session a été fermée. Reconnectez-vous.'
+                        action: reauthenticate
+                        reason: terminal_lost
+                    properties:
+                      error:
+                        type: object
+                        properties:
+                          code:
+                            type: string
+                            example: session_revoked
+                          message:
+                            type: string
+                            example: 'Votre session a été fermée. Reconnectez-vous.'
+                          action:
+                            type: string
+                            example: reauthenticate
+                          reason:
+                            type: string
+                            example: terminal_lost
+        403:
+          description: 'Autre terminal'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: terminal_mismatch
+                    message: 'Cette session est liée à un autre terminal. Ouvrez une session sur ce terminal.'
+                    action: open_session
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: terminal_mismatch
+                      message:
+                        type: string
+                        example: 'Cette session est liée à un autre terminal. Ouvrez une session sur ce terminal.'
+                      action:
+                        type: string
+                        example: open_session
+      tags:
+        - 'OPS Mobile — Session'
+  /api/v1/ops-mobile/session/renew:
+    post:
+      summary: "Renouvelle la session : prolonge la fenêtre (12 h par défaut) sans\njamais dépasser `renewable_until` (durée absolue de 24 h par défaut)."
+      operationId: renouvelleLaSessionProlongeLaFentre12HParDfautSansJamaisDpasserrenewableUntildureAbsolueDe24HParDfaut
+      description: "Le compte, le rôle, le terminal et son affectation sont revérifiés. Une\nsession expirée n'est JAMAIS prolongée : le mobile doit se reconnecter."
+      parameters:
+        -
+          in: header
+          name: X-Terminal-Serial
+          description: ''
+          example: 'Numéro de série du terminal. Example: P501-000123'
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Session renouvelée'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    session:
+                      uuid: 0c9d3e2a-6c0f-4f57-8d0e-0d6a3c1f5b11
+                      state: active
+                      expires_at: '2026-09-14T22:00:00.000Z'
+                      renewable_until: '2026-09-15T09:00:00.000Z'
+                      renewal_count: 1
+                  meta:
+                    server_time: '2026-09-14T10:00:00.000Z'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      session:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          state:
+                            type: string
+                            example: active
+                          expires_at:
+                            type: string
+                            example: '2026-09-14T22:00:00.000Z'
+                          renewable_until:
+                            type: string
+                            example: '2026-09-15T09:00:00.000Z'
+                          renewal_count:
+                            type: integer
+                            example: 1
+                  meta:
+                    type: object
+                    properties:
+                      server_time:
+                        type: string
+                        example: '2026-09-14T10:00:00.000Z'
+        401:
+          description: 'Session expirée (aucune prolongation silencieuse)'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: session_expired
+                    message: 'Votre session a expiré. Reconnectez-vous.'
+                    action: reauthenticate
+                    reason: expired
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: session_expired
+                      message:
+                        type: string
+                        example: 'Votre session a expiré. Reconnectez-vous.'
+                      action:
+                        type: string
+                        example: reauthenticate
+                      reason:
+                        type: string
+                        example: expired
+        403:
+          description: 'Terminal en maintenance'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: terminal_maintenance
+                    message: 'Ce terminal est en maintenance. Réessayez plus tard.'
+                    action: retry_later
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: terminal_maintenance
+                      message:
+                        type: string
+                        example: 'Ce terminal est en maintenance. Réessayez plus tard.'
+                      action:
+                        type: string
+                        example: retry_later
+      tags:
+        - 'OPS Mobile — Session'
+  /api/v1/ops/sync/manifest-versions:
+    post:
+      summary: "Vérifie, pour plusieurs départs à la fois, si le manifeste déjà en\ncache sur le terminal est encore à jour. Le re-téléchargement\neffectif se fait ensuite via l'endpoint manifeste existant\n(GET /api/v1/ops/departures/{departure}/manifest)."
+      operationId: vrifiePourPlusieursDpartsLaFoisSiLeManifesteDjEnCacheSurLeTerminalEstEncoreJourLeReTlchargementEffectifSeFaitEnsuiteViaLendpointManifesteExistantGETapiv1opsdeparturesdeparturemanifest
+      description: ''
+      parameters: []
+      responses:
+        422:
+          description: 'Retard refusé'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: invalid_delay
+                    message: 'Le retard ne peut être enregistré que pour un départ programmé ou en embarquement.'
+                properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        departureUuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                        currentVersion: a1b2c3d4e5f60718
+                        stale: true
+                        accessible: true
+                      -
+                        departureUuid: 7c1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e33
+                        currentVersion: 3f9a1c2e8b7d4a10
+                        stale: false
+                        accessible: true
+                      -
+                        departureUuid: 5f2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e21
+                        currentVersion: null
+                        stale: false
+                        accessible: false
+                    items:
+                      type: object
+                      properties:
+                        departureUuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        currentVersion:
+                          type: string
+                          example: a1b2c3d4e5f60718
+                        stale:
+                          type: boolean
+                          example: false
+                        accessible:
+                          type: boolean
+                          example: false
+      tags:
+        - 'OPS Mobile — Progression du départ'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                delay_minutes:
+                  type: integer
+                  description: "Retard en minutes (0 pour l'annuler)."
+                  example: 25
+                delay_reason:
+                  type: string
+                  description: Motif.
+                  example: "Attente d'un car de correspondance"
+              required:
+                - delay_minutes
+                - delay_reason
+    parameters:
+      -
+        in: path
+        name: departure_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+      -
+        in: path
+        name: departure
+        description: 'UUID du départ.'
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
   /api/v1/ops/seat-releases:
     post:
       summary: "Enregistre une descente anticipée à partir du billet, du départ et\nde l'arrêt réel."
@@ -8054,10 +8976,645 @@ paths:
                         example:
                           - 'The selected type is invalid.'
                         items:
-                          type: string
+                          type: object
+                          properties:
+                            operationUuid:
+                              type: string
+                              example: 00000000-0000-4000-8000-000000000000
+                            operationType:
+                              type: string
+                              example: boarding.scan
+                            status:
+                              type: string
+                              example: accepted
+                            result:
+                              type: object
+                              properties:
+                                status:
+                                  type: string
+                                  example: accepted
+                                code:
+                                  type: string
+                                  example: null
+                                  nullable: true
+                                message:
+                                  type: string
+                                  example: null
+                                  nullable: true
+                                recommendedAction:
+                                  type: string
+                                  example: null
+                                  nullable: true
+                                entityType:
+                                  type: string
+                                  example: boarding_event
+                                entityUuid:
+                                  type: string
+                                  example: 00000000-0000-4000-8000-000000000000
       tags:
         - 'OPS Mobile — Terminal'
       requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                serial_number:
+                  type: string
+                  description: 'UUID généré par le terminal pour ce lot — un rejeu du même batch_uuid renvoie le résultat déjà calculé, sans retraiter.'
+                  example: 00000000-0000-4000-8000-000000000000
+                operations:
+                  type: array
+                  description: "Liste des opérations du lot (max 200). `payload` accepte librement tout champ additionnel utile à l'audit — notamment `manifest_version`, la version du manifeste que le terminal avait en cache au moment de l'action (stockée telle quelle, jamais interprétée pour bloquer le traitement)."
+                  example:
+                    -
+                      operation_uuid: 6f1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e99
+                      operation_type: boarding.scan
+                      local_recorded_at: '2026-10-01T07:58:00Z'
+                      payload:
+                        departure_uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                        short_code: AB12CD
+                        manifest_version: 3f9a1c2e8b7d4a10
+                  items:
+                    type: string
+              required:
+                - batch_uuid
+                - operations
+  /api/v1/ops-mobile/terminal/handshake:
+    post:
+      summary: "Ouverture de session OPS : à appeler juste après le login pour lier la\nsession (jeton Sanctum) au terminal physique utilisé."
+      operationId: ouvertureDeSessionOPSAppelerJusteAprsLeLoginPourLierLaSessionjetonSanctumAuTerminalPhysiqueUtilis
+      description: "Vérifie, dans l'ordre : terminal connu et actif, compte actif, rôle\nterrain, permission `departures.view`, terminal affecté à\nl'utilisateur. Ouvrir une session ferme les précédentes de\nl'utilisateur et du terminal (motif `replaced`).\n\n`data` reprend les champs du terminal (contrat historique) et ajoute la\nsession (`expires_at`, `renewable_until`), l'utilisateur et ses\npermissions OPS (`capabilities`). Après une perte réseau, appeler\n`POST ops-mobile/session/renew` AVANT `expires_at` ; une session\nexpirée impose de se reconnecter puis de refaire ce handshake."
+      parameters: []
+      responses:
+        200:
+          description: 'Session ouverte'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: b3091549-9179-454e-8440-58179f2208df
+                    serial_number: P501-000123
+                    type: p501
+                    status: active
+                    last_sync_at: null
+                    last_handshake_at: '2026-09-14T09:00:00.000Z'
+                    session:
+                      uuid: 0c9d3e2a-6c0f-4f57-8d0e-0d6a3c1f5b11
+                      state: active
+                      opened_at: '2026-09-14T09:00:00.000Z'
+                      expires_at: '2026-09-14T21:00:00.000Z'
+                      renewable_until: '2026-09-15T09:00:00.000Z'
+                      renewed_at: null
+                      renewal_count: 0
+                    capabilities:
+                      departures_view: true
+                      boarding_scan: true
+                      seat_release: true
+                    user:
+                      uuid: 977e5426-8d13-3824-86aa-b092f8ae52c5
+                      name: 'Marc Adjagba'
+                      status: active
+                      permissions:
+                        - departures.view
+                        - boarding.scan
+                  meta:
+                    server_time: '2026-09-14T09:00:00.000Z'
+                properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        uuid: 0c9d3e2a-6c0f-4f57-8d0e-0d6a3c1f5b11
+                        event_uuid: 5a1f0d43-1b52-4f0a-a7f7-0b6c4d2e9a10
+                        type: scan_conflict
+                        severity: critical
+                        title: 'Conflit de scan'
+                        message: 'Un billet du départ COT-LFW du 21/09/2026 à 07:30 a été scanné sur deux terminaux (P501-000123 et P501-000124). Vérifiez l’embarquement du passager.'
+                        action: review_scan_conflict
+                        is_read: false
+                        read_at: null
+                        created_at: '2026-09-21T07:41:12.000Z'
+                        occurred_at: '2026-09-21T07:41:12.000Z'
+                        departure:
+                          uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                          line_code: COT-LFW
+                          date: '2026-09-21'
+                          time: '07:30'
+                        terminal:
+                          uuid: b3091549-9179-454e-8440-58179f2208df
+                          serial_number: P501-000124
+                        data:
+                          code: conflict
+                          accepted_terminal_serial: P501-000123
+                          conflicting_terminal_serial: P501-000124
+                    items:
+                      type: object
+                      properties:
+                        uuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        event_uuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        type:
+                          type: string
+                          example: scan_conflict
+                        severity:
+                          type: string
+                          example: critical
+                        title:
+                          type: string
+                          example: 'Conflit de scan'
+                        message:
+                          type: string
+                          example: 'Un billet du départ COT-LFW du 21/09/2026 à 07:30 a été scanné sur deux terminaux (P501-000123 et P501-000124). Vérifiez l’embarquement du passager.'
+                        action:
+                          type: string
+                          example: review_scan_conflict
+                        is_read:
+                          type: boolean
+                          example: false
+                        read_at:
+                          type: string
+                          example: null
+                          nullable: true
+                        created_at:
+                          type: string
+                          example: '2026-09-21T07:41:12.000Z'
+                        occurred_at:
+                          type: string
+                          example: '2026-09-21T07:41:12.000Z'
+                        departure:
+                          type: object
+                          properties:
+                            uuid:
+                              type: string
+                              example: 00000000-0000-4000-8000-000000000000
+                            line_code:
+                              type: string
+                              example: COT-LFW
+                            date:
+                              type: string
+                              example: '2026-09-21'
+                            time:
+                              type: string
+                              example: '07:30'
+                        terminal:
+                          type: object
+                          properties:
+                            uuid:
+                              type: string
+                              example: 00000000-0000-4000-8000-000000000000
+                            serial_number:
+                              type: string
+                              example: P501-000124
+                        data:
+                          type: object
+                          properties:
+                            code:
+                              type: string
+                              example: conflict
+                            accepted_terminal_serial:
+                              type: string
+                              example: P501-000123
+                            conflicting_terminal_serial:
+                              type: string
+                              example: P501-000124
+                  meta:
+                    type: object
+                    properties:
+                      current_page:
+                        type: integer
+                        example: 1
+                      per_page:
+                        type: integer
+                        example: 30
+                      total:
+                        type: integer
+                        example: 1
+                      last_page:
+                        type: integer
+                        example: 1
+                      unread_count:
+                        type: integer
+                        example: 1
+                      critical_unread_count:
+                        type: integer
+                        example: 1
+                      server_time:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      serial_number:
+                        type: string
+                        example: P501-000123
+                      type:
+                        type: string
+                        example: p501
+                      status:
+                        type: string
+                        example: 'Votre session a expiré. Reconnectez-vous.'
+                      action:
+                        type: string
+                        example: reauthenticate
+                      reason:
+                        type: string
+                        example: '2026-09-14T09:00:00.000Z'
+                      session:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          state:
+                            type: string
+                            example: active
+                          opened_at:
+                            type: string
+                            example: '2026-09-14T09:00:00.000Z'
+                          expires_at:
+                            type: string
+                            example: '2026-09-14T21:00:00.000Z'
+                          renewable_until:
+                            type: string
+                            example: '2026-09-15T09:00:00.000Z'
+                          renewed_at:
+                            type: string
+                            example: null
+                            nullable: true
+                          renewal_count:
+                            type: integer
+                            example: 0
+                      capabilities:
+                        type: object
+                        properties:
+                          departures_view:
+                            type: boolean
+                            example: false
+                          boarding_scan:
+                            type: boolean
+                            example: false
+                          seat_release:
+                            type: boolean
+                            example: false
+                      user:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          name:
+                            type: string
+                            example: 'Marc Adjagba'
+                          status:
+                            type: string
+                            example: active
+                          permissions:
+                            type: array
+                            example:
+                              - departures.view
+                              - boarding.scan
+                            items:
+                              type: string
+                  meta:
+                    type: object
+                    properties:
+                      server_time:
+                        type: string
+                        example: '2026-09-14T09:00:00.000Z'
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  -
+                    description: 'Terminal perdu'
+                    type: object
+                    example:
+                      error:
+                        code: terminal_lost
+                        message: 'Ce terminal a été déclaré perdu. Il ne peut plus être utilisé.'
+                        action: contact_agency
+                    properties:
+                      error:
+                        type: object
+                        properties:
+                          code:
+                            type: string
+                            example: terminal_lost
+                          message:
+                            type: string
+                            example: 'Ce terminal a été déclaré perdu. Il ne peut plus être utilisé.'
+                          action:
+                            type: string
+                            example: contact_agency
+                  -
+                    description: 'Terminal affecté à un autre utilisateur'
+                    type: object
+                    example:
+                      error:
+                        code: terminal_not_assigned
+                        message: 'Ce terminal ne vous est pas affecté. Contactez votre agence.'
+                        action: contact_agency
+                    properties:
+                      error:
+                        type: object
+                        properties:
+                          code:
+                            type: string
+                            example: terminal_not_assigned
+                          message:
+                            type: string
+                            example: 'Ce terminal ne vous est pas affecté. Contactez votre agence.'
+                          action:
+                            type: string
+                            example: contact_agency
+                  -
+                    description: 'Compte sans rôle OPS'
+                    type: object
+                    example:
+                      error:
+                        code: role_not_authorized
+                        message: 'Votre compte n’a pas de rôle autorisé sur KORA OPS Mobile.'
+                        action: contact_agency
+                    properties:
+                      error:
+                        type: object
+                        properties:
+                          code:
+                            type: string
+                            example: role_not_authorized
+                          message:
+                            type: string
+                            example: 'Votre compte n’a pas de rôle autorisé sur KORA OPS Mobile.'
+                          action:
+                            type: string
+                            example: contact_agency
+        404:
+          description: 'Terminal inconnu'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: terminal_unknown
+                    message: 'Ce terminal n’est pas enregistré. Contactez votre agence.'
+                    action: contact_agency
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      updated:
+                        type: integer
+                        example: 3
+                  meta:
+                    type: object
+                    properties:
+                      unread_count:
+                        type: integer
+                        example: 0
+                      server_time:
+                        type: string
+                        example: 'Ce terminal n’est pas enregistré. Contactez votre agence.'
+                      action:
+                        type: string
+                        example: contact_agency
+      tags:
+        - 'OPS — Notifications'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                before:
+                  type: string
+                  description: 'Date ISO 8601 : seules les notifications créées jusque-là sont marquées.'
+                  example: '2026-09-21T07:45:00Z'
+  /api/v1/notifications/preferences:
+    get:
+      summary: "Préférences effectives de l'utilisateur, un élément par type."
+      operationId: prfrencesEffectivesDeLutilisateurUnlmentParType
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: Préférences
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    -
+                      type: scan_conflict
+                      title: 'Conflit de scan'
+                      severity: critical
+                      disableable: false
+                      mail_supported: true
+                      in_app: true
+                      mail: true
+                    -
+                      type: sync_completed
+                      title: 'Synchronisation terminée'
+                      severity: info
+                      disableable: true
+                      mail_supported: false
+                      in_app: true
+                      mail: true
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      serial_number:
+                        type: string
+                        example: P501-000123
+                      status:
+                        type: string
+                        example: active
+                      last_sync_at:
+                        type: string
+                        example: '2026-09-14T09:05:00.000Z'
+                      last_handshake_at:
+                        type: string
+                        example: '2026-09-14T09:00:00.000Z'
+        403:
+          description: 'Terminal non utilisable'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    -
+                      type: sync_completed
+                      title: 'Synchronisation terminée'
+                      severity: info
+                      disableable: true
+                      mail_supported: false
+                      in_app: false
+                      mail: true
+                properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        type: sync_completed
+                        title: 'Synchronisation terminée'
+                        severity: info
+                        disableable: true
+                        mail_supported: false
+                        in_app: false
+                        mail: true
+                    items:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                          example: sync_completed
+                        title:
+                          type: string
+                          example: 'Synchronisation terminée'
+                        severity:
+                          type: string
+                          example: info
+                        disableable:
+                          type: boolean
+                          example: false
+                        mail_supported:
+                          type: boolean
+                          example: false
+                        in_app:
+                          type: boolean
+                          example: false
+                        mail:
+                          type: boolean
+                          example: false
+        422:
+          description: 'Alerte critique'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: notification_not_disableable
+                    message: 'Les alertes critiques ne peuvent pas être désactivées.'
+                    types:
+                      - scan_conflict
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: notification_not_disableable
+                      message:
+                        type: string
+                        example: 'Les alertes critiques ne peuvent pas être désactivées.'
+                      types:
+                        type: array
+                        example:
+                          - scan_conflict
+                        items:
+                          type: string
+      tags:
+        - 'OPS — Notifications'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                preferences:
+                  type: array
+                  description: 'Préférences à modifier.'
+                  example:
+                    - []
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        description: "Type d'événement."
+                        example: sync_completed
+                      in_app:
+                        type: boolean
+                        description: 'Recevoir la notification.'
+                        example: false
+                      mail:
+                        type: boolean
+                        description: "Recevoir l'e-mail d'alerte (types d'alerte uniquement)."
+                        example: false
+                    required:
+                      - type
+              required:
+                - preferences
+  '/api/v1/notifications/{notification}/read':
+    post:
+      summary: "Marque une notification lue (idempotent). Introuvable (404) si elle\nn'appartient pas à l'utilisateur."
+      operationId: marqueUneNotificationLueidempotentIntrouvable404SiElleNappartientPasLutilisateur
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: 'Notification lue'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 0c9d3e2a-6c0f-4f57-8d0e-0d6a3c1f5b11
+                    type: scan_conflict
+                    is_read: true
+                    read_at: '2026-09-21T07:46:00.000Z'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      type:
+                        type: string
+                        example: scan_conflict
+                      is_read:
+                        type: boolean
+                        example: false
+                      read_at:
+                        type: string
+                        example: '2026-09-21T07:46:00.000Z'
+        404:
+          description: "Notification d'un autre utilisateur ou inconnue"
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'No query results for model [App\Modules\Notifications\Models\OpsNotification].'
+                properties:
+                  message:
+                    type: string
+                    example: 'No query results for model [App\Modules\Notifications\Models\OpsNotification].'
+      tags:
+        - 'OPS — Notifications'
+    parameters:
+      -
+        in: path
+        name: notification
+        description: 'UUID de la notification.'
+        example: 00000000-0000-4000-8000-000000000000
         required: true
         content:
           application/json:

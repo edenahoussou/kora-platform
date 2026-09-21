@@ -134,9 +134,8 @@ class ManifesteLocalDataSourceImpl implements ManifesteLocalDataSource {
         <String, Object?>{
           'departure_uuid': departureUuid,
           'manifest_version': manifestVersion,
-          'international': isInternational == null
-              ? null
-              : (isInternational ? 1 : 0),
+          'international':
+              isInternational == null ? null : (isInternational ? 1 : 0),
           'fetched_at': fetchedAt,
         },
         conflictAlgorithm: ConflictAlgorithm.replace,

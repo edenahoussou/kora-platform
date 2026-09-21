@@ -15,4 +15,25 @@ abstract class DepartureRepository {
   /// Détail complet (arrêts, équipage, `manifestVersion`) — appelé à la
   /// sélection d'un départ depuis la Tournée.
   Future<Result<Depart>> show(String departureUuid);
+
+  /// Fait progresser le départ (embarquement → parti → arrivé, MEZ-98).
+  /// [status] : `boarding`, `departed` ou `arrived`. Idempotent côté
+  /// serveur (redemander le statut déjà atteint renvoie 200 sans effet —
+  /// rejeu après coupure réseau) ; retourne le statut confirmé, à
+  /// répercuter sur le [Depart] déjà en mémoire (`copyWith`) plutôt que
+  /// de retélécharger tout le détail. Réservé à l'équipage affecté
+  /// (`departures.progress`).
+  Future<Result<String>> updateStatus(
+    String departureUuid,
+    String status, {
+    DateTime? occurredAt,
+  });
+
+  /// Enregistre un retard (`0` minute pour l'annuler) — départ programmé
+  /// ou en embarquement uniquement.
+  Future<Result<void>> recordDelay(
+    String departureUuid,
+    int delayMinutes,
+    String delayReason,
+  );
 }

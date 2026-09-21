@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Modules\Boarding\Actions\ProcessBoardingScanAction;
 use App\Modules\Boarding\Models\BoardingEvent;
 use App\Modules\Boarding\Models\SeatReleaseEvent;
 use App\Modules\Booking\Data\ReservationChannel;
@@ -13,13 +14,19 @@ use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
+use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\IdentityAccess\Models\TerminalP501;
+use App\Modules\Notifications\Mail\OpsAlertMail;
+use App\Modules\Notifications\Models\OpsNotification;
+use App\Modules\Notifications\Models\OpsNotificationEvent;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Sync\Models\SyncBatch;
 use App\Modules\Sync\Models\SyncOperation;
 use App\Modules\Ticketing\Actions\BuildTicketQrPayloadAction;
 use App\Modules\Ticketing\Models\Ticket;
 use Database\Seeders\KoraBusRolePermissionSeeder;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 beforeEach(function (): void {
@@ -573,4 +580,180 @@ it('updates the terminal last_sync_at after processing a batch', function (): vo
         ->assertOk();
 
     expect($terminal->refresh()->last_sync_at)->not->toBeNull();
+});
+
+/**
+ * MEZ-96 — alertes opérationnelles boarding : notifications de synchronisation.
+ *
+ * @return array{0: User, 1: User} Directeur des opérations de l'agence du convoyeur, super-administrateur.
+ */
+function syncAlertWorld(User $conductor): array
+{
+    $agency = Agency::factory()->create();
+    $conductor->forceFill(['agency_id' => $agency->id])->save();
+
+    $director = User::factory()->create(['agency_id' => $agency->id]);
+    $director->assignRole('operations_director');
+    $admin = User::factory()->create();
+    $admin->assignRole('system_admin');
+
+    return [$director, $admin];
+}
+
+function syncNotifiedWith(User $user, string $type): int
+{
+    return OpsNotification::query()
+        ->where('user_id', $user->id)
+        ->whereHas('event', fn ($event) => $event->where('type', $type))
+        ->count();
+}
+
+function syncEventsOf(string $type): Collection
+{
+    return OpsNotificationEvent::query()->where('type', $type)->orderBy('id')->get();
+}
+
+it('notifies the submitter once per batch, with a single alert for all rejected operations', function (): void {
+    Mail::fake();
+    [$user, $token] = syncCrewToken('conductor');
+    [$director, $admin] = syncAlertWorld($user);
+    $terminal = syncTerminal();
+    $line = syncLine();
+    [$a, $b] = syncTwoStops($line);
+    [$bus, $seat1] = syncBusWithSeat();
+    $seat2 = Seat::query()->create(['bus_id' => $bus->id, 'code' => '1B', 'type' => 'standard', 'sellable' => true, 'status' => 'active']);
+    $seat3 = Seat::query()->create(['bus_id' => $bus->id, 'code' => '1C', 'type' => 'standard', 'sellable' => true, 'status' => 'active']);
+    $departure = syncDeparture($line, $bus, ['conductor_id' => $user->id]);
+    [$goodTicket] = syncTicketedPassenger($departure, $a, $b, $seat1, 'ticketed');
+    [$cancelledOne] = syncTicketedPassenger($departure, $a, $b, $seat2, 'ticketed', ticketStatus: 'cancelled');
+    [$cancelledTwo] = syncTicketedPassenger($departure, $a, $b, $seat3, 'ticketed', ticketStatus: 'cancelled');
+
+    $rejectedOps = [syncSeatReleaseOperation($departure, $cancelledOne, $b), syncSeatReleaseOperation($departure, $cancelledTwo, $b)];
+    $payload = [
+        'batch_uuid' => (string) Str::uuid(),
+        'operations' => [syncBoardingScanOperation($departure, $goodTicket), ...$rejectedOps],
+    ];
+    $headers = ['X-Terminal-Serial' => $terminal->serial_number];
+
+    $this->withToken($token)->withHeaders($headers)->postJson('/api/v1/ops/sync/batches', $payload)->assertOk();
+    // Rejeu réseau du même lot : rien n'est republié.
+    $this->withToken($token)->withHeaders($headers)->postJson('/api/v1/ops/sync/batches', $payload)->assertOk();
+
+    $completed = syncEventsOf('sync_completed');
+    $rejected = syncEventsOf('operation_rejected');
+
+    expect($completed)->toHaveCount(1)
+        ->and($completed[0]->dedupe_key)->toBe('sync_completed:'.$payload['batch_uuid'])
+        ->and($completed[0]->data['summary'])->toBe(['accepted' => 1, 'pending' => 0, 'conflict' => 0, 'rejected' => 2])
+        ->and($rejected)->toHaveCount(1)
+        ->and($rejected[0]->data['rejected_count'])->toBe(2)
+        ->and(collect($rejected[0]->data['operations'])->pluck('operation_uuid')->sort()->values()->all())
+        ->toBe(collect($rejectedOps)->pluck('operation_uuid')->sort()->values()->all())
+        ->and(syncNotifiedWith($user, 'sync_completed'))->toBe(1)
+        ->and(syncNotifiedWith($user, 'operation_rejected'))->toBe(1)
+        ->and(syncNotifiedWith($director, 'operation_rejected'))->toBe(1)
+        ->and(syncNotifiedWith($admin, 'operation_rejected'))->toBe(1)
+        // Une synchronisation réussie n'est ni un e-mail ni une alerte pour la direction.
+        ->and(syncNotifiedWith($director, 'sync_completed'))->toBe(0)
+        ->and(syncNotifiedWith($admin, 'sync_completed'))->toBe(0);
+
+    Mail::assertSent(
+        OpsAlertMail::class,
+        fn ($mail): bool => $mail->event->type->value === 'operation_rejected' && $mail->hasTo($director->email) && $mail->hasCc($admin->email),
+    );
+    Mail::assertSent(OpsAlertMail::class, 1);
+});
+
+it('marks a batch failed and alerts the operators, then resumes on replay with the same batch uuid without duplicating anything', function (): void {
+    Mail::fake();
+    [$user, $token] = syncCrewToken('conductor');
+    [$director, $admin] = syncAlertWorld($user);
+    $terminal = syncTerminal();
+    $line = syncLine();
+    [$a, $b, $c] = syncThreeStops($line);
+    [$bus, $seat1] = syncBusWithSeat();
+    $seat2 = Seat::query()->create(['bus_id' => $bus->id, 'code' => '1B', 'type' => 'standard', 'sellable' => true, 'status' => 'active']);
+    $departure = syncDeparture($line, $bus, ['conductor_id' => $user->id]);
+    [$scanTicket] = syncTicketedPassenger($departure, $a, $c, $seat1, 'ticketed');
+    [$releaseTicket] = syncTicketedPassenger($departure, $a, $c, $seat2, 'boarded');
+
+    $payload = [
+        'batch_uuid' => (string) Str::uuid(),
+        'operations' => [syncBoardingScanOperation($departure, $scanTicket), syncSeatReleaseOperation($departure, $releaseTicket, $b)],
+    ];
+    $headers = ['X-Terminal-Serial' => $terminal->serial_number];
+
+    // 1er envoi : la libération (traitée en premier) aboutit, puis le scan échoue (panne technique).
+    $failing = Mockery::mock(ProcessBoardingScanAction::class);
+    $failing->shouldReceive('execute')->andThrow(new RuntimeException('db down'));
+    $this->instance(ProcessBoardingScanAction::class, $failing);
+
+    $this->withToken($token)->withHeaders($headers)->postJson('/api/v1/ops/sync/batches', $payload)->assertStatus(500);
+
+    $batch = SyncBatch::query()->where('uuid', $payload['batch_uuid'])->firstOrFail();
+
+    expect($batch->status->value)->toBe('failed')
+        ->and(syncEventsOf('sync_failed'))->toHaveCount(1)
+        ->and(syncEventsOf('sync_completed'))->toHaveCount(0)
+        ->and(syncNotifiedWith($user, 'sync_failed'))->toBe(1)
+        ->and(syncNotifiedWith($director, 'sync_failed'))->toBe(1)
+        ->and(syncNotifiedWith($admin, 'sync_failed'))->toBe(1)
+        ->and(SeatReleaseEvent::query()->count())->toBe(1);
+
+    Mail::assertSent(
+        OpsAlertMail::class,
+        fn ($mail): bool => $mail->event->type->value === 'sync_failed' && $mail->hasTo($director->email) && $mail->hasCc($admin->email),
+    );
+
+    // 2e envoi, même batch_uuid, une fois la panne levée : le lot reprend là où il s'était arrêté.
+    $this->app->forgetInstance(ProcessBoardingScanAction::class);
+
+    $response = $this->withToken($token)->withHeaders($headers)->postJson('/api/v1/ops/sync/batches', $payload)->assertOk();
+
+    expect($batch->refresh()->status->value)->toBe('completed')
+        ->and($response->json('data.summary'))->toBe(['accepted' => 2, 'pending' => 0, 'conflict' => 0, 'rejected' => 0])
+        ->and(SyncBatch::query()->count())->toBe(1)
+        ->and(SyncOperation::query()->count())->toBe(2)
+        ->and(SeatReleaseEvent::query()->count())->toBe(1)
+        ->and(BoardingEvent::query()->count())->toBe(1)
+        ->and(syncEventsOf('sync_failed'))->toHaveCount(1)
+        ->and(syncEventsOf('sync_completed'))->toHaveCount(1)
+        ->and(syncNotifiedWith($user, 'sync_completed'))->toBe(1);
+
+    Mail::assertSent(OpsAlertMail::class, 1);
+});
+
+it('tells the crew to refresh a manifest that changed server-side, once per version and never for its own boarding scans', function (): void {
+    [$user, $token] = syncCrewToken('conductor');
+    $terminal = syncTerminal();
+    $line = syncLine();
+    [$a, $b] = syncTwoStops($line);
+    [$bus, $seat1] = syncBusWithSeat();
+    $seat2 = Seat::query()->create(['bus_id' => $bus->id, 'code' => '1B', 'type' => 'standard', 'sellable' => true, 'status' => 'active']);
+    $departure = syncDeparture($line, $bus, ['conductor_id' => $user->id]);
+    $uncrewed = syncDeparture($line, $bus);
+
+    [$ticket] = syncTicketedPassenger($departure, $a, $b, $seat1, 'ticketed');
+
+    $first = syncEventsOf('manifest_stale');
+    expect($first)->toHaveCount(1)
+        ->and($first[0]->departure_id)->toBe($departure->id)
+        ->and($first[0]->data['manifest_version'])->toBeString()
+        ->and(syncNotifiedWith($user, 'manifest_stale'))->toBe(1);
+
+    // Le terminal embarque lui-même le passager : le mobile le sait déjà, aucune alerte.
+    $this->withToken($token)->withHeaders(['X-Terminal-Serial' => $terminal->serial_number])
+        ->postJson('/api/v1/ops/sync/batches', [
+            'batch_uuid' => (string) Str::uuid(),
+            'operations' => [syncBoardingScanOperation($departure, $ticket)],
+        ])->assertOk();
+    expect(syncEventsOf('manifest_stale'))->toHaveCount(1);
+
+    // Une nouvelle vente change la version du manifeste : nouvelle alerte.
+    syncTicketedPassenger($departure, $a, $b, $seat2, 'ticketed');
+    expect(syncEventsOf('manifest_stale'))->toHaveCount(2);
+
+    // Un départ sans équipage n'a personne à prévenir.
+    syncTicketedPassenger($uncrewed, $a, $b, $seat1, 'ticketed');
+    expect(syncEventsOf('manifest_stale'))->toHaveCount(2);
 });

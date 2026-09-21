@@ -3,9 +3,9 @@
 namespace Database\Seeders;
 
 use App\Modules\IdentityAccess\Data\SystemRole;
+use App\Modules\IdentityAccess\Models\Role;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class KoraBusRolePermissionSeeder extends Seeder
@@ -25,18 +25,25 @@ class KoraBusRolePermissionSeeder extends Seeder
             $role = Role::query()->firstOrCreate([
                 'name' => $roleEnum->value,
                 'guard_name' => 'web',
+            ], [
+                'is_system' => true,
+                'label' => __('system_role.'.$roleEnum->value),
+                'category' => $roleEnum->category()->value,
+                'is_active' => true,
             ]);
 
-            $permissions = $roleEnum === SystemRole::SystemAdmin
-                ? SystemRole::allPermissions()
-                : $roleEnum->permissions();
+            if ($role->wasRecentlyCreated) {
+                $permissions = $roleEnum === SystemRole::SystemAdmin
+                    ? SystemRole::allPermissions()
+                    : $roleEnum->permissions();
 
-            $role->syncPermissions(
-                Permission::query()
-                    ->whereIn('name', $permissions)
-                    ->where('guard_name', 'web')
-                    ->get(),
-            );
+                $role->syncPermissions(
+                    Permission::query()
+                        ->whereIn('name', $permissions)
+                        ->where('guard_name', 'web')
+                        ->get(),
+                );
+            }
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();

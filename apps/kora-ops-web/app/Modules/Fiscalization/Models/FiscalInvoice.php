@@ -2,7 +2,9 @@
 
 namespace App\Modules\Fiscalization\Models;
 
+use App\Models\User;
 use App\Modules\Booking\Models\Reservation;
+use App\Modules\Fiscalization\Data\FiscalInvoiceDocumentKind;
 use App\Modules\Fiscalization\Data\FiscalInvoiceStatus;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Support\Models\KoraModel;
@@ -13,8 +15,11 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property FiscalInvoiceStatus $status
+ * @property FiscalInvoiceDocumentKind $document_kind
+ * @property array<string, mixed>|null $source_snapshot
  * @property int $total_with_tax
  * @property Carbon|null $fiscalized_at
+ * @property Carbon|null $requested_at
  */
 class FiscalInvoice extends KoraModel
 {
@@ -26,6 +31,13 @@ class FiscalInvoice extends KoraModel
         'mecef_uid',
         'emecf_invoice_id',
         'status',
+        'document_kind',
+        'original_fiscal_invoice_id',
+        'requested_by_user_id',
+        'credit_note_reason',
+        'credit_note_idempotency_key',
+        'source_snapshot',
+        'requested_at',
         'last_error',
         'total_without_tax',
         'total_tax',
@@ -38,8 +50,11 @@ class FiscalInvoice extends KoraModel
     {
         return [
             'status' => FiscalInvoiceStatus::class,
+            'document_kind' => FiscalInvoiceDocumentKind::class,
             'tax_snapshot' => 'array',
+            'source_snapshot' => 'encrypted:array',
             'fiscalized_at' => 'datetime',
+            'requested_at' => 'datetime',
         ];
     }
 
@@ -65,5 +80,23 @@ class FiscalInvoice extends KoraModel
     public function syncAttempts(): HasMany
     {
         return $this->hasMany(FiscalSyncAttempt::class);
+    }
+
+    /** @return BelongsTo<self, $this> */
+    public function originalFiscalInvoice(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'original_fiscal_invoice_id');
+    }
+
+    /** @return HasMany<self, $this> */
+    public function creditNotes(): HasMany
+    {
+        return $this->hasMany(self::class, 'original_fiscal_invoice_id');
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function requestedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'requested_by_user_id');
     }
 }

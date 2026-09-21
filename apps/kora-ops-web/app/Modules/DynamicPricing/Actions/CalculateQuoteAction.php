@@ -18,6 +18,7 @@ use App\Modules\DynamicPricing\Models\PricingSetting;
 use App\Modules\DynamicPricing\Models\ServiceClass;
 use App\Modules\SeatInventory\Actions\BuildSeatAvailabilityAction;
 use App\Modules\SeatInventory\Data\SeatAvailabilityStatus;
+use App\Modules\Settings\Settings\OperationsSettings;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 
@@ -137,7 +138,7 @@ class CalculateQuoteAction
             'total_amount' => $pricing['total_amount'],
             'currency' => $fare->currency,
             'snapshot' => $snapshot,
-            'expires_at' => now()->addMinutes((int) config('kora.bookings.quote_ttl_minutes', 10)),
+            'expires_at' => now()->addMinutes(app(OperationsSettings::class)->quoteTtlMinutes),
         ]);
     }
 

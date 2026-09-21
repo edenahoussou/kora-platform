@@ -83,14 +83,15 @@ void main() {
         failureKind: PrinterFailureKind.outOfPaper,
       );
 
-      expect(await printer.printBorderManifest(manifest,
-          copyNumber: 1, totalCopies: 3), isTrue);
+      expect(
+          await printer.printBorderManifest(manifest,
+              copyNumber: 1, totalCopies: 3),
+          isTrue);
 
       await expectLater(
         printer.printBorderManifest(manifest, copyNumber: 2, totalCopies: 3),
-        throwsA(isA<PrinterException>()
-            .having((PrinterException e) => e.kind, 'kind',
-                PrinterFailureKind.outOfPaper)),
+        throwsA(isA<PrinterException>().having((PrinterException e) => e.kind,
+            'kind', PrinterFailureKind.outOfPaper)),
       );
 
       // Un exemplaire en échec n'est jamais compté comme imprimé.
@@ -114,20 +115,20 @@ void main() {
       expect(PrinterFailureKind.outOfPaper.userMessage(), contains('papier'));
       expect(PrinterFailureKind.notConnected.userMessage(),
           contains('Imprimante'));
-      expect(PrinterFailureKind.overheated.userMessage(),
-          contains('surchauffe'));
+      expect(
+          PrinterFailureKind.overheated.userMessage(), contains('surchauffe'));
     });
 
     test('une panne inconnue réutilise le message du SDK', () {
-      expect(PrinterFailureKind.unknown.userMessage('Code SDK 42'),
-          'Code SDK 42');
+      expect(
+          PrinterFailureKind.unknown.userMessage('Code SDK 42'), 'Code SDK 42');
       expect(PrinterFailureKind.unknown.userMessage(),
           contains('Erreur de l\'imprimante'));
     });
 
     test('PrinterException expose un message affichable', () {
-      const PrinterException paper = PrinterException(
-          'NO_PAPER', PrinterFailureKind.outOfPaper);
+      const PrinterException paper =
+          PrinterException('NO_PAPER', PrinterFailureKind.outOfPaper);
       expect(paper.userMessage, contains('papier'));
     });
   });
