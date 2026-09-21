@@ -20,6 +20,15 @@ enum SystemRole: string
     case GeneralManagement = 'general_management';
     case SystemAdmin = 'system_admin';
 
+    public function category(): RoleCategory
+    {
+        return match ($this) {
+            self::BusDriver, self::Mechanic, self::Conductor => RoleCategory::Terrain,
+            self::AgencyAgent, self::AgencyManager => RoleCategory::Agency,
+            default => RoleCategory::Central,
+        };
+    }
+
     /**
      * Permissions associées au rôle.
      *
@@ -292,6 +301,10 @@ enum SystemRole: string
             'expenses.export',
             'revenue.view',
             'revenue.export',
+            'users.view',
+            'users.manage',
+            'roles.view',
+            'roles.manage',
         ];
     }
 
