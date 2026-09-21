@@ -44,7 +44,7 @@ class ListOpsNotificationsRequest extends FormRequest
             'unread' => $this->boolean('unread'),
             'type' => $this->filled('type') ? $this->string('type')->toString() : null,
             'severity' => $this->filled('severity') ? $this->string('severity')->toString() : null,
-            'since' => $this->filled('since') ? Carbon::parse($this->string('since')->toString())->setTimezone((string) config('app.timezone')) : null,
+            'since' => $this->filled('since') ? Carbon::parse($this->string('since')->toString())->utc() : null,
         ];
     }
 }

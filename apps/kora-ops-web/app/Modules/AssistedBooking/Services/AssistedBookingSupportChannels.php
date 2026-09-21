@@ -5,6 +5,7 @@ namespace App\Modules\AssistedBooking\Services;
 use App\Modules\AssistedBooking\Data\AssistedBookingChannel;
 use App\Modules\AssistedBooking\Exceptions\AssistedBookingSupportUnavailableException;
 use App\Modules\AssistedBooking\Models\AssistedBooking;
+use App\Modules\Settings\Settings\GeneralSettings;
 
 class AssistedBookingSupportChannels
 {
@@ -46,7 +47,7 @@ class AssistedBookingSupportChannels
             }
 
             $departureAt = isset($leg['departure_at'])
-                ? now()->parse($leg['departure_at'])->timezone(config('app.timezone'))->format('d/m/Y H:i')
+                ? now()->parse($leg['departure_at'])->timezone(app(GeneralSettings::class)->timezone)->format('d/m/Y H:i')
                 : 'horaire à confirmer';
 
             $legs[] = sprintf('%s → %s, %s', $leg['origin'] ?? '?', $leg['destination'] ?? '?', $departureAt);
@@ -60,7 +61,7 @@ class AssistedBookingSupportChannels
         }
 
         $seats = implode(', ', array_unique($seatCodes));
-        $validUntil = $assistedBooking->expires_at->timezone(config('app.timezone'))->format('d/m/Y H:i');
+        $validUntil = $assistedBooking->expires_at->timezone(app(GeneralSettings::class)->timezone)->format('d/m/Y H:i');
 
         return implode("\n", [
             'Bonjour, je souhaite terminer cette réservation KORA :',
@@ -76,8 +77,10 @@ class AssistedBookingSupportChannels
 
     private function phone(AssistedBookingChannel $channel): ?string
     {
-        $key = $channel === AssistedBookingChannel::WhatsApp ? 'whatsapp_phone' : 'call_phone';
-        $value = config('kora.assisted_bookings.support.'.$key);
+        $settings = app(GeneralSettings::class);
+        $value = $channel === AssistedBookingChannel::WhatsApp
+            ? $settings->supportWhatsappPhone
+            : $settings->supportCallPhone;
 
         if (! is_string($value)) {
             return null;

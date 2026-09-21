@@ -16,6 +16,7 @@ use App\Modules\DynamicPricing\Actions\CalculateQuoteAction;
 use App\Modules\DynamicPricing\Actions\ResolvePromotionAction;
 use App\Modules\DynamicPricing\Data\PricingBreakdownData;
 use App\Modules\DynamicPricing\Models\PriceQuote;
+use App\Modules\Settings\Settings\OperationsSettings;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -220,7 +221,7 @@ class CalculateItineraryQuoteAction
                 'total_amount' => $totalAmount,
                 'currency' => $currency,
                 'snapshot' => $snapshot,
-                'expires_at' => $earliestExpiry ?? now()->addMinutes((int) config('kora.bookings.quote_ttl_minutes', 10)),
+                'expires_at' => $earliestExpiry ?? now()->addMinutes(app(OperationsSettings::class)->quoteTtlMinutes),
             ]);
 
             foreach ($legs as $index => $leg) {
@@ -271,7 +272,7 @@ class CalculateItineraryQuoteAction
         }
 
         foreach ($indexesByDirection as $direction => $indexes) {
-            if (count($indexes) > (int) config('kora.itineraries.max_legs', 3)) {
+            if (count($indexes) > app(OperationsSettings::class)->maxLegs) {
                 throw ValidationException::withMessages([
                     'legs' => "Le nombre maximal de jambes autorisé est dépassé pour la direction {$direction}.",
                 ]);
@@ -324,7 +325,7 @@ class CalculateItineraryQuoteAction
                     $previousLeg->departure,
                     $previousLeg->destinationStop,
                 );
-                $margin = (int) config('kora.itineraries.connection_margin_minutes', 45);
+                $margin = app(OperationsSettings::class)->connectionMarginMinutes;
 
                 if ($previousArrivalAt === null || $departureAt->lt($previousArrivalAt->addMinutes($margin))) {
                     throw ValidationException::withMessages([
@@ -383,7 +384,7 @@ class CalculateItineraryQuoteAction
         $inboundFirstDepartureAt = $this->stopTimeResolver->departureAt($inboundFirst->departure, $inboundFirst->originStop);
 
         if ($outboundLastArrivalAt !== null && $inboundFirstDepartureAt !== null) {
-            $roundTripMargin = (int) config('kora.itineraries.round_trip_margin_minutes', 0);
+            $roundTripMargin = app(OperationsSettings::class)->roundTripMarginMinutes;
             if ($inboundFirstDepartureAt->lt($outboundLastArrivalAt->addMinutes($roundTripMargin))) {
                 throw ValidationException::withMessages([
                     'inbound_legs' => 'Le retour doit partir après l’arrivée de l’aller.',

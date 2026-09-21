@@ -14,6 +14,7 @@ use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Actions\CalculateFarePreviewAction;
 use App\Modules\DynamicPricing\Models\Fare;
 use App\Modules\SeatInventory\Actions\BuildSeatAvailabilityAction;
+use App\Modules\Settings\Settings\OperationsSettings;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -165,7 +166,7 @@ class ItinerarySearchService
                 originPhysicalStopUuid: $originPhysical->uuid,
                 destinationPhysicalStopUuid: $destinationPhysical->uuid,
                 fromDate: CarbonImmutable::today(),
-                days: (int) config('kora.itineraries.default_search_days', 7),
+                days: app(OperationsSettings::class)->defaultSearchDays,
                 passengerCount: 1,
             );
 
@@ -188,7 +189,7 @@ class ItinerarySearchService
                     originPhysicalStopUuid: $destinationPhysical->uuid,
                     destinationPhysicalStopUuid: $originPhysical->uuid,
                     fromDate: $fromDate,
-                    days: (int) config('kora.itineraries.default_search_days', 7),
+                    days: app(OperationsSettings::class)->defaultSearchDays,
                     passengerCount: 1,
                 );
             }
@@ -246,7 +247,7 @@ class ItinerarySearchService
                 }
             }
 
-            if (count($merged) >= (int) config('kora.itineraries.max_results', 25)) {
+            if (count($merged) >= app(OperationsSettings::class)->maxResults) {
                 break;
             }
         }
@@ -321,9 +322,10 @@ class ItinerarySearchService
             return [];
         }
 
-        $maxLegs = (int) config('kora.itineraries.max_legs', 3);
-        $marginMinutes = (int) config('kora.itineraries.connection_margin_minutes', 45);
-        $maxWaitHours = (int) config('kora.itineraries.max_wait_hours', 12);
+        $settings = app(OperationsSettings::class);
+        $maxLegs = $settings->maxLegs;
+        $marginMinutes = $settings->connectionMarginMinutes;
+        $maxWaitHours = $settings->maxWaitHours;
 
         $itineraries = $this->findItineraries(
             originPhysicalId: $originPhysical->id,
@@ -392,7 +394,7 @@ class ItinerarySearchService
         int $passengerCount,
         array &$results,
     ): void {
-        if (count($legs) >= $maxLegs || count($results) >= (int) config('kora.itineraries.max_results', 25)) {
+        if (count($legs) >= $maxLegs || count($results) >= app(OperationsSettings::class)->maxResults) {
             return;
         }
 

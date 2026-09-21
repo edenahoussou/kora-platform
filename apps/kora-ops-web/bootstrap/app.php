@@ -7,6 +7,7 @@ use App\Modules\IdentityAccess\Http\Middleware\EnsureOpsSession;
 use App\Modules\IdentityAccess\Http\Middleware\EnsureTerminalIsUsable;
 use App\Modules\IdentityAccess\Services\OpsSessionAuthenticationFailureResponder;
 use App\Modules\Notifications\Http\Middleware\EnsureNotificationsAccess;
+use App\Modules\Settings\Middleware\ApplyKoraSettings;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -30,11 +31,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
 
         $middleware->web(append: [
+            ApplyKoraSettings::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
             EnsurePasswordChanged::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
+
+        $middleware->api(append: [ApplyKoraSettings::class]);
 
         $middleware->alias([
             'terminal.active' => EnsureTerminalIsUsable::class,

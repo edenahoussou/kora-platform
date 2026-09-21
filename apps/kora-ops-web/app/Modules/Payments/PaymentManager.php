@@ -7,6 +7,8 @@ use App\Modules\Payments\Data\MobileMoneyNetwork;
 use App\Modules\Payments\Providers\Fake\FakePaymentProvider;
 use App\Modules\Payments\Providers\FedaPayAdapter;
 use App\Modules\Payments\Providers\MtnMomoAdapter;
+use App\Modules\Settings\Settings\GeneralSettings;
+use App\Modules\Settings\Settings\IntegrationsSettings;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
@@ -95,7 +97,7 @@ class PaymentManager
 
         return [
             'country' => 'BJ',
-            'currency' => (string) config('app.currency', 'XOF'),
+            'currency' => app(GeneralSettings::class)->currency,
             'methods' => [
                 [
                     'code' => 'mobile_money',
@@ -121,7 +123,9 @@ class PaymentManager
             return false;
         }
 
-        return (bool) config("payments.providers.{$provider}.enabled", false)
+        $settings = app(IntegrationsSettings::class);
+
+        return (bool) ($provider === 'fedapay' ? $settings->fedapayEnabled : $settings->mtnMomoEnabled)
             && $this->hasCredentials($provider);
     }
 
@@ -164,17 +168,17 @@ class PaymentManager
     public function providerCurrency(string $provider): string
     {
         if ($provider === 'mtn_momo') {
-            $environment = (string) config('payments.providers.mtn_momo.environment', 'sandbox');
+            $settings = app(IntegrationsSettings::class);
+            $environment = $settings->mtnMomoEnvironment;
 
-            return (string) config(
-                $environment === 'production'
-                    ? 'payments.providers.mtn_momo.production_currency'
-                    : 'payments.providers.mtn_momo.sandbox_currency',
-                $environment === 'production' ? 'XOF' : 'EUR',
-            );
+            return $environment === 'production'
+                ? $settings->mtnMomoProductionCurrency
+                : $settings->mtnMomoSandboxCurrency;
         }
 
-        return (string) config("payments.providers.{$provider}.currency", config('app.currency', 'XOF'));
+        return $provider === 'fedapay'
+            ? app(IntegrationsSettings::class)->fedapayCurrency
+            : app(GeneralSettings::class)->currency;
     }
 
     /**
@@ -199,26 +203,16 @@ class PaymentManager
         ]);
     }
 
-    /**
-     * @return list<string>
-     */
-    private function requiredCredentials(string $provider): array
-    {
-        return match ($provider) {
-            'fedapay' => ['secret_key'],
-            'mtn_momo' => ['subscription_key', 'user_id', 'api_key'],
-            default => [],
-        };
-    }
-
     private function hasCredentials(string $provider): bool
     {
-        foreach ($this->requiredCredentials($provider) as $credential) {
-            if (blank(config("payments.providers.{$provider}.{$credential}"))) {
-                return false;
-            }
-        }
+        $settings = app(IntegrationsSettings::class);
 
-        return true;
+        return match ($provider) {
+            'fedapay' => filled($settings->fedapaySecretKey),
+            'mtn_momo' => filled($settings->mtnMomoSubscriptionKey)
+                && filled($settings->mtnMomoUserId)
+                && filled($settings->mtnMomoApiKey),
+            default => true,
+        };
     }
 }

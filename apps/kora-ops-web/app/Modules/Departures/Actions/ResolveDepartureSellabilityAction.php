@@ -7,6 +7,7 @@ use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Data\SellabilityReason;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\Departures\Support\CutoffResolver;
+use App\Modules\Settings\Settings\GeneralSettings;
 use Carbon\CarbonImmutable;
 
 class ResolveDepartureSellabilityAction
@@ -15,7 +16,7 @@ class ResolveDepartureSellabilityAction
 
     public function handle(Departure $departure, ?CarbonImmutable $now = null): DepartureSellabilityData
     {
-        $now ??= CarbonImmutable::now(config('app.timezone'));
+        $now ??= CarbonImmutable::now(app(GeneralSettings::class)->timezone);
         $scheduledDepartureAt = $departure->scheduledDepartureAt();
         $delayMinutes = max(0, (int) $departure->delay_minutes);
         $effectiveDepartureAt = $scheduledDepartureAt->addMinutes($delayMinutes);
@@ -52,10 +53,6 @@ class ResolveDepartureSellabilityAction
     /** @return list<string> */
     private function sellableStatuses(): array
     {
-        $statuses = config('kora.departures.sellability.sellable_statuses', ['scheduled']);
-
-        return is_array($statuses)
-            ? array_values(array_filter($statuses, 'is_string'))
-            : ['scheduled'];
+        return ['scheduled'];
     }
 }

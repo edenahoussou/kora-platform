@@ -4,6 +4,8 @@ namespace App\Console\Commands;
 
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Models\Departure;
+use App\Modules\Settings\Settings\GeneralSettings;
+use App\Modules\Settings\Settings\OperationsSettings;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 
@@ -15,8 +17,9 @@ class FlagStaleDeparturesCommand extends Command
 
     public function handle(): int
     {
-        $now = CarbonImmutable::now(config('app.timezone'));
-        $thresholdHours = max(1, (int) config('kora.departures.sellability.stale_threshold_hours', 24));
+        $settings = app(OperationsSettings::class);
+        $now = CarbonImmutable::now(app(GeneralSettings::class)->timezone);
+        $thresholdHours = max(1, $settings->staleDepartureHours);
         $staleCount = 0;
 
         Departure::query()

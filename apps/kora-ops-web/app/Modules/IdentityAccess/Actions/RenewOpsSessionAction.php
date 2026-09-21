@@ -8,6 +8,7 @@ use App\Modules\IdentityAccess\Data\OpsSessionRevocationReason;
 use App\Modules\IdentityAccess\Exceptions\OpsSessionException;
 use App\Modules\IdentityAccess\Models\TerminalP501;
 use App\Modules\IdentityAccess\Models\TerminalSession;
+use App\Modules\Settings\Settings\OperationsSettings;
 
 use function activity;
 
@@ -39,7 +40,7 @@ class RenewOpsSessionAction
             throw new OpsSessionException(OpsSessionErrorCode::SessionExpired, OpsSessionRevocationReason::Expired->value);
         }
 
-        $candidate = $now->copy()->addMinutes((int) config('ops_session.ttl_minutes', 720));
+        $candidate = $now->copy()->addMinutes(app(OperationsSettings::class)->opsSessionTtlMinutes);
         $ceiling = $session->absolute_expires_at;
         $expiresAt = $ceiling !== null && $candidate->gt($ceiling) ? $ceiling->copy() : $candidate;
 
