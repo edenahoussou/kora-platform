@@ -1,0 +1,90 @@
+<?php
+
+namespace App\Modules\IdentityAccess\Actions;
+
+use App\Models\User;
+use App\Modules\IdentityAccess\Data\RoleCategory;
+use App\Modules\IdentityAccess\Http\Requests\UserRoleResolver;
+use App\Modules\IdentityAccess\Models\Agency;
+use Illuminate\Support\Facades\DB;
+
+class UpdateUserAction
+{
+    public function __construct(
+        private readonly UserRoleResolver $roleResolver,
+    ) {}
+
+    /**
+     * @param  array{name: string, email: string, phone: string|null, country_code: string|null, birth_date: string|null, status: string, agency_uuid: string|null, role: string}  $attributes
+     */
+    public function execute(User $user, array $attributes, User $actor): User
+    {
+        $before = [
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'status' => $user->status->value,
+            'agency_uuid' => $user->agency?->uuid,
+            'role' => $user->roles->first()?->name,
+        ];
+
+        $updated = DB::transaction(function () use ($user, $attributes): User {
+            $role = $this->roleResolver->resolve((string) $attributes['role']);
+            $agency = $this->resolveAgency($attributes['agency_uuid'] ?? null);
+            $this->assertAssignment($role->category, $agency !== null);
+
+            $emailChanged = $user->email !== $attributes['email'];
+
+            $user->forceFill([
+                'name' => $attributes['name'],
+                'email' => $attributes['email'],
+                'phone' => $attributes['phone'] ?? null,
+                'country_code' => $attributes['country_code'] ?? null,
+                'birth_date' => $attributes['birth_date'] ?? null,
+                'status' => $attributes['status'],
+                'agency_id' => $agency?->getKey(),
+                'email_verified_at' => $emailChanged ? null : $user->email_verified_at,
+            ])->save();
+
+            $user->syncRoles([$role->name]);
+
+            return $user->refresh()->load(['agency', 'roles']);
+        });
+
+        activity('identity-access')
+            ->performedOn($updated)
+            ->causedBy($actor)
+            ->withProperties([
+                'before' => $before,
+                'after' => [
+                    'email' => $updated->email,
+                    'phone' => $updated->phone,
+                    'status' => $updated->status->value,
+                    'agency_uuid' => $updated->agency?->uuid,
+                    'role' => $updated->roles->first()?->name,
+                ],
+            ])
+            ->log('user_updated');
+
+        return $updated;
+    }
+
+    private function resolveAgency(?string $uuid): ?Agency
+    {
+        if ($uuid === null || $uuid === '') {
+            return null;
+        }
+
+        return Agency::query()->where('uuid', $uuid)->firstOrFail();
+    }
+
+    private function assertAssignment(?RoleCategory $category, bool $hasAgency): void
+    {
+        if ($category !== null && in_array($category, [RoleCategory::Agency, RoleCategory::Terrain], true) && ! $hasAgency) {
+            abort(422, 'Une agence est obligatoire pour ce rôle.');
+        }
+
+        if ($category === RoleCategory::Central && $hasAgency) {
+            abort(422, 'Un rôle central ne peut pas être rattaché à une agence.');
+        }
+    }
+}
