@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/errors/failures.dart';
+import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../domain/entities/terminal.dart';
 import '../../domain/repositories/terminal_repository.dart';
 
@@ -13,9 +14,25 @@ part 'terminal_state.dart';
 /// l'écran de liaison terminal doit s'afficher (voir MEZ-91 / document.md
 /// § Terminal P501, même rôle qu'`AuthCubit` pour la session).
 class TerminalCubit extends Cubit<TerminalState> {
-  TerminalCubit(this._repository) : super(const TerminalInitial());
+  TerminalCubit(this._repository, AuthCubit authCubit)
+      : super(const TerminalInitial()) {
+    // La session OPS (`TerminalSession` côté backend) est liée au jeton
+    // Sanctum courant : un nouveau login change de jeton, donc l'ancienne
+    // session OPS ne couvre plus les appels `ops/*` même si le terminal
+    // reste correctement lié sur cet appareil (GET /ops/departures répond
+    // alors 401 "Aucune session OPS n'est ouverte pour ce terminal").
+    // On rejoue donc le handshake dès qu'une connexion aboutit — même
+    // stratégie que `NotificationCubit`, qui écoute déjà `AuthCubit` pour
+    // se réinitialiser à la connexion.
+    _authSubscription = authCubit.stream.listen((AuthState state) {
+      if (state is AuthAuthenticated) {
+        unawaited(_relinkAfterAuthentication());
+      }
+    });
+  }
 
   final TerminalRepository _repository;
+  late final StreamSubscription<AuthState> _authSubscription;
 
   /// Appelé au démarrage (voir `SplashPage._bootstrap`, en parallèle de
   /// `AuthCubit.checkAuthStatus`) : relit le terminal en cache pour une
@@ -87,5 +104,24 @@ class TerminalCubit extends Cubit<TerminalState> {
   Future<void> forget() async {
     await _repository.forget();
     emit(const TerminalUnlinked());
+  }
+
+  /// Déclenché automatiquement sur `AuthAuthenticated` (voir le `listen`
+  /// du constructeur) : rejoue le handshake du terminal en cache avec le
+  /// jeton fraîchement émis, pour rouvrir la session OPS derrière.
+  /// Ne fait rien s'il n'y a pas de terminal en cache ("tant que c'est
+  /// valide") : `AuthGuard` renvoie déjà sur `/terminal/setup` dans ce
+  /// cas, il n'y a rien à relier automatiquement.
+  Future<void> _relinkAfterAuthentication() async {
+    final Terminal? cached = await _repository.cachedTerminal();
+    if (cached == null) return;
+
+    await _refreshInBackground(cached.serialNumber);
+  }
+
+  @override
+  Future<void> close() {
+    unawaited(_authSubscription.cancel());
+    return super.close();
   }
 }

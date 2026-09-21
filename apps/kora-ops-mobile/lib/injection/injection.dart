@@ -225,7 +225,7 @@ Future<void> configureDependencies() async {
   );
 
   getIt.registerSingleton<TerminalCubit>(
-    TerminalCubit(getIt<TerminalRepository>()),
+    TerminalCubit(getIt<TerminalRepository>(), getIt<AuthCubit>()),
   );
 
   // --- Client réseau historique — plus aucune feature ne le consomme

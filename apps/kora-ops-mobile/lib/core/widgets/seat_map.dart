@@ -6,22 +6,28 @@ import '../../app/theme/app_text_styles.dart';
 import '../../app/theme/kora_colors.dart';
 import '../../features/ops/domain/entities/seat.dart';
 
-/// Plan du bus (voir échange du 17/08/2026) : avant du véhicule avec les
+/// Plan du bus (voir échange du 21/09/2026) : avant du véhicule avec les
 /// places chauffeur/convoyeur, puis les rangées de sièges passagers
-/// séparées par une allée centrale — 1 siège à gauche de l'allée, 2 à
-/// droite (disposition 1+2, courante sur les cars intercités), fidèle au
-/// séquençage `MockOpsDataSource` (3 sièges par rangée : A à gauche de
-/// l'allée, B/C à droite).
+/// séparées par une allée centrale — 2 sièges à gauche de l'allée, 2 à
+/// droite (disposition 2+2, classique sur les cars intercités). Regroupe
+/// la liste plate en rangées de 4 (A, B | allée | C, D).
 class SeatMap extends StatelessWidget {
-  const SeatMap({required this.seats, super.key});
+  const SeatMap({required this.seats, this.onSeatTap, super.key});
 
   final List<Seat> seats;
 
-  /// Regroupe la liste plate en rangées de 3 (A, B, C).
+  /// Tap sur un siège — `null` désactive l'interaction (le siège reste un
+  /// simple indicateur visuel). Utilisé par `DescenteAnticipeePage` pour
+  /// ouvrir le détail du billet du passager qui s'y trouve (refonte
+  /// UI/UX du 21/09/2026).
+  final void Function(Seat seat)? onSeatTap;
+
+  /// Regroupe la liste plate en rangées de 4 (A, B à gauche ; C, D à
+  /// droite).
   List<List<Seat>> get _rows {
     final List<List<Seat>> rows = <List<Seat>>[];
-    for (int i = 0; i < seats.length; i += 3) {
-      rows.add(seats.sublist(i, i + 3 > seats.length ? seats.length : i + 3));
+    for (int i = 0; i < seats.length; i += 4) {
+      rows.add(seats.sublist(i, i + 4 > seats.length ? seats.length : i + 4));
     }
     return rows;
   }
@@ -78,19 +84,29 @@ class SeatMap extends StatelessWidget {
               const SizedBox(height: AppSpacing.md),
               // --- Rangées de sièges, séparées par l'allée centrale ---
               ..._rows.map((List<Seat> row) {
-                final Seat? left = row.isNotEmpty ? row[0] : null;
-                final Seat? rightA = row.length > 1 ? row[1] : null;
-                final Seat? rightB = row.length > 2 ? row[2] : null;
+                final Seat? leftA = row.isNotEmpty ? row[0] : null;
+                final Seat? leftB = row.length > 1 ? row[1] : null;
+                final Seat? rightA = row.length > 2 ? row[2] : null;
+                final Seat? rightB = row.length > 3 ? row[3] : null;
 
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 5),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: <Widget>[
-                      if (left != null)
-                        _SeatChip(seat: left)
-                      else
-                        const SizedBox(width: 44),
+                      Row(
+                        children: <Widget>[
+                          if (leftA != null)
+                            _SeatChip(seat: leftA, onTap: onSeatTap)
+                          else
+                            const SizedBox(width: 44),
+                          const SizedBox(width: AppSpacing.sm),
+                          if (leftB != null)
+                            _SeatChip(seat: leftB, onTap: onSeatTap)
+                          else
+                            const SizedBox(width: 44),
+                        ],
+                      ),
                       // Allée centrale.
                       SizedBox(
                         width: 36,
@@ -100,9 +116,15 @@ class SeatMap extends StatelessWidget {
                       ),
                       Row(
                         children: <Widget>[
-                          if (rightA != null) _SeatChip(seat: rightA),
+                          if (rightA != null)
+                            _SeatChip(seat: rightA, onTap: onSeatTap)
+                          else
+                            const SizedBox(width: 44),
                           const SizedBox(width: AppSpacing.sm),
-                          if (rightB != null) _SeatChip(seat: rightB),
+                          if (rightB != null)
+                            _SeatChip(seat: rightB, onTap: onSeatTap)
+                          else
+                            const SizedBox(width: 44),
                         ],
                       ),
                     ],
@@ -156,9 +178,10 @@ class _CrewSeat extends StatelessWidget {
 }
 
 class _SeatChip extends StatelessWidget {
-  const _SeatChip({required this.seat});
+  const _SeatChip({required this.seat, this.onTap});
 
   final Seat seat;
+  final void Function(Seat seat)? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -173,28 +196,39 @@ class _SeatChip extends StatelessWidget {
     final Color foreground =
         isFullyOccupied ? AppColors.white : AppColors.onGold;
 
+    final Widget chip = Container(
+      width: 44,
+      height: 44,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: isFullyOccupied ? 1 : 0.15),
+        border: Border.all(color: color, width: 1.5),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
+      child: Text(
+        seat.numero,
+        style: TextStyle(
+          color: isFullyOccupied ? foreground : color,
+          fontWeight: FontWeight.w700,
+          fontSize: 11,
+        ),
+      ),
+    );
+
     return Tooltip(
       message: seat.libereAPartirDe != null
           ? 'Libéré à partir de ${seat.libereAPartirDe}'
           : (seat.passengerName ?? 'Libre'),
-      child: Container(
-        width: 44,
-        height: 44,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: isFullyOccupied ? 1 : 0.15),
-          border: Border.all(color: color, width: 1.5),
-          borderRadius: BorderRadius.circular(AppRadius.sm),
-        ),
-        child: Text(
-          seat.numero,
-          style: TextStyle(
-            color: isFullyOccupied ? foreground : color,
-            fontWeight: FontWeight.w700,
-            fontSize: 11,
-          ),
-        ),
-      ),
+      child: onTap == null
+          ? chip
+          : Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                onTap: () => onTap!(seat),
+                child: chip,
+              ),
+            ),
     );
   }
 }

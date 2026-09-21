@@ -101,37 +101,13 @@ class AccueilPage extends StatelessWidget {
                       : context.push(AppRoutes.manifeste),
                 ),
               ),
-              // Accès rapide à la progression du départ (embarquement →
-              // parti → arrivé, MEZ-98) — même action que sur Manifeste,
-              // sans avoir à y entrer (voir échange du 20/09/2026).
-              if (progressStep != null) ...<Widget>[
-                const SizedBox(height: AppSpacing.sm),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                  child: KoraButton(
-                    label: progressStep.label,
-                    variant: KoraButtonVariant.secondary,
-                    icon: progressStep.icon,
-                    onPressed: () =>
-                        progressDeparture(context, depart!, progressStep),
-                  ),
-                ),
-              ],
-              if (canReportIncident) ...<Widget>[
-                const SizedBox(height: AppSpacing.sm),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                  child: KoraButton(
-                    label: 'Signaler un incident',
-                    variant: KoraButtonVariant.danger,
-                    icon: Icons.report_problem,
-                    onPressed: () => context.push(AppRoutes.incidentReport),
-                  ),
-                ),
-              ],
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.md),
+              // Accès rapide à la progression du départ / signalement
+              // d'incident : sortis de l'empilement sous la carte,
+              // intégrés directement à la rangée "Accès rapides" — à la
+              // place de Scan/Descente, qui restent accessibles depuis
+              // l'AppBar du Manifeste tant qu'un départ est sélectionné
+              // (voir ManifestePage).
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                 child: Text('Accès rapides',
@@ -153,19 +129,34 @@ class AccueilPage extends StatelessWidget {
                     ),
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
-                      child: _QuickTile(
-                        icon: Icons.qr_code_scanner_rounded,
-                        label: 'Scan',
-                        onTap: () => context.go(AppRoutes.scanBoarding),
-                      ),
+                      child: depart != null && progressStep != null
+                          ? _QuickTile(
+                              icon: progressStep.icon,
+                              label: progressStep.label,
+                              onTap: () => progressDeparture(
+                                  context, depart, progressStep),
+                            )
+                          : _QuickTile(
+                              icon: Icons.qr_code_scanner_rounded,
+                              label: 'Scan',
+                              onTap: () => context.go(AppRoutes.scanBoarding),
+                            ),
                     ),
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
-                      child: _QuickTile(
-                        icon: Icons.move_down_rounded,
-                        label: 'Descente',
-                        onTap: () => context.go(AppRoutes.descenteAnticipee),
-                      ),
+                      child: depart != null && canReportIncident
+                          ? _QuickTile(
+                              icon: Icons.report_problem,
+                              label: 'Incident',
+                              onTap: () =>
+                                  context.push(AppRoutes.incidentReport),
+                            )
+                          : _QuickTile(
+                              icon: Icons.move_down_rounded,
+                              label: 'Descente',
+                              onTap: () =>
+                                  context.go(AppRoutes.descenteAnticipee),
+                            ),
                     ),
                     const SizedBox(width: AppSpacing.sm),
                     // Ancien tile "Synchro" (avant remplacement par

@@ -244,7 +244,7 @@ it('shows a no-show release as no_show on the manifest, distinct from a genuine 
         ->and($rowsByName['Cancelled Two']['segmentStatus'])->toBe('cancelled');
 });
 
-it('shows an early-disembark release as cancelled on the manifest, not no_show', function (): void {
+it('shows an early-disembark release as early_drop_off on the manifest, distinct from cancelled and no_show', function (): void {
     [$user, $token] = manifestCrewToken('conductor');
     $terminal = manifestActiveTerminal();
     $line = manifestLine();
@@ -269,7 +269,7 @@ it('shows an early-disembark release as cancelled on the manifest, not no_show',
         ->getJson("/api/v1/ops/departures/{$departure->uuid}/manifest")
         ->assertOk();
 
-    expect($response->json('data.0.segmentStatus'))->toBe('cancelled');
+    expect($response->json('data.0.segmentStatus'))->toBe('early_drop_off');
 });
 
 it('lists only departures assigned to the crew member, excluding cancelled ones', function (): void {

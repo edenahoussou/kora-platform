@@ -5,11 +5,13 @@ import 'package:uuid/uuid.dart';
 import '../../../../app/config/app_config.dart';
 import '../../../../app/config/terminal_mode.dart';
 import '../../../../app/router/app_routes.dart';
+import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_radius.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/kora_colors.dart';
 import '../../../../core/services/kora_dialogs.dart';
+import '../../../../core/widgets/action_speed_dial.dart';
 import '../../../../core/widgets/app_state_placeholder.dart';
-import '../../../../core/widgets/kora_button.dart';
 import '../../../../core/widgets/kora_skeleton.dart';
 import '../../../../core/widgets/passenger_list_tile.dart';
 import '../../../../core/widgets/screen_header.dart';
@@ -78,11 +80,7 @@ class ManifestePage extends StatelessWidget {
       ),
     );
     if (!build.isReady) {
-      await KoraDialogs.warning(
-        context,
-        title: 'Manifeste frontière impossible',
-        description: build.issues.join('\n'),
-      );
+      await _showBorderManifestIncompleteDialog(context, build.issues);
       return;
     }
     if (!context.mounted) return;
@@ -165,6 +163,77 @@ class ManifestePage extends StatelessWidget {
         authState.user.can('departures.progress');
     final bool canReportIncident = authState is AuthAuthenticated &&
         authState.user.can('incidents.report');
+    final ManifesteState state = context.watch<ManifesteCubit>().state;
+
+    // Actions du Speed Dial (refonte UI/UX du 21/09/2026) : Scan et
+    // Descente anticipée — sortis de l'AppBar, ils n'ont plus de tuile
+    // sur l'Accueil une fois un départ sélectionné (voir AccueilPage) —
+    // rejoignent ici les actions précédemment empilées sous la liste,
+    // toutes réservées à un départ sélectionné.
+    final List<SpeedDialAction> speedDialActions = <SpeedDialAction>[];
+    if (depart != null) {
+      speedDialActions.addAll(<SpeedDialAction>[
+        SpeedDialAction(
+          icon: Icons.qr_code_scanner_rounded,
+          label: 'Scan',
+          onPressed: () => context.go(AppRoutes.scanBoarding),
+        ),
+        SpeedDialAction(
+          icon: Icons.move_down_rounded,
+          label: 'Descente anticipée',
+          onPressed: () => context.go(AppRoutes.descenteAnticipee),
+        ),
+      ]);
+
+      final bool canPrintBorder = _canPrintBorderManifest(state);
+      final bool canCloseNoShows = _canCloseNoShows(depart, state);
+      final DepartProgressStep? progressStep =
+          canProgressDeparture ? nextDepartProgressStep(depart) : null;
+      // Retard : seulement tant que le départ n'est pas parti (même
+      // règle que RecordDepartureDelayAction).
+      final bool canRecordDelay = canProgressDeparture &&
+          (depart.status == null ||
+              depart.status == 'scheduled' ||
+              depart.status == 'boarding');
+
+      if (progressStep != null) {
+        speedDialActions.add(SpeedDialAction(
+          icon: progressStep.icon,
+          label: progressStep.label,
+          onPressed: () => progressDeparture(context, depart, progressStep),
+        ));
+      }
+      if (canReportIncident) {
+        speedDialActions.add(SpeedDialAction(
+          icon: Icons.report_problem,
+          label: 'Signaler un incident',
+          danger: true,
+          onPressed: () => context.push(AppRoutes.incidentReport),
+        ));
+      }
+      if (canRecordDelay) {
+        speedDialActions.add(SpeedDialAction(
+          icon: Icons.schedule,
+          label: 'Signaler un retard',
+          onPressed: () => recordDepartureDelay(context, depart),
+        ));
+      }
+      if (canPrintBorder) {
+        speedDialActions.add(SpeedDialAction(
+          icon: Icons.print,
+          label: 'Imprimer le manifeste frontière',
+          onPressed: () => _openBorderManifest(context, depart, state),
+        ));
+      }
+      if (canCloseNoShows) {
+        speedDialActions.add(SpeedDialAction(
+          icon: Icons.event_busy,
+          label: 'Clôturer les no-show',
+          danger: true,
+          onPressed: () => _closeNoShows(context, depart, state),
+        ));
+      }
+    }
 
     return Scaffold(
       appBar: ScreenHeader(
@@ -172,6 +241,9 @@ class ManifestePage extends StatelessWidget {
         title: 'Manifeste',
         action: const SyncStatusBanner(compact: true),
       ),
+      floatingActionButton: speedDialActions.isEmpty
+          ? null
+          : ActionSpeedDial(actions: speedDialActions),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
@@ -179,8 +251,8 @@ class ManifestePage extends StatelessWidget {
               ? const AppStatePlaceholder.empty(
                   message: 'Sélectionnez une course depuis l\'onglet Tournée.',
                 )
-              : BlocBuilder<ManifesteCubit, ManifesteState>(
-                  builder: (BuildContext context, ManifesteState state) {
+              : Builder(
+                  builder: (BuildContext innerContext) {
                     final Widget content = switch (state.status) {
                       ManifesteStatus.noDepart =>
                         const AppStatePlaceholder.empty(
@@ -191,18 +263,20 @@ class ManifestePage extends StatelessWidget {
                       ManifesteStatus.error => AppStatePlaceholder.error(
                           message: state.errorMessage ?? 'Erreur inattendue.',
                           actionLabel: 'Réessayer',
-                          onAction: () => context.read<ManifesteCubit>().load(),
+                          onAction: () =>
+                              innerContext.read<ManifesteCubit>().load(),
                         ),
                       ManifesteStatus.success when state.passengers.isEmpty =>
                         const AppStatePlaceholder.empty(
                             message: 'Aucun passager sur ce départ.'),
                       ManifesteStatus.success => RefreshIndicator(
                           onRefresh: () =>
-                              context.read<ManifesteCubit>().load(),
+                              innerContext.read<ManifesteCubit>().load(),
                           child: ListView.separated(
                             itemCount: state.passengers.length,
                             separatorBuilder: (_, __) => Divider(
-                                height: 1, color: context.koraColors.line),
+                                height: 1,
+                                color: innerContext.koraColors.line),
                             itemBuilder: (BuildContext context, int index) {
                               final passenger = state.passengers[index];
                               return PassengerListTile(
@@ -216,8 +290,7 @@ class ManifestePage extends StatelessWidget {
                         ),
                     };
 
-                    final Widget body = (state.status !=
-                                ManifesteStatus.success ||
+                    return (state.status != ManifesteStatus.success ||
                             !state.isStale)
                         ? content
                         : Column(
@@ -228,89 +301,108 @@ class ManifestePage extends StatelessWidget {
                               Expanded(child: content),
                             ],
                           );
-
-                    final bool canPrintBorder = _canPrintBorderManifest(state);
-                    final bool canCloseNoShows =
-                        _canCloseNoShows(depart, state);
-                    final DepartProgressStep? progressStep =
-                        canProgressDeparture
-                            ? nextDepartProgressStep(depart)
-                            : null;
-                    // Retard : seulement tant que le départ n'est pas
-                    // parti (même règle que RecordDepartureDelayAction).
-                    final bool canRecordDelay = canProgressDeparture &&
-                        (depart.status == null ||
-                            depart.status == 'scheduled' ||
-                            depart.status == 'boarding');
-                    if (!canPrintBorder &&
-                        !canCloseNoShows &&
-                        progressStep == null &&
-                        !canRecordDelay &&
-                        !canReportIncident) {
-                      return body;
-                    }
-
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: <Widget>[
-                        Expanded(child: body),
-                        if (progressStep != null) ...<Widget>[
-                          const SizedBox(height: AppSpacing.sm),
-                          KoraButton(
-                            label: progressStep.label,
-                            variant: KoraButtonVariant.secondary,
-                            icon: progressStep.icon,
-                            onPressed: () => progressDeparture(
-                                context, depart, progressStep),
-                          ),
-                        ],
-                        if (canReportIncident) ...<Widget>[
-                          const SizedBox(height: AppSpacing.sm),
-                          KoraButton(
-                            label: 'Signaler un incident',
-                            variant: KoraButtonVariant.danger,
-                            icon: Icons.report_problem,
-                            onPressed: () =>
-                                context.push(AppRoutes.incidentReport),
-                          ),
-                        ],
-                        if (canRecordDelay) ...<Widget>[
-                          const SizedBox(height: AppSpacing.sm),
-                          KoraButton(
-                            label: 'Signaler un retard',
-                            variant: KoraButtonVariant.ghost,
-                            icon: Icons.schedule,
-                            onPressed: () =>
-                                recordDepartureDelay(context, depart),
-                          ),
-                        ],
-                        if (canPrintBorder) ...<Widget>[
-                          const SizedBox(height: AppSpacing.sm),
-                          KoraButton(
-                            label: 'Imprimer le manifeste frontière',
-                            variant: KoraButtonVariant.secondary,
-                            icon: Icons.print,
-                            onPressed: () =>
-                                _openBorderManifest(context, depart, state),
-                          ),
-                        ],
-                        if (canCloseNoShows) ...<Widget>[
-                          const SizedBox(height: AppSpacing.sm),
-                          KoraButton(
-                            label: 'Clôturer les no-show',
-                            variant: KoraButtonVariant.danger,
-                            icon: Icons.event_busy,
-                            onPressed: () =>
-                                _closeNoShows(context, depart, state),
-                          ),
-                        ],
-                        const SizedBox(height: AppSpacing.sm),
-                      ],
-                    );
                   },
                 ),
         ),
       ),
+    );
+  }
+}
+
+/// Dialogue dédié "Manifeste frontière impossible" (refonte UI/UX du
+/// 21/09/2026, point 5) : remplace `KoraDialogs.warning()` ici
+/// uniquement — celui-ci reste utilisé tel quel ailleurs dans l'app pour
+/// des messages courts, jamais concerné par le débordement corrigé ici.
+/// Contenu enveloppé dans un `SingleChildScrollView` avec une hauteur
+/// max adaptative (`RenderFlex overflowed` corrigé, même pattern que
+/// `_DelayPromptDialog` dans KoraDialogs) : la liste de `issues` peut
+/// contenir une ligne par passager incomplet, potentiellement plus haute
+/// que l'écran sur un départ chargé.
+Future<void> _showBorderManifestIncompleteDialog(
+    BuildContext context, List<String> issues) {
+  return showDialog<void>(
+    context: context,
+    builder: (BuildContext dialogContext) =>
+        _BorderManifestIncompleteDialog(issues: issues),
+  );
+}
+
+class _BorderManifestIncompleteDialog extends StatelessWidget {
+  const _BorderManifestIncompleteDialog({required this.issues});
+
+  final List<String> issues;
+
+  @override
+  Widget build(BuildContext context) {
+    final double maxHeight = MediaQuery.of(context).size.height * 0.5;
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
+      icon: const Icon(Icons.report_problem_outlined,
+          color: AppColors.warning, size: 32),
+      title: const Text('Manifeste frontière impossible'),
+      content: SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxHeight),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                issues.length == 1
+                    ? 'Un problème empêche l\'impression :'
+                    : '${issues.length} problèmes empêchent l\'impression :',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              // Pas de Flexible/Expanded ici : le Column est dans un
+              // SingleChildScrollView à hauteur non bornée (ça lèverait
+              // une erreur de layout). `shrinkWrap` suffit à dimensionner
+              // la liste sur son contenu ; c'est le ConstrainedBox +
+              // SingleChildScrollView englobants qui plafonnent et
+              // rendent scrollable l'ensemble au-delà de maxHeight.
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: issues.length,
+                separatorBuilder: (_, __) =>
+                    const SizedBox(height: AppSpacing.xs),
+                itemBuilder: (BuildContext context, int index) => Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    const Padding(
+                      padding: EdgeInsets.only(top: 2),
+                      child: Icon(Icons.circle,
+                          size: 6, color: AppColors.warning),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(issues[index],
+                          style: Theme.of(context).textTheme.bodySmall),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Fermer'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: AppColors.kora),
+          onPressed: () {
+            Navigator.of(context).pop();
+            context.read<ManifesteCubit>().load();
+          },
+          child: const Text('Rafraîchir'),
+        ),
+      ],
     );
   }
 }

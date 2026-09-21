@@ -24,4 +24,5 @@ enum ManifestSegmentStatus: string
     case Boarded = 'boarded';
     case Cancelled = 'cancelled';
     case NoShow = 'no_show';
+    case EarlyDropOff = 'early_drop_off';
 }

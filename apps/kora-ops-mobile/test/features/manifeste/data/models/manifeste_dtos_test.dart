@@ -89,6 +89,41 @@ void main() {
     });
   });
 
+  group('ManifesteDtos.passenger — statut (segmentStatus)', () {
+    test('boarded → embarque', () {
+      final Passenger? passenger =
+          ManifesteDtos.passenger(row()..['segmentStatus'] = 'boarded');
+      expect(passenger?.statut, BoardingStatus.embarque);
+    });
+
+    test('cancelled → refuse (vraie annulation)', () {
+      final Passenger? passenger =
+          ManifesteDtos.passenger(row()..['segmentStatus'] = 'cancelled');
+      expect(passenger?.statut, BoardingStatus.refuse);
+    });
+
+    test('no_show → refuse', () {
+      final Passenger? passenger =
+          ManifesteDtos.passenger(row()..['segmentStatus'] = 'no_show');
+      expect(passenger?.statut, BoardingStatus.refuse);
+    });
+
+    test('early_drop_off → descenduAnticipe, distinct de refuse', () {
+      final Passenger? passenger =
+          ManifesteDtos.passenger(row()..['segmentStatus'] = 'early_drop_off');
+      expect(passenger?.statut, BoardingStatus.descenduAnticipe);
+    });
+
+    test('paid ou statut inconnu → enAttente', () {
+      expect(
+          ManifesteDtos.passenger(row()..['segmentStatus'] = 'paid')?.statut,
+          BoardingStatus.enAttente);
+      expect(
+          ManifesteDtos.passenger(row()..['segmentStatus'] = 'wat')?.statut,
+          BoardingStatus.enAttente);
+    });
+  });
+
   group('ManifesteDtos.isInternational', () {
     test('true / false renvoyés par le serveur', () {
       expect(

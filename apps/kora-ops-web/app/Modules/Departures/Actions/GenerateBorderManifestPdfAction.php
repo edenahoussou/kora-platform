@@ -58,7 +58,8 @@ class GenerateBorderManifestPdfAction
             $status = $statusesBySegmentId[$segment->id] ?? null;
 
             return $status !== ManifestSegmentStatus::Cancelled
-                && $status !== ManifestSegmentStatus::NoShow;
+                && $status !== ManifestSegmentStatus::NoShow
+                && $status !== ManifestSegmentStatus::EarlyDropOff;
         })->values();
 
         if ($travelling->isEmpty()) {
