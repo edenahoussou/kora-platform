@@ -3,14 +3,13 @@
 namespace App\Modules\BusNetwork\Models;
 
 use App\Modules\BusNetwork\Data\MapProvider;
+use App\Modules\Settings\Settings\IntegrationsSettings;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Cache;
 
 /**
  * Réglage admin du fournisseur cartographique. Table à ligne unique :
- * utiliser MapSetting::resolvedProvider() plutôt que Model::query()->first(),
- * pour centraliser le repli sur config('services.maps.default_provider')
- * quand aucun réglage admin n'a été enregistré.
+ * `map_settings` est conservée comme journal de compatibilité. La source de
+ * vérité runtime est désormais IntegrationsSettings.
  *
  * @property MapProvider|string|null $provider
  * @property int|null $updated_by
@@ -57,33 +56,12 @@ class MapSetting extends Model
      */
     public static function resolvedProvider(): MapProvider
     {
-        /** @var string $cached */
-        $cached = Cache::remember(
-            'map-settings:provider',
-            now()->addMinutes(10),
-            function (): string {
-                $setting = static::current();
+        try {
+            return MapProvider::from(app(IntegrationsSettings::class)->mapProvider);
+        } catch (\Throwable) {
+            $legacy = static::current()?->providerEnum();
 
-                $provider = $setting !== null
-                    ? $setting->providerEnum()
-                    : null;
-
-                if (! $provider instanceof MapProvider) {
-                    $default = (string) (config('services.maps.default_provider') ?: 'openstreetmap');
-
-                    $provider = MapProvider::from($default);
-                }
-
-                return $provider->value;
-            }
-        );
-
-        return MapProvider::from($cached);
-    }
-
-    protected static function booted(): void
-    {
-        static::saved(fn () => Cache::forget('map-settings:provider'));
-        static::deleted(fn () => Cache::forget('map-settings:provider'));
+            return $legacy ?? MapProvider::from((string) (config('services.maps.default_provider') ?: 'openstreetmap'));
+        }
     }
 }

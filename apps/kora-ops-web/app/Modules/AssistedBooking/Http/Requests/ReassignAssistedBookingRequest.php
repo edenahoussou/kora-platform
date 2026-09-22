@@ -20,7 +20,6 @@ class ReassignAssistedBookingRequest extends FormRequest
     {
         return [
             'agency_uuid' => ['required', 'uuid', Rule::exists('agencies', 'uuid')->whereNull('deleted_at')],
-            'assignee_uuid' => ['nullable', 'uuid', Rule::exists('users', 'uuid')],
             'reason' => ['required', 'string', 'min:3', 'max:1000'],
         ];
     }

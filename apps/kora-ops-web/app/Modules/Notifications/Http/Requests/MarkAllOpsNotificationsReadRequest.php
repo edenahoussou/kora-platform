@@ -26,6 +26,8 @@ class MarkAllOpsNotificationsReadRequest extends FormRequest
 
     public function before(): ?Carbon
     {
-        return $this->filled('before') ? Carbon::parse($this->string('before')->toString())->setTimezone((string) config('app.timezone')) : null;
+        // Database timestamps are stored in UTC; preserve the instant instead
+        // of converting to the display timezone before the SQL comparison.
+        return $this->filled('before') ? Carbon::parse($this->string('before')->toString())->utc() : null;
     }
 }

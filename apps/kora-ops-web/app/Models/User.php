@@ -6,6 +6,7 @@ use App\Models\Concerns\HasPublicUuid;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\IdentityAccess\Data\UserStatus;
 use App\Modules\IdentityAccess\Models\Agency;
+use App\Modules\IdentityAccess\Models\Role;
 use App\Modules\IdentityAccess\Models\UserDevice;
 use App\Modules\IdentityAccess\Models\UserPreference;
 use App\Modules\IdentityAccess\Models\UserSocialAccount;
@@ -20,6 +21,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
@@ -40,13 +43,16 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string $email
  * @property string|null $phone
  * @property string|null $country_code
- * @property string|null $birth_date
+ * @property Carbon|null $birth_date
+ * @property int|null $agency_id
+ * @property Carbon|null $deleted_at
  * @property UserStatus $status
  * @property string|null $pin_hash
  * @property int $failed_pin_attempts
  * @property Carbon|null $locked_until
  * @property Carbon|null $email_verified_at
  * @property string $password
+ * @property bool $must_change_password
  * @property string|null $two_factor_secret
  * @property string|null $two_factor_recovery_codes
  * @property Carbon|null $two_factor_confirmed_at
@@ -54,13 +60,13 @@ use Spatie\Permission\Traits\HasRoles;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['uuid', 'name', 'email', 'phone', 'country_code', 'birth_date', 'status', 'pin_hash', 'password'])]
+#[Fillable(['uuid', 'name', 'email', 'phone', 'country_code', 'birth_date', 'agency_id', 'status', 'pin_hash', 'password', 'must_change_password'])]
 #[Hidden(['id', 'password', 'pin_hash', 'failed_pin_attempts', 'locked_until', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 #[ObservedBy([UserOpsSessionObserver::class])]
 class User extends Authenticatable implements HasMedia, PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, HasPublicUuid, HasRoles, InteractsWithMedia, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
+    use HasApiTokens, HasFactory, HasPublicUuid, HasRoles, InteractsWithMedia, Notifiable, PasskeyAuthenticatable, SoftDeletes, TwoFactorAuthenticatable;
 
     /**
      * @return HasMany<UserDevice, $this>
@@ -68,6 +74,20 @@ class User extends Authenticatable implements HasMedia, PasskeyUser
     public function devices(): HasMany
     {
         return $this->hasMany(UserDevice::class);
+    }
+
+    /**
+     * @return MorphToMany<Role, $this>
+     */
+    public function roles(): MorphToMany
+    {
+        return $this->morphToMany(
+            Role::class,
+            'model',
+            'model_has_roles',
+            'model_id',
+            'role_id',
+        );
     }
 
     /**
@@ -151,6 +171,7 @@ class User extends Authenticatable implements HasMedia, PasskeyUser
             'failed_pin_attempts' => 'integer',
             'password' => 'hashed',
             'pin_hash' => 'hashed',
+            'must_change_password' => 'boolean',
             'status' => UserStatus::class,
             'two_factor_confirmed_at' => 'datetime',
         ];

@@ -62,7 +62,9 @@ class AuthSessionService
             'status' => UserStatus::Active,
         ])->save();
 
-        $user->assignRole('passenger');
+        if ($user->wasRecentlyCreated || $user->roles()->doesntExist()) {
+            $user->assignRole('passenger');
+        }
 
         return $this->issueSessionForDevice($user, $input);
     }

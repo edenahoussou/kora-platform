@@ -8,6 +8,7 @@ use App\Modules\Notifications\Models\WhatsAppDelivery;
 use App\Modules\Notifications\Services\WhatsApp\GenukaWhatsAppSender;
 use App\Modules\Notifications\Services\WhatsApp\WahaReachoutBlockedException;
 use App\Modules\Notifications\Services\WhatsApp\WahaWhatsAppSender;
+use App\Modules\Settings\Settings\IntegrationsSettings;
 use App\Modules\Ticketing\Actions\GenerateTicketPdfAction;
 use App\Modules\Ticketing\Models\Ticket;
 use Illuminate\Contracts\Cache\LockTimeoutException;
@@ -169,8 +170,9 @@ class SendReservationWhatsAppNotificationJob implements ShouldQueue
 
     private function isGenukaConfigured(): bool
     {
-        $token = (string) config('services.genuka.token');
-        $connectionId = (string) config('services.genuka.connection_id');
+        $settings = app(IntegrationsSettings::class);
+        $token = (string) ($settings->genukaToken ?? '');
+        $connectionId = (string) ($settings->genukaConnectionId ?? '');
 
         return $token !== '' && $connectionId !== '';
     }
@@ -184,7 +186,7 @@ class SendReservationWhatsAppNotificationJob implements ShouldQueue
 
     private function throttleIfNewContact(string $phone): void
     {
-        $delaySeconds = (int) config('services.waha.new_contact_delay_seconds', 30);
+        $delaySeconds = app(IntegrationsSettings::class)->wahaNewContactDelaySeconds;
 
         if ($delaySeconds <= 0) {
             return;

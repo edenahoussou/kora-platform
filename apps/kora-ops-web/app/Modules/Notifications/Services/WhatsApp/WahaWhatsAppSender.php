@@ -2,6 +2,7 @@
 
 namespace App\Modules\Notifications\Services\WhatsApp;
 
+use App\Modules\Settings\Settings\IntegrationsSettings;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -18,6 +19,7 @@ class WahaWhatsAppSender implements WhatsAppSender
     /** @return array{message_id: string|null} */
     public function send(string $phone, string $text, ?string $documentData = null, ?string $documentFilename = null): array
     {
+        $settings = app(IntegrationsSettings::class);
         $chatId = preg_replace('/\D+/', '', $phone).'@c.us';
         $http = $this->http();
 
@@ -27,7 +29,7 @@ class WahaWhatsAppSender implements WhatsAppSender
 
         if ($documentData !== null) {
             $response = $http->post('/api/sendFile', [
-                'session' => config('services.waha.session'),
+                'session' => $settings->wahaSession,
                 'chatId' => $chatId,
                 'file' => [
                     'mimetype' => 'application/pdf',
@@ -41,7 +43,7 @@ class WahaWhatsAppSender implements WhatsAppSender
             return ['message_id' => $response->json('id') ?? $response->json('key.id')];
         }
 
-        $response = $http->post('/api/sendText', ['session' => config('services.waha.session'), 'chatId' => $chatId, 'text' => $text]);
+        $response = $http->post('/api/sendText', ['session' => $settings->wahaSession, 'chatId' => $chatId, 'text' => $text]);
         $this->throwIfBlocked($response);
 
         return ['message_id' => $response->json('id') ?? $response->json('key.id')];
@@ -60,8 +62,10 @@ class WahaWhatsAppSender implements WhatsAppSender
 
     private function http(): PendingRequest
     {
-        return Http::baseUrl((string) config('services.waha.url'))
-            ->withHeaders(['X-Api-Key' => (string) config('services.waha.token')])
+        $settings = app(IntegrationsSettings::class);
+
+        return Http::baseUrl($settings->wahaUrl)
+            ->withHeaders(['X-Api-Key' => (string) ($settings->wahaToken ?? '')])
             ->timeout(30)
             ->connectTimeout(5);
     }
@@ -69,8 +73,9 @@ class WahaWhatsAppSender implements WhatsAppSender
     private function typing(PendingRequest $http, string $chatId, string $action): void
     {
         try {
+            $settings = app(IntegrationsSettings::class);
             $http->post("/api/{$action}Typing", [
-                'session' => config('services.waha.session'),
+                'session' => $settings->wahaSession,
                 'chatId' => $chatId,
             ]);
         } catch (\Throwable) {

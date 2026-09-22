@@ -3,6 +3,7 @@
 namespace App\Modules\Departures\Http\Requests;
 
 use App\Modules\Departures\Models\Departure;
+use App\Modules\Settings\Settings\OperationsSettings;
 use Illuminate\Foundation\Http\FormRequest;
 
 class RecordDepartureDelayRequest extends FormRequest
@@ -23,7 +24,7 @@ class RecordDepartureDelayRequest extends FormRequest
                 'required',
                 'integer',
                 'min:0',
-                'max:'.(int) config('kora.departures.sellability.max_delay_minutes', 720),
+                'max:'.app(OperationsSettings::class)->maxDepartureDelayMinutes,
             ],
             'delay_reason' => ['required', 'string', 'max:160'],
         ];

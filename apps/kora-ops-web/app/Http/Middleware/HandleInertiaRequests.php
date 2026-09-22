@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Modules\BusNetwork\Models\MapSetting;
 use App\Modules\Cash\Models\CashSession;
+use App\Modules\Settings\Settings\IntegrationsSettings;
 use App\Modules\Ticketing\Models\Ticket;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -39,6 +40,7 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $user = $request->user();
+        $settings = app(IntegrationsSettings::class);
 
         return [
             ...parent::share($request),
@@ -60,14 +62,14 @@ class HandleInertiaRequests extends Middleware
             'mapConfig' => [
                 'provider' => MapSetting::resolvedProvider()->value,
                 'osm' => [
-                    'tileUrl' => config('services.maps.osm.tile_url'),
-                    'attribution' => config('services.maps.osm.attribution'),
+                    'tileUrl' => $settings->mapOsmTileUrl,
+                    'attribution' => $settings->mapOsmAttribution,
                 ],
                 // Google Maps JS API keys are meant to be used client-side —
                 // they're restricted by HTTP referrer/domain on the Google
                 // Cloud console, not a secret like an OAuth client secret.
                 'google' => [
-                    'apiKey' => config('services.maps.google.api_key'),
+                    'apiKey' => $settings->mapGoogleApiKey,
                 ],
             ],
         ];

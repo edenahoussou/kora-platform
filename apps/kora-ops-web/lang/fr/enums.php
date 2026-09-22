@@ -22,6 +22,7 @@ return [
         'agency_manager' => "Chef d'agence",
         'operations_director' => 'Directeur des opérations',
         'commercial_director' => 'Directeur commercial',
+        'daf' => 'Direction administrative et financière',
         'general_management' => 'Direction générale',
         'system_admin' => 'Administrateur système',
     ],
@@ -30,6 +31,12 @@ return [
         'active' => 'Actif',
         'suspended' => 'Suspendu',
         'locked' => 'Bloqué',
+    ],
+
+    'role_category' => [
+        'central' => 'Central',
+        'agency' => 'Agence',
+        'terrain' => 'Terrain',
     ],
 
     'agency_status' => [
@@ -62,10 +69,34 @@ return [
     ],
 
     'reservation_status' => [
+        'held' => 'Pré-réservée',
+        'assistance_pending' => 'Assistance en attente',
         'pending' => 'En attente',
         'confirmed' => 'Confirmée',
+        'paid' => 'Payée',
+        'ticketed' => 'Billetterie émise',
+        'boarded' => 'Embarquée',
         'cancelled' => 'Annulée',
         'expired' => 'Expirée',
+        'unavailable' => 'Indisponible',
+    ],
+
+    'assisted_booking_status' => [
+        'pending' => 'En attente',
+        'in_progress' => 'En cours',
+        'cancelled' => 'Reprise en ligne',
+        'refused' => 'Refusée',
+        'unavailable' => 'Indisponible',
+        'expired' => 'Expirée',
+        'finalized' => 'Finalisée',
+    ],
+
+    'ticket_issuance_status' => [
+        'not_started' => 'Non démarrée',
+        'pending' => 'En attente',
+        'processing' => 'En cours',
+        'issued' => 'Billets émis',
+        'failed' => 'Échec d’émission',
     ],
 
     'reservation_channel' => [

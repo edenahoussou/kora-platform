@@ -8,6 +8,7 @@ use App\Modules\Notifications\Mail\OpsAlertMail;
 use App\Modules\Notifications\Models\OpsNotificationDelivery;
 use App\Modules\Notifications\Models\OpsNotificationEvent;
 use App\Modules\Notifications\Services\NotificationLogRecorder;
+use App\Modules\Settings\Settings\OperationsSettings;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Queue\Queueable;
@@ -39,7 +40,10 @@ class SendOpsAlertMailJob implements ShouldQueue
         return $backoff;
     }
 
-    public function __construct(public readonly int $eventId) {}
+    public function __construct(public readonly int $eventId)
+    {
+        $this->tries = app(OperationsSettings::class)->notificationsMailTries;
+    }
 
     public function handle(): void
     {

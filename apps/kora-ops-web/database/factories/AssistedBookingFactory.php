@@ -8,7 +8,6 @@ use App\Modules\AssistedBooking\Models\AssistedBooking;
 use App\Modules\Booking\Data\ReservationChannel;
 use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Models\Reservation;
-use App\Modules\IdentityAccess\Models\Agency;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -31,7 +30,7 @@ class AssistedBookingFactory extends Factory
                 'channel' => ReservationChannel::Mobile,
                 'expires_at' => now()->addDay(),
             ])->getKey(),
-            'preferred_agency_id' => Agency::factory()->state(['call_phone' => '+2290197000000']),
+            'preferred_agency_id' => null,
             'origin_channel' => ReservationChannel::Mobile,
             'handoff_channel' => AssistedBookingChannel::WhatsApp,
             'status' => AssistedBookingStatus::Pending,

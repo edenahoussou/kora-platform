@@ -2,6 +2,20 @@
 
 KORA BUS est le contexte du MVP valide par le client. Ce glossaire fixe le vocabulaire commun entre le client, le pilotage projet et l'equipe technique.
 
+## Paramétrage runtime
+
+**Paramètre administrable**:
+Valeur métier du MVP modifiable par un utilisateur OPS autorisé, persistée dans la base et appliquée aux requêtes et jobs suivants. Elle appartient à un groupe de paramètres et ses mutations sont auditées.
+
+**Paramètre de plateforme**:
+Valeur nécessaire au fonctionnement de l'infrastructure (base de données, cache, file, logs, stockage, URL et clé d'application, mailer, Chromium/PDF). Elle reste fournie par l'environnement de déploiement et n'est pas administrée dans KORA OPS.
+
+**Secret d'intégration**:
+Credential d'un fournisseur métier (e-MECeF, paiement, cartographie, Genuka/WAHA ou OAuth) stocké chiffré en base. Une lecture de snapshot expose uniquement sa présence ; une valeur vide conserve le secret et sa suppression est une action explicite et auditée.
+
+**Groupe de paramètres**:
+Ensemble transactionnel et verrouillable de paramètres partageant une autorisation et un audit : `general`, `operations` ou `integrations`.
+
 ## Language
 
 **Ecosysteme KORA cible**:
@@ -49,8 +63,23 @@ Prix final calcule cote serveur pour une demande de reservation, fige pendant la
 _Avoid_: Prix indicatif
 
 **Reservation assistee**:
-Reservation Bus initiee par un passager puis confiee a une agence pour etre terminee par telephone ou WhatsApp. Elle conserve la meme reference et le meme itineraire, ne bloque ni siege ni credit pendant l'attente, et doit etre reprise par un agent autorise avec un nouveau devis et une nouvelle validation atomique des sieges.
-_Avoid_: Deuxieme reservation creee par l'agence, siege bloque dans la file d'assistance, reference WhatsApp utilisee comme autorisation
+Reservation Bus initiee par un passager puis adressee au support client central par appel ou WhatsApp. Elle conserve la meme reference et le meme itineraire, ne bloque ni siege ni credit pendant l'attente, et entre dans la file reseau jusqu'au claim atomique d'une agence habilitee.
+_Avoid_: Agence choisie au depart, deuxieme reservation creee par l'agence, siege bloque dans la file d'assistance, reference WhatsApp utilisee comme autorisation
+
+**Support client centralise**:
+Point de contact telephonique ou WhatsApp configure dans KORA vers lequel une demande d'assistance est initialement dirigee. Les deux canaux sont independants et aucune coordonnee d'agence ne sert de fallback.
+
+**File reseau d'assistance**:
+Ensemble des dossiers d'assistance `pending` sans agence affectee, visibles par les agences et roles reseau habilites.
+
+**Agence traitante**:
+Agence qui a remporte le claim ou qui a recu une reaffectation. Elle est exposee publiquement sous `handling_agency`.
+
+**Claim**:
+Prise en charge atomique d'un dossier par un agent rattache a une agence. Le premier claim valide enregistre l'agence, l'agent et le statut `in_progress`.
+
+**Reaffectation**:
+Action reseau qui place un dossier `pending` dans la file d'une autre agence, sans choisir d'agent. L'agence cible doit ensuite effectuer un claim.
 
 **Descente anticipee**:
 Evenement enregistre par le convoyeur lorsqu'un passager descend avant sa destination initiale, afin de liberer les segments non parcourus.

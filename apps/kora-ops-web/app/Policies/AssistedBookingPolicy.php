@@ -21,14 +21,14 @@ class AssistedBookingPolicy
     {
         return $this->allows($user, 'assisted-bookings.view-network')
             || ($this->allows($user, 'assisted-bookings.view-agency')
-                && $user->agency_id === $assistedBooking->preferred_agency_id);
+                && ($assistedBooking->preferred_agency_id === null
+                    || $user->agency_id === $assistedBooking->preferred_agency_id));
     }
 
     public function claim(User $user, AssistedBooking $assistedBooking): bool
     {
         return $this->allows($user, 'assisted-bookings.claim')
-            && $user->agency_id === $assistedBooking->preferred_agency_id
-            && $assistedBooking->status === AssistedBookingStatus::Pending;
+            && $user->agency_id !== null;
     }
 
     public function release(User $user, AssistedBooking $assistedBooking): bool

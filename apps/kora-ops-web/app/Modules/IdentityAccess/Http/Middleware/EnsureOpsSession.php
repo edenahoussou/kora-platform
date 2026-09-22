@@ -16,6 +16,7 @@ use App\Modules\IdentityAccess\Models\TerminalP501;
 use App\Modules\IdentityAccess\Models\TerminalSession;
 use App\Modules\IdentityAccess\Services\OpsSessionGuard;
 use App\Modules\IdentityAccess\Services\OpsSessionTokenReader;
+use App\Modules\Settings\Settings\OperationsSettings;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -167,7 +168,7 @@ class EnsureOpsSession
 
     private function touch(TerminalSession $session): void
     {
-        $interval = (int) config('ops_session.touch_interval_seconds', 60);
+        $interval = app(OperationsSettings::class)->opsSessionTouchIntervalSeconds;
 
         if ($session->last_seen_at === null || $session->last_seen_at->lte(now()->subSeconds($interval))) {
             $session->forceFill(['last_seen_at' => now()])->save();

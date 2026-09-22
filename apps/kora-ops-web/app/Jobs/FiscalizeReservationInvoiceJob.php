@@ -5,8 +5,10 @@ namespace App\Jobs;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Fiscalization\Data\FiscalInvoiceStatus;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
+use App\Modules\Fiscalization\Services\EmecfInvoiceSnapshotService;
 use App\Modules\Fiscalization\Services\FiscalInvoicePayloadBuilder;
 use App\Modules\Fiscalization\Services\FiscalSyncAttemptRecorder;
+use App\Modules\Settings\Settings\IntegrationsSettings;
 use Codianselme\LaraSygmef\Models\EmecfInvoice;
 use Codianselme\LaraSygmef\Services\EmecfService;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -31,9 +33,14 @@ class FiscalizeReservationInvoiceJob implements ShouldBeUnique, ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(FiscalInvoicePayloadBuilder $payloadBuilder, ?FiscalSyncAttemptRecorder $attemptRecorder = null): void
-    {
+    public function handle(
+        FiscalInvoicePayloadBuilder $payloadBuilder,
+        ?FiscalSyncAttemptRecorder $attemptRecorder = null,
+        ?EmecfInvoiceSnapshotService $snapshotService = null,
+    ): void {
+        $this->applyEmecfSettings();
         $attemptRecorder ??= app(FiscalSyncAttemptRecorder::class);
+        $snapshotService ??= app(EmecfInvoiceSnapshotService::class);
         $reservation = Reservation::query()->findOrFail($this->reservationId);
         $payment = $reservation->payments()->where('status', 'confirmed')->latest('id')->firstOrFail();
         $invoice = FiscalInvoice::query()->firstOrCreate(['reservation_id' => $reservation->id], [
@@ -78,6 +85,7 @@ class FiscalizeReservationInvoiceJob implements ShouldBeUnique, ShouldQueue
             $attemptRecorder->succeed($submitAttempt, $submission, isset($submission['status']) ? (string) $submission['status'] : null);
             $uid = (string) $submission['data']['uid'];
             $invoice->update(['mecef_uid' => $uid, 'emecf_invoice_id' => $submission['invoice_id'] ?? EmecfInvoice::query()->where('uid', $uid)->value('id')]);
+            $snapshotService->synchronize($invoice->fresh('emecfInvoice'), $payload, $submission);
             $finalizeAttempt = $attemptRecorder->start($invoice, 'finalize', $this->nextAttemptNumber($invoice, 'finalize'), ['uid' => $uid]);
             $activeAttempt = $finalizeAttempt;
             $finalization = $emecf->finalizeInvoice($uid, 'confirm');
@@ -87,6 +95,7 @@ class FiscalizeReservationInvoiceJob implements ShouldBeUnique, ShouldQueue
                 throw $exception;
             }
             $attemptRecorder->succeed($finalizeAttempt, $finalization, isset($finalization['status']) ? (string) $finalization['status'] : null);
+            $snapshotService->synchronize($invoice->fresh('emecfInvoice'), $payload, $submission, $finalization);
             $invoice->update(['status' => FiscalInvoiceStatus::Certified, 'fiscalized_at' => now()]);
         } catch (Throwable $exception) {
             if ($activeAttempt->fresh()?->completed_at === null) {
@@ -117,9 +126,29 @@ class FiscalizeReservationInvoiceJob implements ShouldBeUnique, ShouldQueue
 
     private function isEmecfConfigured(): bool
     {
-        $token = (string) config('emecf.token');
-        $ifu = (string) config('emecf.default_ifu');
+        $settings = app(IntegrationsSettings::class);
+        $token = (string) ($settings->emecfToken ?? '');
+        $ifu = $settings->emecfDefaultIfu;
 
         return $token !== '' && $ifu !== '' && $ifu !== '0000000000000';
+    }
+
+    private function applyEmecfSettings(): void
+    {
+        $settings = app(IntegrationsSettings::class);
+
+        config([
+            'emecf.test_mode' => $settings->emecfTestMode,
+            'emecf.token' => $settings->emecfToken,
+            'emecf.default_ifu' => $settings->emecfDefaultIfu,
+            'emecf.http.timeout' => $settings->emecfHttpTimeout,
+            'emecf.http.connect_timeout' => $settings->emecfConnectTimeout,
+            'emecf.http.retry' => $settings->emecfRetry,
+            'emecf.http.retry_delay' => $settings->emecfRetryDelay,
+            'emecf.timeouts.invoice_submission' => $settings->emecfInvoiceSubmissionTimeout,
+            'emecf.timeouts.finalization' => $settings->emecfFinalizationTimeout,
+            'emecf.timeouts.status_check' => $settings->emecfStatusCheckTimeout,
+            'emecf.timeouts.info_request' => $settings->emecfInfoRequestTimeout,
+        ]);
     }
 }

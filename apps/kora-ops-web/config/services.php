@@ -50,6 +50,11 @@ return [
         'new_contact_delay_seconds' => env('WAHA_NEW_CONTACT_DELAY_SECONDS', 30),
     ],
 
+    'border_demo' => [
+        'conductor_email' => env('BORDER_DEMO_CONDUCTOR_EMAIL', 'conductor.marc@kora.demo'),
+        'phone_serial' => env('BORDER_DEMO_PHONE_SERIAL', ''),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | OAuth Social Providers (Laravel Socialite)

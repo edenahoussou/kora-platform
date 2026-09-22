@@ -15,6 +15,7 @@ use App\Modules\IdentityAccess\Data\AgencyStatus;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\SeatInventory\Actions\BuildCounterSaleSeatAvailabilityAction;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -28,10 +29,21 @@ class AssistedBookingController extends Controller
     {
         Gate::authorize('viewAny', AssistedBooking::class);
         $query = AssistedBooking::query()
-            ->with(['reservation', 'preferredAgency', 'assignedUser'])
+            ->with([
+                'reservation.segments.originStop',
+                'reservation.segments.destinationStop',
+                'reservation.segments.departure.line',
+                'handlingAgency',
+                'assignedUser',
+            ])
             ->latest('created_at');
         if (! $request->user()->can('assisted-bookings.view-network')) {
-            $query->where('preferred_agency_id', $request->user()->agency_id);
+            $query->where(function ($builder) use ($request): void {
+                $builder->where(function ($pending): void {
+                    $pending->whereNull('preferred_agency_id')
+                        ->where('status', AssistedBookingStatus::Pending->value);
+                })->orWhere('preferred_agency_id', $request->user()->agency_id);
+            });
         }
         if ($search = $request->string('q')->trim()->value()) {
             $term = '%'.mb_strtolower($search).'%';
@@ -47,7 +59,7 @@ class AssistedBookingController extends Controller
             }
         }
         if ($agencyUuid = $request->string('agency')->trim()->value()) {
-            $query->whereHas('preferredAgency', fn ($agency) => $agency->where('uuid', $agencyUuid));
+            $query->whereHas('handlingAgency', fn ($agency) => $agency->where('uuid', $agencyUuid));
         }
         if ($date = $request->date('date')) {
             $query->whereDate('created_at', $date);
@@ -66,7 +78,7 @@ class AssistedBookingController extends Controller
                 'finalized' => (int) ($counts->finalized ?? 0),
             ],
             'filters' => $request->only(['q', 'status', 'agency', 'date']),
-            'statuses' => AssistedBookingStatus::options(),
+            'statuses' => AssistedBookingStatus::translatedOptions(),
             'agencies' => $this->eligibleAgencies($request)->map(fn (Agency $agency): array => [
                 'uuid' => $agency->uuid,
                 'name' => $agency->name,
@@ -75,16 +87,118 @@ class AssistedBookingController extends Controller
         ]);
     }
 
-    public function show(
+    public function show(AssistedBooking $assistedBooking): RedirectResponse
+    {
+        Gate::authorize('view', $assistedBooking);
+
+        return to_route('assisted-bookings.index', ['open' => $assistedBooking->uuid]);
+    }
+
+    public function detail(
         Request $request,
         AssistedBooking $assistedBooking,
         BuildCounterSaleSeatAvailabilityAction $buildSeatAvailability,
-    ): Response {
+    ): JsonResponse {
         Gate::authorize('view', $assistedBooking);
+
+        return response()->json([
+            'assistedBooking' => $this->serializeDetail($assistedBooking, $buildSeatAvailability),
+            'agencies' => $this->eligibleAgencies($request)->map(fn (Agency $agency): array => [
+                'uuid' => $agency->uuid, 'name' => $agency->name, 'city' => $agency->city,
+            ]),
+            'permissions' => [
+                'canClaim' => Gate::allows('claim', $assistedBooking),
+                'canRelease' => Gate::allows('release', $assistedBooking),
+                'canReassign' => Gate::allows('reassign', $assistedBooking),
+                'canRefuse' => Gate::allows('refuse', $assistedBooking),
+                'canPrepareSale' => Gate::allows('prepareSale', $assistedBooking),
+            ],
+        ]);
+    }
+
+    public function claim(Request $request, AssistedBooking $assistedBooking, AssistedBookingWorkflow $workflow): RedirectResponse
+    {
+        Gate::authorize('claim', $assistedBooking);
+        $workflow->claim($assistedBooking, $request->user());
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Réservation prise en charge.')]);
+
+        return back();
+    }
+
+    public function release(ReleaseAssistedBookingRequest $request, AssistedBooking $assistedBooking, AssistedBookingWorkflow $workflow): RedirectResponse
+    {
+        $workflow->release($assistedBooking, $request->user(), $request->validated('reason'));
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Réservation replacée dans la file.')]);
+
+        return back();
+    }
+
+    public function reassign(ReassignAssistedBookingRequest $request, AssistedBooking $assistedBooking, AssistedBookingWorkflow $workflow): RedirectResponse
+    {
+        $agency = Agency::query()->where('uuid', $request->validated('agency_uuid'))->firstOrFail();
+        $workflow->reassign($assistedBooking, $request->user(), $agency, $request->validated('reason'));
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Réservation réaffectée.')]);
+
+        return back();
+    }
+
+    public function refuse(RefuseAssistedBookingRequest $request, AssistedBooking $assistedBooking, AssistedBookingWorkflow $workflow): RedirectResponse
+    {
+        $workflow->refuse($assistedBooking, $request->user(), $request->validated('reason_code'), $request->validated('reason_note'));
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Réservation refusée et clôturée.')]);
+
+        return back();
+    }
+
+    public function prepareSale(PrepareAssistedBookingSaleRequest $request, AssistedBooking $assistedBooking, AssistedBookingWorkflow $workflow): RedirectResponse
+    {
+        $reservation = $workflow->prepareAgencySale($assistedBooking, $request->user(), $request->validated('passengers'));
+
+        return to_route('sale', ['reservation_uuid' => $reservation->uuid]);
+    }
+
+    /** @return array<string, mixed> */
+    private function serializeListItem(AssistedBooking $item): array
+    {
+        return [
+            'uuid' => $item->uuid,
+            'status' => $item->status->value,
+            'channel' => $item->handoff_channel->value,
+            'reference' => $item->reservation->reference,
+            'reservationUuid' => $item->reservation->uuid,
+            'reservationStatus' => $item->reservation->status->value,
+            'contactName' => $item->contact_name,
+            'contactPhone' => $item->contact_phone,
+            'handlingAgency' => $item->handlingAgency ? [
+                'uuid' => $item->handlingAgency->uuid,
+                'name' => $item->handlingAgency->name,
+            ] : null,
+            'assignee' => $item->assignedUser ? ['uuid' => $item->assignedUser->uuid, 'name' => $item->assignedUser->name] : null,
+            'legs' => $item->reservation->segments
+                ->unique('leg_order')
+                ->sortBy('leg_order')
+                ->map(fn ($segment): array => [
+                    'legOrder' => $segment->leg_order,
+                    'direction' => $segment->direction,
+                    'line' => $segment->departure->line->name,
+                    'label' => $segment->originStop->name.' → '.$segment->destinationStop->name,
+                    'departureAt' => $segment->departure->scheduledDepartureAt()->toIso8601String(),
+                ])->values()->all(),
+            'originalAmount' => $item->original_total_amount,
+            'currentAmount' => $item->current_total_amount,
+            'currency' => $item->currency,
+            'expiresAt' => $item->expires_at->toIso8601String(),
+            'createdAt' => $item->created_at?->toIso8601String(),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function serializeDetail(AssistedBooking $assistedBooking, BuildCounterSaleSeatAvailabilityAction $buildSeatAvailability): array
+    {
         $assistedBooking->load([
             'reservation.segments.departure.line', 'reservation.segments.originStop',
             'reservation.segments.destinationStop', 'reservation.segments.seat',
-            'reservation.passengers', 'preferredAgency', 'assignedUser',
+            'reservation.passengers', 'handlingAgency', 'assignedUser',
         ]);
         $reservation = $assistedBooking->reservation;
         $legs = $reservation->segments->unique('leg_order')->sortBy('leg_order')->map(function ($segment) use ($buildSeatAvailability, $reservation): array {
@@ -94,6 +208,7 @@ class AssistedBookingController extends Controller
                 'legOrder' => $segment->leg_order,
                 'direction' => $segment->direction,
                 'departureUuid' => $segment->departure->uuid,
+                'line' => $segment->departure->line->name,
                 'label' => $segment->originStop->name.' → '.$segment->destinationStop->name,
                 'departureAt' => $segment->departure->scheduledDepartureAt()->toIso8601String(),
                 'seats' => $seats->map(fn ($seat): array => [
@@ -120,102 +235,21 @@ class AssistedBookingController extends Controller
             ];
         }
 
-        return Inertia::render('assisted-bookings/show', [
-            'assistedBooking' => array_merge($this->serializeListItem($assistedBooking), [
-                'snapshot' => $assistedBooking->snapshot,
-                'reasonCode' => $assistedBooking->reason_code,
-                'reasonNote' => $assistedBooking->reason_note,
-                'ticketIssuanceStatus' => $reservation->ticket_issuance_status->value,
-                'passengers' => $reservation->passengers->sortBy('passenger_index')->map(fn ($passenger): array => [
-                    'uuid' => $passenger->uuid,
-                    'index' => $passenger->passenger_index,
-                    'firstName' => $passenger->first_name,
-                    'lastName' => $passenger->last_name,
-                    'phone' => $passenger->phone,
-                ])->values()->all(),
-                'legs' => $legs,
-                'history' => $activities,
-            ]),
-            'agencies' => $this->eligibleAgencies($request)->map(fn (Agency $agency): array => [
-                'uuid' => $agency->uuid, 'name' => $agency->name, 'city' => $agency->city,
-            ]),
-            'agents' => User::query()->permission('assisted-bookings.claim')->orderBy('name')->get()->map(fn (User $user): array => [
-                'uuid' => $user->uuid, 'name' => $user->name, 'agencyUuid' => $user->agency?->uuid,
-            ]),
-            'permissions' => [
-                'canClaim' => Gate::allows('claim', $assistedBooking),
-                'canRelease' => Gate::allows('release', $assistedBooking),
-                'canReassign' => Gate::allows('reassign', $assistedBooking),
-                'canRefuse' => Gate::allows('refuse', $assistedBooking),
-                'canPrepareSale' => Gate::allows('prepareSale', $assistedBooking),
-            ],
+        return array_merge($this->serializeListItem($assistedBooking), [
+            'snapshot' => $assistedBooking->snapshot,
+            'reasonCode' => $assistedBooking->reason_code,
+            'reasonNote' => $assistedBooking->reason_note,
+            'ticketIssuanceStatus' => $reservation->ticket_issuance_status->value,
+            'passengers' => $reservation->passengers->sortBy('passenger_index')->map(fn ($passenger): array => [
+                'uuid' => $passenger->uuid,
+                'index' => $passenger->passenger_index,
+                'firstName' => $passenger->first_name,
+                'lastName' => $passenger->last_name,
+                'phone' => $passenger->phone,
+            ])->values()->all(),
+            'legs' => $legs,
+            'history' => $activities,
         ]);
-    }
-
-    public function claim(Request $request, AssistedBooking $assistedBooking, AssistedBookingWorkflow $workflow): RedirectResponse
-    {
-        Gate::authorize('claim', $assistedBooking);
-        $workflow->claim($assistedBooking, $request->user());
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Dossier pris en charge.')]);
-
-        return back();
-    }
-
-    public function release(ReleaseAssistedBookingRequest $request, AssistedBooking $assistedBooking, AssistedBookingWorkflow $workflow): RedirectResponse
-    {
-        $workflow->release($assistedBooking, $request->user(), $request->validated('reason'));
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Dossier replacé dans la file.')]);
-
-        return back();
-    }
-
-    public function reassign(ReassignAssistedBookingRequest $request, AssistedBooking $assistedBooking, AssistedBookingWorkflow $workflow): RedirectResponse
-    {
-        $agency = Agency::query()->where('uuid', $request->validated('agency_uuid'))->firstOrFail();
-        $assignee = $request->validated('assignee_uuid')
-            ? User::query()->where('uuid', $request->validated('assignee_uuid'))->firstOrFail()
-            : null;
-        $workflow->reassign($assistedBooking, $request->user(), $agency, $assignee, $request->validated('reason'));
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Dossier réaffecté.')]);
-
-        return back();
-    }
-
-    public function refuse(RefuseAssistedBookingRequest $request, AssistedBooking $assistedBooking, AssistedBookingWorkflow $workflow): RedirectResponse
-    {
-        $workflow->refuse($assistedBooking, $request->user(), $request->validated('reason_code'), $request->validated('reason_note'));
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Dossier refusé et clôturé.')]);
-
-        return back();
-    }
-
-    public function prepareSale(PrepareAssistedBookingSaleRequest $request, AssistedBooking $assistedBooking, AssistedBookingWorkflow $workflow): RedirectResponse
-    {
-        $reservation = $workflow->prepareAgencySale($assistedBooking, $request->user(), $request->validated('passengers'));
-
-        return to_route('sale', ['reservation_uuid' => $reservation->uuid]);
-    }
-
-    /** @return array<string, mixed> */
-    private function serializeListItem(AssistedBooking $item): array
-    {
-        return [
-            'uuid' => $item->uuid,
-            'status' => $item->status->value,
-            'channel' => $item->handoff_channel->value,
-            'reference' => $item->reservation->reference,
-            'reservationUuid' => $item->reservation->uuid,
-            'reservationStatus' => $item->reservation->status->value,
-            'contactName' => $item->contact_name,
-            'contactPhone' => $item->contact_phone,
-            'agency' => ['uuid' => $item->preferredAgency->uuid, 'name' => $item->preferredAgency->name],
-            'assignee' => $item->assignedUser ? ['uuid' => $item->assignedUser->uuid, 'name' => $item->assignedUser->name] : null,
-            'originalAmount' => $item->original_total_amount,
-            'currentAmount' => $item->current_total_amount,
-            'currency' => $item->currency,
-            'expiresAt' => $item->expires_at->toIso8601String(),
-            'createdAt' => $item->created_at?->toIso8601String(),
-        ];
     }
 
     /** @return Collection<int, Agency> */
@@ -223,7 +257,6 @@ class AssistedBookingController extends Controller
     {
         return Agency::query()
             ->where('status', AgencyStatus::Active)
-            ->where(fn ($query) => $query->whereNotNull('call_phone')->orWhereNotNull('whatsapp_phone'))
             ->when(! $request->user()->can('assisted-bookings.view-network'), fn ($query) => $query->whereKey($request->user()->agency_id))
             ->orderBy('name')
             ->get();

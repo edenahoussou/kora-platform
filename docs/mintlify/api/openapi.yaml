@@ -12,7 +12,7 @@ tags:
     description: "\nPublic Bus catalog endpoints for KORA BUS search experiences."
   -
     name: 'Assisted Bookings'
-    description: "\nAssisted booking handoff endpoints for the mobile app."
+    description: "\nAssisted booking lifecycle for the mobile app: contact central support,\ninspect the dossier, or resume online payment."
   -
     name: Auth
     description: "\nOTP challenge request and verification for registration, login, PIN reset and account unlock."
@@ -1940,68 +1940,11 @@ paths:
         required: true
         schema:
           type: string
-  /api/v1/assisted-bookings/agencies:
-    get:
-      summary: 'List agencies eligible for assisted booking.'
-      operationId: listAgenciesEligibleForAssistedBooking
-      description: "Returns active agencies that expose at least one public contact\nchannel (call or WhatsApp). The mobile client only enables a channel\nbutton when the matching phone number is present."
-      parameters: []
-      responses:
-        200:
-          description: 'Eligible agencies'
-          content:
-            application/json:
-              schema:
-                type: object
-                example:
-                  data:
-                    -
-                      uuid: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
-                      code: AG-000001
-                      name: 'Agence Dantokpa'
-                      city: Cotonou
-                      call_phone: '+229010000001'
-                      whatsapp_phone: '+229010000002'
-                properties:
-                  data:
-                    type: array
-                    example:
-                      -
-                        uuid: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
-                        code: AG-000001
-                        name: 'Agence Dantokpa'
-                        city: Cotonou
-                        call_phone: '+229010000001'
-                        whatsapp_phone: '+229010000002'
-                    items:
-                      type: object
-                      properties:
-                        uuid:
-                          type: string
-                          example: 00000000-0000-4000-8000-000000000000
-                        code:
-                          type: string
-                          example: AG-000001
-                        name:
-                          type: string
-                          example: 'Agence Dantokpa'
-                        city:
-                          type: string
-                          example: Cotonou
-                        call_phone:
-                          type: string
-                          example: '+229010000001'
-                        whatsapp_phone:
-                          type: string
-                          example: '+229010000002'
-      tags:
-        - 'Assisted Bookings'
-      security: []
   '/api/v1/bookings/{reservation_uuid}/assistance':
     post:
-      summary: 'Send a reservation to an agency for assisted completion.'
-      operationId: sendAReservationToAnAgencyForAssistedCompletion
-      description: "Transforms the existing reservation (no duplicate is created): seats\nand company credit are released, segments become `requested`, and the\ndossier enters the agency queue as `pending`. Replaying the same\n`idempotency_key` returns the existing dossier."
+      summary: 'Send a reservation to central support for assisted completion.'
+      operationId: sendAReservationToCentralSupportForAssistedCompletion
+      description: "Transforms the existing reservation (no duplicate is created): seats\nand company credit are released, segments become `requested`, and the\ndossier enters the network queue as `pending`. Replaying the same\n`idempotency_key` returns the existing dossier."
       parameters: []
       responses:
         200:
@@ -2039,10 +1982,8 @@ paths:
                       uuid: 5b0d2f4a-6c8e-4a1b-9d3f-1a3c5e7b9d2f
                       reference: KBR-7X2K9P4Q
                       status: assistance_pending
-                    agency:
-                      uuid: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
-                      name: 'Agence Dantokpa'
-                      city: Cotonou
+                    handling_agency: null
+                    assigned_agent: null
                     contact:
                       name: Afi
                       phone: '+2290197000000'
@@ -2084,18 +2025,14 @@ paths:
                           status:
                             type: string
                             example: assistance_pending
-                      agency:
-                        type: object
-                        properties:
-                          uuid:
-                            type: string
-                            example: 00000000-0000-4000-8000-000000000000
-                          name:
-                            type: string
-                            example: 'Agence Dantokpa'
-                          city:
-                            type: string
-                            example: Cotonou
+                      handling_agency:
+                        type: string
+                        example: null
+                        nullable: true
+                      assigned_agent:
+                        type: string
+                        example: null
+                        nullable: true
                       contact:
                         type: object
                         properties:
@@ -2180,6 +2117,26 @@ paths:
                           - 'Cette réservation ne peut pas être envoyée en assistance.'
                         items:
                           type: string
+        503:
+          description: 'Support channel unavailable'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: assisted_booking_support_unavailable
+                    channel: whatsapp
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: assisted_booking_support_unavailable
+                      channel:
+                        type: string
+                        example: whatsapp
       tags:
         - 'Assisted Bookings'
       requestBody:
@@ -2189,10 +2146,6 @@ paths:
             schema:
               type: object
               properties:
-                agency_uuid:
-                  type: string
-                  description: 'UUID of the chosen agency.'
-                  example: 00000000-0000-4000-8000-000000000000
                 channel:
                   type: string
                   description: 'Initial contact channel: call or whatsapp.'
@@ -2210,7 +2163,6 @@ paths:
                   description: 'Client-generated idempotency key.'
                   example: 00000000-0000-4000-8000-000000000000
               required:
-                - agency_uuid
                 - channel
                 - contact_name
                 - contact_phone
@@ -2219,7 +2171,7 @@ paths:
     get:
       summary: 'Show the assisted booking dossier for a reservation.'
       operationId: showTheAssistedBookingDossierForAReservation
-      description: "Returns the current status, validity window, preferred agency contact\nchannels, the initial snapshot and the actions still allowed."
+      description: "Returns the current status, validity window, central support channels,\nthe initial snapshot and the actions still allowed."
       parameters: []
       responses:
         200:
@@ -2237,10 +2189,8 @@ paths:
                       uuid: 5b0d2f4a-6c8e-4a1b-9d3f-1a3c5e7b9d2f
                       reference: KBR-7X2K9P4Q
                       status: assistance_pending
-                    agency:
-                      uuid: 9c2e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e1f
-                      name: 'Agence Dantokpa'
-                      city: Cotonou
+                    handling_agency: null
+                    assigned_agent: null
                     contact:
                       name: Afi
                       phone: '+2290197000000'
@@ -2282,18 +2232,14 @@ paths:
                           status:
                             type: string
                             example: assistance_pending
-                      agency:
-                        type: object
-                        properties:
-                          uuid:
-                            type: string
-                            example: 00000000-0000-4000-8000-000000000000
-                          name:
-                            type: string
-                            example: 'Agence Dantokpa'
-                          city:
-                            type: string
-                            example: Cotonou
+                      handling_agency:
+                        type: string
+                        example: null
+                        nullable: true
+                      assigned_agent:
+                        type: string
+                        example: null
+                        nullable: true
                       contact:
                         type: object
                         properties:
