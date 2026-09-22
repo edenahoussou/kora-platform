@@ -70,14 +70,18 @@ abstract final class ManifesteDtos {
   }
 
   /// `paid` et tout statut inconnu → `enAttente` (le passager reste à
-  /// embarquer) ; `boarded` → `embarque` ; `cancelled`/`no_show` →
-  /// `refuse` (voir `ManifestSegmentStatus` côté backend — ni l'un ni
-  /// l'autre ne correspond à `descenduAnticipe`, propre au parcours
-  /// mobile, jamais renvoyé par le serveur).
+  /// embarquer) ; `boarded` → `embarque` ; `cancelled` → `refuse` (vraie
+  /// annulation) ; `no_show` → `refuse` (non présenté à l'embarquement,
+  /// même rendu que `cancelled` — voir `StatutBadge`, qui ne distingue
+  /// pas les deux) ; `early_drop_off` → `descenduAnticipe` (voir
+  /// `ManifestSegmentStatus` côté backend, qui distingue désormais une
+  /// vraie annulation d'une descente anticipée, toutes deux issues d'un
+  /// segment "released").
   static BoardingStatus _statutOf(String? segmentStatus) =>
       switch (segmentStatus) {
         'boarded' => BoardingStatus.embarque,
         'cancelled' || 'no_show' => BoardingStatus.refuse,
+        'early_drop_off' => BoardingStatus.descenduAnticipe,
         _ => BoardingStatus.enAttente,
       };
 }

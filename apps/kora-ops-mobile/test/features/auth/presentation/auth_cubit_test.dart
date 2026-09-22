@@ -102,8 +102,8 @@ void main() {
     blocTest<AuthCubit, AuthState>(
       'purge la session et émet Unauthenticated(savedEmail conservé) sur un 401',
       build: () {
-        when(() => repository.logout())
-            .thenAnswer((_) async => const Result<void>.success(null));
+        when(() => repository.purgeLocalSession())
+            .thenAnswer((_) async {});
         when(() => repository.lastEmail())
             .thenAnswer((_) async => 'aicha.hounkpe@kora-express.com');
         return buildCubit();
@@ -113,7 +113,11 @@ void main() {
         const AuthUnauthenticated(savedEmail: 'aicha.hounkpe@kora-express.com'),
       ],
       verify: (_) {
-        verify(() => repository.logout()).called(1);
+        // Pas d'appel réseau ici : le serveur a déjà rejeté ce token,
+        // relancer logout() referait un 401 qui redéclencherait
+        // SessionExpiryInterceptor en boucle infinie.
+        verify(() => repository.purgeLocalSession()).called(1);
+        verifyNever(() => repository.logout());
       },
     );
   });

@@ -6,7 +6,9 @@ import '../../../../core/widgets/kora_card.dart';
 import '../../../../core/widgets/kora_skeleton.dart';
 import '../../../../core/widgets/main_app_bar.dart';
 import '../../../../core/widgets/seat_map.dart';
+import '../../../../core/widgets/ticket_sheet.dart';
 import '../../../manifeste/presentation/cubit/manifeste_cubit.dart';
+import '../../../ops/data/mock_ops_data_source.dart';
 import '../../../ops/domain/entities/depart.dart';
 import '../../../ops/domain/entities/passenger.dart';
 import '../../../ops/domain/entities/seat.dart';
@@ -75,6 +77,7 @@ class DescenteAnticipeePage extends StatelessWidget {
                           ),
                         _ => _SeatMapView(
                             depart: depart,
+                            passengers: manifesteState.passengers,
                             seats:
                                 _seatsFromManifest(manifesteState.passengers),
                           ),
@@ -89,10 +92,39 @@ class DescenteAnticipeePage extends StatelessWidget {
 }
 
 class _SeatMapView extends StatelessWidget {
-  const _SeatMapView({required this.depart, required this.seats});
+  const _SeatMapView({
+    required this.depart,
+    required this.passengers,
+    required this.seats,
+  });
 
   final Depart depart;
+  final List<Passenger> passengers;
   final List<Seat> seats;
+
+  /// Tap sur un siège (refonte UI/UX du 21/09/2026) : retrouve le
+  /// passager qui s'y trouve — un siège déjà libéré (descente anticipée
+  /// ou no-show) reste associé au passager qui l'occupait, le tap montre
+  /// alors le billet de ce même passager, comme "Voir le billet" sur
+  /// `DetailPassagerPage`. Un siège sans passager résolu (donnée
+  /// incohérente) n'ouvre rien plutôt que planter.
+  void _onSeatTap(BuildContext context, Seat seat) {
+    final Passenger? passenger = passengers
+        .cast<Passenger?>()
+        .firstWhere((Passenger? p) => p?.siege == seat.numero,
+            orElse: () => null);
+    if (passenger == null) return;
+
+    final ticket = MockOpsDataSource.ticketFor(passenger, depart.id);
+    showTicketSheet(
+      context,
+      ticket: ticket,
+      passengerName: passenger.nomComplet,
+      route: depart.route,
+      date: depart.date,
+      heure: depart.heure,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -105,7 +137,12 @@ class _SeatMapView extends StatelessWidget {
         children: <Widget>[
           Text(depart.route, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: AppSpacing.md),
-          KoraCard(child: SeatMap(seats: seats)),
+          KoraCard(
+            child: SeatMap(
+              seats: seats,
+              onSeatTap: (Seat seat) => _onSeatTap(context, seat),
+            ),
+          ),
           const SizedBox(height: AppSpacing.lg),
           Text(
             '$liberes place(s) libérée(s) (descente anticipée ou no-show)',

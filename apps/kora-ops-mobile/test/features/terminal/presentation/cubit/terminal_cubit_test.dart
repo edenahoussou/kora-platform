@@ -4,6 +4,9 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_ops_mobile/core/errors/failures.dart';
 import 'package:kora_ops_mobile/core/result/result.dart';
+import 'package:kora_ops_mobile/features/auth/domain/entities/auth_user.dart';
+import 'package:kora_ops_mobile/features/auth/domain/repositories/auth_repository.dart';
+import 'package:kora_ops_mobile/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:kora_ops_mobile/features/terminal/domain/entities/terminal.dart';
 import 'package:kora_ops_mobile/features/terminal/domain/entities/terminal_status.dart';
 import 'package:kora_ops_mobile/features/terminal/domain/repositories/terminal_repository.dart';
@@ -12,8 +15,14 @@ import 'package:mocktail/mocktail.dart';
 
 class MockTerminalRepository extends Mock implements TerminalRepository {}
 
+// AuthCubit n'a pas d'effet de bord à la construction (voir sa
+// docstring) : un AuthRepository jamais sollicité ici suffit à fournir un
+// `.stream` réel à TerminalCubit, sans avoir à stubber quoi que ce soit.
+class _UnusedAuthRepository extends Mock implements AuthRepository {}
+
 void main() {
   late MockTerminalRepository repository;
+  late AuthCubit authCubit;
 
   const Terminal terminal = Terminal(
     uuid: 't-1',
@@ -24,7 +33,10 @@ void main() {
 
   setUp(() {
     repository = MockTerminalRepository();
+    authCubit = AuthCubit(_UnusedAuthRepository());
   });
+
+  tearDown(() => authCubit.close());
 
   group('TerminalCubit.bootstrap', () {
     blocTest<TerminalCubit, TerminalState>(
@@ -32,7 +44,7 @@ void main() {
       setUp: () {
         when(() => repository.cachedTerminal()).thenAnswer((_) async => null);
       },
-      build: () => TerminalCubit(repository),
+      build: () => TerminalCubit(repository, authCubit),
       act: (cubit) => cubit.bootstrap(),
       expect: () => <TerminalState>[const TerminalUnlinked()],
     );
@@ -50,7 +62,7 @@ void main() {
         when(() => repository.handshake(any()))
             .thenAnswer((_) => Completer<Result<Terminal>>().future);
       },
-      build: () => TerminalCubit(repository),
+      build: () => TerminalCubit(repository, authCubit),
       act: (cubit) => cubit.bootstrap(),
       expect: () => <TerminalState>[
         const TerminalLinked(terminal, fromCache: true),
@@ -65,7 +77,7 @@ void main() {
         when(() => repository.handshake('P501-000123'))
             .thenAnswer((_) async => const Result<Terminal>.success(terminal));
       },
-      build: () => TerminalCubit(repository),
+      build: () => TerminalCubit(repository, authCubit),
       act: (cubit) => cubit.link('P501-000123'),
       expect: () => <TerminalState>[
         const TerminalLinking(),
@@ -82,7 +94,7 @@ void main() {
           ),
         );
       },
-      build: () => TerminalCubit(repository),
+      build: () => TerminalCubit(repository, authCubit),
       act: (cubit) => cubit.link('BAD'),
       expect: () => <TerminalState>[
         const TerminalLinking(),
@@ -99,7 +111,7 @@ void main() {
           ),
         );
       },
-      build: () => TerminalCubit(repository),
+      build: () => TerminalCubit(repository, authCubit),
       act: (cubit) => cubit.link('P501-LOST'),
       expect: () => <TerminalState>[
         const TerminalLinking(),
@@ -114,7 +126,7 @@ void main() {
           (_) async => const Result<Terminal>.failure(NetworkFailure()),
         );
       },
-      build: () => TerminalCubit(repository),
+      build: () => TerminalCubit(repository, authCubit),
       act: (cubit) => cubit.link('P501-000123'),
       expect: () => <dynamic>[
         const TerminalLinking(),
@@ -128,11 +140,51 @@ void main() {
     setUp: () {
       when(() => repository.forget()).thenAnswer((_) async {});
     },
-    build: () => TerminalCubit(repository),
+    build: () => TerminalCubit(repository, authCubit),
     act: (cubit) => cubit.forget(),
     expect: () => <TerminalState>[const TerminalUnlinked()],
     verify: (_) {
       verify(() => repository.forget()).called(1);
     },
   );
+
+  group('AuthAuthenticated → rejoue le handshake du terminal en cache', () {
+    const AuthUser user = AuthUser(
+      uuid: 'u-1',
+      name: 'Aïcha Hounkpé',
+      email: 'aicha.hounkpe@kora-express.com',
+    );
+
+    blocTest<TerminalCubit, TerminalState>(
+      'terminal en cache → handshake rejoué avec le nouveau jeton, TerminalLinked à jour',
+      setUp: () {
+        when(() => repository.cachedTerminal())
+            .thenAnswer((_) async => terminal);
+        when(() => repository.handshake('P501-000123')).thenAnswer(
+          (_) async => const Result<Terminal>.success(terminal),
+        );
+      },
+      build: () => TerminalCubit(repository, authCubit),
+      act: (_) => authCubit.authenticate(user),
+      wait: const Duration(milliseconds: 1),
+      expect: () => <TerminalState>[const TerminalLinked(terminal)],
+      verify: (_) {
+        verify(() => repository.handshake('P501-000123')).called(1);
+      },
+    );
+
+    blocTest<TerminalCubit, TerminalState>(
+      'aucun terminal en cache → rien ne se passe (AuthGuard gère déjà /terminal/setup)',
+      setUp: () {
+        when(() => repository.cachedTerminal()).thenAnswer((_) async => null);
+      },
+      build: () => TerminalCubit(repository, authCubit),
+      act: (_) => authCubit.authenticate(user),
+      wait: const Duration(milliseconds: 1),
+      expect: () => <TerminalState>[],
+      verify: (_) {
+        verifyNever(() => repository.handshake(any()));
+      },
+    );
+  });
 }

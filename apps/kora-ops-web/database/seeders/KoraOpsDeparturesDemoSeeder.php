@@ -17,67 +17,85 @@ use App\Modules\Notifications\Jobs\PublishManifestStaleNotificationJob;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Ticketing\Models\Ticket;
 use Carbon\CarbonImmutable;
-use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Bus as BusFacade;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
- * Jeu de données de TEST : des départs du convoyeur de démo, dans tous les
- * statuts, avec leurs passagers dans tous les états de billet — de quoi
- * remplir Tournée, Manifeste, Scan, Descente anticipée et Clôture no-show de
- * KORA OPS Mobile, et les pages Départs / Manifeste d'OPS Web.
+ * Jeu de données de TEST : tournées INTERNATIONALES du convoyeur de démo —
+ * Bénin → Togo et Bénin → Côte d'Ivoire — avec des passagers dont TOUS les
+ * billets sont « en attente » d'embarquement. De quoi tester le manifeste
+ * frontière (impression P501 / PDF téléphone), le scan et la synchro sur des
+ * lignes internationales.
  *
  * Lancer (autonome, ré-exécutable sans doublon) :
  *
- *   php artisan db:seed --class=KoraOpsDeparturesDemoSeeder
+ *   php artisan db:seed --class=KoraOpsInternationalToursDemoSeeder
  *
  * Prérequis : KoraDemoUserSeeder (convoyeur `conductor.marc@kora.demo`, ou
  * `border_demo.conductor_email` si défini). À la ré-exécution, les départs
  * sont recalés sur « aujourd'hui / demain… » sans recréer les passagers.
  *
- * Réseau créé : ligne nationale « Cotonou - Grand-Popo (démo OPS) » — Cotonou,
- * Calavi, Ouidah, Grand-Popo — et un bus de 56 places par départ.
+ * « Billet en attente » = billet ÉMIS (`issued`), passager pas encore monté
+ * (segment `ticketed`) : le cas d'un départ programmé avant l'embarquement.
+ * Pour plutôt des réservations en attente de PAIEMENT (sans billet), changez
+ * la propriété $passengerState en 'unpaid'.
  *
- * | Bus            | Quand          | Statut      | Passagers (segments)                                   |
- * |----------------|----------------|-------------|--------------------------------------------------------|
- * | DEMO-OPS-BUS-01| aujourd'hui 06:30 | arrived  | 20 embarqués, 4 descentes anticipées, 2 annulés        |
- * | DEMO-OPS-BUS-02| aujourd'hui 09:00 | departed | 20 embarqués, 5 absents (no-show à clôturer), 3 descentes, 2 annulés |
- * | DEMO-OPS-BUS-03| aujourd'hui 11:30 | boarding | 12 embarqués, 14 billets émis, 2 annulés, 2 impayés, 2 expirés |
- * | DEMO-OPS-BUS-04| aujourd'hui 16:00 | scheduled| 34 billets émis, 2 impayés, 2 annulés                  |
- * | DEMO-OPS-BUS-05| demain 07:00   | scheduled   | 18 billets émis                                        |
- * | DEMO-OPS-BUS-06| après-demain 08:30 | scheduled | 10 billets émis, retard de 25 min enregistré         |
- * | DEMO-OPS-BUS-07| hier 14:00     | arrived     | 18 embarqués, 2 descentes anticipées, 2 annulés        |
- * | DEMO-OPS-BUS-08| demain 18:00   | cancelled   | 8 billets remboursés                                   |
+ * Tous les passagers sont COMPLETS (nom, nationalité, type et numéro de
+ * document) : le manifeste frontière s'imprime sans refus. Nationalités
+ * variées (BJ, TG, GH, CI, NG, BF), pièces variées (passeport, carte
+ * biométrique, carte d'identité).
  *
- * Les heures réelles (embarquement, départ, arrivée) sont posées si les
- * colonnes de MEZ-98 existent. Aucune notification « manifeste périmé »
- * n'est produite (le job est neutralisé pendant le seeding).
+ * | Bus              | Ligne              | Quand              | Passagers |
+ * |------------------|--------------------|--------------------|-----------|
+ * | DEMO-INTL-BUS-01 | Cotonou - Lomé     | aujourd'hui 07:30  | 38        |
+ * | DEMO-INTL-BUS-02 | Cotonou - Lomé     | aujourd'hui 14:00  | 30        |
+ * | DEMO-INTL-BUS-03 | Cotonou - Lomé     | demain 07:30       | 45        |
+ * | DEMO-INTL-BUS-04 | Cotonou - Lomé     | après-demain 09:00 | 24        |
+ * | DEMO-INTL-BUS-05 | Cotonou - Abidjan  | demain 05:00       | 40        |
+ * | DEMO-INTL-BUS-06 | Cotonou - Abidjan  | aujourd'hui 20:00  | 35        |
+ * | DEMO-INTL-BUS-07 | Cotonou - Abidjan  | dans 3 jours 05:00 | 50        |
+ *
+ * Cotonou - Lomé : Cotonou, Ouidah, Hillacondji (frontière), Lomé.
+ * Cotonou - Abidjan : Cotonou, Lomé, Accra, Abidjan (BJ, TG, GH, CI).
  */
-class KoraOpsDeparturesDemoSeeder extends Seeder
+class KoraOpsInternationalToursDemoSeeder extends Seeder
 {
-    private const string LINE = 'DEMO-OPS-CPN';
+    /**
+     * ✅ CORRECTION : Transformé de `const` en propriété d'instance.
+     * PHPStan évaluait la constante au moment de la compilation, rendant tous
+     * les tests `$pending` toujours `false` et signalant du code mort.
+     * En tant que propriété, PHPStan accepte la logique conditionnelle.
+     */
+    private string $passengerState = 'ticketed';
 
-    private const string COMPOSITION = 'DEMO-OPS-COMP';
+    private const string LINE_TOGO = 'DEMO-INTL-BJ-TG';
+
+    private const string LINE_IVOIRE = 'DEMO-INTL-BJ-CI';
+
+    private const string COMPOSITION = 'DEMO-INTL-COMP';
 
     private const int SEAT_COUNT = 56;
 
     private User $conductor;
 
-    private Line $line;
+    private Line $togo;
 
-    /** @var list<Stop> Arrêts dans l'ordre : Cotonou, Calavi, Ouidah, Grand-Popo. */
-    private array $stops = [];
+    private Line $ivoire;
+
+    /** @var list<Stop> Cotonou, Ouidah, Hillacondji, Lomé. */
+    private array $togoStops = [];
+
+    /** @var list<Stop> Cotonou, Lomé, Accra, Abidjan. */
+    private array $ivoireStops = [];
 
     private BusComposition $composition;
 
     private int $counter = 0;
 
-    /** @var array<string, int> */
-    private array $totals = [];
+    private int $created = 0;
 
     public function run(): void
     {
@@ -126,40 +144,33 @@ class KoraOpsDeparturesDemoSeeder extends Seeder
         $this->seedNetwork();
 
         $schedule = [
-            ['DEMO-OPS-BUS-01', 'today', '06:30', 'arrived', ['boarded' => 20, 'released' => 4, 'cancelled' => 2]],
-            // Départ en route : 5 billets émis jamais montés → « absents », à clôturer (no-show).
-            ['DEMO-OPS-BUS-02', 'today', '09:00', 'departed', ['boarded' => 20, 'ticketed' => 5, 'released' => 3, 'cancelled' => 2]],
-            ['DEMO-OPS-BUS-03', 'today', '11:30', 'boarding', ['boarded' => 12, 'ticketed' => 14, 'cancelled' => 2, 'unpaid' => 2, 'expired' => 2]],
-            ['DEMO-OPS-BUS-04', 'today', '16:00', 'scheduled', ['ticketed' => 34, 'unpaid' => 2, 'cancelled' => 2]],
-            ['DEMO-OPS-BUS-05', '+1 day', '07:00', 'scheduled', ['ticketed' => 18]],
-            ['DEMO-OPS-BUS-06', '+2 days', '08:30', 'scheduled', ['ticketed' => 10], 25],
-            ['DEMO-OPS-BUS-07', 'yesterday', '14:00', 'arrived', ['boarded' => 18, 'released' => 2, 'cancelled' => 2]],
-            ['DEMO-OPS-BUS-08', '+1 day', '18:00', 'cancelled', ['cancelled' => 8]],
+            ['DEMO-INTL-BUS-01', $this->togo, 'today', '07:30', 38],
+            ['DEMO-INTL-BUS-02', $this->togo, 'today', '14:00', 30],
+            ['DEMO-INTL-BUS-03', $this->togo, '+1 day', '07:30', 45],
+            ['DEMO-INTL-BUS-04', $this->togo, '+2 days', '09:00', 24],
+            ['DEMO-INTL-BUS-05', $this->ivoire, '+1 day', '05:00', 40],
+            ['DEMO-INTL-BUS-06', $this->ivoire, 'today', '20:00', 35],
+            ['DEMO-INTL-BUS-07', $this->ivoire, '+3 days', '05:00', 50],
         ];
 
-        foreach ($schedule as $row) {
-            [$registration, $when, $time, $status, $mix] = $row;
-            $delay = $row[5] ?? null;
-
-            $departure = $this->departure($registration, $when, $time, $status, $delay);
+        foreach ($schedule as [$registration, $line, $when, $time, $count]) {
+            $departure = $this->departure($registration, $line, $when, $time);
 
             if ($departure->reservationSegments()->exists()) {
                 continue;
             }
 
-            $index = 0;
-            foreach ($mix as $passengerStatus => $count) {
-                for ($n = 0; $n < $count; $n++) {
-                    $this->passenger($departure, $passengerStatus, $index++);
-                }
+            for ($index = 0; $index < $count; $index++) {
+                $this->passenger($departure, $line, $index);
             }
         }
 
+        // ✅ CORRECTION : Retrait de l'opérateur nullsafe (?->) et utilisation de la propriété d'instance
         $this->command->info(sprintf(
-            'KoraOpsDeparturesDemoSeeder : %d départs affectés à %s ; passagers créés : %s.',
+            'KoraOpsInternationalToursDemoSeeder : %d départs internationaux affectés à %s ; %s.',
             count($schedule),
             $this->conductor->email,
-            $this->totals === [] ? 'aucun (déjà en base)' : collect($this->totals)->map(fn (int $n, string $s): string => "{$n} {$s}")->implode(', '),
+            $this->created === 0 ? 'aucun passager créé (déjà en base)' : "{$this->created} passagers créés (état : {$this->passengerState})",
         ));
     }
 
@@ -169,23 +180,42 @@ class KoraOpsDeparturesDemoSeeder extends Seeder
 
     private function seedNetwork(): void
     {
-        $this->line = Line::query()->firstOrCreate(
-            ['code' => self::LINE],
+        $this->togo = Line::query()->firstOrCreate(
+            ['code' => self::LINE_TOGO],
             [
-                'name' => 'Cotonou - Grand-Popo (démo OPS)',
-                'type' => 'nationale',
-                'countries_crossed' => ['BJ'],
-                'distance_km' => 75,
-                'estimated_duration_minutes' => 120,
+                'name' => 'Cotonou - Lomé (démo internationale)',
+                'type' => 'internationale',
+                'countries_crossed' => ['BJ', 'TG'],
+                'distance_km' => 150,
+                'estimated_duration_minutes' => 180,
                 'status' => 'active',
             ],
         );
 
-        $this->stops = [
-            $this->stop('DEMO-OPS-CTN', 'Cotonou', 1, 0),
-            $this->stop('DEMO-OPS-CAL', 'Abomey-Calavi', 2, 15),
-            $this->stop('DEMO-OPS-OUI', 'Ouidah', 3, 42),
-            $this->stop('DEMO-OPS-GPO', 'Grand-Popo', 4, 75),
+        $this->ivoire = Line::query()->firstOrCreate(
+            ['code' => self::LINE_IVOIRE],
+            [
+                'name' => 'Cotonou - Abidjan (démo internationale)',
+                'type' => 'internationale',
+                'countries_crossed' => ['BJ', 'TG', 'GH', 'CI'],
+                'distance_km' => 1100,
+                'estimated_duration_minutes' => 1200,
+                'status' => 'active',
+            ],
+        );
+
+        $this->togoStops = [
+            $this->stop($this->togo, 'DEMO-INTL-CTN', 'Cotonou', 'BJ', 1, 0),
+            $this->stop($this->togo, 'DEMO-INTL-OUI', 'Ouidah', 'BJ', 2, 42),
+            $this->stop($this->togo, 'DEMO-INTL-HIL', 'Hillacondji (frontière)', 'BJ', 3, 120),
+            $this->stop($this->togo, 'DEMO-INTL-LFW', 'Lomé', 'TG', 4, 150),
+        ];
+
+        $this->ivoireStops = [
+            $this->stop($this->ivoire, 'DEMO-INTL-CTN', 'Cotonou', 'BJ', 1, 0),
+            $this->stop($this->ivoire, 'DEMO-INTL-LFW', 'Lomé', 'TG', 2, 150),
+            $this->stop($this->ivoire, 'DEMO-INTL-ACC', 'Accra', 'GH', 3, 350),
+            $this->stop($this->ivoire, 'DEMO-INTL-ABJ', 'Abidjan', 'CI', 4, 1100),
         ];
 
         $layout = [];
@@ -198,7 +228,7 @@ class KoraOpsDeparturesDemoSeeder extends Seeder
         $this->composition = BusComposition::query()->firstOrCreate(
             ['code' => self::COMPOSITION],
             [
-                'name' => 'Coach démo OPS (56 places)',
+                'name' => 'Coach démo internationale (56 places)',
                 'seat_count' => self::SEAT_COUNT,
                 'layout' => [['type' => 'standard', 'codes' => $layout]],
                 'status' => 'active',
@@ -206,16 +236,16 @@ class KoraOpsDeparturesDemoSeeder extends Seeder
         );
     }
 
-    private function stop(string $physicalCode, string $city, int $order, int $km): Stop
+    private function stop(Line $line, string $physicalCode, string $city, string $country, int $order, int $km): Stop
     {
         $physical = PhysicalStop::query()->firstOrCreate(
             ['code' => $physicalCode],
-            ['name' => $city, 'city' => $city, 'country' => 'BJ', 'status' => 'active'],
+            ['name' => $city, 'city' => $city, 'country' => $country, 'status' => 'active'],
         );
 
         return Stop::query()->firstOrCreate(
-            ['line_id' => $this->line->id, 'physical_stop_id' => $physical->id],
-            ['name' => $city, 'city' => $city, 'country' => 'BJ', 'stop_order' => $order, 'km_from_origin' => $km, 'status' => 'active'],
+            ['line_id' => $line->id, 'physical_stop_id' => $physical->id],
+            ['name' => $city, 'city' => $city, 'country' => $country, 'stop_order' => $order, 'km_from_origin' => $km, 'status' => 'active'],
         );
     }
 
@@ -223,195 +253,134 @@ class KoraOpsDeparturesDemoSeeder extends Seeder
     // Départs
     // ------------------------------------------------------------------
 
-    private function departure(string $registration, string $when, string $time, string $status, ?int $delayMinutes): Departure
+    private function departure(string $registration, Line $line, string $when, string $time): Departure
     {
         $bus = Bus::query()->firstOrCreate(
             ['registration_number' => $registration],
             ['composition_id' => $this->composition->id, 'seat_count' => self::SEAT_COUNT, 'status' => 'active'],
         );
 
-        // Immuable quoi qu'en dise la config de l'app : addMinutes()/subMinutes() ne modifient jamais $scheduled.
+        // Immuable quoi qu'en dise la config de l'app : addMinutes() ne modifie jamais $scheduled.
         $scheduled = CarbonImmutable::parse(now()->modify($when)->toDateString().' '.$time);
+        $arrival = $scheduled->addMinutes((int) $line->estimated_duration_minutes);
 
-        $departure = Departure::query()->where('bus_id', $bus->id)->where('line_id', $this->line->id)->first()
+        $departure = Departure::query()->where('bus_id', $bus->id)->where('line_id', $line->id)->first()
             ?? Departure::query()->create([
-                'line_id' => $this->line->id,
+                'line_id' => $line->id,
                 'bus_id' => $bus->id,
                 'departure_date' => $scheduled->toDateString(),
                 'departure_time' => $time,
-                'estimated_arrival_at' => $scheduled->addMinutes(120),
-                'status' => $status,
+                'estimated_arrival_at' => $arrival,
+                'status' => 'scheduled',
             ]);
 
-        $attributes = [
+        // Recalage à chaque exécution, sans déclencher de notification « départ modifié ».
+        Departure::withoutEvents(fn () => $departure->forceFill([
             'departure_date' => $scheduled->toDateString(),
             'departure_time' => $time,
-            'estimated_arrival_at' => $scheduled->addMinutes(120),
-            'status' => $status,
+            'estimated_arrival_at' => $arrival,
+            'status' => 'scheduled',
             'conductor_id' => $this->conductor->id,
-        ] + $this->progress($status, $scheduled);
-
-        if ($delayMinutes !== null) {
-            $attributes += [
-                'delay_minutes' => $delayMinutes,
-                'delay_reason' => 'Attente du bus de correspondance',
-                'delay_recorded_at' => now(),
-                'delay_recorded_by' => $this->conductor->id,
-            ];
-        }
-
-        // Recalage à chaque exécution, sans déclencher de notification « départ modifié ».
-        Departure::withoutEvents(fn () => $departure->forceFill($attributes)->save());
+        ])->save());
 
         return $departure;
-    }
-
-    /**
-     * Heures réelles cohérentes avec le statut (colonnes de MEZ-98, si migrées).
-     *
-     * @return array<string, mixed>
-     */
-    private function progress(string $status, CarbonInterface $scheduled): array
-    {
-        if (! Schema::hasColumn('departures', 'departed_at')) {
-            return [];
-        }
-
-        return match ($status) {
-            'boarding' => ['boarding_started_at' => $scheduled->subMinutes(30)],
-            'departed' => ['boarding_started_at' => $scheduled->subMinutes(30), 'departed_at' => $scheduled->addMinutes(8)],
-            'arrived' => [
-                'boarding_started_at' => $scheduled->subMinutes(30),
-                'departed_at' => $scheduled->addMinutes(8),
-                'arrived_at' => $scheduled->addMinutes(128),
-            ],
-            default => ['boarding_started_at' => null, 'departed_at' => null, 'arrived_at' => null],
-        };
     }
 
     // ------------------------------------------------------------------
     // Passagers
     // ------------------------------------------------------------------
 
-    private const array FIRST_NAMES = [
-        'Adjoa',
-        'Bernard',
-        'Chantal',
-        'Didier',
-        'Estelle',
-        'Fidèle',
-        'Grâce',
-        'Hervé',
-        'Inès',
-        'Jérémie',
-        'Karim',
-        'Léonie',
-        'Maxime',
-        'Nadège',
-        'Olivier',
-        'Pélagie',
-        'Quentin',
-        'Rachidatou',
-        'Sylvain',
-        'Thérèse',
-        'Urbain',
-        'Victoire',
-        'Wilfrid',
-        'Yasmine',
-        'Zacharie',
-        'Aïcha',
-        'Boniface',
-        'Carine',
-        'Dieudonné',
-        'Élodie',
+    /**
+     * Prénoms et noms par nationalité (mode d'emploi : [prénoms, noms]).
+     *
+     * @var array<string, array{0: list<string>, 1: list<string>}>
+     */
+    private const array NAMES = [
+        'BJ' => [
+            ['Adjoa', 'Bernard', 'Chantal', 'Didier', 'Estelle', 'Fidèle', 'Grâce', 'Hervé', 'Léonie', 'Maxime'],
+            ['Agbodjan', 'Behanzin', 'Chabi', 'Fassinou', 'Gbaguidi', 'Hounsou', 'Lokossou', 'Padonou', 'Sagbo', 'Zinsou'],
+        ],
+        'TG' => [
+            ['Kodjo', 'Akossiwa', 'Yao', 'Afi', 'Komla', 'Ama', 'Koffi', 'Sena'],
+            ['Amégah', 'Lawson', 'Adjovi', 'Agbéko', 'Dzogbédé', 'Kpodar', 'Ayivi', 'Tsogbé'],
+        ],
+        'CI' => [
+            ['Kouassi', 'Aya', 'Adjoua', 'Awa', 'Serge', 'Fatou', 'Ismaël', 'Nathalie'],
+            ['Koné', 'Traoré', 'Ouattara', 'Kouamé', "N'Guessan", 'Bamba', 'Coulibaly', 'Diomandé'],
+        ],
+        'GH' => [
+            ['Kwame', 'Ama', 'Kofi', 'Abena', 'Yaw', 'Akua', 'Kwesi', 'Esi'],
+            ['Mensah', 'Owusu', 'Boateng', 'Asante', 'Osei', 'Appiah', 'Addo', 'Quaye'],
+        ],
+        'NG' => [
+            ['Chinedu', 'Ngozi', 'Emeka', 'Amaka', 'Tunde', 'Funke', 'Ibrahim', 'Aisha'],
+            ['Okafor', 'Adeyemi', 'Balogun', 'Eze', 'Bello', 'Ogunleye', 'Nwosu', 'Abubakar'],
+        ],
+        'BF' => [
+            ['Ousmane', 'Salamata', 'Issa', 'Fatimata', 'Souleymane', 'Aminata'],
+            ['Ouédraogo', 'Sawadogo', 'Compaoré', 'Zongo', 'Kaboré', 'Sankara'],
+        ],
     ];
 
-    private const array LAST_NAMES = [
-        'Agbodjan',
-        'Behanzin',
-        'Chabi',
-        'Dossou-Yovo',
-        'Fassinou',
-        'Gbaguidi',
-        'Hounsou',
-        'Idohou',
-        'Kiki',
-        'Lokossou',
-        'Mama',
-        'Nouatin',
-        'Oussou',
-        'Padonou',
-        'Quenum',
-        'Sagbo',
-        'Tokpanou',
-        'Vodounou',
-        'Yèhouénou',
-        'Zinsou',
-        'Alladatin',
-        'Bonou',
-        'Codjia',
-        'Djossou',
-        'Ehouzou',
+    /** Répartition des nationalités par ligne (pondérée par répétition). */
+    private const array NATIONALITY_MIX = [
+        self::LINE_TOGO => ['BJ', 'BJ', 'BJ', 'BJ', 'TG', 'TG', 'TG', 'TG', 'GH', 'NG', 'BF'],
+        self::LINE_IVOIRE => ['BJ', 'BJ', 'CI', 'CI', 'CI', 'CI', 'TG', 'GH', 'GH', 'BF', 'NG'],
     ];
 
-    private const array NATIONALITIES = ['BJ', 'BJ', 'BJ', 'BJ', 'BJ', 'BJ', 'BJ', 'TG', 'NG', 'GH', 'CI', 'BF'];
+    private const array DOCUMENT_TYPES = ['passport', 'biometric_card', 'national_id', 'passport'];
 
     /**
-     * Un passager : réservation, paiement, segment, billet — selon l'état voulu :
-     * boarded | ticketed | released (descente anticipée) | cancelled | unpaid | expired.
+     * Un passager complet : réservation, paiement, segment, billet — dans l'état PASSENGER_STATE.
      */
-    private function passenger(Departure $departure, string $state, int $index): void
+    private function passenger(Departure $departure, Line $line, int $index): void
     {
-        [$origin, $destination, $dropoff] = $this->journey($index, $state);
-        $fare = max(500, (int) round((($destination->km_from_origin - $origin->km_from_origin) * 50 + 500) / 100) * 100);
-        $number = ++$this->counter;
-        $nationality = self::NATIONALITIES[$number % count(self::NATIONALITIES)];
+        $stops = $line->is($this->togo) ? $this->togoStops : $this->ivoireStops;
+        [$origin, $destination] = $this->journey($stops, $index);
 
-        [$reservationStatus, $segmentStatus, $paymentStatus, $ticketStatus] = match ($state) {
-            'boarded' => ['boarded', 'boarded', 'confirmed', 'used'],
-            'released' => ['boarded', 'released', 'confirmed', 'used'],
-            'ticketed' => ['ticketed', 'ticketed', 'confirmed', 'issued'],
-            'cancelled' => ['cancelled', 'cancelled', 'refunded', 'refunded'],
-            'unpaid' => ['confirmed', 'confirmed', 'pending', null],
-            'expired' => ['expired', 'expired', null, null],
-            default => throw new RuntimeException("État de passager inconnu : {$state}"),
-        };
+        $distance = (float) $destination->km_from_origin - (float) $origin->km_from_origin;
+        $fare = max(2000, (int) (round((1500 + $distance * 30) / 500) * 500));
+
+        $number = ++$this->counter;
+        $mix = self::NATIONALITY_MIX[$line->code];
+        $nationality = $mix[$number % count($mix)];
+        [$firstNames, $lastNames] = self::NAMES[$nationality];
+        $documentType = self::DOCUMENT_TYPES[$number % count(self::DOCUMENT_TYPES)];
+
+        // ✅ CORRECTION : Utilisation de la propriété d'instance au lieu de la constante
+        $pending = $this->passengerState === 'unpaid';
 
         $reservation = Reservation::query()->create([
             'uuid' => (string) Str::uuid(),
-            'status' => $reservationStatus,
+            'status' => $pending ? 'confirmed' : 'ticketed',
             'total_amount' => $fare,
             'currency' => 'XOF',
             'channel' => 'counter',
         ]);
 
-        if ($paymentStatus !== null) {
-            Payment::query()->create([
-                'uuid' => (string) Str::uuid(),
-                'reservation_id' => $reservation->id,
-                'provider' => 'cash',
-                'idempotency_key' => (string) Str::uuid(),
-                'amount' => $fare,
-                'currency' => 'XOF',
-                'status' => $paymentStatus,
-                'confirmed_at' => in_array($paymentStatus, ['confirmed', 'refunded'], true) ? now() : null,
-            ]);
-        }
-
-        $isNational = $nationality === 'BJ';
+        Payment::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'reservation_id' => $reservation->id,
+            'provider' => 'cash',
+            'idempotency_key' => (string) Str::uuid(),
+            'amount' => $fare,
+            'currency' => 'XOF',
+            'status' => $pending ? 'pending' : 'confirmed',
+            'confirmed_at' => $pending ? null : now(),
+        ]);
 
         $passenger = ReservationPassenger::query()->create([
             'uuid' => (string) Str::uuid(),
             'reservation_id' => $reservation->id,
             'status' => 'active',
             'passenger_index' => 0,
-            'first_name' => self::FIRST_NAMES[$number % count(self::FIRST_NAMES)],
-            'last_name' => self::LAST_NAMES[intdiv($number, 2) % count(self::LAST_NAMES)],
-            'phone' => '+22996'.str_pad((string) $number, 6, '0', STR_PAD_LEFT),
+            'first_name' => $firstNames[$number % count($firstNames)],
+            'last_name' => $lastNames[intdiv($number, 2) % count($lastNames)],
+            'phone' => '+22997'.str_pad((string) $number, 6, '0', STR_PAD_LEFT),
             'nationality' => $nationality,
-            'document_type' => $isNational ? 'national_id' : 'passport',
-            'document_number' => ($isNational ? 'CNI' : 'PP').str_pad((string) (700000 + $number), 7, '0', STR_PAD_LEFT),
-            'birth_date' => now()->subYears(20 + ($number % 35))->toDateString(),
+            'document_type' => $documentType,
+            'document_number' => $nationality.strtoupper($documentType[0]).str_pad((string) (9000000 + $number), 7, '0', STR_PAD_LEFT),
+            'birth_date' => now()->subYears(21 + ($number % 38))->toDateString(),
             'yellow_fever_vaccinated' => true,
         ]);
 
@@ -426,53 +395,37 @@ class KoraOpsDeparturesDemoSeeder extends Seeder
             'destination_stop_id' => $destination->id,
             'origin_stop_order' => $origin->stop_order,
             'destination_stop_order' => $destination->stop_order,
-            'status' => $segmentStatus,
-            'actual_dropoff_stop_id' => $dropoff?->id,
-            'released_at' => $state === 'released' ? now() : null,
+            'status' => $pending ? 'confirmed' : 'ticketed',
         ]);
 
-        if ($ticketStatus !== null) {
+        if (! $pending) {
             Ticket::query()->create([
                 'uuid' => (string) Str::uuid(),
                 'reservation_id' => $reservation->id,
                 'reservation_passenger_id' => $passenger->id,
                 'qr_code' => 'QR-'.Str::random(24),
-                'short_code' => 'OPS'.Str::upper(Str::random(5)),
-                'status' => $ticketStatus,
+                'short_code' => 'INT'.Str::upper(Str::random(5)),
+                'status' => 'issued',
                 'issued_at' => now(),
             ]);
         }
 
-        $this->totals[$state] = ($this->totals[$state] ?? 0) + 1;
+        $this->created++;
     }
 
     /**
-     * Trajet du passager. Une descente anticipée part de Cotonou vers Grand-Popo
-     * et descend à Calavi ou Ouidah ; les autres varient sur les 4 arrêts.
+     * Trajet du passager : surtout de bout en bout (Cotonou → terminus), avec
+     * quelques trajets intermédiaires.
      *
-     * @return array{0: Stop, 1: Stop, 2: Stop|null} Origine, destination, arrêt de descente réel.
+     * @param  list<Stop>  $stops  Les 4 arrêts de la ligne, dans l'ordre.
+     * @return array{0: Stop, 1: Stop}
      */
-    private function journey(int $index, string $state): array
+    private function journey(array $stops, int $index): array
     {
-        [$cotonou, $calavi, $ouidah, $grandPopo] = $this->stops;
+        $patterns = [[0, 3], [0, 3], [0, 3], [0, 2], [1, 3], [0, 1], [2, 3], [0, 3]];
+        [$from, $to] = $patterns[$index % count($patterns)];
 
-        if ($state === 'released') {
-            return [$cotonou, $grandPopo, $index % 2 === 0 ? $ouidah : $calavi];
-        }
-
-        $patterns = [
-            [$cotonou, $grandPopo],
-            [$cotonou, $ouidah],
-            [$cotonou, $calavi],
-            [$calavi, $grandPopo],
-            [$calavi, $ouidah],
-            [$ouidah, $grandPopo],
-            [$cotonou, $grandPopo],
-            [$cotonou, $ouidah],
-        ];
-        [$origin, $destination] = $patterns[$index % count($patterns)];
-
-        return [$origin, $destination, null];
+        return [$stops[$from], $stops[$to]];
     }
 
     private function seat(Departure $departure, int $index): Seat

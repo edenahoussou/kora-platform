@@ -40,7 +40,14 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
         'departure_uuid': departureUuid,
         'type': type.name,
         'description': description,
-        'occurred_at': occurredAt.toIso8601String(),
+        // .toUtc() est essentiel : DateTime.now() est en heure locale de
+        // l'appareil, et son .toIso8601String() ne porte ni « Z » ni
+        // offset. Carbon côté serveur interprète alors cette chaîne comme
+        // déjà en UTC — sur un appareil à UTC+1 (Bénin/Togo), l'heure
+        // envoyée apparaît donc 1h dans le "futur", ce qui viole
+        // `before_or_equal:+5 minutes` (422). .toUtc() ajoute le
+        // suffixe « Z » et corrige l'instant envoyé.
+        'occurred_at': occurredAt.toUtc().toIso8601String(),
         if (latitude != null) 'latitude': latitude,
         if (longitude != null) 'longitude': longitude,
       },

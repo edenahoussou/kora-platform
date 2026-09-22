@@ -9300,20 +9300,87 @@ paths:
                         message: 'Ce terminal a été déclaré perdu. Il ne peut plus être utilisé.'
                         action: contact_agency
                     properties:
-                      error:
-                        type: object
-                        properties:
-                          code:
-                            type: string
-                            example: terminal_lost
-                          message:
-                            type: string
-                            example: 'Ce terminal a été déclaré perdu. Il ne peut plus être utilisé.'
-                          action:
-                            type: string
-                            example: contact_agency
-                  -
-                    description: 'Terminal affecté à un autre utilisateur'
+                      code:
+                        type: string
+                        example: permission_denied
+                      message:
+                        type: string
+                        example: 'Votre compte n’a pas la permission d’utiliser KORA OPS Mobile.'
+                      action:
+                        type: string
+                        example: contact_agency
+      tags:
+        - 'OPS — Notifications'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                unread:
+                  type: boolean
+                  description: ''
+                  example: false
+                type:
+                  type: string
+                  description: ''
+                  example: departure_assigned
+                  enum:
+                    - departure_assigned
+                    - departure_modified
+                    - manifest_stale
+                    - terminal_revoked
+                    - scan_conflict
+                    - operation_rejected
+                    - sync_completed
+                    - sync_failed
+                    - no_show_closed
+                    - print_error
+                    - departure_departed
+                    - incident_reported
+                    - incident_critical
+                severity:
+                  type: string
+                  description: ''
+                  example: info
+                  enum:
+                    - info
+                    - warning
+                    - critical
+                since:
+                  type: string
+                  description: 'Le champ value doit être une date valide.'
+                  example: '2026-09-22T05:31:43'
+                per_page:
+                  type: integer
+                  description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 100.'
+                  example: 1
+                page:
+                  type: integer
+                  description: 'Le champ value doit être au moins 1.'
+                  example: 22
+  /api/v1/notifications/unread-count:
+    get:
+      summary: 'Nombre de notifications non lues (badge), dont les critiques.'
+      operationId: nombreDeNotificationsNonLuesbadgeDontLesCritiques
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: Compteurs
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    unread: 3
+                    critical_unread: 1
+                  meta:
+                    server_time: '2026-09-21T07:45:00.000Z'
+                properties:
+                  data:
                     type: object
                     example:
                       error:

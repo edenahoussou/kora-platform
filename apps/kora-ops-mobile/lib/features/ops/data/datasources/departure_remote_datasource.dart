@@ -70,7 +70,11 @@ class DepartureRemoteDataSourceImpl implements DepartureRemoteDataSource {
       ApiConstants.opsDepartureStatus(departureUuid),
       data: <String, dynamic>{
         'status': status,
-        if (occurredAt != null) 'occurred_at': occurredAt.toIso8601String(),
+        // Même correctif que IncidentRemoteDataSourceImpl.report() : .toUtc()
+        // avant sérialisation, sinon une heure locale à offset positif
+        // (Bénin UTC+1) viole `before_or_equal:+5 minutes` côté serveur.
+        if (occurredAt != null)
+          'occurred_at': occurredAt.toUtc().toIso8601String(),
       },
     );
     final Object? body = response.data;

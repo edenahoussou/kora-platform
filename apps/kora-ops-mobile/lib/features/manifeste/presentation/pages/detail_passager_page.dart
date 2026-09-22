@@ -6,11 +6,12 @@ import '../../../../app/theme/app_radius.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/kora_colors.dart';
 import '../../../../core/services/kora_dialogs.dart';
+import '../../../../core/widgets/action_speed_dial.dart';
 import '../../../../core/widgets/kora_button.dart';
 import '../../../../core/widgets/kora_card.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../../core/widgets/statut_badge.dart';
-import '../../../../core/widgets/ticket_card.dart';
+import '../../../../core/widgets/ticket_sheet.dart';
 import '../../../../injection/injection.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../boarding/domain/repositories/boarding_repository.dart';
@@ -18,7 +19,6 @@ import '../../../ops/data/mock_ops_data_source.dart';
 import '../../../ops/domain/entities/depart.dart';
 import '../../../ops/domain/entities/passenger.dart';
 import '../../../ops/domain/entities/stop.dart';
-import '../../../ops/domain/entities/ticket.dart';
 import '../../../ops/presentation/cubit/selected_depart_cubit.dart';
 import '../../../seat_release/domain/compatible_stops.dart';
 import '../../../seat_release/domain/entities/seat_release_outcome.dart';
@@ -61,12 +61,43 @@ class DetailPassagerPage extends StatelessWidget {
         passenger.statut == BoardingStatus.embarque &&
         passenger.boardingEventUuid != null;
 
+    // Actions du Speed Dial (point 2 de la refonte UI/UX) : mêmes 3
+    // actions réelles qu'avant (Descente anticipée / Annuler
+    // l'embarquement / Voir le billet), seulement listées quand elles
+    // sont réellement exécutables — un item désactivé n'a pas sa place
+    // dans un menu flottant. Remplace l'empilement de KoraButton
+    // ci-dessous (conservé en commentaire).
+    final List<SpeedDialAction> speedDialActions = <SpeedDialAction>[
+      if (depart != null && passenger.statut == BoardingStatus.embarque)
+        SpeedDialAction(
+          icon: Icons.move_down,
+          label: 'Descente anticipée',
+          onPressed: () => _releaseEarlyDropOff(context, depart, passenger),
+        ),
+      if (canShowReverseButton)
+        SpeedDialAction(
+          icon: Icons.undo,
+          label: 'Annuler l\'embarquement',
+          danger: true,
+          onPressed: () => _reverseBoarding(context, passenger),
+        ),
+      if (depart != null)
+        SpeedDialAction(
+          icon: Icons.confirmation_number_outlined,
+          label: 'Voir le billet',
+          onPressed: () => _showTicket(context, depart, passenger),
+        ),
+    ];
+
     return Scaffold(
       appBar: ScreenHeader(
         eyebrow: 'Passager',
         title: passenger.nomComplet,
         action: const SyncStatusBanner(compact: true),
       ),
+      floatingActionButton: speedDialActions.isEmpty
+          ? null
+          : ActionSpeedDial(actions: speedDialActions),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
@@ -165,37 +196,40 @@ class DetailPassagerPage extends StatelessWidget {
               //   ],
               // ),
               // const SizedBox(height: AppSpacing.sm),
-              KoraButton(
-                label: 'Descente anticipée',
-                variant: KoraButtonVariant.ghost,
-                icon: Icons.move_down,
-                // Une descente anticipée n'a de sens que pour un passager
-                // déjà embarqué sur CE départ — voir
-                // `SeatReleaseFunctionalCode.SegmentNotBoarded` côté
-                // backend, qui rejetterait sinon.
-                onPressed: depart == null ||
-                        passenger.statut != BoardingStatus.embarque
-                    ? null
-                    : () => _releaseEarlyDropOff(context, depart, passenger),
-              ),
-              if (canShowReverseButton) ...<Widget>[
-                const SizedBox(height: AppSpacing.sm),
-                KoraButton(
-                  label: 'Annuler l\'embarquement',
-                  variant: KoraButtonVariant.danger,
-                  icon: Icons.undo,
-                  onPressed: () => _reverseBoarding(context, passenger),
-                ),
-              ],
-              const SizedBox(height: AppSpacing.sm),
-              KoraButton(
-                label: 'Voir le billet',
-                variant: KoraButtonVariant.ghost,
-                icon: Icons.confirmation_number_outlined,
-                onPressed: depart == null
-                    ? null
-                    : () => _showTicket(context, depart, passenger),
-              ),
+              // Empilement remplacé par le FloatingActionButton Speed
+              // Dial (voir speedDialActions / _PassengerActionsSpeedDial
+              // ci-dessous) — refonte UI/UX du 21/09/2026, point 2.
+              // KoraButton(
+              //   label: 'Descente anticipée',
+              //   variant: KoraButtonVariant.ghost,
+              //   icon: Icons.move_down,
+              //   // Une descente anticipée n'a de sens que pour un passager
+              //   // déjà embarqué sur CE départ — voir
+              //   // `SeatReleaseFunctionalCode.SegmentNotBoarded` côté
+              //   // backend, qui rejetterait sinon.
+              //   onPressed: depart == null ||
+              //           passenger.statut != BoardingStatus.embarque
+              //       ? null
+              //       : () => _releaseEarlyDropOff(context, depart, passenger),
+              // ),
+              // if (canShowReverseButton) ...<Widget>[
+              //   const SizedBox(height: AppSpacing.sm),
+              //   KoraButton(
+              //     label: 'Annuler l\'embarquement',
+              //     variant: KoraButtonVariant.danger,
+              //     icon: Icons.undo,
+              //     onPressed: () => _reverseBoarding(context, passenger),
+              //   ),
+              // ],
+              // const SizedBox(height: AppSpacing.sm),
+              // KoraButton(
+              //   label: 'Voir le billet',
+              //   variant: KoraButtonVariant.ghost,
+              //   icon: Icons.confirmation_number_outlined,
+              //   onPressed: depart == null
+              //       ? null
+              //       : () => _showTicket(context, depart, passenger),
+              // ),
               const SizedBox(height: AppSpacing.lg),
             ],
           ),
@@ -207,17 +241,13 @@ class DetailPassagerPage extends StatelessWidget {
   Future<void> _showTicket(
       BuildContext context, Depart depart, Passenger passenger) {
     final ticket = MockOpsDataSource.ticketFor(passenger, depart.id);
-    return showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (BuildContext context) => _TicketSheet(
-        ticket: ticket,
-        passengerName: passenger.nomComplet,
-        route: depart.route,
-        date: depart.date,
-        heure: depart.heure,
-      ),
+    return showTicketSheet(
+      context,
+      ticket: ticket,
+      passengerName: passenger.nomComplet,
+      route: depart.route,
+      date: depart.date,
+      heure: depart.heure,
     );
   }
 
@@ -355,84 +385,10 @@ class DetailPassagerPage extends StatelessWidget {
   }
 }
 
-class _TicketSheet extends StatelessWidget {
-  const _TicketSheet({
-    required this.ticket,
-    required this.passengerName,
-    required this.route,
-    required this.date,
-    required this.heure,
-  });
-
-  final Ticket ticket;
-  final String passengerName;
-  final String route;
-  final String date;
-  final String heure;
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        // Seul le clavier justifie un padding bas ici — plus de marge
-        // fixe en plus, qui laissait un vide sous la carte.
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(context).bottom,
-        ),
-        child: Material(
-          color: context.koraColors.surface,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(AppRadius.lg),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              const SizedBox(height: AppSpacing.sm),
-              Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.md, AppSpacing.sm, AppSpacing.xs, 0),
-                child: Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: Text('Billet',
-                          style: Theme.of(context).textTheme.titleMedium),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      tooltip: 'Fermer',
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.md, 0, AppSpacing.md, AppSpacing.md),
-                child: TicketCard(
-                  ticket: ticket,
-                  passengerName: passengerName,
-                  route: route,
-                  date: date,
-                  heure: heure,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+/// Le bottom sheet "Voir le billet" vit désormais dans
+/// `core/widgets/ticket_sheet.dart` (`showTicketSheet` / `TicketSheet`)
+/// — partagé avec `DescenteAnticipeePage` (tap sur un siège, refonte
+/// UI/UX du 21/09/2026).
 
 class _StopPickerSheet extends StatelessWidget {
   const _StopPickerSheet({required this.stops, required this.passenger});
@@ -565,3 +521,8 @@ class _InfoRow extends StatelessWidget {
     );
   }
 }
+
+/// Le Speed Dial des actions ci-dessus vit désormais dans
+/// `core/widgets/action_speed_dial.dart` (`SpeedDialAction` /
+/// `ActionSpeedDial`) — partagé avec `ManifestePage`, qui a le même
+/// besoin (refonte UI/UX du 21/09/2026).

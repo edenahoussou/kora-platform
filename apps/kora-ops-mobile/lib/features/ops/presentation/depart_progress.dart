@@ -33,7 +33,7 @@ DepartProgressStep? nextDepartProgressStep(Depart depart) {
         targetStatus: 'departed',
       ),
     'departed' => (
-        label: 'Marquer le bus arrivé',
+        label: 'Marquer l\'arrivé',
         icon: Icons.flag_circle,
         targetStatus: 'arrived',
       ),

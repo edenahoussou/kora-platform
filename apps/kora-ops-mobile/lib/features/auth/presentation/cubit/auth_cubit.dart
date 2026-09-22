@@ -62,7 +62,13 @@ class AuthCubit extends Cubit<AuthState> {
   /// retomber l'app sur l'écran PIN — pas email, l'appareil reste de
   /// confiance.
   Future<void> sessionExpired() async {
-    await _authRepository.logout();
+    // Purge locale uniquement : le serveur a déjà rejeté ce token (c'est
+    // pour ça qu'on est ici), donc appeler logout() referait un appel
+    // réseau qui répond 401 et redéclenche SessionExpiryInterceptor →
+    // boucle infinie. Le token restera valide côté serveur jusqu'à son
+    // expiration naturelle, comme pour logout() (compromis assumé, voir
+    // AuthRepository.logout).
+    await _authRepository.purgeLocalSession();
     emit(AuthUnauthenticated(savedEmail: await _authRepository.lastEmail()));
   }
 

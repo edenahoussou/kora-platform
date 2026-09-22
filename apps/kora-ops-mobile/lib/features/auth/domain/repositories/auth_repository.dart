@@ -63,6 +63,13 @@ abstract class AuthRepository {
   /// le serveur était injoignable.
   Future<Result<void>> logout();
 
+  /// Purge uniquement le stockage local, **sans appel réseau**. À utiliser
+  /// quand le serveur a déjà rejeté le token (401 intercepté par
+  /// [SessionExpiryInterceptor]) : appeler `logout()` ici referait un
+  /// appel réseau qui répond lui-même 401, ce qui redéclenche
+  /// l'intercepteur en boucle infinie.
+  Future<void> purgeLocalSession();
+
   /// Choisit un nouveau PIN après un OTP `pin_reset`.
   Future<Result<void>> resetPin({
     required OtpVerification verification,

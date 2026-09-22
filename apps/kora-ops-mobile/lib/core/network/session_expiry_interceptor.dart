@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 
+import '../constants/api_constants.dart';
+
 /// Détecte un 401 sur **n'importe quel** appel API protégé et déclenche
 /// [onSessionExpired] — c'est ce qui fait que "les appels API protégés
 /// utilisent le mécanisme d'authentification validé" (périmètre du
@@ -18,7 +20,13 @@ class SessionExpiryInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    if (err.response?.statusCode == 401) {
+    // `logout` lui-même peut répondre 401 (token déjà invalide côté
+    // serveur, c'est précisément pour ça qu'on l'appelle) : ne pas
+    // redéclencher onSessionExpired dessus, sinon on retombe sur logout()
+    // → 401 → onSessionExpired → logout() ... en boucle infinie. Filet de
+    // sécurité en plus du fix côté AuthCubit.sessionExpired().
+    final isLogoutCall = err.requestOptions.path == ApiConstants.logout;
+    if (err.response?.statusCode == 401 && !isLogoutCall) {
       onSessionExpired();
     }
     handler.next(err);

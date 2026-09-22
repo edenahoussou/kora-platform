@@ -135,6 +135,9 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<void> purgeLocalSession() => _local.clear();
+
+  @override
   Future<Result<void>> resetPin({
     required OtpVerification verification,
     required String pin,

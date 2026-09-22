@@ -91,6 +91,7 @@ class KoraMarcPhoneTerminalSeeder extends Seeder
             ], $this->actor($marc));
         }
 
+        // ✅ CORRECTION : Retrait de l'opérateur nullsafe (?->) car $this->command est non-nullable
         $this->command->info(sprintf(
             'KoraMarcPhoneTerminalSeeder : %s %s — affecté à %s (%s).',
             $terminal->serial_number,
