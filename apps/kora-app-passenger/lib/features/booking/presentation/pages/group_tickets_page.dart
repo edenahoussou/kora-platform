@@ -159,9 +159,35 @@ class _Content extends StatelessWidget {
       );
     }
 
+    // Les billets viennent du téléphone : le serveur n'a pas répondu, mais
+    // les QR sont signés et restent valables au contrôle.
+    final offline = state.tickets.any((ticket) => ticket.isStale);
+
     return ListView(
       padding: EdgeInsets.zero,
       children: [
+        if (offline) ...[
+          KoraCard(
+            variant: KoraCardVariant.mist,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.cloud_off_rounded,
+                  size: 18,
+                  color: context.koraColors.textMuted,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    l10n.ticketOfflineNote,
+                    style: AppTextStyles.caption(context.koraColors.textMuted),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 9),
+        ],
         for (var i = 0; i < state.tickets.length; i++) ...[
           _TicketRow(ticket: state.tickets[i], index: i + 1),
           const SizedBox(height: 9),
@@ -304,8 +330,10 @@ class _TicketRow extends StatelessWidget {
               KoraQr(payload: ticket.qrCode, size: 190),
               const SizedBox(height: AppSpacing.md),
               // Le PDF officiel, tel que KORA le génère : plus aucun billet
-              // n'est recomposé sur le téléphone à partir du JSON.
-              OfficialTicketDownload(ticketId: ticket.id),
+              // n'est recomposé sur le téléphone à partir du JSON. En liste
+              // d'actions, comme sur le détail du billet — une pile de
+              // boutons pleine largeur pesait trop lourd sous le code.
+              OfficialTicketMenu(ticketId: ticket.id),
             ],
           ),
         ),

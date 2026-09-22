@@ -42,6 +42,17 @@ class PassengerTicketModel {
 
   String get seatCode => ApiJson.string(ApiJson.map(_json['seat'])['code']);
 
+  /// `Awa KORA`, ou vide si le serveur n'a rattaché aucun voyageur.
+  String get passengerName {
+    final passenger = ApiJson.map(_json['passenger']);
+    final parts = [
+      ApiJson.string(passenger['first_name']),
+      ApiJson.string(passenger['last_name']),
+    ].where((part) => part.isNotEmpty);
+
+    return parts.join(' ');
+  }
+
   /// L'heure de départ, ramenée à l'heure du téléphone. `null` quand le
   /// serveur ne la donne pas.
   DateTime? get departsAt =>

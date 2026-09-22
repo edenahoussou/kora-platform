@@ -86,7 +86,7 @@ void main() {
   testWidgets('liste un billet par voyageur, avec son siège', (tester) async {
     await pump(tester, repository: StubReservationRepository(tickets: tickets));
 
-    expect(find.text('Billets du groupe'), findsOneWidget);
+    expect(find.text('Vos billets'), findsOneWidget);
     expect(find.text('2 voyageurs · 2 QR Codes'.toUpperCase()), findsOneWidget);
     expect(find.text('Aïcha HOUNKPÈ · 4A'), findsOneWidget);
     expect(find.text('Kofi MENSAH · 4B'), findsOneWidget);
@@ -158,7 +158,7 @@ void main() {
   testWidgets('sans réservation, l’écran ne fabrique rien', (tester) async {
     await pump(tester, repository: StubReservationRepository(), args: null);
 
-    expect(find.text('Billets du groupe'), findsNothing);
+    expect(find.text('Vos billets'), findsNothing);
   });
 
   testWidgets('au bout d’un achat, le retour quitte le tunnel', (tester) async {
@@ -214,7 +214,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Accueil'), findsOneWidget);
-    expect(find.text('Billets du groupe'), findsNothing);
+    expect(find.text('Vos billets'), findsNothing);
   });
 
   testWidgets('ouvert depuis Voyages, le retour rend le billet consulté', (

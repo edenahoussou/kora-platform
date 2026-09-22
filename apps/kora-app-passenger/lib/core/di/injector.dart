@@ -13,15 +13,20 @@ import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_flow_bloc.dart';
+import '../../features/booking/data/datasources/assisted_booking_local_data_source.dart';
+import '../../features/booking/data/datasources/assisted_booking_remote_data_source.dart';
+import '../../features/booking/data/datasources/booking_cache_local_data_source.dart';
 import '../../features/booking/data/datasources/booking_data_source.dart';
 import '../../features/booking/data/datasources/booking_remote_data_source.dart';
 import '../../features/booking/data/datasources/reservation_remote_data_source.dart';
 import '../../features/booking/data/datasources/ticket_document_remote_data_source.dart';
 import '../../features/booking/data/datasources/ticket_document_store.dart';
+import '../../features/booking/data/repositories/assisted_booking_repository_impl.dart';
 import '../../features/booking/data/repositories/booking_repository_impl.dart';
 import '../../features/booking/data/repositories/departure_repository_impl.dart';
 import '../../features/booking/data/repositories/reservation_repository_impl.dart';
 import '../../features/booking/data/repositories/ticket_document_repository_impl.dart';
+import '../../features/booking/domain/repositories/assisted_booking_repository.dart';
 import '../../features/booking/domain/repositories/booking_repository.dart';
 import '../../features/booking/domain/repositories/departure_repository.dart';
 import '../../features/booking/domain/repositories/reservation_repository.dart';
@@ -32,6 +37,8 @@ import '../../features/booking/domain/usecases/get_recent_cities_usecase.dart';
 import '../../features/booking/domain/usecases/get_seats_usecase.dart';
 import '../../features/booking/domain/usecases/get_tickets_usecase.dart';
 import '../../features/booking/domain/usecases/search_departures_usecase.dart';
+import '../../features/booking/presentation/bloc/assistance_cubits.dart';
+import '../../features/booking/presentation/bloc/cancel_ticket_cubit.dart';
 import '../../features/booking/presentation/bloc/departures_bloc.dart';
 import '../../features/booking/presentation/bloc/group_payer_cubit.dart';
 import '../../features/booking/presentation/bloc/group_quote_cubit.dart';
@@ -181,7 +188,13 @@ void _registerThemeFeature() {
 void _registerBookingFeature() {
   getIt.registerLazySingleton<BookingDataSource>(
     () =>
-        BookingRemoteDataSourceImpl(getIt(), pending: BookingMockDataSource()),
+        BookingRemoteDataSourceImpl(
+          getIt(),
+          pending: BookingMockDataSource(),
+          // Les billets et les villes déjà chargés restent lisibles hors
+          // réseau.
+          cache: BookingCacheLocalDataSource(getIt()),
+        ),
   );
 
   // La recherche a son propre contrat (`DepartureRepository`) : c'est le
@@ -204,7 +217,21 @@ void _registerBookingFeature() {
     () => ReservationRemoteDataSource(getIt()),
   );
   getIt.registerLazySingleton<ReservationRepository>(
-    () => ReservationRepositoryImpl(getIt()),
+    () => ReservationRepositoryImpl(
+      getIt(),
+      // Les billets émis, gardés sur le téléphone : à l'embarquement, le
+      // réseau manque souvent.
+      BookingCacheLocalDataSource(getIt()),
+    ),
+  );
+
+  // La réservation assistée (MEZ-80) : l'API pour l'envoi et le suivi, le
+  // téléphone pour retrouver les demandes — l'API ne les liste pas.
+  getIt.registerLazySingleton<AssistedBookingRepository>(
+    () => AssistedBookingRepositoryImpl(
+      AssistedBookingRemoteDataSource(getIt()),
+      AssistedBookingLocalDataSource(getIt()),
+    ),
   );
 
   getIt.registerLazySingleton<GetCitiesUseCase>(
@@ -236,6 +263,23 @@ void _registerBookingFeature() {
   getIt.registerFactory<GroupPayerCubit>(() => GroupPayerCubit(getIt()));
 
   getIt.registerFactory<GroupTicketsCubit>(() => GroupTicketsCubit(getIt()));
+
+  // Le signal « une réservation a changé » : l'onglet Voyages s'y accroche
+  // pour relire ses billets après une annulation.
+  getIt.registerLazySingleton<BookingRefresh>(BookingRefresh.new);
+  getIt.registerFactory<CancelTicketCubit>(
+    () => CancelTicketCubit(getIt(), getIt()),
+  );
+
+  getIt.registerFactory<AssistanceRequestCubit>(
+    () => AssistanceRequestCubit(getIt()),
+  );
+  getIt.registerFactory<AssistanceStatusCubit>(
+    () => AssistanceStatusCubit(getIt()),
+  );
+  getIt.registerFactory<AssistanceRequestsCubit>(
+    () => AssistanceRequestsCubit(getIt()),
+  );
 
   // Le PDF officiel des billets — contrat provisoire, en attente de MEZ-82.
   // Un seul cubit pour toute l'app : la liste, le détail et les billets du
