@@ -138,8 +138,9 @@ class TrackingRepositoryImpl implements TrackingRepository {
     if (session == null || !session.isActive) return;
 
     final bool alreadyRunning = await FlutterForegroundTask.isRunningService;
-    if (alreadyRunning)
+    if (alreadyRunning) {
       return; // a survécu au redémarrage de l'app, rien à faire
+    }
 
     // Le service a été tué (crash, redémarrage à froid, OS agressif) mais
     // la session est restée `active` en base : on la redémarre à

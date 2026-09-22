@@ -60,7 +60,8 @@ class TrackingLocalDataSourceImpl implements TrackingLocalDataSource {
   final AppDatabase _database;
 
   @override
-  Future<void> enqueue(TrackingPosition position, {required bool synced}) async {
+  Future<void> enqueue(TrackingPosition position,
+      {required bool synced}) async {
     final Database db = await _database.database;
     await db.insert(
       'tracking_positions_queue',
@@ -119,7 +120,8 @@ class TrackingLocalDataSourceImpl implements TrackingLocalDataSource {
   @override
   Future<void> pruneSynced({required Duration olderThan}) async {
     final Database db = await _database.database;
-    final String threshold = DateTime.now().subtract(olderThan).toIso8601String();
+    final String threshold =
+        DateTime.now().subtract(olderThan).toIso8601String();
     await db.delete(
       'tracking_positions_queue',
       where: 'sync_status = ? AND created_at < ?',
@@ -173,8 +175,8 @@ class TrackingLocalDataSourceImpl implements TrackingLocalDataSource {
     // transaction ici est négligeable) ne doivent jamais obtenir la même
     // séquence.
     return db.transaction<int>((Transaction txn) async {
-      final List<Map<String, Object?>> rows = await txn
-          .query('tracking_session_state', where: 'id = 1', limit: 1);
+      final List<Map<String, Object?>> rows =
+          await txn.query('tracking_session_state', where: 'id = 1', limit: 1);
       final int current =
           rows.isEmpty ? 0 : (rows.first['last_sequence'] as int? ?? 0);
       final int next = current + 1;

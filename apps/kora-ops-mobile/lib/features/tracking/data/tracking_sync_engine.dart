@@ -44,7 +44,8 @@ class TrackingSyncEngine {
   /// Enfile une mesure GPS réelle et retourne la position créée (sa
   /// séquence en particulier, pour que l'appelant sache si c'est la
   /// première de la session — voir `TrackingTaskHandler._onFix`).
-  Future<TrackingPosition> enqueueFix(String departureUuid, LocationFix fix) async {
+  Future<TrackingPosition> enqueueFix(
+      String departureUuid, LocationFix fix) async {
     final int sequence = await _local.nextSequence();
     final TrackingPosition position = TrackingPosition(
       positionUuid: _uuid.v4(),
@@ -94,7 +95,8 @@ class TrackingSyncEngine {
     _flushing = true;
 
     try {
-      final List<TrackingPosition> pending = await _local.listPending(departureUuid);
+      final List<TrackingPosition> pending =
+          await _local.listPending(departureUuid);
       if (pending.isEmpty) return;
 
       for (int i = 0; i < pending.length; i += batchChunkSize) {
@@ -125,8 +127,9 @@ class TrackingSyncEngine {
 
   void markOffline() => _online = false;
 
-  Future<int> pendingCount(String departureUuid) =>
-      _local.listPending(departureUuid).then((List<TrackingPosition> l) => l.length);
+  Future<int> pendingCount(String departureUuid) => _local
+      .listPending(departureUuid)
+      .then((List<TrackingPosition> l) => l.length);
 
   bool _isNetworkUnreachable(DioException error) =>
       error.type == DioExceptionType.connectionError ||

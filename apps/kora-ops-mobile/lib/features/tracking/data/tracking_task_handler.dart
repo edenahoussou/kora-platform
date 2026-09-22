@@ -106,13 +106,15 @@ class TrackingTaskHandler extends TaskHandler {
         )
         .listen(_onFix, onError: (Object _) {});
 
-    _serviceEnabledSubscription =
-        _locationProvider.watchServiceEnabled().listen(_onServiceEnabledChanged);
+    _serviceEnabledSubscription = _locationProvider
+        .watchServiceEnabled()
+        .listen(_onServiceEnabledChanged);
 
     _connectivitySubscription =
         Connectivity().onConnectivityChanged.listen(_onConnectivityChanged);
 
-    _flushTimer = Timer.periodic(_flushInterval, (Timer _) => _flushAndReport());
+    _flushTimer =
+        Timer.periodic(_flushInterval, (Timer _) => _flushAndReport());
 
     await _reportStatus();
   }
@@ -135,7 +137,8 @@ class TrackingTaskHandler extends TaskHandler {
     ));
 
     dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (RequestOptions options, RequestInterceptorHandler handler) async {
+      onRequest:
+          (RequestOptions options, RequestInterceptorHandler handler) async {
         final session = await authLocal.readSession();
         if (session?.token != null) {
           options.headers['Authorization'] = 'Bearer ${session!.token}';
@@ -152,7 +155,8 @@ class TrackingTaskHandler extends TaskHandler {
     final String? departureUuid = _departureUuid;
     if (departureUuid == null) return;
 
-    final TrackingPosition position = await _engine.enqueueFix(departureUuid, fix);
+    final TrackingPosition position =
+        await _engine.enqueueFix(departureUuid, fix);
 
     // Démarrage (critère d'acceptation) : le tout premier point de la
     // session est envoyé immédiatement plutôt que d'attendre le prochain
@@ -219,7 +223,7 @@ class TrackingTaskHandler extends TaskHandler {
     );
 
     FlutterForegroundTask.sendDataToMain(status.toData());
-    FlutterForegroundTask.updateService(
+    await FlutterForegroundTask.updateService(
       notificationTitle: 'KORA OPS — suivi de position actif',
       notificationText: !status.isOnline
           ? 'Hors ligne — $pendingCount point(s) en file'

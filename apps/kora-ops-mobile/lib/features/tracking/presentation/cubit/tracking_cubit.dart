@@ -50,7 +50,8 @@ class TrackingCubit extends Cubit<TrackingState> {
     final TrackingAvailability availability =
         await _repository.checkAvailability();
     final int pendingCount = await _repository.totalPendingCount();
-    emit(state.copyWith(availability: availability, pendingCount: pendingCount));
+    emit(
+        state.copyWith(availability: availability, pendingCount: pendingCount));
   }
 
   /// Demande activement la permission de localisation (boîte de dialogue

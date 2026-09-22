@@ -85,7 +85,8 @@ void main() {
     terminalLocalDataSource = MockTerminalLocalDataSource();
     statusController = StreamController<TrackingRuntimeStatus>.broadcast();
 
-    when(() => repository.statusStream).thenAnswer((_) => statusController.stream);
+    when(() => repository.statusStream)
+        .thenAnswer((_) => statusController.stream);
     when(() => terminalLocalDataSource.readSerialNumber())
         .thenAnswer((_) async => terminalSerial);
     when(() => repository.start(
@@ -143,7 +144,8 @@ void main() {
       await selectedDepartCubit.select(arrived);
       await Future<void>.delayed(Duration.zero);
 
-      verify(() => repository.stop(reason: TrackingStopReason.arrived)).called(1);
+      verify(() => repository.stop(reason: TrackingStopReason.arrived))
+          .called(1);
       expect(cubit.state.isActive, isFalse);
     });
 
@@ -156,10 +158,12 @@ void main() {
       await selectedDepartCubit.select(cancelled);
       await Future<void>.delayed(Duration.zero);
 
-      verify(() => repository.stop(reason: TrackingStopReason.cancelled)).called(1);
+      verify(() => repository.stop(reason: TrackingStopReason.cancelled))
+          .called(1);
     });
 
-    test('arrête le suivi quand le départ est désélectionné (clôture)', () async {
+    test('arrête le suivi quand le départ est désélectionné (clôture)',
+        () async {
       final TrackingCubit cubit = buildCubit();
       addTearDown(cubit.close);
 
@@ -168,7 +172,8 @@ void main() {
       selectedDepartCubit.clear();
       await Future<void>.delayed(Duration.zero);
 
-      verify(() => repository.stop(reason: TrackingStopReason.manualClose)).called(1);
+      verify(() => repository.stop(reason: TrackingStopReason.manualClose))
+          .called(1);
     });
 
     test('ne démarre rien pour un statut intermédiaire (boarding)', () async {
@@ -231,7 +236,8 @@ void main() {
   });
 
   group('statut d\'exécution (file, réseau, synchro)', () {
-    test('reflète file en attente et hors-ligne pendant un suivi actif', () async {
+    test('reflète file en attente et hors-ligne pendant un suivi actif',
+        () async {
       final TrackingCubit cubit = buildCubit();
       addTearDown(cubit.close);
 
@@ -262,7 +268,8 @@ void main() {
       await cubit.bootstrap();
 
       verify(() => repository.bootstrap()).called(1);
-      expect(cubit.state.availability, TrackingAvailability.insufficientAccuracy);
+      expect(
+          cubit.state.availability, TrackingAvailability.insufficientAccuracy);
       expect(cubit.state.pendingCount, 2);
     });
   });

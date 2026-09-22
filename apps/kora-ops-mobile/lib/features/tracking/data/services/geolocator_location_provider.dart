@@ -79,7 +79,8 @@ class GeolocatorLocationProvider implements LocationProvider {
   @override
   Future<bool> hasPreciseAccuracy() async {
     try {
-      final LocationAccuracyStatus status = await Geolocator.getLocationAccuracy();
+      final LocationAccuracyStatus status =
+          await Geolocator.getLocationAccuracy();
       return status == LocationAccuracyStatus.precise;
     } on Object {
       // Plateforme/version qui ne distingue pas précise/approximative
@@ -101,8 +102,7 @@ class GeolocatorLocationProvider implements LocationProvider {
       // le comportement par défaut recommandé.
     );
 
-    return Geolocator.getPositionStream(locationSettings: settings)
-        .map(_fixOf);
+    return Geolocator.getPositionStream(locationSettings: settings).map(_fixOf);
   }
 
   @override
