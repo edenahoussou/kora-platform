@@ -35,6 +35,12 @@ tags:
     name: 'OPS Mobile — Departures'
     description: "\nDéparts et manifeste pour l'équipage terrain (convoyeur, chauffeur,\nchauffeur second, mécanicien) affecté — remplace les écrans mockés de\nMEZ-11. Authentification : auth:sanctum (login existant) + terminal\nenregistré et actif (middleware terminal.active)."
   -
+    name: 'OPS Mobile — Incidents'
+    description: "\nSignalement d'un incident par le convoyeur (panne, retard, accident,\nsécurité, autre). Un incident déclenche une alerte : notification à\nl'équipage du départ et aux directeurs des opérations de l'agence, e-mail\naux directeurs (destinataires) et super-administrateurs (copie).\n\nIdempotent : le mobile génère `incident_uuid` ; un rejeu (coupure réseau)\nrenvoie l'incident existant (200) sans doublon ni nouvelle alerte.\nChaque convoyeur ne voit que SES incidents. Aucun identifiant numérique,\naucune donnée financière.\n\nErreurs : `{ error: { code, message } }` — `departure_not_assigned` (403),\n`incident_uuid_conflict` (409), plus les codes de session OPS."
+  -
+    name: 'OPS Mobile — Progression du départ'
+    description: "\nLe convoyeur fait avancer SON départ : embarquement commencé, bus parti,\narrivé, et enregistre un retard. C'est le même statut que sur OPS Web\n(`departures.status`) : un « bus parti » déclaré ici est visible côté web,\nbloque la vente du départ et débloque la clôture des no-show.\n\nRéservé à l'équipage affecté (permission `departures.progress`). Annuler\nou modifier un départ reste réservé à OPS Web."
+  -
     name: 'OPS Mobile — Seat releases'
     description: "\nDescente anticipée et clôture no-show : libère les portions de siège\nnon parcourues, le serveur restant seul maître de la disponibilité et\nde la revente."
   -
@@ -6737,6 +6743,473 @@ paths:
         required: true
         schema:
           type: string
+  /api/v1/ops/incidents:
+    get:
+      summary: "Liste MES incidents, les plus récents d'abord."
+      operationId: listeMESIncidentsLesPlusRcentsDabord
+      description: ''
+      parameters:
+        -
+          in: query
+          name: status
+          description: 'open, in_progress, resolved ou cancelled.'
+          example: open
+          required: false
+          schema:
+            type: string
+            description: 'open, in_progress, resolved ou cancelled.'
+            example: open
+        -
+          in: query
+          name: departure_uuid
+          description: 'Filtrer par départ.'
+          example: 00000000-0000-4000-8000-000000000000
+          required: false
+          schema:
+            type: string
+            description: 'Filtrer par départ.'
+            example: 00000000-0000-4000-8000-000000000000
+        -
+          in: query
+          name: per_page
+          description: '1 à 100 (30 par défaut).'
+          example: 30
+          required: false
+          schema:
+            type: integer
+            description: '1 à 100 (30 par défaut).'
+            example: 30
+      responses: {}
+      tags:
+        - 'OPS Mobile — Incidents'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  description: ''
+                  example: open
+                  enum:
+                    - open
+                    - in_progress
+                    - resolved
+                    - cancelled
+                departure_uuid:
+                  type: string
+                  description: 'Le champ value doit être un UUID valide.'
+                  example: 00000000-0000-4000-8000-000000000000
+                per_page:
+                  type: integer
+                  description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 100.'
+                  example: 7
+                page:
+                  type: integer
+                  description: 'Le champ value doit être au moins 1.'
+                  example: 66
+    post:
+      summary: 'Signale un incident.'
+      operationId: signaleUnIncident
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: 'Rejeu du même incident (idempotent)'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 6f1b0c9e-3f6a-4c0e-9a55-2d7b7d0a1c11
+                    type: breakdown
+                    status: open
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      type:
+                        type: string
+                        example: breakdown
+                      status:
+                        type: string
+                        example: open
+        201:
+          description: 'Incident créé'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 6f1b0c9e-3f6a-4c0e-9a55-2d7b7d0a1c11
+                    type: breakdown
+                    status: open
+                    description: 'Crevaison au niveau de Ouidah, changement de roue en cours.'
+                    latitude: 6.3654
+                    longitude: 2.4183
+                    occurred_at: '2026-09-22T09:14:00.000Z'
+                    created_at: '2026-09-22T09:14:05.000Z'
+                    departure:
+                      uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                      line_code: COT-LFW
+                      date: '2026-09-22'
+                      time: '08:00'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      type:
+                        type: string
+                        example: breakdown
+                      status:
+                        type: string
+                        example: open
+                      description:
+                        type: string
+                        example: 'Crevaison au niveau de Ouidah, changement de roue en cours.'
+                      latitude:
+                        type: number
+                        example: 6.3654
+                      longitude:
+                        type: number
+                        example: 2.4183
+                      occurred_at:
+                        type: string
+                        example: '2026-09-22T09:14:00.000Z'
+                      created_at:
+                        type: string
+                        example: '2026-09-22T09:14:05.000Z'
+                      departure:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          line_code:
+                            type: string
+                            example: COT-LFW
+                          date:
+                            type: string
+                            example: '2026-09-22'
+                          time:
+                            type: string
+                            example: '08:00'
+        403:
+          description: 'Départ inconnu ou non affecté'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: departure_not_assigned
+                    message: 'Ce départ ne vous est pas affecté.'
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: departure_not_assigned
+                      message:
+                        type: string
+                        example: 'Ce départ ne vous est pas affecté.'
+        409:
+          description: 'Identifiant déjà utilisé par un autre utilisateur'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: incident_uuid_conflict
+                    message: 'Cet identifiant d’incident est déjà utilisé.'
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: incident_uuid_conflict
+                      message:
+                        type: string
+                        example: 'Cet identifiant d’incident est déjà utilisé.'
+      tags:
+        - 'OPS Mobile — Incidents'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                incident_uuid:
+                  type: string
+                  description: "UUID généré par le mobile (clé d'idempotence)."
+                  example: 00000000-0000-4000-8000-000000000000
+                type:
+                  type: string
+                  description: 'breakdown, delay, accident, security ou other.'
+                  example: breakdown
+                description:
+                  type: string
+                  description: '5 à 1000 caractères.'
+                  example: 'Crevaison au niveau de Ouidah, changement de roue en cours.'
+                departure_uuid:
+                  type: string
+                  description: 'Départ concerné (doit vous être affecté).'
+                  example: 00000000-0000-4000-8000-000000000000
+                latitude:
+                  type: number
+                  description: 'Position GPS (avec longitude).'
+                  example: 6.3654
+                  nullable: true
+                longitude:
+                  type: number
+                  description: 'Position GPS (avec latitude).'
+                  example: 2.4183
+                  nullable: true
+                occurred_at:
+                  type: string
+                  description: 'Heure locale du terminal (ISO 8601).'
+                  example: '2026-09-22T09:14:00Z'
+                  nullable: true
+              required:
+                - incident_uuid
+                - type
+                - description
+                - departure_uuid
+  '/api/v1/ops/incidents/{id}':
+    get:
+      summary: "Détail d'un de MES incidents (404 pour celui d'un autre)."
+      operationId: dtailDunDeMESIncidents404PourCeluiDunAutre
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'OPS Mobile — Incidents'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the incident.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+      -
+        in: path
+        name: incident
+        description: "UUID de l'incident."
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/departures/{departure_uuid}/status':
+    post:
+      summary: 'Change le statut du départ (embarquement → parti → arrivé).'
+      operationId: changeLeStatutDuDpartembarquementPartiArriv
+      description: "Transitions : programmé → embarquement → parti → arrivé. Idempotent :\nredemander le statut déjà atteint renvoie 200 sans effet (rejeu hors\nligne). `occurred_at` est l'heure locale du terminal ; à défaut,\nl'heure de réception."
+      parameters: []
+      responses:
+        200:
+          description: 'Statut mis à jour'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                    status: departed
+                    boarding_started_at: '2026-09-22T07:40:00.000Z'
+                    departed_at: '2026-09-22T08:07:00.000Z'
+                    arrived_at: null
+                    delay_minutes: 0
+                    delay_reason: null
+                    delay_recorded_at: null
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      status:
+                        type: string
+                        example: departed
+                      boarding_started_at:
+                        type: string
+                        example: '2026-09-22T07:40:00.000Z'
+                      departed_at:
+                        type: string
+                        example: '2026-09-22T08:07:00.000Z'
+                      arrived_at:
+                        type: string
+                        example: null
+                        nullable: true
+                      delay_minutes:
+                        type: integer
+                        example: 0
+                      delay_reason:
+                        type: string
+                        example: null
+                        nullable: true
+                      delay_recorded_at:
+                        type: string
+                        example: null
+                        nullable: true
+        403:
+          description: 'Départ non affecté'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: departure_not_assigned
+                    message: 'Ce départ ne vous est pas affecté.'
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: departure_not_assigned
+                      message:
+                        type: string
+                        example: 'Ce départ ne vous est pas affecté.'
+        422:
+          description: 'Transition impossible'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: invalid_transition
+                    message: 'Transition impossible : Programmé → En route.'
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: invalid_transition
+                      message:
+                        type: string
+                        example: 'Transition impossible : Programmé → En route.'
+      tags:
+        - 'OPS Mobile — Progression du départ'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  description: 'boarding, departed ou arrived.'
+                  example: departed
+                occurred_at:
+                  type: string
+                  description: 'Heure locale du terminal (ISO 8601).'
+                  example: '2026-09-22T08:07:00Z'
+                  nullable: true
+              required:
+                - status
+    parameters:
+      -
+        in: path
+        name: departure_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+      -
+        in: path
+        name: departure
+        description: 'UUID du départ.'
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  '/api/v1/ops/departures/{departure_uuid}/delay':
+    patch:
+      summary: 'Enregistre un retard (départ programmé ou en embarquement).'
+      operationId: enregistreUnRetarddpartProgrammOuEnEmbarquement
+      description: ''
+      parameters: []
+      responses:
+        422:
+          description: 'Retard refusé'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: invalid_delay
+                    message: 'Le retard ne peut être enregistré que pour un départ programmé ou en embarquement.'
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: invalid_delay
+                      message:
+                        type: string
+                        example: 'Le retard ne peut être enregistré que pour un départ programmé ou en embarquement.'
+      tags:
+        - 'OPS Mobile — Progression du départ'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                delay_minutes:
+                  type: integer
+                  description: "Retard en minutes (0 pour l'annuler)."
+                  example: 25
+                delay_reason:
+                  type: string
+                  description: Motif.
+                  example: "Attente d'un car de correspondance"
+              required:
+                - delay_minutes
+                - delay_reason
+    parameters:
+      -
+        in: path
+        name: departure_uuid
+        description: ''
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+      -
+        in: path
+        name: departure
+        description: 'UUID du départ.'
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
   /api/v1/ops/seat-releases:
     post:
       summary: "Enregistre une descente anticipée à partir du billet, du départ et\nde l'arrêt réel."
@@ -8415,6 +8888,9 @@ paths:
                     - sync_failed
                     - no_show_closed
                     - print_error
+                    - departure_departed
+                    - incident_reported
+                    - incident_critical
                 severity:
                   type: string
                   description: ''
@@ -8426,7 +8902,7 @@ paths:
                 since:
                   type: string
                   description: 'Le champ value doit être une date valide.'
-                  example: '2026-09-20T06:10:42'
+                  example: '2026-09-22T05:31:43'
                 per_page:
                   type: integer
                   description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 100.'

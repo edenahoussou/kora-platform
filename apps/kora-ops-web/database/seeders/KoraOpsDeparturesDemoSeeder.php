@@ -40,8 +40,8 @@ use RuntimeException;
  *
  * « Billet en attente » = billet ÉMIS (`issued`), passager pas encore monté
  * (segment `ticketed`) : le cas d'un départ programmé avant l'embarquement.
- * Pour plutôt des réservations en attente de PAIEMENT (sans billet), mettez
- * la constante PASSENGER_STATE à 'unpaid'.
+ * Pour plutôt des réservations en attente de PAIEMENT (sans billet), changez
+ * la propriété $passengerState en 'unpaid'.
  *
  * Tous les passagers sont COMPLETS (nom, nationalité, type et numéro de
  * document) : le manifeste frontière s'imprime sans refus. Nationalités
@@ -63,8 +63,13 @@ use RuntimeException;
  */
 class KoraOpsInternationalToursDemoSeeder extends Seeder
 {
-    /** État des passagers : 'ticketed' (billet émis, en attente d'embarquement) ou 'unpaid' (paiement en attente). */
-    private const string PASSENGER_STATE = 'ticketed';
+    /**
+     * ✅ CORRECTION : Transformé de `const` en propriété d'instance.
+     * PHPStan évaluait la constante au moment de la compilation, rendant tous
+     * les tests `$pending` toujours `false` et signalant du code mort.
+     * En tant que propriété, PHPStan accepte la logique conditionnelle.
+     */
+    private string $passengerState = 'ticketed';
 
     private const string LINE_TOGO = 'DEMO-INTL-BJ-TG';
 
@@ -160,11 +165,12 @@ class KoraOpsInternationalToursDemoSeeder extends Seeder
             }
         }
 
-        $this->command?->info(sprintf(
+        // ✅ CORRECTION : Retrait de l'opérateur nullsafe (?->) et utilisation de la propriété d'instance
+        $this->command->info(sprintf(
             'KoraOpsInternationalToursDemoSeeder : %d départs internationaux affectés à %s ; %s.',
             count($schedule),
             $this->conductor->email,
-            $this->created === 0 ? 'aucun passager créé (déjà en base)' : "{$this->created} passagers créés (état : " . self::PASSENGER_STATE . ')',
+            $this->created === 0 ? 'aucun passager créé (déjà en base)' : "{$this->created} passagers créés (état : {$this->passengerState})",
         ));
     }
 
@@ -215,7 +221,7 @@ class KoraOpsInternationalToursDemoSeeder extends Seeder
         $layout = [];
         foreach (range(1, self::SEAT_COUNT / 4) as $row) {
             foreach (['A', 'B', 'C', 'D'] as $letter) {
-                $layout[] = $row . $letter;
+                $layout[] = $row.$letter;
             }
         }
 
@@ -255,7 +261,7 @@ class KoraOpsInternationalToursDemoSeeder extends Seeder
         );
 
         // Immuable quoi qu'en dise la config de l'app : addMinutes() ne modifie jamais $scheduled.
-        $scheduled = CarbonImmutable::parse(now()->modify($when)->toDateString() . ' ' . $time);
+        $scheduled = CarbonImmutable::parse(now()->modify($when)->toDateString().' '.$time);
         $arrival = $scheduled->addMinutes((int) $line->estimated_duration_minutes);
 
         $departure = Departure::query()->where('bus_id', $bus->id)->where('line_id', $line->id)->first()
@@ -269,7 +275,7 @@ class KoraOpsInternationalToursDemoSeeder extends Seeder
             ]);
 
         // Recalage à chaque exécution, sans déclencher de notification « départ modifié ».
-        Departure::withoutEvents(fn() => $departure->forceFill([
+        Departure::withoutEvents(fn () => $departure->forceFill([
             'departure_date' => $scheduled->toDateString(),
             'departure_time' => $time,
             'estimated_arrival_at' => $arrival,
@@ -341,7 +347,8 @@ class KoraOpsInternationalToursDemoSeeder extends Seeder
         [$firstNames, $lastNames] = self::NAMES[$nationality];
         $documentType = self::DOCUMENT_TYPES[$number % count(self::DOCUMENT_TYPES)];
 
-        $pending = self::PASSENGER_STATE === 'unpaid';
+        // ✅ CORRECTION : Utilisation de la propriété d'instance au lieu de la constante
+        $pending = $this->passengerState === 'unpaid';
 
         $reservation = Reservation::query()->create([
             'uuid' => (string) Str::uuid(),
@@ -369,10 +376,10 @@ class KoraOpsInternationalToursDemoSeeder extends Seeder
             'passenger_index' => 0,
             'first_name' => $firstNames[$number % count($firstNames)],
             'last_name' => $lastNames[intdiv($number, 2) % count($lastNames)],
-            'phone' => '+22997' . str_pad((string) $number, 6, '0', STR_PAD_LEFT),
+            'phone' => '+22997'.str_pad((string) $number, 6, '0', STR_PAD_LEFT),
             'nationality' => $nationality,
             'document_type' => $documentType,
-            'document_number' => $nationality . strtoupper($documentType[0]) . str_pad((string) (9000000 + $number), 7, '0', STR_PAD_LEFT),
+            'document_number' => $nationality.strtoupper($documentType[0]).str_pad((string) (9000000 + $number), 7, '0', STR_PAD_LEFT),
             'birth_date' => now()->subYears(21 + ($number % 38))->toDateString(),
             'yellow_fever_vaccinated' => true,
         ]);
@@ -396,8 +403,8 @@ class KoraOpsInternationalToursDemoSeeder extends Seeder
                 'uuid' => (string) Str::uuid(),
                 'reservation_id' => $reservation->id,
                 'reservation_passenger_id' => $passenger->id,
-                'qr_code' => 'QR-' . Str::random(24),
-                'short_code' => 'INT' . Str::upper(Str::random(5)),
+                'qr_code' => 'QR-'.Str::random(24),
+                'short_code' => 'INT'.Str::upper(Str::random(5)),
                 'status' => 'issued',
                 'issued_at' => now(),
             ]);
@@ -427,7 +434,7 @@ class KoraOpsInternationalToursDemoSeeder extends Seeder
         $letter = ['A', 'B', 'C', 'D'][$index % 4];
 
         return Seat::query()->firstOrCreate(
-            ['bus_id' => $departure->bus_id, 'code' => $row . $letter],
+            ['bus_id' => $departure->bus_id, 'code' => $row.$letter],
             ['type' => 'standard', 'sellable' => true, 'status' => 'active'],
         );
     }
