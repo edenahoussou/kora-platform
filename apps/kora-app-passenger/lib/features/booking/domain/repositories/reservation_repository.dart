@@ -7,6 +7,7 @@ import '../entities/group_payer.dart';
 import '../entities/group_quote.dart';
 import '../entities/group_ticket.dart';
 import '../entities/passenger.dart';
+import '../entities/reservation_pricing.dart';
 import '../entities/seat.dart';
 import '../entities/seat_hold.dart';
 
@@ -67,6 +68,23 @@ abstract class ReservationRepository {
     required Departure departure,
     required int passengers,
     Departure? returnDeparture,
+    String? promoCode,
+  });
+
+  /// Annule la réservation et tous ses billets.
+  ///
+  /// Idempotent côté serveur : une réservation déjà annulée rend le même
+  /// résultat plutôt qu'une erreur.
+  Future<Either<Failure, Unit>> cancelBooking(String reservationId);
+
+  /// Applique ([promoCode] non nul) ou retire (`null`) un code promo sur
+  /// une réservation déjà retenue.
+  ///
+  /// Le serveur recalcule le total en place : les sièges, les voyageurs et
+  /// l'échéance ne bougent pas — c'est ce qui distingue cette opération du
+  /// devis, qui précède le blocage.
+  Future<Either<Failure, ReservationPricing>> updatePromoCode({
+    required String reservationId,
     String? promoCode,
   });
 

@@ -193,7 +193,7 @@ void main() {
   /// « Continuer vers le paiement » : le checkout tourne en temps réel,
   /// hors du temps simulé du test, puis l'écran suit.
   Future<void> checkout(WidgetTester tester) async {
-    await tester.tap(find.text('Continuer vers le paiement'));
+    await tester.tap(find.text('En ligne'));
     await tester.pump();
     await tester.runAsync(() async {
       for (var i = 0; i < 100 && holdBloc.state.isCheckingOut; i++) {

@@ -121,6 +121,33 @@ class PhoneCountry extends Equatable {
   static PhoneCountry fromCode(String? code) =>
       all.firstWhere((country) => country.code == code, orElse: () => benin);
 
+  /// Le pays dont l'indicatif ouvre ce numéro, `null` quand le numéro n'en
+  /// porte pas — ou qu'il vient d'un pays hors catalogue.
+  ///
+  /// Le serveur garde `phone` tantôt au format local (`0197000000`),
+  /// tantôt au format international (`+2290197000000`) : sans cette
+  /// lecture, l'écran recollait un second indicatif devant le premier.
+  static PhoneCountry? fromPhone(String? phone) {
+    final compact = phone?.replaceAll(RegExp(r'[^\d+]'), '');
+    if (compact == null || !compact.startsWith('+')) return null;
+
+    PhoneCountry? found;
+    for (final country in all) {
+      // Le plus long indicatif gagne : `+22` ne doit pas coiffer `+229`.
+      if (compact.startsWith(country.code) &&
+          (found == null || country.code.length > found.code.length)) {
+        found = country;
+      }
+    }
+    return found;
+  }
+
+  /// Le numéro national de [phone], indicatif retiré s'il y en a un.
+  String nationalPart(String phone) {
+    final compact = phone.replaceAll(RegExp(r'[^\d+]'), '');
+    return compact.startsWith(code) ? compact.substring(code.length) : compact;
+  }
+
   @override
   List<Object?> get props => [code, flag, name, digits, example, prefix];
 }

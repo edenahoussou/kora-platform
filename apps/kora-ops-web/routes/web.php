@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CompanyAccountWebController;
+use App\Http\Controllers\PublicLegalController;
 use App\Modules\AssistedBooking\Http\Controllers\AssistedBookingController;
 use App\Modules\Booking\Http\Controllers\CounterSaleController;
 use App\Modules\BusNetwork\Http\Controllers\BusAmenityController;
@@ -32,6 +33,11 @@ Route::get('/', fn () => Auth::check()
     ? redirect()->route('dashboard')
     : redirect()->route('login')
 )->name('home');
+
+Route::get('privacy-policy', [PublicLegalController::class, 'privacyPolicy'])
+    ->name('privacy-policy');
+Route::get('account-deletion', [PublicLegalController::class, 'accountDeletion'])
+    ->name('account-deletion');
 
 Route::get('tickets/{ticket:uuid}/pdf/signed', [TicketViewController::class, 'signedPdf'])
     ->middleware('signed')

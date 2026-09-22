@@ -41,6 +41,7 @@ class KoraButton extends StatelessWidget {
     required this.onPressed,
     this.variant = KoraButtonVariant.primary,
     this.icon,
+    this.glyph,
     this.iconPosition = KoraButtonIconPosition.leading,
     this.isLoading = false,
   });
@@ -49,6 +50,10 @@ class KoraButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final KoraButtonVariant variant;
   final IconData? icon;
+
+  /// Ce qui remplace [icon], quand une icône de marque est attendue à sa
+  /// place — le logo WhatsApp, par exemple.
+  final Widget? glyph;
 
   /// Position de [icon] par rapport au libellé.
   final KoraButtonIconPosition iconPosition;
@@ -84,9 +89,9 @@ class KoraButton extends StatelessWidget {
                 ? MainAxisAlignment.spaceBetween
                 : MainAxisAlignment.center,
             children: [
-              if (icon != null &&
+              if ((glyph != null || icon != null) &&
                   iconPosition == KoraButtonIconPosition.leading) ...[
-                Icon(icon, size: 18, color: style.foreground),
+                glyph ?? Icon(icon, size: 18, color: style.foreground),
                 const SizedBox(width: AppSpacing.sm),
               ],
               // `Flexible` + ellipse : un libellé long (bouton en demi-

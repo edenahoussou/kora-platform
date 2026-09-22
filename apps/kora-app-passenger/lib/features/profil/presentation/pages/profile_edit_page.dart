@@ -66,7 +66,22 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     _email.text = user.email;
     _birthDate = user.birthDate;
     _phone = user.phone;
-    _country = PhoneCountry.fromCode(user.countryCode);
+    // Le numéro dit lui-même son pays quand il est international ;
+    // `country_code` ne sert qu'aux numéros gardés au format local.
+    _country =
+        PhoneCountry.fromPhone(user.phone) ??
+        PhoneCountry.fromCode(user.countryCode);
+  }
+
+  /// Le numéro tel qu'on le montre : indicatif, espace, numéro national.
+  ///
+  /// Un numéro déjà international n'en reçoit pas un second — c'est ce qui
+  /// affichait « +229 +2290197000000 ».
+  String get _phoneShown {
+    final phone = _phone?.trim();
+    if (phone == null || phone.isEmpty) return '';
+
+    return '${_country.code} ${_country.nationalPart(phone)}';
   }
 
   Future<void> _refresh() async {
@@ -197,9 +212,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                     // vérification ouvrirait une porte.
                     KoraInput(
                       label: l10n.profileEditPhone,
-                      controller: TextEditingController(
-                        text: _phone == null ? '' : '${_country.code} $_phone',
-                      ),
+                      controller: TextEditingController(text: _phoneShown),
                       enabled: false,
                     ),
                     const SizedBox(height: 6),

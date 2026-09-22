@@ -12,6 +12,23 @@ class StorageKeys {
   static const String onboardingSeen = 'kora_onboarding_seen';
   static const String preferredLanguage = 'kora_preferred_language';
 
+  /// Les réservations confiées à une agence depuis ce téléphone : l'API
+  /// ne les liste pas.
+  static const String assistedBookings = 'kora_assisted_bookings';
+
+  /// Les billets émis, réservation par réservation. C'est eux que l'écran
+  /// des QR relit quand le réseau manque à l'embarquement.
+  static const String groupTickets = 'kora_group_tickets';
+
+  /// La dernière liste de billets rendue par l'API, telle quelle : sans
+  /// elle, l'onglet Voyages est vide hors réseau et le QR devient
+  /// injoignable.
+  static const String tickets = 'kora_tickets';
+
+  /// Les villes desservies, gardées pour que l'accueil s'ouvre sans
+  /// réseau plutôt que d'annoncer une panne.
+  static const String cities = 'kora_cities';
+
   // --- FlutterSecureStorage (données SENSIBLES) ---
   // Ne jamais mettre un token, un mot de passe ou une donnée bancaire
   // dans SharedPreferences : toujours passer par FlutterSecureStorage

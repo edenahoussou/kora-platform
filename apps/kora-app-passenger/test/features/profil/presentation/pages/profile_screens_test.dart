@@ -107,17 +107,27 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<void> pump(WidgetTester tester, Widget page) async {
+  Future<void> pump(WidgetTester tester, Widget page, {AuthUser? user}) async {
     tester.view.physicalSize = const Size(390 * 3, 1400 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
 
     // L'écran « Mes informations » relit le profil à l'ouverture : le
     // bouchon doit rendre celui de la session, téléphone compris.
-    repository.refreshedUser = session.user;
+    // Un test peut ouvrir la session sur un autre profil — un numéro
+    // gardé au format international, par exemple.
+    final opened = user == null
+        ? session
+        : AuthSession(
+            token: session.token,
+            expiresAt: session.expiresAt,
+            user: user,
+            device: session.device,
+          );
+    repository.refreshedUser = opened.user;
     getIt.registerLazySingleton<AuthRepository>(() => repository);
 
-    final auth = AuthBloc(repository)..add(AuthSessionOpened(session));
+    final auth = AuthBloc(repository)..add(AuthSessionOpened(opened));
     addTearDown(auth.close);
 
     final preferences = await SharedPreferences.getInstance();
@@ -163,6 +173,24 @@ void main() {
       expect(find.widgetWithText(TextField, 'Aïcha'), findsOneWidget);
       expect(find.widgetWithText(TextField, 'HOUNKPÈ'), findsOneWidget);
       // Le téléphone est affiché avec son indicatif, et verrouillé.
+      expect(find.widgetWithText(TextField, '+229 0197123456'), findsOneWidget);
+    });
+
+    testWidgets('un numéro déjà international ne prend pas un second '
+        'indicatif', (tester) async {
+      // Le serveur garde parfois le numéro au format international, sans
+      // `country_code` : le champ affichait « +229 +2290197123456 ».
+      await pump(
+        tester,
+        const ProfileEditPage(),
+        user: const AuthUser(
+          uuid: 'user-1',
+          name: 'Aïcha HOUNKPÈ',
+          email: 'aicha@example.com',
+          phone: '+2290197123456',
+        ),
+      );
+
       expect(find.widgetWithText(TextField, '+229 0197123456'), findsOneWidget);
     });
 
