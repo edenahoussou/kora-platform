@@ -6,8 +6,6 @@ use App\Http\Middleware\HandleInertiaRequests;
 use App\Modules\IdentityAccess\Http\Middleware\EnsureOpsSession;
 use App\Modules\IdentityAccess\Http\Middleware\EnsureTerminalIsUsable;
 use App\Modules\IdentityAccess\Services\OpsSessionAuthenticationFailureResponder;
-use App\Modules\Notifications\Http\Middleware\EnsureNotificationsAccess;
-use App\Modules\Settings\Middleware\ApplyKoraSettings;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -43,7 +41,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'terminal.active' => EnsureTerminalIsUsable::class,
             'ops.session' => EnsureOpsSession::class,
-            'ops.notifications' => EnsureNotificationsAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -13,7 +13,7 @@ use Laravel\Sanctum\PersonalAccessToken;
 
 /**
  * Remplace le 401 générique « Unauthenticated. » de Sanctum sur les routes OPS
- * Mobile et notifications par un état d'authentification déterministe (`session_expired`,
+ * Mobile par un état d'authentification déterministe (`session_expired`,
  * `session_revoked` avec son motif, ou `session_invalid`) : le mobile sait
  * s'il doit se reconnecter, sans deviner d'après un message.
  *
@@ -33,7 +33,7 @@ class OpsSessionAuthenticationFailureResponder
      */
     public function respond(Request $request): ?JsonResponse
     {
-        if (! $request->is('api/v1/ops/*', 'api/v1/ops-mobile/*', 'api/v1/notifications', 'api/v1/notifications/*')) {
+        if (! $request->is('api/v1/ops/*', 'api/v1/ops-mobile/*')) {
             return null;
         }
 

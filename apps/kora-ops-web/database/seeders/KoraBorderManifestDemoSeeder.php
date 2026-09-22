@@ -81,7 +81,8 @@ class KoraBorderManifestDemoSeeder extends Seeder
 
     public function run(): void
     {
-        $email = (string) config('services.border_demo.conductor_email', 'conductor.marc@kora.demo');
+        // ✅ CORRECTION : Remplacement de env() par config() pour satisfaire Larastan
+        $email = (string) config('border_demo.conductor_email', 'conductor.marc@kora.demo');
         $conductor = User::query()->where('email', $email)->first();
 
         if ($conductor === null) {
@@ -104,7 +105,7 @@ class KoraBorderManifestDemoSeeder extends Seeder
 
         $this->command->info(
             "KoraBorderManifestDemoSeeder : 6 départs de test affectés à {$this->conductor->email} "
-            .'(connexion : mot de passe « password », PIN « 1234 »).',
+                .'(connexion : mot de passe « password », PIN « 1234 »).',
         );
     }
 
@@ -189,7 +190,8 @@ class KoraBorderManifestDemoSeeder extends Seeder
     {
         $this->terminal('P501-FRONT-01', TerminalType::P501);
 
-        $phoneSerial = trim((string) config('services.border_demo.phone_serial', ''));
+        // ✅ CORRECTION : Remplacement de env() par config() pour satisfaire Larastan
+        $phoneSerial = trim((string) config('border_demo.phone_serial', ''));
         if ($phoneSerial !== '') {
             $this->terminal(strtoupper($phoneSerial), TerminalType::Phone);
         }
@@ -244,8 +246,11 @@ class KoraBorderManifestDemoSeeder extends Seeder
 
         foreach ($people as $i => [$first, $last, $nat, $docType, $docNumber, $destination]) {
             $this->passenger($departure, $origin, $destination, $this->seat($departure, $i), [
-                'first_name' => $first, 'last_name' => $last, 'nationality' => $nat,
-                'document_type' => $docType, 'document_number' => $docNumber,
+                'first_name' => $first,
+                'last_name' => $last,
+                'nationality' => $nat,
+                'document_type' => $docType,
+                'document_number' => $docNumber,
             ]);
         }
     }
@@ -263,29 +268,49 @@ class KoraBorderManifestDemoSeeder extends Seeder
         // 3 passagers complets.
         foreach ([['Adjoa', 'Koudjo', 'BJ', 'PP200001'], ['Bertin', 'Houngbo', 'BJ', 'PP200002'], ['Chantal', 'Dossou', 'TG', 'PP200003']] as $i => [$f, $l, $n, $d]) {
             $this->passenger($departure, $origin, $lome, $this->seat($departure, $i), [
-                'first_name' => $f, 'last_name' => $l, 'nationality' => $n, 'document_number' => $d,
+                'first_name' => $f,
+                'last_name' => $l,
+                'nationality' => $n,
+                'document_number' => $d,
             ]);
         }
 
         // 3 passagers incomplets — ce sont eux qui bloquent l'impression.
         $this->passenger($departure, $origin, $lome, $this->seat($departure, 3), [
-            'first_name' => 'Didier', 'last_name' => 'Sans-Nationalité', 'nationality' => null, 'document_number' => 'PP200004',
+            'first_name' => 'Didier',
+            'last_name' => 'Sans-Nationalité',
+            'nationality' => null,
+            'document_number' => 'PP200004',
         ]);
         $this->passenger($departure, $origin, $lome, $this->seat($departure, 4), [
-            'first_name' => 'Eudoxie', 'last_name' => 'Sans-Document', 'nationality' => 'BJ', 'document_type' => null, 'document_number' => null,
+            'first_name' => 'Eudoxie',
+            'last_name' => 'Sans-Document',
+            'nationality' => 'BJ',
+            'document_type' => null,
+            'document_number' => null,
         ]);
         $this->passenger($departure, $origin, $lome, $this->seat($departure, 5), [
-            'first_name' => 'Firmin', 'last_name' => 'Sans-Rien', 'nationality' => null, 'document_type' => null, 'document_number' => null,
+            'first_name' => 'Firmin',
+            'last_name' => 'Sans-Rien',
+            'nationality' => null,
+            'document_type' => null,
+            'document_number' => null,
         ]);
 
         // Incomplet MAIS annulé : ne doit PAS bloquer (exclu du manifeste).
         $this->passenger($departure, $origin, $lome, $this->seat($departure, 6), [
-            'first_name' => 'Gilbert', 'last_name' => 'Annulé-Incomplet', 'nationality' => null, 'document_number' => null,
+            'first_name' => 'Gilbert',
+            'last_name' => 'Annulé-Incomplet',
+            'nationality' => null,
+            'document_number' => null,
         ], segmentStatus: 'cancelled');
 
         // Incomplet MAIS paiement non confirmé : absent du manifeste.
         $this->passenger($departure, $origin, $lome, $this->seat($departure, 7), [
-            'first_name' => 'Honorine', 'last_name' => 'Impayée-Incomplète', 'nationality' => null, 'document_number' => null,
+            'first_name' => 'Honorine',
+            'last_name' => 'Impayée-Incomplète',
+            'nationality' => null,
+            'document_number' => null,
         ], segmentStatus: 'confirmed', paid: false, issueTicket: false);
     }
 
@@ -300,7 +325,11 @@ class KoraBorderManifestDemoSeeder extends Seeder
         foreach (['Ida', 'Jules', 'Karim', 'Léa'] as $i => $first) {
             // Départ national : ni nationalité ni document exigés.
             $this->passenger($departure, $this->nationalOrigin, $this->stops['porto'], $this->seat($departure, $i), [
-                'first_name' => $first, 'last_name' => 'National', 'nationality' => null, 'document_type' => null, 'document_number' => null,
+                'first_name' => $first,
+                'last_name' => 'National',
+                'nationality' => null,
+                'document_type' => null,
+                'document_number' => null,
             ]);
         }
     }
@@ -322,26 +351,41 @@ class KoraBorderManifestDemoSeeder extends Seeder
         [$origin, $lome] = [$this->stops['cotonou'], $this->stops['lome']];
 
         $boarded = [
-            ['Mariam', 'Sow', 'SN', 'PP300001'], ['Nestor', 'Agbessi', 'BJ', 'PP300002'], ['Olivia', 'Mensah', 'GH', 'PP300003'],
-            ['Pascal', 'Zannou', 'BJ', 'PP300004'], ['Rita', 'Kpakpo', 'TG', 'PP300005'], ['Serge', 'Akpavi', 'BJ', 'PP300006'],
-            ['Tania', 'Dossou', 'NE', 'PP300007'], ['Ulrich', 'Sossou', 'BJ', 'PP300008'], ['Viviane', 'Bello', 'NG', 'PP300009'],
+            ['Mariam', 'Sow', 'SN', 'PP300001'],
+            ['Nestor', 'Agbessi', 'BJ', 'PP300002'],
+            ['Olivia', 'Mensah', 'GH', 'PP300003'],
+            ['Pascal', 'Zannou', 'BJ', 'PP300004'],
+            ['Rita', 'Kpakpo', 'TG', 'PP300005'],
+            ['Serge', 'Akpavi', 'BJ', 'PP300006'],
+            ['Tania', 'Dossou', 'NE', 'PP300007'],
+            ['Ulrich', 'Sossou', 'BJ', 'PP300008'],
+            ['Viviane', 'Bello', 'NG', 'PP300009'],
             ['Wilfried', 'Hounkpatin', 'BJ', 'PP300010'],
         ];
 
         foreach ($boarded as $i => [$f, $l, $n, $d]) {
             $this->passenger($departure, $origin, $lome, $this->seat($departure, $i), [
-                'first_name' => $f, 'last_name' => $l, 'nationality' => $n, 'document_number' => $d,
+                'first_name' => $f,
+                'last_name' => $l,
+                'nationality' => $n,
+                'document_number' => $d,
             ], segmentStatus: 'boarded');
         }
 
         // Billet valide mais jamais monté : "absent" → exclu du manifeste.
         $this->passenger($departure, $origin, $lome, $this->seat($departure, 10), [
-            'first_name' => 'Xavier', 'last_name' => 'Absent', 'nationality' => 'BJ', 'document_number' => 'PP300011',
+            'first_name' => 'Xavier',
+            'last_name' => 'Absent',
+            'nationality' => 'BJ',
+            'document_number' => 'PP300011',
         ], segmentStatus: 'ticketed');
 
         // Annulé : exclu.
         $this->passenger($departure, $origin, $lome, $this->seat($departure, 11), [
-            'first_name' => 'Yvonne', 'last_name' => 'Annulée', 'nationality' => 'BJ', 'document_number' => 'PP300012',
+            'first_name' => 'Yvonne',
+            'last_name' => 'Annulée',
+            'nationality' => 'BJ',
+            'document_number' => 'PP300012',
         ], segmentStatus: 'cancelled');
     }
 
