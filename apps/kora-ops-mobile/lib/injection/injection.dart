@@ -78,6 +78,13 @@ import '../features/terminal/data/datasources/terminal_remote_datasource.dart';
 import '../features/terminal/data/repositories/terminal_repository_impl.dart';
 import '../features/terminal/domain/repositories/terminal_repository.dart';
 import '../features/terminal/presentation/cubit/terminal_cubit.dart';
+import '../features/tracking/data/datasources/tracking_local_datasource.dart';
+import '../features/tracking/data/repositories/tracking_repository_impl.dart';
+import '../features/tracking/data/services/geolocator_location_provider.dart';
+import '../features/tracking/data/services/mock_location_provider.dart';
+import '../features/tracking/domain/repositories/tracking_repository.dart';
+import '../features/tracking/domain/services/location_provider.dart';
+import '../features/tracking/presentation/cubit/tracking_cubit.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -423,6 +430,35 @@ Future<void> configureDependencies() async {
       getIt<BoardingRepository>(),
       getIt<SeatReleaseRepository>(),
       getIt<IncidentRepository>(),
+    ),
+  );
+
+  // --- Feature: tracking (MEZ-101 — suivi de position du convoyeur en
+  // arrière-plan, consomme le lot MEZ-100 : POST ops/tracking/positions/
+  // batch). GeolocatorLocationProvider sert IDENTIQUEMENT P501 et
+  // téléphone (voir sa docstring) — seule useMockHardware bascule vers le
+  // Mock, comme pour BarcodeScanner/ThermalPrinter ci-dessus.
+  // TrackingRepositoryImpl.bootstrap() (appelé depuis SplashPage) reprend
+  // un suivi resté actif après un crash/redémarrage.
+  getIt.registerLazySingleton<LocationProvider>(
+    AppConfig.instance.useMockHardware
+        ? MockLocationProvider.new
+        : GeolocatorLocationProvider.new,
+  );
+  getIt.registerLazySingleton<TrackingLocalDataSource>(
+    () => TrackingLocalDataSourceImpl(getIt<AppDatabase>()),
+  );
+  getIt.registerLazySingleton<TrackingRepository>(
+    () => TrackingRepositoryImpl(
+      getIt<TrackingLocalDataSource>(),
+      getIt<LocationProvider>(),
+    ),
+  );
+  getIt.registerSingleton<TrackingCubit>(
+    TrackingCubit(
+      getIt<TrackingRepository>(),
+      getIt<TerminalLocalDataSource>(),
+      getIt<SelectedDepartCubit>(),
     ),
   );
 

@@ -72,7 +72,7 @@ class AppConfig {
         _instance = AppConfig._(
           environment: env,
           appName: 'KORA OPS (dev)',
-          apiBaseUrl: 'http://192.168.1.69/kora-ops-web/public/',
+          apiBaseUrl: 'http://192.168.1.26/kora-ops-web/public/',
           enableDebugBanner: true,
           enableLogging: true,
           useMockHardware: resolveUseMockHardware(true),

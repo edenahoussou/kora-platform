@@ -39,6 +39,11 @@ abstract final class ApiConstants {
 
   /// Signalement d'incident par le convoyeur (MEZ-98).
   static const String opsIncidents = '$_v1/ops/incidents';
+
+  /// Ingestion par lots des positions du convoyeur (MEZ-100/MEZ-101).
+  /// Idempotent via `position_uuid` — voir TrackingRemoteDataSource.
+  static const String opsTrackingPositionsBatch =
+      '$_v1/ops/tracking/positions/batch';
   static String opsDepartureManifest(String departureUuid) =>
       '$_v1/ops/departures/$departureUuid/manifest';
 

@@ -424,6 +424,31 @@ Bouton **« Imprimer le manifeste frontière »** en bas de `ManifestePage` (vis
 
 Tests : `flutter test test/features/border_manifest test/features/printing test/features/manifeste`.
 
+## 18ter. Suivi de position du convoyeur en arrière-plan (MEZ-101)
+
+Feature `lib/features/tracking/` — consomme le contrat d'ingestion de [MEZ-100](https://linear.app/mezabodev/issue/MEZ-100) (`POST /ops/tracking/positions/batch`) ; aucun WebSocket, uniquement des lots HTTP.
+
+**Déclenchement** — `TrackingCubit` écoute `SelectedDepartCubit` (pas d'action explicite du convoyeur) : `depart.status == 'departed'` → démarre, `'arrived'`/`'cancelled'`/désélection → arrête. Il ne mesure jamais de position lui-même.
+
+**Deux isolats** :
+
+- **Principal (UI)** — `TrackingRepositoryImpl` : vérifie permission/GPS/précision (`LocationProvider`), persiste l'état de session (`tracking_session_state`, sqlite) puis démarre le service premier plan Android (`flutter_foreground_task`). `bootstrap()` (appelé depuis `SplashPage`) relit cet état et redémarre le service s'il a été tué par l'OS pendant que l'app était fermée.
+- **Service premier plan** — `TrackingTaskHandler` (fonction top-level `trackingStartCallback`, isolate séparé, notification persistante conforme aux règles Android, tourne écran verrouillé/app fermée). Reconstruit ses propres `AppDatabase`/`Dio` (aucun état de `get_it` ne traverse un isolate) ; écoute le flux GPS (`LocationProvider.watchPosition`), les changements d'état du service de localisation et la connectivité, et délègue toute décision d'enfilage/d'envoi à `TrackingSyncEngine`.
+
+**`LocationProvider`** — une seule abstraction, une seule implémentation réelle (`GeolocatorLocationProvider`) pour **P501 et téléphone** : le P501 est lui-même un terminal Android, sa puce GPS passe par le même `FusedLocationProviderClient` qu'un téléphone (voir `docs/tracking-location-source.md` côté backend, MEZ-100). `MockLocationProvider` sert le mode `AppConfig.useMockHardware` (même bascule que `BarcodeScanner`/`ThermalPrinter`, § 18) et les tests.
+
+**`TrackingSyncEngine`** (`lib/features/tracking/data/tracking_sync_engine.dart`) — le cœur testable, délibérément extrait de `TrackingTaskHandler` pour ne dépendre que d'interfaces mockables (`TrackingLocalDataSource`/`TrackingRemoteDataSource`), jamais de `flutter_foreground_task` : enfilage local (table `tracking_positions_queue`, sqlite), envoi par lots de 50, idempotent par `position_uuid` (un rejeu ne crée jamais de doublon côté serveur), aucune perte de point sur coupure réseau (reste `pending` jusqu'au prochain envoi réussi).
+
+**Événements immédiats** (hors cycle du minuteur, 15 s) — premier point d'une session (démarrage), heartbeat `gpsUnavailable` dès que l'OS signale le GPS désactivé (perte de signal), et flush au retour de connectivité (reconnexion). L'arrêt (`TrackingRepositoryImpl.stop`) envoie `'stop'` au TaskHandler, qui flush le dernier point connu puis efface la session et arrête le service lui-même.
+
+**Reprise après crash** — la séquence (`tracking_session_state.last_sequence`) et la session active sont en base, pas en mémoire. Si le service est tué par l'OS sans arrêt volontaire (`_stopRequested` resté faux dans `TrackingTaskHandler.onDestroy`), la session reste `active` : `TrackingRepositoryImpl.bootstrap()` la redémarre au prochain lancement de l'app, sans perte des points déjà en file ni régression de séquence.
+
+**États affichés** (`TrackingStatusBanner`, même gabarit que `SyncStatusBanner`) — `TrackingAvailability` (permission refusée, GPS désactivé, précision insuffisante — bloquants, tapables pour corriger) côté démarrage, `TrackingState.isOnline`/`isSyncing`/`pendingCount` côté suivi actif (réseau indisponible n'est jamais bloquant : la mesure et la mise en file continuent hors ligne).
+
+**Permissions Android** — `ACCESS_FINE_LOCATION`/`ACCESS_COARSE_LOCATION` (`geolocator`), `ACCESS_BACKGROUND_LOCATION` demandée séparément en deux temps (`permission_handler`, flux recommandé Android 10+ — `geolocator` seul ne la redemande jamais), `FOREGROUND_SERVICE`/`FOREGROUND_SERVICE_LOCATION`, `POST_NOTIFICATIONS` (Android 13+), `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` (certains constructeurs tuent sinon le service malgré le premier plan).
+
+Tests : `flutter test test/features/tracking/` — `TrackingSyncEngine` (idempotence, perte réseau, découpage en lots, rejet définitif) contre des doubles en mémoire ; `TrackingCubit` (démarrage/arrêt selon le statut du départ, permissions, réseau/synchro) contre un `TrackingRepository` mocké et un vrai `SelectedDepartCubit`. Le flux GPS réel, le service premier plan et la notification Android ne sont pas couverts par des tests automatisés (nécessitent un appareil/émulateur) — à valider manuellement (voir § 20).
+
 ## 19. Build
 
 ```bash
@@ -440,3 +465,5 @@ flutter build appbundle --dart-define=ENV=prod
 - Ajouter les polices Aptos en assets si fournies par la marque.
 - Implémenter le handler natif Android/iOS des canaux P501 (§ 18) une fois le SDK disponible.
 - Ajouter un bouton retour désactivé/masqué sur `LoginEmailPage` (écran d'entrée sans route précédente) plutôt que de laisser le comportement par défaut de `ScreenHeader`.
+- Valider sur appareil réel (§ 18ter, MEZ-101) : suivi écran verrouillé/app fermée, notification premier plan conforme sur Android 13/14, boîtes de dialogue permission arrière-plan et optimisation batterie, et reprise effective après un crash forcé (`adb shell am kill`) ou un redémarrage du téléphone — non couvert par les tests automatisés.
+- Intégrer `TrackingStatusBanner` (§ 18ter) sur les écrans qui affichent déjà `SyncStatusBanner` au-delà de `TourneePage` (Manifeste, Scan, Descente anticipée…), si souhaité.
