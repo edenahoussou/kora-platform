@@ -23,6 +23,8 @@ import '../bloc/seat_hold_bloc.dart';
 import '../widgets/booking_progress.dart';
 import '../widgets/hold_countdown.dart';
 import '../widgets/state_view.dart';
+import '../widgets/whatsapp_glyph.dart';
+import 'assistance_request_page.dart';
 
 /// Données passées à [SummaryPage] par `go_router` (`extra`).
 class SummaryArgs {
@@ -208,7 +210,7 @@ class _SummaryContent extends StatelessWidget {
 /// * **un siège vient d'être pris** — retour au plan, qui le montre occupé
 ///   et le dit ;
 /// * **autre refus** — le message du serveur, et le voyageur reste ici.
-class _CheckoutButton extends StatelessWidget {
+class _CheckoutButton extends StatefulWidget {
   const _CheckoutButton({
     required this.departure,
     required this.passengers,
@@ -221,7 +223,23 @@ class _CheckoutButton extends StatelessWidget {
   final Departure? returnDeparture;
   final List<Seat>? returnSeats;
 
+  @override
+  State<_CheckoutButton> createState() => _CheckoutButtonState();
+}
+
+class _CheckoutButtonState extends State<_CheckoutButton> {
+  /// Le checkout en cours est le nôtre. L'envoi à une agence bloque les
+  /// sièges par le même Bloc, depuis l'écran du dessus : sans ce drapeau,
+  /// sa fin ouvrirait aussi le paiement d'ici.
+  var _mine = false;
+
+  Departure get departure => widget.departure;
+  List<Passenger> get passengers => widget.passengers;
+  Departure? get returnDeparture => widget.returnDeparture;
+  List<Seat>? get returnSeats => widget.returnSeats;
+
   void _checkout(BuildContext context) {
+    _mine = true;
     context.read<SeatHoldBloc>().add(
       SeatHoldCheckoutRequested(
         departure: departure,
@@ -256,12 +274,29 @@ class _CheckoutButton extends StatelessWidget {
     );
   }
 
+  /// Confier la réservation à une agence (MEZ-81) plutôt que payer ici.
+  void _handOff(BuildContext context) {
+    context.push(
+      AppRouter.assistanceRequestPath,
+      extra: AssistanceArgs(
+        departure: departure,
+        passengers: passengers,
+        quote: _shownQuote(context, departure, passengers.length),
+        returnDeparture: returnDeparture,
+        returnSeats: returnSeats,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return BlocConsumer<SeatHoldBloc, SeatHoldState>(
       listenWhen: (previous, current) =>
-          previous.isCheckingOut && !current.isCheckingOut,
+          _mine && previous.isCheckingOut && !current.isCheckingOut,
       listener: (context, hold) {
+        _mine = false;
         if (hold.isHeld && hold.passengersStatus == PassengersStatus.saved) {
           _openPayment(context);
           return;
@@ -280,15 +315,53 @@ class _CheckoutButton extends StatelessWidget {
 
         if (failure != null) KoraToaster.show(context, failure.message);
       },
-      builder: (context, hold) => KoraButton(
-        label: context.l10n.summaryContinue,
-        isLoading: hold.isCheckingOut,
+      builder: (context, hold) {
         // Un code en cours d'application change le prix : on ne part pas
         // bloquer pendant que le serveur le recalcule.
-        onPressed: hold.isRepricing || hold.isCheckingOut
-            ? null
-            : () => _checkout(context),
-      ),
+        final locked = hold.isRepricing || hold.isCheckingOut;
+
+        // Une question, puis les deux réponses côte à côte, de même
+        // poids : payer soi-même, ou confier la réservation à une agence.
+        // Les libellés sont courts pour tenir en demi-largeur sans aller
+        // à la ligne.
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Même titre que les sections du récapitulatif — hors de la
+            // liste, il porte les boutons plutôt qu'une carte.
+            Text(
+              l10n.summaryPayQuestion,
+              style: AppTextStyles.heading2(context.koraTitleColor),
+            ),
+            const SizedBox(height: 11),
+            Row(
+              children: [
+                // Le libellé de gauche est court : il cède la largeur au
+                // second, qui doit tenir « Avec un agent KORA » en entier.
+                Expanded(
+                  flex: 3,
+                  child: KoraButton(
+                    label: l10n.summaryContinue,
+                    isLoading: _mine && hold.isCheckingOut,
+                    onPressed: locked ? null : () => _checkout(context),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  flex: 5,
+                  child: KoraButton(
+                    label: l10n.summaryAssistCta,
+                    glyph: const WhatsAppGlyph(size: 18),
+                    variant: KoraButtonVariant.ghost,
+                    onPressed: locked ? null : () => _handOff(context),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -729,17 +802,25 @@ class _PromoCodeCardState extends State<_PromoCodeCard> {
     super.dispose();
   }
 
-  void _apply(BuildContext context) {
+  void _apply(BuildContext context, {String? code}) {
     context.read<SeatHoldBloc>().add(
       SeatHoldRepriceRequested(
         departure: widget.departure,
         passengers: widget.passengers,
-        promoCode: _controller.text,
+        // Vide : le serveur retire la remise en cours.
+        promoCode: code ?? _controller.text,
         returnDeparture: widget.returnDeparture,
         returnSeats: widget.returnSeats,
         payer: context.read<GroupPayerCubit>().state.payer,
       ),
     );
+  }
+
+  /// Retire le code appliqué, et vide le champ : ce qui y restait
+  /// grisait le bouton, et n'est plus le code de la réservation.
+  void _remove(BuildContext context) {
+    _controller.clear();
+    _apply(context, code: '');
   }
 
   @override
@@ -751,8 +832,7 @@ class _PromoCodeCardState extends State<_PromoCodeCard> {
       buildWhen: (previous, current) =>
           previous.quote != current.quote ||
           previous.promoStatus != current.promoStatus ||
-          previous.promoError != current.promoError ||
-          previous.promoUnavailable != current.promoUnavailable,
+          previous.promoError != current.promoError,
       builder: (context, state) {
         final promotion = state.quote?.promotion;
         final busy = state.isRepricing;
@@ -787,6 +867,17 @@ class _PromoCodeCardState extends State<_PromoCodeCard> {
                           fontWeight: FontWeight.w800,
                         ),
                       ),
+                    ),
+                    // Le serveur recalcule la réservation en place : un
+                    // retrait ne lâche plus les sièges.
+                    TextButton(
+                      onPressed: busy ? null : () => _remove(context),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(l10n.summaryPromoRemove),
                     ),
                   ],
                 ),
@@ -828,10 +919,10 @@ class _PromoCodeCardState extends State<_PromoCodeCard> {
                   );
                 },
               ),
-              if (state.promoError != null || state.promoUnavailable) ...[
+              if (state.promoError != null) ...[
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  state.promoError ?? l10n.summaryPromoUnavailable,
+                  state.promoError!,
                   style: AppTextStyles.caption(AppColors.danger),
                 ),
                 const SizedBox(height: 2),

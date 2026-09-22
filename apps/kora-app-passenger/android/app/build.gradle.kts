@@ -32,7 +32,7 @@ if (facebookPropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.kora_app_passager.app"
+    namespace = "com.koraexpress.passenger"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -53,7 +53,7 @@ android {
         // Identifiant d'installation de l'app passager. Il est gravé
         // dans le client OAuth Android de Google et dans l'app Facebook :
         // le changer oblige à recréer les deux.
-        applicationId = "com.kora_app_passager.app"
+        applicationId = "com.koraexpress.passenger"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

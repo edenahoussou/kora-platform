@@ -14,10 +14,13 @@ import '../../features/auth/presentation/pages/otp_page.dart';
 import '../../features/auth/presentation/pages/permissions_page.dart';
 import '../../features/auth/presentation/pages/signup_email_page.dart';
 import '../../features/booking/domain/entities/search_criteria.dart';
+import '../../features/booking/presentation/bloc/cancel_ticket_cubit.dart';
 import '../../features/booking/presentation/bloc/group_payer_cubit.dart';
 import '../../features/booking/presentation/bloc/group_quote_cubit.dart';
 import '../../features/booking/presentation/bloc/group_tickets_cubit.dart';
 import '../../features/booking/presentation/bloc/seat_hold_bloc.dart';
+import '../../features/booking/presentation/pages/assistance_request_page.dart';
+import '../../features/booking/presentation/pages/assistance_status_page.dart';
 import '../../features/booking/presentation/pages/bus_search_page.dart';
 import '../../features/booking/presentation/pages/departure_detail_page.dart';
 import '../../features/booking/presentation/pages/departures_page.dart';
@@ -148,6 +151,12 @@ class AppRouter {
 
   /// Le délai est écoulé, les sièges sont retournés à la vente.
   static const String holdExpiredPath = '/hold-expired';
+
+  /// La réservation confiée à une agence (MEZ-81) : le choix de l'agence,
+  /// puis le suivi de la demande. Dans le tunnel : l'envoi bloque les
+  /// sièges comme le paiement, et le suivi peut y revenir.
+  static const String assistanceRequestPath = '/assistance/demande';
+  static const String assistanceStatusPath = '/assistance/suivi';
 
   /// Les écrans de paiement, dans le tunnel : le décompte doit y courir
   /// aussi.
@@ -673,6 +682,17 @@ class AppRouter {
               builder: (context, state) => const HoldExpiredPage(),
             ),
             GoRoute(
+              path: assistanceRequestPath,
+              builder: (context, state) =>
+                  AssistanceRequestPage(args: state.extra as AssistanceArgs?),
+            ),
+            GoRoute(
+              path: assistanceStatusPath,
+              builder: (context, state) => AssistanceStatusPage(
+                args: state.extra as AssistanceStatusArgs?,
+              ),
+            ),
+            GoRoute(
               path: paymentMethodPath,
               builder: (context, state) =>
                   PaymentMethodPage(args: state.extra as PaymentArgs?),
@@ -749,6 +769,12 @@ class AppRouter {
                       ticketDetailPath,
                       extra: TicketDetailArgs(ticket: ticket, today: today),
                     ),
+                    onOpenAssistance: (reservationId) => context.push(
+                      assistanceStatusPath,
+                      extra: AssistanceStatusArgs(reservationId: reservationId),
+                    ),
+                    onOpenNotifications: () =>
+                        context.push(notificationsPath),
                   ),
                 ),
               ],
@@ -784,6 +810,9 @@ class AppRouter {
   }
 }
 
+/// L'onglet Voyages dans la barre du bas, dans l'ordre des branches.
+const int _voyagesBranch = 1;
+
 /// Le `Scaffold` commun à tous les onglets : il porte la [KoraBottomNav]
 /// et affiche la branche active via [navigationShell].
 class _ScaffoldWithNavBar extends StatelessWidget {
@@ -811,12 +840,22 @@ class _ScaffoldWithNavBar extends StatelessWidget {
             l10n.navProfile,
           ],
           currentIndex: navigationShell.currentIndex,
-          onTap: (index) => navigationShell.goBranch(
-            index,
-            // Si on retape sur l'onglet déjà actif, on revient à sa racine
-            // (comportement standard des apps mobiles).
-            initialLocation: index == navigationShell.currentIndex,
-          ),
+          onTap: (index) {
+            // Ouvrir Voyages relit les billets : l'émission suit le
+            // paiement de quelques secondes, et la branche garde son
+            // état — sans ça, le billet qu'on vient d'acheter n'y
+            // apparaîtrait qu'après une reconnexion.
+            if (index == _voyagesBranch && getIt.isRegistered<BookingRefresh>()) {
+              getIt<BookingRefresh>().notify();
+            }
+
+            navigationShell.goBranch(
+              index,
+              // Si on retape sur l'onglet déjà actif, on revient à sa racine
+              // (comportement standard des apps mobiles).
+              initialLocation: index == navigationShell.currentIndex,
+            );
+          },
         ),
       ),
     );

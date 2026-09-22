@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.kora_app_passager.app">
+    package="com.koraexpress.passenger">
     <!-- Écran « Autorisations » : suivi du bus en direct et points KORA
          proches. La position approchée suffit à la plupart des écrans,
          mais le suivi du véhicule demande la position précise. -->

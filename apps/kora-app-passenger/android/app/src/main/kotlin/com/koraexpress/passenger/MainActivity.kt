@@ -1,4 +1,4 @@
-package com.kora_app_passager.app
+package com.koraexpress.passenger
 
 import io.flutter.embedding.android.FlutterActivity
 

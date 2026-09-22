@@ -12,17 +12,24 @@ import 'package:kora_app_passenger/core/di/injector.dart';
 import 'package:kora_app_passenger/core/error/failures.dart';
 import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/core/usecases/usecase.dart';
+import 'package:kora_app_passenger/core/widgets/brand_mini.dart';
 import 'package:kora_app_passenger/features/booking/data/datasources/booking_mock_data.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/assisted_booking.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/ticket.dart';
 import 'package:kora_app_passenger/features/booking/domain/usecases/get_tickets_usecase.dart';
+import 'package:kora_app_passenger/features/booking/presentation/bloc/assistance_cubits.dart';
+import 'package:kora_app_passenger/features/booking/presentation/bloc/cancel_ticket_cubit.dart';
 import 'package:kora_app_passenger/features/booking/presentation/bloc/tickets_bloc.dart';
 import 'package:kora_app_passenger/features/booking/presentation/pages/tickets_page.dart';
 import 'package:mocktail/mocktail.dart';
+
+import '../../../../support/assistance_harness.dart';
 
 class _MockGetTickets extends Mock implements GetTicketsUseCase {}
 
 void main() {
   late _MockGetTickets getTickets;
+  late StubAssistedBookingRepository assistance;
 
   /// Un jeudi quelconque, figé : les libellés « dans 7 jours » dépendent
   /// du jour où tourne le test.
@@ -45,6 +52,15 @@ void main() {
     getIt.registerFactory<TicketsBloc>(
       () => TicketsBloc(getTickets, now: () => today),
     );
+
+    // Le signal des réservations qui changent : la liste s'y accroche.
+    getIt.registerLazySingleton<BookingRefresh>(BookingRefresh.new);
+
+    // Aucune demande en agence par défaut : la section reste invisible.
+    assistance = StubAssistedBookingRepository();
+    getIt.registerFactory<AssistanceRequestsCubit>(
+      () => AssistanceRequestsCubit(assistance),
+    );
   });
 
   tearDown(() => getIt.reset());
@@ -54,6 +70,7 @@ void main() {
   Future<void> pumpTickets(
     WidgetTester tester, {
     Locale locale = const Locale('fr'),
+    VoidCallback? onOpenNotifications,
   }) async {
     tester.view.physicalSize = const Size(390 * 3, 1200 * 3);
     tester.view.devicePixelRatio = 3;
@@ -70,18 +87,29 @@ void main() {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        home: const TicketsPage(),
+        home: TicketsPage(onOpenNotifications: onOpenNotifications),
       ),
     );
     await tester.pumpAndSettle();
   }
 
-  testWidgets('affiche les trois onglets avec leurs compteurs', (tester) async {
+  /// Les quatre puces ne tiennent pas toutes à l'écran : on amène celle
+  /// qu'on veut avant d'appuyer.
+  Future<void> openTab(WidgetTester tester, String label) async {
+    await tester.ensureVisible(find.text(label));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(label));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('affiche les onglets avec leurs compteurs', (tester) async {
     await pumpTickets(tester);
 
     // Les puces passent en capitales : `.tag { text-transform: uppercase }`
     // dans la maquette, appliqué par KoraTag.
     expect(find.text('À VENIR · 1'), findsOneWidget);
+    // Les demandes confiées à une agence ont leur propre onglet.
+    expect(find.text('EN ATTENTE · 0'), findsOneWidget);
     expect(find.text('PASSÉS · 3'), findsOneWidget);
     expect(find.text('ANNULÉS · 1'), findsOneWidget);
   });
@@ -96,11 +124,62 @@ void main() {
     expect(find.textContaining('Siège 4A'), findsOneWidget);
   });
 
+  testWidgets('plusieurs billets : le lien passe au pluriel', (tester) async {
+    // Une réservation à deux sièges : le lien mène à la liste des billets.
+    final one = tickets.firstWhere(
+      (ticket) => ticket.status == TicketStatus.confirmed,
+    );
+    when(() => getTickets(any())).thenAnswer(
+      (_) async => Right([
+        Ticket(
+          reference: one.reference,
+          departure: one.departure,
+          seat: one.seat,
+          status: one.status,
+          reservationId: 'resa-1',
+          ticketIds: const ['ticket-1', 'ticket-2'],
+        ),
+      ]),
+    );
+
+    await pumpTickets(tester);
+
+    expect(find.text('Voir les billets →'), findsOneWidget);
+    expect(find.text('Voir le billet →'), findsNothing);
+  });
+
+  testWidgets('un seul billet : le lien reste au singulier', (tester) async {
+    await pumpTickets(tester);
+
+    expect(find.text('Voir le billet →'), findsOneWidget);
+  });
+
+  testWidgets('une réservation qui change relit la liste', (tester) async {
+    // Le cas du billet qu'on vient de payer : l'onglet, resté en mémoire
+    // derrière le tunnel, doit le voir sans déconnexion.
+    await pumpTickets(tester);
+    verify(() => getTickets(any())).called(1);
+
+    getIt<BookingRefresh>().notify();
+    await tester.pumpAndSettle();
+
+    verify(() => getTickets(any())).called(1);
+  });
+
+  testWidgets('la cloche ouvre les notifications', (tester) async {
+    var opened = 0;
+    await pumpTickets(tester, onOpenNotifications: () => opened++);
+
+    await tester.tap(find.byType(NotificationButton));
+    await tester.pumpAndSettle();
+
+    expect(opened, 1);
+  });
+
   testWidgets('bascule sur les voyages passés', (tester) async {
     await pumpTickets(tester);
 
-    await tester.tap(find.text('PASSÉS · 3'));
-    await tester.pumpAndSettle();
+    await openTab(tester, 'PASSÉS · 3');
 
     expect(find.text('TERMINÉ'), findsNWidgets(3));
     expect(find.text('CONFIRMÉ'), findsNothing);
@@ -111,8 +190,7 @@ void main() {
   ) async {
     await pumpTickets(tester);
 
-    await tester.tap(find.text('PASSÉS · 3'));
-    await tester.pumpAndSettle();
+    await openTab(tester, 'PASSÉS · 3');
 
     final past =
         tickets
@@ -147,8 +225,7 @@ void main() {
     );
 
     await pumpTickets(tester);
-    await tester.tap(find.text('ANNULÉS · 0'));
-    await tester.pumpAndSettle();
+    await openTab(tester, 'ANNULÉS · 0');
 
     expect(find.text('Aucune annulation'), findsOneWidget);
     // Les onglets restent affichés : on doit pouvoir revenir.
@@ -183,5 +260,40 @@ void main() {
     expect(find.text('Book a trip'), findsOneWidget);
     expect(find.textContaining('in 7 days'), findsOneWidget);
     expect(find.textContaining('Seat 4A'), findsOneWidget);
+  });
+
+  testWidgets('les demandes en agence ont leur onglet, sans billet', (
+    tester,
+  ) async {
+    // Pas encore de billet pour elles : sans cet onglet, le voyageur ne
+    // les retrouverait nulle part.
+    assistance.saved.add(assistanceRecord());
+    assistance.status = AssistanceStatus.inProgress;
+
+    await pumpTickets(tester);
+    await openTab(tester, 'EN ATTENTE · 1');
+
+    expect(find.text('KBR-7X2K9P4Q'), findsOneWidget);
+    expect(find.text('EN COURS'), findsOneWidget);
+    expect(find.text('Voir la demande'), findsOneWidget);
+    expect(find.text('Voir le billet'), findsNothing);
+  });
+
+  testWidgets('une demande sans suite se range dans les annulations', (
+    tester,
+  ) async {
+    assistance.saved.add(assistanceRecord());
+    assistance.status = AssistanceStatus.expired;
+
+    await pumpTickets(tester);
+
+    // Comptée avec les billets annulés, et affichée dans leur onglet.
+    expect(find.text('EN ATTENTE · 0'), findsOneWidget);
+    await openTab(tester, 'ANNULÉS · 2');
+
+    expect(find.text('KBR-7X2K9P4Q'), findsOneWidget);
+    expect(find.text('EXPIRÉE'), findsOneWidget);
+    // L'onglet n'est pas vide : le message de vide n'a rien à y faire.
+    expect(find.text('Aucune annulation'), findsNothing);
   });
 }

@@ -59,14 +59,27 @@ class SeatHoldReleased extends SeatHoldEvent {
   const SeatHoldReleased();
 }
 
-/// Le paiement a abouti : les sièges ne sont plus retenus, ils sont
-/// vendus.
+/// Le paiement a abouti — ou la réservation est confiée à une agence : les
+/// sièges ne sont plus retenus par l'app.
 ///
 /// Distinct de [SeatHoldReleased], qui rend les places à la vente : ici on
 /// coupe seulement le décompte, sans rien libérer. Réutiliser la
-/// libération aurait appelé `DELETE holds` sur une réservation payée.
+/// libération aurait appelé `DELETE holds` sur une réservation payée, ou
+/// déjà passée à l'agence.
 class SeatHoldSettled extends SeatHoldEvent {
   const SeatHoldSettled();
+}
+
+/// La réservation confiée à une agence revient au paiement en ligne : le
+/// serveur a repris ses sièges (`resume-online`), le décompte repart.
+class SeatHoldResumed extends SeatHoldEvent {
+  const SeatHoldResumed({required this.hold, required this.passengers});
+
+  final SeatHold hold;
+  final int passengers;
+
+  @override
+  List<Object?> get props => [hold, passengers];
 }
 
 /// Un battement de seconde du décompte.
