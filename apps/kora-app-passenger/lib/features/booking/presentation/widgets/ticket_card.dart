@@ -118,7 +118,11 @@ class TicketCard extends StatelessWidget {
                     const SizedBox(width: AppSpacing.md),
                   ],
                   Text(
-                    l10n.ticketsSeeTicket,
+                    // Une réservation à plusieurs sièges mène à la liste
+                    // des billets, un par voyageur : le lien le dit.
+                    ticket.ticketIds.length > 1
+                        ? l10n.ticketsSeeTickets
+                        : l10n.ticketsSeeTicket,
                     style: const TextStyle(
                       color: AppColors.gold,
                       fontSize: 12,

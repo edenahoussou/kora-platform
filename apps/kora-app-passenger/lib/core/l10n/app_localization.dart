@@ -195,11 +195,19 @@ class AppLocalization {
       _withArgs('tickets_tab_past', {'count': count});
   String ticketsTabCancelled(int count) =>
       _withArgs('tickets_tab_cancelled', {'count': count});
+  String ticketsTabPending(int count) =>
+      _withArgs('tickets_tab_pending', {'count': count});
+  String get ticketsEmptyPendingTitle =>
+      translate('tickets_empty_pending_title');
+  String get ticketsEmptyPendingText => translate('tickets_empty_pending_text');
+  String get assistSeeRequest => translate('assist_see_request');
 
   String get ticketsStatusConfirmed => translate('tickets_status_confirmed');
   String get ticketsStatusCompleted => translate('tickets_status_completed');
   String get ticketsStatusCancelled => translate('tickets_status_cancelled');
   String get ticketsSeeTicket => translate('tickets_see_ticket');
+
+  String get ticketsSeeTickets => translate('tickets_see_tickets');
 
   String ticketsSeat(String seat) => _withArgs('tickets_seat', {'seat': seat});
   String ticketsDepartureIn(String delay) =>
@@ -255,9 +263,31 @@ class AppLocalization {
   String get ticketDetailShareTitle => translate('ticket_detail_share_title');
   String get ticketDetailShareSubtitle =>
       translate('ticket_detail_share_subtitle');
+  String get ticketCancelTitle => translate('ticket_cancel_title');
+
+  String get ticketCancelText => translate('ticket_cancel_text');
+
+  String ticketCancelTextGroup(String count) =>
+      _withArgs('ticket_cancel_text_group', {'count': count});
+
+  String get ticketCancelKeep => translate('ticket_cancel_keep');
+
+  String get ticketCancelConfirm => translate('ticket_cancel_confirm');
+
+  String get ticketCancelProgress => translate('ticket_cancel_progress');
+
+  String get ticketCancelDone => translate('ticket_cancel_done');
+
   String get ticketDetailCancelTitle => translate('ticket_detail_cancel_title');
   String get ticketDetailCancelSubtitle =>
       translate('ticket_detail_cancel_subtitle');
+  String get ticketDetailPdfSubtitle => translate('ticket_detail_pdf_subtitle');
+  String get ticketDetailPdfSavedSubtitle =>
+      translate('ticket_detail_pdf_saved_subtitle');
+  String get ticketDetailPdfOfflineSubtitle =>
+      translate('ticket_detail_pdf_offline_subtitle');
+  String get ticketDetailPdfCopySubtitle =>
+      translate('ticket_detail_pdf_copy_subtitle');
   String get ticketDetailReminder => translate('ticket_detail_reminder');
   String get ticketDetailSoon => translate('ticket_detail_soon');
 
@@ -863,15 +893,85 @@ class AppLocalization {
   String get summaryPromoTitle => translate('summary_promo_title');
   String get summaryPromoHint => translate('summary_promo_hint');
   String get summaryPromoApply => translate('summary_promo_apply');
+
+  String get summaryPromoRemove => translate('summary_promo_remove');
   String get summaryPromoChecking => translate('summary_promo_checking');
   String summaryPromoApplied(String code) =>
       _withArgs('summary_promo_applied', {'code': code});
   String summaryPromoKept(String code) =>
       _withArgs('summary_promo_kept', {'code': code});
+  String get summaryAssistCta => translate('summary_assist_cta');
+  String get summaryAssistHint => translate('summary_assist_hint');
+  String get assistEyebrow => translate('assist_eyebrow');
+  String get assistReferenceCopied => translate('assist_reference_copied');
+  String get assistStatusPendingText => translate('assist_status_pending_text');
+  String get assistStatusInProgressText =>
+      translate('assist_status_in_progress_text');
+  String get assistStatusFinalizedText =>
+      translate('assist_status_finalized_text');
+  String get assistStatusRefusedText => translate('assist_status_refused_text');
+  String get assistStatusExpiredText => translate('assist_status_expired_text');
+  String get assistStatusUnavailableText =>
+      translate('assist_status_unavailable_text');
+  String get assistStatusCancelledText =>
+      translate('assist_status_cancelled_text');
+  String get assistStatusUnknownText => translate('assist_status_unknown_text');
+  String get assistCopyMessage => translate('assist_copy_message');
+  String get assistStatusResumedText => translate('assist_status_resumed_text');
+  String get assistCopyMessageSub => translate('assist_copy_message_sub');
+  String get assistCopyReference => translate('assist_copy_reference');
+  String get assistTitle => translate('assist_title');
+  String get assistIntro => translate('assist_intro');
+  String get assistWarning => translate('assist_warning');
+  String assistContact(String phone) =>
+      _withArgs('assist_contact', {'phone': phone});
+  String get assistNoPhone => translate('assist_no_phone');
+  String get assistChannelTitle => translate('assist_channel_title');
+
+  String get assistChannelWhatsapp => translate('assist_channel_whatsapp');
+
+  String get assistChannelWhatsappSub => translate('assist_channel_whatsapp_sub');
+
+  String get assistChannelCall => translate('assist_channel_call');
+
+  String get assistChannelCallSub => translate('assist_channel_call_sub');
+
+  String get assistAgencyPending => translate('assist_agency_pending');
+
+  String get assistSendWhatsapp => translate('assist_send_whatsapp');
+  String get assistSendCall => translate('assist_send_call');
+  String get assistSending => translate('assist_sending');
+  String get assistStatusTitle => translate('assist_status_title');
+  String assistDeparture(String date) =>
+      _withArgs('assist_departure', {'date': date});
+  String get assistOpenWhatsapp => translate('assist_open_whatsapp');
+  String get assistCall => translate('assist_call');
+  String get assistMessageCopied => translate('assist_message_copied');
+  String get assistChannelFailed => translate('assist_channel_failed');
+  String get assistResume => translate('assist_resume');
+  String get assistResuming => translate('assist_resuming');
+  String get assistViewTrips => translate('assist_view_trips');
+  String get assistNewBooking => translate('assist_new_booking');
+  String get assistHome => translate('assist_home');
+  String get assistRefreshError => translate('assist_refresh_error');
+  String get assistRequestsTitle => translate('assist_requests_title');
+  String get assistChipPending => translate('assist_chip_pending');
+  String get assistChipInProgress => translate('assist_chip_in_progress');
+  String get assistChipFinalized => translate('assist_chip_finalized');
+  String get assistChipRefused => translate('assist_chip_refused');
+  String get assistChipExpired => translate('assist_chip_expired');
+  String get assistChipUnavailable => translate('assist_chip_unavailable');
+  String get assistChipCancelled => translate('assist_chip_cancelled');
+  String get assistChipUnknown => translate('assist_chip_unknown');
+  String get assistChipResumed => translate('assist_chip_resumed');
+  String get assistOpenWhatsappSub => translate('assist_open_whatsapp_sub');
+  String get assistCallSub => translate('assist_call_sub');
+  String get assistResumeSub => translate('assist_resume_sub');
+  String get assistViewTripsSub => translate('assist_view_trips_sub');
+  String get assistNewBookingSub => translate('assist_new_booking_sub');
   String summaryPromoLine(String code) =>
       _withArgs('summary_promo_line', {'code': code});
   String get summaryPromoContinue => translate('summary_promo_continue');
-  String get summaryPromoUnavailable => translate('summary_promo_unavailable');
   String get summaryServiceFee => translate('summary_service_fee');
   String get summaryServiceFeeValue => translate('summary_service_fee_value');
   // --- Aller-retour ---
@@ -887,6 +987,8 @@ class AppLocalization {
   );
 
   String get summaryTotal => translate('summary_total');
+  String get summaryPayQuestion => translate('summary_pay_question');
+
   String get summaryContinue => translate('summary_continue');
   String summarySeatOne(String seats) =>
       _withArgs('summary_seat_one', {'seats': seats});

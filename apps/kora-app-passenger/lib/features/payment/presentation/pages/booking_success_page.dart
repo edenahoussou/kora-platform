@@ -3,9 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/di/injector.dart';
 import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/date_formats.dart';
+import '../../../booking/presentation/bloc/cancel_ticket_cubit.dart';
 import '../../../booking/presentation/bloc/seat_hold_bloc.dart';
 import '../../../booking/presentation/pages/group_tickets_page.dart';
 import '../../../booking/presentation/widgets/state_view.dart';
@@ -52,6 +54,12 @@ class _BookingSuccessPageState extends State<BookingSuccessPage> {
       _passengers = hold.passengers;
 
       context.read<SeatHoldBloc>().add(const SeatHoldSettled());
+
+      // L'onglet Voyages est resté en mémoire derrière le tunnel : sans ce
+      // signal, il continuerait d'afficher la liste d'avant l'achat, et le
+      // voyage qu'on vient de payer n'y figurerait qu'après une
+      // reconnexion.
+      if (getIt.isRegistered<BookingRefresh>()) getIt<BookingRefresh>().notify();
     });
   }
 

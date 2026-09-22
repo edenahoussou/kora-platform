@@ -42,6 +42,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'terminal.active' => EnsureTerminalIsUsable::class,
             'ops.session' => EnsureOpsSession::class,
+            'ops.notifications' => EnsureNotificationsAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

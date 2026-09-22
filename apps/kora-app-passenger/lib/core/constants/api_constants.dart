@@ -151,6 +151,34 @@ class ApiConstants {
   static String bookingPassengers(String reservationUuid) =>
       '$_v1/bookings/$reservationUuid/passengers';
 
+  /// Annulation d'une réservation (`POST`, authentifié).
+  ///
+  /// Libère les sièges, passe les billets en remboursé et clôt la
+  /// réservation. Idempotent : annuler une réservation déjà annulée ne
+  /// fait rien de plus.
+  static String bookingCancel(String reservationUuid) =>
+      '$_v1/bookings/$reservationUuid/cancel';
+
+  /// Code promo d'une réservation retenue (`PUT`, authentifié).
+  ///
+  /// `promo_code` non nul applique la remise, `null` la retire : le
+  /// serveur recalcule le total en place, sans toucher aux sièges ni aux
+  /// voyageurs.
+  static String bookingPromoCode(String reservationUuid) =>
+      '$_v1/bookings/$reservationUuid/promo-code';
+
+  // --- Réservation assistée (MEZ-80) ---
+
+  /// `POST` : confie la réservation à une agence ; `GET` : l'état du
+  /// dossier.
+  static String bookingAssistance(String reservationUuid) =>
+      '$_v1/bookings/$reservationUuid/assistance';
+
+  /// `POST` : revient au paiement en ligne tant qu'aucun agent n'a pris le
+  /// dossier.
+  static String bookingAssistanceResume(String reservationUuid) =>
+      '$_v1/bookings/$reservationUuid/assistance/resume-online';
+
   // --- Paiements (documenté) ---
 
   /// Catalogue des moyens de paiement actifs (`GET`, authentifié).

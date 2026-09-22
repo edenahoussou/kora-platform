@@ -29,7 +29,6 @@ class SeatHoldState extends Equatable {
     this.quote,
     this.promoStatus = PromoStatus.idle,
     this.promoError,
-    this.promoUnavailable = false,
     this.checkingOut = false,
   });
 
@@ -65,10 +64,6 @@ class SeatHoldState extends Equatable {
   /// Le message du serveur pour le dernier code refusé.
   final String? promoError;
 
-  /// Le code était valable, mais la réservation n'a pas pu être libérée
-  /// pour être rebloquée à son prix : elle reste au tarif normal.
-  final bool promoUnavailable;
-
   bool get isRepricing => promoStatus != PromoStatus.idle;
 
   /// « Continuer vers le paiement » est en cours : devis, blocage puis
@@ -102,7 +97,6 @@ class SeatHoldState extends Equatable {
     PromoStatus? promoStatus,
     String? promoError,
     bool clearPromoError = false,
-    bool? promoUnavailable,
     bool? checkingOut,
   }) {
     return SeatHoldState(
@@ -116,7 +110,6 @@ class SeatHoldState extends Equatable {
       quote: quote ?? this.quote,
       promoStatus: promoStatus ?? this.promoStatus,
       promoError: clearPromoError ? null : (promoError ?? this.promoError),
-      promoUnavailable: promoUnavailable ?? this.promoUnavailable,
       checkingOut: checkingOut ?? this.checkingOut,
     );
   }
@@ -133,7 +126,6 @@ class SeatHoldState extends Equatable {
     quote,
     promoStatus,
     promoError,
-    promoUnavailable,
     checkingOut,
   ];
 }

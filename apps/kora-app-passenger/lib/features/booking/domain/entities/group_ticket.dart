@@ -43,6 +43,7 @@ class GroupTicket extends Equatable {
     this.qrCode = '',
     this.passengerName = '',
     this.seatCode = '',
+    this.isStale = false,
   });
 
   final String id;
@@ -63,9 +64,24 @@ class GroupTicket extends Equatable {
   /// `4A`. Vide tant qu'aucun siège n'est affecté.
   final String seatCode;
 
+  /// Lu sur le téléphone, faute de réseau : le billet reste valable — le
+  /// QR est signé par le serveur — mais l'écran peut le dire.
+  final bool isStale;
+
   /// Ce qui identifie le billet dans la liste : le nom du voyageur, ou à
   /// défaut sa référence — jamais une ligne vide.
   String get label => passengerName.isNotEmpty ? passengerName : shortCode;
+
+  /// Le même billet, mais sorti de la copie locale.
+  GroupTicket get stale => GroupTicket(
+    id: id,
+    shortCode: shortCode,
+    status: status,
+    qrCode: qrCode,
+    passengerName: passengerName,
+    seatCode: seatCode,
+    isStale: true,
+  );
 
   @override
   List<Object?> get props => [
@@ -75,5 +91,6 @@ class GroupTicket extends Equatable {
     qrCode,
     passengerName,
     seatCode,
+    isStale,
   ];
 }
