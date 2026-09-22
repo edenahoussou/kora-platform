@@ -12,6 +12,7 @@ use App\Modules\IdentityAccess\Http\Resources\TerminalP501Resource;
 use App\Modules\IdentityAccess\Models\TerminalP501;
 use App\Modules\IdentityAccess\Services\OpsSessionPayloadBuilder;
 use App\Modules\IdentityAccess\Services\OpsSessionTokenReader;
+use App\Modules\Notifications\Services\OpsNotifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 

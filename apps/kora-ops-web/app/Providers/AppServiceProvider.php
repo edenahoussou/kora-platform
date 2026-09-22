@@ -205,5 +205,13 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('terminal-handshake', fn (Request $request) => Limit::perMinute(10)->by(
             $request->user()?->getAuthIdentifier().'|'.$request->ip(),
         ));
+
+        // Un lot toutes les 10-15s est le débit GPS attendu (voir
+        // docs/tracking-location-source.md) ; 30/min laisse de la marge pour
+        // un rattrapage après coupure réseau sans ouvrir la porte à un flux
+        // illimité.
+        RateLimiter::for('tracking-batch', fn (Request $request) => Limit::perMinute(30)->by(
+            $request->user()?->getAuthIdentifier().'|'.$request->ip(),
+        ));
     }
 }

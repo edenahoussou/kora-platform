@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_radius.dart';
@@ -24,13 +26,19 @@ class SpeedDialAction {
 }
 
 /// FloatingActionButton extensible (Speed Dial, Material 3) — remplace
-/// l'empilement linéaire de `KoraButton` au bas d'une page (refonte
-/// UI/UX du 21/09/2026) : un FAB principal (+/×) qui déploie
-/// verticalement les actions réellement disponibles, chacune sur un
-/// mini-FAB étiqueté. Partagé entre `DetailPassagerPage` et
-/// `ManifestePage` (même style, mêmes deux écrans concernés par la
-/// refonte) — écrit sans dépendance externe (flutter_speed_dial n'est
-/// pas dans le pubspec) pour rester autonome et prévisible.
+/// l'empilement linéaire de `KoraButton` au bas d'une page : un FAB
+/// principal (+/×) qui déploie verticalement les actions réellement
+/// disponibles, chacune sur un mini-FAB étiqueté. Partagé entre
+/// `DetailPassagerPage` et `ManifestePage`.
+///
+/// À placer en `Positioned.fill` dans un `Stack` englobant le corps de
+/// la page (pas dans `Scaffold.floatingActionButton`, qui ne donne accès
+/// qu'à l'espace du bouton lui-même) : à l'ouverture, ce widget floute
+/// tout ce qu'il recouvre (même traitement que les dialogues —
+/// `BackdropFilter`) pour bien distinguer les actions affichées du reste
+/// de l'écran qu'elles survolent ; un tap en dehors referme le menu.
+/// Écrit sans dépendance externe (flutter_speed_dial n'est pas dans le
+/// pubspec) pour rester autonome et prévisible.
 class ActionSpeedDial extends StatefulWidget {
   const ActionSpeedDial({required this.actions, super.key});
 
@@ -70,42 +78,66 @@ class _ActionSpeedDialState extends State<ActionSpeedDial>
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
+    return Stack(
       children: <Widget>[
-        // Items déployés, du plus proche du FAB principal au plus loin —
-        // opacité + décalage vertical pilotés par le même AnimationController
-        // que la rotation du FAB, pour un déploiement fluide et cohérent.
-        for (int i = widget.actions.length - 1; i >= 0; i--)
-          FadeTransition(
-            opacity: _controller,
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0, 0.2),
-                end: Offset.zero,
-              ).animate(CurvedAnimation(
-                  parent: _controller, curve: Curves.easeOut)),
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                child: IgnorePointer(
-                  ignoring: !_open,
-                  child: _SpeedDialItem(
-                    action: widget.actions[i],
-                    onTap: () => _runAction(widget.actions[i].onPressed),
-                  ),
-                ),
+        // Flou de fond à l'ouverture — mêmes codes visuels qu'un
+        // dialogue modal. Un tap n'importe où dessus referme le menu
+        // sans déclencher ce qu'il recouvre (IgnorePointer désactivé sur
+        // les items le temps que l'animation ferme le menu).
+        if (_open)
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _toggle,
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                child: Container(color: Colors.black.withValues(alpha: 0.1)),
               ),
             ),
           ),
-        FloatingActionButton(
-          onPressed: _toggle,
-          backgroundColor: AppColors.kora,
-          foregroundColor: AppColors.white,
-          child: AnimatedRotation(
-            turns: _open ? 0.125 : 0, // 45° — "+" devient "×".
-            duration: const Duration(milliseconds: 220),
-            child: const Icon(Icons.add),
+        Positioned(
+          bottom: AppSpacing.md,
+          right: AppSpacing.md,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: <Widget>[
+              // Items déployés, du plus proche du FAB principal au plus
+              // loin — opacité + décalage vertical pilotés par le même
+              // AnimationController que la rotation du FAB, pour un
+              // déploiement fluide et cohérent.
+              for (int i = widget.actions.length - 1; i >= 0; i--)
+                FadeTransition(
+                  opacity: _controller,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, 0.2),
+                      end: Offset.zero,
+                    ).animate(CurvedAnimation(
+                        parent: _controller, curve: Curves.easeOut)),
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                      child: IgnorePointer(
+                        ignoring: !_open,
+                        child: _SpeedDialItem(
+                          action: widget.actions[i],
+                          onTap: () => _runAction(widget.actions[i].onPressed),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              FloatingActionButton(
+                onPressed: _toggle,
+                backgroundColor: AppColors.kora,
+                foregroundColor: AppColors.white,
+                child: AnimatedRotation(
+                  turns: _open ? 0.125 : 0, // 45° — "+" devient "×".
+                  duration: const Duration(milliseconds: 220),
+                  child: const Icon(Icons.add),
+                ),
+              ),
+            ],
           ),
         ),
       ],

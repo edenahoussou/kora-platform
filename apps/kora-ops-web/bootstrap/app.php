@@ -6,6 +6,7 @@ use App\Http\Middleware\HandleInertiaRequests;
 use App\Modules\IdentityAccess\Http\Middleware\EnsureOpsSession;
 use App\Modules\IdentityAccess\Http\Middleware\EnsureTerminalIsUsable;
 use App\Modules\IdentityAccess\Services\OpsSessionAuthenticationFailureResponder;
+use App\Modules\Settings\Middleware\ApplyKoraSettings;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;

@@ -324,12 +324,12 @@ export function AssistedBookingDrawer({
 
     const isTerminal = item
         ? [
-            'cancelled',
-            'refused',
-            'unavailable',
-            'expired',
-            'finalized',
-        ].includes(item.status)
+              'cancelled',
+              'refused',
+              'unavailable',
+              'expired',
+              'finalized',
+          ].includes(item.status)
         : false;
 
     return (
@@ -386,7 +386,8 @@ export function AssistedBookingDrawer({
                                             {item.contactName}
                                         </span>{' '}
                                         · {item.contactPhone} ·{' '}
-                                        {item.handlingAgency?.name ?? 'File réseau'}
+                                        {item.handlingAgency?.name ??
+                                            'File réseau'}
                                     </SheetDescription>
                                     <div className="mt-3.5 flex flex-wrap items-center gap-2">
                                         <span className="inline-flex items-center gap-1.5 rounded-md bg-white/10 px-2 py-1 text-[0.625rem] font-extrabold text-white ring-1 ring-white/20">
@@ -400,8 +401,8 @@ export function AssistedBookingDrawer({
                                                 expiry?.expired
                                                     ? 'bg-red-400/15 text-red-200 ring-red-300/25'
                                                     : expiry?.soon
-                                                        ? 'bg-gold/15 text-amber-200 ring-gold/30'
-                                                        : 'bg-white/10 text-white/80 ring-white/15',
+                                                      ? 'bg-gold/15 text-amber-200 ring-gold/30'
+                                                      : 'bg-white/10 text-white/80 ring-white/15',
                                             )}
                                         >
                                             <Clock3 size={11} />
@@ -418,13 +419,13 @@ export function AssistedBookingDrawer({
                                     <span className="block text-[1.375rem] leading-tight font-extrabold text-white tabular-nums">
                                         {money(
                                             item.currentAmount ??
-                                            item.originalAmount,
+                                                item.originalAmount,
                                             item.currency,
                                         )}
                                     </span>
                                     {item.currentAmount !== null &&
                                         item.currentAmount !==
-                                        item.originalAmount && (
+                                            item.originalAmount && (
                                             <span className="block text-[0.625rem] font-medium text-white/50 tabular-nums">
                                                 initial{' '}
                                                 {money(
@@ -510,7 +511,7 @@ export function AssistedBookingDrawer({
                                             icon={ShieldAlert}
                                             title={
                                                 reasonLabels[
-                                                item.reasonCode ?? ''
+                                                    item.reasonCode ?? ''
                                                 ] ?? 'Motif'
                                             }
                                         >
@@ -551,15 +552,15 @@ export function AssistedBookingDrawer({
                                                 expiry?.expired
                                                     ? 'Expirée'
                                                     : formatDateTime(
-                                                        item.expiresAt,
-                                                    )
+                                                          item.expiresAt,
+                                                      )
                                             }
                                             tone={
                                                 expiry?.expired
                                                     ? 'text-destructive'
                                                     : expiry?.soon
-                                                        ? 'text-amber-600 dark:text-amber-300'
-                                                        : undefined
+                                                      ? 'text-amber-600 dark:text-amber-300'
+                                                      : undefined
                                             }
                                         />
                                     </div>
@@ -579,7 +580,7 @@ export function AssistedBookingDrawer({
                                             className={cn(
                                                 'grid gap-3',
                                                 item.legs.length > 1 &&
-                                                'sm:grid-cols-2',
+                                                    'sm:grid-cols-2',
                                             )}
                                         >
                                             {item.legs.map((leg) => {
@@ -602,7 +603,7 @@ export function AssistedBookingDrawer({
                                                                 )}
                                                             >
                                                                 {leg.direction ===
-                                                                    'return' ? (
+                                                                'return' ? (
                                                                     <ArrowLeft
                                                                         size={
                                                                             10
@@ -622,7 +623,7 @@ export function AssistedBookingDrawer({
                                                                     />
                                                                 )}
                                                                 {leg.direction ===
-                                                                    'return'
+                                                                'return'
                                                                     ? 'Retour'
                                                                     : 'Aller'}
                                                             </span>
@@ -749,13 +750,16 @@ export function AssistedBookingDrawer({
                                             />
                                             <InfoCell
                                                 label="Agence traitante"
-                                                value={item.handlingAgency?.name ?? 'File réseau'}
+                                                value={
+                                                    item.handlingAgency?.name ??
+                                                    'File réseau'
+                                                }
                                             />
                                             <InfoCell
                                                 label="Réservation"
                                                 value={
                                                     reservationStatusLabels[
-                                                    item.reservationStatus
+                                                        item.reservationStatus
                                                     ] ?? item.reservationStatus
                                                 }
                                             />
@@ -763,8 +767,8 @@ export function AssistedBookingDrawer({
                                                 label="Billetterie"
                                                 value={
                                                     issuanceLabels[
-                                                    item
-                                                        .ticketIssuanceStatus
+                                                        item
+                                                            .ticketIssuanceStatus
                                                     ] ??
                                                     item.ticketIssuanceStatus
                                                 }
@@ -874,7 +878,7 @@ export function AssistedBookingDrawer({
                                                                             <select
                                                                                 value={
                                                                                     selections[
-                                                                                    `${passenger.index}-${leg.legOrder}`
+                                                                                        `${passenger.index}-${leg.legOrder}`
                                                                                     ] ??
                                                                                     ''
                                                                                 }
@@ -1121,7 +1125,10 @@ export function AssistedBookingDrawer({
                                                     <select
                                                         value={agencyUuid}
                                                         onChange={(event) => {
-                                                            setAgencyUuid(event.target.value);
+                                                            setAgencyUuid(
+                                                                event.target
+                                                                    .value,
+                                                            );
                                                         }}
                                                         className="mt-1 h-10 w-full rounded-lg border border-border bg-background px-3 text-xs"
                                                     >
@@ -1174,7 +1181,8 @@ export function AssistedBookingDrawer({
                                                     post(
                                                         reassign.url(item.uuid),
                                                         {
-                                                            agency_uuid: agencyUuid,
+                                                            agency_uuid:
+                                                                agencyUuid,
                                                             reason,
                                                         },
                                                     )
@@ -1223,11 +1231,11 @@ export function AssistedBookingDrawer({
                                             >
                                                 {i <
                                                     item.history.length - 1 && (
-                                                        <span
-                                                            aria-hidden
-                                                            className="absolute top-5 left-[5px] h-[calc(100%-14px)] w-px bg-border"
-                                                        />
-                                                    )}
+                                                    <span
+                                                        aria-hidden
+                                                        className="absolute top-5 left-[5px] h-[calc(100%-14px)] w-px bg-border"
+                                                    />
+                                                )}
                                                 <span className="relative z-10 mt-1.5 size-3 shrink-0 rounded-full border-2 border-gold/60 bg-card" />
                                                 <div className="min-w-0">
                                                     <p className="text-xs leading-relaxed font-semibold text-foreground">
@@ -1275,7 +1283,7 @@ export function AssistedBookingDrawer({
                                 <div className="shrink-0 border-t border-border/70 bg-card/80 px-6 py-4">
                                     <div className="flex items-center gap-2.5">
                                         {item.status === 'pending' &&
-                                            permissions.canClaim ? (
+                                        permissions.canClaim ? (
                                             <Button
                                                 disabled={busy}
                                                 onClick={() =>

@@ -50,8 +50,9 @@ describe('SystemRole enum', function (): void {
             ->and($all)->toContain('notifications.view', 'departures.progress', 'incidents.report')
             ->and($all)->toContain('users.view', 'users.manage', 'roles.view', 'roles.manage')
             ->and($all)->toContain('settings.general.view', 'settings.general.manage', 'settings.operations.view', 'settings.operations.manage', 'settings.integrations.view', 'settings.integrations.manage')
-            ->and($all)->toHaveCount(81)
-            ->and(count(array_unique($all)))->toBe(81);
+            ->and($all)->toContain('tracking.report', 'tracking.view-agency', 'tracking.view-network')
+            ->and($all)->toHaveCount(84)
+            ->and(count(array_unique($all)))->toBe(84);
     });
 
     it('separates internal, field and management roles', function (): void {
