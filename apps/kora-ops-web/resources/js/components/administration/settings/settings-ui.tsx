@@ -618,7 +618,7 @@ export function SettingsHelpRail({
     }
 
     return (
-        <aside className="h-fit overflow-hidden rounded-2xl bg-[radial-gradient(circle_at_88%_-5%,rgba(0,87,184,0.55),transparent_42%),var(--kora)] p-5 text-white shadow-[0_20px_48px_rgba(0,29,78,0.18)] lg:sticky lg:top-24">
+        <aside className="h-fit overflow-hidden rounded-2xl bg-kora bg-[radial-gradient(circle_at_88%_-5%,rgba(0,87,184,0.55),transparent_42%)] p-5 text-white shadow-[0_20px_48px_rgba(0,29,78,0.18)] ring-1 ring-black/10 lg:sticky lg:top-24 dark:ring-white/10">
             <span className="text-[9px] font-black tracking-[0.14em] text-gold uppercase">
                 À retenir
             </span>
