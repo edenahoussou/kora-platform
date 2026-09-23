@@ -10,8 +10,8 @@ import {
     Mail,
     ShieldCheck,
     Smartphone,
-    type LucideIcon,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { accountDeletion } from '@/routes';
 
 type Props = {
