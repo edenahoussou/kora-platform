@@ -185,7 +185,23 @@ it('rejects provider endpoints outside their trusted integration domains', funct
 it('tests e-MECeF without creating a fiscal document and audits only safe fields', function (): void {
     Http::preventStrayRequests();
     Http::fake([
-        'https://developper.impots.bj/*' => Http::response(['status' => 'ok']),
+        'https://developper.impots.bj/sygmef-emcf/api/info/status' => Http::response([
+            'status' => true,
+            'version' => '1.0',
+            'ifu' => '3202673225149',
+            'nim' => 'TS01019552',
+            'tokenValid' => '2027-02-27T14:12:01+01:00',
+            'serverDateTime' => '2026-09-23T09:45:13+01:00',
+            'emcfList' => [[
+                'nim' => 'TS01019552',
+                'status' => 'Actif',
+                'shopName' => 'KORA EXPRESS',
+                'address1' => 'Ilot 190, Sèdjro',
+                'address3' => 'COTONOU',
+                'contact1' => '0190109648',
+                'contact2' => 'ops@kora.test',
+            ]],
+        ]),
     ]);
 
     $admin = settingsAdministrator();
@@ -201,7 +217,7 @@ it('tests e-MECeF without creating a fiscal document and audits only safe fields
     $this->post(route('administration.settings.integrations.test', ['provider' => 'emecf']))
         ->assertRedirect();
 
-    Http::assertSent(fn ($request): bool => str_ends_with($request->url(), '/info'));
+    Http::assertSent(fn ($request): bool => str_ends_with($request->url(), '/info/status'));
 
     $activity = Activity::query()
         ->where('event', 'settings.connection_tested')
@@ -210,5 +226,7 @@ it('tests e-MECeF without creating a fiscal document and audits only safe fields
 
     expect($activity->properties['provider'])->toBe('emecf')
         ->and($activity->properties['status'])->toBe('success')
+        ->and($activity->properties['safeMessage'])->toContain('3202673225149')
+        ->and($activity->properties['safeMessage'])->toContain('KORA EXPRESS')
         ->and((string) $activity->properties)->not->toContain('probe-secret');
 });

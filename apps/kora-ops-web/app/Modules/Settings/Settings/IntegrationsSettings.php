@@ -14,11 +14,11 @@ final class IntegrationsSettings extends Settings
 
     public string $emecfTestInvoiceUrl = 'https://developper.impots.bj/sygmef-emcf/api/';
 
-    public string $emecfTestInfoUrl = 'https://developper.impots.bj/sygmef-emcf/api/';
+    public string $emecfTestInfoUrl = 'https://developper.impots.bj/sygmef-emcf/api/info';
 
     public string $emecfProductionInvoiceUrl = 'https://sygmef.impots.bj/emcf/api/';
 
-    public string $emecfProductionInfoUrl = 'https://sygmef.impots.bj/emcf/api/';
+    public string $emecfProductionInfoUrl = 'https://sygmef.impots.bj/emcf/api/info';
 
     public int $emecfHttpTimeout = 30;
 
