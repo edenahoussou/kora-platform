@@ -14,7 +14,10 @@
          dans un build release : l'APK s'installe et s'ouvre, mais ne
          joint jamais l'API. -->
     <uses-permission android:name="android.permission.INTERNET"/>
-
+    <!-- Facebook SDK : l'application n'utilise pas l'Advertising ID -->
+    <uses-permission
+        android:name="com.google.android.gms.permission.AD_ID"
+        tools:node="remove"/>
     <!-- `open_filex` déclare l'accès aux photos, vidéos, sons et au
          stockage partagé. L'app n'ouvre que ses propres billets PDF, rangés
          dans son espace privé et transmis par FileProvider : aucune de ces
