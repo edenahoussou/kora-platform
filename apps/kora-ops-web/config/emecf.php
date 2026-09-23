@@ -21,11 +21,11 @@ return [
     'urls' => [
         'test' => [
             'invoice' => 'https://developper.impots.bj/sygmef-emcf/api/',
-            'info' => 'https://developper.impots.bj/sygmef-emcf/api/',
+            'info' => 'https://developper.impots.bj/sygmef-emcf/api/info',
         ],
         'production' => [
             'invoice' => 'https://sygmef.impots.bj/emcf/api/',
-            'info' => 'https://sygmef.impots.bj/emcf/api/',
+            'info' => 'https://sygmef.impots.bj/emcf/api/info',
         ],
     ],
 
