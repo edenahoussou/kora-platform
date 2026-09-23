@@ -20,6 +20,8 @@ use App\Modules\IdentityAccess\Http\Controllers\AuthSessionController;
 use App\Modules\IdentityAccess\Http\Controllers\OpsSessionController;
 use App\Modules\IdentityAccess\Http\Controllers\TerminalOpsMobileController;
 use App\Modules\IdentityAccess\Http\Controllers\UserPreferenceController;
+use App\Modules\Notifications\Http\Controllers\OpsNotificationController;
+use App\Modules\Notifications\Http\Controllers\OpsNotificationPreferenceController;
 use App\Modules\Payments\Http\Controllers\PaymentController;
 use App\Modules\Support\Http\Controllers\HealthController;
 use App\Modules\Sync\Http\Controllers\OpsSyncController;
