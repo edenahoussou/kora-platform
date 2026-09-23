@@ -145,21 +145,24 @@ void main() {
       repository.calls.clear();
     });
 
-    test('un code valide recalcule la réservation, sans lâcher les sièges', () async {
-      final before = bloc.state.hold;
+    test(
+      'un code valide recalcule la réservation, sans lâcher les sièges',
+      () async {
+        final before = bloc.state.hold;
 
-      final state = await reprice(code: 'TEST2000');
+        final state = await reprice(code: 'TEST2000');
 
-      // Ni libération ni nouveau blocage : un seul appel, sur la
-      // réservation retenue.
-      expect(repository.calls, ['promoCode:hold-groupe-1:TEST2000']);
-      expect(state.status, SeatHoldStatus.held);
-      expect(state.hold?.id, before?.id);
-      expect(state.hold?.seatLabels, before?.seatLabels);
-      expect(state.hold?.total, const Price(11250));
-      expect(state.quote?.promotion?.code, 'TEST2000');
-      expect(state.quote?.total, const Price(11250));
-    });
+        // Ni libération ni nouveau blocage : un seul appel, sur la
+        // réservation retenue.
+        expect(repository.calls, ['promoCode:hold-groupe-1:TEST2000']);
+        expect(state.status, SeatHoldStatus.held);
+        expect(state.hold?.id, before?.id);
+        expect(state.hold?.seatLabels, before?.seatLabels);
+        expect(state.hold?.total, const Price(11250));
+        expect(state.quote?.promotion?.code, 'TEST2000');
+        expect(state.quote?.total, const Price(11250));
+      },
+    );
 
     test('le code appliqué se retire, et le tarif normal revient', () async {
       await reprice(code: 'TEST2000');

@@ -76,9 +76,8 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
 
   /// Les villes cherchables, triées comme la liste qu'on parcourt des yeux.
   static List<City> _citiesOf(List<Map<String, dynamic>> raw) {
-    final cities = [
-      for (final json in raw) CityModel.fromJson(json).toEntity(),
-    ]..removeWhere((city) => city.name.isEmpty || !city.isSearchable);
+    final cities = [for (final json in raw) CityModel.fromJson(json).toEntity()]
+      ..removeWhere((city) => city.name.isEmpty || !city.isSearchable);
 
     // Une ville sans arrêt physique est écartée : depuis MEZ-63 la
     // recherche interroge des arrêts, et la proposer mènerait le voyageur
@@ -309,21 +308,23 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
       final reservationId = entry.reservationId;
       if (reservationId == null || entry.qrCode.isEmpty) continue;
 
-      byReservation.putIfAbsent(reservationId, () => []).add(
-        GroupTicket(
-          id: entry.uuid,
-          shortCode: entry.shortCode,
-          // `/tickets` parle le vocabulaire des voyages (`confirmed`,
-          // `completed`, `cancelled`) ; l'écran des QR, celui du contrôle.
-          status: switch (entry.status) {
-            'cancelled' => GroupTicketStatus.cancelled,
-            _ => GroupTicketStatus.issued,
-          },
-          qrCode: entry.qrCode,
-          passengerName: entry.passengerName,
-          seatCode: entry.seatCode,
-        ),
-      );
+      byReservation
+          .putIfAbsent(reservationId, () => [])
+          .add(
+            GroupTicket(
+              id: entry.uuid,
+              shortCode: entry.shortCode,
+              // `/tickets` parle le vocabulaire des voyages (`confirmed`,
+              // `completed`, `cancelled`) ; l'écran des QR, celui du contrôle.
+              status: switch (entry.status) {
+                'cancelled' => GroupTicketStatus.cancelled,
+                _ => GroupTicketStatus.issued,
+              },
+              qrCode: entry.qrCode,
+              passengerName: entry.passengerName,
+              seatCode: entry.seatCode,
+            ),
+          );
     }
 
     for (final entry in byReservation.entries) {

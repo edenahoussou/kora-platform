@@ -282,8 +282,7 @@ class _RequestViewState extends State<_RequestView> {
                           glyph: const WhatsAppGlyph(),
                           title: l10n.assistChannelWhatsapp,
                           subtitle: l10n.assistChannelWhatsappSub,
-                          selected:
-                              state.channel == AssistanceChannel.whatsapp,
+                          selected: state.channel == AssistanceChannel.whatsapp,
                           onTap: busy
                               ? null
                               : () => context

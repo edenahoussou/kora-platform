@@ -930,7 +930,8 @@ class AppLocalization {
 
   String get assistChannelWhatsapp => translate('assist_channel_whatsapp');
 
-  String get assistChannelWhatsappSub => translate('assist_channel_whatsapp_sub');
+  String get assistChannelWhatsappSub =>
+      translate('assist_channel_whatsapp_sub');
 
   String get assistChannelCall => translate('assist_channel_call');
 

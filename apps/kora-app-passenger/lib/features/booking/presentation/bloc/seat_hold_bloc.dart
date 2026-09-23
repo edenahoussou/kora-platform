@@ -296,7 +296,9 @@ class SeatHoldBloc extends Bloc<SeatHoldEvent, SeatHoldState> {
     final removing = code.isEmpty;
     if (removing && applied == null) return;
 
-    emit(state.copyWith(promoStatus: PromoStatus.applying, clearPromoError: true));
+    emit(
+      state.copyWith(promoStatus: PromoStatus.applying, clearPromoError: true),
+    );
 
     final current = state.hold;
     if (current != null) {
@@ -354,9 +356,7 @@ class SeatHoldBloc extends Bloc<SeatHoldEvent, SeatHoldState> {
       );
       return;
     }
-    final pricing = updated.getOrElse(
-      () => throw StateError('prix absent'),
-    );
+    final pricing = updated.getOrElse(() => throw StateError('prix absent'));
 
     final hold = SeatHold(
       id: current.id,

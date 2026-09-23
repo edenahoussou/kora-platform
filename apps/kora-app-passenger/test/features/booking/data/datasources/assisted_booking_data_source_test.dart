@@ -82,32 +82,28 @@ void main() {
       ).thenAnswer((_) async => ok('assistance', _dossierJson()));
     });
 
-    test(
-      'part sur la réservation, avec canal, contact et clé',
-      () async {
-        await dataSource.request(
-          reservationId: 'resa-1',
-          channel: AssistanceChannel.whatsapp,
-          contactName: 'Afi',
-          contactPhone: '+2290197000000',
-          idempotencyKey: 'kora-assist-resa-1',
-        );
+    test('part sur la réservation, avec canal, contact et clé', () async {
+      await dataSource.request(
+        reservationId: 'resa-1',
+        channel: AssistanceChannel.whatsapp,
+        contactName: 'Afi',
+        contactPhone: '+2290197000000',
+        idempotencyKey: 'kora-assist-resa-1',
+      );
 
-        final captured = verify(
-          () =>
-              dio.post<dynamic>(captureAny(), data: captureAny(named: 'data')),
-        ).captured;
-        expect(captured.first, ApiConstants.bookingAssistance('resa-1'));
-        // Plus d'agence : le dossier part au support central, c'est le
-        // réseau qui affectera l'agence.
-        expect(captured.last, {
-          'channel': 'whatsapp',
-          'contact_name': 'Afi',
-          'contact_phone': '+2290197000000',
-          'idempotency_key': 'kora-assist-resa-1',
-        });
-      },
-    );
+      final captured = verify(
+        () => dio.post<dynamic>(captureAny(), data: captureAny(named: 'data')),
+      ).captured;
+      expect(captured.first, ApiConstants.bookingAssistance('resa-1'));
+      // Plus d'agence : le dossier part au support central, c'est le
+      // réseau qui affectera l'agence.
+      expect(captured.last, {
+        'channel': 'whatsapp',
+        'contact_name': 'Afi',
+        'contact_phone': '+2290197000000',
+        'idempotency_key': 'kora-assist-resa-1',
+      });
+    });
 
     test('lit la référence, les canaux, la validité et le snapshot', () async {
       final booking = await dataSource.request(

@@ -68,10 +68,7 @@ void main() {
       cubit.chooseChannel(AssistanceChannel.call);
       await send();
 
-      expect(
-        repository.calls,
-        contains('request:call:+2290197421860'),
-      );
+      expect(repository.calls, contains('request:call:+2290197421860'));
     });
   });
 

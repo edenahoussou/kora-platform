@@ -187,14 +187,13 @@ void _registerThemeFeature() {
 /// tout l'intérêt d'avoir gardé cette décision à un seul endroit.
 void _registerBookingFeature() {
   getIt.registerLazySingleton<BookingDataSource>(
-    () =>
-        BookingRemoteDataSourceImpl(
-          getIt(),
-          pending: BookingMockDataSource(),
-          // Les billets et les villes déjà chargés restent lisibles hors
-          // réseau.
-          cache: BookingCacheLocalDataSource(getIt()),
-        ),
+    () => BookingRemoteDataSourceImpl(
+      getIt(),
+      pending: BookingMockDataSource(),
+      // Les billets et les villes déjà chargés restent lisibles hors
+      // réseau.
+      cache: BookingCacheLocalDataSource(getIt()),
+    ),
   );
 
   // La recherche a son propre contrat (`DepartureRepository`) : c'est le

@@ -773,8 +773,7 @@ class AppRouter {
                       assistanceStatusPath,
                       extra: AssistanceStatusArgs(reservationId: reservationId),
                     ),
-                    onOpenNotifications: () =>
-                        context.push(notificationsPath),
+                    onOpenNotifications: () => context.push(notificationsPath),
                   ),
                 ),
               ],
@@ -845,7 +844,8 @@ class _ScaffoldWithNavBar extends StatelessWidget {
             // paiement de quelques secondes, et la branche garde son
             // état — sans ça, le billet qu'on vient d'acheter n'y
             // apparaîtrait qu'après une reconnexion.
-            if (index == _voyagesBranch && getIt.isRegistered<BookingRefresh>()) {
+            if (index == _voyagesBranch &&
+                getIt.isRegistered<BookingRefresh>()) {
               getIt<BookingRefresh>().notify();
             }
 
