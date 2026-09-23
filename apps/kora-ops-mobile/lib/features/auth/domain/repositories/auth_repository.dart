@@ -76,6 +76,14 @@ abstract class AuthRepository {
     required String pin,
   });
 
+  /// Change le PIN d'un utilisateur déjà connecté (Réglages → Sécurité),
+  /// à partir du PIN actuel — pas d'OTP, voir docstring
+  /// `AuthRemoteDataSource.changePin`.
+  Future<Result<void>> changePin({
+    required String currentPin,
+    required String newPin,
+  });
+
   /// Déverrouille un compte bloqué après un OTP `account_unlock`.
   Future<Result<void>> unlockAccount(OtpVerification verification);
 }

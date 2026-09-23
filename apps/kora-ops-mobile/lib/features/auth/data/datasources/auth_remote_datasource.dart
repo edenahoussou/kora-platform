@@ -54,6 +54,15 @@ abstract class AuthRemoteDataSource {
     required String pin,
   });
 
+  /// PIN actuel + nouveau — pas de vérification OTP ici (contrairement à
+  /// [resetPin]) : l'utilisateur est déjà connecté, connaître son PIN
+  /// actuel suffit à prouver son identité. Voir `ChangePinRequest` côté
+  /// backend, déjà en place (`POST /auth/pin/change`).
+  Future<void> changePin({
+    required String currentPin,
+    required String newPin,
+  });
+
   Future<void> unlockAccount(OtpVerification verification);
 }
 
@@ -135,6 +144,17 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         'verification_token': verification.verificationToken,
         'pin': pin,
         'pin_confirmation': pin,
+      });
+
+  @override
+  Future<void> changePin({
+    required String currentPin,
+    required String newPin,
+  }) =>
+      _post(ApiConstants.pinChange, <String, dynamic>{
+        'current_pin': currentPin,
+        'new_pin': newPin,
+        'new_pin_confirmation': newPin,
       });
 
   @override

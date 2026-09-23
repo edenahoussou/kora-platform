@@ -17,7 +17,6 @@ import '../../../ops/domain/repositories/departure_repository.dart';
 import '../../../ops/presentation/cubit/departure_list_cubit.dart';
 import '../../../ops/presentation/cubit/selected_depart_cubit.dart';
 import '../../../synchro/presentation/widgets/sync_status_banner.dart';
-import '../../../tracking/presentation/widgets/tracking_status_banner.dart';
 
 /// Onglet Tournée : départs réellement affectés au convoyeur connecté
 /// (MEZ-92 — voir `DepartureListCubit`, `GET /ops/departures`). Sélectionner
@@ -89,9 +88,6 @@ class _TourneePageState extends State<TourneePage> {
               const SizedBox(height: AppSpacing.sm),
               const Align(
                   alignment: Alignment.centerLeft, child: SyncStatusBanner()),
-              const Align(
-                  alignment: Alignment.centerLeft,
-                  child: TrackingStatusBanner()),
               const SizedBox(height: AppSpacing.sm),
               Expanded(
                 child: BlocBuilder<DepartureListCubit, DepartureListState>(

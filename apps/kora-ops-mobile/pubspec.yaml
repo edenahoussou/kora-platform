@@ -12,6 +12,12 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.8
 
+  # Vérification hors ligne de l'authenticité des billets (Ed25519) —
+  # voir TicketQrVerifier. Le backend signe chaque QR avec sa clé privée
+  # (BuildTicketQrPayloadAction) ; ce package vérifie côté mobile avec la
+  # seule clé publique, sans réseau.
+  cryptography: ^2.7.0
+
   # State management
   flutter_bloc: ^8.1.6
   bloc: ^8.1.4

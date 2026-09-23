@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../app/config/app_config.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/kora_colors.dart';
 import '../../../../core/services/kora_dialogs.dart';
@@ -10,9 +11,13 @@ import '../../../synchro/presentation/widgets/sync_status_banner.dart';
 import '../cubit/printing_cubit.dart';
 
 /// Écran de test des adaptateurs P501 — permet de vérifier le scan et
-/// l'impression **sans terminal physique**, en s'appuyant sur
-/// [MockBarcodeScanner]/[MockThermalPrinter] (voir document.md § Adaptateurs
-/// P501 pour la procédure complète). Accessible depuis Accueil ou Réglages.
+/// l'impression. En mode `AppConfig.useMockHardware` (dev/démo sans
+/// terminal), s'appuie sur [MockBarcodeScanner]/[MockThermalPrinter] (voir
+/// document.md § Adaptateurs P501) ; sinon, utilise le vrai matériel P501
+/// via la même injection que le reste de l'app (`ScanBarcode`/
+/// `PrintTicket`, voir `injection.dart`) — le libellé "(mock)" du bouton
+/// Scanner reflète ce mode, jamais affiché à tort en production.
+/// Accessible depuis Réglages.
 class PrinterTestPage extends StatelessWidget {
   const PrinterTestPage({super.key});
 
@@ -73,7 +78,9 @@ class PrinterTestPage extends StatelessWidget {
                         ),
                         const SizedBox(height: AppSpacing.md),
                         KoraButton(
-                          label: 'Scanner (mock)',
+                          label: AppConfig.instance.useMockHardware
+                              ? 'Scanner (mock)'
+                              : 'Scanner',
                           isLoading: state is PrintingScanning,
                           onPressed: isBusy
                               ? null

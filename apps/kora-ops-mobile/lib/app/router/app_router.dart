@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kora_ops_mobile/features/terminal/presentation/cubit/terminal_cubit.dart';
@@ -26,12 +27,12 @@ import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/printing/presentation/cubit/printing_cubit.dart';
 import '../../features/printing/presentation/pages/boarding_pdf_preview_page.dart';
 import '../../features/printing/presentation/pages/printer_test_page.dart';
+import '../../features/auth/presentation/pages/change_pin_page.dart';
 import '../../features/profil/presentation/pages/mes_informations_page.dart';
 import '../../features/profil/presentation/pages/preferences_page.dart';
 import '../../features/profil/presentation/pages/profil_page.dart';
 import '../../features/profil/presentation/pages/securite_page.dart';
 import '../../features/scan/presentation/pages/scan_boarding_page.dart';
-import '../../features/scan/presentation/pages/scan_result_page.dart';
 import '../../features/splash/domain/resolve_auth_destination.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
 import '../../features/synchro/presentation/pages/synchro_page.dart';
@@ -131,10 +132,6 @@ class AppRouter {
         ),
       ),
       GoRoute(
-        path: AppRoutes.scanResult,
-        builder: (context, state) => const ScanResultPage(),
-      ),
-      GoRoute(
         path: AppRoutes.boardingPdfPreview,
         builder: (context, state) => BoardingPdfPreviewPage(
           args: state.extra! as BoardingPdfPreviewArgs,
@@ -151,6 +148,10 @@ class AppRouter {
       GoRoute(
         path: AppRoutes.securite,
         builder: (context, state) => const SecuritePage(),
+      ),
+      GoRoute(
+        path: AppRoutes.changePin,
+        builder: (context, state) => const ChangePinPage(),
       ),
       GoRoute(
         path: AppRoutes.preferences,
@@ -221,23 +222,67 @@ class AppRouter {
 /// la branche active via [navigationShell]. `ScanBoardingCubit` doit
 /// pouvoir lire `ManifesteCubit` (déjà fourni plus haut dans l'arbre par
 /// `injection.dart`/`BlocProvider` global — voir app.dart).
-class _ScaffoldWithBottomNav extends StatelessWidget {
+///
+/// Double appui pour quitter (échange du 23/09/2026) : un retour sur
+/// n'importe lequel des 5 onglets ne doit pas fermer l'app au premier
+/// appui — le convoyeur peut avoir voulu juste changer d'onglet avant.
+/// [PopScope] intercepte systématiquement le retour système (`canPop:
+/// false`) ; un deuxième appui dans les [_exitWindow] confirme et laisse
+/// l'app se fermer via [SystemNavigator.pop] (pas `Navigator.pop`, qui
+/// n'aurait rien à dépiler ici — GoRouter a déjà consommé la navigation
+/// interne des onglets via `navigationShell.goBranch`).
+class _ScaffoldWithBottomNav extends StatefulWidget {
   const _ScaffoldWithBottomNav({required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
 
   @override
+  State<_ScaffoldWithBottomNav> createState() =>
+      _ScaffoldWithBottomNavState();
+}
+
+class _ScaffoldWithBottomNavState extends State<_ScaffoldWithBottomNav> {
+  static const Duration _exitWindow = Duration(seconds: 2);
+
+  DateTime? _lastBackPress;
+
+  void _handleBackPress() {
+    final DateTime now = DateTime.now();
+    final DateTime? last = _lastBackPress;
+
+    if (last != null && now.difference(last) <= _exitWindow) {
+      SystemNavigator.pop();
+      return;
+    }
+
+    _lastBackPress = now;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(
+        content: Text('Appuyez de nouveau pour quitter'),
+        duration: _exitWindow,
+      ));
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBody: true,
-      body: navigationShell,
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.fromLTRB(11, 0, 11, 11),
-        child: KoraBottomNav(
-          currentIndex: navigationShell.currentIndex,
-          onTap: (int index) => navigationShell.goBranch(
-            index,
-            initialLocation: index == navigationShell.currentIndex,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (didPop) return;
+        _handleBackPress();
+      },
+      child: Scaffold(
+        extendBody: true,
+        body: widget.navigationShell,
+        bottomNavigationBar: Padding(
+          padding: const EdgeInsets.fromLTRB(11, 0, 11, 11),
+          child: KoraBottomNav(
+            currentIndex: widget.navigationShell.currentIndex,
+            onTap: (int index) => widget.navigationShell.goBranch(
+              index,
+              initialLocation: index == widget.navigationShell.currentIndex,
+            ),
           ),
         ),
       ),

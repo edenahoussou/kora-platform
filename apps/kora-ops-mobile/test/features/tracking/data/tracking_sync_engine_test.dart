@@ -22,10 +22,8 @@ class InMemoryTrackingLocalDataSource implements TrackingLocalDataSource {
   int _lastSequence = 0;
 
   @override
-  Future<void> enqueue(TrackingPosition position,
-      {required bool synced}) async {
-    _queue.removeWhere(
-        (TrackingPosition p) => p.positionUuid == position.positionUuid);
+  Future<void> enqueue(TrackingPosition position, {required bool synced}) async {
+    _queue.removeWhere((TrackingPosition p) => p.positionUuid == position.positionUuid);
     _queue.add(position);
     _syncStatus[position.positionUuid] = synced;
   }
@@ -36,11 +34,9 @@ class InMemoryTrackingLocalDataSource implements TrackingLocalDataSource {
   Future<List<TrackingPosition>> listPending(String departureUuid) async {
     final List<TrackingPosition> pending = _queue
         .where((TrackingPosition p) =>
-            p.departureUuid == departureUuid &&
-            _syncStatus[p.positionUuid] == false)
+            p.departureUuid == departureUuid && _syncStatus[p.positionUuid] == false)
         .toList()
-      ..sort((TrackingPosition a, TrackingPosition b) =>
-          a.sequence.compareTo(b.sequence));
+      ..sort((TrackingPosition a, TrackingPosition b) => a.sequence.compareTo(b.sequence));
     return pending;
   }
 
@@ -122,10 +118,8 @@ void main() {
 
   group('enqueueFix / enqueueGpsUnavailable', () {
     test('attribue des séquences strictement croissantes', () async {
-      final TrackingPosition first =
-          await engine.enqueueFix(departureUuid, fix);
-      final TrackingPosition second =
-          await engine.enqueueFix(departureUuid, fix);
+      final TrackingPosition first = await engine.enqueueFix(departureUuid, fix);
+      final TrackingPosition second = await engine.enqueueFix(departureUuid, fix);
       final TrackingPosition heartbeat =
           await engine.enqueueGpsUnavailable(departureUuid);
 
@@ -158,8 +152,7 @@ void main() {
           )).called(1);
     });
 
-    test(
-        'idempotent : un doublon renvoyé par le serveur est aussi marqué synchronisé',
+    test('idempotent : un doublon renvoyé par le serveur est aussi marqué synchronisé',
         () async {
       await engine.enqueueFix(departureUuid, fix);
 
@@ -178,8 +171,7 @@ void main() {
       expect(await local.listPending(departureUuid), isEmpty);
     });
 
-    test('une coupure réseau ne perd aucun point : tout reste en file',
-        () async {
+    test('une coupure réseau ne perd aucun point : tout reste en file', () async {
       await engine.enqueueFix(departureUuid, fix);
       await engine.enqueueFix(departureUuid, fix);
 
@@ -187,8 +179,7 @@ void main() {
             departureUuid: departureUuid,
             positions: any(named: 'positions'),
           )).thenThrow(DioException(
-        requestOptions:
-            RequestOptions(path: '/api/v1/ops/tracking/positions/batch'),
+        requestOptions: RequestOptions(path: '/api/v1/ops/tracking/positions/batch'),
         type: DioExceptionType.connectionError,
       ));
 
@@ -198,8 +189,7 @@ void main() {
       expect(engine.isOnline, isFalse);
     });
 
-    test(
-        'un rejeu après reconnexion transmet les points restés en file, sans doublon',
+    test('un rejeu après reconnexion transmet les points restés en file, sans doublon',
         () async {
       await engine.enqueueFix(departureUuid, fix);
 
@@ -207,8 +197,7 @@ void main() {
             departureUuid: departureUuid,
             positions: any(named: 'positions'),
           )).thenThrow(DioException(
-        requestOptions:
-            RequestOptions(path: '/api/v1/ops/tracking/positions/batch'),
+        requestOptions: RequestOptions(path: '/api/v1/ops/tracking/positions/batch'),
         type: DioExceptionType.connectionError,
       ));
       await engine.flush(departureUuid);
@@ -236,11 +225,14 @@ void main() {
       expect(await local.listPending(departureUuid), isEmpty);
       // 2 appels au total (échec réseau + succès après reconnexion), mais
       // toujours pour LE MÊME point unique — jamais recréé ni dupliqué
-      // localement malgré la tentative précédente échouée.
+      // localement malgré la tentative précédente échouée. `verify(...)
+      // .called(n)` compte les appels DEPUIS LA DERNIÈRE vérification
+      // (mocktail « consomme » les interactions déjà vérifiées) — 1 ici
+      // (le succès), pas 2, puisque l'échec a déjà été vérifié plus haut.
       verify(() => remote.sendBatch(
             departureUuid: departureUuid,
             positions: any(named: 'positions'),
-          )).called(2);
+          )).called(1);
       expect(local.countFor(departureUuid), 1);
     });
 
@@ -265,11 +257,9 @@ void main() {
       expect(await local.listPending(departureUuid), isEmpty);
     });
 
-    test(
-        'une position rejetée définitivement (horodatage) n\'est plus réessayée',
+    test('une position rejetée définitivement (horodatage) n\'est plus réessayée',
         () async {
-      final TrackingPosition position =
-          await engine.enqueueFix(departureUuid, fix);
+      final TrackingPosition position = await engine.enqueueFix(departureUuid, fix);
 
       when(() => remote.sendBatch(
             departureUuid: departureUuid,

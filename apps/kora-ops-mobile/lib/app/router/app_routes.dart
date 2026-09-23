@@ -43,13 +43,13 @@ abstract final class AppRoutes {
   /// ou PDF A4 en mode téléphone.
   static const String borderManifestPrint = '/tournee/manifeste/frontiere';
   static const String borderManifestPdf = '/tournee/manifeste/frontiere/pdf';
-  static const String scanResult = '/scan/resultat';
   static const String boardingPdfPreview = '/scan/resultat/pdf';
   static const String synchro = '/synchro';
 
   // Sous-écrans du Profil (voir document.md § Profil).
   static const String mesInformations = '/profil/mes-informations';
   static const String securite = '/profil/securite';
+  static const String changePin = '/profil/securite/pin';
   static const String preferences = '/profil/preferences';
 
   static const String printerTest = '/printer-test';

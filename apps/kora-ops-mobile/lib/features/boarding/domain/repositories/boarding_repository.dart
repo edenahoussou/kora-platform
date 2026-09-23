@@ -5,6 +5,10 @@ import '../entities/pending_boarding_operation.dart';
 /// Couche DOMAIN : valider un scan/une saisie manuelle d'embarquement —
 /// voir MEZ-91 / document.md § Scan boarding.
 ///
+/// [scan] vérifie l'authenticité (Ed25519) d'un QR AVANT toute tentative
+/// réseau — voir `TicketQrVerifier` — un QR falsifié ressort donc en
+/// `ticketUnknown` sans jamais atteindre la file hors ligne.
+///
 /// Ne retourne un `Failure` (`Result.failure`) que pour un échec
 /// **technique** qui empêche de produire un résultat exploitable
 /// (authentification, erreur serveur 5xx, requête malformée). Tous les cas

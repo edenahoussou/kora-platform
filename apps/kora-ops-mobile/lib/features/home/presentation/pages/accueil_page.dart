@@ -17,13 +17,15 @@ import '../../../manifeste/presentation/cubit/manifeste_cubit.dart';
 import '../../../ops/domain/entities/depart.dart';
 import '../../../ops/presentation/cubit/selected_depart_cubit.dart';
 import '../../../ops/presentation/depart_progress.dart';
+import '../../../tracking/domain/entities/tracking_availability.dart';
+import '../../../tracking/presentation/cubit/tracking_cubit.dart';
 
 /// Onglet Accueil — reproduit trait pour trait la mise en page de l'accueil
 /// `kora-passager` (voir document.md § Design System / Accueil) : en-tête
 /// marine incurvé (logo + avatar), salutation, carte blanche flottante qui
 /// chevauche l'en-tête, grille "Accès rapides" (1ʳᵉ tuile mise en avant),
-/// bandeau promo marine — contenu adapté au métier OPS (départ géré au lieu
-/// de recherche de voyage).
+/// carte de statut du suivi de position — contenu adapté au métier OPS
+/// (départ géré au lieu de recherche de voyage).
 class AccueilPage extends StatelessWidget {
   const AccueilPage({super.key});
 
@@ -184,11 +186,10 @@ class AccueilPage extends StatelessWidget {
               const SizedBox(height: AppSpacing.lg),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                child: _P501PromoBanner(
-                    onTap: () => context.push(AppRoutes.printerTest)),
+                child: const _TrackingStatusCard(),
               ),
               // ✅ CORRIGÉ : Ajout de l'espace système en bas (Home indicator)
-              // pour s'assurer que le banner P501 soit entièrement visible et scrollable.
+              // pour s'assurer que la carte de suivi soit entièrement visible et scrollable.
               SizedBox(
                   height:
                       MediaQuery.of(context).padding.bottom + AppSpacing.xl),
@@ -607,65 +608,124 @@ class _QuickTile extends StatelessWidget {
   }
 }
 
-class _P501PromoBanner extends StatelessWidget {
-  const _P501PromoBanner({required this.onTap});
+/// Remplace le bandeau promo "Adaptateurs P501 / Tester le scanner ?"
+/// (retiré, échange du 23/09/2026 : sans utilité pour le convoyeur une
+/// fois le terminal en service) par un état réel et actionnable du suivi
+/// de position (MEZ-101) : ce que `TrackingStatusBanner` affichait en
+/// pastille technique sur la Tournée, présenté ici en carte lisible,
+/// au bon endroit — l'Accueil, pas une page de sélection de départ.
+class _TrackingStatusCard extends StatelessWidget {
+  const _TrackingStatusCard();
 
-  final VoidCallback onTap;
+  ({IconData icon, String title, String subtitle, VoidCallback? onTap})
+      _contentFor(BuildContext context, TrackingState state) {
+    if (!state.isActive && state.availability != TrackingAvailability.ready) {
+      return (
+        icon: Icons.location_off_outlined,
+        title: state.availability.label,
+        subtitle: state.availability.correctiveAction,
+        onTap: () => context.read<TrackingCubit>().requestPermission(),
+      );
+    }
+
+    if (state.isActive) {
+      // `lastError` : voir docstring `TrackingState.lastError` — un envoi
+      // refusé pour une raison NON réseau (permission, session expirée,
+      // validation...) est le cas le plus trompeur pour le convoyeur :
+      // `isOnline` reste vrai (le réseau fonctionne), mais rien ne part
+      // quand même — sans ce message, "en attente d'envoi" seul laisse
+      // penser à tort à un simple problème de réseau.
+      final String subtitle = !state.isOnline
+          ? 'Hors ligne — ${state.pendingCount} point(s) en attente'
+          : state.isSyncing
+              ? 'Synchronisation en cours…'
+              : state.lastError != null
+                  ? 'Envoi refusé — ${state.lastError}'
+                  : state.pendingCount > 0
+                      ? '${state.pendingCount} point(s) en attente d\'envoi'
+                      : 'Position transmise en temps réel.';
+      return (
+        icon: state.isOnline
+            ? (state.lastError != null
+                ? Icons.error_outline
+                : Icons.gps_fixed_rounded)
+            : Icons.cloud_off_outlined,
+        title: 'Suivi de position actif',
+        subtitle: subtitle,
+        onTap: null,
+      );
+    }
+
+    return (
+      icon: Icons.gps_not_fixed_rounded,
+      title: 'Suivi automatique',
+      subtitle: 'Démarre dès que le bus quitte l\'agence, s\'arrête à '
+          'l\'arrivée.',
+      onTap: null,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.kora,
-      borderRadius: BorderRadius.circular(AppRadius.lg),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Row(
-            children: <Widget>[
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: const BoxDecoration(
-                    color: AppColors.gold, shape: BoxShape.circle),
-                child: const Icon(Icons.qr_code_scanner,
-                    color: AppColors.onGold, size: 20),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text('ADAPTATEURS P501',
-                        style: AppTextStyles.eyebrow(AppColors.gold)),
-                    const SizedBox(height: 2),
-                    const Text(
-                      'Tester le scanner ?',
-                      style: TextStyle(
-                          color: AppColors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14),
+    return BlocBuilder<TrackingCubit, TrackingState>(
+      builder: (BuildContext context, TrackingState state) {
+        final content = _contentFor(context, state);
+
+        return Material(
+          color: AppColors.kora,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            onTap: content.onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Row(
+                children: <Widget>[
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: const BoxDecoration(
+                        color: AppColors.gold, shape: BoxShape.circle),
+                    child: Icon(content.icon,
+                        color: AppColors.onGold, size: 20),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text('SUIVI DE POSITION',
+                            style: AppTextStyles.eyebrow(AppColors.gold)),
+                        const SizedBox(height: 2),
+                        Text(
+                          content.title,
+                          style: const TextStyle(
+                              color: AppColors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14),
+                        ),
+                        Text(
+                          content.subtitle,
+                          style: TextStyle(
+                              color: AppColors.white.withValues(alpha: 0.65),
+                              fontSize: 11),
+                        ),
+                      ],
                     ),
-                    Text(
-                      'Scanner un billet et voir le résultat immédiatement.',
-                      style: TextStyle(
-                          color: AppColors.white.withValues(alpha: 0.65),
-                          fontSize: 11),
+                  ),
+                  if (content.onTap != null)
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                          color: AppColors.gold, shape: BoxShape.circle),
+                      child: const Icon(Icons.arrow_forward,
+                          color: AppColors.onGold, size: 16),
                     ),
-                  ],
-                ),
+                ],
               ),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: const BoxDecoration(
-                    color: AppColors.gold, shape: BoxShape.circle),
-                child: const Icon(Icons.arrow_forward,
-                    color: AppColors.onGold, size: 16),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

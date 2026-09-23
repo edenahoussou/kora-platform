@@ -8,6 +8,7 @@ class TrackingState extends Equatable {
     this.isSyncing = false,
     this.pendingCount = 0,
     this.lastPositionAt,
+    this.lastError,
   });
 
   /// Le service premier plan tourne actuellement.
@@ -29,6 +30,14 @@ class TrackingState extends Equatable {
 
   final DateTime? lastPositionAt;
 
+  /// Raison du dernier envoi refusé (`HTTP 403 — {...}`, etc.) — voir
+  /// `TrackingRuntimeStatus.lastError`. `isOnline` reste vrai dans ce
+  /// cas : ce n'est pas un souci réseau (permission, session expirée,
+  /// validation...), mais ça mérite d'être visible pour comprendre
+  /// pourquoi des positions restent "en attente" malgré une connexion
+  /// qui fonctionne (échange du 24/09/2026).
+  final String? lastError;
+
   TrackingState copyWith({
     bool? isActive,
     TrackingAvailability? availability,
@@ -36,6 +45,7 @@ class TrackingState extends Equatable {
     bool? isSyncing,
     int? pendingCount,
     DateTime? lastPositionAt,
+    String? lastError,
   }) =>
       TrackingState(
         isActive: isActive ?? this.isActive,
@@ -44,6 +54,7 @@ class TrackingState extends Equatable {
         isSyncing: isSyncing ?? this.isSyncing,
         pendingCount: pendingCount ?? this.pendingCount,
         lastPositionAt: lastPositionAt ?? this.lastPositionAt,
+        lastError: lastError ?? this.lastError,
       );
 
   @override
@@ -54,5 +65,6 @@ class TrackingState extends Equatable {
         isSyncing,
         pendingCount,
         lastPositionAt,
+        lastError,
       ];
 }

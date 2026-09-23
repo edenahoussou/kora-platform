@@ -8,7 +8,8 @@ import '../../../../injection/injection.dart';
 import '../../domain/repositories/boarding_pdf_repository.dart';
 
 /// Arguments passés via `GoRouterState.extra` pour ouvrir
-/// [BoardingPdfPreviewPage] — voir `ScanResultPage`, seul point d'entrée.
+/// [BoardingPdfPreviewPage] — voir `DetailPassagerPage`, seul point
+/// d'entrée (mode téléphone uniquement, action du speed dial).
 class BoardingPdfPreviewArgs {
   const BoardingPdfPreviewArgs({
     required this.departureUuid,

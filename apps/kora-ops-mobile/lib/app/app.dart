@@ -78,6 +78,10 @@ class _AppLifecycleListenerState extends State<_AppLifecycleListener>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       getIt<AuthCubit>().checkAuthStatus();
+      // Redemande la permission de localisation si elle n'est toujours pas
+      // accordée (point 5, échange du 23/09/2026) — le suivi de position
+      // en dépend, voir TrackingCubit.onAppResumed.
+      getIt<TrackingCubit>().onAppResumed();
     }
   }
 
