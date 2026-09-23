@@ -2,6 +2,7 @@ import { createInertiaApp } from '@inertiajs/react';
 import { KoraToaster } from '@/components/ui/kora-toast';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
+import AdministrationSettingsLayout from '@/layouts/administration-settings-layout';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import PublicLegalLayout from '@/layouts/public-legal-layout';
@@ -19,6 +20,8 @@ createInertiaApp({
                 return PublicLegalLayout;
             case name.startsWith('auth/'):
                 return AuthLayout;
+            case name.startsWith('administration/settings'):
+                return AdministrationSettingsLayout;
             case name.startsWith('settings/'):
                 return [AppLayout, SettingsLayout];
             default:

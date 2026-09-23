@@ -216,7 +216,13 @@ const navItems: NavEntry[] = [
         title: 'Administration',
         href: '/users',
         icon: ShieldCheck,
-        permission: ['users.view', 'roles.view'],
+        permission: [
+            'users.view',
+            'roles.view',
+            'settings.general.view',
+            'settings.operations.view',
+            'settings.integrations.view',
+        ],
         children: [
             {
                 title: 'Utilisateurs',
@@ -227,6 +233,15 @@ const navItems: NavEntry[] = [
                 title: 'Rôles et permissions',
                 href: '/roles',
                 permission: 'roles.view',
+            },
+            {
+                title: 'Paramètres',
+                href: '/administration/settings/general',
+                permission: [
+                    'settings.general.view',
+                    'settings.operations.view',
+                    'settings.integrations.view',
+                ],
             },
         ],
     },

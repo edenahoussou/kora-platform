@@ -63,7 +63,9 @@ class HandleInertiaRequests extends Middleware
                 'provider' => MapSetting::resolvedProvider()->value,
                 'osm' => [
                     'tileUrl' => $settings->mapOsmTileUrl,
-                    'attribution' => $settings->mapOsmAttribution,
+                    // Leaflet inserts attribution as HTML; only expose text
+                    // so legacy rows cannot become stored XSS in map views.
+                    'attribution' => strip_tags($settings->mapOsmAttribution),
                 ],
                 // Google Maps JS API keys are meant to be used client-side —
                 // they're restricted by HTTP referrer/domain on the Google
