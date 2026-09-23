@@ -213,5 +213,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('tracking-batch', fn (Request $request) => Limit::perMinute(30)->by(
             $request->user()?->getAuthIdentifier().'|'.$request->ip(),
         ));
+
+        RateLimiter::for('settings-probes', fn (Request $request) => Limit::perMinute(6)->by(
+            $request->user()?->getAuthIdentifier().'|'.$request->ip(),
+        ));
     }
 }
