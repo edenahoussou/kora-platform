@@ -67,7 +67,10 @@ void main() {
 
   test('les billets chargés sont gardés sur le téléphone', () async {
     when(
-      () => dio.get<dynamic>(any(), queryParameters: any(named: 'queryParameters')),
+      () => dio.get<dynamic>(
+        any(),
+        queryParameters: any(named: 'queryParameters'),
+      ),
     ).thenAnswer((_) async => _page());
 
     expect(await tickets(), hasLength(1));
@@ -76,12 +79,18 @@ void main() {
 
   test('hors réseau, l’onglet Voyages sert la copie', () async {
     when(
-      () => dio.get<dynamic>(any(), queryParameters: any(named: 'queryParameters')),
+      () => dio.get<dynamic>(
+        any(),
+        queryParameters: any(named: 'queryParameters'),
+      ),
     ).thenAnswer((_) async => _page());
     await tickets();
 
     when(
-      () => dio.get<dynamic>(any(), queryParameters: any(named: 'queryParameters')),
+      () => dio.get<dynamic>(
+        any(),
+        queryParameters: any(named: 'queryParameters'),
+      ),
     ).thenThrow(_offline());
 
     final kept = await tickets();
@@ -94,7 +103,10 @@ void main() {
 
   test('les QR sont gardés sans rien ouvrir ni télécharger', () async {
     when(
-      () => dio.get<dynamic>(any(), queryParameters: any(named: 'queryParameters')),
+      () => dio.get<dynamic>(
+        any(),
+        queryParameters: any(named: 'queryParameters'),
+      ),
     ).thenAnswer((_) async => _page());
 
     await tickets();
@@ -136,7 +148,10 @@ void main() {
 
   test('sans copie, l’échec remonte', () async {
     when(
-      () => dio.get<dynamic>(any(), queryParameters: any(named: 'queryParameters')),
+      () => dio.get<dynamic>(
+        any(),
+        queryParameters: any(named: 'queryParameters'),
+      ),
     ).thenThrow(_offline());
 
     await expectLater(tickets(), throwsA(isA<DioException>()));

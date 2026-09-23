@@ -59,7 +59,9 @@ class _BookingSuccessPageState extends State<BookingSuccessPage> {
       // signal, il continuerait d'afficher la liste d'avant l'achat, et le
       // voyage qu'on vient de payer n'y figurerait qu'après une
       // reconnexion.
-      if (getIt.isRegistered<BookingRefresh>()) getIt<BookingRefresh>().notify();
+      if (getIt.isRegistered<BookingRefresh>()) {
+        getIt<BookingRefresh>().notify();
+      }
     });
   }
 

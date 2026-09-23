@@ -44,14 +44,11 @@ class CancelTicketCubit extends Cubit<CancelTicketState> {
 
     final result = await _repository.cancelBooking(reservationId);
 
-    result.fold(
-      (failure) => emit(CancelTicketState(failure: failure)),
-      (_) {
-        // Les listes qui tiennent encore l'ancien statut se relisent.
-        _refresh.notify();
-        emit(const CancelTicketState(isCancelled: true));
-      },
-    );
+    result.fold((failure) => emit(CancelTicketState(failure: failure)), (_) {
+      // Les listes qui tiennent encore l'ancien statut se relisent.
+      _refresh.notify();
+      emit(const CancelTicketState(isCancelled: true));
+    });
   }
 }
 

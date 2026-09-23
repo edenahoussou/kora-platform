@@ -255,10 +255,7 @@ void main() {
     expect(find.textContaining('Départ le'), findsOneWidget);
     expect(find.text('EN ATTENTE'), findsOneWidget);
     // Personne n'a encore pris le dossier : la carte le dit.
-    expect(
-      find.textContaining('En cours d’affectation'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('En cours d’affectation'), findsOneWidget);
     expect(assistance.saved.single.seats.single.seatId, seat.id);
   });
 
