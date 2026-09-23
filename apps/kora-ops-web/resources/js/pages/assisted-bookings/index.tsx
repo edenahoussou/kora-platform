@@ -452,7 +452,9 @@ export default function AssistedBookingsIndex({
                                         </th>
                                         <th className="px-4 py-3">Trajet</th>
                                         <th className="px-4 py-3">Contact</th>
-                                        <th className="px-4 py-3">Agence traitante</th>
+                                        <th className="px-4 py-3">
+                                            Agence traitante
+                                        </th>
                                         <th className="px-4 py-3">État</th>
                                         <th className="px-4 py-3 text-right">
                                             Montant
@@ -547,7 +549,8 @@ export default function AssistedBookingsIndex({
                                                 </p>
                                             </td>
                                             <td className="px-4 py-3.5 text-xs font-medium text-foreground">
-                                                {item.handlingAgency?.name ?? 'File réseau'}
+                                                {item.handlingAgency?.name ??
+                                                    'File réseau'}
                                             </td>
                                             <td className="px-4 py-3.5">
                                                 <KoraStatusBadge

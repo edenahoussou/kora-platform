@@ -95,145 +95,153 @@ class DetailPassagerPage extends StatelessWidget {
         title: passenger.nomComplet,
         action: const SyncStatusBanner(compact: true),
       ),
-      floatingActionButton: speedDialActions.isEmpty
-          ? null
-          : ActionSpeedDial(actions: speedDialActions),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          child: ListView(
-            children: <Widget>[
-              KoraCard(
-                variant: KoraCardVariant.navy,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      departRoute,
-                      style: const TextStyle(
-                        color: AppColors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Row(
+      // Speed Dial en Stack (plutôt que `floatingActionButton`, limité à
+      // l'espace du bouton) : il a besoin des dimensions de l'écran
+      // entier pour flouter tout ce qu'il recouvre à l'ouverture.
+      body: Stack(
+        children: <Widget>[
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              child: ListView(
+                children: <Widget>[
+                  KoraCard(
+                    variant: KoraCardVariant.navy,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        _NavyStat(label: 'Siège', value: passenger.siege),
-                        _NavyStat(
-                            label: 'Origine', value: passenger.segmentOrigine),
-                        _NavyStat(
-                            label: 'Destination',
-                            value: passenger.segmentDestination),
+                        Text(
+                          departRoute,
+                          style: const TextStyle(
+                            color: AppColors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Row(
+                          children: <Widget>[
+                            _NavyStat(label: 'Siège', value: passenger.siege),
+                            _NavyStat(
+                                label: 'Origine',
+                                value: passenger.segmentOrigine),
+                            _NavyStat(
+                                label: 'Destination',
+                                value: passenger.segmentDestination),
+                          ],
+                        ),
                       ],
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              KoraCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text('Billet',
-                        style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: AppSpacing.sm),
-                    _InfoRow(
-                        label: 'Numéro',
-                        value: passenger.ticketId.toUpperCase()),
-                    _InfoRow(
-                        label: 'Téléphone', value: passenger.telephone ?? '—'),
-                    const SizedBox(height: AppSpacing.sm),
-                    Row(
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  KoraCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Text('Statut : ',
-                            style: Theme.of(context).textTheme.bodyMedium),
-                        StatutBadge(statut: passenger.statut),
-                        if (isPendingRelease) ...<Widget>[
-                          const SizedBox(width: AppSpacing.sm),
-                          const _PendingSyncTag(),
-                        ],
+                        Text('Billet',
+                            style: Theme.of(context).textTheme.titleMedium),
+                        const SizedBox(height: AppSpacing.sm),
+                        _InfoRow(
+                            label: 'Numéro',
+                            value: passenger.ticketId.toUpperCase()),
+                        _InfoRow(
+                            label: 'Téléphone',
+                            value: passenger.telephone ?? '—'),
+                        const SizedBox(height: AppSpacing.sm),
+                        Row(
+                          children: <Widget>[
+                            Text('Statut : ',
+                                style: Theme.of(context).textTheme.bodyMedium),
+                            StatutBadge(statut: passenger.statut),
+                            if (isPendingRelease) ...<Widget>[
+                              const SizedBox(width: AppSpacing.sm),
+                              const _PendingSyncTag(),
+                            ],
+                          ],
+                        ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  // "Embarquer"/"Refuser" (MEZ-11, mock) retirés : ce sont des
+                  // restes de l'écran mocké d'origine — ils ne faisaient que
+                  // changer un statut local (ManifesteCubit.updateStatut, file
+                  // SyncCubit mock), sans jamais appeler le vrai contrat de
+                  // boarding. Depuis MEZ-91/92, "embarquer" EST le scan
+                  // (ScanBoardingCubit → BoardingRepository.scan) — il n'y a
+                  // pas d'action serveur "refuser" côté passager scanné
+                  // (BoardingStatus.refuse n'existe qu'en affichage, mappé
+                  // depuis un vrai cancelled/no-show serveur — voir
+                  // manifeste_dtos.dart et la clôture no-show plus haut).
+                  // Garder ces deux boutons ici aurait fait croire au
+                  // convoyeur qu'ils font quelque chose de réel.
+                  // Row(
+                  //   children: <Widget>[
+                  //     Expanded(
+                  //       child: KoraButton(
+                  //         label: 'Embarquer',
+                  //         variant: KoraButtonVariant.primary,
+                  //         onPressed: passenger.statut == BoardingStatus.embarque
+                  //             ? null
+                  //             : () =>
+                  //                 _updateStatut(context, BoardingStatus.embarque),
+                  //       ),
+                  //     ),
+                  //     const SizedBox(width: AppSpacing.sm),
+                  //     Expanded(
+                  //       child: KoraButton(
+                  //         label: 'Refuser',
+                  //         variant: KoraButtonVariant.danger,
+                  //         onPressed: passenger.statut == BoardingStatus.refuse
+                  //             ? null
+                  //             : () => _updateStatut(context, BoardingStatus.refuse),
+                  //       ),
+                  //     ),
+                  //   ],
+                  // ),
+                  // const SizedBox(height: AppSpacing.sm),
+                  // Empilement remplacé par le FloatingActionButton Speed
+                  // Dial (voir speedDialActions / _PassengerActionsSpeedDial
+                  // ci-dessous) — refonte UI/UX du 21/09/2026, point 2.
+                  // KoraButton(
+                  //   label: 'Descente anticipée',
+                  //   variant: KoraButtonVariant.ghost,
+                  //   icon: Icons.move_down,
+                  //   // Une descente anticipée n'a de sens que pour un passager
+                  //   // déjà embarqué sur CE départ — voir
+                  //   // `SeatReleaseFunctionalCode.SegmentNotBoarded` côté
+                  //   // backend, qui rejetterait sinon.
+                  //   onPressed: depart == null ||
+                  //           passenger.statut != BoardingStatus.embarque
+                  //       ? null
+                  //       : () => _releaseEarlyDropOff(context, depart, passenger),
+                  // ),
+                  // if (canShowReverseButton) ...<Widget>[
+                  //   const SizedBox(height: AppSpacing.sm),
+                  //   KoraButton(
+                  //     label: 'Annuler l\'embarquement',
+                  //     variant: KoraButtonVariant.danger,
+                  //     icon: Icons.undo,
+                  //     onPressed: () => _reverseBoarding(context, passenger),
+                  //   ),
+                  // ],
+                  // const SizedBox(height: AppSpacing.sm),
+                  // KoraButton(
+                  //   label: 'Voir le billet',
+                  //   variant: KoraButtonVariant.ghost,
+                  //   icon: Icons.confirmation_number_outlined,
+                  //   onPressed: depart == null
+                  //       ? null
+                  //       : () => _showTicket(context, depart, passenger),
+                  // ),
+                  const SizedBox(height: AppSpacing.lg),
+                ],
               ),
-              const SizedBox(height: AppSpacing.lg),
-              // "Embarquer"/"Refuser" (MEZ-11, mock) retirés : ce sont des
-              // restes de l'écran mocké d'origine — ils ne faisaient que
-              // changer un statut local (ManifesteCubit.updateStatut, file
-              // SyncCubit mock), sans jamais appeler le vrai contrat de
-              // boarding. Depuis MEZ-91/92, "embarquer" EST le scan
-              // (ScanBoardingCubit → BoardingRepository.scan) — il n'y a
-              // pas d'action serveur "refuser" côté passager scanné
-              // (BoardingStatus.refuse n'existe qu'en affichage, mappé
-              // depuis un vrai cancelled/no-show serveur — voir
-              // manifeste_dtos.dart et la clôture no-show plus haut).
-              // Garder ces deux boutons ici aurait fait croire au
-              // convoyeur qu'ils font quelque chose de réel.
-              // Row(
-              //   children: <Widget>[
-              //     Expanded(
-              //       child: KoraButton(
-              //         label: 'Embarquer',
-              //         variant: KoraButtonVariant.primary,
-              //         onPressed: passenger.statut == BoardingStatus.embarque
-              //             ? null
-              //             : () =>
-              //                 _updateStatut(context, BoardingStatus.embarque),
-              //       ),
-              //     ),
-              //     const SizedBox(width: AppSpacing.sm),
-              //     Expanded(
-              //       child: KoraButton(
-              //         label: 'Refuser',
-              //         variant: KoraButtonVariant.danger,
-              //         onPressed: passenger.statut == BoardingStatus.refuse
-              //             ? null
-              //             : () => _updateStatut(context, BoardingStatus.refuse),
-              //       ),
-              //     ),
-              //   ],
-              // ),
-              // const SizedBox(height: AppSpacing.sm),
-              // Empilement remplacé par le FloatingActionButton Speed
-              // Dial (voir speedDialActions / _PassengerActionsSpeedDial
-              // ci-dessous) — refonte UI/UX du 21/09/2026, point 2.
-              // KoraButton(
-              //   label: 'Descente anticipée',
-              //   variant: KoraButtonVariant.ghost,
-              //   icon: Icons.move_down,
-              //   // Une descente anticipée n'a de sens que pour un passager
-              //   // déjà embarqué sur CE départ — voir
-              //   // `SeatReleaseFunctionalCode.SegmentNotBoarded` côté
-              //   // backend, qui rejetterait sinon.
-              //   onPressed: depart == null ||
-              //           passenger.statut != BoardingStatus.embarque
-              //       ? null
-              //       : () => _releaseEarlyDropOff(context, depart, passenger),
-              // ),
-              // if (canShowReverseButton) ...<Widget>[
-              //   const SizedBox(height: AppSpacing.sm),
-              //   KoraButton(
-              //     label: 'Annuler l\'embarquement',
-              //     variant: KoraButtonVariant.danger,
-              //     icon: Icons.undo,
-              //     onPressed: () => _reverseBoarding(context, passenger),
-              //   ),
-              // ],
-              // const SizedBox(height: AppSpacing.sm),
-              // KoraButton(
-              //   label: 'Voir le billet',
-              //   variant: KoraButtonVariant.ghost,
-              //   icon: Icons.confirmation_number_outlined,
-              //   onPressed: depart == null
-              //       ? null
-              //       : () => _showTicket(context, depart, passenger),
-              // ),
-              const SizedBox(height: AppSpacing.lg),
-            ],
+            ),
           ),
-        ),
+          if (speedDialActions.isNotEmpty)
+            Positioned.fill(child: ActionSpeedDial(actions: speedDialActions)),
+        ],
       ),
     );
   }

@@ -5,8 +5,6 @@ import 'package:uuid/uuid.dart';
 import '../../../../app/config/app_config.dart';
 import '../../../../app/config/terminal_mode.dart';
 import '../../../../app/router/app_routes.dart';
-import '../../../../app/theme/app_colors.dart';
-import '../../../../app/theme/app_radius.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/kora_colors.dart';
 import '../../../../core/services/kora_dialogs.dart';
@@ -80,7 +78,11 @@ class ManifestePage extends StatelessWidget {
       ),
     );
     if (!build.isReady) {
-      await _showBorderManifestIncompleteDialog(context, build.issues);
+      await KoraDialogs.warning(
+        context,
+        title: 'Manifeste frontière impossible',
+        description: _borderManifestIssuesSummary(build.issues),
+      );
       return;
     }
     if (!context.mounted) return;
@@ -241,170 +243,93 @@ class ManifestePage extends StatelessWidget {
         title: 'Manifeste',
         action: const SyncStatusBanner(compact: true),
       ),
-      floatingActionButton: speedDialActions.isEmpty
-          ? null
-          : ActionSpeedDial(actions: speedDialActions),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          child: depart == null
-              ? const AppStatePlaceholder.empty(
-                  message: 'Sélectionnez une course depuis l\'onglet Tournée.',
-                )
-              : Builder(
-                  builder: (BuildContext innerContext) {
-                    final Widget content = switch (state.status) {
-                      ManifesteStatus.noDepart =>
-                        const AppStatePlaceholder.empty(
-                          message:
-                              'Sélectionnez une course depuis l\'onglet Tournée.',
-                        ),
-                      ManifesteStatus.loading => const SkeletonList(),
-                      ManifesteStatus.error => AppStatePlaceholder.error(
-                          message: state.errorMessage ?? 'Erreur inattendue.',
-                          actionLabel: 'Réessayer',
-                          onAction: () =>
-                              innerContext.read<ManifesteCubit>().load(),
-                        ),
-                      ManifesteStatus.success when state.passengers.isEmpty =>
-                        const AppStatePlaceholder.empty(
-                            message: 'Aucun passager sur ce départ.'),
-                      ManifesteStatus.success => RefreshIndicator(
-                          onRefresh: () =>
-                              innerContext.read<ManifesteCubit>().load(),
-                          child: ListView.separated(
-                            itemCount: state.passengers.length,
-                            separatorBuilder: (_, __) => Divider(
-                                height: 1,
-                                color: innerContext.koraColors.line),
-                            itemBuilder: (BuildContext context, int index) {
-                              final passenger = state.passengers[index];
-                              return PassengerListTile(
-                                passenger: passenger,
-                                onTap: () => context.push(
-                                    AppRoutes.detailPassager,
-                                    extra: passenger.id),
+      // Speed Dial en Stack (plutôt que `floatingActionButton`, limité à
+      // l'espace du bouton) : il a besoin des dimensions de l'écran
+      // entier pour flouter tout ce qu'il recouvre à l'ouverture.
+      body: Stack(
+        children: <Widget>[
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              child: depart == null
+                  ? const AppStatePlaceholder.empty(
+                      message:
+                          'Sélectionnez une course depuis l\'onglet Tournée.',
+                    )
+                  : Builder(
+                      builder: (BuildContext innerContext) {
+                        final Widget content = switch (state.status) {
+                          ManifesteStatus.noDepart =>
+                            const AppStatePlaceholder.empty(
+                              message:
+                                  'Sélectionnez une course depuis l\'onglet Tournée.',
+                            ),
+                          ManifesteStatus.loading => const SkeletonList(),
+                          ManifesteStatus.error => AppStatePlaceholder.error(
+                              message:
+                                  state.errorMessage ?? 'Erreur inattendue.',
+                              actionLabel: 'Réessayer',
+                              onAction: () =>
+                                  innerContext.read<ManifesteCubit>().load(),
+                            ),
+                          ManifesteStatus.success
+                              when state.passengers.isEmpty =>
+                            const AppStatePlaceholder.empty(
+                                message: 'Aucun passager sur ce départ.'),
+                          ManifesteStatus.success => RefreshIndicator(
+                              onRefresh: () =>
+                                  innerContext.read<ManifesteCubit>().load(),
+                              child: ListView.separated(
+                                itemCount: state.passengers.length,
+                                separatorBuilder: (_, __) => Divider(
+                                    height: 1,
+                                    color: innerContext.koraColors.line),
+                                itemBuilder: (BuildContext context, int index) {
+                                  final passenger = state.passengers[index];
+                                  return PassengerListTile(
+                                    passenger: passenger,
+                                    onTap: () => context.push(
+                                        AppRoutes.detailPassager,
+                                        extra: passenger.id),
+                                  );
+                                },
+                              ),
+                            ),
+                        };
+
+                        return (state.status != ManifesteStatus.success ||
+                                !state.isStale)
+                            ? content
+                            : Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: <Widget>[
+                                  _StaleManifestBanner(
+                                      fetchedAt: state.fetchedAt),
+                                  const SizedBox(height: AppSpacing.sm),
+                                  Expanded(child: content),
+                                ],
                               );
-                            },
-                          ),
-                        ),
-                    };
-
-                    return (state.status != ManifesteStatus.success ||
-                            !state.isStale)
-                        ? content
-                        : Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: <Widget>[
-                              _StaleManifestBanner(fetchedAt: state.fetchedAt),
-                              const SizedBox(height: AppSpacing.sm),
-                              Expanded(child: content),
-                            ],
-                          );
-                  },
-                ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Dialogue dédié "Manifeste frontière impossible" (refonte UI/UX du
-/// 21/09/2026, point 5) : remplace `KoraDialogs.warning()` ici
-/// uniquement — celui-ci reste utilisé tel quel ailleurs dans l'app pour
-/// des messages courts, jamais concerné par le débordement corrigé ici.
-/// Contenu enveloppé dans un `SingleChildScrollView` avec une hauteur
-/// max adaptative (`RenderFlex overflowed` corrigé, même pattern que
-/// `_DelayPromptDialog` dans KoraDialogs) : la liste de `issues` peut
-/// contenir une ligne par passager incomplet, potentiellement plus haute
-/// que l'écran sur un départ chargé.
-Future<void> _showBorderManifestIncompleteDialog(
-    BuildContext context, List<String> issues) {
-  return showDialog<void>(
-    context: context,
-    builder: (BuildContext dialogContext) =>
-        _BorderManifestIncompleteDialog(issues: issues),
-  );
-}
-
-class _BorderManifestIncompleteDialog extends StatelessWidget {
-  const _BorderManifestIncompleteDialog({required this.issues});
-
-  final List<String> issues;
-
-  @override
-  Widget build(BuildContext context) {
-    final double maxHeight = MediaQuery.of(context).size.height * 0.5;
-
-    return AlertDialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-      ),
-      icon: const Icon(Icons.report_problem_outlined,
-          color: AppColors.warning, size: 32),
-      title: const Text('Manifeste frontière impossible'),
-      content: SingleChildScrollView(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: maxHeight),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                issues.length == 1
-                    ? 'Un problème empêche l\'impression :'
-                    : '${issues.length} problèmes empêchent l\'impression :',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              // Pas de Flexible/Expanded ici : le Column est dans un
-              // SingleChildScrollView à hauteur non bornée (ça lèverait
-              // une erreur de layout). `shrinkWrap` suffit à dimensionner
-              // la liste sur son contenu ; c'est le ConstrainedBox +
-              // SingleChildScrollView englobants qui plafonnent et
-              // rendent scrollable l'ensemble au-delà de maxHeight.
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: issues.length,
-                separatorBuilder: (_, __) =>
-                    const SizedBox(height: AppSpacing.xs),
-                itemBuilder: (BuildContext context, int index) => Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    const Padding(
-                      padding: EdgeInsets.only(top: 2),
-                      child: Icon(Icons.circle,
-                          size: 6, color: AppColors.warning),
+                      },
                     ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: Text(issues[index],
-                          style: Theme.of(context).textTheme.bodySmall),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+          if (speedDialActions.isNotEmpty)
+            Positioned.fill(child: ActionSpeedDial(actions: speedDialActions)),
+        ],
       ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Fermer'),
-        ),
-        FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: AppColors.kora),
-          onPressed: () {
-            Navigator.of(context).pop();
-            context.read<ManifesteCubit>().load();
-          },
-          child: const Text('Rafraîchir'),
-        ),
-      ],
     );
   }
+}
+
+/// Résume `BorderManifestBuild.issues` en une seule phrase (au lieu de
+/// lister chaque problème) — affichée via `KoraDialogs.warning`, qui
+/// gère déjà correctement les longs messages (pas de RenderFlex
+/// overflow comme sur l'ancien dialogue dédié à liste scrollable).
+String _borderManifestIssuesSummary(List<String> issues) {
+  if (issues.length == 1) return issues.first;
+  return '${issues.length} informations obligatoires sont manquantes '
+      '(nationalité, n° de document, siège ou destination) pour imprimer '
+      'le manifeste frontière. Complétez-les puis réessayez.';
 }
 
 class _StaleManifestBanner extends StatelessWidget {

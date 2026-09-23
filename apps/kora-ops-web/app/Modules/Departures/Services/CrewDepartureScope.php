@@ -77,4 +77,14 @@ class CrewDepartureScope
     {
         return $this->query($user, 'incidents.report')->whereKey($departure->getKey())->exists();
     }
+
+    /**
+     * OPS Mobile : peut publier des positions de suivi sur ce départ —
+     * affecté au départ (non annulé) et permission `tracking.report`
+     * (convoyeur uniquement).
+     */
+    public function canReportTracking(User $user, Departure $departure): bool
+    {
+        return $this->query($user, 'tracking.report')->whereKey($departure->getKey())->exists();
+    }
 }

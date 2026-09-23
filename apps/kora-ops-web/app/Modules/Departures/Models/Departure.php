@@ -10,6 +10,7 @@ use App\Modules\BusNetwork\Models\Line;
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Notifications\Observers\DepartureOpsNotificationObserver;
 use App\Modules\Support\Models\KoraModel;
+use App\Modules\Tracking\Observers\TrackingSessionObserver;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -31,7 +32,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $departed_at
  * @property Carbon|null $arrived_at
  */
-#[ObservedBy([DepartureOpsNotificationObserver::class])]
+#[ObservedBy([DepartureOpsNotificationObserver::class, TrackingSessionObserver::class])]
 class Departure extends KoraModel
 {
     use SoftDeletes;

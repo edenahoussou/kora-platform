@@ -1061,7 +1061,9 @@ export default function FiscalInvoicesPage({
                                                         className="grid size-8 place-items-center rounded-lg bg-muted text-foreground hover:bg-gold/15"
                                                         aria-label="Voir le détail"
                                                         onClick={() =>
-                                                            openDetail(invoice.uuid)
+                                                            openDetail(
+                                                                invoice.uuid,
+                                                            )
                                                         }
                                                     >
                                                         <Eye className="size-3.5" />

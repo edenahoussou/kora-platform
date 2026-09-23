@@ -91,7 +91,7 @@ export function UserFormModal({
 
     const requiresAgency = selectedRole
         ? selectedRole.category === 'agency' ||
-        selectedRole.category === 'terrain'
+          selectedRole.category === 'terrain'
         : false;
 
     const forbidsAgency = selectedRole
@@ -422,8 +422,8 @@ export function UserFormModal({
                                             {role.category === 'central'
                                                 ? 'Siège / Central'
                                                 : role.category === 'agency'
-                                                    ? 'Agence'
-                                                    : 'Terrain'}
+                                                  ? 'Agence'
+                                                  : 'Terrain'}
                                             )
                                         </option>
                                     ))}
@@ -467,8 +467,8 @@ export function UserFormModal({
                                         {forbidsAgency
                                             ? 'Non applicable (rôle central)'
                                             : !form.data.role
-                                                ? 'Sélectionnez d’abord un rôle…'
-                                                : 'Sélectionner une agence…'}
+                                              ? 'Sélectionnez d’abord un rôle…'
+                                              : 'Sélectionner une agence…'}
                                     </option>
                                     {agencies.map((agency) => (
                                         <option
@@ -488,8 +488,8 @@ export function UserFormModal({
                                         {requiresAgency
                                             ? 'Obligatoire pour les fonctions d’agence et de terrain.'
                                             : forbidsAgency
-                                                ? 'Les profils centraux ne sont rattachés à aucune agence physique.'
-                                                : 'Sélectionnez un rôle pour déterminer l’obligation d’agence.'}
+                                              ? 'Les profils centraux ne sont rattachés à aucune agence physique.'
+                                              : 'Sélectionnez un rôle pour déterminer l’obligation d’agence.'}
                                     </small>
                                 )}
                             </label>
@@ -592,8 +592,8 @@ export function UserFormModal({
                         {form.processing
                             ? 'Enregistrement…'
                             : isEditing
-                                ? 'Mettre à jour l’utilisateur'
-                                : 'Créer l’utilisateur'}
+                              ? 'Mettre à jour l’utilisateur'
+                              : 'Créer l’utilisateur'}
                     </button>
                 </div>
             </form>

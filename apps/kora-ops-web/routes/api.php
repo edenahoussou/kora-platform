@@ -20,12 +20,12 @@ use App\Modules\IdentityAccess\Http\Controllers\AuthSessionController;
 use App\Modules\IdentityAccess\Http\Controllers\OpsSessionController;
 use App\Modules\IdentityAccess\Http\Controllers\TerminalOpsMobileController;
 use App\Modules\IdentityAccess\Http\Controllers\UserPreferenceController;
-use App\Modules\Notifications\Http\Controllers\OpsNotificationController;
-use App\Modules\Notifications\Http\Controllers\OpsNotificationPreferenceController;
 use App\Modules\Payments\Http\Controllers\PaymentController;
 use App\Modules\Support\Http\Controllers\HealthController;
 use App\Modules\Sync\Http\Controllers\OpsSyncController;
 use App\Modules\Ticketing\Http\Controllers\TicketController;
+use App\Modules\Tracking\Http\Controllers\FleetTrackingController;
+use App\Modules\Tracking\Http\Controllers\OpsTrackingController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
@@ -173,6 +173,27 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->group(function (): void {
             Route::post('manifest-versions', [OpsSyncController::class, 'manifestVersions'])->name('manifest-versions');
             Route::post('batches', [OpsSyncController::class, 'submitBatch'])->name('batches');
+        });
+
+    // OPS Mobile — ingestion des positions GPS du convoyeur (MEZ-100). Même
+    // garde que les autres routes terrain ; débit limité (fréquence GPS
+    // attendue, pas un flux illimité).
+    Route::prefix('ops/tracking')
+        ->name('ops.tracking.')
+        ->middleware(['auth:sanctum', 'ops.session'])
+        ->group(function (): void {
+            Route::post('positions/batch', [OpsTrackingController::class, 'storeBatch'])
+                ->middleware('throttle:tracking-batch')
+                ->name('positions.batch');
+        });
+
+    // OPS Web — lecture des positions de la flotte en circulation (MEZ-100).
+    // Permission ET périmètre (agence ou réseau) — voir FleetTrackingQuery.
+    Route::prefix('fleet/tracking')
+        ->name('fleet.tracking.')
+        ->middleware('auth:sanctum')
+        ->group(function (): void {
+            Route::get('/', [FleetTrackingController::class, 'index'])->name('index');
         });
 
     Route::prefix('bus')
