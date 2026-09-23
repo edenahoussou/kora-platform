@@ -196,6 +196,24 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::get('/', [FleetTrackingController::class, 'index'])->name('index');
         });
 
+    // Notifications opérationnelles (MEZ-96/97) — même contrat OPS Web /
+    // OPS Mobile. `EnsureNotificationsAccess` (pas `ops.session`) : compte
+    // actif + permission `notifications.view`, et une session liée à un
+    // terminal (P501) doit être valide, mais SANS exiger X-Terminal-Serial
+    // — la récupération d'une alerte critique doit rester possible juste
+    // après une reconnexion, avant que le terminal ne soit re-présenté.
+    Route::prefix('notifications')
+        ->name('notifications.')
+        ->middleware(['auth:sanctum', 'notifications.access'])
+        ->group(function (): void {
+            Route::get('/', [OpsNotificationController::class, 'index'])->name('index');
+            Route::get('unread-count', [OpsNotificationController::class, 'unreadCount'])->name('unread-count');
+            Route::get('preferences', [OpsNotificationPreferenceController::class, 'show'])->name('preferences.show');
+            Route::put('preferences', [OpsNotificationPreferenceController::class, 'update'])->name('preferences.update');
+            Route::post('read-all', [OpsNotificationController::class, 'markAllRead'])->name('read-all');
+            Route::post('{notification}/read', [OpsNotificationController::class, 'markRead'])->name('read');
+        });
+
     Route::prefix('bus')
         ->name('bus.')
         ->middleware('throttle:bus-search')

@@ -83,7 +83,7 @@ class AppConfig {
           environment: env,
           appName: 'KORA OPS (staging)',
           apiBaseUrl: 'https://staging.koraexpress.app',
-          enableDebugBanner: true,
+          enableDebugBanner: false,
           enableLogging: true,
           useMockHardware: resolveUseMockHardware(true),
           terminalMode: terminalMode,

@@ -115,11 +115,9 @@ void main() {
     });
 
     test('paid ou statut inconnu → enAttente', () {
-      expect(
-          ManifesteDtos.passenger(row()..['segmentStatus'] = 'paid')?.statut,
+      expect(ManifesteDtos.passenger(row()..['segmentStatus'] = 'paid')?.statut,
           BoardingStatus.enAttente);
-      expect(
-          ManifesteDtos.passenger(row()..['segmentStatus'] = 'wat')?.statut,
+      expect(ManifesteDtos.passenger(row()..['segmentStatus'] = 'wat')?.statut,
           BoardingStatus.enAttente);
     });
   });

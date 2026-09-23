@@ -10,6 +10,34 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 
+    <!-- Suivi de position du convoyeur (MEZ-101) — service premier plan,
+         écran verrouillé et app en arrière-plan compris. FINE/COARSE :
+         requises par geolocator. BACKGROUND_LOCATION : Android 10+, sans
+         quoi le flux de position s'arrête dès que l'app quitte le premier
+         plan — demandée séparément, après FINE (voir
+         TrackingRepositoryImpl.checkAvailability, flux Android recommandé
+         par Google). FOREGROUND_SERVICE(_LOCATION) : requis Android 9+/14+
+         pour démarrer et déclarer le type du service (voir <service>
+         ci-dessous). POST_NOTIFICATIONS : Android 13+, notification
+         persistante obligatoire pendant le suivi. WAKE_LOCK : le CPU doit
+         rester actif pour mesurer la position écran éteint (voir
+         allowWakeLock dans TrackingRepositoryImpl.init). REQUEST_IGNORE_
+         BATTERY_OPTIMIZATIONS : proposer au convoyeur de désactiver
+         l'optimisation batterie pour KORA OPS, sans quoi certains
+         constructeurs (Xiaomi, Huawei...) tuent le service en arrière-plan
+         malgré le premier plan. RECEIVE_BOOT_COMPLETED : reprise
+         automatique du suivi si le terminal redémarre en cours de route. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-feature android:name="android.hardware.location.gps" android:required="false"/>
+
     <application
         android:label="kora_ops_mobile"
         android:name="${applicationName}"
@@ -41,6 +69,19 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- Service premier plan du suivi de position (MEZ-101) —
+             flutter_foreground_task. `foregroundServiceType="location"`
+             requis Android 14+ (voir FOREGROUND_SERVICE_LOCATION
+             ci-dessus) ; `stopWithTask="false"` volontaire : le suivi doit
+             survivre à une fermeture accidentelle de l'app tant que le
+             convoyeur n'a pas confirmé l'arrivée, seul TrackingRepository
+             (arrivée/annulation/déconnexion) l'arrête. -->
+        <service
+            android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
+            android:foregroundServiceType="location"
+            android:stopWithTask="false"
+            android:exported="false"/>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

@@ -50,6 +50,19 @@ dependencies:
   # voir document.md § Splash
   connectivity_plus: 
 
+  # Suivi de position du convoyeur en arrière-plan (MEZ-101) — même
+  # implémentation pour P501 et téléphone Android, voir
+  # GeolocatorLocationProvider. GPS/permissions/précision.
+  geolocator: ^13.0.2
+
+  # Vérifications de permission complémentaires à geolocator (notification
+  # Android 13+, etc.) — voir TrackingRepositoryImpl.checkAvailability.
+  permission_handler: ^11.3.1
+
+  # Service Android premier plan (écran verrouillé, app en arrière-plan) +
+  # notification persistante — voir TrackingTaskHandler (MEZ-101).
+  flutter_foreground_task: ^9.2.0
+
   # Base de données locale (manifeste en cache, file de sync hors ligne,
   # anti-double-scan, reprise après crash — voir MEZ-91 / document.md §
   # Base locale). Choisie plutôt que Hive/drift : robuste, transactionnelle

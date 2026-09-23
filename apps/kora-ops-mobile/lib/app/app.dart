@@ -9,6 +9,7 @@ import '../features/ops/presentation/cubit/selected_depart_cubit.dart';
 import '../features/scan/presentation/cubit/scan_boarding_cubit.dart';
 import '../features/synchro/presentation/cubit/sync_cubit.dart';
 import '../features/terminal/presentation/cubit/terminal_cubit.dart';
+import '../features/tracking/presentation/cubit/tracking_cubit.dart';
 import '../injection/injection.dart';
 import 'config/app_config.dart';
 import 'router/app_router.dart';
@@ -39,6 +40,7 @@ class App extends StatelessWidget {
             value: getIt<ScanBoardingCubit>()),
         BlocProvider<NotificationCubit>.value(
             value: getIt<NotificationCubit>()),
+        BlocProvider<TrackingCubit>.value(value: getIt<TrackingCubit>()),
       ],
       child: const _AppLifecycleListener(child: _AppRouterHost()),
     );

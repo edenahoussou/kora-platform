@@ -11,6 +11,7 @@ import '../../../onboarding/data/onboarding_store.dart';
 import '../../../ops/presentation/cubit/selected_depart_cubit.dart';
 import '../../../synchro/presentation/cubit/sync_cubit.dart';
 import '../../../terminal/presentation/cubit/terminal_cubit.dart';
+import '../../../tracking/presentation/cubit/tracking_cubit.dart';
 import '../../domain/resolve_auth_destination.dart';
 import '../widgets/kora_wordmark.dart';
 
@@ -69,7 +70,7 @@ class _SplashPageState extends State<SplashPage>
   Future<void> _bootstrap() async {
     final Stopwatch stopwatch = Stopwatch()..start();
 
-    // Les trois vérifications tournent en parallèle ; seule la durée
+    // Les vérifications tournent en parallèle ; seule la durée
     // minimale d'affichage (3s) est réellement attendue ci-dessous.
     // TerminalCubit.bootstrap() relit le terminal en cache (aucun appel
     // réseau bloquant, voir sa docstring) — le résultat conditionne la
@@ -83,6 +84,7 @@ class _SplashPageState extends State<SplashPage>
       context.read<TerminalCubit>().bootstrap(),
       context.read<SyncCubit>().bootstrap(),
       context.read<SelectedDepartCubit>().bootstrap(),
+      context.read<TrackingCubit>().bootstrap(),
     ]);
 
     final Duration elapsed = stopwatch.elapsed;

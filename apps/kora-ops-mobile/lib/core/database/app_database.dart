@@ -40,14 +40,24 @@ import 'package:sqflite/sqflite.dart';
 /// - `incident_operations` (v7, MEZ-98) : file de signalements terrain
 ///   (panne, retard, accident, sécurité, autre) en attente de
 ///   synchronisation — voir `IncidentLocalDataSource`.
+/// - `tracking_positions_queue` / `tracking_session_state` (v8, MEZ-101) :
+///   file des positions GPS du convoyeur en attente d'envoi par lots, et
+///   état de la session de suivi en cours (départ, terminal, prochaine
+///   séquence) — restaure le suivi après un crash ou un redémarrage à
+///   froid sans perdre de point ni recommencer la séquence à zéro, voir
+///   `TrackingLocalDataSource`.
 ///
 /// Singleton : une seule connexion ouverte pour toute l'app (voir
-/// `injection.dart`), comme `SharedPreferences`/`FlutterSecureStorage`.
+/// `injection.dart`), comme `SharedPreferences`/`FlutterSecureStorage` —
+/// SAUF `TrackingTaskHandler` (MEZ-101, isolate séparé du service premier
+/// plan), qui ouvre sa propre connexion vers le même fichier : sqflite
+/// gère nativement plusieurs connexions concurrentes sur un même fichier
+/// sqlite, chaque isolate Dart ayant la sienne.
 class AppDatabase {
   AppDatabase();
 
   static const String _fileName = 'kora_ops.db';
-  static const int _schemaVersion = 7;
+  static const int _schemaVersion = 8;
 
   Database? _database;
 
@@ -75,6 +85,7 @@ class AppDatabase {
         await _createBorderManifestPrintJobs(db);
         await _createOpsNotifications(db);
         await _createIncidentOperations(db);
+        await _createTrackingTables(db);
       },
       onUpgrade: (Database db, int oldVersion, int newVersion) async {
         if (oldVersion < 2) {
@@ -96,6 +107,9 @@ class AppDatabase {
         }
         if (oldVersion < 7) {
           await _createIncidentOperations(db);
+        }
+        if (oldVersion < 8) {
+          await _createTrackingTables(db);
         }
       },
     );
@@ -369,6 +383,60 @@ class AppDatabase {
       'CREATE INDEX IF NOT EXISTS idx_incident_operations_sync_status '
       'ON incident_operations(sync_status)',
     );
+  }
+
+  /// File des positions GPS en attente d'envoi par lots (v8, MEZ-101) —
+  /// voir `TrackingLocalDataSource`. Pas d'anti-doublon métier (chaque
+  /// mesure est distincte, même convention que `incident_operations`) :
+  /// l'idempotence repose uniquement sur `position_uuid`, généré côté
+  /// mobile et réutilisé tel quel à chaque tentative d'envoi.
+  /// `departure_uuid` permet de retrouver la file d'une session précise
+  /// après un redémarrage (voir `tracking_session_state`).
+  Future<void> _createTrackingTables(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS tracking_positions_queue (
+        position_uuid TEXT PRIMARY KEY,
+        departure_uuid TEXT NOT NULL,
+        sequence INTEGER NOT NULL,
+        status TEXT NOT NULL,
+        latitude REAL,
+        longitude REAL,
+        accuracy_meters REAL,
+        speed_kmh REAL,
+        heading_degrees REAL,
+        source TEXT NOT NULL,
+        recorded_at TEXT NOT NULL,
+        sync_status TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_tracking_queue_departure_seq '
+      'ON tracking_positions_queue(departure_uuid, sequence)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_tracking_queue_sync_status '
+      'ON tracking_positions_queue(sync_status)',
+    );
+
+    // Une seule ligne logique (`id = 1`), remplacée à chaque changement
+    // d'état plutôt qu'historisée : c'est l'état courant du suivi qui
+    // compte pour la reprise après crash/redémarrage
+    // (`TrackingRepositoryImpl.bootstrap`), pas son historique.
+    // `last_sequence` est LA source de vérité du compteur de séquence —
+    // jamais recalculé depuis la file, dont les lignes déjà synchronisées
+    // peuvent avoir été purgées.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS tracking_session_state (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        departure_uuid TEXT NOT NULL,
+        terminal_serial TEXT NOT NULL,
+        status TEXT NOT NULL,
+        last_sequence INTEGER NOT NULL DEFAULT 0,
+        started_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    ''');
   }
 
   /// Réservé aux tests : ferme et oublie la connexion pour repartir d'une
