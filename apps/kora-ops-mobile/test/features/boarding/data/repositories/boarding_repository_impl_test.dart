@@ -8,6 +8,8 @@ import 'package:kora_ops_mobile/features/boarding/data/datasources/boarding_remo
 import 'package:kora_ops_mobile/features/boarding/data/repositories/boarding_repository_impl.dart';
 import 'package:kora_ops_mobile/features/boarding/domain/entities/boarding_outcome.dart';
 import 'package:kora_ops_mobile/features/boarding/domain/entities/boarding_outcome_status.dart';
+import 'package:kora_ops_mobile/features/boarding/domain/entities/ticket_qr_verification.dart';
+import 'package:kora_ops_mobile/features/boarding/domain/services/ticket_qr_verifier.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockBoardingRemoteDataSource extends Mock
@@ -15,6 +17,8 @@ class MockBoardingRemoteDataSource extends Mock
 
 class MockBoardingLocalDataSource extends Mock
     implements BoardingLocalDataSource {}
+
+class MockTicketQrVerifier extends Mock implements TicketQrVerifier {}
 
 DioException _networkError() {
   return DioException(
@@ -36,6 +40,7 @@ void main() {
 
   late MockBoardingRemoteDataSource remote;
   late MockBoardingLocalDataSource local;
+  late MockTicketQrVerifier qrVerifier;
   late BoardingRepositoryImpl repository;
 
   const String departureUuid = 'dep-uuid-1';
@@ -44,7 +49,8 @@ void main() {
   setUp(() {
     remote = MockBoardingRemoteDataSource();
     local = MockBoardingLocalDataSource();
-    repository = BoardingRepositoryImpl(remote, local);
+    qrVerifier = MockTicketQrVerifier();
+    repository = BoardingRepositoryImpl(remote, local, qrVerifier);
 
     // Par défaut : rien en cache local, l'appel réseau est donc toujours
     // tenté — chaque test qui a besoin d'un résultat déjà en cache le
@@ -63,6 +69,12 @@ void main() {
           localRecordedAt: any(named: 'localRecordedAt'),
           synced: any(named: 'synced'),
         )).thenAnswer((_) async {});
+    // Par défaut : signature valide pour n'importe quel QR — ces tests
+    // portent sur le cache/réseau/file hors ligne, pas sur la
+    // vérification elle-même (voir la section dédiée plus bas et
+    // `ed25519_ticket_qr_verifier_test.dart` pour l'algorithme).
+    when(() => qrVerifier.verify(any())).thenAnswer(
+        (_) async => const TicketQrVerified(ticketUuid: 'ticket-from-qr'));
   });
 
   test('scan nominal : billet valide, enregistré comme synchronisé', () async {
@@ -154,7 +166,7 @@ void main() {
     // Nouvelle instance (simule un redémarrage à froid de l'app) — le
     // datasource local, lui, correspond à la même base sqlite persistée.
     final BoardingRepositoryImpl afterRestart =
-        BoardingRepositoryImpl(remote, local);
+        BoardingRepositoryImpl(remote, local, qrVerifier);
 
     final result = await afterRestart.scan(
       departureUuid: departureUuid,
@@ -174,6 +186,123 @@ void main() {
           operationUuid: any(named: 'operationUuid'),
           localRecordedAt: any(named: 'localRecordedAt'),
         ));
+  });
+
+  group('authenticité du QR (Ed25519, voir TicketQrVerifier)', () {
+    test('signature invalide : ticketUnknown immédiat, aucun appel réseau',
+        () async {
+      when(() => qrVerifier.verify('QR-FORGED'))
+          .thenAnswer((_) async => const TicketQrSignatureInvalid());
+
+      final result = await repository.scan(
+        departureUuid: departureUuid,
+        qrPayload: 'QR-FORGED',
+        operationUuid: 'op-forged',
+        localRecordedAt: localRecordedAt,
+      );
+
+      result.when(
+        onSuccess: (outcome) =>
+            expect(outcome.status, BoardingOutcomeStatus.ticketUnknown),
+        onFailure: (_) =>
+            fail('devait réussir (résultat métier, pas un échec)'),
+      );
+      verifyNever(() => remote.scan(
+            departureUuid: any(named: 'departureUuid'),
+            qrPayload: any(named: 'qrPayload'),
+            shortCode: any(named: 'shortCode'),
+            operationUuid: any(named: 'operationUuid'),
+            localRecordedAt: any(named: 'localRecordedAt'),
+          ));
+      verify(() => local.recordOutcome(
+            operationUuid: 'op-forged',
+            departureUuid: departureUuid,
+            qrPayload: 'QR-FORGED',
+            shortCode: null,
+            outcome: any(named: 'outcome'),
+            localRecordedAt: localRecordedAt,
+            synced: true,
+          )).called(1);
+    });
+
+    test('token malformé (pas un QR KORA) : ticketUnknown, aucun appel réseau',
+        () async {
+      when(() => qrVerifier.verify('n\'importe quoi'))
+          .thenAnswer((_) async => const TicketQrMalformed());
+
+      final result = await repository.scan(
+        departureUuid: departureUuid,
+        qrPayload: 'n\'importe quoi',
+        operationUuid: 'op-malformed',
+        localRecordedAt: localRecordedAt,
+      );
+
+      result.when(
+        onSuccess: (outcome) =>
+            expect(outcome.status, BoardingOutcomeStatus.ticketUnknown),
+        onFailure: (_) => fail('devait réussir'),
+      );
+      verifyNever(() => remote.scan(
+            departureUuid: any(named: 'departureUuid'),
+            qrPayload: any(named: 'qrPayload'),
+            shortCode: any(named: 'shortCode'),
+            operationUuid: any(named: 'operationUuid'),
+            localRecordedAt: any(named: 'localRecordedAt'),
+          ));
+    });
+
+    test('rejet même hors ligne : pas de mise en file (contrairement à un '
+        'billet authentique, voir test "hors ligne" plus bas)', () async {
+      when(() => qrVerifier.verify('QR-FORGED-OFFLINE'))
+          .thenAnswer((_) async => const TicketQrSignatureInvalid());
+
+      final result = await repository.scan(
+        departureUuid: departureUuid,
+        qrPayload: 'QR-FORGED-OFFLINE',
+        operationUuid: 'op-forged-offline',
+        localRecordedAt: localRecordedAt,
+      );
+
+      result.when(
+        onSuccess: (outcome) =>
+            expect(outcome.status, BoardingOutcomeStatus.ticketUnknown),
+        onFailure: (_) => fail('devait réussir'),
+      );
+      verify(() => local.recordOutcome(
+            operationUuid: 'op-forged-offline',
+            departureUuid: departureUuid,
+            qrPayload: 'QR-FORGED-OFFLINE',
+            shortCode: null,
+            outcome: any(named: 'outcome'),
+            localRecordedAt: localRecordedAt,
+            synced: true, // conclusif, jamais "en attente de synchro"
+          )).called(1);
+    });
+
+    test('code court manuel : aucune vérification de signature (pas de QR)',
+        () async {
+      when(() => remote.scan(
+            departureUuid: departureUuid,
+            qrPayload: null,
+            shortCode: 'AB12CD',
+            operationUuid: 'op-manual',
+            localRecordedAt: localRecordedAt,
+          )).thenAnswer((_) async => const BoardingOutcome(
+            status: BoardingOutcomeStatus.valid,
+            message: 'Billet valide.',
+            ticketUuid: 'ticket-manual',
+          ));
+
+      final result = await repository.scan(
+        departureUuid: departureUuid,
+        shortCode: 'AB12CD',
+        operationUuid: 'op-manual',
+        localRecordedAt: localRecordedAt,
+      );
+
+      expect(result.isSuccess, isTrue);
+      verifyNever(() => qrVerifier.verify(any()));
+    });
   });
 
   test('mauvais départ : rejeté (422, code wrong_departure)', () async {

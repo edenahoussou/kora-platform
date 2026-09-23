@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
@@ -41,11 +42,20 @@ class TrackingSyncEngine {
   bool get isOnline => _online;
   bool get isFlushing => _flushing;
 
+  /// Raison du dernier échec d'envoi (visible dans les logs — `flutter
+  /// run` ou `adb logcat` — voir [_logFailure]) : `null` tant que rien n'a
+  /// échoué, ou après un envoi réussi. Ajouté le 24/09/2026 : jusque-là,
+  /// un échec non lié au réseau (permission refusée, départ non affecté,
+  /// session expirée, erreur de validation...) restait totalement
+  /// silencieux — la file grossissait sans qu'il soit possible de savoir
+  /// pourquoi, ni côté app ni côté serveur (la requête n'atteignait même
+  /// pas toujours le backend).
+  String? lastError;
+
   /// Enfile une mesure GPS réelle et retourne la position créée (sa
   /// séquence en particulier, pour que l'appelant sache si c'est la
   /// première de la session — voir `TrackingTaskHandler._onFix`).
-  Future<TrackingPosition> enqueueFix(
-      String departureUuid, LocationFix fix) async {
+  Future<TrackingPosition> enqueueFix(String departureUuid, LocationFix fix) async {
     final int sequence = await _local.nextSequence();
     final TrackingPosition position = TrackingPosition(
       positionUuid: _uuid.v4(),
@@ -95,8 +105,7 @@ class TrackingSyncEngine {
     _flushing = true;
 
     try {
-      final List<TrackingPosition> pending =
-          await _local.listPending(departureUuid);
+      final List<TrackingPosition> pending = await _local.listPending(departureUuid);
       if (pending.isEmpty) return;
 
       for (int i = 0; i < pending.length; i += batchChunkSize) {
@@ -107,6 +116,7 @@ class TrackingSyncEngine {
         for (final TrackingPosition position in chunk) {
           await _local.markSynced(position.positionUuid);
         }
+        lastError = null; // au moins un lot est passé : la voie est bonne.
       }
 
       await _local.pruneSynced(olderThan: const Duration(days: 2));
@@ -114,10 +124,47 @@ class TrackingSyncEngine {
       if (_isNetworkUnreachable(error)) _online = false;
       // Toute autre erreur (auth, serveur, validation) : les positions
       // restent en file, retentées au prochain appel — aucune n'est
-      // perdue.
+      // perdue. `_online` reste vrai : ce n'est pas un problème réseau,
+      // réessayer immédiatement ne servirait à rien tant que la cause
+      // (ex. permission) n'a pas changé, mais bloquer TOUT envoi (comme
+      // le ferait `_online = false`) serait pire — voir _logFailure.
+      _logFailure(error);
+    } on Object catch (error, stackTrace) {
+      // N'importe quelle autre exception (réponse au format inattendu,
+      // erreur locale...) : ne doit JAMAIS s'échapper de `flush()` sans
+      // trace — avant ce correctif, une exception non-DioException ici
+      // remontait non interceptée jusqu'à l'appelant, silencieusement,
+      // sans que `flutter run`/`adb logcat` n'en garde de trace exploitable.
+      developer.log(
+        'TrackingSyncEngine.flush: échec inattendu (pas un DioException)',
+        name: 'tracking',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      lastError = 'Erreur inattendue : $error';
     } finally {
       _flushing = false;
     }
+  }
+
+  /// Journalise le détail exploitable d'un échec d'envoi — code HTTP et
+  /// corps de la réponse serveur si présents, sinon le type d'erreur Dio
+  /// (délai, connexion refusée...). Visible dans la console `flutter run`
+  /// et `adb logcat` (tag `flutter`, name `tracking`) : c'est la première
+  /// chose à regarder quand des positions restent "en attente" sans
+  /// explication.
+  void _logFailure(DioException error) {
+    final int? status = error.response?.statusCode;
+    final Object? body = error.response?.data;
+    lastError = status != null
+        ? 'HTTP $status${body != null ? ' — $body' : ''}'
+        : error.type.name;
+
+    developer.log(
+      'TrackingSyncEngine.flush: envoi refusé — $lastError',
+      name: 'tracking',
+      error: error,
+    );
   }
 
   /// À appeler quand la connectivité système revient — réarme [isOnline]
@@ -127,9 +174,8 @@ class TrackingSyncEngine {
 
   void markOffline() => _online = false;
 
-  Future<int> pendingCount(String departureUuid) => _local
-      .listPending(departureUuid)
-      .then((List<TrackingPosition> l) => l.length);
+  Future<int> pendingCount(String departureUuid) =>
+      _local.listPending(departureUuid).then((List<TrackingPosition> l) => l.length);
 
   bool _isNetworkUnreachable(DioException error) =>
       error.type == DioExceptionType.connectionError ||

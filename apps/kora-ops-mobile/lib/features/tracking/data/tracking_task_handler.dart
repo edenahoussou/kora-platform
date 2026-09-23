@@ -106,15 +106,13 @@ class TrackingTaskHandler extends TaskHandler {
         )
         .listen(_onFix, onError: (Object _) {});
 
-    _serviceEnabledSubscription = _locationProvider
-        .watchServiceEnabled()
-        .listen(_onServiceEnabledChanged);
+    _serviceEnabledSubscription =
+        _locationProvider.watchServiceEnabled().listen(_onServiceEnabledChanged);
 
     _connectivitySubscription =
         Connectivity().onConnectivityChanged.listen(_onConnectivityChanged);
 
-    _flushTimer =
-        Timer.periodic(_flushInterval, (Timer _) => _flushAndReport());
+    _flushTimer = Timer.periodic(_flushInterval, (Timer _) => _flushAndReport());
 
     await _reportStatus();
   }
@@ -137,8 +135,7 @@ class TrackingTaskHandler extends TaskHandler {
     ));
 
     dio.interceptors.add(InterceptorsWrapper(
-      onRequest:
-          (RequestOptions options, RequestInterceptorHandler handler) async {
+      onRequest: (RequestOptions options, RequestInterceptorHandler handler) async {
         final session = await authLocal.readSession();
         if (session?.token != null) {
           options.headers['Authorization'] = 'Bearer ${session!.token}';
@@ -155,8 +152,7 @@ class TrackingTaskHandler extends TaskHandler {
     final String? departureUuid = _departureUuid;
     if (departureUuid == null) return;
 
-    final TrackingPosition position =
-        await _engine.enqueueFix(departureUuid, fix);
+    final TrackingPosition position = await _engine.enqueueFix(departureUuid, fix);
 
     // Démarrage (critère d'acceptation) : le tout premier point de la
     // session est envoyé immédiatement plutôt que d'attendre le prochain
@@ -201,9 +197,23 @@ class TrackingTaskHandler extends TaskHandler {
     }
   }
 
+  /// Retente TOUJOURS l'envoi, quel que soit l'état `isOnline` mémorisé
+  /// par [_engine] — corrigé le 24/09/2026 (positions restées bloquées
+  /// "en attente" indéfiniment) : `_engine` ne repasse `isOnline` à vrai
+  /// que sur un changement d'état de connectivité détecté par l'OS
+  /// (`_onConnectivityChanged`) ; si l'échec initial vient d'un incident
+  /// ponctuel (délai serveur, DNS...) sans que la connectivité elle-même
+  /// n'ait jamais varié aux yeux de l'OS, cet événement ne se déclenche
+  /// jamais — la file restait alors bloquée hors ligne pour de bon,
+  /// malgré un réseau réellement fonctionnel. Un `markOnline()` avant
+  /// chaque tentative (au minimum toutes les 15 s, voir [_flushTimer])
+  /// garantit qu'on retente régulièrement quoi qu'il arrive : `flush()`
+  /// remettra lui-même `isOnline` à faux si l'envoi échoue à nouveau,
+  /// sans jamais rester bloqué plus d'un cycle.
   Future<void> _flushAndReport() async {
     final String? departureUuid = _departureUuid;
     if (departureUuid == null) return;
+    _engine.markOnline();
     await _reportStatus(); // reflète isFlushing=true immédiatement
     await _engine.flush(departureUuid);
     await _local.pruneSynced(olderThan: const Duration(days: 2));
@@ -220,10 +230,11 @@ class TrackingTaskHandler extends TaskHandler {
       isSyncing: _engine.isFlushing,
       pendingCount: pendingCount,
       lastPositionAt: DateTime.now(),
+      lastError: _engine.lastError,
     );
 
     FlutterForegroundTask.sendDataToMain(status.toData());
-    await FlutterForegroundTask.updateService(
+    FlutterForegroundTask.updateService(
       notificationTitle: 'KORA OPS — suivi de position actif',
       notificationText: !status.isOnline
           ? 'Hors ligne — $pendingCount point(s) en file'

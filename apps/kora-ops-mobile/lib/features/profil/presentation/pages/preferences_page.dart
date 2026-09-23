@@ -20,7 +20,7 @@ class PreferencesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final int pending = context.watch<SyncCubit>().state.pending.length;
+    final int pending = context.watch<SyncCubit>().state.totalPending;
 
     return Scaffold(
       appBar: const ScreenHeader(eyebrow: 'Mon compte', title: 'Préférences'),

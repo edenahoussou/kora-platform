@@ -22,7 +22,9 @@ import '../features/auth/presentation/cubit/auth_cubit.dart';
 import '../features/boarding/data/datasources/boarding_local_datasource.dart';
 import '../features/boarding/data/datasources/boarding_remote_datasource.dart';
 import '../features/boarding/data/repositories/boarding_repository_impl.dart';
+import '../features/boarding/data/services/ed25519_ticket_qr_verifier.dart';
 import '../features/boarding/domain/repositories/boarding_repository.dart';
+import '../features/boarding/domain/services/ticket_qr_verifier.dart';
 import '../features/border_manifest/data/datasources/border_manifest_pdf_remote_datasource.dart';
 import '../features/border_manifest/data/datasources/border_manifest_print_local_datasource.dart';
 import '../features/border_manifest/data/repositories/border_manifest_pdf_repository_impl.dart';
@@ -315,18 +317,26 @@ Future<void> configureDependencies() async {
   );
 
   // --- Feature: boarding (MEZ-91 — réel : POST ops/boarding, avec
-  // anti-double-scan local et file hors ligne — voir BoardingRepositoryImpl).
-  // Enregistrée avant Synchro/Manifeste : toutes deux en dépendent.
+  // anti-double-scan local, vérification d'authenticité hors ligne
+  // (Ed25519, voir TicketQrVerifier) et file hors ligne — voir
+  // BoardingRepositoryImpl). Enregistrée avant Synchro/Manifeste : toutes
+  // deux en dépendent.
   getIt.registerLazySingleton<BoardingRemoteDataSource>(
     () => BoardingRemoteDataSourceImpl(opsDioClient.dio),
   );
   getIt.registerLazySingleton<BoardingLocalDataSource>(
     () => BoardingLocalDataSourceImpl(getIt<AppDatabase>()),
   );
+  getIt.registerLazySingleton<TicketQrVerifier>(
+    () => Ed25519TicketQrVerifier(
+      publicKeyBase64: AppConfig.instance.ticketSigningPublicKeyBase64,
+    ),
+  );
   getIt.registerLazySingleton<BoardingRepository>(
     () => BoardingRepositoryImpl(
       getIt<BoardingRemoteDataSource>(),
       getIt<BoardingLocalDataSource>(),
+      getIt<TicketQrVerifier>(),
     ),
   );
 

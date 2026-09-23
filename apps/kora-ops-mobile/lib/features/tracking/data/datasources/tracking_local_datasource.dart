@@ -60,8 +60,7 @@ class TrackingLocalDataSourceImpl implements TrackingLocalDataSource {
   final AppDatabase _database;
 
   @override
-  Future<void> enqueue(TrackingPosition position,
-      {required bool synced}) async {
+  Future<void> enqueue(TrackingPosition position, {required bool synced}) async {
     final Database db = await _database.database;
     await db.insert(
       'tracking_positions_queue',
@@ -120,8 +119,7 @@ class TrackingLocalDataSourceImpl implements TrackingLocalDataSource {
   @override
   Future<void> pruneSynced({required Duration olderThan}) async {
     final Database db = await _database.database;
-    final String threshold =
-        DateTime.now().subtract(olderThan).toIso8601String();
+    final String threshold = DateTime.now().subtract(olderThan).toIso8601String();
     await db.delete(
       'tracking_positions_queue',
       where: 'sync_status = ? AND created_at < ?',
@@ -169,31 +167,34 @@ class TrackingLocalDataSourceImpl implements TrackingLocalDataSource {
   Future<int> nextSequence() async {
     final Database db = await _database.database;
 
-    // Transaction : lecture + incrément + écriture atomiques — deux
-    // positions mesurées à quelques millisecondes d'intervalle (peu
-    // probable en pratique vu l'intervalle de mesure, mais le prix d'une
-    // transaction ici est négligeable) ne doivent jamais obtenir la même
-    // séquence.
-    return db.transaction<int>((Transaction txn) async {
-      final List<Map<String, Object?>> rows =
-          await txn.query('tracking_session_state', where: 'id = 1', limit: 1);
-      final int current =
-          rows.isEmpty ? 0 : (rows.first['last_sequence'] as int? ?? 0);
-      final int next = current + 1;
+    // PAS de `db.transaction()` ici (corrigé le 24/09/2026) : cet isolate
+    // (le service premier plan, voir `TrackingTaskHandler`) a sa PROPRE
+    // connexion vers le même fichier sqlite que le reste de l'app — une
+    // transaction explicite ouverte ici entrait en conflit avec celles
+    // de l'autre connexion (isolate principal), provoquant
+    // `SqfliteDatabaseException: no current transaction / COMMIT`. Pas
+    // besoin de transaction pour la cohérence : cette méthode n'est
+    // jamais appelée deux fois en parallèle DANS ce même isolate (toujours
+    // `await`ée séquentiellement, un point GPS à la fois) — Dart étant
+    // mono-thread par isolate, lecture puis écriture simples suffisent.
+    final List<Map<String, Object?>> rows =
+        await db.query('tracking_session_state', where: 'id = 1', limit: 1);
+    final int current =
+        rows.isEmpty ? 0 : (rows.first['last_sequence'] as int? ?? 0);
+    final int next = current + 1;
 
-      if (rows.isNotEmpty) {
-        await txn.update(
-          'tracking_session_state',
-          <String, Object?>{
-            'last_sequence': next,
-            'updated_at': DateTime.now().toIso8601String(),
-          },
-          where: 'id = 1',
-        );
-      }
+    if (rows.isNotEmpty) {
+      await db.update(
+        'tracking_session_state',
+        <String, Object?>{
+          'last_sequence': next,
+          'updated_at': DateTime.now().toIso8601String(),
+        },
+        where: 'id = 1',
+      );
+    }
 
-      return next;
-    });
+    return next;
   }
 
   @override

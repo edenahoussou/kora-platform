@@ -59,8 +59,7 @@ class TrackingRepositoryImpl implements TrackingRepository {
       return TrackingAvailability.permissionDenied;
     }
 
-    final bool serviceEnabled =
-        await _locationProvider.isLocationServiceEnabled();
+    final bool serviceEnabled = await _locationProvider.isLocationServiceEnabled();
     if (!serviceEnabled) return TrackingAvailability.gpsDisabled;
 
     final bool precise = await _locationProvider.hasPreciseAccuracy();
@@ -111,6 +110,7 @@ class TrackingRepositoryImpl implements TrackingRepository {
     _initForegroundTask();
 
     await FlutterForegroundTask.startService(
+      serviceTypes: const <ForegroundServiceTypes>[ForegroundServiceTypes.location],
       notificationTitle: 'KORA OPS — suivi de position actif',
       notificationText: 'Démarrage du suivi…',
       callback: trackingStartCallback,
@@ -138,9 +138,7 @@ class TrackingRepositoryImpl implements TrackingRepository {
     if (session == null || !session.isActive) return;
 
     final bool alreadyRunning = await FlutterForegroundTask.isRunningService;
-    if (alreadyRunning) {
-      return; // a survécu au redémarrage de l'app, rien à faire
-    }
+    if (alreadyRunning) return; // a survécu au redémarrage de l'app, rien à faire
 
     // Le service a été tué (crash, redémarrage à froid, OS agressif) mais
     // la session est restée `active` en base : on la redémarre à
@@ -152,6 +150,7 @@ class TrackingRepositoryImpl implements TrackingRepository {
     // `TrackingTaskHandler` (le flux de position ne produira rien).
     _initForegroundTask();
     await FlutterForegroundTask.startService(
+      serviceTypes: const <ForegroundServiceTypes>[ForegroundServiceTypes.location],
       notificationTitle: 'KORA OPS — suivi de position actif',
       notificationText: 'Reprise du suivi…',
       callback: trackingStartCallback,
@@ -173,11 +172,14 @@ class TrackingRepositoryImpl implements TrackingRepository {
   /// [start]/[bootstrap] plutôt qu'une seule fois au lancement de l'app :
   /// c'est `FlutterForegroundTask.init` qui configure le canal de
   /// notification, autant le faire juste avant `startService` pour rester
-  /// à côté du code qui en dépend.
+  /// à côté du code qui en dépend. Le type de service Android
+  /// (`ForegroundServiceTypes.location`, exigé Android 14+) se déclare à
+  /// `startService`, pas ici (`AndroidNotificationOptions` n'a plus de
+  /// paramètre `foregroundServiceType` dans la version du package
+  /// utilisée — voir les deux appels `startService` ci-dessus).
   void _initForegroundTask() {
     FlutterForegroundTask.init(
       androidNotificationOptions: AndroidNotificationOptions(
-        //foregroundServiceType: AndroidForegroundServiceType.LOCATION,
         channelId: 'kora_ops_tracking',
         channelName: 'Suivi de position',
         channelDescription:

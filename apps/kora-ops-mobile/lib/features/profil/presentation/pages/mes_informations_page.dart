@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radius.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/kora_colors.dart';
@@ -9,8 +8,7 @@ import '../../../../core/widgets/screen_header.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 
 /// "Mes informations" — identité et coordonnées de l'agent connecté
-/// (lecture seule, données mockées à ce stade). Route :
-/// `/profil/mes-informations`.
+/// (lecture seule). Route : `/profil/mes-informations`.
 class MesInformationsPage extends StatelessWidget {
   const MesInformationsPage({super.key});
 
@@ -21,13 +19,13 @@ class MesInformationsPage extends StatelessWidget {
         authState is AuthAuthenticated ? authState.user.name : '—';
     final String email =
         authState is AuthAuthenticated ? authState.user.email : '—';
+    final String phone = authState is AuthAuthenticated
+        ? (authState.user.phone ?? '—')
+        : '—';
     // Le backend ne renvoie plus de libellé de rôle, seulement des
     // permissions — voir AuthUser et le commentaire équivalent dans
     // profil_page.dart.
     const String role = '—';
-    final String matricule = authState is AuthAuthenticated
-        ? authState.user.uuid.toUpperCase()
-        : '—';
 
     return Scaffold(
       appBar:
@@ -50,11 +48,13 @@ class MesInformationsPage extends StatelessWidget {
                       label: 'Adresse email',
                       value: email),
                   const Divider(height: AppSpacing.lg),
+                  _InfoRow(
+                      icon: Icons.phone_outlined,
+                      label: 'Téléphone',
+                      value: phone),
+                  const Divider(height: AppSpacing.lg),
                   const _InfoRow(
                       icon: Icons.work_outline, label: 'Rôle', value: role),
-                  const Divider(height: AppSpacing.lg),
-                  _InfoRow(
-                      icon: Icons.tag, label: 'Matricule', value: matricule),
                 ],
               ),
             ),
@@ -92,7 +92,7 @@ class _InfoRow extends StatelessWidget {
             color: context.koraColors.background,
             borderRadius: BorderRadius.circular(AppRadius.md),
           ),
-          child: Icon(icon, size: 18, color: AppColors.kora),
+          child: Icon(icon, size: 18, color: context.koraColors.textPrimary),
         ),
         const SizedBox(width: AppSpacing.md),
         Expanded(

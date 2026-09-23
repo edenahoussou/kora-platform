@@ -7,22 +7,27 @@ import '../../../../core/result/result.dart';
 import '../../domain/entities/boarding_outcome.dart';
 import '../../domain/entities/boarding_outcome_status.dart';
 import '../../domain/entities/pending_boarding_operation.dart';
+import '../../domain/entities/ticket_qr_verification.dart';
 import '../../domain/repositories/boarding_repository.dart';
+import '../../domain/services/ticket_qr_verifier.dart';
 import '../datasources/boarding_local_datasource.dart';
 import '../datasources/boarding_remote_datasource.dart';
 
-/// Couche DATA : assemble l'anti-double-scan local, l'appel réseau et la
-/// file hors ligne derrière le contrat du domaine — voir docstring de
-/// `BoardingRepository`.
+/// Couche DATA : assemble l'anti-double-scan local, la vérification
+/// d'authenticité hors ligne (Ed25519, voir [TicketQrVerifier]), l'appel
+/// réseau et la file hors ligne derrière le contrat du domaine — voir
+/// docstring de `BoardingRepository`.
 class BoardingRepositoryImpl implements BoardingRepository {
   BoardingRepositoryImpl(
     this._remote,
-    this._local, {
+    this._local,
+    this._qrVerifier, {
     DateTime Function()? now,
   });
 
   final BoardingRemoteDataSource _remote;
   final BoardingLocalDataSource _local;
+  final TicketQrVerifier _qrVerifier;
 
   @override
   Future<Result<BoardingOutcome>> scan({
@@ -43,6 +48,36 @@ class BoardingRepositoryImpl implements BoardingRepository {
       shortCode: shortCode,
     );
     if (cached != null) return Result<BoardingOutcome>.success(cached);
+
+    // Authenticité (Ed25519, hors réseau) — AVANT toute tentative réseau :
+    // un QR falsifié doit être rejeté immédiatement, aussi bien hors
+    // ligne (où le serveur ne peut pas trancher avant la prochaine
+    // synchro — c'est précisément le trou que cette vérification comble)
+    // qu'en ligne (le serveur revérifie quand même à son tour, en
+    // défense en profondeur — voir docstring `TicketQrVerifier`). Ne
+    // concerne que le scan QR : une saisie par code court manuel
+    // (`shortCode` seul) n'a pas de signature à vérifier, elle est
+    // résolue contre le manifeste local déjà chargé.
+    if (qrPayload != null) {
+      final TicketQrVerification verification =
+          await _qrVerifier.verify(qrPayload);
+      if (verification is! TicketQrVerified) {
+        final BoardingOutcome outcome = BoardingOutcome(
+          status: BoardingOutcomeStatus.ticketUnknown,
+          message: BoardingOutcomeStatus.ticketUnknown.defaultMessage,
+        );
+        await _local.recordOutcome(
+          operationUuid: operationUuid,
+          departureUuid: departureUuid,
+          qrPayload: qrPayload,
+          shortCode: shortCode,
+          outcome: outcome,
+          localRecordedAt: localRecordedAt,
+          synced: true,
+        );
+        return Result<BoardingOutcome>.success(outcome);
+      }
+    }
 
     try {
       final BoardingOutcome outcome = await _remote.scan(

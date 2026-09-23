@@ -15,6 +15,7 @@ import '../../../../core/widgets/notification_button.dart';
 import '../../../../injection/injection.dart';
 import '../../../auth/presentation/bloc/auth_flow_bloc.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
+import '../../../synchro/presentation/cubit/sync_cubit.dart';
 import '../../../terminal/presentation/cubit/terminal_cubit.dart';
 
 /// Onglet Profil — reproduit trait pour trait l'écran Profil de
@@ -22,8 +23,9 @@ import '../../../terminal/presentation/cubit/terminal_cubit.dart';
 /// (logo, avatar + badge étoile, identité), carte flottante à deux
 /// indicateurs, section "Mon compte" (3 cartes), section "Besoin d'aide ?"
 /// (carte marine), déconnexion. Les indicateurs Solde Wallet/Points
-/// Fidélité (non pertinents pour un agent OPS) sont remplacés par des
-/// statistiques d'activité — voir [_StatsCard].
+/// Fidélité (non pertinents pour un agent OPS) sont remplacés par deux
+/// indicateurs réels — opérations en attente de synchronisation et statut
+/// du compte, voir [_StatsCard].
 class ProfilPage extends StatelessWidget {
   const ProfilPage({super.key});
 
@@ -64,6 +66,9 @@ class ProfilPage extends StatelessWidget {
     final AuthState authState = context.watch<AuthCubit>().state;
     final String fullName =
         authState is AuthAuthenticated ? authState.user.name : 'Agent';
+    final int pendingSync = context.watch<SyncCubit>().state.totalPending;
+    final bool accountActive =
+        authState is AuthAuthenticated && authState.user.status == 'active';
     // Le backend ne renvoie plus de libellé de rôle (ex. « Convoyeur »),
     // seulement des permissions (`boarding.scan`...) — voir AuthUser.
     // Pas de règle fiable pour en déduire un libellé sans risquer de
@@ -93,11 +98,13 @@ class ProfilPage extends StatelessWidget {
                       fullName: fullName,
                       role: role,
                       initials: _initials(fullName)),
-                  const Positioned(
+                  Positioned(
                       left: AppSpacing.md,
                       right: AppSpacing.md,
                       bottom: -46,
-                      child: _StatsCard()),
+                      child: _StatsCard(
+                          pendingSync: pendingSync,
+                          accountActive: accountActive)),
                 ],
               ),
               const SizedBox(height: 64),
@@ -333,9 +340,14 @@ class _ProfilHeader extends StatelessWidget {
 }
 
 /// Remplace Solde Wallet / Points Fidélité (non pertinents pour un agent
-/// OPS, voir échange du 18/08/2026) par deux indicateurs d'activité.
+/// OPS, voir échange du 18/08/2026) par deux indicateurs réels : opérations
+/// en attente de synchronisation ([SyncCubit.state.totalPending], voir
+/// `SyncState`) et statut du compte ([AuthUser.status]).
 class _StatsCard extends StatelessWidget {
-  const _StatsCard();
+  const _StatsCard({required this.pendingSync, required this.accountActive});
+
+  final int pendingSync;
+  final bool accountActive;
 
   @override
   Widget build(BuildContext context) {
@@ -351,13 +363,16 @@ class _StatsCard extends StatelessWidget {
         child: IntrinsicHeight(
           child: Row(
             children: <Widget>[
-              const Expanded(
-                  child: _StatCell(label: 'COURSES EFFECTUÉES', value: '128')),
+              Expanded(
+                  child: _StatCell(
+                      label: 'EN ATTENTE DE SYNCHRO',
+                      value: pendingSync > 0 ? '$pendingSync' : 'À jour')),
               VerticalDivider(
                   width: 1, thickness: 1, color: context.koraColors.line),
-              const Expanded(
-                  child:
-                      _StatCell(label: 'TAUX DE PONCTUALITÉ', value: '96 %')),
+              Expanded(
+                  child: _StatCell(
+                      label: 'STATUT DU COMPTE',
+                      value: accountActive ? 'Actif' : 'Suspendu')),
             ],
           ),
         ),

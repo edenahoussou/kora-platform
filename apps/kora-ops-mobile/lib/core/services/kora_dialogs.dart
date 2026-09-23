@@ -19,6 +19,22 @@ abstract final class KoraDialogs {
     iconAnimationStyle: IconAnimationStyle.pulse,
   );
 
+  /// Couleur du bouton principal (action confirmée) — toujours doré, comme
+  /// `KoraButton.primary` partout ailleurs dans l'app (jamais marine :
+  /// c'est la couleur d'action KORA, indépendante du thème).
+  static const Color _primaryColor = AppColors.gold;
+
+  /// Couleur d'un bouton à fond transparent (bordure/texte seulement,
+  /// ex. "Annuler") — mêmes couleurs que `KoraButton.ghost` : blanc en
+  /// sombre, marine en clair. Le marine fixe, utilisé ici auparavant,
+  /// était quasi identique au fond des dialogues en mode sombre
+  /// (`KoraColors.dark.surface`), rendant bordure et texte pratiquement
+  /// invisibles (échange du 24/09/2026).
+  static Color _outlineColor(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? AppColors.white
+          : AppColors.kora;
+
   static Future<void> success(BuildContext context,
       {required String title, String? description}) {
     return showProDialog(
@@ -105,7 +121,7 @@ abstract final class KoraDialogs {
               if (!completer.isCompleted) completer.complete(false);
               closeDialog();
             },
-            color: AppColors.kora),
+            color: _outlineColor(context)),
         DialogButton(
           text: confirmLabel,
           isPrimary: true,
@@ -113,7 +129,7 @@ abstract final class KoraDialogs {
             if (!completer.isCompleted) completer.complete(true);
             closeDialog();
           },
-          color: AppColors.kora,
+          color: _primaryColor,
         ),
       ],
     );
@@ -194,7 +210,13 @@ abstract final class KoraDialogs {
           ValueListenableBuilder<bool>(
             valueListenable: isValid,
             builder: (context, valid, _) => FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: AppColors.kora),
+              style: FilledButton.styleFrom(
+                backgroundColor: _primaryColor,
+                foregroundColor: AppColors.onGold,
+                disabledBackgroundColor: _primaryColor.withValues(alpha: 0.5),
+                disabledForegroundColor:
+                    AppColors.onGold.withValues(alpha: 0.5),
+              ),
               onPressed: valid
                   ? () =>
                       Navigator.of(dialogContext).pop(controller.text.trim())
@@ -339,7 +361,14 @@ class _DelayPromptDialogState extends State<_DelayPromptDialog> {
           child: Text(widget.cancelLabel),
         ),
         FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: AppColors.kora),
+          style: FilledButton.styleFrom(
+            backgroundColor: KoraDialogs._primaryColor,
+            foregroundColor: AppColors.onGold,
+            disabledBackgroundColor:
+                KoraDialogs._primaryColor.withValues(alpha: 0.5),
+            disabledForegroundColor:
+                AppColors.onGold.withValues(alpha: 0.5),
+          ),
           onPressed: _isValid
               ? () => Navigator.of(context).pop((
                     minutes: int.parse(_minutesController.text.trim()),

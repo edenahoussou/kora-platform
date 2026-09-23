@@ -39,10 +39,30 @@ class SpeedDialAction {
 /// de l'écran qu'elles survolent ; un tap en dehors referme le menu.
 /// Écrit sans dépendance externe (flutter_speed_dial n'est pas dans le
 /// pubspec) pour rester autonome et prévisible.
+///
+/// [actions] peut être vide (ex. le temps qu'une permission/un état
+/// arrive à se stabiliser juste après la navigation) : se rend alors
+/// invisible ([SizedBox.shrink]) plutôt que de disparaître de l'arbre —
+/// TOUJOURS monter ce widget, ne jamais l'entourer d'un
+/// `if (actions.isNotEmpty)` côté appelant (voir échange du 23/09/2026,
+/// clignotement du FAB) : un montage/démontage répété pendant que
+/// `actions` se stabilise recrée `_ActionSpeedDialState` — donc son
+/// `AnimationController` — à chaque fois, ce qui peut laisser
+/// apparaître puis disparaître les mini-boutons déployés avant que
+/// l'état ne se stabilise. Un widget qui reste monté en continu n'a pas
+/// ce problème : son `_open`/`_controller` ne changent que sur une vraie
+/// action du convoyeur.
+///
+/// [heroTag] doit être unique par PAGE où ce widget apparaît (jamais le
+/// même sur deux pages simultanément empilées) — la valeur par défaut de
+/// `FloatingActionButton` (partagée entre toutes les instances sans tag
+/// explicite) peut sinon entrer en collision pendant une transition de
+/// page et produire le même type de scintillement.
 class ActionSpeedDial extends StatefulWidget {
-  const ActionSpeedDial({required this.actions, super.key});
+  const ActionSpeedDial({required this.actions, required this.heroTag, super.key});
 
   final List<SpeedDialAction> actions;
+  final String heroTag;
 
   @override
   State<ActionSpeedDial> createState() => _ActionSpeedDialState();
@@ -62,6 +82,18 @@ class _ActionSpeedDialState extends State<ActionSpeedDial>
     super.dispose();
   }
 
+  /// Si les actions disparaissent pendant que le menu est ouvert (ex.
+  /// permission perdue en cours de route), referme proprement plutôt que
+  /// de laisser un menu ouvert sans rien dedans.
+  @override
+  void didUpdateWidget(ActionSpeedDial oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_open && widget.actions.isEmpty) {
+      _open = false;
+      _controller.reverse();
+    }
+  }
+
   void _toggle() {
     setState(() => _open = !_open);
     if (_open) {
@@ -78,6 +110,8 @@ class _ActionSpeedDialState extends State<ActionSpeedDial>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.actions.isEmpty) return const SizedBox.shrink();
+
     return Stack(
       children: <Widget>[
         // Flou de fond à l'ouverture — mêmes codes visuels qu'un
@@ -128,9 +162,16 @@ class _ActionSpeedDialState extends State<ActionSpeedDial>
                   ),
                 ),
               FloatingActionButton(
+                heroTag: widget.heroTag,
                 onPressed: _toggle,
-                backgroundColor: AppColors.kora,
-                foregroundColor: AppColors.white,
+                // Doré, pas marine : le fond de page en mode sombre EST
+                // `AppColors.kora` (`KoraColors.dark.background`) — un FAB
+                // marine y devenait invisible, confondu avec la page
+                // elle-même (échange du 24/09/2026). Le doré tranche sur
+                // les deux thèmes, comme `KoraButton.primary` partout
+                // ailleurs dans l'app.
+                backgroundColor: AppColors.gold,
+                foregroundColor: AppColors.onGold,
                 child: AnimatedRotation(
                   turns: _open ? 0.125 : 0, // 45° — "+" devient "×".
                   duration: const Duration(milliseconds: 220),
@@ -154,7 +195,11 @@ class _SpeedDialItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final KoraColors koraColors = context.koraColors;
-    final Color accent = action.danger ? AppColors.danger : AppColors.kora;
+    // Même raison que le FAB principal : doré plutôt que marine, pour ne
+    // jamais se fondre dans le fond de page en mode sombre.
+    final Color accent = action.danger ? AppColors.danger : AppColors.gold;
+    final Color accentForeground =
+        action.danger ? AppColors.white : AppColors.onGold;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -184,7 +229,7 @@ class _SpeedDialItem extends StatelessWidget {
           heroTag: action.label,
           onPressed: onTap,
           backgroundColor: accent,
-          foregroundColor: AppColors.white,
+          foregroundColor: accentForeground,
           child: Icon(action.icon, size: 20),
         ),
       ],

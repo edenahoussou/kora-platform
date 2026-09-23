@@ -313,8 +313,12 @@ class ManifestePage extends StatelessWidget {
                     ),
             ),
           ),
-          if (speedDialActions.isNotEmpty)
-            Positioned.fill(child: ActionSpeedDial(actions: speedDialActions)),
+          // Toujours monté (voir docstring ActionSpeedDial) — évite le
+          // clignotement du FAB (échange du 23/09/2026).
+          Positioned.fill(
+            child: ActionSpeedDial(
+                actions: speedDialActions, heroTag: 'speed-dial-manifeste'),
+          ),
         ],
       ),
     );

@@ -145,6 +145,14 @@ class AuthRepositoryImpl implements AuthRepository {
       _attempt(() => _remote.resetPin(verification: verification, pin: pin));
 
   @override
+  Future<Result<void>> changePin({
+    required String currentPin,
+    required String newPin,
+  }) =>
+      _attempt(() =>
+          _remote.changePin(currentPin: currentPin, newPin: newPin));
+
+  @override
   Future<Result<void>> unlockAccount(OtpVerification verification) =>
       _attempt(() => _remote.unlockAccount(verification));
 

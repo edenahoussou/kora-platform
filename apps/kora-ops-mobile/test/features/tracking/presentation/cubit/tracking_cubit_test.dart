@@ -26,6 +26,17 @@ class MockAuthCubit extends Mock implements AuthCubit {}
 void main() {
   setUpAll(() {
     registerFallbackValue(TrackingStopReason.manualClose);
+    // `local.saveSnapshot(any())` plus bas exige un fallback pour `Depart`
+    // (mocktail, mode null-safe) — jamais réellement interagi avec.
+    registerFallbackValue(const Depart(
+      id: 'fallback',
+      route: '',
+      date: '',
+      heure: '',
+      vehiculeImmat: '',
+      totalPlaces: 0,
+      placesOccupees: 0,
+    ));
   });
 
   late MockTrackingRepository repository;
@@ -85,8 +96,7 @@ void main() {
     terminalLocalDataSource = MockTerminalLocalDataSource();
     statusController = StreamController<TrackingRuntimeStatus>.broadcast();
 
-    when(() => repository.statusStream)
-        .thenAnswer((_) => statusController.stream);
+    when(() => repository.statusStream).thenAnswer((_) => statusController.stream);
     when(() => terminalLocalDataSource.readSerialNumber())
         .thenAnswer((_) async => terminalSerial);
     when(() => repository.start(
@@ -144,8 +154,7 @@ void main() {
       await selectedDepartCubit.select(arrived);
       await Future<void>.delayed(Duration.zero);
 
-      verify(() => repository.stop(reason: TrackingStopReason.arrived))
-          .called(1);
+      verify(() => repository.stop(reason: TrackingStopReason.arrived)).called(1);
       expect(cubit.state.isActive, isFalse);
     });
 
@@ -158,12 +167,10 @@ void main() {
       await selectedDepartCubit.select(cancelled);
       await Future<void>.delayed(Duration.zero);
 
-      verify(() => repository.stop(reason: TrackingStopReason.cancelled))
-          .called(1);
+      verify(() => repository.stop(reason: TrackingStopReason.cancelled)).called(1);
     });
 
-    test('arrête le suivi quand le départ est désélectionné (clôture)',
-        () async {
+    test('arrête le suivi quand le départ est désélectionné (clôture)', () async {
       final TrackingCubit cubit = buildCubit();
       addTearDown(cubit.close);
 
@@ -172,8 +179,7 @@ void main() {
       selectedDepartCubit.clear();
       await Future<void>.delayed(Duration.zero);
 
-      verify(() => repository.stop(reason: TrackingStopReason.manualClose))
-          .called(1);
+      verify(() => repository.stop(reason: TrackingStopReason.manualClose)).called(1);
     });
 
     test('ne démarre rien pour un statut intermédiaire (boarding)', () async {
@@ -233,11 +239,60 @@ void main() {
       expect(result, TrackingAvailability.gpsDisabled);
       expect(cubit.state.availability, TrackingAvailability.gpsDisabled);
     });
+
+    test(
+        'bootstrap() redemande la permission une fois si refusée, mais '
+        'onAppResumed() ne la redemande plus ensuite — non-régression de '
+        'la boucle du 24/09/2026 (la boîte de dialogue système elle-même '
+        'redéclenche un retour au premier plan ; en redemander à chaque '
+        'resume rouvrait donc une boîte de dialogue à l\'infini)', () async {
+      when(() => repository.checkAvailability())
+          .thenAnswer((_) async => TrackingAvailability.permissionDenied);
+      when(() => repository.requestAvailability())
+          .thenAnswer((_) async => TrackingAvailability.permissionDenied);
+
+      final TrackingCubit cubit = buildCubit();
+      addTearDown(cubit.close);
+
+      await cubit.bootstrap();
+      verify(() => repository.requestAvailability()).called(1);
+
+      // Simule plusieurs retours au premier plan consécutifs (dont ceux
+      // que la boîte de dialogue elle-même provoque) — toujours refusée,
+      // mais JAMAIS redemandée automatiquement une deuxième fois.
+      await cubit.onAppResumed();
+      await cubit.onAppResumed();
+      await cubit.onAppResumed();
+
+      verifyNever(() => repository.requestAvailability());
+      expect(cubit.state.availability, TrackingAvailability.permissionDenied);
+    });
+
+    test(
+        'un appui explicite du convoyeur redemande, même après la tentative '
+        'automatique unique de bootstrap()', () async {
+      when(() => repository.checkAvailability())
+          .thenAnswer((_) async => TrackingAvailability.permissionDenied);
+      when(() => repository.requestAvailability())
+          .thenAnswer((_) async => TrackingAvailability.permissionDenied);
+
+      final TrackingCubit cubit = buildCubit();
+      addTearDown(cubit.close);
+
+      await cubit.bootstrap(); // tentative automatique, épuise le "une fois"
+      clearInteractions(repository);
+      when(() => repository.requestAvailability())
+          .thenAnswer((_) async => TrackingAvailability.ready);
+
+      final TrackingAvailability result = await cubit.requestPermission();
+
+      verify(() => repository.requestAvailability()).called(1);
+      expect(result, TrackingAvailability.ready);
+    });
   });
 
   group('statut d\'exécution (file, réseau, synchro)', () {
-    test('reflète file en attente et hors-ligne pendant un suivi actif',
-        () async {
+    test('reflète file en attente et hors-ligne pendant un suivi actif', () async {
       final TrackingCubit cubit = buildCubit();
       addTearDown(cubit.close);
 
@@ -268,8 +323,7 @@ void main() {
       await cubit.bootstrap();
 
       verify(() => repository.bootstrap()).called(1);
-      expect(
-          cubit.state.availability, TrackingAvailability.insufficientAccuracy);
+      expect(cubit.state.availability, TrackingAvailability.insufficientAccuracy);
       expect(cubit.state.pendingCount, 2);
     });
   });

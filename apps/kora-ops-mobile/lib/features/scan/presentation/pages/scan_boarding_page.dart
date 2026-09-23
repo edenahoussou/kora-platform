@@ -44,22 +44,58 @@ class _ScanBoardingPageState extends State<ScanBoardingPage> {
     super.dispose();
   }
 
+  /// Un résultat métier est soit un embarquement accepté (immédiat ou en
+  /// attente de synchro hors ligne) — le convoyeur voit alors le billet,
+  /// comme depuis le Manifeste (`DetailPassagerPage`) — soit un rejet, qui
+  /// n'a besoin que d'être signalé, sans page dédiée (échange du
+  /// 23/09/2026 : la précédente page plein écran par résultat était jugée
+  /// peu professionnelle pour un simple refus).
+  static const Set<ScanBoardingStatus> _acceptedOutcomes = <ScanBoardingStatus>{
+    ScanBoardingStatus.valide,
+    ScanBoardingStatus.enAttenteSync,
+  };
+
+  String _rejectionTitle(ScanBoardingStatus status) => switch (status) {
+        ScanBoardingStatus.mauvaisDepart => 'Mauvais départ',
+        ScanBoardingStatus.billetInconnu => 'Billet inconnu',
+        ScanBoardingStatus.dejaEmbarque => 'Déjà embarqué',
+        ScanBoardingStatus.annule => 'Billet annulé',
+        ScanBoardingStatus.conflit => 'Conflit terminal',
+        _ => 'Billet invalide',
+      };
+
   Future<void> _afterSubmit(BuildContext context) async {
     final ScanBoardingCubit cubit = context.read<ScanBoardingCubit>();
     if (!context.mounted) return;
 
-    if (cubit.state.status == ScanBoardingStatus.erreur) {
+    final ScanBoardingState state = cubit.state;
+
+    if (state.status == ScanBoardingStatus.erreur) {
       await KoraDialogs.error(context,
-          title: 'Scanner', description: cubit.state.message);
+          title: 'Scanner', description: state.message);
       return;
     }
 
-    if (cubit.state.status.isOutcome) {
-      await context.push(AppRoutes.scanResult);
-      if (context.mounted) {
-        cubit.reset();
-        _searchController.clear();
-      }
+    if (!state.status.isOutcome) return;
+
+    if (!_acceptedOutcomes.contains(state.status)) {
+      await KoraDialogs.error(
+        context,
+        title: _rejectionTitle(state.status),
+        description: state.message ?? 'Ce billet ne peut pas être embarqué.',
+      );
+      cubit.reset();
+      _searchController.clear();
+      return;
+    }
+
+    final String? passengerId = state.matchedPassenger?.id;
+    if (passengerId != null) {
+      await context.push(AppRoutes.detailPassager, extra: passengerId);
+    }
+    if (context.mounted) {
+      cubit.reset();
+      _searchController.clear();
     }
   }
 

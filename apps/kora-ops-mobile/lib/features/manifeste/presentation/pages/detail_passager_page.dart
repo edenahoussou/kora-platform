@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
+import '../../../../app/config/app_config.dart';
+import '../../../../app/config/terminal_mode.dart';
+import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_radius.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/kora_colors.dart';
 import '../../../../core/services/kora_dialogs.dart';
 import '../../../../core/widgets/action_speed_dial.dart';
+import '../../../../core/widgets/kora_button.dart';
 import '../../../../core/widgets/kora_card.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../../core/widgets/statut_badge.dart';
@@ -18,6 +24,7 @@ import '../../../ops/domain/entities/depart.dart';
 import '../../../ops/domain/entities/passenger.dart';
 import '../../../ops/domain/entities/stop.dart';
 import '../../../ops/presentation/cubit/selected_depart_cubit.dart';
+import '../../../printing/presentation/pages/boarding_pdf_preview_page.dart';
 import '../../../seat_release/domain/compatible_stops.dart';
 import '../../../seat_release/domain/entities/seat_release_outcome.dart';
 import '../../../seat_release/domain/entities/seat_release_outcome_status.dart';
@@ -84,6 +91,26 @@ class DetailPassagerPage extends StatelessWidget {
           icon: Icons.confirmation_number_outlined,
           label: 'Voir le billet',
           onPressed: () => _showTicket(context, depart, passenger),
+        ),
+      // Pas d'imprimante thermique en mode téléphone (voir ticket
+      // "Supporter le scan par caméra téléphone en alternative au P501")
+      // — le PDF de confirmation la remplace. Migré ici depuis
+      // l'ancienne ScanResultPage (échange du 23/09/2026, refonte du
+      // flux de scan : un billet valide arrive directement sur cette
+      // page plutôt que sur un écran de résultat intermédiaire).
+      if (depart != null &&
+          AppConfig.instance.terminalMode == TerminalMode.phone)
+        SpeedDialAction(
+          icon: Icons.picture_as_pdf_outlined,
+          label: 'Confirmation (PDF)',
+          onPressed: () => context.push(
+            AppRoutes.boardingPdfPreview,
+            extra: BoardingPdfPreviewArgs(
+              departureUuid: depart.id,
+              ticketUuid: passenger.id,
+              passengerName: passenger.nomComplet,
+            ),
+          ),
         ),
     ];
 
@@ -237,8 +264,16 @@ class DetailPassagerPage extends StatelessWidget {
               ),
             ),
           ),
-          if (speedDialActions.isNotEmpty)
-            Positioned.fill(child: ActionSpeedDial(actions: speedDialActions)),
+          // Toujours monté (voir docstring ActionSpeedDial) — se rend
+          // lui-même invisible si `speedDialActions` est vide, plutôt que
+          // d'être remonté/démonté à chaque fois que la liste se stabilise
+          // juste après la navigation (clignotement du FAB, échange du
+          // 23/09/2026).
+          Positioned.fill(
+            child: ActionSpeedDial(
+                actions: speedDialActions,
+                heroTag: 'speed-dial-detail-passager'),
+          ),
         ],
       ),
     );
