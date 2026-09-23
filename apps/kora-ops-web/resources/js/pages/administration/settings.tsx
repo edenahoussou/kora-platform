@@ -181,6 +181,63 @@ const integrationFields: Record<string, IntegrationFieldDefinition[]> = {
             type: 'number',
         },
     ],
+    emecfAccount: [
+        {
+            key: 'emecfShopName',
+            label: 'Nom de la structure',
+            hint: 'Raison sociale affichée sur les factures normalisées.',
+        },
+        {
+            key: 'emecfNim',
+            label: 'NIM',
+            hint: 'Identifiant du MECeF attribué par la DGI.',
+        },
+        {
+            key: 'emecfAccountStatus',
+            label: 'Statut du compte',
+            hint: 'Statut déclaré par la DGI (Actif, Suspendu…).',
+        },
+        {
+            key: 'emecfAddress1',
+            label: 'Adresse 1',
+            hint: 'Adresse principale enregistrée à la DGI.',
+        },
+        {
+            key: 'emecfAddress2',
+            label: 'Adresse 2',
+            hint: 'Complément d’adresse éventuel.',
+        },
+        {
+            key: 'emecfAddress3',
+            label: 'Ville',
+            hint: 'Ville d’enregistrement du MECeF.',
+        },
+        {
+            key: 'emecfContact1',
+            label: 'Téléphone',
+            hint: 'Contact téléphonique déclaré à la DGI.',
+        },
+        {
+            key: 'emecfContact2',
+            label: 'Email',
+            hint: 'Adresse email déclarée à la DGI.',
+        },
+        {
+            key: 'emecfContact3',
+            label: 'Contact secondaire',
+            hint: 'Contact additionnel éventuel.',
+        },
+        {
+            key: 'emecfApiVersion',
+            label: 'Version API',
+            hint: 'Version de l’API e-MECeF exposée au compte.',
+        },
+        {
+            key: 'emecfTokenValidUntil',
+            label: 'Jeton valide jusqu’au',
+            hint: 'Date de fin de validité du jeton déclarée par la DGI.',
+        },
+    ],
     fedapay: [
         {
             key: 'fedapaySecretKey',
@@ -564,7 +621,7 @@ export default function SettingsPage({
                     value={String(value(definition.key) ?? '')}
                     configured={Boolean(
                         (snapshot.values as Record<string, unknown>)[
-                            definition.key
+                        definition.key
                         ],
                     )}
                     disabled={!permissions.canManage}
@@ -1092,8 +1149,8 @@ export default function SettingsPage({
                             Env ·{' '}
                             {options.environmentLabel
                                 ? options.environmentLabel(
-                                      value(options.environmentKey),
-                                  )
+                                    value(options.environmentKey),
+                                )
                                 : String(value(options.environmentKey))}
                         </span>
                     )}
@@ -1161,40 +1218,50 @@ export default function SettingsPage({
                         result: probeResults.emecf,
                     },
                 )}
-                <SettingsSection
-                    title="e-MECeF — comportement"
-                    description="Les paramètres de conservation et de journalisation restent administrables sans exposer les réponses fiscales."
-                >
-                    <div className="grid gap-5 md:grid-cols-2">
-                        <SettingsToggle
-                            label="Mode test"
-                            hint="Utiliser l’environnement de test e-MECeF."
-                            checked={Boolean(value('emecfTestMode'))}
-                            disabled={!permissions.canManage}
-                            onChange={(checked) =>
-                                setValue('emecfTestMode', checked)
-                            }
-                        />
-                        <SettingsToggle
-                            label="Sauvegarder les factures"
-                            hint="Conserver un snapshot local après la réponse fournisseur."
-                            checked={Boolean(value('emecfSaveInvoices'))}
-                            disabled={!permissions.canManage}
-                            onChange={(checked) =>
-                                setValue('emecfSaveInvoices', checked)
-                            }
-                        />
-                        <SettingsToggle
-                            label="Sauvegarder les logs"
-                            hint="Conserver les journaux techniques selon le niveau choisi."
-                            checked={Boolean(value('emecfSaveLogs'))}
-                            disabled={!permissions.canManage}
-                            onChange={(checked) =>
-                                setValue('emecfSaveLogs', checked)
-                            }
-                        />
-                    </div>
-                </SettingsSection>
+                <div className="grid content-start gap-4">
+                    <SettingsSection
+                        title="Compte e-MECeF (DGI)"
+                        description="Identité du contribuable synchronisée depuis l’API e-MECeF — affichée sur les factures normalisées. Les valeurs restent modifiables."
+                    >
+                        <div className="grid gap-5 md:grid-cols-2">
+                            {(integrationFields.emecfAccount ?? []).map(field)}
+                        </div>
+                    </SettingsSection>
+                    <SettingsSection
+                        title="e-MECeF — comportement"
+                        description="Les paramètres de conservation et de journalisation restent administrables sans exposer les réponses fiscales."
+                    >
+                        <div className="grid gap-5 md:grid-cols-2">
+                            <SettingsToggle
+                                label="Mode test"
+                                hint="Utiliser l’environnement de test e-MECeF."
+                                checked={Boolean(value('emecfTestMode'))}
+                                disabled={!permissions.canManage}
+                                onChange={(checked) =>
+                                    setValue('emecfTestMode', checked)
+                                }
+                            />
+                            <SettingsToggle
+                                label="Sauvegarder les factures"
+                                hint="Conserver un snapshot local après la réponse fournisseur."
+                                checked={Boolean(value('emecfSaveInvoices'))}
+                                disabled={!permissions.canManage}
+                                onChange={(checked) =>
+                                    setValue('emecfSaveInvoices', checked)
+                                }
+                            />
+                            <SettingsToggle
+                                label="Sauvegarder les logs"
+                                hint="Conserver les journaux techniques selon le niveau choisi."
+                                checked={Boolean(value('emecfSaveLogs'))}
+                                disabled={!permissions.canManage}
+                                onChange={(checked) =>
+                                    setValue('emecfSaveLogs', checked)
+                                }
+                            />
+                        </div>
+                    </SettingsSection>
+                </div>
             </div>
             <div className="grid gap-4 xl:grid-cols-2">
                 {renderIntegrationCard(
@@ -1334,17 +1401,17 @@ export default function SettingsPage({
                         tips={
                             group === 'general'
                                 ? [
-                                      {
-                                          title: 'Nom et notifications',
-                                          text: 'Le nom d’affichage est repris dans les messages et les documents générés par KORA.',
-                                      },
-                                      {
-                                          title: 'Fuseau de référence',
-                                          text: 'Conservez Africa/Porto-Novo pour garder les départs et les journaux alignés sur l’exploitation béninoise.',
-                                      },
-                                  ]
+                                    {
+                                        title: 'Nom et notifications',
+                                        text: 'Le nom d’affichage est repris dans les messages et les documents générés par KORA.',
+                                    },
+                                    {
+                                        title: 'Fuseau de référence',
+                                        text: 'Conservez Africa/Porto-Novo pour garder les départs et les journaux alignés sur l’exploitation béninoise.',
+                                    },
+                                ]
                                 : group === 'operations'
-                                  ? [
+                                    ? [
                                         {
                                             title: 'Confirmez les impacts',
                                             text: 'Les délais de vente et de session peuvent modifier immédiatement les parcours en cours.',
@@ -1354,7 +1421,7 @@ export default function SettingsPage({
                                             text: 'Utilisez un override de ligne lorsque la règle globale ne décrit pas une exploitation particulière.',
                                         },
                                     ]
-                                  : [
+                                    : [
                                         {
                                             title: 'Testez la configuration enregistrée',
                                             text: 'Un probe utilise uniquement les valeurs déjà sauvegardées, jamais les champs encore en édition.',

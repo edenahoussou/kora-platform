@@ -64,6 +64,76 @@ it('hits the e-MECeF information status endpoint and reports account details', f
         && $request->hasHeader('Authorization', 'Bearer probe-secret'));
 });
 
+it('stores the taxpayer account details returned by the DGI on first sync', function (): void {
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://developper.impots.bj/sygmef-emcf/api/info/status' => Http::response([
+            'status' => true,
+            'version' => '1.0',
+            'ifu' => '3202673225149',
+            'nim' => 'TS01019552',
+            'tokenValid' => '2027-02-27T14:12:01+01:00',
+            'emcfList' => [[
+                'nim' => 'TS01019552',
+                'status' => 'Actif',
+                'shopName' => 'KORA EXPRESS',
+                'address1' => 'Ilot 190, Sèdjro',
+                'address3' => 'COTONOU',
+                'contact1' => '0190109648',
+                'contact2' => 'ops@kora.test',
+            ]],
+        ]),
+    ]);
+
+    $admin = probeAdministrator();
+    storeEmecfToken($admin);
+
+    app(SettingsCoordinator::class)->update(
+        SettingsGroup::Integrations,
+        new IntegrationsSettingsUpdate(['emecfDefaultIfu' => '0000000000000']),
+        $admin,
+    );
+
+    app(IntegrationConnectionProbeManager::class)->test('emecf');
+
+    $settings = app(IntegrationsSettings::class)->refresh();
+
+    expect($settings->emecfNim)->toBe('TS01019552')
+        ->and($settings->emecfShopName)->toBe('KORA EXPRESS')
+        ->and($settings->emecfAddress1)->toBe('Ilot 190, Sèdjro')
+        ->and($settings->emecfContact1)->toBe('0190109648')
+        ->and($settings->emecfApiVersion)->toBe('1.0')
+        ->and($settings->emecfTokenValidUntil)->toBe('2027-02-27T14:12:01+01:00')
+        ->and($settings->emecfDefaultIfu)->toBe('3202673225149');
+});
+
+it('never overwrites account details already managed by administrators', function (): void {
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://developper.impots.bj/sygmef-emcf/api/info/status' => Http::response([
+            'status' => true,
+            'nim' => 'TS01019552',
+            'emcfList' => [['nim' => 'TS01019552', 'shopName' => 'API SHOP']],
+        ]),
+    ]);
+
+    $admin = probeAdministrator();
+    storeEmecfToken($admin);
+
+    app(SettingsCoordinator::class)->update(
+        SettingsGroup::Integrations,
+        new IntegrationsSettingsUpdate(['emecfNim' => 'MANUAL-NIM', 'emecfShopName' => 'KORA MANUEL']),
+        $admin,
+    );
+
+    app(IntegrationConnectionProbeManager::class)->test('emecf');
+
+    $settings = app(IntegrationsSettings::class)->refresh();
+
+    expect($settings->emecfNim)->toBe('MANUAL-NIM')
+        ->and($settings->emecfShopName)->toBe('KORA MANUEL');
+});
+
 it('normalizes a stored info URL that still points to the API root', function (): void {
     Http::preventStrayRequests();
     Http::fake([

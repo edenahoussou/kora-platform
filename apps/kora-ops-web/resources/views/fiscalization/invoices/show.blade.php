@@ -73,6 +73,10 @@
                         <div class="field"><span>AIB</span><strong>{{ $fiscal['aib'] ?? '—' }}</strong></div>
                         <div class="field"><span>Opérateur</span><strong>{{ $fiscal['operatorName'] ?? '—' }}</strong></div>
                         <div class="field"><span>Identifiant opérateur</span><strong>{{ $fiscal['operatorId'] ?? '—' }}</strong></div>
+                        @if(!empty($invoice['emitter']['shopName']))<div class="field"><span>Structure</span><strong>{{ $invoice['emitter']['shopName'] }}</strong></div>@endif
+                        @if(!empty($invoice['emitter']['nim']))<div class="field"><span>NIM</span><strong>{{ $invoice['emitter']['nim'] }}</strong></div>@endif
+                        @if(!empty($invoice['emitter']['address']))<div class="field"><span>Adresse</span><strong>{{ $invoice['emitter']['address'] }}</strong></div>@endif
+                        @if(!empty($invoice['emitter']['contact']))<div class="field"><span>Contact</span><strong>{{ $invoice['emitter']['contact'] }}</strong></div>@endif
                     </div>
                 </section>
                 <section class="panel">
