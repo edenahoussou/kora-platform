@@ -46,6 +46,28 @@ final class IntegrationsSettings extends Settings
 
     public int $emecfRetryBackoffMultiplier = 2;
 
+    public ?string $emecfNim = null;
+
+    public ?string $emecfShopName = null;
+
+    public ?string $emecfAccountStatus = null;
+
+    public ?string $emecfAddress1 = null;
+
+    public ?string $emecfAddress2 = null;
+
+    public ?string $emecfAddress3 = null;
+
+    public ?string $emecfContact1 = null;
+
+    public ?string $emecfContact2 = null;
+
+    public ?string $emecfContact3 = null;
+
+    public ?string $emecfApiVersion = null;
+
+    public ?string $emecfTokenValidUntil = null;
+
     public bool $fedapayEnabled = false;
 
     public ?string $fedapaySecretKey = null;

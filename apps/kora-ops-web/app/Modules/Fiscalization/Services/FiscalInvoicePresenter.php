@@ -5,9 +5,11 @@ namespace App\Modules\Fiscalization\Services;
 use App\Modules\Fiscalization\Data\FiscalInvoiceDocumentKind;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
 use App\Modules\Fiscalization\Models\FiscalSyncAttempt;
+use App\Modules\Settings\Settings\IntegrationsSettings;
 use Codianselme\LaraSygmef\Models\EmecfInvoice;
 use Codianselme\LaraSygmef\Models\EmecfInvoiceItem;
 use Codianselme\LaraSygmef\Models\EmecfInvoicePayment;
+use Throwable;
 
 class FiscalInvoicePresenter
 {
@@ -78,6 +80,7 @@ class FiscalInvoicePresenter
 
         return array_merge($this->listItem($invoice), [
             'fiscal' => $this->fiscalData($invoice->emecfInvoice),
+            'emitter' => $this->emitter(),
             'items' => $itemLines->values()->map(fn (EmecfInvoiceItem $item, int $index): array => [
                 'lineKey' => 'line-'.$index,
                 'code' => $item->code,
@@ -169,6 +172,36 @@ class FiscalInvoicePresenter
             'submittedAt' => $invoice->submitted_at?->toIso8601String(),
             'finalizedAt' => $invoice->finalized_at?->toIso8601String(),
         ];
+    }
+
+    /**
+     * Taxpayer identity as registered at the DGI, from the integrations
+     * settings — rendered on fiscal invoice views.
+     *
+     * @return array<string, string>
+     */
+    private function emitter(): array
+    {
+        try {
+            $settings = app(IntegrationsSettings::class);
+        } catch (Throwable) {
+            return [];
+        }
+
+        return array_filter([
+            'shopName' => $settings->emecfShopName,
+            'nim' => $settings->emecfNim,
+            'address' => implode(', ', array_filter([
+                $settings->emecfAddress1,
+                $settings->emecfAddress2,
+                $settings->emecfAddress3,
+            ])) ?: null,
+            'contact' => implode(' / ', array_filter([
+                $settings->emecfContact1,
+                $settings->emecfContact2,
+                $settings->emecfContact3,
+            ])) ?: null,
+        ], static fn ($value): bool => filled($value));
     }
 
     /** @return array{code: string, label: string} */

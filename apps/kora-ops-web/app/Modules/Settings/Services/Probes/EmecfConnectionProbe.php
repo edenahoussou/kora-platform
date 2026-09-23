@@ -56,6 +56,12 @@ final class EmecfConnectionProbe implements IntegrationConnectionProbe
                     );
                 }
 
+                try {
+                    $this->persistAccountInfo($payload);
+                } catch (Throwable) {
+                    // Account persistence must never break a connectivity check.
+                }
+
                 return ConnectionProbeResult::success(
                     provider: $this->provider(),
                     environment: $environment,
@@ -132,6 +138,40 @@ final class EmecfConnectionProbe implements IntegrationConnectionProbe
         ]);
 
         return implode(' · ', $details);
+    }
+
+    /**
+     * Stores the taxpayer account details returned by the DGI so invoice views
+     * can render them. Runs only on the first successful sync — values edited
+     * afterwards through the settings page are never overwritten.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function persistAccountInfo(array $payload): void
+    {
+        if (filled($this->settings->emecfNim)) {
+            return;
+        }
+
+        $emcf = (array) ($payload['emcfList'][0] ?? []);
+
+        $this->settings->emecfNim = isset($emcf['nim']) ? (string) $emcf['nim'] : (isset($payload['nim']) ? (string) $payload['nim'] : null);
+        $this->settings->emecfShopName = $emcf['shopName'] ?? null;
+        $this->settings->emecfAccountStatus = $emcf['status'] ?? null;
+        $this->settings->emecfAddress1 = $emcf['address1'] ?? null;
+        $this->settings->emecfAddress2 = $emcf['address2'] ?? null;
+        $this->settings->emecfAddress3 = $emcf['address3'] ?? null;
+        $this->settings->emecfContact1 = $emcf['contact1'] ?? null;
+        $this->settings->emecfContact2 = $emcf['contact2'] ?? null;
+        $this->settings->emecfContact3 = $emcf['contact3'] ?? null;
+        $this->settings->emecfApiVersion = isset($payload['version']) ? (string) $payload['version'] : null;
+        $this->settings->emecfTokenValidUntil = isset($payload['tokenValid']) ? (string) $payload['tokenValid'] : null;
+
+        if (($this->settings->emecfDefaultIfu === '0000000000000' || blank($this->settings->emecfDefaultIfu)) && filled($payload['ifu'] ?? null)) {
+            $this->settings->emecfDefaultIfu = (string) $payload['ifu'];
+        }
+
+        $this->settings->save();
     }
 
     private function formatDate(string $value): string
