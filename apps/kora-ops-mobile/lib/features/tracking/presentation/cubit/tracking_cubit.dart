@@ -82,7 +82,8 @@ class TrackingCubit extends Cubit<TrackingState> {
     final TrackingAvailability availability =
         await _requestPermissionIfDenied(await _repository.checkAvailability());
     final int pendingCount = await _repository.totalPendingCount();
-    emit(state.copyWith(availability: availability, pendingCount: pendingCount));
+    emit(
+        state.copyWith(availability: availability, pendingCount: pendingCount));
   }
 
   /// À appeler à chaque retour au premier plan de l'app (voir

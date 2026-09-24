@@ -19,9 +19,8 @@ class MesInformationsPage extends StatelessWidget {
         authState is AuthAuthenticated ? authState.user.name : '—';
     final String email =
         authState is AuthAuthenticated ? authState.user.email : '—';
-    final String phone = authState is AuthAuthenticated
-        ? (authState.user.phone ?? '—')
-        : '—';
+    final String phone =
+        authState is AuthAuthenticated ? (authState.user.phone ?? '—') : '—';
     // Le backend ne renvoie plus de libellé de rôle, seulement des
     // permissions — voir AuthUser et le commentaire équivalent dans
     // profil_page.dart.

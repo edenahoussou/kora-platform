@@ -16,7 +16,7 @@ enum TerminalMode { p501, phone }
 /// À NE PAS committer positionné sur `phone` pour un build de prod : ça
 /// prime sur tout, y compris un `--dart-define` explicite.
 // const TerminalMode? kTerminalModeOverride = null;
-const TerminalMode kTerminalModeOverride = TerminalMode.phone;
+const TerminalMode kTerminalModeOverride = TerminalMode.p501;
 
 /// Même principe pour `USE_MOCK_HARDWARE` — override direct dans le code,
 /// sans `--dart-define`. Laisse à `null` pour garder le comportement

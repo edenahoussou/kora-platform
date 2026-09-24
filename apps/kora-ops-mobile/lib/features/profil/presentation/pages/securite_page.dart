@@ -64,10 +64,9 @@ class SecuritePage extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.lg),
             FutureBuilder<AuthSession?>(
-              future: getIt<AuthRepository>().currentSession().then(
-                  (result) => result.when(
-                      onSuccess: (session) => session,
-                      onFailure: (_) => null)),
+              future: getIt<AuthRepository>().currentSession().then((result) =>
+                  result.when(
+                      onSuccess: (session) => session, onFailure: (_) => null)),
               builder:
                   (BuildContext context, AsyncSnapshot<AuthSession?> snapshot) {
                 final String? deviceName = snapshot.data?.device?.name;

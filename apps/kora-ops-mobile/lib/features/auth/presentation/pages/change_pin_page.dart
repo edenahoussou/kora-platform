@@ -120,7 +120,7 @@ class _ChangePinPageState extends State<ChangePinPage> {
     if (!mounted) return;
     setState(() => _isSubmitting = false);
 
-    result.when(
+    await result.when(
       onSuccess: (_) async {
         await KoraDialogs.success(
           context,

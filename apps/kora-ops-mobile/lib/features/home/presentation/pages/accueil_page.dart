@@ -184,9 +184,9 @@ class AccueilPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                child: const _TrackingStatusCard(),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                child: _TrackingStatusCard(),
               ),
               // ✅ CORRIGÉ : Ajout de l'espace système en bas (Home indicator)
               // pour s'assurer que la carte de suivi soit entièrement visible et scrollable.
@@ -685,8 +685,8 @@ class _TrackingStatusCard extends StatelessWidget {
                     padding: const EdgeInsets.all(10),
                     decoration: const BoxDecoration(
                         color: AppColors.gold, shape: BoxShape.circle),
-                    child: Icon(content.icon,
-                        color: AppColors.onGold, size: 20),
+                    child:
+                        Icon(content.icon, color: AppColors.onGold, size: 20),
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(

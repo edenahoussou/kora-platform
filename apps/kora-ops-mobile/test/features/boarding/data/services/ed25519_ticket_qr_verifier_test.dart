@@ -53,8 +53,8 @@ void main() {
   });
 
   test('champ court code (s) absent : accepté, shortCode null', () async {
-    final String token = await _sign(
-        keyPair, <String, Object?>{'v': 2, 't': 'ticket-uuid-2'});
+    final String token =
+        await _sign(keyPair, <String, Object?>{'v': 2, 't': 'ticket-uuid-2'});
 
     final TicketQrVerification result = await verifier.verify(token);
 
@@ -103,7 +103,8 @@ void main() {
     expect(result, isA<TicketQrMalformed>());
   });
 
-  test('signature cryptographiquement correcte mais payload sans champ t : '
+  test(
+      'signature cryptographiquement correcte mais payload sans champ t : '
       'malformé', () async {
     final String token = await _sign(
         keyPair, <String, Object?>{'v': 2, 'other_field': 'no-ticket-uuid'});
@@ -113,8 +114,7 @@ void main() {
     expect(result, isA<TicketQrMalformed>());
   });
 
-  test('clé publique de production (base64) accepte un format 32 octets',
-      () {
+  test('clé publique de production (base64) accepte un format 32 octets', () {
     // Vérifie juste que la construction ne lève pas — la clé réelle
     // (AppConfig.ticketSigningPublicKeyBase64) n'a pas de contrepartie
     // privée disponible ici pour un vrai test de bout en bout.

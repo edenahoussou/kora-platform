@@ -10,11 +10,6 @@ import '../../../../app/theme/kora_colors.dart';
 import '../../../../core/widgets/app_state_placeholder.dart';
 import '../../../../core/widgets/kora_card.dart';
 import '../../../../core/widgets/screen_header.dart';
-import '../../../../injection/injection.dart';
-import '../../../auth/presentation/cubit/auth_cubit.dart';
-import '../../../ops/domain/entities/depart.dart';
-import '../../../ops/domain/repositories/departure_repository.dart';
-import '../../../ops/presentation/cubit/selected_depart_cubit.dart';
 import '../../domain/entities/ops_notification.dart';
 import '../cubit/notification_cubit.dart';
 
@@ -168,52 +163,22 @@ class _NotificationTile extends StatelessWidget {
 
   Future<void> _handleTap(BuildContext context) async {
     final NotificationCubit cubit = context.read<NotificationCubit>();
-    if (!notification.isRead) await cubit.markAsRead(notification.uuid);
+    final bool wasUnread = !notification.isRead;
+    if (wasUnread) await cubit.markAsRead(notification.uuid);
     if (!context.mounted) return;
 
-    switch (notification.action) {
-      case OpsNotificationAction.openDeparture:
-      case OpsNotificationAction.refreshManifest:
-      case OpsNotificationAction.reviewScanConflict:
-        await _openDeparture(context);
-      case OpsNotificationAction.reauthenticate:
-        await context.read<AuthCubit>().sessionExpired();
-      case OpsNotificationAction.reviewRejectedOperations:
-      case OpsNotificationAction.retrySync:
-        await context.push(AppRoutes.synchro);
-      case OpsNotificationAction.checkPrinter:
-        await context.push(AppRoutes.printerTest);
-      case OpsNotificationAction.none:
-        break;
-    }
-  }
-
-  /// Charge le départ visé par la notification et l'ouvre — même logique
-  /// que `TourneePage._select` (repli sur les infos déjà connues si le
-  /// serveur est injoignable). `refresh_manifest`/`review_scan_conflict`
-  /// utilisent le même chemin : sélectionner le départ recharge le
-  /// manifeste de lui-même (`ManifesteCubit` écoute `SelectedDepartCubit`),
-  /// pas besoin d'un rafraîchissement séparé. Sans départ associé, ou si
-  /// le chargement échoue autrement, on renvoie vers Tournée pour une
-  /// sélection manuelle plutôt que de bloquer le convoyeur.
-  Future<void> _openDeparture(BuildContext context) async {
-    final String? uuid = notification.departure?.uuid;
-    if (uuid == null) {
-      context.go(AppRoutes.tournee);
-      return;
-    }
-
-    final result = await getIt<DepartureRepository>().show(uuid);
-    if (!context.mounted) return;
-
-    await result.when(
-      onSuccess: (Depart detail) async {
-        await context.read<SelectedDepartCubit>().select(detail);
-        if (context.mounted) await context.push(AppRoutes.manifeste);
-      },
-      onFailure: (_) async {
-        context.go(AppRoutes.tournee);
-      },
+    // Ouvre les détails plutôt que de lancer l'action directement (échange
+    // du 24/09/2026) : le convoyeur doit pouvoir lire le message complet
+    // avant d'être redirigé — l'action, le cas échéant, reste accessible
+    // depuis un bouton sur cette page (voir `notification_actions.dart`).
+    // Copie locale marquée lue : évite un aller-retour visuel "non lue"
+    // sur la page de détails pendant que `NotificationCubit` se met à
+    // jour de son côté.
+    await context.push(
+      AppRoutes.notificationDetail,
+      extra: wasUnread
+          ? notification.copyWith(isRead: true, readAt: DateTime.now())
+          : notification,
     );
   }
 }

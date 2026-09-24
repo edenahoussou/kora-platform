@@ -122,15 +122,37 @@ class _ScanBoardingPageState extends State<ScanBoardingPage> {
 
     final Depart? depart = context.watch<SelectedDepartCubit>().state;
 
+    // L'embarquement doit avoir commencé (statut 'boarding' ou 'departed')
+    // pour scanner des billets — un départ encore 'scheduled' (ou sans
+    // statut) n'a pas encore de liste de présence à faire, et un départ
+    // 'arrived'/'cancelled' n'en a plus (échange du 24/09/2026). Purement
+    // une aide côté app : le serveur rejette de toute façon un scan hors
+    // contexte (voir `wrongDeparture`), ceci évite juste un aller-retour
+    // inutile au convoyeur.
+    final String? explanation = depart == null
+        ? 'Sélectionnez un départ à gérer pour scanner des billets.'
+        : switch (depart.status) {
+            null ||
+            'scheduled' =>
+              'L\'embarquement n\'a pas encore commencé pour ce départ. '
+                  'Marquez-le "Embarquement en cours" depuis Tournée avant '
+                  'de scanner des billets.',
+            'arrived' => 'Ce départ est arrivé — le scan n\'est plus '
+                'disponible.',
+            'cancelled' => 'Ce départ est annulé — le scan n\'est plus '
+                'disponible.',
+            _ => null, // 'boarding' ou 'departed' : scan autorisé.
+          };
+
     return Scaffold(
       appBar: const MainAppBar(eyebrow: 'Embarquement', title: 'Scan boarding'),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.md),
-          child: depart == null
+          child: explanation != null
               ? Center(
                   child: Text(
-                    'Sélectionnez un départ à gérer pour scanner des billets.',
+                    explanation,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
@@ -143,7 +165,10 @@ class _ScanBoardingPageState extends State<ScanBoardingPage> {
                           alignment: Alignment.centerLeft,
                           child: SyncStatusBanner()),
                       const SizedBox(height: AppSpacing.sm),
-                      Text(depart.route,
+                      // `depart` est forcément non-null ici : `explanation`
+                      // (vérifié juste au-dessus) est null seulement quand
+                      // `depart != null` — voir sa définition plus haut.
+                      Text(depart!.route,
                           style: Theme.of(context).textTheme.titleMedium),
                       const SizedBox(height: AppSpacing.lg),
                       _ScanCard(onScan: () => _scan(context)),

@@ -79,7 +79,8 @@ class GeolocatorLocationProvider implements LocationProvider {
   @override
   Future<bool> hasPreciseAccuracy() async {
     try {
-      final LocationAccuracyStatus status = await Geolocator.getLocationAccuracy();
+      final LocationAccuracyStatus status =
+          await Geolocator.getLocationAccuracy();
       return status == LocationAccuracyStatus.precise;
     } on Object {
       // Plateforme/version qui ne distingue pas précise/approximative
@@ -101,8 +102,7 @@ class GeolocatorLocationProvider implements LocationProvider {
       // le comportement par défaut recommandé.
     );
 
-    return Geolocator.getPositionStream(locationSettings: settings)
-        .map(_fixOf);
+    return Geolocator.getPositionStream(locationSettings: settings).map(_fixOf);
   }
 
   @override
@@ -121,7 +121,27 @@ class GeolocatorLocationProvider implements LocationProvider {
           ? TrackingPositionSource.gps
           : TrackingPositionSource.fused,
       speedKmh: position.speed >= 0 ? position.speed * 3.6 : null,
-      headingDegrees: position.heading >= 0 ? position.heading : null,
+      headingDegrees: _normalizedHeading(position.heading),
     );
+  }
+
+  /// Le backend exige `heading_degrees` dans [0, 359.99] (voir
+  /// `IngestTrackingPositionsRequest` côté backend) — mais certains
+  /// appareils/API GPS renvoient 360.0 pour le nord (convention boussole
+  /// équivalente à 0°), qui dépassait cette borne et faisait rejeter
+  /// TOUT le lot contenant cette position, indéfiniment (échange du
+  /// 24/09/2026 : HTTP 422 en boucle, aucune position du lot n'était
+  /// jamais marquée synchronisée — voir `TrackingSyncEngine.flush`,
+  /// aucun découpage par position individuelle en cas d'échec).
+  double? _normalizedHeading(double heading) {
+    if (heading < 0) {
+      return null; // -1 : direction inconnue (convention Geolocator/GPS).
+    }
+    final double normalized = heading % 360;
+    // `% 360` sur 360.0 pile donne déjà 0.0, mais une valeur comme
+    // 359.999999 (imprécision flottante) resterait au-dessus de 359.99 —
+    // ramenée à 0 par sécurité, plutôt que de faire à nouveau échouer le
+    // lot pour un centième de degré.
+    return normalized > 359.99 ? 0 : normalized;
   }
 }
