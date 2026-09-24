@@ -40,6 +40,8 @@ it('lists pricing rules without exposing numeric ids, with settings and conditio
         ->assertInertia(fn (Assert $page) => $page
             ->component('dynamic-pricing')
             ->where('rules.data.0.uuid', $rule->uuid)
+            ->where('rules.data.0.scope', 'line')
+            ->where('rules.data.0.direction', 'both')
             ->where('rules.data.0.lineCode', $line->code)
             ->where('rules.data.0.type', 'increase')
             ->where('rules.data.0.percentage', 15.5)
@@ -58,6 +60,7 @@ it('creates a pricing rule in draft status regardless of submitted status', func
     [$line] = lineWithStops();
 
     $this->actingAs(commercialDirector())->post(route('pricing-rules.store'), [
+        'scope_type' => 'line',
         'line_id' => $line->uuid,
         'type' => 'increase',
         'percentage' => 20,
@@ -70,12 +73,86 @@ it('creates a pricing rule in draft status regardless of submitted status', func
 
     $rule = PricingRule::query()->where('line_id', $line->id)->firstOrFail();
     expect($rule->status->value)->toBe('draft')
+        ->and($rule->scope_type->value)->toBe('line')
         ->and((float) $rule->percentage)->toBe(20.0)
         ->and($rule->conditions)->toBe(['fill_rate_min' => 80, 'hours_before_departure_max' => 24]);
 });
 
+it('creates a network-scoped pricing rule without a line', function (): void {
+    $this->actingAs(commercialDirector())->post(route('pricing-rules.store'), [
+        'scope_type' => 'network',
+        'type' => 'decrease',
+        'percentage' => 10,
+        'priority' => 5,
+    ])->assertRedirect(route('pricing-rules.index', absolute: false));
+
+    $rule = PricingRule::query()->latest('id')->firstOrFail();
+    expect($rule->scope_type->value)->toBe('network')
+        ->and($rule->line_id)->toBeNull();
+});
+
+it('creates a segment-scoped pricing rule with direction', function (): void {
+    [$line, $origin, $destination] = lineWithStops();
+
+    $this->actingAs(commercialDirector())->post(route('pricing-rules.store'), [
+        'scope_type' => 'segment',
+        'line_id' => $line->uuid,
+        'origin_stop_id' => $origin->uuid,
+        'destination_stop_id' => $destination->uuid,
+        'direction' => 'outbound',
+        'type' => 'increase',
+        'percentage' => 15,
+        'priority' => 5,
+    ])->assertRedirect(route('pricing-rules.index', absolute: false));
+
+    $rule = PricingRule::query()->latest('id')->firstOrFail();
+    expect($rule->scope_type->value)->toBe('segment')
+        ->and($rule->origin_stop_id)->toBe($origin->id)
+        ->and($rule->destination_stop_id)->toBe($destination->id)
+        ->and($rule->direction->value)->toBe('outbound');
+});
+
+it('requires a line and same-line stops for a segment-scoped rule', function (): void {
+    [$line, $origin] = lineWithStops();
+    [, $foreignStop] = lineWithStops();
+
+    $this->actingAs(commercialDirector())->post(route('pricing-rules.store'), [
+        'scope_type' => 'segment',
+        'origin_stop_id' => $origin->uuid,
+        'destination_stop_id' => $foreignStop->uuid,
+        'type' => 'increase',
+        'percentage' => 15,
+        'priority' => 5,
+    ])->assertSessionHasErrors('line_id');
+
+    $this->actingAs(commercialDirector())->post(route('pricing-rules.store'), [
+        'scope_type' => 'segment',
+        'line_id' => $line->uuid,
+        'origin_stop_id' => $origin->uuid,
+        'destination_stop_id' => $foreignStop->uuid,
+        'type' => 'increase',
+        'percentage' => 15,
+        'priority' => 5,
+    ])->assertSessionHasErrors('destination_stop_id');
+});
+
+it('rejects a segment rule whose origin and destination are identical', function (): void {
+    [$line, $origin] = lineWithStops();
+
+    $this->actingAs(commercialDirector())->post(route('pricing-rules.store'), [
+        'scope_type' => 'segment',
+        'line_id' => $line->uuid,
+        'origin_stop_id' => $origin->uuid,
+        'destination_stop_id' => $origin->uuid,
+        'type' => 'increase',
+        'percentage' => 15,
+        'priority' => 5,
+    ])->assertSessionHasErrors('destination_stop_id');
+});
+
 it('rejects an inverted fill rate range on a pricing rule', function (): void {
     $this->actingAs(commercialDirector())->post(route('pricing-rules.store'), [
+        'scope_type' => 'network',
         'type' => 'increase',
         'percentage' => 20,
         'priority' => 5,
@@ -87,6 +164,7 @@ it('updates a pricing rule', function (): void {
     $rule = createPricingRule();
 
     $this->actingAs(commercialDirector())->put(route('pricing-rules.update', $rule), [
+        'scope_type' => 'network',
         'type' => 'decrease',
         'percentage' => 25,
         'priority' => 3,

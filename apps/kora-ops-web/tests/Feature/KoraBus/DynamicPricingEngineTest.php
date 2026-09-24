@@ -409,3 +409,230 @@ it('returns neutral dynamic pricing fields when no rule matches in search', func
         ->assertJsonPath('data.0.legs.0.dynamic_adjustment_amount', 0)
         ->assertJsonPath('data.0.legs.0.pricing_rule_uuid', null);
 });
+
+it('applies a network-scoped rule to any line', function (): void {
+    $scenario = pricingEngineScenario(occupiedSeats: 0, hoursFromNow: 200);
+
+    $rule = PricingRule::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'scope_type' => 'network',
+        'line_id' => null,
+        'type' => 'increase',
+        'percentage' => 20.0,
+        'priority' => 10,
+        'status' => 'active',
+        'conditions' => [],
+    ]);
+
+    Sanctum::actingAs($scenario['user']);
+
+    $this->postJson('/api/v1/bus/itinerary-quotes', [
+        'passenger_count' => 1,
+        'legs' => [[
+            'leg_order' => 1,
+            'departure_uuid' => $scenario['departure']->uuid,
+            'origin_stop_uuid' => $scenario['origin']->uuid,
+            'destination_stop_uuid' => $scenario['destination']->uuid,
+        ]],
+    ])->assertOk()
+        ->assertJsonPath('data.legs.0.final_amount', 12000)
+        ->assertJsonPath('data.legs.0.pricing_rule_uuid', $rule->uuid);
+});
+
+it('applies a segment-scoped rule to its exact O/D journey', function (): void {
+    $scenario = pricingEngineScenario(occupiedSeats: 0, hoursFromNow: 200);
+
+    $rule = PricingRule::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'scope_type' => 'segment',
+        'line_id' => $scenario['line']->id,
+        'origin_stop_id' => $scenario['origin']->id,
+        'destination_stop_id' => $scenario['destination']->id,
+        'type' => 'increase',
+        'percentage' => 20.0,
+        'priority' => 10,
+        'status' => 'active',
+        'conditions' => [],
+    ]);
+
+    Sanctum::actingAs($scenario['user']);
+
+    $this->postJson('/api/v1/bus/itinerary-quotes', [
+        'passenger_count' => 1,
+        'legs' => [[
+            'leg_order' => 1,
+            'departure_uuid' => $scenario['departure']->uuid,
+            'origin_stop_uuid' => $scenario['origin']->uuid,
+            'destination_stop_uuid' => $scenario['destination']->uuid,
+        ]],
+    ])->assertOk()
+        ->assertJsonPath('data.legs.0.final_amount', 12000)
+        ->assertJsonPath('data.legs.0.pricing_rule_uuid', $rule->uuid);
+});
+
+it('does not apply a segment-scoped rule to another O/D journey on the same line', function (): void {
+    $scenario = pricingEngineScenario(occupiedSeats: 0, hoursFromNow: 200);
+
+    $thirdPhysical = PhysicalStop::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'name' => 'Troisième Physical',
+        'city' => 'Djougou',
+        'country' => 'BJ',
+        'status' => 'active',
+    ]);
+
+    $third = Stop::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'line_id' => $scenario['line']->id,
+        'physical_stop_id' => $thirdPhysical->id,
+        'name' => 'Troisième',
+        'city' => 'Djougou',
+        'country' => 'BJ',
+        'stop_order' => 3,
+        'km_from_origin' => 500,
+        'status' => 'active',
+    ]);
+
+    // Horaires publiés requis pour coter la jambe Destination→Troisième.
+    $scenario['departure']->update(['stop_times' => [
+        ['stop_uuid' => $scenario['origin']->uuid, 'departure_minutes' => 0, 'arrival_minutes' => 0],
+        ['stop_uuid' => $scenario['destination']->uuid, 'departure_minutes' => 300, 'arrival_minutes' => 300],
+        ['stop_uuid' => $third->uuid, 'departure_minutes' => 360, 'arrival_minutes' => 360],
+    ]]);
+
+    Fare::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'line_id' => $scenario['line']->id,
+        'origin_stop_id' => $scenario['destination']->id,
+        'destination_stop_id' => $third->id,
+        'base_amount' => 5000,
+        'currency' => 'XOF',
+        'effective_from' => '2026-01-01',
+        'status' => 'active',
+    ]);
+
+    // Règle scopée au segment Origine→Destination uniquement.
+    PricingRule::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'scope_type' => 'segment',
+        'line_id' => $scenario['line']->id,
+        'origin_stop_id' => $scenario['origin']->id,
+        'destination_stop_id' => $scenario['destination']->id,
+        'type' => 'increase',
+        'percentage' => 20.0,
+        'priority' => 10,
+        'status' => 'active',
+        'conditions' => [],
+    ]);
+
+    Sanctum::actingAs($scenario['user']);
+
+    // Trajet Destination→Troisième : hors du segment de la règle → pas de variation.
+    $this->postJson('/api/v1/bus/itinerary-quotes', [
+        'passenger_count' => 1,
+        'legs' => [[
+            'leg_order' => 1,
+            'departure_uuid' => $scenario['departure']->uuid,
+            'origin_stop_uuid' => $scenario['destination']->uuid,
+            'destination_stop_uuid' => $third->uuid,
+        ]],
+    ])->assertOk()
+        ->assertJsonPath('data.legs.0.final_amount', 5000)
+        ->assertJsonPath('data.legs.0.pricing_rule_uuid', null);
+});
+
+it('applies a segment rule to its O/D pair regardless of stored stop order when direction is both', function (): void {
+    $scenario = pricingEngineScenario(occupiedSeats: 0, hoursFromNow: 200);
+
+    // Les arrêts de la règle sont enregistrés dans l'ordre inverse : la paire
+    // O/D reste la même, direction « les deux sens » → la règle s'applique.
+    $rule = PricingRule::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'scope_type' => 'segment',
+        'line_id' => $scenario['line']->id,
+        'origin_stop_id' => $scenario['destination']->id,
+        'destination_stop_id' => $scenario['origin']->id,
+        'direction' => 'both',
+        'type' => 'increase',
+        'percentage' => 20.0,
+        'priority' => 10,
+        'status' => 'active',
+        'conditions' => [],
+    ]);
+
+    Sanctum::actingAs($scenario['user']);
+
+    $this->postJson('/api/v1/bus/itinerary-quotes', [
+        'passenger_count' => 1,
+        'legs' => [[
+            'leg_order' => 1,
+            'departure_uuid' => $scenario['departure']->uuid,
+            'origin_stop_uuid' => $scenario['origin']->uuid,
+            'destination_stop_uuid' => $scenario['destination']->uuid,
+        ]],
+    ])->assertOk()
+        ->assertJsonPath('data.legs.0.final_amount', 12000)
+        ->assertJsonPath('data.legs.0.pricing_rule_uuid', $rule->uuid);
+});
+
+it('does not apply a return-direction rule to an outbound journey', function (): void {
+    $scenario = pricingEngineScenario(occupiedSeats: 0, hoursFromNow: 200);
+
+    // Trajet Origine(1)→Destination(2) = sens aller ; la règle « retour »
+    // ne doit pas s'appliquer.
+    PricingRule::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'scope_type' => 'line',
+        'line_id' => $scenario['line']->id,
+        'direction' => 'return',
+        'type' => 'increase',
+        'percentage' => 20.0,
+        'priority' => 10,
+        'status' => 'active',
+        'conditions' => [],
+    ]);
+
+    Sanctum::actingAs($scenario['user']);
+
+    $this->postJson('/api/v1/bus/itinerary-quotes', [
+        'passenger_count' => 1,
+        'legs' => [[
+            'leg_order' => 1,
+            'departure_uuid' => $scenario['departure']->uuid,
+            'origin_stop_uuid' => $scenario['origin']->uuid,
+            'destination_stop_uuid' => $scenario['destination']->uuid,
+        ]],
+    ])->assertOk()
+        ->assertJsonPath('data.legs.0.final_amount', 10000)
+        ->assertJsonPath('data.legs.0.pricing_rule_uuid', null);
+});
+
+it('applies an outbound-direction rule to an outbound journey', function (): void {
+    $scenario = pricingEngineScenario(occupiedSeats: 0, hoursFromNow: 200);
+
+    $rule = PricingRule::query()->create([
+        'uuid' => Str::uuid()->toString(),
+        'scope_type' => 'line',
+        'line_id' => $scenario['line']->id,
+        'direction' => 'outbound',
+        'type' => 'increase',
+        'percentage' => 20.0,
+        'priority' => 10,
+        'status' => 'active',
+        'conditions' => [],
+    ]);
+
+    Sanctum::actingAs($scenario['user']);
+
+    $this->postJson('/api/v1/bus/itinerary-quotes', [
+        'passenger_count' => 1,
+        'legs' => [[
+            'leg_order' => 1,
+            'departure_uuid' => $scenario['departure']->uuid,
+            'origin_stop_uuid' => $scenario['origin']->uuid,
+            'destination_stop_uuid' => $scenario['destination']->uuid,
+        ]],
+    ])->assertOk()
+        ->assertJsonPath('data.legs.0.final_amount', 12000)
+        ->assertJsonPath('data.legs.0.pricing_rule_uuid', $rule->uuid);
+});
