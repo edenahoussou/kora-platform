@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\IdentityAccess\Http\Controllers\RoleController;
+use App\Modules\IdentityAccess\Http\Controllers\TerminalManagementController;
 use App\Modules\IdentityAccess\Http\Controllers\UserController;
 use App\Modules\Settings\Http\Controllers\IntegrationConnectionTestController;
 use App\Modules\Settings\Http\Controllers\SettingsController;
@@ -53,8 +54,10 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::delete('roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy');
     Route::post('roles/{role}/restore', [RoleController::class, 'restore'])->name('roles.restore');
 
-    Route::get('terminals', $comingSoon('Terminaux P501', 'Administrez les terminaux autorisés par numéro de série et affectation.', 'Administration'))
+    Route::get('terminals', [TerminalManagementController::class, 'index'])
         ->name('terminals');
+    Route::get('terminals/{terminal:uuid}', [TerminalManagementController::class, 'show'])
+        ->name('terminals.show');
     Route::get('integrations', $comingSoon('Intégrations', 'Supervisez CassKai, MECeF, Mobile Money et les files de synchronisation.', 'Administration'))
         ->name('integrations');
     Route::get('audit', $comingSoon('Journal d’audit', 'Retrouvez chaque action sensible et son contexte.', 'Administration'))

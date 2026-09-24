@@ -15,6 +15,15 @@ class RegisterTerminalRequest extends FormRequest
         return $this->user()?->can('create', TerminalP501::class) ?? false;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->filled('serial_number')) {
+            $this->merge([
+                'serial_number' => $this->string('serial_number')->trim()->upper()->value(),
+            ]);
+        }
+    }
+
     /**
      * @return array<string, array<int, mixed>>
      */
@@ -24,6 +33,7 @@ class RegisterTerminalRequest extends FormRequest
             'serial_number' => ['required', 'string', 'max:64', 'unique:terminals_p501,serial_number'],
             'type' => ['nullable', Rule::enum(TerminalType::class)],
             'agency_id' => ['nullable', 'integer', Rule::exists((new Agency)->getTable(), 'id')],
+            'agency_uuid' => ['nullable', 'uuid', Rule::exists((new Agency)->getTable(), 'uuid')],
         ];
     }
 
@@ -35,7 +45,10 @@ class RegisterTerminalRequest extends FormRequest
         return [
             'serial_number' => $this->string('serial_number')->trim()->upper()->value(),
             'type' => $this->filled('type') ? TerminalType::from($this->string('type')->value()) : TerminalType::P501,
-            'agency_id' => $this->integer('agency_id') ?: null,
+            'agency_id' => $this->integer('agency_id')
+                ?: ($this->filled('agency_uuid')
+                    ? Agency::query()->where('uuid', $this->string('agency_uuid')->trim()->value())->value('id')
+                    : null),
         ];
     }
 }

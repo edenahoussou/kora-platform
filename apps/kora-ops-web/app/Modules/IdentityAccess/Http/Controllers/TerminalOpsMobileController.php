@@ -8,13 +8,13 @@ use App\Modules\IdentityAccess\Actions\LogTerminalActivityAction;
 use App\Modules\IdentityAccess\Actions\RecordTerminalSyncAction;
 use App\Modules\IdentityAccess\Http\Requests\TerminalActivityRequest;
 use App\Modules\IdentityAccess\Http\Requests\TerminalHandshakeRequest;
+use App\Modules\IdentityAccess\Http\Requests\TerminalSyncRequest;
 use App\Modules\IdentityAccess\Http\Resources\TerminalP501Resource;
 use App\Modules\IdentityAccess\Models\TerminalP501;
 use App\Modules\IdentityAccess\Services\OpsSessionPayloadBuilder;
 use App\Modules\IdentityAccess\Services\OpsSessionTokenReader;
 use App\Modules\Notifications\Services\OpsNotifier;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * @group OPS Mobile — Terminal
@@ -89,6 +89,7 @@ class TerminalOpsMobileController extends Controller
             $request->user(),
             $tokens->tokenId($request),
             $request->ip(),
+            $request->telemetry(),
         );
 
         return response()->json([
@@ -125,13 +126,18 @@ class TerminalOpsMobileController extends Controller
      *   "error": { "code": "terminal_unknown", "message": "Ce terminal n’est pas enregistré. Contactez votre agence." }
      * }
      */
-    public function sync(Request $request, RecordTerminalSyncAction $recordSync): JsonResponse
+    public function sync(TerminalSyncRequest $request, RecordTerminalSyncAction $recordSync): JsonResponse
     {
         /** @var TerminalP501 $terminal */
         $terminal = $request->attributes->get('terminal');
 
         $terminal = $recordSync
-            ->execute($terminal, $request->user(), (array) $request->input('summary', []))
+            ->execute(
+                $terminal,
+                $request->user(),
+                $request->summary(),
+                $request->telemetry(),
+            )
             ->load(['assignedUser', 'agency']);
 
         return response()->json(['data' => new TerminalP501Resource($terminal)]);

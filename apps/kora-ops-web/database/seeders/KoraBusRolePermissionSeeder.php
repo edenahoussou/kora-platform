@@ -27,10 +27,19 @@ class KoraBusRolePermissionSeeder extends Seeder
                 'guard_name' => 'web',
             ], [
                 'is_system' => true,
-                'label' => __('system_role.' . $roleEnum->value),
+                'label' => $roleEnum->translatedLabel(),
                 'category' => $roleEnum->category()->value,
                 'is_active' => true,
             ]);
+
+            // Resynchronise le libellé et la catégorie des rôles système
+            // existants : les seeds passés ont pu écrire la clé de
+            // traduction brute (ex. « system_role.conductor ») au lieu du
+            // libellé résolu. `save()` est sans effet si rien n'a changé.
+            $role->forceFill([
+                'label' => $roleEnum->translatedLabel(),
+                'category' => $roleEnum->category()->value,
+            ])->save();
 
             // Toujours resynchroniser, pas seulement à la création du rôle
             // (corrigé le 24/09/2026) : un rôle système existant (ex.
@@ -60,32 +69,6 @@ class KoraBusRolePermissionSeeder extends Seeder
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // namespace Database\Seeders;
 
 // use App\Modules\IdentityAccess\Data\SystemRole;
@@ -113,7 +96,7 @@ class KoraBusRolePermissionSeeder extends Seeder
 //                 'guard_name' => 'web',
 //             ], [
 //                 'is_system' => true,
-//                 'label' => __('system_role.'.$roleEnum->value),
+//                 'label' => $roleEnum->translatedLabel(),
 //                 'category' => $roleEnum->category()->value,
 //                 'is_active' => true,
 //             ]);

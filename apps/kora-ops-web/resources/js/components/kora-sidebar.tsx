@@ -219,6 +219,7 @@ const navItems: NavEntry[] = [
         permission: [
             'users.view',
             'roles.view',
+            'terminals.view',
             'settings.general.view',
             'settings.operations.view',
             'settings.integrations.view',
@@ -233,6 +234,11 @@ const navItems: NavEntry[] = [
                 title: 'Rôles et permissions',
                 href: '/roles',
                 permission: 'roles.view',
+            },
+            {
+                title: 'Terminaux P501',
+                href: '/terminals',
+                permission: 'terminals.view',
             },
             {
                 title: 'Paramètres',

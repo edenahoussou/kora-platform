@@ -195,18 +195,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('cash-registers/{cashRegister:uuid}', [AgencyController::class, 'updateCashRegister'])->name('agencies.cash-registers.update');
     Route::patch('cash-registers/{cashRegister:uuid}/status', [AgencyController::class, 'changeCashRegisterStatus'])->name('agencies.cash-registers.status');
 
-    // Terminaux P501 — services/endpoints backend (MEZ-XX). L'écran
-    // d'administration lui-même (page "terminals" ci-dessous, toujours en
-    // "coming soon") est livré séparément dans MEZ-99.
+    // Terminaux P501 — endpoints JSON consommés par le panneau Inertia et
+    // conservés pour les consommateurs backend existants.
     Route::prefix('terminals')->name('terminals.')->group(function (): void {
         Route::get('data', [TerminalP501Controller::class, 'index'])->name('index');
         Route::post('/', [TerminalP501Controller::class, 'store'])->name('store');
-        Route::get('{terminal:uuid}', [TerminalP501Controller::class, 'show'])->name('show');
         Route::post('{terminal:uuid}/activate', [TerminalP501Controller::class, 'activate'])->name('activate');
         Route::post('{terminal:uuid}/deactivate', [TerminalP501Controller::class, 'deactivate'])->name('deactivate');
         Route::post('{terminal:uuid}/maintenance', [TerminalP501Controller::class, 'maintenance'])->name('maintenance');
         Route::post('{terminal:uuid}/lost', [TerminalP501Controller::class, 'reportLost'])->name('lost');
         Route::post('{terminal:uuid}/assign', [TerminalP501Controller::class, 'assign'])->name('assign');
+        Route::post('{terminal:uuid}/unassign', [TerminalP501Controller::class, 'unassign'])->name('unassign');
+        Route::post('{terminal:uuid}/recover', [TerminalP501Controller::class, 'recover'])->name('recover');
+        Route::post('{terminal:uuid}/stock', [TerminalP501Controller::class, 'returnToStock'])->name('stock');
+        Route::post('{terminal:uuid}/revoke-sessions', [TerminalP501Controller::class, 'revokeSessions'])->name('revoke-sessions');
     });
 
     // =========================================================

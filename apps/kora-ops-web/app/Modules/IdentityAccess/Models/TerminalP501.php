@@ -16,6 +16,9 @@ use Illuminate\Support\Carbon;
  * @property string $uuid
  * @property string $serial_number
  * @property TerminalType $type
+ * @property string|null $hardware_model
+ * @property string|null $os_version
+ * @property string|null $app_version
  * @property int|null $assigned_user_id
  * @property int|null $agency_id
  * @property TerminalP501Status $status
@@ -34,6 +37,9 @@ class TerminalP501 extends KoraModel
         'uuid',
         'serial_number',
         'type',
+        'hardware_model',
+        'os_version',
+        'app_version',
         'assigned_user_id',
         'agency_id',
         'status',

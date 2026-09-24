@@ -29,15 +29,26 @@ it('opens an ops mobile session for an active, registered terminal', function ()
     $terminal = TerminalP501::query()->create(['serial_number' => 'P501-100001', 'assigned_user_id' => $user->id]);
 
     $this->withToken($plainToken)
-        ->postJson('/api/v1/ops-mobile/terminal/handshake', ['serial_number' => 'p501-100001'])
+        ->postJson('/api/v1/ops-mobile/terminal/handshake', [
+            'serial_number' => 'p501-100001',
+            'hardware_model' => 'SUNMI P2',
+            'os_version' => 'Android 13',
+            'app_version' => '2.4.1',
+        ])
         ->assertOk()
         ->assertJsonPath('data.uuid', $terminal->uuid)
         ->assertJsonPath('data.status', 'active')
+        ->assertJsonPath('data.hardware_model', 'SUNMI P2')
+        ->assertJsonPath('data.os_version', 'Android 13')
+        ->assertJsonPath('data.app_version', '2.4.1')
         ->assertJsonPath('data.session.state', 'active')
         ->assertJsonMissingPath('data.id')
         ->assertJsonMissingPath('data.session.id');
 
     expect($terminal->refresh()->last_handshake_at)->not->toBeNull()
+        ->and($terminal->hardware_model)->toBe('SUNMI P2')
+        ->and($terminal->os_version)->toBe('Android 13')
+        ->and($terminal->app_version)->toBe('2.4.1')
         ->and(TerminalSession::query()->where('terminal_p501_id', $terminal->id)->where('user_id', $user->id)->exists())->toBeTrue();
 
     $activity = Activity::query()->where('description', 'terminal_handshake')->latest('id')->first();
@@ -73,9 +84,18 @@ it('rejects handshake for lost, inactive or maintenance terminals with distinct 
         ]);
 
         $this->withToken($plainToken)
-            ->postJson('/api/v1/ops-mobile/terminal/handshake', ['serial_number' => $terminal->serial_number])
+            ->postJson('/api/v1/ops-mobile/terminal/handshake', [
+                'serial_number' => $terminal->serial_number,
+                'hardware_model' => 'MUST-NOT-BE-SAVED',
+                'os_version' => 'MUST-NOT-BE-SAVED',
+                'app_version' => 'MUST-NOT-BE-SAVED',
+            ])
             ->assertForbidden()
             ->assertJsonPath('error.code', $expectedCode);
+
+        expect($terminal->refresh()->hardware_model)->toBeNull()
+            ->and($terminal->os_version)->toBeNull()
+            ->and($terminal->app_version)->toBeNull();
     }
 });
 
@@ -91,11 +111,23 @@ it('records a successful sync and updates last_sync_at without touching last_han
     $terminal = TerminalP501::query()->create(['serial_number' => 'P501-100003']);
 
     $this->withToken($plainToken)
-        ->postJson('/api/v1/ops-mobile/terminal/sync', ['serial_number' => 'P501-100003', 'summary' => ['operations' => 3]])
+        ->postJson('/api/v1/ops-mobile/terminal/sync', [
+            'serial_number' => 'P501-100003',
+            'summary' => ['operations' => 3],
+            'hardware_model' => 'SUNMI P2 Pro',
+            'os_version' => 'Android 14',
+            'app_version' => '2.4.2',
+        ])
         ->assertOk()
-        ->assertJsonPath('data.serial_number', 'P501-100003');
+        ->assertJsonPath('data.serial_number', 'P501-100003')
+        ->assertJsonPath('data.hardware_model', 'SUNMI P2 Pro')
+        ->assertJsonPath('data.os_version', 'Android 14')
+        ->assertJsonPath('data.app_version', '2.4.2');
 
     expect($terminal->refresh()->last_sync_at)->not->toBeNull()
+        ->and($terminal->hardware_model)->toBe('SUNMI P2 Pro')
+        ->and($terminal->os_version)->toBe('Android 14')
+        ->and($terminal->app_version)->toBe('2.4.2')
         ->and($terminal->last_handshake_at)->toBeNull();
 
     $activity = Activity::query()->where('description', 'terminal_sync')->latest('id')->first();
