@@ -9,11 +9,9 @@ use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Data\FareDirection;
 use App\Modules\DynamicPricing\Data\FareStatus;
 use App\Modules\DynamicPricing\Data\PricingBreakdownData;
-use App\Modules\DynamicPricing\Data\PricingRuleStatus;
 use App\Modules\DynamicPricing\Data\PricingRuleType;
 use App\Modules\DynamicPricing\Models\Fare;
 use App\Modules\DynamicPricing\Models\PriceQuote;
-use App\Modules\DynamicPricing\Models\PricingRule;
 use App\Modules\DynamicPricing\Models\PricingSetting;
 use App\Modules\DynamicPricing\Models\ServiceClass;
 use App\Modules\SeatInventory\Actions\BuildSeatAvailabilityAction;
@@ -28,6 +26,7 @@ class CalculateQuoteAction
         private ResolveDepartureSellabilityAction $resolveSellability,
         private BuildSeatAvailabilityAction $buildSeatAvailability,
         private GroupPricingService $groupPricing,
+        private MatchPricingRuleAction $matchPricingRule,
     ) {}
 
     /**
@@ -78,7 +77,7 @@ class CalculateQuoteAction
 
         [$fillRate, $hoursBeforeDeparture] = $this->measureConditionInputs($departure, $originStop, $destinationStop);
 
-        $rule = $this->matchPricingRule($departure, $fillRate, $hoursBeforeDeparture);
+        $rule = $this->matchPricingRule->handle($departure, $originStop, $destinationStop, $fillRate, $hoursBeforeDeparture);
 
         $coefficient = 1.0;
         if ($rule) {
@@ -174,60 +173,6 @@ class CalculateQuoteAction
         );
 
         return [$fillRate, $hoursBeforeDeparture];
-    }
-
-    /**
-     * Sélectionne la règle de pricing active dont les conditions (remplissage,
-     * délai) matchent réellement le contexte de la demande, par ordre de
-     * priorité croissante (1 = plus prioritaire). Une règle sans "conditions"
-     * s'applique inconditionnellement dès lors qu'elle est active et dans sa
-     * période de validité.
-     */
-    private function matchPricingRule(Departure $departure, float $fillRate, float $hoursBeforeDeparture): ?PricingRule
-    {
-        $candidates = PricingRule::query()
-            ->where(fn ($query) => $query->where('line_id', $departure->line_id)->orWhereNull('line_id'))
-            ->where('status', PricingRuleStatus::Active->value)
-            ->where(fn ($query) => $query->whereNull('starts_at')->orWhere('starts_at', '<=', now()))
-            ->where(fn ($query) => $query->whereNull('ends_at')->orWhere('ends_at', '>=', now()))
-            ->orderBy('priority')
-            ->get();
-
-        foreach ($candidates as $candidate) {
-            if ($this->conditionsMatch($candidate->conditions ?? [], $fillRate, $hoursBeforeDeparture)) {
-                return $candidate;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * @param  array<string, mixed>  $conditions
-     */
-    private function conditionsMatch(array $conditions, float $fillRate, float $hoursBeforeDeparture): bool
-    {
-        $fillRateMin = $conditions['fill_rate_min'] ?? null;
-        if ($fillRateMin !== null && $fillRate < (float) $fillRateMin) {
-            return false;
-        }
-
-        $fillRateMax = $conditions['fill_rate_max'] ?? null;
-        if ($fillRateMax !== null && $fillRate > (float) $fillRateMax) {
-            return false;
-        }
-
-        $hoursMin = $conditions['hours_before_departure_min'] ?? null;
-        if ($hoursMin !== null && $hoursBeforeDeparture < (float) $hoursMin) {
-            return false;
-        }
-
-        $hoursMax = $conditions['hours_before_departure_max'] ?? null;
-        if ($hoursMax !== null && $hoursBeforeDeparture > (float) $hoursMax) {
-            return false;
-        }
-
-        return true;
     }
 
     /**

@@ -27,7 +27,12 @@ import { useOnboarding } from '@/hooks/use-onboarding';
 import pricingRules from '@/routes/pricing-rules';
 import type { BreadcrumbItem } from '@/types';
 
-type LineOption = { uuid: string; code: string; name: string };
+type LineOption = {
+    uuid: string;
+    code: string;
+    name: string;
+    stops: { uuid: string; name: string; stopOrder: number }[];
+};
 
 type PageProps = {
     rules: {
@@ -40,6 +45,7 @@ type PageProps = {
         to: number | null;
     };
     statuses: Record<string, string>;
+    scopes: Record<string, string>;
     lines: LineOption[];
     settings: {
         floorCoefficient: number | null;
@@ -69,6 +75,38 @@ const typeLabels: Record<string, string> = {
     increase: 'Majoration',
     decrease: 'Réduction',
 };
+
+const scopeLabels: Record<string, string> = {
+    network: 'Réseau',
+    line: 'Ligne',
+    segment: 'Segment',
+};
+
+const directionLabels: Record<string, string> = {
+    outbound: 'Aller',
+    return: 'Retour',
+};
+
+function ruleScopeLabel(rule: PricingRuleRecord): string {
+    const direction =
+        rule.direction !== 'both'
+            ? ` · ${directionLabels[rule.direction] ?? rule.direction}`
+            : '';
+
+    if (rule.scope === 'network') {
+        return 'Tout le réseau';
+    }
+
+    if (
+        rule.scope === 'segment' &&
+        rule.originStopName &&
+        rule.destinationStopName
+    ) {
+        return `${rule.lineCode ?? ''} · ${rule.originStopName} → ${rule.destinationStopName}${direction}`;
+    }
+
+    return `${rule.lineCode ?? rule.lineName ?? 'Portée incomplète'}${direction}`;
+}
 
 function formatConditions(rule: PricingRuleRecord): string {
     const parts: string[] = [];
@@ -144,6 +182,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
 export default function DynamicPricingPage({
     rules,
     statuses,
+    scopes,
     lines,
     settings,
     permissions,
@@ -175,6 +214,15 @@ export default function DynamicPricingPage({
                 })),
             },
             {
+                name: 'scope',
+                label: 'Portée',
+                placeholder: 'Toutes les portées',
+                options: Object.entries(scopes).map(([value, label]) => ({
+                    value,
+                    label: scopeLabels[value] ?? label,
+                })),
+            },
+            {
                 name: 'line',
                 label: 'Ligne',
                 placeholder: 'Toutes les lignes',
@@ -184,7 +232,7 @@ export default function DynamicPricingPage({
                 })),
             },
         ],
-        [lines, statuses],
+        [lines, statuses, scopes],
     );
 
     const counts = useMemo(
@@ -359,8 +407,7 @@ export default function DynamicPricingPage({
                                         </div>
                                         <div className="mt-3">
                                             <p className="text-[0.68rem] font-bold tracking-[0.04em] text-muted-foreground uppercase">
-                                                {rule.lineCode ??
-                                                    'Ligne à migrer'}
+                                                {ruleScopeLabel(rule)}
                                             </p>
                                             <p className="mt-1 text-sm font-extrabold text-foreground">
                                                 {typeLabels[rule.type]} de{' '}

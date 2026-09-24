@@ -6,7 +6,6 @@ use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Data\DynamicPriceResult;
 use App\Modules\DynamicPricing\Data\FareStatus;
-use App\Modules\DynamicPricing\Data\PricingRuleStatus;
 use App\Modules\DynamicPricing\Data\PricingRuleType;
 use App\Modules\DynamicPricing\Models\Fare;
 use App\Modules\DynamicPricing\Models\PricingRule;
@@ -18,7 +17,10 @@ use Illuminate\Support\Carbon;
 
 class CalculateDynamicPriceAction
 {
-    public function __construct(private BuildSeatAvailabilityAction $buildSeatAvailability) {}
+    public function __construct(
+        private BuildSeatAvailabilityAction $buildSeatAvailability,
+        private MatchPricingRuleAction $matchPricingRule,
+    ) {}
 
     public function handle(
         Departure $departure,
@@ -49,7 +51,7 @@ class CalculateDynamicPriceAction
         }
 
         [$fillRate, $hoursBeforeDeparture] = $this->measureConditionInputs($departure, $originStop, $destinationStop);
-        $rule = $this->matchPricingRule($departure, $fillRate, $hoursBeforeDeparture);
+        $rule = $this->matchPricingRule->handle($departure, $originStop, $destinationStop, $fillRate, $hoursBeforeDeparture);
         $coefficient = $this->coefficientFor($rule);
         $coefficient = $this->applyFloorAndCeiling($coefficient);
         $baseAmount = (int) $fare->base_amount;
@@ -80,37 +82,6 @@ class CalculateDynamicPriceAction
         $hoursBeforeDeparture = round(Carbon::now()->diffInHours($scheduledAt, true) * ($scheduledAt->isFuture() ? 1 : -1), 2);
 
         return [$fillRate, $hoursBeforeDeparture];
-    }
-
-    private function matchPricingRule(Departure $departure, float $fillRate, float $hoursBeforeDeparture): ?PricingRule
-    {
-        $candidates = PricingRule::query()
-            ->where(fn ($query) => $query->where('line_id', $departure->line_id)->orWhereNull('line_id'))
-            ->where('status', PricingRuleStatus::Active->value)
-            ->where(fn ($query) => $query->whereNull('starts_at')->orWhere('starts_at', '<=', now()))
-            ->where(fn ($query) => $query->whereNull('ends_at')->orWhere('ends_at', '>=', now()))
-            ->orderBy('priority')
-            ->get();
-
-        foreach ($candidates as $candidate) {
-            $conditions = $candidate->conditions ?? [];
-            if (($conditions['fill_rate_min'] ?? null) !== null && $fillRate < (float) $conditions['fill_rate_min']) {
-                continue;
-            }
-            if (($conditions['fill_rate_max'] ?? null) !== null && $fillRate > (float) $conditions['fill_rate_max']) {
-                continue;
-            }
-            if (($conditions['hours_before_departure_min'] ?? null) !== null && $hoursBeforeDeparture < (float) $conditions['hours_before_departure_min']) {
-                continue;
-            }
-            if (($conditions['hours_before_departure_max'] ?? null) !== null && $hoursBeforeDeparture > (float) $conditions['hours_before_departure_max']) {
-                continue;
-            }
-
-            return $candidate;
-        }
-
-        return null;
     }
 
     private function coefficientFor(?PricingRule $rule): float

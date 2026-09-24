@@ -27,7 +27,7 @@ class KoraBusRolePermissionSeeder extends Seeder
                 'guard_name' => 'web',
             ], [
                 'is_system' => true,
-                'label' => __('system_role.' . $roleEnum->value),
+                'label' => __('system_role.'.$roleEnum->value),
                 'category' => $roleEnum->category()->value,
                 'is_active' => true,
             ]);
@@ -59,32 +59,6 @@ class KoraBusRolePermissionSeeder extends Seeder
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // namespace Database\Seeders;
 
