@@ -42,8 +42,16 @@ class HandshakeTerminalAction
      *
      * @throws TerminalUnknownException|TerminalNotUsableException|OpsSessionException
      */
-    public function execute(string $serialNumber, User $user, ?int $tokenId, ?string $ipAddress = null): TerminalSession
-    {
+    /**
+     * @param  array{hardware_model?: string|null, os_version?: string|null, app_version?: string|null}  $telemetry
+     */
+    public function execute(
+        string $serialNumber,
+        User $user,
+        ?int $tokenId,
+        ?string $ipAddress = null,
+        array $telemetry = [],
+    ): TerminalSession {
         $terminal = null;
 
         try {
@@ -65,7 +73,7 @@ class HandshakeTerminalAction
             throw $exception;
         }
 
-        $session = DB::transaction(function () use ($terminal, $user, $tokenId): TerminalSession {
+        $session = DB::transaction(function () use ($terminal, $user, $tokenId, $telemetry): TerminalSession {
             $now = now();
             $maxLifetime = (int) config('ops_session.max_lifetime_minutes', 1440);
             $window = min((int) config('ops_session.ttl_minutes', 720), $maxLifetime);
@@ -98,7 +106,10 @@ class HandshakeTerminalAction
                 'renewal_count' => 0,
             ]);
 
-            $terminal->update(['last_handshake_at' => $now]);
+            $terminal->update([
+                'last_handshake_at' => $now,
+                ...array_filter($telemetry, static fn (mixed $value): bool => $value !== null && $value !== ''),
+            ]);
 
             return $session;
         });

@@ -10,6 +10,7 @@ use App\Modules\IdentityAccess\Actions\SyncRolePermissionsAction;
 use App\Modules\IdentityAccess\Actions\UpdateCustomRoleAction;
 use App\Modules\IdentityAccess\Data\PermissionCatalog;
 use App\Modules\IdentityAccess\Data\RoleCategory;
+use App\Modules\IdentityAccess\Data\SystemRole;
 use App\Modules\IdentityAccess\Http\Requests\StoreRoleRequest;
 use App\Modules\IdentityAccess\Http\Requests\SyncRolePermissionsRequest;
 use App\Modules\IdentityAccess\Http\Requests\UpdateRoleRequest;
@@ -49,7 +50,7 @@ class RoleController extends Controller
             'roles' => $roles,
             'categories' => array_map(fn (RoleCategory $category): array => [
                 'value' => $category->value,
-                'label' => __('role_category.'.$category->value),
+                'label' => $category->translatedLabel(),
             ], RoleCategory::cases()),
             'permissions' => $permissions,
             'canManage' => Gate::allows('create', Role::class),
@@ -117,7 +118,9 @@ class RoleController extends Controller
     {
         return [
             'code' => $role->name,
-            'label' => $role->label ?: __('system_role.'.$role->name),
+            'label' => SystemRole::tryFrom($role->name)?->translatedLabel()
+                ?? $role->label
+                ?? $role->name,
             'description' => $role->description,
             'category' => $role->category->value,
             'isSystem' => (bool) $role->is_system,

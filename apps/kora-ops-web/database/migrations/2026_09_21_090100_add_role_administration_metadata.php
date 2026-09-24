@@ -26,7 +26,7 @@ return new class extends Migration
                 ->where('guard_name', 'web')
                 ->update([
                     'is_system' => true,
-                    'label' => __('system_role.'.$role->value),
+                    'label' => $role->translatedLabel(),
                     'category' => $role->category()->value,
                     'is_active' => true,
                 ]);

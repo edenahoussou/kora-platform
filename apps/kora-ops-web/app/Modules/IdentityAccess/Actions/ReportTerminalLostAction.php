@@ -13,7 +13,7 @@ class ReportTerminalLostAction
         private RevokeTerminalSessionsAction $revokeSessions,
     ) {}
 
-    public function execute(TerminalP501 $terminal, User $actor): TerminalP501
+    public function execute(TerminalP501 $terminal, User $actor, ?string $reason = null): TerminalP501
     {
         $previousStatus = $terminal->status;
 
@@ -28,6 +28,7 @@ class ReportTerminalLostAction
                 'from' => $previousStatus->value,
                 'to' => TerminalP501Status::Lost->value,
                 'revoked_sessions' => $revokedCount,
+                'reason' => $reason,
             ])
             ->log('terminal_lost');
 

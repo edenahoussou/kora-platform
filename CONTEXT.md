@@ -42,6 +42,26 @@ _Avoid_: Back-office generique
 Application mobile interne Android/P501 pour chauffeurs Bus, convoyeurs, agences et operations terrain, incluant planning, manifeste, scan, impression, descente anticipee et mode hors ligne.
 _Avoid_: KORA Driver
 
+**Terminal P501**:
+Materiel P501 physique enregistre dans KORA OPS et identifie par un numero de serie unique. Il peut ouvrir une session OPS Mobile uniquement lorsqu'il est autorise, affecte selon les regles du domaine et controle par le serveur.
+_Avoid_: Appareil de confiance d'un utilisateur, telephone de secours, B501
+
+**Statut d'autorisation d'un terminal**:
+Etat de cycle de vie `active`, `inactive`, `maintenance` ou `lost`. Il determine si le terminal peut etre utilise ; il est distinct de sa sante de connexion.
+_Avoid_: Confondre terminal autorise et terminal actuellement connecte
+
+**Sante de connexion d'un terminal**:
+Etat technique derive des sessions OPS et de `last_seen_at` : `online` jusqu'a 15 minutes, `monitor` entre 15 minutes et 24 heures, `offline` au-dela ou sans presence connue. Cette information ne change jamais le statut d'autorisation.
+_Avoid_: Reactiver automatiquement un terminal hors ligne
+
+**Affectation de terminal**:
+Rattachement courant d'un terminal a un utilisateur et/ou une agence. Chaque changement ferme l'affectation precedente et conserve une trace immuable ; une desaffectation ne supprime jamais l'historique.
+_Avoid_: Affectation implicite par la derniere session, historique mutable
+
+**Terminal en stock**:
+Terminal P501 non affecte et desactive, conserve comme materiel disponible pour une future affectation. Le retour au stock est une action explicite et auditee, distincte d'une simple consultation ou d'une recuperation apres perte.
+_Avoid_: Terminal actif non affecte utilisable sans controle
+
 **KORA Driver**:
 Application mobile future pour les conducteurs Ride/VTC/moto/keke. Elle est hors MVP Bus.
 _Avoid_: Utiliser ce nom pour les chauffeurs de bus
