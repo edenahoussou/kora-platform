@@ -40,9 +40,11 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Either<Failure, OtpChallenge>> requestOtp({
-    required String email,
+    required String identifier,
     required OtpPurpose purpose,
-  }) => _attempt(() => _remote.requestOtp(email: email, purpose: purpose));
+  }) => _attempt(
+    () => _remote.requestOtp(identifier: identifier, purpose: purpose),
+  );
 
   @override
   Future<Either<Failure, OtpVerification>> verifyOtp({
@@ -77,12 +79,12 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Either<Failure, LoginOutcome>> login({
-    required String email,
+    required String identifier,
     required String pin,
     OtpVerification? verification,
   }) => _attempt(() async {
     final outcome = await _remote.login(
-      email: email,
+      identifier: identifier,
       pin: pin,
       device: await _deviceInfo.currentDevice(),
       verification: verification,
@@ -127,7 +129,7 @@ class AuthRepositoryImpl implements AuthRepository {
   });
 
   @override
-  Future<String?> lastEmail() => _local.readLastEmail();
+  Future<String?> lastIdentifier() => _local.readLastIdentifier();
 
   @override
   Future<DeviceRegistration> currentDevice() => _deviceInfo.currentDevice();

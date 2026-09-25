@@ -7,29 +7,31 @@ sealed class AuthFlowEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Écran « Votre adresse email » : demande un code pour [purpose].
-class AuthFlowEmailSubmitted extends AuthFlowEvent {
-  const AuthFlowEmailSubmitted({
-    required this.email,
+/// Le compte est donné — téléphone à la connexion, e-mail à
+/// l'inscription : demande un code pour [purpose].
+class AuthFlowIdentifierSubmitted extends AuthFlowEvent {
+  const AuthFlowIdentifierSubmitted({
+    required this.identifier,
     this.purpose = OtpPurpose.registration,
   });
 
-  final String email;
+  /// Téléphone au format international (`+22997…`) ou adresse e-mail.
+  final String identifier;
   final OtpPurpose purpose;
 
   @override
-  List<Object?> get props => [email, purpose];
+  List<Object?> get props => [identifier, purpose];
 }
 
-/// Écran de connexion : e-mail + PIN.
+/// Écran de connexion : téléphone + PIN.
 class AuthFlowLoginSubmitted extends AuthFlowEvent {
-  const AuthFlowLoginSubmitted({required this.email, required this.pin});
+  const AuthFlowLoginSubmitted({required this.identifier, required this.pin});
 
-  final String email;
+  final String identifier;
   final String pin;
 
   @override
-  List<Object?> get props => [email, pin];
+  List<Object?> get props => [identifier, pin];
 }
 
 /// Écran OTP : les six chiffres saisis.
@@ -37,12 +39,12 @@ class AuthFlowLoginSubmitted extends AuthFlowEvent {
 /// lien de l'écran de connexion. Le serveur peut aussi l'imposer de
 /// lui-même en répondant 202 à `login`.
 class AuthFlowNewDeviceRequested extends AuthFlowEvent {
-  const AuthFlowNewDeviceRequested(this.email);
+  const AuthFlowNewDeviceRequested(this.identifier);
 
-  final String email;
+  final String identifier;
 
   @override
-  List<Object?> get props => [email];
+  List<Object?> get props => [identifier];
 }
 
 /// « Recevoir le code OTP » sur l'écran du nouvel appareil.

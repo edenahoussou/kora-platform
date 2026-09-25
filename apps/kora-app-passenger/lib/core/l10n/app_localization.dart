@@ -1248,6 +1248,15 @@ class AppLocalization {
 
   String get loginEmailBack => translate('login_email_back');
   String get loginEmailFirst => translate('login_email_first');
+  String get loginPhoneFirst => translate('login_phone_first');
+  String get loginSwitchToPhone => translate('login_switch_to_phone');
+  String get loginSwitchToEmail => translate('login_switch_to_email');
+  String get loginNewDevicePhoneHint =>
+      translate('login_new_device_phone_hint');
+  String get loginResetPhoneHint => translate('login_reset_phone_hint');
+  String get loginPhoneIncomplete => translate('login_phone_incomplete');
+  String loginPhonePrefix(String country, String prefix) =>
+      _withArgs('login_phone_prefix', {'country': country, 'prefix': prefix});
 
   // --- Écran des autorisations (AUTH-07) ---
   String get permissionsEyebrow => translate('permissions_eyebrow');

@@ -392,7 +392,7 @@ class AppRouter {
             GoRoute(
               path: loginPath,
               builder: (context, state) =>
-                  LoginPage(email: state.extra as String?),
+                  LoginPage(identifier: state.extra as String?),
             ),
             GoRoute(
               path: signupPath,
@@ -879,10 +879,10 @@ class _AuthFlowNavigator extends StatelessWidget {
       listenWhen: (previous, current) => previous.step != current.step,
       listener: (context, flow) {
         switch (flow.step) {
-          case AuthFlowStep.email:
+          case AuthFlowStep.identifier:
             // Retour au début : après un PIN réinitialisé, on se
             // reconnecte avec le nouveau code.
-            context.go(AppRouter.loginPath, extra: flow.email);
+            context.go(AppRouter.loginPath, extra: flow.identifier);
           case AuthFlowStep.newDevice:
             context.push(AppRouter.newDevicePath);
           case AuthFlowStep.code:

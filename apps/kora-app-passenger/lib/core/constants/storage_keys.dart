@@ -48,9 +48,18 @@ class StorageKeys {
   /// l'app sur son nom sans attendre le réseau.
   static const String authUser = 'kora_secure_auth_user';
 
-  /// Adresse du dernier compte connecté. Survit à la déconnexion : c'est
-  /// elle que l'écran de connexion affiche (« Bon retour parmi nous »),
-  /// et sans elle il faudrait redemander l'e-mail à chaque fois.
+  /// Dernier compte connecté, tel qu'on s'y reconnecte : le téléphone du
+  /// compte, ou son e-mail s'il n'en a pas. Survit à la déconnexion :
+  /// c'est lui que l'écran de connexion affiche (« Bon retour parmi
+  /// nous »), et sans lui il faudrait redemander qui vous êtes à chaque
+  /// fois.
+  static const String lastIdentifier = 'kora_secure_last_identifier';
+
+  /// L'ancienne clé, qui ne gardait qu'une adresse e-mail.
+  ///
+  /// Relue une dernière fois quand [lastIdentifier] est vide : une app
+  /// déjà installée a son e-mail ici, et l'effacer ferait réapparaître un
+  /// écran de connexion anonyme à la mise à jour.
   static const String lastEmail = 'kora_secure_last_email';
 
   /// L'appareil rattaché à la session ouverte. Sans lui, l'écran

@@ -69,7 +69,14 @@ class _SignupEmailPageState extends State<SignupEmailPage> {
 
     // C'est cet événement qui demande le code à l'API et fait avancer le
     // parcours vers l'écran OTP. Sans lui, le bouton ne fait rien.
-    context.read<AuthFlowBloc>().add(AuthFlowEmailSubmitted(email: email));
+    // L'inscription reste adossée à l'e-mail : l'API refuse un
+    // téléphone pour le motif `registration`, faute de pouvoir écrire à
+    // un compte qui n'existe pas encore. Le numéro arrive juste après,
+    // sur l'écran des autorisations, et c'est lui qui servira ensuite à
+    // se reconnecter.
+    context.read<AuthFlowBloc>().add(
+      AuthFlowIdentifierSubmitted(identifier: email),
+    );
     widget.onSubmit?.call(email);
   }
 

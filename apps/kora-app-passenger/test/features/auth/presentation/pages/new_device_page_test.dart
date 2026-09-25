@@ -23,11 +23,11 @@ import '../../../../support/stub_auth_repository.dart';
 class _UnknownDeviceRepository extends StubAuthRepository {
   @override
   Future<Either<Failure, LoginOutcome>> login({
-    required String email,
+    required String identifier,
     required String pin,
     OtpVerification? verification,
   }) async {
-    calls.add('login:$email');
+    calls.add('login:$identifier');
 
     // Une fois le code relevé, le serveur accepte l'appareil.
     if (verification != null) {
@@ -79,7 +79,7 @@ void main() {
   testWidgets('explique le refus et nomme l’appareil', (tester) async {
     repository = StubAuthRepository();
     flow = AuthFlowBloc(repository)
-      ..add(const AuthFlowNewDeviceRequested('aicha@example.com'));
+      ..add(const AuthFlowNewDeviceRequested('+2290197421860'));
     await pumpPage(tester);
 
     expect(find.text('PROTECTION DU COMPTE'), findsOneWidget);
@@ -98,7 +98,7 @@ void main() {
   ) async {
     repository = StubAuthRepository();
     flow = AuthFlowBloc(repository)
-      ..add(const AuthFlowNewDeviceRequested('aicha@example.com'));
+      ..add(const AuthFlowNewDeviceRequested('+2290197421860'));
     await pumpPage(tester);
 
     // Venu du lien de l'écran de connexion : rien n'a encore été envoyé.
@@ -118,7 +118,7 @@ void main() {
     repository = unknown;
     flow = AuthFlowBloc(repository)
       ..add(
-        const AuthFlowLoginSubmitted(email: 'aicha@example.com', pin: '1234'),
+        const AuthFlowLoginSubmitted(identifier: '+2290197421860', pin: '1234'),
       );
     await pumpPage(tester);
 
@@ -131,7 +131,7 @@ void main() {
 
     // Un second `otp/request` invaliderait le code déjà reçu : le
     // serveur n'en garde qu'un actif à la fois.
-    expect(unknown.calls, ['login:aicha@example.com']);
+    expect(unknown.calls, ['login:+2290197421860']);
     expect(flow.state.step, AuthFlowStep.code);
   });
 
@@ -142,7 +142,7 @@ void main() {
     repository = unknown;
     flow = AuthFlowBloc(repository)
       ..add(
-        const AuthFlowLoginSubmitted(email: 'aicha@example.com', pin: '1234'),
+        const AuthFlowLoginSubmitted(identifier: '+2290197421860', pin: '1234'),
       );
     await pumpPage(tester);
 
@@ -154,9 +154,9 @@ void main() {
 
     // Le PIN n'est pas redemandé, et la session s'ouvre.
     expect(unknown.calls, [
-      'login:aicha@example.com',
+      'login:+2290197421860',
       'verifyOtp:123456',
-      'login:aicha@example.com',
+      'login:+2290197421860',
     ]);
     expect(flow.state.step, AuthFlowStep.done);
     expect(flow.state.session, isNotNull);
@@ -167,7 +167,7 @@ void main() {
   ) async {
     repository = StubAuthRepository();
     flow = AuthFlowBloc(repository)
-      ..add(const AuthFlowNewDeviceRequested('aicha@example.com'));
+      ..add(const AuthFlowNewDeviceRequested('+2290197421860'));
     await pumpPage(tester);
 
     // Le défi doit exister avant qu'un code puisse être vérifié : on
@@ -180,7 +180,7 @@ void main() {
 
     // Personne n'a encore saisi de PIN : l'app le demande, et le jeton
     // de vérification part avec cette connexion-là.
-    expect(flow.state.step, AuthFlowStep.email);
+    expect(flow.state.step, AuthFlowStep.identifier);
     expect(flow.state.verification, isNotNull);
   });
 
@@ -194,21 +194,21 @@ void main() {
     // appareil » semblaient morts.
     repository = StubAuthRepository();
     flow = AuthFlowBloc(repository)
-      ..add(const AuthFlowNewDeviceRequested('aicha.hounkpe@example.com'));
+      ..add(const AuthFlowNewDeviceRequested('+2290197421860'));
     await tester.pump();
 
     await pumpPage(tester);
 
     expect(flow.state.step, AuthFlowStep.newDevice);
-    expect(flow.state.email, 'aicha.hounkpe@example.com');
+    expect(flow.state.identifier, '+2290197421860');
 
     await tester.tap(find.text('Ce n’est pas moi'));
     await tester.pumpAndSettle();
 
-    expect(flow.state.step, AuthFlowStep.email);
+    expect(flow.state.step, AuthFlowStep.identifier);
     // L'adresse tombe avec le reste : l'écran de connexion doit rendre un
     // formulaire vierge, pas celui du compte qu'on vient de récuser.
-    expect(flow.state.email, isEmpty);
+    expect(flow.state.identifier, isEmpty);
 
     // Le toast porte un minuteur : le laisser pendre ferait échouer le
     // test à la destruction de l'arbre.

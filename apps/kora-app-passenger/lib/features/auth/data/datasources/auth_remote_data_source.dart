@@ -38,7 +38,7 @@ class AuthApiException implements Exception {
 /// Lève des exceptions ; c'est le repository qui les traduit en `Failure`.
 abstract class AuthRemoteDataSource {
   Future<OtpChallenge> requestOtp({
-    required String email,
+    required String identifier,
     required OtpPurpose purpose,
   });
 
@@ -55,7 +55,7 @@ abstract class AuthRemoteDataSource {
   });
 
   Future<LoginOutcome> login({
-    required String email,
+    required String identifier,
     required String pin,
     required DeviceRegistration device,
     OtpVerification? verification,
@@ -104,15 +104,18 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<OtpChallenge> requestOtp({
-    required String email,
+    required String identifier,
     required OtpPurpose purpose,
   }) async {
     final response = await _post(ApiConstants.otpRequest, {
-      'email': email,
+      // `identifier` accepte le téléphone comme l'e-mail ; `email`, son
+      // alias d'avant, ne prend que le second. Les deux ensemble sont
+      // refusés par l'API, on n'envoie donc que celui-ci.
+      'identifier': identifier,
       'purpose': purpose.value,
     });
 
-    return AuthDtos.otpChallenge(response.data, email: email);
+    return AuthDtos.otpChallenge(response.data, identifier: identifier);
   }
 
   @override
@@ -153,13 +156,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<LoginOutcome> login({
-    required String email,
+    required String identifier,
     required String pin,
     required DeviceRegistration device,
     OtpVerification? verification,
   }) async {
     final response = await _post(ApiConstants.login, {
-      'email': email,
+      'identifier': identifier,
       'pin': pin,
       ...device.toJson(),
       // Les deux champs vont ensemble : l'API refuse l'un sans l'autre.

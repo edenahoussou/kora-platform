@@ -4,27 +4,36 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 
 import '../../../../core/l10n/app_localization.dart';
+import '../../../../core/utils/phone_number.dart';
 import '../../domain/entities/otp_purpose.dart';
+import '../../domain/entities/phone_country.dart';
 import '../bloc/auth_flow_bloc.dart';
 import '../widgets/pin_pad.dart';
 
 /// Connexion par code PIN — écran `login` de la maquette : écran navy,
 /// logo, rappel du compte, quatre pastilles de saisie et un pavé numérique.
 ///
-/// L'e-mail vient du dernier compte connecté sur cet appareil : la
-/// maquette suppose qu'on sait déjà de qui il s'agit et ne demande que le
-/// PIN. **Quand aucun compte n'est mémorisé** — première utilisation,
-/// données effacées — un champ e-mail apparaît au-dessus du pavé : la
-/// maquette ne couvre pas ce cas, et l'API exige les deux.
+/// Le compte vient du dernier connecté sur cet appareil : la maquette
+/// suppose qu'on sait déjà de qui il s'agit et ne demande que le PIN.
+/// **Quand aucun compte n'est mémorisé** — première utilisation, données
+/// effacées — un champ téléphone apparaît au-dessus du pavé : la maquette
+/// ne couvre pas ce cas, et l'API exige les deux.
+///
+/// L'écran s'ouvre sur l'**adresse e-mail**, et un lien bascule vers le
+/// **téléphone** pour qui préfère son numéro. L'API accepte les deux sur
+/// le même champ `identifier` depuis qu'elle sait résoudre un compte par
+/// son numéro : c'est donc un choix d'écran, pas de protocole.
 ///
 /// Un appareil que le serveur ne connaît pas répond 202 plutôt qu'un
 /// token : le parcours enchaîne alors sur l'écran OTP, puis rejoue la
 /// connexion tout seul.
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key, this.email, this.onSuccess});
+  const LoginPage({super.key, this.identifier, this.onSuccess});
 
-  /// Compte auquel se rattache le PIN, quand l'app s'en souvient.
-  final String? email;
+  /// Compte auquel se rattache le PIN, quand l'app s'en souvient :
+  /// téléphone au format international, ou e-mail pour un compte créé
+  /// avant la bascule.
+  final String? identifier;
 
   final VoidCallback? onSuccess;
 
@@ -32,8 +41,8 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-/// Pourquoi l'écran demande une adresse plutôt qu'un PIN.
-enum _EmailPurpose {
+/// Pourquoi l'écran demande un numéro plutôt qu'un PIN.
+enum _AskPurpose {
   /// Vérifier cet appareil pour un compte.
   newDevice,
 
@@ -41,45 +50,84 @@ enum _EmailPurpose {
   pinReset,
 }
 
+/// Ce que l'écran demande pour désigner le compte.
+enum _AccountMode { email, phone }
+
 class _LoginPageState extends State<LoginPage> {
   static const int _pinLength = 4;
 
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+
+  /// L'e-mail par défaut : c'est avec lui que les comptes ont été créés,
+  /// et l'inscription continue de le réclamer. Le téléphone se prend par
+  /// le lien du bas.
+  _AccountMode _mode = _AccountMode.email;
+
+  /// L'utilisateur a choisi de désigner le compte lui-même, alors même
+  /// qu'un compte est mémorisé. Sans ce drapeau, le lien « Connexion avec
+  /// votre numéro » ne ferait rien de visible sur un téléphone qui se
+  /// souvient déjà de quelqu'un.
+  bool _entering = false;
+
+  /// Indicatif du numéro saisi. Le Bénin par défaut : c'est le réseau
+  /// principal de KORA, et le serveur retient lui aussi le +229 quand un
+  /// numéro arrive sans indicatif.
+  PhoneCountry _country = PhoneCountry.benin;
 
   String _pin = '';
   String? _error;
 
-  /// Pourquoi l'écran ne demande plus que l'adresse — `null` en saisie de
-  /// PIN, c'est-à-dire dans le cas ordinaire.
+  /// Pourquoi l'écran ne demande plus que le numéro — `null` en saisie
+  /// de PIN, c'est-à-dire dans le cas ordinaire.
   ///
   /// Les deux liens du bas n'ont que faire du code : l'un vérifie un
   /// appareil, l'autre réinitialise un PIN, et tous deux partent d'un
-  /// compte pour envoyer un courriel. Laisser le pavé à l'écran faisait
-  /// taper quatre chiffres pour rien — et sur un appareil neuf l'adresse
-  /// n'est même pas mémorisée, si bien qu'ils répondaient « Saisissez
-  /// d'abord votre adresse e-mail » au-dessus d'un clavier numérique
-  /// inutile.
-  _EmailPurpose? _asking;
+  /// compte pour faire envoyer un code. Laisser le pavé à l'écran faisait
+  /// taper quatre chiffres pour rien — et sur un appareil neuf le compte
+  /// n'est même pas mémorisé.
+  _AskPurpose? _asking;
 
   @override
   void dispose() {
     _emailController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
-  /// Compte visé : celui mémorisé, ou celui que l'utilisateur saisit.
+  /// L'écran attend-il une saisie, plutôt que le seul PIN ?
+  bool get _isTyping => !_knowsAccount || _entering || _asking != null;
+
+  /// Compte visé : celui mémorisé, ou le numéro que l'utilisateur
+  /// compose.
   ///
-  /// Une adresse **vide** n'est pas une adresse mémorisée. Le parcours
-  /// remis à zéro repasse ici avec une chaîne vide plutôt qu'un `null`,
-  /// et s'y fier rendait le champ inutile : il s'affichait, on pouvait y
-  /// taper, mais la saisie n'était jamais lue — l'écran répondait
-  /// « Adresse e-mail requise » à chaque essai.
-  String get _email {
-    final remembered = widget.email ?? '';
-    return remembered.isNotEmpty ? remembered : _emailController.text.trim();
+  /// Un compte **vide** n'est pas un compte mémorisé. Le parcours remis à
+  /// zéro repasse ici avec une chaîne vide plutôt qu'un `null`, et s'y
+  /// fier rendait le champ inutile : il s'affichait, on pouvait y taper,
+  /// mais la saisie n'était jamais lue.
+  String get _identifier {
+    if (_isTyping) return _typed;
+
+    return widget.identifier ?? '';
   }
 
-  bool get _knowsAccount => (widget.email ?? '').isNotEmpty;
+  /// Ce que l'utilisateur vient de désigner, selon le champ affiché.
+  String get _typed => switch (_mode) {
+    _AccountMode.email => _emailController.text.trim(),
+    _AccountMode.phone => _typedPhone,
+  };
+
+  /// Le numéro composé, au format international attendu par l'API.
+  ///
+  /// L'indicatif vit dans la liste déroulante et le champ ne porte que la
+  /// partie nationale : les deux se recollent ici, une fois les
+  /// séparateurs de saisie retirés.
+  String get _typedPhone {
+    final digits = _phoneController.text.replaceAll(RegExp(r'\D'), '');
+    return digits.isEmpty ? '' : '${_country.code}$digits';
+  }
+
+  bool get _knowsAccount => (widget.identifier ?? '').isNotEmpty;
 
   void _press(String key) {
     setState(() {
@@ -96,46 +144,120 @@ class _LoginPageState extends State<LoginPage> {
     });
   }
 
-  /// Passe à la saisie de l'adresse, pour l'un ou l'autre motif.
+  /// Passe à la saisie du numéro, pour l'un ou l'autre motif.
   ///
-  /// L'adresse mémorisée, s'il y en a une, sert de point de départ : on la
-  /// corrige plutôt que de la retaper.
-  void _ask(_EmailPurpose purpose) {
+  /// Le compte mémorisé, s'il y en a un, sert de point de départ : on le
+  /// corrige plutôt que de le retaper. Un numéro international s'y range
+  /// en deux morceaux — son indicatif dans la liste, le reste dans le
+  /// champ —, sans quoi le `+229` se retrouverait écrit deux fois.
+  void _ask(_AskPurpose purpose) {
     setState(() {
       _asking = purpose;
       _error = null;
       _pin = '';
 
-      final remembered = widget.email ?? '';
-      if (remembered.isNotEmpty && _emailController.text.trim().isEmpty) {
-        _emailController.text = remembered;
+      final remembered = widget.identifier ?? '';
+      if (remembered.isEmpty) return;
+
+      // Le compte mémorisé décide du champ : un numéro se range en deux
+      // morceaux sous l'indicatif qu'il porte, une adresse va telle
+      // quelle dans le champ e-mail.
+      final country = PhoneCountry.fromPhone(remembered);
+      if (country != null) {
+        _mode = _AccountMode.phone;
+        if (_phoneController.text.trim().isEmpty) {
+          _country = country;
+          _phoneController.text = country.nationalPart(remembered);
+        }
+      } else {
+        _mode = _AccountMode.email;
+        if (_emailController.text.trim().isEmpty) {
+          _emailController.text = remembered;
+        }
       }
     });
   }
 
+  /// Change d'indicatif **et** réaccorde le numéro déjà saisi — même
+  /// règle partagée que les écrans Autorisations, voyageurs et paiement.
+  void _onCountryChanged(PhoneCountry country) {
+    final rebased = PhoneNumberInput.rebase(
+      _phoneController.text,
+      from: _country,
+      to: country,
+    );
+
+    setState(() {
+      _country = country;
+      if (rebased != _phoneController.text) _phoneController.text = rebased;
+      _error = null;
+    });
+  }
+
+  /// Le message à afficher pour le compte saisi, ou `null` s'il tient
+  /// debout.
+  String? _accountError(BuildContext context) {
+    if (_mode == _AccountMode.email) {
+      // La forme exacte, c'est l'API qui la tranche : on n'arrête ici que
+      // le champ vide, pour ne pas refuser une adresse valide sur une
+      // règle maison plus étroite que la sienne.
+      return _emailController.text.trim().isEmpty
+          ? context.l10n.loginEmailFirst
+          : null;
+    }
+
+    final issue = PhoneNumberInput.validate(_phoneController.text, _country);
+
+    return switch (issue) {
+      null => null,
+      PhoneIssue.missing => context.l10n.loginPhoneFirst,
+      PhoneIssue.wrongPrefix => context.l10n.loginPhonePrefix(
+        _country.name,
+        _country.prefix,
+      ),
+      PhoneIssue.tooShort => context.l10n.loginPhoneIncomplete,
+    };
+  }
+
+  /// Bascule e-mail ↔ téléphone, et fait apparaître le champ si l'écran
+  /// n'en montrait pas.
+  void _switchMode() {
+    setState(() {
+      _mode = _mode == _AccountMode.email
+          ? _AccountMode.phone
+          : _AccountMode.email;
+      _entering = true;
+      _error = null;
+    });
+  }
+
   /// Engage le parcours pour le compte saisi.
-  void _submitEmail(BuildContext context) {
+  void _submitIdentifier(BuildContext context) {
     final purpose = _asking;
     if (purpose == null) return;
 
-    final email = _emailController.text.trim();
-    if (email.isEmpty) {
-      setState(() => _error = context.l10n.loginEmailFirst);
+    final issue = _accountError(context);
+    if (issue != null) {
+      setState(() => _error = issue);
       return;
     }
 
     setState(() => _error = null);
 
+    final identifier = _typed;
     final bloc = context.read<AuthFlowBloc>();
     switch (purpose) {
       // La vérification d'appareil s'explique avant de demander un code :
       // l'écran dédié dit lequel, et depuis quand.
-      case _EmailPurpose.newDevice:
-        bloc.add(AuthFlowNewDeviceRequested(email));
+      case _AskPurpose.newDevice:
+        bloc.add(AuthFlowNewDeviceRequested(identifier));
       // Le PIN oublié part droit au code, puis au choix d'un nouveau.
-      case _EmailPurpose.pinReset:
+      case _AskPurpose.pinReset:
         bloc.add(
-          AuthFlowEmailSubmitted(email: email, purpose: OtpPurpose.pinReset),
+          AuthFlowIdentifierSubmitted(
+            identifier: identifier,
+            purpose: OtpPurpose.pinReset,
+          ),
         );
     }
   }
@@ -145,14 +267,21 @@ class _LoginPageState extends State<LoginPage> {
       _error = 'Saisissez vos $_pinLength chiffres';
       return;
     }
-    if (_email.isEmpty) {
-      _error = 'Adresse e-mail requise';
-      return;
+    // Le compte n'est validé que lorsqu'il est saisi ici : un compte
+    // mémorisé vient du serveur, et le retoquer sur la longueur
+    // attendue par son pays enfermerait dehors un numéro étranger
+    // parfaitement valide.
+    if (_isTyping) {
+      final issue = _accountError(context);
+      if (issue != null) {
+        _error = issue;
+        return;
+      }
     }
 
     _error = null;
     context.read<AuthFlowBloc>().add(
-      AuthFlowLoginSubmitted(email: _email, pin: _pin),
+      AuthFlowLoginSubmitted(identifier: _identifier, pin: _pin),
     );
     widget.onSuccess?.call();
   }
@@ -197,29 +326,43 @@ class _LoginPageState extends State<LoginPage> {
                       const Center(child: _Logo()),
                       const SizedBox(height: 32),
                       _Header(
-                        email: _asking == null ? widget.email : null,
+                        account: _isTyping ? null : widget.identifier,
                         title: switch (_asking) {
-                          _EmailPurpose.newDevice =>
+                          _AskPurpose.newDevice =>
                             context.l10n.loginNewDeviceTitle,
-                          _EmailPurpose.pinReset =>
-                            context.l10n.loginResetTitle,
+                          _AskPurpose.pinReset => context.l10n.loginResetTitle,
                           null => null,
                         },
                       ),
                       // Le champ s'affiche dès qu'aucun compte n'est
                       // mémorisé — la maquette ne prévoit pas ce cas, mais
-                      // l'API veut l'e-mail avec le PIN — et toujours
-                      // quand c'est l'adresse qu'on demande.
-                      if (!_knowsAccount || _asking != null) ...[
+                      // l'API veut le compte avec le PIN —, quand c'est
+                      // le compte qu'on demande, et quand on a choisi de
+                      // le désigner soi-même.
+                      if (_isTyping) ...[
                         const SizedBox(height: 20),
-                        _EmailField(controller: _emailController),
+                        if (_mode == _AccountMode.email)
+                          _EmailField(controller: _emailController)
+                        else
+                          _PhoneField(
+                            controller: _phoneController,
+                            country: _country,
+                            onCountry: _onCountryChanged,
+                          ),
                       ],
                       if (_asking case final purpose?) ...[
                         const SizedBox(height: 12),
                         Text(
-                          purpose == _EmailPurpose.newDevice
-                              ? context.l10n.loginNewDeviceHint
-                              : context.l10n.loginResetHint,
+                          switch ((purpose, _mode)) {
+                            (_AskPurpose.newDevice, _AccountMode.email) =>
+                              context.l10n.loginNewDeviceHint,
+                            (_AskPurpose.newDevice, _AccountMode.phone) =>
+                              context.l10n.loginNewDevicePhoneHint,
+                            (_AskPurpose.pinReset, _AccountMode.email) =>
+                              context.l10n.loginResetHint,
+                            (_AskPurpose.pinReset, _AccountMode.phone) =>
+                              context.l10n.loginResetPhoneHint,
+                          },
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: AppColors.white.withValues(alpha: 0.7),
@@ -286,8 +429,8 @@ class _LoginPageState extends State<LoginPage> {
                                 label: 'Débloquer mon compte',
                                 onPressed: () =>
                                     context.read<AuthFlowBloc>().add(
-                                      AuthFlowEmailSubmitted(
-                                        email: _email,
+                                      AuthFlowIdentifierSubmitted(
+                                        identifier: _identifier,
                                         purpose: OtpPurpose.accountUnlock,
                                       ),
                                     ),
@@ -298,16 +441,26 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       if (_asking == null) ...[
                         const SizedBox(height: 12),
+                        // Au-dessus des deux autres : c'est le seul qui
+                        // change la façon de se nommer, les suivants
+                        // s'en servent.
+                        _LinkButton(
+                          label: _mode == _AccountMode.email
+                              ? context.l10n.loginSwitchToPhone
+                              : context.l10n.loginSwitchToEmail,
+                          onPressed: _switchMode,
+                        ),
+                        const SizedBox(height: 8),
                         _LinkButton(
                           label: 'PIN oublié ?',
                           // Même parcours que l'inscription, autre motif :
                           // code par e-mail, puis choix d'un nouveau PIN.
-                          onPressed: () => _ask(_EmailPurpose.pinReset),
+                          onPressed: () => _ask(_AskPurpose.pinReset),
                         ),
                         const SizedBox(height: 8),
                         _LinkButton(
                           label: context.l10n.loginNewDeviceLink,
-                          onPressed: () => _ask(_EmailPurpose.newDevice),
+                          onPressed: () => _ask(_AskPurpose.newDevice),
                         ),
                       ],
                       const SizedBox(height: AppSpacing.lg),
@@ -328,7 +481,7 @@ class _LoginPageState extends State<LoginPage> {
                           isLoading: flow.isSubmitting,
                           onPressed: flow.isSubmitting
                               ? null
-                              : () => _submitEmail(context),
+                              : () => _submitIdentifier(context),
                         ),
                         const SizedBox(height: 8),
                         _LinkButton(
@@ -375,8 +528,29 @@ class _Logo extends StatelessWidget {
   }
 }
 
-/// Champ e-mail, affiché seulement quand l'app ne sait pas encore à quel
-/// compte se rattache le PIN.
+/// Un champ sur fond navy : les bordures du thème clair y seraient
+/// invisibles.
+InputDecoration _navyDecoration({String? hint}) {
+  final border = OutlineInputBorder(
+    borderRadius: BorderRadius.circular(AppRadius.base),
+    borderSide: BorderSide(color: AppColors.white.withValues(alpha: 0.2)),
+  );
+
+  return InputDecoration(
+    hintText: hint,
+    hintStyle: TextStyle(color: AppColors.white.withValues(alpha: 0.45)),
+    filled: true,
+    fillColor: AppColors.white.withValues(alpha: 0.08),
+    border: border,
+    enabledBorder: border,
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(AppRadius.base),
+      borderSide: const BorderSide(color: AppColors.gold),
+    ),
+  );
+}
+
+/// Champ e-mail, affiché quand le compte se désigne par son adresse.
 class _EmailField extends StatelessWidget {
   const _EmailField({required this.controller});
 
@@ -389,32 +563,79 @@ class _EmailField extends StatelessWidget {
       keyboardType: TextInputType.emailAddress,
       autocorrect: false,
       style: const TextStyle(color: AppColors.white, fontSize: 14),
-      decoration: InputDecoration(
-        hintText: 'vous@exemple.com',
-        hintStyle: TextStyle(color: AppColors.white.withValues(alpha: 0.45)),
-        filled: true,
-        fillColor: AppColors.white.withValues(alpha: 0.08),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.base),
-          borderSide: BorderSide(color: AppColors.white.withValues(alpha: 0.2)),
+      decoration: _navyDecoration(hint: 'vous@exemple.com'),
+    );
+  }
+}
+
+/// Indicatif + numéro, affichés seulement quand l'app ne sait pas encore
+/// à quel compte se rattache le PIN.
+///
+/// Deux contrôles pour une seule valeur : l'API attend un numéro au
+/// format international, et demander à chacun de taper `+229` devant son
+/// numéro serait le meilleur moyen de le voir écrit de six façons
+/// différentes.
+class _PhoneField extends StatelessWidget {
+  const _PhoneField({
+    required this.controller,
+    required this.country,
+    required this.onCountry,
+  });
+
+  final TextEditingController controller;
+  final PhoneCountry country;
+  final ValueChanged<PhoneCountry> onCountry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 118,
+          child: DropdownButtonFormField<PhoneCountry>(
+            initialValue: country,
+            isExpanded: true,
+            dropdownColor: AppColors.kora,
+            iconEnabledColor: AppColors.white,
+            style: const TextStyle(color: AppColors.white, fontSize: 14),
+            decoration: _navyDecoration(),
+            onChanged: (value) => onCountry(value ?? PhoneCountry.benin),
+            items: [
+              for (final item in PhoneCountry.all)
+                DropdownMenuItem(
+                  value: item,
+                  child: Text(
+                    '${item.flag}  ${item.code}',
+                    style: const TextStyle(
+                      color: AppColors.white,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.base),
-          borderSide: BorderSide(color: AppColors.white.withValues(alpha: 0.2)),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: TextField(
+            controller: controller,
+            keyboardType: TextInputType.phone,
+            autocorrect: false,
+            style: const TextStyle(color: AppColors.white, fontSize: 14),
+            decoration: _navyDecoration(hint: country.example),
+          ),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.base),
-          borderSide: const BorderSide(color: AppColors.gold),
-        ),
-      ),
+      ],
     );
   }
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.email, this.title});
+  const _Header({required this.account, this.title});
 
-  final String? email;
+  /// Le compte mémorisé, affiché sous le titre : c'est lui qui dit au
+  /// voyageur de quel PIN on parle.
+  final String? account;
 
   /// Remplace « Votre PIN KORA » quand l'écran demande autre chose que le
   /// code — la vérification d'un nouvel appareil, par exemple.
@@ -438,10 +659,10 @@ class _Header extends StatelessWidget {
             letterSpacing: -0.575,
           ),
         ),
-        if (email != null && email!.isNotEmpty) ...[
+        if (account != null && account!.isNotEmpty) ...[
           const SizedBox(height: 6),
           Text(
-            email!,
+            account!,
             style: TextStyle(
               color: AppColors.white.withValues(alpha: 0.65),
               fontSize: 13,

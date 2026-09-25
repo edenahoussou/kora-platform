@@ -44,10 +44,7 @@ void main() {
           flow,
           // L'app se souvient du dernier compte : la maquette ne demande
           // que le PIN.
-          LoginPage(
-            email: 'aicha.hounkpe@example.com',
-            onSuccess: () => successes++,
-          ),
+          LoginPage(identifier: '+2290197421860', onSuccess: () => successes++),
         ),
       ),
     );
@@ -67,7 +64,7 @@ void main() {
     await pumpLogin(tester);
 
     expect(find.text('Votre PIN KORA'), findsOneWidget);
-    expect(find.text('aicha.hounkpe@example.com'), findsOneWidget);
+    expect(find.text('+2290197421860'), findsOneWidget);
 
     for (final key in ['1', '5', '9', '0', '⌫', '✓']) {
       expect(find.text(key), findsOneWidget, reason: 'touche $key absente');
@@ -172,11 +169,11 @@ void main() {
     expect(flow.state.purpose, OtpPurpose.loginNewDevice);
   });
 
-  testWidgets('une adresse vide laisse saisir la sienne', (tester) async {
+  testWidgets('un compte vide laisse saisir son adresse', (tester) async {
     // Le parcours remis à zéro repasse par ici avec une chaîne vide,
     // jamais un `null`. S'y fier rendait le champ inutile : il
     // s'affichait, on pouvait y taper, mais la saisie n'était pas lue et
-    // l'écran répondait « Adresse e-mail requise » à chaque essai.
+    // l'écran répondait « compte requis » à chaque essai.
     repository = StubAuthRepository();
     flow = AuthFlowBloc(repository);
     addTearDown(flow.close);
@@ -196,11 +193,13 @@ void main() {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        home: _withFlow(flow, const LoginPage(email: '')),
+        home: _withFlow(flow, const LoginPage(identifier: '')),
       ),
     );
     await tester.pumpAndSettle();
 
+    // L'écran s'ouvre sur l'adresse : c'est avec elle que les comptes
+    // ont été créés.
     await tester.enterText(find.byType(TextField).first, 'kevine@example.com');
     for (final key in ['1', '2', '3', '4']) {
       await tester.tap(find.text(key));
@@ -208,14 +207,103 @@ void main() {
     await tester.tap(find.text('✓'));
     await tester.pumpAndSettle();
 
-    // L'adresse saisie est bien celle envoyée au serveur.
     expect(repository.calls, contains('login:kevine@example.com'));
   });
-  testWidgets('« nouvel appareil » ne demande que l’adresse', (tester) async {
+
+  testWidgets('le lien bascule la saisie vers le téléphone', (tester) async {
+    // Les deux façons de se nommer vivent sur le même champ `identifier`
+    // côté API : le choix est celui de l'écran, et il tient dans ce lien.
+    repository = StubAuthRepository();
+    flow = AuthFlowBloc(repository);
+    addTearDown(flow.close);
+
+    tester.view.physicalSize = const Size(390 * 3, 900 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        locale: const Locale('fr'),
+        supportedLocales: const [Locale('fr'), Locale('en')],
+        localizationsDelegates: const [
+          AppLocalization.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: _withFlow(flow, const LoginPage(identifier: '')),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Connexion avec votre numéro de téléphone ?'));
+    await tester.pumpAndSettle();
+
+    // L'indicatif apparaît, et le lien propose le chemin inverse.
+    expect(find.text('🇧🇯  +229'), findsOneWidget);
+    expect(find.text('Connexion avec votre adresse e-mail ?'), findsOneWidget);
+
+    // Tel qu'on le compose au téléphone : dix chiffres, sans indicatif —
+    // c'est la liste déroulante qui le porte.
+    await tester.enterText(find.byType(TextField).last, '01 97 42 18 60');
+    for (final key in ['1', '2', '3', '4']) {
+      await tester.tap(find.text(key));
+    }
+    await tester.tap(find.text('✓'));
+    await tester.pumpAndSettle();
+
+    // Le serveur reçoit le numéro au format international, indicatif
+    // recollé et séparateurs retirés.
+    expect(repository.calls, contains('login:+2290197421860'));
+  });
+
+  testWidgets('un numéro incomplet ne part pas au serveur', (tester) async {
+    // Sans ce garde, quatre chiffres de PIN sur un numéro à moitié tapé
+    // partaient quand même, pour revenir en « identifiants invalides » —
+    // un message qui accuse le PIN alors que c'est le numéro qui manque.
+    repository = StubAuthRepository();
+    flow = AuthFlowBloc(repository);
+    addTearDown(flow.close);
+
+    tester.view.physicalSize = const Size(390 * 3, 900 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        locale: const Locale('fr'),
+        supportedLocales: const [Locale('fr'), Locale('en')],
+        localizationsDelegates: const [
+          AppLocalization.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: _withFlow(flow, const LoginPage(identifier: '')),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Connexion avec votre numéro de téléphone ?'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).last, '01 97 42');
+    for (final key in ['1', '2', '3', '4']) {
+      await tester.tap(find.text(key));
+    }
+    await tester.tap(find.text('✓'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Numéro incomplet'), findsOneWidget);
+    expect(repository.calls, isEmpty);
+  });
+  testWidgets('« nouvel appareil » ne demande que le numéro', (tester) async {
     // La vérification part d'un compte, pas d'un code : laisser le pavé à
     // l'écran faisait taper quatre chiffres pour rien. Et sur un appareil
-    // neuf l'adresse n'est même pas mémorisée — le lien répondait alors
-    // « Saisissez d'abord votre adresse e-mail » au-dessus d'un clavier
+    // neuf le compte n'est même pas mémorisé — le lien répondait alors
+    // « Saisissez d'abord votre numéro » au-dessus d'un clavier
     // numérique inutile.
     await pumpLogin(tester);
 
@@ -226,22 +314,25 @@ void main() {
 
     expect(find.text('Sur quel compte ?'), findsOneWidget);
     expect(find.byType(PinKeypad), findsNothing);
-    // L'adresse mémorisée sert de point de départ : on la corrige, on ne
-    // la retape pas.
-    expect(find.text('aicha.hounkpe@example.com'), findsWidgets);
+    // Le numéro mémorisé sert de point de départ, rangé en deux : son
+    // indicatif dans la liste, le reste dans le champ. Le recoller
+    // entier écrirait « +229 » deux fois.
+    expect(find.text('0197421860'), findsWidgets);
+    expect(find.text('🇧🇯  +229'), findsWidgets);
 
     await tester.tap(find.text('Continuer'));
     await tester.pumpAndSettle();
 
     expect(flow.state.step, AuthFlowStep.newDevice);
-    expect(flow.state.email, 'aicha.hounkpe@example.com');
+    expect(flow.state.identifier, '+2290197421860');
   });
 
-  testWidgets('« PIN oublié ? » ne demande que l’adresse aussi', (
+  testWidgets('« PIN oublié ? » ne demande que le numéro aussi', (
     tester,
   ) async {
-    // Même dead-end que le lien voisin : le code n'a rien à voir là-dedans,
-    // c'est un courriel qui porte la réinitialisation.
+    // Même dead-end que le lien voisin : le PIN n'a rien à voir
+    // là-dedans, c'est un code envoyé au compte qui porte la
+    // réinitialisation.
     await pumpLogin(tester);
 
     await tester.tap(find.text('PIN oublié ?'));
@@ -254,7 +345,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(flow.state.purpose, OtpPurpose.pinReset);
-    expect(flow.state.email, 'aicha.hounkpe@example.com');
+    expect(flow.state.identifier, '+2290197421860');
   });
 
   testWidgets('on peut revenir au PIN sans quitter l’écran', (tester) async {

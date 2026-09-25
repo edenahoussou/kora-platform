@@ -6,8 +6,9 @@ part of 'auth_flow_bloc.dart';
 /// après un code vérifié, on va choisir un PIN si on crée un compte, mais
 /// on retourne à la connexion si le code servait à valider un appareil.
 enum AuthFlowStep {
-  /// Saisie de l'adresse e-mail.
-  email,
+  /// Saisie du compte : le téléphone à la connexion, l'adresse e-mail à
+  /// l'inscription.
+  identifier,
 
   /// Appareil inconnu du serveur : on explique la vérification avant de
   /// demander le code (écran `new-device` de la maquette).
@@ -25,14 +26,14 @@ enum AuthFlowStep {
 
 class AuthFlowState extends Equatable {
   const AuthFlowState({
-    this.step = AuthFlowStep.email,
+    this.step = AuthFlowStep.identifier,
     this.purpose = OtpPurpose.registration,
     this.justRegistered = false,
     this.isSubmitting = false,
     this.challenge,
     this.verification,
     this.session,
-    this.email = '',
+    this.identifier = '',
     this.pendingPin = '',
     this.errorMessage = '',
     this.isAccountLocked = false,
@@ -64,7 +65,9 @@ class AuthFlowState extends Equatable {
   /// Renseignée quand [step] vaut [AuthFlowStep.done].
   final AuthSession? session;
 
-  final String email;
+  /// Le compte du parcours en cours : téléphone au format international,
+  /// ou e-mail pour une inscription.
+  final String identifier;
 
   /// PIN saisi lors d'une connexion, gardé le temps d'un aller-retour par
   /// l'OTP : le serveur le redemande quand on rappelle `login` avec le
@@ -92,7 +95,7 @@ class AuthFlowState extends Equatable {
     OtpChallenge? challenge,
     OtpVerification? verification,
     AuthSession? session,
-    String? email,
+    String? identifier,
     String? pendingPin,
     String? errorMessage,
     bool? isAccountLocked,
@@ -106,7 +109,7 @@ class AuthFlowState extends Equatable {
       challenge: challenge ?? this.challenge,
       verification: verification ?? this.verification,
       session: session ?? this.session,
-      email: email ?? this.email,
+      identifier: identifier ?? this.identifier,
       pendingPin: pendingPin ?? this.pendingPin,
       errorMessage: errorMessage ?? this.errorMessage,
       isAccountLocked: isAccountLocked ?? this.isAccountLocked,
@@ -123,7 +126,7 @@ class AuthFlowState extends Equatable {
     challenge,
     verification,
     session,
-    email,
+    identifier,
     pendingPin,
     errorMessage,
     isAccountLocked,
