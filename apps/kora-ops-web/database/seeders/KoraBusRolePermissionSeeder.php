@@ -31,13 +31,12 @@ class KoraBusRolePermissionSeeder extends Seeder
                 'category' => $roleEnum->category()->value,
                 'is_active' => true,
             ]);
-          
+
             $role->forceFill([
                 'label' => $roleEnum->translatedLabel(),
                 'category' => $roleEnum->category()->value,
             ])->save();
 
-            
             $permissions = $roleEnum === SystemRole::SystemAdmin
                 ? SystemRole::allPermissions()
                 : $roleEnum->permissions();

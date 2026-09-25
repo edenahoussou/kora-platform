@@ -1,16 +1,25 @@
 <?php
 
 use App\Models\User;
+use App\Modules\Boarding\Models\BoardingEvent;
+use App\Modules\Boarding\Models\SeatReleaseEvent;
+use App\Modules\Booking\Data\ReservationChannel;
+use App\Modules\Booking\Models\Reservation;
+use App\Modules\Booking\Models\ReservationPassenger;
+use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\BusComposition;
 use App\Modules\BusNetwork\Models\BusModel;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\BusNetwork\Models\PhysicalStop;
+use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\Departures\Services\DepartureSearchService;
 use App\Modules\IdentityAccess\Models\Agency;
+use App\Modules\Payments\Models\Payment;
+use App\Modules\Ticketing\Models\Ticket;
 use Database\Seeders\KoraBusRolePermissionSeeder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
@@ -403,23 +412,8 @@ it('filters departures by exact date', function (): void {
         );
 });
 
-it('exposes buses, drivers, and conductors for the departure form', function (): void {
+it('exposes crew and passenger manifest data on the departure detail', function (): void {
     [$agency, $line, $bus, $model, $composition, $driver, $conductor] = departuresReferences();
-
-    $this->actingAs(departuresManager())
-        ->get(route('departures.index'))
-        ->assertSuccessful()
-        ->assertInertia(fn (Assert $page) => $page
-            ->has('buses', 1)
-            ->where('buses.0.label', 'BJ-9254-RB')
-            ->where('buses.0.uuid', $bus->uuid)
-            ->has('drivers', 1)
-            ->where('drivers.0.label', 'Jean Driver')
-            ->where('drivers.0.uuid', $driver->uuid)
-            ->has('conductors', 1)
-            ->where('conductors.0.label', 'Marc Conductor')
-            ->where('conductors.0.uuid', $conductor->uuid),
-        );
 
     $departure = Departure::query()->create([
         'uuid' => (string) Str::uuid(),
@@ -436,12 +430,15 @@ it('exposes buses, drivers, and conductors for the departure form', function ():
         ->get(route('departures.show', $departure))
         ->assertSuccessful()
         ->assertInertia(fn (Assert $page) => $page
-            ->has('buses', 1)
-            ->has('drivers', 1)
-            ->has('conductors', 1)
+            ->has('passengers')
+            ->has('boardingSummary')
+            ->has('timeline')
             ->where('departure.busUuid', $bus->uuid)
             ->where('departure.driverUuid', $driver->uuid)
-            ->where('departure.conductorUuid', $conductor->uuid),
+            ->where('departure.conductorUuid', $conductor->uuid)
+            ->where('departure.driverName', 'Jean Driver')
+            ->where('departure.conductorName', 'Marc Conductor')
+            ->where('boardingSummary.total', 0),
         );
 });
 
@@ -470,11 +467,7 @@ it('never exposes internal numeric ids on departure ERP pages', function (): voi
             ->missing('departures.data.0.driverId')
             ->missing('departures.data.0.conductorId')
             ->missing('lines.0.id')
-            ->missing('buses.0.id')
-            ->missing('drivers.0.id')
-            ->missing('conductors.0.id')
-            ->where('lines.0.uuid', $line->uuid)
-            ->where('buses.0.uuid', $bus->uuid),
+            ->where('lines.0.uuid', $line->uuid),
         );
 
     $this->actingAs($manager)
@@ -556,4 +549,331 @@ it('exposes a non-paginated collection via searchSellable for internal consumers
 
     expect($paginated)->toBeInstanceOf(LengthAwarePaginator::class)
         ->and($paginated->total())->toBe(1);
+});
+
+it('boards only today by default and filters by origin city and physical stop', function (): void {
+    [$agency, $line, $bus, $model, $composition] = departuresReferences();
+
+    $today = Departure::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'line_id' => $line->id,
+        'bus_id' => $bus->id,
+        'departure_date' => Carbon::today()->format('Y-m-d'),
+        'departure_time' => '07:30',
+        'status' => DepartureStatus::Scheduled->value,
+    ]);
+
+    Departure::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'line_id' => $line->id,
+        'bus_id' => $bus->id,
+        'departure_date' => Carbon::today()->addDay()->format('Y-m-d'),
+        'departure_time' => '10:30',
+        'status' => DepartureStatus::Scheduled->value,
+    ]);
+
+    $manager = departuresManager();
+
+    $this->actingAs($manager)
+        ->get(route('departures.index'))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('departures.total', 1)
+            ->where('departures.data.0.uuid', $today->uuid)
+            ->where('departures.data.0.originCity', 'Cotonou')
+            ->where('departures.data.0.destinationCity', 'Abidjan')
+            ->where('departures.data.0.originPoint', 'Cotonou DM')
+            ->where('appliedDate', Carbon::today()->format('Y-m-d')),
+        );
+
+    $this->actingAs($manager)
+        ->get(route('departures.index', ['city' => 'Cotonou']))
+        ->assertInertia(fn (Assert $page) => $page->where('departures.total', 1));
+
+    $this->actingAs($manager)
+        ->get(route('departures.index', ['city' => 'Bohicon']))
+        ->assertInertia(fn (Assert $page) => $page->where('departures.total', 0));
+
+    $originPoint = PhysicalStop::query()->where('city', 'Cotonou')->firstOrFail();
+
+    $this->actingAs($manager)
+        ->get(route('departures.index', ['physical_stop' => $originPoint->uuid]))
+        ->assertInertia(fn (Assert $page) => $page->where('departures.total', 1));
+});
+
+it('computes the fill rate per leg, not reservations over seats', function (): void {
+    [$agency, $line, $bus, $model, $composition] = departuresReferences();
+
+    $departure = Departure::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'line_id' => $line->id,
+        'bus_id' => $bus->id,
+        'departure_date' => Carbon::today()->format('Y-m-d'),
+        'departure_time' => '07:30',
+        'status' => DepartureStatus::Scheduled->value,
+    ]);
+
+    $seat = Seat::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'bus_id' => $bus->id,
+        'code' => '1A',
+        'type' => 'standard',
+        'sellable' => true,
+        'status' => 'active',
+    ]);
+
+    [$cotonou, $portoNovo, $abidjan] = $line->stops()->orderBy('stop_order')->get()->all();
+
+    $bookSegment = function (Stop $origin, Stop $destination, string $status) use ($departure, $seat): void {
+        $reservation = Reservation::query()->create([
+            'status' => 'ticketed',
+            'total_amount' => 5000,
+            'currency' => 'XOF',
+            'channel' => ReservationChannel::Counter,
+        ]);
+
+        ReservationSegment::query()->create([
+            'reservation_id' => $reservation->id,
+            'departure_id' => $departure->id,
+            'seat_id' => $seat->id,
+            'origin_stop_id' => $origin->id,
+            'destination_stop_id' => $destination->id,
+            'origin_stop_order' => $origin->stop_order,
+            'destination_stop_order' => $destination->stop_order,
+            'status' => $status,
+        ]);
+    };
+
+    // 20 passagers sur le tronçon Cotonou → Porto-Novo, 10 sur
+    // Porto-Novo → Abidjan : le même siège peut être revendu, la charge
+    // maximale réelle est 20/55 — pas 30/55.
+    for ($i = 0; $i < 20; $i++) {
+        $bookSegment($cotonou, $portoNovo, 'ticketed');
+    }
+    for ($i = 0; $i < 10; $i++) {
+        $bookSegment($portoNovo, $abidjan, 'ticketed');
+    }
+    // Un segment libéré ne doit plus compter.
+    $bookSegment($cotonou, $abidjan, 'released');
+
+    $this->actingAs(departuresManager())
+        ->get(route('departures.index'))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('departures.data.0.reservationsCount', 30)
+            ->where('departures.data.0.fillRate', 36)
+            ->where('departures.data.0.averageFillRate', 27)
+            ->where('departures.data.0.peakLegLabel', 'Cotonou DM → Porto-Novo DM')
+            ->where('stats.seatsSold', 30)
+            ->where('stats.fillRate', 27.3),
+        );
+});
+
+it('releases segments from the departure detail via web no-show and early-exit', function (): void {
+    [$agency, $line, $bus, $model, $composition] = departuresReferences();
+    [$cotonou, $portoNovo, $abidjan] = $line->stops()->orderBy('stop_order')->get()->all();
+
+    $departure = Departure::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'line_id' => $line->id,
+        'bus_id' => $bus->id,
+        'departure_date' => Carbon::today()->format('Y-m-d'),
+        'departure_time' => '07:30',
+        'status' => DepartureStatus::Departed->value,
+    ]);
+
+    $makePassenger = function (Seat $seat, Stop $origin, Stop $destination, string $segmentStatus) use ($departure): array {
+        $reservation = Reservation::query()->create([
+            'status' => 'ticketed',
+            'total_amount' => 5000,
+            'currency' => 'XOF',
+            'channel' => ReservationChannel::Counter,
+        ]);
+        $passenger = ReservationPassenger::query()->create([
+            'reservation_id' => $reservation->id,
+            'status' => 'active',
+            'passenger_index' => 0,
+            'first_name' => 'Fatou',
+            'last_name' => 'Diop',
+        ]);
+        Payment::query()->create([
+            'reservation_id' => $reservation->id,
+            'provider' => 'cash',
+            'idempotency_key' => (string) Str::uuid(),
+            'amount' => 5000,
+            'currency' => 'XOF',
+            'status' => 'confirmed',
+            'confirmed_at' => now(),
+        ]);
+        $segment = ReservationSegment::query()->create([
+            'reservation_id' => $reservation->id,
+            'reservation_passenger_id' => $passenger->id,
+            'leg_order' => 0,
+            'departure_id' => $departure->id,
+            'seat_id' => $seat->id,
+            'origin_stop_id' => $origin->id,
+            'destination_stop_id' => $destination->id,
+            'origin_stop_order' => $origin->stop_order,
+            'destination_stop_order' => $destination->stop_order,
+            'status' => $segmentStatus,
+        ]);
+        $ticket = Ticket::query()->create([
+            'reservation_id' => $reservation->id,
+            'reservation_passenger_id' => $passenger->id,
+            'qr_code' => 'QR-'.Str::random(24),
+            'short_code' => Str::upper(Str::random(6)),
+            'status' => 'issued',
+            'issued_at' => now(),
+        ]);
+
+        return [$ticket, $segment];
+    };
+
+    $seatA = Seat::query()->create(['uuid' => (string) Str::uuid(), 'bus_id' => $bus->id, 'code' => '1A', 'type' => 'standard', 'sellable' => true, 'status' => 'active']);
+    $seatB = Seat::query()->create(['uuid' => (string) Str::uuid(), 'bus_id' => $bus->id, 'code' => '1B', 'type' => 'standard', 'sellable' => true, 'status' => 'active']);
+
+    [$noShowTicket, $noShowSegment] = $makePassenger($seatA, $cotonou, $abidjan, 'ticketed');
+    [$exitTicket, $exitSegment] = $makePassenger($seatB, $cotonou, $abidjan, 'boarded');
+
+    $manager = departuresManager();
+
+    // No-show : billet émis + départ parti → tout le trajet est libéré.
+    $this->actingAs($manager)
+        ->post(route('departures.no-show', $departure), ['ticket_uuid' => $noShowTicket->uuid])
+        ->assertRedirect();
+
+    expect((string) $noShowSegment->refresh()->getRawOriginal('status'))->toBe('released')
+        ->and(SeatReleaseEvent::query()
+            ->where('ticket_id', $noShowTicket->id)
+            ->where('departure_id', $departure->id)
+            ->whereNull('terminal_p501_id')
+            ->where('status', 'accepted')
+            ->exists())->toBeTrue();
+
+    // Descente anticipée : segment embarqué → tronçons non parcourus
+    // libérés à partir de l'arrêt réel choisi.
+    $this->actingAs($manager)
+        ->post(route('departures.early-exit', $departure), [
+            'ticket_uuid' => $exitTicket->uuid,
+            'stop_uuid' => $portoNovo->uuid,
+        ])
+        ->assertRedirect();
+
+    expect((string) $exitSegment->refresh()->getRawOriginal('status'))->toBe('released');
+
+    // Un agent guichet (departures.view, pas manage) ne peut pas libérer.
+    $this->actingAs(agencyAgent())
+        ->post(route('departures.no-show', $departure), ['ticket_uuid' => $noShowTicket->uuid])
+        ->assertForbidden();
+});
+
+it('closes no-shows in bulk and reverses a boarding from the departure detail', function (): void {
+    [$agency, $line, $bus, $model, $composition] = departuresReferences();
+    [$cotonou, $portoNovo, $abidjan] = $line->stops()->orderBy('stop_order')->get()->all();
+
+    $departure = Departure::query()->create([
+        'uuid' => (string) Str::uuid(),
+        'line_id' => $line->id,
+        'bus_id' => $bus->id,
+        'departure_date' => Carbon::today()->format('Y-m-d'),
+        'departure_time' => '07:30',
+        'status' => DepartureStatus::Departed->value,
+    ]);
+
+    $makePassenger = function (Seat $seat, Stop $origin, Stop $destination, string $segmentStatus) use ($departure): array {
+        $reservation = Reservation::query()->create([
+            'status' => 'ticketed',
+            'total_amount' => 5000,
+            'currency' => 'XOF',
+            'channel' => ReservationChannel::Counter,
+        ]);
+        $passenger = ReservationPassenger::query()->create([
+            'reservation_id' => $reservation->id,
+            'status' => 'active',
+            'passenger_index' => 0,
+            'first_name' => 'Kofi',
+            'last_name' => 'Mensah',
+        ]);
+        $segment = ReservationSegment::query()->create([
+            'reservation_id' => $reservation->id,
+            'reservation_passenger_id' => $passenger->id,
+            'leg_order' => 0,
+            'departure_id' => $departure->id,
+            'seat_id' => $seat->id,
+            'origin_stop_id' => $origin->id,
+            'destination_stop_id' => $destination->id,
+            'origin_stop_order' => $origin->stop_order,
+            'destination_stop_order' => $destination->stop_order,
+            'status' => $segmentStatus,
+        ]);
+        $ticket = Ticket::query()->create([
+            'reservation_id' => $reservation->id,
+            'reservation_passenger_id' => $passenger->id,
+            'qr_code' => 'QR-'.Str::random(24),
+            'short_code' => Str::upper(Str::random(6)),
+            'status' => 'issued',
+            'issued_at' => now(),
+        ]);
+
+        return [$ticket, $segment];
+    };
+
+    $seatA = Seat::query()->create(['uuid' => (string) Str::uuid(), 'bus_id' => $bus->id, 'code' => '1A', 'type' => 'standard', 'sellable' => true, 'status' => 'active']);
+    $seatB = Seat::query()->create(['uuid' => (string) Str::uuid(), 'bus_id' => $bus->id, 'code' => '1B', 'type' => 'standard', 'sellable' => true, 'status' => 'active']);
+
+    [$absentTicket, $absentSegment] = $makePassenger($seatA, $cotonou, $abidjan, 'ticketed');
+    [$boardedTicket, $boardedSegment] = $makePassenger($seatB, $cotonou, $abidjan, 'boarded');
+
+    $scan = BoardingEvent::query()->create([
+        'ticket_id' => $boardedTicket->id,
+        'departure_id' => $departure->id,
+        'operation_uuid' => (string) Str::uuid(),
+        'local_recorded_at' => now(),
+        'server_recorded_at' => now(),
+        'status' => 'accepted',
+    ]);
+
+    $manager = departuresManager();
+
+    // Clôture en masse : le billet jamais scanné devient no-show.
+    $this->actingAs($manager)
+        ->post(route('departures.close-no-shows', $departure))
+        ->assertRedirect();
+
+    expect((string) $absentSegment->refresh()->getRawOriginal('status'))->toBe('released')
+        ->and(SeatReleaseEvent::query()
+            ->where('ticket_id', $absentTicket->id)
+            ->where('departure_id', $departure->id)
+            ->whereNull('terminal_p501_id')
+            ->where('status', 'accepted')
+            ->exists())->toBeTrue()
+        // Le passager embarqué n'est pas touché par la clôture.
+        ->and((string) $boardedSegment->refresh()->getRawOriginal('status'))->toBe('boarded');
+
+    // Annulation d'embarquement : motif obligatoire, segment repasse
+    // à « ticketed », l'événement d'origine reste inchangé.
+    $this->actingAs($manager)
+        ->post(route('departures.reverse-boarding', $departure), [
+            'ticket_uuid' => $boardedTicket->uuid,
+            'reason' => 'Non',
+        ])
+        ->assertSessionHasErrors('reason');
+
+    $this->actingAs($manager)
+        ->post(route('departures.reverse-boarding', $departure), [
+            'ticket_uuid' => $boardedTicket->uuid,
+            'reason' => 'Scan erroné, passager non présent à bord.',
+        ])
+        ->assertRedirect();
+
+    expect((string) $boardedSegment->refresh()->getRawOriginal('status'))->toBe('ticketed')
+        ->and($scan->refresh()->status->value ?? (string) $scan->getRawOriginal('status'))->toBe('accepted');
+
+    // Sans la permission dédiée boarding.reverse : refusé.
+    $this->actingAs(agencyAgent())
+        ->post(route('departures.reverse-boarding', $departure), [
+            'ticket_uuid' => $boardedTicket->uuid,
+            'reason' => 'Scan erroné, passager non présent à bord.',
+        ])
+        ->assertForbidden();
 });

@@ -8,6 +8,7 @@ use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Models\Fare;
 use App\Modules\Support\Models\KoraModel;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -38,6 +39,16 @@ class Line extends KoraModel
     public function stops(): HasMany
     {
         return $this->hasMany(Stop::class)->orderBy('stop_order');
+    }
+
+    /**
+     * Premier arrêt actif de la ligne — le point de montée du départ.
+     *
+     * @return HasOne<Stop, $this>
+     */
+    public function firstStop(): HasOne
+    {
+        return $this->hasOne(Stop::class)->where('status', 'active')->ofMany('stop_order', 'min');
     }
 
     /**
