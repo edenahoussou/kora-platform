@@ -16,10 +16,11 @@ use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\Notifications\Data\WhatsAppDeliveryStatus;
 use App\Modules\Notifications\Models\WhatsAppDelivery;
-use App\Modules\Notifications\Services\WhatsApp\GenukaWhatsAppSender;
 use App\Modules\Notifications\Services\WhatsApp\WahaWhatsAppSender;
+use App\Modules\Notifications\Services\WhatsApp\WhatsAppMessageDispatcher;
 use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
+use App\Modules\Settings\Settings\IntegrationsSettings;
 use App\Modules\Ticketing\Actions\GenerateTicketPdfAction;
 use App\Modules\Ticketing\Models\Ticket;
 use Exception;
@@ -39,6 +40,16 @@ beforeEach(function (): void {
     // Désactive le délai anti-blocage de 30-60s pour ne pas ralentir les tests.
     config(['services.waha.new_contact_delay_seconds' => 0]);
 
+    $settings = new IntegrationsSettings;
+    $settings->genukaUrl = (string) config('services.genuka.url');
+    $settings->genukaToken = 'test-genuka-token';
+    $settings->genukaConnectionId = 'test-conn';
+    $settings->wahaUrl = (string) config('services.waha.url');
+    $settings->wahaToken = (string) config('services.waha.token');
+    $settings->wahaSession = (string) config('services.waha.session', 'default');
+    $settings->wahaNewContactDelaySeconds = 0;
+    $this->app->instance(IntegrationsSettings::class, $settings);
+
     // La génération PDF est couverte séparément ; ces tests vérifient le
     // routage et la persistance des livraisons sans lancer Chromium.
     $this->mock(GenerateTicketPdfAction::class)
@@ -57,7 +68,7 @@ it('sends a WhatsApp message via Genuka and records the delivery', function (): 
 
     $scenario = createWhatsAppScenario(phone: '+2290197421860');
     $job = new SendReservationWhatsAppNotificationJob($scenario['reservation']->id, $scenario['ticket']->id);
-    $job->handle(app(GenukaWhatsAppSender::class), app(WahaWhatsAppSender::class), app(GenerateTicketPdfAction::class));
+    $job->handle(app(WhatsAppMessageDispatcher::class), app(GenerateTicketPdfAction::class));
 
     $delivery = WhatsAppDelivery::query()->where('ticket_id', $scenario['ticket']->id)->first();
     expect($delivery)->not->toBeNull()
@@ -75,7 +86,7 @@ it('falls back to Waha when Genuka returns a 5xx error', function (): void {
 
     $scenario = createWhatsAppScenario(phone: '+2290197421860');
     $job = new SendReservationWhatsAppNotificationJob($scenario['reservation']->id, $scenario['ticket']->id);
-    $job->handle(app(GenukaWhatsAppSender::class), app(WahaWhatsAppSender::class), app(GenerateTicketPdfAction::class));
+    $job->handle(app(WhatsAppMessageDispatcher::class), app(GenerateTicketPdfAction::class));
 
     $delivery = WhatsAppDelivery::query()->where('ticket_id', $scenario['ticket']->id)->first();
     expect($delivery)->not->toBeNull()
@@ -89,6 +100,8 @@ it('falls back directly to Waha when Genuka is not configured (token empty)', fu
         'services.genuka.token' => null,
         'services.genuka.connection_id' => null,
     ]);
+    app(IntegrationsSettings::class)->genukaToken = null;
+    app(IntegrationsSettings::class)->genukaConnectionId = null;
     Http::fake([
         'wa.genuka.com/*' => Http::response(['error' => 'should not be called'], 500),
         config('services.waha.url').'/*' => Http::response(['id' => 'waha-direct-789'], 200),
@@ -96,7 +109,7 @@ it('falls back directly to Waha when Genuka is not configured (token empty)', fu
 
     $scenario = createWhatsAppScenario(phone: '+2290197421860');
     $job = new SendReservationWhatsAppNotificationJob($scenario['reservation']->id, $scenario['ticket']->id);
-    $job->handle(app(GenukaWhatsAppSender::class), app(WahaWhatsAppSender::class), app(GenerateTicketPdfAction::class));
+    $job->handle(app(WhatsAppMessageDispatcher::class), app(GenerateTicketPdfAction::class));
 
     $delivery = WhatsAppDelivery::query()->where('ticket_id', $scenario['ticket']->id)->first();
     expect($delivery)->not->toBeNull()
@@ -115,7 +128,7 @@ it('falls back to Waha when Genuka returns 401 (token invalid)', function (): vo
 
     $scenario = createWhatsAppScenario(phone: '+2290197421860');
     $job = new SendReservationWhatsAppNotificationJob($scenario['reservation']->id, $scenario['ticket']->id);
-    $job->handle(app(GenukaWhatsAppSender::class), app(WahaWhatsAppSender::class), app(GenerateTicketPdfAction::class));
+    $job->handle(app(WhatsAppMessageDispatcher::class), app(GenerateTicketPdfAction::class));
 
     $delivery = WhatsAppDelivery::query()->where('ticket_id', $scenario['ticket']->id)->first();
     expect($delivery)->not->toBeNull()
@@ -134,7 +147,7 @@ it('marks the delivery as failed when both Genuka and Waha fail', function (): v
     $job = new SendReservationWhatsAppNotificationJob($scenario['reservation']->id, $scenario['ticket']->id);
 
     try {
-        $job->handle(app(GenukaWhatsAppSender::class), app(WahaWhatsAppSender::class), app(GenerateTicketPdfAction::class));
+        $job->handle(app(WhatsAppMessageDispatcher::class), app(GenerateTicketPdfAction::class));
     } catch (Exception $e) {
         // Expected: Waha also fails
     }
@@ -149,7 +162,7 @@ it('marks the delivery as failed when both Genuka and Waha fail', function (): v
 it('skips delivery when no phone number is available', function (): void {
     $scenario = createWhatsAppScenario(phone: null, userPhone: null);
     $job = new SendReservationWhatsAppNotificationJob($scenario['reservation']->id, $scenario['ticket']->id);
-    $job->handle(app(GenukaWhatsAppSender::class), app(WahaWhatsAppSender::class), app(GenerateTicketPdfAction::class));
+    $job->handle(app(WhatsAppMessageDispatcher::class), app(GenerateTicketPdfAction::class));
 
     $delivery = WhatsAppDelivery::query()->where('ticket_id', $scenario['ticket']->id)->first();
     expect($delivery)->not->toBeNull()
@@ -164,8 +177,8 @@ it('does not create duplicate delivery records on retry', function (): void {
     $scenario = createWhatsAppScenario(phone: '+2290197421860');
     $job = new SendReservationWhatsAppNotificationJob($scenario['reservation']->id, $scenario['ticket']->id);
 
-    $job->handle(app(GenukaWhatsAppSender::class), app(WahaWhatsAppSender::class), app(GenerateTicketPdfAction::class));
-    $job->handle(app(GenukaWhatsAppSender::class), app(WahaWhatsAppSender::class), app(GenerateTicketPdfAction::class));
+    $job->handle(app(WhatsAppMessageDispatcher::class), app(GenerateTicketPdfAction::class));
+    $job->handle(app(WhatsAppMessageDispatcher::class), app(GenerateTicketPdfAction::class));
 
     expect(WhatsAppDelivery::query()->where('ticket_id', $scenario['ticket']->id)->count())->toBe(1);
 });
@@ -213,7 +226,7 @@ it('personalizes the WhatsApp message with the passenger first name', function (
 
     $scenario = createWhatsAppScenario(phone: '+2290197421860');
     $job = new SendReservationWhatsAppNotificationJob($scenario['reservation']->id, $scenario['ticket']->id);
-    $job->handle(app(GenukaWhatsAppSender::class), app(WahaWhatsAppSender::class), app(GenerateTicketPdfAction::class));
+    $job->handle(app(WhatsAppMessageDispatcher::class), app(GenerateTicketPdfAction::class));
 
     Http::assertSent(function (Request $request): bool {
         if (! str_contains($request->url(), 'wa.genuka.com')) {
@@ -232,6 +245,8 @@ it('marks delivery as Skipped (not Failed) when WAHA returns error 463 (Reachout
         'services.genuka.token' => null,
         'services.genuka.connection_id' => null,
     ]);
+    app(IntegrationsSettings::class)->genukaToken = null;
+    app(IntegrationsSettings::class)->genukaConnectionId = null;
     Http::fake([
         config('services.waha.url').'/api/startTyping' => Http::response(['ok' => true], 200),
         config('services.waha.url').'/api/stopTyping' => Http::response(['ok' => true], 200),
@@ -240,7 +255,7 @@ it('marks delivery as Skipped (not Failed) when WAHA returns error 463 (Reachout
 
     $scenario = createWhatsAppScenario(phone: '+2290197421860');
     $job = new SendReservationWhatsAppNotificationJob($scenario['reservation']->id, $scenario['ticket']->id);
-    $job->handle(app(GenukaWhatsAppSender::class), app(WahaWhatsAppSender::class), app(GenerateTicketPdfAction::class));
+    $job->handle(app(WhatsAppMessageDispatcher::class), app(GenerateTicketPdfAction::class));
 
     $delivery = WhatsAppDelivery::query()->where('ticket_id', $scenario['ticket']->id)->first();
     expect($delivery)->not->toBeNull()
@@ -254,6 +269,8 @@ it('marks delivery as Skipped (not Failed) when WAHA returns error 475 (Message 
         'services.genuka.token' => null,
         'services.genuka.connection_id' => null,
     ]);
+    app(IntegrationsSettings::class)->genukaToken = null;
+    app(IntegrationsSettings::class)->genukaConnectionId = null;
     Http::fake([
         config('services.waha.url').'/api/startTyping' => Http::response(['ok' => true], 200),
         config('services.waha.url').'/api/stopTyping' => Http::response(['ok' => true], 200),
@@ -262,7 +279,7 @@ it('marks delivery as Skipped (not Failed) when WAHA returns error 475 (Message 
 
     $scenario = createWhatsAppScenario(phone: '+2290197421860');
     $job = new SendReservationWhatsAppNotificationJob($scenario['reservation']->id, $scenario['ticket']->id);
-    $job->handle(app(GenukaWhatsAppSender::class), app(WahaWhatsAppSender::class), app(GenerateTicketPdfAction::class));
+    $job->handle(app(WhatsAppMessageDispatcher::class), app(GenerateTicketPdfAction::class));
 
     $delivery = WhatsAppDelivery::query()->where('ticket_id', $scenario['ticket']->id)->first();
     expect($delivery)->not->toBeNull()

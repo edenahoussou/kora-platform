@@ -65,7 +65,7 @@ it('creates an agency user with a temporary password and registration otp', func
     $response = $this->actingAs($admin)->post(route('users.store'), [
         'name' => 'Agent Créé',
         'email' => 'agent.created@example.com',
-        'phone' => '+22997000001',
+        'phone' => '97 00 00 01',
         'country_code' => 'BJ',
         'birth_date' => '1990-01-01',
         'status' => 'active',
@@ -80,6 +80,7 @@ it('creates an agency user with a temporary password and registration otp', func
 
     expect($user->hasRole('agency_agent'))->toBeTrue()
         ->and($user->agency_id)->toBe($agency->id)
+        ->and($user->phone)->toBe('+22997000001')
         ->and($user->must_change_password)->toBeTrue()
         ->and(Hash::check((string) $temporaryPassword, $user->password))->toBeTrue();
 

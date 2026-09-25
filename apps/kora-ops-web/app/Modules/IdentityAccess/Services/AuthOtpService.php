@@ -15,9 +15,9 @@ class AuthOtpService
         private VerifyOtpChallengeAction $verifyOtpChallenge,
     ) {}
 
-    public function request(string $email, string $purpose, Request $request): AuthOtpChallenge
+    public function request(string $identifier, string $purpose, Request $request): AuthOtpChallenge
     {
-        return $this->issueOtpChallenge->handle($email, OtpPurpose::from($purpose), $request);
+        return $this->issueOtpChallenge->handle($identifier, OtpPurpose::from($purpose), $request);
     }
 
     /**

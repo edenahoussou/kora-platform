@@ -78,10 +78,16 @@ class AuthSessionController extends Controller
     }
 
     /**
-     * Authenticate a user with email/phone and PIN.
+     * Authenticate a user with an email or phone number and PIN. The legacy `email`
+     * field remains accepted as an alias for `identifier`.
      *
-     * Returns a Sanctum session token. If OTP is required, returns a 202 with an OTP challenge
-     * instead of a token.
+     * Returns a Sanctum session token. If OTP is required for a new device, returns a 202 with
+     * a challenge sent by WhatsApp when possible, then email as fallback.
+     *
+     * @bodyParam identifier string required Email or phone number. Local and international
+     * numbers are normalized before lookup. Do not send together with `email`.
+     * @bodyParam email string Legacy alias for `identifier`, accepted for existing clients.
+     * @bodyParam pin string required Four-digit PIN.
      *
      * @unauthenticated
      *
@@ -115,7 +121,7 @@ class AuthSessionController extends Controller
      *   "data": {
      *     "requires_otp": true,
      *     "otp_challenge_uuid": "b1234567-89ab-cdef-0123-456789abcdef",
-     *     "purpose": "login",
+     *     "purpose": "login_new_device",
      *     "expires_at": "2026-08-20T13:10:00.000Z"
      *   }
      * }

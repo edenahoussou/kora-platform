@@ -5,16 +5,14 @@ namespace App\Jobs;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Notifications\Data\WhatsAppDeliveryStatus;
 use App\Modules\Notifications\Models\WhatsAppDelivery;
-use App\Modules\Notifications\Services\WhatsApp\GenukaWhatsAppSender;
 use App\Modules\Notifications\Services\WhatsApp\WahaReachoutBlockedException;
-use App\Modules\Notifications\Services\WhatsApp\WahaWhatsAppSender;
+use App\Modules\Notifications\Services\WhatsApp\WhatsAppMessageDispatcher;
 use App\Modules\Settings\Settings\IntegrationsSettings;
 use App\Modules\Ticketing\Actions\GenerateTicketPdfAction;
 use App\Modules\Ticketing\Models\Ticket;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Throwable;
@@ -39,17 +37,17 @@ class SendReservationWhatsAppNotificationJob implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(GenukaWhatsAppSender $genuka, WahaWhatsAppSender $waha, GenerateTicketPdfAction $generatePdf): void
+    public function handle(WhatsAppMessageDispatcher $whatsapp, GenerateTicketPdfAction $generatePdf): void
     {
         try {
             Cache::lock("whatsapp-send-{$this->ticketId}", 300)
-                ->block(0, fn () => $this->send($genuka, $waha, $generatePdf));
+                ->block(0, fn () => $this->send($whatsapp, $generatePdf));
         } catch (LockTimeoutException) {
             return;
         }
     }
 
-    private function send(GenukaWhatsAppSender $genuka, WahaWhatsAppSender $waha, GenerateTicketPdfAction $generatePdf): void
+    private function send(WhatsAppMessageDispatcher $whatsapp, GenerateTicketPdfAction $generatePdf): void
     {
         $reservation = Reservation::query()->with(['tickets.reservationPassenger', 'payments', 'payer', 'companyAccount'])->findOrFail($this->reservationId);
         $ticket = $reservation->tickets->firstWhere('id', $this->ticketId);
@@ -107,35 +105,18 @@ class SendReservationWhatsAppNotificationJob implements ShouldQueue
 
         $delivery->increment('attempts');
 
-        if ($this->isGenukaConfigured()) {
-            try {
-                $result = $genuka->send($phone, $text, $documentData, $documentFilename);
-                $delivery->update(['provider' => 'genuka', 'status' => WhatsAppDeliveryStatus::Sent, 'provider_message_id' => $result['message_id'], 'sent_at' => now(), 'last_error' => null]);
-
-                return;
-            } catch (Throwable $exception) {
-                if (! $this->shouldFallback($exception)) {
-                    $delivery->update(['status' => WhatsAppDeliveryStatus::Failed, 'last_error' => $exception->getMessage()]);
-                    throw $exception;
-                }
-                $genukaError = $exception->getMessage();
-            }
-        } else {
-            $genukaError = 'Genuka non configuré (GENUKA_TOKEN manquant) — bascule directe vers WAHA.';
-        }
-
         try {
-            $result = $waha->send($phone, $text, $documentData, $documentFilename);
-            $delivery->update(['provider' => 'waha', 'status' => WhatsAppDeliveryStatus::Sent, 'provider_message_id' => $result['message_id'], 'sent_at' => now(), 'last_error' => $genukaError]);
+            $result = $whatsapp->send($phone, $text, $documentData, $documentFilename);
+            $delivery->update(['provider' => $result['provider'], 'status' => WhatsAppDeliveryStatus::Sent, 'provider_message_id' => $result['message_id'], 'sent_at' => now(), 'last_error' => $result['fallback_error']]);
         } catch (WahaReachoutBlockedException $blockedException) {
             $delivery->update([
                 'provider' => 'waha',
                 'status' => WhatsAppDeliveryStatus::Skipped,
                 'last_error' => $blockedException->getMessage(),
             ]);
-        } catch (Throwable $fallbackException) {
-            $delivery->update(['provider' => 'waha', 'status' => WhatsAppDeliveryStatus::Failed, 'last_error' => $fallbackException->getMessage()]);
-            throw $fallbackException;
+        } catch (Throwable $exception) {
+            $delivery->update(['provider' => 'waha', 'status' => WhatsAppDeliveryStatus::Failed, 'last_error' => $exception->getMessage()]);
+            throw $exception;
         }
     }
 
@@ -166,22 +147,6 @@ class SendReservationWhatsAppNotificationJob implements ShouldQueue
         }
 
         return $line;
-    }
-
-    private function isGenukaConfigured(): bool
-    {
-        $settings = app(IntegrationsSettings::class);
-        $token = (string) ($settings->genukaToken ?? '');
-        $connectionId = (string) ($settings->genukaConnectionId ?? '');
-
-        return $token !== '' && $connectionId !== '';
-    }
-
-    private function shouldFallback(Throwable $exception): bool
-    {
-        $status = $exception instanceof RequestException ? $exception->response->status() : null;
-
-        return $status === null || $status === 401 || $status === 403 || $status === 408 || $status === 429 || $status >= 500;
     }
 
     private function throttleIfNewContact(string $phone): void

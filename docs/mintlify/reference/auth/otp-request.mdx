@@ -1,18 +1,22 @@
 ---
 title: Demander un OTP
-description: "Endpoint POST /api/v1/auth/otp/request de l'API KORA BUS : envoi d'un code OTP par email pour inscription, nouveau device, reset PIN ou unlock."
+description: "Endpoint POST /api/v1/auth/otp/request de l'API KORA BUS : demande d'un code OTP par email ou téléphone pour inscription, nouveau device, reset PIN ou unlock."
 api: POST /api/v1/auth/otp/request
 authMethod: none
 ---
 
 # Demander un OTP
 
-Déclenche l'envoi d'un code OTP à 6 chiffres par email. Le `purpose` détermine le contexte et le rate limit applicable.
+Déclenche l'envoi d'un code OTP à 6 chiffres. Pour un compte existant, `identifier` accepte un email ou un numéro de téléphone normalisé ; WhatsApp est prioritaire lorsque le compte possède un téléphone, avec repli email. L'inscription (`registration`) reste basée sur l'email. Le `purpose` détermine le contexte et le rate limit applicable.
 
 ## Paramètres
 
-<ParamField body="email" type="string" required>
-  Email du passager (format RFC, max 255).
+<ParamField body="identifier" type="string" required>
+  Email ou numéro de téléphone du compte. Les emails sont normalisés en minuscules et les numéros locaux ou internationaux au format international.
+</ParamField>
+
+<ParamField body="email" type="string">
+  Alias rétrocompatible de `identifier`. Pour `registration`, l'adresse email est obligatoire. Ne pas envoyer les deux champs ensemble.
 </ParamField>
 
 <ParamField body="purpose" type="string" required>
@@ -24,14 +28,14 @@ Déclenche l'envoi d'un code OTP à 6 chiffres par email. Le `purpose` détermin
 ```bash cURL
 curl -X POST https://staging.koraexpress.app/api/v1/auth/otp/request \
   -H 'Content-Type: application/json' \
-  -d '{ "email": "passager@korabus.app", "purpose": "registration" }'
+  -d '{ "identifier": "passager@korabus.app", "purpose": "registration" }'
 ```
 
 ```javascript JavaScript
 const res = await fetch('https://staging.koraexpress.app/api/v1/auth/otp/request', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ email: 'passager@korabus.app', purpose: 'registration' }),
+  body: JSON.stringify({ identifier: 'passager@korabus.app', purpose: 'registration' }),
 });
 const { data } = await res.json();
 ```
@@ -40,14 +44,14 @@ const { data } = await res.json();
 const res = await fetch('https://staging.koraexpress.app/api/v1/auth/otp/request', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ email, purpose } satisfies RequestOtp),
+  body: JSON.stringify({ identifier, purpose } satisfies RequestOtp),
 });
 const data: OtpChallenge = (await res.json()).data;
 ```
 
 ```dart Dart
 final res = await dio.post('/api/v1/auth/otp/request', data: {
-  'email': 'passager@korabus.app',
+  'identifier': '+2290197421860',
   'purpose': 'registration',
 });
 final challengeUuid = res.data['data']['otp_challenge_uuid'];
@@ -72,7 +76,7 @@ final challengeUuid = res.data['data']['otp_challenge_uuid'];
 {
   "message": "The given data was invalid.",
   "errors": {
-    "email": ["The email field is required."],
+    "identifier": ["L'email ou le numéro de téléphone est obligatoire."],
     "purpose": ["The selected purpose is invalid."]
   }
 }
@@ -90,7 +94,7 @@ final challengeUuid = res.data['data']['otp_challenge_uuid'];
     Contexte de la demande (`registration`, `login_new_device`, `pin_reset`, `account_unlock`).
   </ResponseField>
   <ResponseField name="email" type="string" required>
-    Email destinataire du code.
+    Email canonique du compte associé au challenge. La livraison peut avoir eu lieu par WhatsApp.
   </ResponseField>
   <ResponseField name="expires_at" type="string" required>
     Date d'expiration du challenge (ISO 8601).
@@ -101,6 +105,7 @@ final challengeUuid = res.data['data']['otp_challenge_uuid'];
 
 | Code | Description |
 |------|-------------|
-| `202` | OTP envoyé par email. |
-| `422` | `email` invalide ou `purpose` non supporté. |
-| `429` | Rate limit `auth-otp` dépassé (3/min par IP + email). |
+| `202` | OTP mis en file pour WhatsApp ou email. |
+| `404` | Compte inexistant pour `login_new_device`, `pin_reset` ou `account_unlock`. |
+| `422` | `identifier` invalide, ambigu, ou téléphone fourni pour `registration`; `purpose` non supporté. |
+| `429` | Rate limit `auth-otp` dépassé (3/min par IP + identifiant normalisé). |

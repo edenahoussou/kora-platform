@@ -166,7 +166,7 @@ Informations de la personne transportee associees a son billet, distinctes du pa
 _Avoid_: Compte du parent, compte du payeur, compte partage par plusieurs voyageurs
 
 **Activation de l'acces**:
-Ouverture de l'acces a l'application sur un compte existant, apres verification du telephone par SMS et definition d'un PIN.
+Ouverture de l'acces a l'application sur un compte existant, apres verification du telephone par OTP WhatsApp (email de repli) et definition d'un PIN.
 _Avoid_: Creation du compte, creation du Wallet, condition pour voyager
 
 **Payeur**:
