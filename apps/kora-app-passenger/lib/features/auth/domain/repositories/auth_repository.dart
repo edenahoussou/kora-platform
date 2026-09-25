@@ -34,9 +34,18 @@ abstract class AuthRepository {
   });
 
   /// Crée le compte : PIN choisi + enregistrement de l'appareil.
+  ///
+  /// [name] accompagne une inscription par **téléphone** : le serveur n'a
+  /// alors pas d'adresse d'où tirer un nom et répond `422 name_required`
+  /// sans lui. Les autres champs rattachent au compte ce que l'écran a
+  /// recueilli en plus de l'identifiant.
   Future<Either<Failure, AuthSession>> completeRegistration({
     required OtpVerification verification,
     required String pin,
+    String? name,
+    String? email,
+    String? phone,
+    String? countryCode,
   });
 
   /// Connecte un compte existant.

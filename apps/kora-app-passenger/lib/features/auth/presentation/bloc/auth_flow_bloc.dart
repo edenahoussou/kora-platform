@@ -43,8 +43,10 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
       state.copyWith(
         isSubmitting: true,
         errorMessage: '',
+        accountExists: false,
         identifier: event.identifier,
         purpose: event.purpose,
+        registrationName: event.name,
       ),
     );
 
@@ -284,6 +286,9 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
     final result = await _repository.completeRegistration(
       verification: verification,
       pin: event.pin,
+      // Renseigné pour une inscription par téléphone, vide sinon : le
+      // serveur dérive alors le nom de l'adresse.
+      name: state.registrationName,
     );
 
     emit(
@@ -346,6 +351,7 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
       isSubmitting: false,
       errorMessage: failure.message,
       isAccountLocked: failure is AccountLockedFailure,
+      accountExists: failure is AccountExistsFailure,
     );
   }
 }

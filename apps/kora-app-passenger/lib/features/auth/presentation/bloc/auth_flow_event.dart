@@ -13,14 +13,21 @@ class AuthFlowIdentifierSubmitted extends AuthFlowEvent {
   const AuthFlowIdentifierSubmitted({
     required this.identifier,
     this.purpose = OtpPurpose.registration,
+    this.name,
   });
 
   /// Téléphone au format international (`+22997…`) ou adresse e-mail.
   final String identifier;
   final OtpPurpose purpose;
 
+  /// Le nom du voyageur, recueilli à l'inscription par téléphone : le
+  /// serveur n'a pas d'adresse d'où en dériver un et le réclame au
+  /// moment de créer le compte. Il voyage donc depuis cet écran-ci
+  /// jusqu'au choix du PIN.
+  final String? name;
+
   @override
-  List<Object?> get props => [identifier, purpose];
+  List<Object?> get props => [identifier, purpose, name];
 }
 
 /// Écran de connexion : téléphone + PIN.

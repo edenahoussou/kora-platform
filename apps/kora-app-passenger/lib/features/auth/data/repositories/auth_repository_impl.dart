@@ -63,11 +63,19 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<Failure, AuthSession>> completeRegistration({
     required OtpVerification verification,
     required String pin,
+    String? name,
+    String? email,
+    String? phone,
+    String? countryCode,
   }) => _attempt(() async {
     final session = await _remote.completeRegistration(
       verification: verification,
       pin: pin,
       device: await _deviceInfo.currentDevice(),
+      name: name,
+      email: email,
+      phone: phone,
+      countryCode: countryCode,
     );
 
     // Enregistrée tout de suite : l'écran suivant part du principe que la
@@ -245,6 +253,12 @@ class AuthRepositoryImpl implements AuthRepository {
       422 => ValidationFailure(
         message ?? 'Les données saisies sont invalides.',
       ),
+      // 409 : l'identifiant porte déjà un compte avec PIN. Un type à
+      // part lui aussi : l'écran d'inscription mène alors à la
+      // connexion, au lieu de laisser retaper la même adresse.
+      409 => AccountExistsFailure(
+        message ?? 'Un compte existe déjà pour cet identifiant.',
+      ),
       // 423 : compte bloqué. Un type à part, parce que l'écran n'a pas à
       // proposer la même chose que pour un PIN erroné.
       423 => AccountLockedFailure(
@@ -262,7 +276,16 @@ class AuthRepositoryImpl implements AuthRepository {
   Failure _failureOfCode(AuthApiException error) => switch (error.code) {
     AuthApiException.accountLocked => AccountLockedFailure(error.message),
     AuthApiException.emailRequired ||
-    AuthApiException.invalidOAuthToken => ValidationFailure(error.message),
+    AuthApiException.invalidOAuthToken ||
+    // Ce que l'écran doit corriger avant de réessayer : un nom manquant,
+    // une adresse ou un numéro déjà pris ailleurs.
+    AuthApiException.nameRequired ||
+    AuthApiException.emailTaken ||
+    AuthApiException.phoneTaken => ValidationFailure(error.message),
+    // Rien à corriger dans le formulaire : l'écran mène à la connexion.
+    AuthApiException.accountExists => AccountExistsFailure(error.message),
+    // Aucun canal n'a pu porter le code : il n'y a qu'à réessayer.
+    AuthApiException.otpDeliveryUnavailable => AuthFailure(error.message),
     _ => AuthFailure(error.message),
   };
 

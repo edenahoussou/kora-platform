@@ -410,6 +410,21 @@ class AppLocalization {
   String get signupEmailHint => translate('signup_email_hint');
   String get signupEmailRequired => translate('signup_email_required');
   String get signupEmailInvalid => translate('signup_email_invalid');
+  String get signupPhoneTitle => translate('signup_phone_title');
+  String get signupPhoneLead => translate('signup_phone_lead');
+  String get signupPhoneLabel => translate('signup_phone_label');
+  String get signupPhoneProtected => translate('signup_phone_protected');
+  String get signupNameLabel => translate('signup_name_label');
+  String get signupNameHint => translate('signup_name_hint');
+  String get signupNameRequired => translate('signup_name_required');
+  String get signupPhoneRequired => translate('signup_phone_required');
+  String get signupPhoneIncomplete => translate('signup_phone_incomplete');
+  String signupPhonePrefix(String country, String prefix) =>
+      _withArgs('signup_phone_prefix', {'country': country, 'prefix': prefix});
+  String get signupAccountExistsLead => translate('signup_account_exists_lead');
+  String get signupAccountExistsLink => translate('signup_account_exists_link');
+  String get signupSwitchToPhone => translate('signup_switch_to_phone');
+  String get signupSwitchToEmail => translate('signup_switch_to_email');
   String get signupEmailProtected => translate('signup_email_protected');
   String get signupSubmit => translate('signup_submit');
   // --- Centre d'aide et contact (PROFILE-05, PROFILE-06) ---

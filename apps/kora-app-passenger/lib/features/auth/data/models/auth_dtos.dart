@@ -34,11 +34,12 @@ abstract final class AuthDtos {
     return OtpChallenge(
       uuid: '${data['otp_challenge_uuid']}',
       purpose: OtpPurpose.fromValue('${data['purpose']}'),
-      // L'API répond avec l'e-mail canonique du compte, même quand le
-      // code part sur WhatsApp. On garde ce qui a été saisi : c'est là
-      // que le voyageur attend son code, et c'est ce que l'écran OTP
-      // affiche masqué.
-      identifier: identifier,
+      // `identifier` est la valeur qui a **reçu** le code, normalisée
+      // par le serveur (`01 97…` devient `+22997…`). On retombe sur la
+      // saisie quand la réponse ne le porte pas : c'est ce que l'écran
+      // OTP affiche masqué, et il ne doit jamais être vide. `email`, lui,
+      // vaut `null` dès que l'identifiant est un téléphone.
+      identifier: data['identifier'] as String? ?? identifier,
       expiresAt: _date(data['expires_at']) ?? DateTime.now().add(_otpFallback),
     );
   }

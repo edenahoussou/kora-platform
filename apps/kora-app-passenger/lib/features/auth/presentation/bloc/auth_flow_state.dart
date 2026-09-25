@@ -34,9 +34,11 @@ class AuthFlowState extends Equatable {
     this.verification,
     this.session,
     this.identifier = '',
+    this.registrationName = '',
     this.pendingPin = '',
     this.errorMessage = '',
     this.isAccountLocked = false,
+    this.accountExists = false,
     this.deviceName = '',
   });
 
@@ -69,6 +71,11 @@ class AuthFlowState extends Equatable {
   /// ou e-mail pour une inscription.
   final String identifier;
 
+  /// Le nom saisi à l'inscription par téléphone, gardé jusqu'à la
+  /// création du compte — c'est `register/complete` qui l'exige, pas
+  /// l'écran du code.
+  final String registrationName;
+
   /// PIN saisi lors d'une connexion, gardé le temps d'un aller-retour par
   /// l'OTP : le serveur le redemande quand on rappelle `login` avec le
   /// `verification_token`, et le faire retaper serait absurde.
@@ -79,6 +86,10 @@ class AuthFlowState extends Equatable {
   /// Compte bloqué après trop d'erreurs de PIN : l'écran propose alors le
   /// déverrouillage plutôt qu'un simple message d'échec.
   final bool isAccountLocked;
+
+  /// L'identifiant donné à l'inscription porte déjà un compte : l'écran
+  /// mène à la connexion plutôt que de laisser retaper la même chose.
+  final bool accountExists;
 
   /// Nom lisible de cet appareil, lu au moment où le serveur le refuse.
   /// L'écran « Nouvel appareil » le montre : c'est ce qui permet de
@@ -96,9 +107,11 @@ class AuthFlowState extends Equatable {
     OtpVerification? verification,
     AuthSession? session,
     String? identifier,
+    String? registrationName,
     String? pendingPin,
     String? errorMessage,
     bool? isAccountLocked,
+    bool? accountExists,
     String? deviceName,
   }) {
     return AuthFlowState(
@@ -110,9 +123,11 @@ class AuthFlowState extends Equatable {
       verification: verification ?? this.verification,
       session: session ?? this.session,
       identifier: identifier ?? this.identifier,
+      registrationName: registrationName ?? this.registrationName,
       pendingPin: pendingPin ?? this.pendingPin,
       errorMessage: errorMessage ?? this.errorMessage,
       isAccountLocked: isAccountLocked ?? this.isAccountLocked,
+      accountExists: accountExists ?? this.accountExists,
       deviceName: deviceName ?? this.deviceName,
     );
   }
@@ -127,9 +142,11 @@ class AuthFlowState extends Equatable {
     verification,
     session,
     identifier,
+    registrationName,
     pendingPin,
     errorMessage,
     isAccountLocked,
+    accountExists,
     deviceName,
   ];
 }

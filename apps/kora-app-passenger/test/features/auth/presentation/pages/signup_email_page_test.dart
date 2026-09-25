@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kora_app_passenger/core/error/failures.dart';
 import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/core/services/oauth_sign_in.dart';
 import 'package:kora_app_passenger/features/auth/presentation/bloc/auth_flow_bloc.dart';
@@ -43,6 +44,7 @@ class _StubOAuth implements OAuthSignIn {
 
 void main() {
   late String? submitted;
+  late bool signedIn;
   late StubAuthRepository repository;
   late _StubOAuth oauth;
 
@@ -50,6 +52,7 @@ void main() {
   // plusieurs cas en remplacent un pour jouer un refus.
   setUp(() {
     submitted = null;
+    signedIn = false;
     repository = StubAuthRepository();
     oauth = _StubOAuth();
   });
@@ -74,7 +77,11 @@ void main() {
           GlobalCupertinoLocalizations.delegate,
         ],
         home: _withFlow(
-          SignupEmailPage(onSubmit: (email) => submitted = email, oauth: oauth),
+          SignupEmailPage(
+            onSubmit: (identifier) => submitted = identifier,
+            onSignIn: () => signedIn = true,
+            oauth: oauth,
+          ),
           repository,
         ),
       ),
@@ -82,26 +89,109 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('affiche la consigne et le champ vide', (tester) async {
+  /// Bascule vers l'inscription par adresse : l'écran s'ouvre désormais
+  /// sur le numéro, et ces cas-là parlent de l'e-mail.
+  Future<void> switchToEmail(WidgetTester tester) async {
+    await tester.tap(find.text('Inscription avec votre adresse e-mail ?'));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('s’ouvre sur le numéro, champs vides', (tester) async {
+    // C'est par leur numéro que les voyageurs se reconnaissent ici ; le
+    // code arrive alors sur WhatsApp.
     await pumpPage(tester);
 
-    expect(find.text('Votre adresse email'), findsOneWidget);
+    expect(find.text('Votre numéro de téléphone'), findsOneWidget);
     expect(find.text('CRÉATION DE COMPTE'), findsOneWidget);
     expect(
-      find.text(
-        'Nous vous enverrons un code de vérification sécurisé par email.',
-      ),
+      find.text('Nous vous enverrons un code de vérification sur WhatsApp.'),
       findsOneWidget,
     );
 
-    // Le champ ne propose pas d'adresse toute faite, juste un exemple.
+    // Les champs ne proposent rien de tout fait, juste des exemples.
+    expect(find.text('🇧🇯  +229'), findsOneWidget);
+    expect(find.text('01 97 00 00 00'), findsOneWidget);
+    for (final champ in tester.widgetList<TextField>(find.byType(TextField))) {
+      expect(champ.controller!.text, isEmpty);
+    }
+  });
+
+  testWidgets('le lien mène à l’inscription par adresse', (tester) async {
+    await pumpPage(tester);
+
+    await tester.tap(find.text('Inscription avec votre adresse e-mail ?'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Votre adresse email'), findsOneWidget);
     expect(find.text('vous@exemple.com'), findsOneWidget);
-    final champ = tester.widget<TextField>(find.byType(TextField));
-    expect(champ.controller!.text, isEmpty);
+    // Un seul champ : le nom n'est demandé que par le téléphone.
+    expect(find.byType(TextField), findsOneWidget);
+  });
+
+  testWidgets('l’inscription par téléphone demande le nom', (tester) async {
+    // Le serveur répond `422 name_required` pour une inscription par
+    // téléphone sans nom : il n'a aucune adresse d'où en dériver un.
+    // Autant le demander ici plutôt que d'échouer après le code.
+    await pumpPage(tester);
+
+    expect(find.text('Votre numéro de téléphone'), findsOneWidget);
+    expect(find.text('Nom complet'), findsOneWidget);
+    expect(find.text('🇧🇯  +229'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField).last, '01 97 42 18 60');
+    await tester.tap(find.text('Recevoir mon code'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nom requis'), findsOneWidget);
+    expect(submitted, isNull);
+  });
+
+  testWidgets('le numéro part au format international, avec le nom', (
+    tester,
+  ) async {
+    await pumpPage(tester);
+
+    await tester.enterText(find.byType(TextField).first, 'Aïcha HOUNKPE');
+    await tester.enterText(find.byType(TextField).last, '01 97 42 18 60');
+    await tester.tap(find.text('Recevoir mon code'));
+    await tester.pumpAndSettle();
+
+    expect(submitted, '+2290197421860');
+    expect(repository.calls, contains('requestOtp:registration'));
+  });
+
+  testWidgets('un compte déjà créé mène à la connexion', (tester) async {
+    // Le serveur répond `409 account_exists` : il n'y a rien à corriger
+    // dans le formulaire, retaper la même adresse ne donnerait que la
+    // même réponse. L'écran mène donc à la connexion.
+    repository = StubAuthRepository(
+      failure: const AccountExistsFailure(
+        'Un compte existe déjà pour cet identifiant.',
+      ),
+    );
+
+    await pumpPage(tester);
+    await switchToEmail(tester);
+
+    await tester.enterText(find.byType(TextField), 'aicha@example.com');
+    await tester.tap(find.text('Recevoir mon code'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Un compte existe déjà pour cet identifiant.'),
+      findsOneWidget,
+    );
+    expect(find.text('Ce compte existe déjà.'), findsOneWidget);
+
+    await tester.tap(find.text('Connectez-vous plutôt'));
+    await tester.pumpAndSettle();
+
+    expect(signedIn, isTrue);
   });
 
   testWidgets('refuse un champ vide', (tester) async {
     await pumpPage(tester);
+    await switchToEmail(tester);
 
     await tester.tap(find.text('Recevoir mon code'));
     await tester.pumpAndSettle();
@@ -112,6 +202,7 @@ void main() {
 
   testWidgets('refuse une adresse mal formée', (tester) async {
     await pumpPage(tester);
+    await switchToEmail(tester);
 
     await tester.enterText(find.byType(TextField), 'aicha.example.com');
     await tester.tap(find.text('Recevoir mon code'));
@@ -125,6 +216,7 @@ void main() {
     tester,
   ) async {
     await pumpPage(tester);
+    await switchToEmail(tester);
 
     await tester.enterText(find.byType(TextField), '  aicha@example.com  ');
     await tester.tap(find.text('Recevoir mon code'));
@@ -136,6 +228,7 @@ void main() {
 
   testWidgets('efface l’erreur dès que la saisie reprend', (tester) async {
     await pumpPage(tester);
+    await switchToEmail(tester);
 
     await tester.tap(find.text('Recevoir mon code'));
     await tester.pumpAndSettle();
@@ -219,6 +312,7 @@ void main() {
     tester,
   ) async {
     await pumpPage(tester);
+    await switchToEmail(tester);
 
     await tester.enterText(find.byType(TextField), 'passager@korabus.app');
     await tester.tap(find.text('Recevoir mon code'));
@@ -236,9 +330,14 @@ void main() {
   ) async {
     await pumpPage(tester, locale: const Locale('en'));
 
-    expect(find.text('Your email address'), findsOneWidget);
+    expect(find.text('Your phone number'), findsOneWidget);
+    expect(find.text('Full name'), findsOneWidget);
     expect(find.text('Continue with Google'), findsOneWidget);
     expect(find.text('or'), findsOneWidget);
+
+    await tester.tap(find.text('Sign up with your email address?'));
+    await tester.pumpAndSettle();
+    expect(find.text('Your email address'), findsOneWidget);
   });
 }
 

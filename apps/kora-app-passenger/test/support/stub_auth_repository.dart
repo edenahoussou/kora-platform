@@ -96,7 +96,16 @@ class StubAuthRepository implements AuthRepository {
   Future<Either<Failure, AuthSession>> completeRegistration({
     required OtpVerification verification,
     required String pin,
-  }) async => _answer('completeRegistration:$pin', session);
+    String? name,
+    String? email,
+    String? phone,
+    String? countryCode,
+  }) async => _answer(
+    // Le nom apparaît dans la trace : c'est lui que le serveur exige
+    // pour une inscription par téléphone.
+    'completeRegistration:$pin${name == null || name.isEmpty ? '' : ':$name'}',
+    session,
+  );
 
   @override
   Future<Either<Failure, LoginOutcome>> login({

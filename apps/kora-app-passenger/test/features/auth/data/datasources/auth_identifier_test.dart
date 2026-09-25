@@ -10,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_app_passenger/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:kora_app_passenger/features/auth/domain/entities/auth_device.dart';
 import 'package:kora_app_passenger/features/auth/domain/entities/device_platform.dart';
+import 'package:kora_app_passenger/features/auth/domain/entities/otp_challenge.dart';
 import 'package:kora_app_passenger/features/auth/domain/entities/otp_purpose.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -111,9 +112,78 @@ void main() {
     expect(body['identifier'], '+2290197421860');
     expect(body.containsKey('email'), isFalse);
 
-    // Le serveur répond avec l'e-mail canonique du compte, même quand le
-    // code part sur WhatsApp : l'écran OTP doit montrer là où le
-    // voyageur attend son code, donc ce qu'il a saisi.
+    // Le serveur renvoie l'identifiant qui a reçu le code.
     expect(challenge.identifier, '+2290197421860');
+  });
+
+  test('le défi retient l’identifiant normalisé par le serveur', () async {
+    when(
+      () => dio.post<dynamic>(
+        any(),
+        data: any(named: 'data'),
+        options: any(named: 'options'),
+      ),
+    ).thenAnswer(
+      (_) async => _response({
+        'otp_challenge_uuid': 'challenge-2',
+        'purpose': 'registration',
+        // Un téléphone : le serveur n'a pas d'e-mail à rendre.
+        'email': null,
+        'identifier': '+2290197421860',
+        'expires_at': '2026-09-26T13:10:00+00:00',
+      }, status: 202),
+    );
+
+    // Saisi à la locale, sans indicatif recollé par l'écran.
+    final challenge = await dataSource.requestOtp(
+      identifier: '0197421860',
+      purpose: OtpPurpose.registration,
+    );
+
+    // C'est la valeur du serveur qui fait foi : elle est normalisée, et
+    // c'est elle que l'écran OTP affiche masquée.
+    expect(challenge.identifier, '+2290197421860');
+  });
+
+  test('l’inscription par téléphone emporte le nom', () async {
+    when(
+      () => dio.post<dynamic>(
+        any(),
+        data: any(named: 'data'),
+        options: any(named: 'options'),
+      ),
+    ).thenAnswer(
+      (_) async => _response({
+        'token': 'jeton',
+        'expires_at': '2026-12-31T23:59:59+00:00',
+        'user': {
+          'uuid': 'user-1',
+          'name': 'Aïcha HOUNKPE',
+          'email': 'aicha@example.com',
+          'status': 'active',
+        },
+      }),
+    );
+
+    await dataSource.completeRegistration(
+      verification: const OtpVerification(
+        challengeUuid: 'challenge-2',
+        purpose: OtpPurpose.registration,
+        verificationToken: 'jeton-de-verification',
+      ),
+      pin: '1234',
+      device: _device,
+      name: 'Aïcha HOUNKPE',
+    );
+
+    final body = lastBody();
+    // Sans lui, le serveur répond `422 name_required` : il n'a pas
+    // d'adresse d'où dériver un nom.
+    expect(body['name'], 'Aïcha HOUNKPE');
+    expect(body['pin_confirmation'], '1234');
+    // Ce que l'écran n'a pas recueilli ne part pas : une clé nulle
+    // vaudrait effacement côté serveur.
+    expect(body.containsKey('email'), isFalse);
+    expect(body.containsKey('phone'), isFalse);
   });
 }

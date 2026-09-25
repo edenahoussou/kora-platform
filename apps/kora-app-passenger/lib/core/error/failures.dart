@@ -63,6 +63,19 @@ class AccountLockedFailure extends Failure {
   ]);
 }
 
+/// L'identifiant donné à l'inscription porte déjà un compte avec PIN
+/// (409 `account_exists`).
+///
+/// Distinct d'un [AuthFailure] parce que la suite n'est pas la même :
+/// il n'y a rien à corriger dans le formulaire, c'est une connexion
+/// qu'il faut. L'écran doit pouvoir y mener sans lire le message pour le
+/// deviner.
+class AccountExistsFailure extends Failure {
+  const AccountExistsFailure([
+    super.message = 'Un compte existe déjà pour cet identifiant.',
+  ]);
+}
+
 /// Un siège demandé vient d'être pris (409 sur `POST bus/holds`).
 ///
 /// Distinct d'un [ValidationFailure] parce que l'écran a de quoi agir : le
