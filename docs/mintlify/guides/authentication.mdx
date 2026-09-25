@@ -14,7 +14,7 @@ Une alternative **OAuth sociale** (Google, Facebook, TikTok) est disponible pour
 
 <Steps>
   <Step title="1. Demander un OTP">
-    Pour une inscription, l'utilisateur saisit son email. L'API met en file un code OTP à 6 chiffres et retourne un `otp_challenge_uuid`. Pour un compte existant, les demandes `pin_reset` et `account_unlock` acceptent aussi le téléphone ; WhatsApp est prioritaire si le compte en possède un.
+    Pour une inscription, l'utilisateur saisit son email **ou** son numéro de téléphone WhatsApp. L'API envoie un code OTP à 6 chiffres sur le canal correspondant (email ou WhatsApp) et retourne un `otp_challenge_uuid`. Pour un compte existant, les demandes `pin_reset` et `account_unlock` acceptent aussi les deux formes ; WhatsApp est prioritaire si le compte possède un téléphone, avec repli email. Si aucun canal ne peut délivrer le code, l'API répond `503 otp_delivery_unavailable`.
 
 ```bash
 curl -X POST https://staging.koraexpress.app/api/v1/auth/otp/request \

@@ -18,7 +18,7 @@ Groupes d'API initiaux conformes au CDC MVP Bus.
 
 Endpoints publics:
 
-- `POST /api/v1/auth/otp/request`: demande OTP par email ou téléphone pour un compte existant ; l'inscription reste basée sur l'email.
+- `POST /api/v1/auth/otp/request`: demande OTP par email ou téléphone (inscription incluse) ; livraison synchrone WhatsApp ou email, `503 otp_delivery_unavailable` si aucun canal joignable.
 - `POST /api/v1/auth/otp/verify`: verification OTP et emission d'un jeton de verification court.
 - `POST /api/v1/auth/register/complete`: creation/activation compte par PIN et appareil de confiance.
 - `POST /api/v1/auth/login`: connexion par email ou téléphone + PIN ; `email` reste accepté comme alias rétrocompatible ; OTP obligatoire sur nouvel appareil.

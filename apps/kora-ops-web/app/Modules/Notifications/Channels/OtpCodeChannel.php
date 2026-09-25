@@ -3,6 +3,7 @@
 namespace App\Modules\Notifications\Channels;
 
 use App\Models\User;
+use App\Modules\IdentityAccess\Exceptions\OtpDeliveryException;
 use App\Modules\Notifications\Services\WhatsApp\WhatsAppMessageDispatcher;
 use App\Notifications\IdentityAccess\OtpCodeNotification;
 use Illuminate\Notifications\Channels\MailChannel;
@@ -11,6 +12,14 @@ use Throwable;
 
 class OtpCodeChannel
 {
+    /**
+     * Domaine des emails de convenance créés pour les comptes
+     * téléphone-only (réservation assistée, inscription par numéro) :
+     * aucun courrier n'y aboutira jamais, un « repli email » vers cette
+     * adresse serait une perte silencieuse du code.
+     */
+    public const PLACEHOLDER_EMAIL_DOMAIN = 'accounts.kora.invalid';
+
     public function __construct(
         private readonly WhatsAppMessageDispatcher $whatsapp,
         private readonly MailChannel $mail,
@@ -18,26 +27,69 @@ class OtpCodeChannel
 
     public function send(object $notifiable, OtpCodeNotification $notification): void
     {
-        $phone = $notifiable instanceof User ? $notifiable->phone : null;
+        $phone = $notifiable instanceof User
+            ? $notifiable->phone
+            : $this->routeNotificationTarget($notifiable, 'whatsapp');
 
-        if ($phone === null || trim($phone) === '') {
+        $whatsappError = null;
+
+        if (is_string($phone) && trim($phone) !== '') {
+            try {
+                $this->whatsapp->send(
+                    $phone,
+                    $notification->toWhatsApp($notifiable),
+                );
+
+                return;
+            } catch (Throwable $exception) {
+                $whatsappError = $exception;
+            }
+        }
+
+        if (self::isContactableEmail($this->routeNotificationTarget($notifiable, 'mail'))) {
+            if ($whatsappError !== null) {
+                Log::warning('OTP WhatsApp delivery failed; falling back to email.', [
+                    'exception' => $whatsappError::class,
+                    'user_id' => $notifiable instanceof User ? $notifiable->getKey() : null,
+                ]);
+            }
+
             $this->mail->send($notifiable, $notification);
 
             return;
         }
 
-        try {
-            $this->whatsapp->send(
-                $phone,
-                $notification->toWhatsApp($notifiable),
-            );
-        } catch (Throwable $exception) {
-            Log::warning('OTP WhatsApp delivery failed; falling back to email.', [
-                'exception' => $exception::class,
-                'user_id' => $notifiable->getKey(),
-            ]);
+        throw new OtpDeliveryException(previous: $whatsappError);
+    }
 
-            $this->mail->send($notifiable, $notification);
+    /**
+     * Route de livraison déclarée par le notifiable (User ou
+     * AnonymousNotifiable) pour un canal donné ; null si le notifiable
+     * n'expose pas de routage.
+     */
+    private function routeNotificationTarget(object $notifiable, string $driver): mixed
+    {
+        return method_exists($notifiable, 'routeNotificationFor')
+            ? $notifiable->routeNotificationFor($driver)
+            : null;
+    }
+
+    /**
+     * Une adresse vers laquelle un code OTP peut réellement aboutir :
+     * valide, et pas un placeholder `.invalid` des comptes sans email.
+     */
+    public static function isContactableEmail(?string $email): bool
+    {
+        if ($email === null || trim($email) === '') {
+            return false;
         }
+
+        if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            return false;
+        }
+
+        $domain = substr(strrchr($email, '@') ?: '', 1);
+
+        return $domain !== '' && $domain !== self::PLACEHOLDER_EMAIL_DOMAIN;
     }
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\IdentityAccess\Actions\RevokeOpsSessionAction;
 use App\Modules\IdentityAccess\Data\OpsSessionRevocationReason;
+use App\Modules\IdentityAccess\Exceptions\AuthBusinessException;
 use App\Modules\IdentityAccess\Exceptions\AuthLockedException;
 use App\Modules\IdentityAccess\Exceptions\AuthSuspendedException;
 use App\Modules\IdentityAccess\Http\Requests\ChangePinRequest;
@@ -72,9 +73,18 @@ class AuthSessionController extends Controller
      */
     public function completeRegistration(CompleteRegistrationRequest $request): JsonResponse
     {
-        return response()->json(['data' => $this->sessionPayload(
-            $this->authSessionService->completeRegistration($request->payload()),
-        )], 201);
+        try {
+            return response()->json(['data' => $this->sessionPayload(
+                $this->authSessionService->completeRegistration($request->payload()),
+            )], 201);
+        } catch (AuthBusinessException $e) {
+            return response()->json([
+                'error' => [
+                    'code' => $e->errorCode,
+                    'message' => $e->getMessage(),
+                ],
+            ], $e->status);
+        }
     }
 
     /**
@@ -171,6 +181,13 @@ class AuthSessionController extends Controller
                     'message' => 'Identifiants invalides.',
                 ],
             ], 422);
+        } catch (AuthBusinessException $e) {
+            return response()->json([
+                'error' => [
+                    'code' => $e->errorCode,
+                    'message' => $e->getMessage(),
+                ],
+            ], $e->status);
         }
 
         if (($result['requires_otp'] ?? false) && isset($result['challenge'])) {

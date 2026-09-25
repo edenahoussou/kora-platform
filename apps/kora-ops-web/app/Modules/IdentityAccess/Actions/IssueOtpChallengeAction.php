@@ -25,16 +25,22 @@ class IssueOtpChallengeAction
         $user = $identifier instanceof User
             ? $identifier
             : $this->identifierResolver->findUser($identifier);
-        $normalizedEmail = $user?->email !== null
-            ? Str::lower($user->email)
-            : $this->identifierResolver->normalize($identifier);
 
+        // Hors inscription, l'identifiant doit désigner un compte existant :
+        // pas de compte, pas de destinataire à qui envoyer le code.
         if (! $user && $purpose !== OtpPurpose::Registration) {
             throw new UserNotFoundException;
         }
 
+        // Le challenge porte la cible de livraison : le téléphone du compte
+        // quand il existe (canal WhatsApp prioritaire), son email sinon ;
+        // en inscription, l'identifiant normalisé tel que saisi.
+        $normalizedIdentifier = $user !== null
+            ? (string) ($user->phone ?: Str::lower((string) $user->email))
+            : $this->identifierResolver->normalize((string) $identifier);
+
         AuthOtpChallenge::query()
-            ->where('email', $normalizedEmail)
+            ->where('identifier', $normalizedIdentifier)
             ->where('purpose', $purpose)
             ->where('status', OtpChallengeStatus::Pending)
             ->update(['status' => OtpChallengeStatus::Expired]);
@@ -42,7 +48,7 @@ class IssueOtpChallengeAction
         $code = (string) random_int(100000, 999999);
 
         $challenge = AuthOtpChallenge::query()->create([
-            'email' => $normalizedEmail,
+            'identifier' => $normalizedIdentifier,
             'user_id' => $user?->id,
             'purpose' => $purpose,
             'code_hash' => Hash::make($code),
@@ -53,13 +59,25 @@ class IssueOtpChallengeAction
             'user_agent' => Str::limit((string) $request->userAgent(), 1000, ''),
         ]);
 
+        $notification = new OtpCodeNotification($code, $purpose);
+
+        // Envoi synchrone : un échec de livraison (WhatsApp injoignable et
+        // aucun email joignable) doit remonter en erreur métier dans la
+        // réponse, pas mourir silencieusement dans la file.
         if ($user) {
-            $user->notify(new OtpCodeNotification($code, $purpose));
+            $user->notifyNow($notification);
         } else {
-            Notification::route('mail', $normalizedEmail)
-                ->notify(new OtpCodeNotification($code, $purpose));
+            Notification::route(
+                $this->isEmail($normalizedIdentifier) ? 'mail' : 'whatsapp',
+                $normalizedIdentifier,
+            )->notifyNow($notification);
         }
 
         return $challenge;
+    }
+
+    private function isEmail(string $identifier): bool
+    {
+        return filter_var($identifier, FILTER_VALIDATE_EMAIL) !== false;
     }
 }

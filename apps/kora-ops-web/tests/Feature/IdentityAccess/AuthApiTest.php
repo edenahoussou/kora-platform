@@ -26,7 +26,7 @@ it('requests an email otp without storing the clear code', function (): void {
 
     $challenge = AuthOtpChallenge::query()->firstOrFail();
 
-    expect($challenge->email)->toBe('aicha@example.com')
+    expect($challenge->identifier)->toBe('aicha@example.com')
         ->and($challenge->code_hash)->not->toBe('123456')
         ->and($challenge->status)->toBe(OtpChallengeStatus::Pending);
 
@@ -216,19 +216,31 @@ it('issues a new-device otp to WhatsApp for a phone login', function (): void {
     $challenge = AuthOtpChallenge::query()->firstOrFail();
 
     expect($response->json('data.otp_challenge_uuid'))->toBe($challenge->uuid)
-        ->and($challenge->email)->toBe($user->email)
+        ->and($challenge->identifier)->toBe('+2290197421860')
         ->and($challenge->user_id)->toBe($user->id);
 
     Notification::assertSentTo($user, OtpCodeNotification::class);
 });
 
-it('rejects phone identifiers for registration otp requests', function (): void {
+it('requests a WhatsApp otp for a phone registration', function (): void {
+    Notification::fake();
+
     $this->postJson('/api/v1/auth/otp/request', [
-        'identifier' => '+2290197421860',
+        'identifier' => '+2290153234060',
         'purpose' => 'registration',
     ])
-        ->assertUnprocessable()
-        ->assertJsonValidationErrors('identifier');
+        ->assertAccepted()
+        ->assertJsonPath('data.purpose', 'registration')
+        ->assertJsonPath('data.identifier', '+2290153234060')
+        ->assertJsonPath('data.email', null);
+
+    $challenge = AuthOtpChallenge::query()->firstOrFail();
+
+    expect($challenge->identifier)->toBe('+2290153234060')
+        ->and($challenge->user_id)->toBeNull()
+        ->and($challenge->status)->toBe(OtpChallengeStatus::Pending);
+
+    Notification::assertSentOnDemand(OtpCodeNotification::class);
 });
 
 it('requests an otp by phone for an existing account', function (): void {
@@ -564,6 +576,184 @@ it('updates user preferences', function (): void {
         ->assertJsonPath('data.theme', 'dark');
 });
 
+it('completes a phone registration and logs in by phone', function (): void {
+    $this->seed(KoraBusRolePermissionSeeder::class);
+    [$challenge, $verificationToken] = verifiedOtpChallenge('+2290153234060', OtpPurpose::Registration);
+
+    $this->postJson('/api/v1/auth/register/complete', [
+        'otp_challenge_uuid' => $challenge->uuid,
+        'verification_token' => $verificationToken,
+        'name' => 'AHOUSSOU TONY',
+        'pin' => '1234',
+        'pin_confirmation' => '1234',
+        'device_name' => 'Tecno Spark 20',
+        'platform' => 'android',
+        'device_fingerprint' => 'device-fingerprint-phone-registration',
+    ])
+        ->assertCreated()
+        ->assertJsonPath('data.user.name', 'AHOUSSOU TONY')
+        ->assertJsonPath('data.user.phone', '+2290153234060');
+
+    $user = User::query()->where('phone', '+2290153234060')->firstOrFail();
+
+    expect($user->email)->toEndWith('@accounts.kora.invalid')
+        ->and($user->email_verified_at)->toBeNull()
+        ->and($user->hasRole('passenger'))->toBeTrue()
+        ->and(Hash::check('1234', $user->pin_hash))->toBeTrue();
+
+    // register/complete a déjà enregistré l'appareil comme de confiance :
+    // le login sur le même fingerprint ne redemande pas d'OTP.
+    $this->postJson('/api/v1/auth/login', [
+        'identifier' => '01 53 23 40 60',
+        'pin' => '1234',
+        'device_name' => 'Tecno Spark 20',
+        'platform' => 'android',
+        'device_fingerprint' => 'device-fingerprint-phone-registration',
+    ])
+        ->assertOk()
+        ->assertJsonPath('data.user.uuid', $user->uuid);
+});
+
+it('requires a name when creating a phone-only account', function (): void {
+    $this->seed(KoraBusRolePermissionSeeder::class);
+    [$challenge, $verificationToken] = verifiedOtpChallenge('+2290153234060', OtpPurpose::Registration);
+
+    $this->postJson('/api/v1/auth/register/complete', [
+        'otp_challenge_uuid' => $challenge->uuid,
+        'verification_token' => $verificationToken,
+        'pin' => '1234',
+        'pin_confirmation' => '1234',
+        'device_name' => 'Tecno Spark 20',
+        'platform' => 'android',
+        'device_fingerprint' => 'device-fingerprint-name-required',
+    ])
+        ->assertUnprocessable()
+        ->assertJsonPath('error.code', 'name_required');
+});
+
+it('claims an existing pin-less phone account at registration', function (): void {
+    $this->seed(KoraBusRolePermissionSeeder::class);
+
+    $existing = User::factory()->create([
+        'name' => 'Tony',
+        'email' => 'traveler+'.Str::uuid().'@accounts.kora.invalid',
+        'phone' => '+2290153234060',
+        'pin_hash' => null,
+        'email_verified_at' => null,
+    ]);
+
+    [$challenge, $verificationToken] = verifiedOtpChallenge('+2290153234060', OtpPurpose::Registration);
+
+    $this->postJson('/api/v1/auth/register/complete', [
+        'otp_challenge_uuid' => $challenge->uuid,
+        'verification_token' => $verificationToken,
+        'name' => 'AHOUSSOU TONY',
+        'email' => 'tony.ahoussou@example.com',
+        'pin' => '1234',
+        'pin_confirmation' => '1234',
+        'device_name' => 'Tecno Spark 20',
+        'platform' => 'android',
+        'device_fingerprint' => 'device-fingerprint-claim',
+    ])
+        ->assertCreated()
+        ->assertJsonPath('data.user.uuid', $existing->uuid);
+
+    $existing->refresh();
+
+    expect($existing->email)->toBe('tony.ahoussou@example.com')
+        ->and($existing->name)->toBe('AHOUSSOU TONY')
+        ->and($existing->email_verified_at)->toBeNull()
+        ->and(Hash::check('1234', $existing->pin_hash))->toBeTrue()
+        ->and(User::query()->where('phone', '+2290153234060')->count())->toBe(1);
+});
+
+it('rejects registration on an account that already has a pin', function (): void {
+    pinUser('existing@example.com', '+2290153234060');
+    [$challenge, $verificationToken] = verifiedOtpChallenge('+2290153234060', OtpPurpose::Registration);
+
+    $this->postJson('/api/v1/auth/register/complete', [
+        'otp_challenge_uuid' => $challenge->uuid,
+        'verification_token' => $verificationToken,
+        'name' => 'AHOUSSOU TONY',
+        'pin' => '1234',
+        'pin_confirmation' => '1234',
+        'device_name' => 'Tecno Spark 20',
+        'platform' => 'android',
+        'device_fingerprint' => 'device-fingerprint-account-exists',
+    ])
+        ->assertConflict()
+        ->assertJsonPath('error.code', 'account_exists');
+});
+
+it('rejects attaching a phone owned by another account', function (): void {
+    pinUser('phone-owner@example.com', '+2290153234060');
+    [$challenge, $verificationToken] = verifiedOtpChallenge('new-email@example.com', OtpPurpose::Registration);
+
+    $this->postJson('/api/v1/auth/register/complete', [
+        'otp_challenge_uuid' => $challenge->uuid,
+        'verification_token' => $verificationToken,
+        'phone' => '+229 01 53 23 40 60',
+        'pin' => '1234',
+        'pin_confirmation' => '1234',
+        'device_name' => 'Tecno Spark 20',
+        'platform' => 'android',
+        'device_fingerprint' => 'device-fingerprint-phone-taken',
+    ])
+        ->assertUnprocessable()
+        ->assertJsonPath('error.code', 'phone_taken');
+});
+
+it('rejects attaching an email owned by another account', function (): void {
+    pinUser('email-owner@example.com');
+    [$challenge, $verificationToken] = verifiedOtpChallenge('+2290153234060', OtpPurpose::Registration);
+
+    $this->postJson('/api/v1/auth/register/complete', [
+        'otp_challenge_uuid' => $challenge->uuid,
+        'verification_token' => $verificationToken,
+        'name' => 'AHOUSSOU TONY',
+        'email' => 'email-owner@example.com',
+        'pin' => '1234',
+        'pin_confirmation' => '1234',
+        'device_name' => 'Tecno Spark 20',
+        'platform' => 'android',
+        'device_fingerprint' => 'device-fingerprint-email-taken',
+    ])
+        ->assertUnprocessable()
+        ->assertJsonPath('error.code', 'email_taken');
+});
+
+it('returns otp_delivery_unavailable when no channel can deliver', function (): void {
+    // Compte sans téléphone et sans email joignable (placeholder
+    // `.invalid` des comptes créés via la réservation assistée) : aucun
+    // canal ne peut délivrer le code — mieux vaut une erreur métier
+    // qu'un code perdu dans le vide.
+    $placeholder = 'traveler+'.Str::uuid().'@accounts.kora.invalid';
+    pinUser($placeholder);
+
+    $this->postJson('/api/v1/auth/otp/request', [
+        'identifier' => $placeholder,
+        'purpose' => 'pin_reset',
+    ])
+        ->assertStatus(503)
+        ->assertJsonPath('error.code', 'otp_delivery_unavailable');
+});
+
+it('rejects a phone already in use when updating the profile', function (): void {
+    pinUser('first-phone@example.com', '+2290153234060');
+    $user = pinUser('second-phone@example.com');
+    $device = trustedDevice($user, 'second-phone-device');
+    $token = $user->createToken("device:{$device->uuid}", ['*'], now()->addDays(7))->plainTextToken;
+
+    $this->withToken($token)
+        ->putJson('/api/v1/auth/me', [
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => '01 53 23 40 60',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('phone');
+});
+
 function pendingOtpChallenge(
     string $email,
     OtpPurpose $purpose,
@@ -572,7 +762,7 @@ function pendingOtpChallenge(
     ?User $user = null,
 ): AuthOtpChallenge {
     return AuthOtpChallenge::query()->create([
-        'email' => $email,
+        'identifier' => $email,
         'user_id' => $user?->id,
         'purpose' => $purpose,
         'code_hash' => Hash::make($code),
@@ -589,7 +779,7 @@ function verifiedOtpChallenge(string $email, OtpPurpose $purpose, ?User $user = 
 {
     $verificationToken = Str::random(64);
     $challenge = AuthOtpChallenge::query()->create([
-        'email' => $email,
+        'identifier' => $email,
         'user_id' => $user?->id,
         'purpose' => $purpose,
         'code_hash' => Hash::make('123456'),

@@ -7,7 +7,9 @@ authMethod: none
 
 # Demander un OTP
 
-Déclenche l'envoi d'un code OTP à 6 chiffres. Pour un compte existant, `identifier` accepte un email ou un numéro de téléphone normalisé ; WhatsApp est prioritaire lorsque le compte possède un téléphone, avec repli email. L'inscription (`registration`) reste basée sur l'email. Le `purpose` détermine le contexte et le rate limit applicable.
+Déclenche l'envoi d'un code OTP à 6 chiffres. `identifier` accepte un email ou un numéro de téléphone pour tous les contextes, y compris `registration` : le canal de livraison est choisi selon le type d'identifiant — email pour une adresse, WhatsApp pour un numéro (qui doit donc être WhatsApp). Pour un compte existant, WhatsApp est prioritaire lorsque le compte possède un téléphone, avec repli email. Le `purpose` détermine le contexte et le rate limit applicable.
+
+La livraison est synchrone : si aucun canal ne peut délivrer le code (WhatsApp indisponible et aucun email joignable), l'endpoint renvoie `503 otp_delivery_unavailable` au lieu de créer un challenge perdu.
 
 ## Paramètres
 
@@ -16,7 +18,7 @@ Déclenche l'envoi d'un code OTP à 6 chiffres. Pour un compte existant, `identi
 </ParamField>
 
 <ParamField body="email" type="string">
-  Alias rétrocompatible de `identifier`. Pour `registration`, l'adresse email est obligatoire. Ne pas envoyer les deux champs ensemble.
+  Alias rétrocompatible de `identifier`. Ne pas envoyer les deux champs ensemble.
 </ParamField>
 
 <ParamField body="purpose" type="string" required>
@@ -66,6 +68,7 @@ final challengeUuid = res.data['data']['otp_challenge_uuid'];
   "data": {
     "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
     "purpose": "registration",
+    "identifier": "passager@korabus.app",
     "email": "passager@korabus.app",
     "expires_at": "2026-08-17T13:10:00.000Z"
   }
@@ -93,8 +96,11 @@ final challengeUuid = res.data['data']['otp_challenge_uuid'];
   <ResponseField name="purpose" type="string" required>
     Contexte de la demande (`registration`, `login_new_device`, `pin_reset`, `account_unlock`).
   </ResponseField>
-  <ResponseField name="email" type="string" required>
-    Email canonique du compte associé au challenge. La livraison peut avoir eu lieu par WhatsApp.
+  <ResponseField name="identifier" type="string" required>
+    Identifiant canonique ayant reçu le code (email normalisé ou téléphone international).
+  </ResponseField>
+  <ResponseField name="email" type="string">
+    Email du compte ou de l'identifiant quand il s'agit d'une adresse ; `null` pour un challenge adressé à un téléphone. Alias déprécié, conservé pour compatibilité.
   </ResponseField>
   <ResponseField name="expires_at" type="string" required>
     Date d'expiration du challenge (ISO 8601).
@@ -105,7 +111,8 @@ final challengeUuid = res.data['data']['otp_challenge_uuid'];
 
 | Code | Description |
 |------|-------------|
-| `202` | OTP mis en file pour WhatsApp ou email. |
-| `404` | Compte inexistant pour `login_new_device`, `pin_reset` ou `account_unlock`. |
-| `422` | `identifier` invalide, ambigu, ou téléphone fourni pour `registration`; `purpose` non supporté. |
+| `202` | OTP envoyé par WhatsApp ou email. |
+| `404` | Compte inexistant pour `login_new_device`, `pin_reset` ou `account_unlock` (`user_not_found`). |
+| `422` | `identifier` invalide ou ambigu ; `purpose` non supporté. |
 | `429` | Rate limit `auth-otp` dépassé (3/min par IP + identifiant normalisé). |
+| `503` | Aucun canal ne peut délivrer le code (`otp_delivery_unavailable`). Réessayer plus tard. |

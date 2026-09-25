@@ -4,6 +4,7 @@ namespace App\Modules\IdentityAccess\Services;
 
 use App\Models\User;
 use App\Modules\IdentityAccess\Contracts\PassengerIdentityResolver;
+use App\Modules\Notifications\Channels\OtpCodeChannel;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -84,7 +85,7 @@ class PhonePassengerIdentityResolver implements PassengerIdentityResolver
 
         return User::query()->create([
             'name' => trim($name),
-            'email' => 'traveler+'.Str::uuid().'@accounts.kora.invalid',
+            'email' => 'traveler+'.Str::uuid().'@'.OtpCodeChannel::PLACEHOLDER_EMAIL_DOMAIN,
             'phone' => $normalizedPhone,
             'password' => Str::random(64),
         ]);
