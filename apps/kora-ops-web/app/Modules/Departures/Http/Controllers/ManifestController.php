@@ -2,15 +2,10 @@
 
 namespace App\Modules\Departures\Http\Controllers;
 
-use App\Modules\Booking\Actions\ResolvePassengerJourneyStatusAction;
-use App\Modules\Booking\Data\PassengerJourneyStatus;
 use App\Modules\Booking\Models\Reservation;
 use App\Modules\Booking\Models\ReservationSegment;
-use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Models\Departure;
-use App\Modules\Payments\Models\Payment;
-use App\Modules\Ticketing\Models\Ticket;
-use Illuminate\Database\Eloquent\Collection;
+use App\Modules\Departures\Services\ManifestPassengerSerializer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Response;
@@ -18,65 +13,20 @@ use Inertia\Response;
 class ManifestController
 {
     public function __construct(
-        private readonly ResolvePassengerJourneyStatusAction $resolveJourneyStatus,
+        private readonly ManifestPassengerSerializer $manifestSerializer,
     ) {}
-
-    /**
-     * Departure picker — same search/filter shape as the Departures screen,
-     * but every row links straight to its manifest instead of the
-     * departure's own edit/detail view.
-     */
-    public function index(Request $request): Response
-    {
-        Gate::authorize('viewAny', Departure::class);
-
-        $query = Departure::query()
-            ->with(['line:id,uuid,code,name', 'bus:id,uuid,registration_number,seat_count'])
-            ->withCount('reservationSegments')
-            ->orderBy('departure_date', 'desc')
-            ->orderBy('departure_time');
-
-        $search = $request->string('q')->trim()->value();
-        if ($search !== '') {
-            $term = '%'.mb_strtolower($search).'%';
-            $query->where(function ($q) use ($term): void {
-                $q->whereHas('line', fn ($line) => $line->whereRaw('LOWER(code) LIKE ?', [$term])->orWhereRaw('LOWER(name) LIKE ?', [$term]))
-                    ->orWhereHas('bus', fn ($bus) => $bus->whereRaw('LOWER(registration_number) LIKE ?', [$term]));
-            });
-        }
-
-        $status = $request->string('status')->trim()->value();
-        if ($status !== '' && in_array($status, DepartureStatus::values(), true)) {
-            $query->where('status', $status);
-        }
-
-        $date = $request->string('date')->trim()->value();
-        if ($date !== '') {
-            $query->whereDate('departure_date', $date);
-        }
-
-        $paginated = $query->paginate(15);
-
-        return inertia('manifest', [
-            'departures' => $paginated->through(fn (Departure $departure): array => [
-                'uuid' => $departure->uuid,
-                'lineCode' => $departure->line->code,
-                'lineName' => $departure->line->name,
-                'busRegistration' => $departure->bus->registration_number,
-                'departureDate' => $departure->departure_date?->toDateString(),
-                'departureTime' => substr((string) $departure->departure_time, 0, 5),
-                'status' => $departure->status->value,
-                'passengerCount' => $departure->reservation_segments_count,
-            ]),
-            'statuses' => DepartureStatus::options(),
-        ]);
-    }
 
     public function show(Request $request, Departure $departure): Response
     {
         Gate::authorize('view', $departure);
 
-        $departure->load(['line:id,uuid,code,name', 'bus:id,uuid,registration_number']);
+        $departure->load([
+            'line:id,uuid,code,name,type',
+            'line.stops' => fn ($q) => $q->where('status', 'active')->orderBy('stop_order')->with('physicalStop:id,uuid,name,city'),
+            'bus:id,uuid,registration_number,seat_count',
+            'driver:id,uuid,name',
+            'conductor:id,uuid,name',
+        ]);
 
         $segments = $departure->reservationSegments()
             ->with([
@@ -91,21 +41,31 @@ class ManifestController
             ->orderBy('id')
             ->get();
 
-        $ticketsByPassengerId = $this->ticketsByPassengerId($segments);
+        $ticketsByPassengerId = $this->manifestSerializer->ticketsByPassengerId($segments);
         $canViewTickets = $request->user()?->can('tickets.view') ?? false;
+
+        $lineStops = $departure->line->stops;
+        $originStop = $lineStops->first();
+        $destinationStop = $lineStops->last();
 
         return inertia('manifest/detail', [
             'departure' => [
                 'uuid' => $departure->uuid,
                 'lineCode' => $departure->line->code,
                 'lineName' => $departure->line->name,
+                'lineType' => $departure->line->type->value,
+                'lineTypeLabel' => $departure->line->type->translatedLabel(),
+                'originCity' => $originStop?->physicalStop->city ?? $originStop->city ?? $originStop->name,
+                'destinationCity' => $destinationStop?->physicalStop->city ?? $destinationStop->city ?? $destinationStop->name,
                 'busRegistration' => $departure->bus->registration_number,
+                'seatCount' => $departure->bus->seat_count,
                 'departureDate' => $departure->departure_date?->toDateString(),
                 'departureTime' => substr((string) $departure->departure_time, 0, 5),
                 'status' => $departure->status->value,
+                'statusLabel' => $departure->status->translatedLabel(),
             ],
-            'passengers' => $segments->map(fn (ReservationSegment $segment): array => $this->serializeManifestRow($segment, $ticketsByPassengerId, $canViewTickets, $departure->status))->values(),
-            'summary' => $this->buildSummary($segments, $departure->status),
+            'passengers' => $segments->map(fn (ReservationSegment $segment): array => $this->manifestSerializer->row($segment, $ticketsByPassengerId, $canViewTickets, $departure->status))->values(),
+            'summary' => $this->manifestSerializer->summary($segments, $departure->status),
             'permissions' => [
                 'canViewTickets' => $canViewTickets,
             ],
@@ -131,7 +91,7 @@ class ManifestController
             'segments.destinationStop:id,uuid,name',
         ]);
 
-        $ticketsByPassengerId = $this->ticketsByPassengerId($reservation->segments);
+        $ticketsByPassengerId = $this->manifestSerializer->ticketsByPassengerId($reservation->segments);
         $canViewTickets = $request->user()?->can('tickets.view') ?? false;
 
         return inertia('manifest/reservation', [
@@ -142,119 +102,10 @@ class ManifestController
                 'isGroupPurchase' => $reservation->passengers->count() > 1,
                 'passengerCount' => $reservation->passengers->count(),
             ],
-            'passengers' => $reservation->segments->map(fn (ReservationSegment $segment): array => $this->serializeManifestRow($segment, $ticketsByPassengerId, $canViewTickets, $segment->departure->status, includeDeparture: true))->values(),
+            'passengers' => $reservation->segments->map(fn (ReservationSegment $segment): array => $this->manifestSerializer->row($segment, $ticketsByPassengerId, $canViewTickets, $segment->departure->status, includeDeparture: true))->values(),
             'permissions' => [
                 'canViewTickets' => $canViewTickets,
             ],
         ]);
-    }
-
-    /**
-     * @param  Collection<int, ReservationSegment>  $segments
-     * @return array<int, Ticket>
-     */
-    private function ticketsByPassengerId(Collection $segments): array
-    {
-        $passengerIds = $segments->pluck('reservation_passenger_id')->filter()->unique()->values();
-
-        if ($passengerIds->isEmpty()) {
-            return [];
-        }
-
-        return Ticket::query()
-            ->whereIn('reservation_passenger_id', $passengerIds)
-            ->get()
-            ->keyBy('reservation_passenger_id')
-            ->all();
-    }
-
-    /**
-     * @param  array<int, Ticket>  $ticketsByPassengerId
-     * @return array<string, mixed>
-     */
-    private function serializeManifestRow(ReservationSegment $segment, array $ticketsByPassengerId, bool $canViewTickets, DepartureStatus $departureStatus, bool $includeDeparture = false): array
-    {
-        $passenger = $segment->reservationPassenger;
-        // reservation_id, seat_id, origin_stop_id, destination_stop_id and
-        // departure_id are all NOT NULL on reservation_segments, so these
-        // relations are never null — accessed directly, no nullsafe/fallback.
-        $reservation = $segment->reservation;
-        $ticket = $passenger !== null ? ($ticketsByPassengerId[$passenger->id] ?? null) : null;
-        $latestPayment = $reservation->payments->first();
-
-        return [
-            'segmentUuid' => $segment->uuid,
-            'passenger' => $passenger === null ? null : [
-                'uuid' => $passenger->uuid,
-                'firstName' => $passenger->first_name,
-                'lastName' => $passenger->last_name,
-                'phone' => $passenger->phone,
-            ],
-            'seatCode' => $segment->seat->code,
-            'originStop' => $segment->originStop->name,
-            'destinationStop' => $segment->destinationStop->name,
-            'reservation' => [
-                'uuid' => $reservation->uuid,
-                'isGroupPurchase' => $reservation->relationLoaded('passengers')
-                    ? $reservation->passengers->count() > 1
-                    : null,
-            ],
-            'journeyStatus' => $this->journeyStatusPayload($segment, $latestPayment, $departureStatus),
-            'ticket' => ! $canViewTickets ? null : ($ticket === null ? null : [
-                'uuid' => $ticket->uuid,
-                'shortCode' => $ticket->short_code,
-                'status' => $ticket->status->value,
-                'statusLabel' => $ticket->status->translatedLabel(),
-                'issuedAt' => $ticket->issued_at?->toIso8601String(),
-            ]),
-            'departure' => ! $includeDeparture ? null : [
-                'uuid' => $segment->departure->uuid,
-                'lineCode' => $segment->departure->line->code,
-                'departureDate' => $segment->departure->departure_date?->toDateString(),
-                'departureTime' => substr((string) $segment->departure->departure_time, 0, 5),
-            ],
-        ];
-    }
-
-    /** @return array{value: string, label: string} */
-    private function journeyStatusPayload(ReservationSegment $segment, ?Payment $latestPayment, DepartureStatus $departureStatus): array
-    {
-        $status = $this->resolveJourneyStatus->execute($segment, $latestPayment, $departureStatus);
-
-        return ['value' => $status->value, 'label' => $status->translatedLabel()];
-    }
-
-    /**
-     * @param  Collection<int, ReservationSegment>  $segments
-     * @return array<string, int>
-     */
-    private function buildSummary(Collection $segments, DepartureStatus $departureStatus): array
-    {
-        $counts = [
-            'total' => $segments->count(),
-            'boarded' => 0,
-            'absent' => 0,
-            'ticketIssued' => 0,
-            'paymentPending' => 0,
-            'holdExpired' => 0,
-            'cancelled' => 0,
-        ];
-
-        foreach ($segments as $segment) {
-            $latestPayment = $segment->reservation->payments->first();
-            $status = $this->resolveJourneyStatus->execute($segment, $latestPayment, $departureStatus);
-
-            match ($status) {
-                PassengerJourneyStatus::Boarded => $counts['boarded']++,
-                PassengerJourneyStatus::Absent => $counts['absent']++,
-                PassengerJourneyStatus::TicketIssued => $counts['ticketIssued']++,
-                PassengerJourneyStatus::HoldPending, PassengerJourneyStatus::PaymentPending => $counts['paymentPending']++,
-                PassengerJourneyStatus::HoldExpired => $counts['holdExpired']++,
-                PassengerJourneyStatus::Cancelled => $counts['cancelled']++,
-                default => null,
-            };
-        }
-
-        return $counts;
     }
 }

@@ -37,7 +37,7 @@ class ProcessIndividualNoShowAction
      */
     public function execute(
         Departure $departure,
-        TerminalP501 $terminal,
+        ?TerminalP501 $terminal,
         User $agent,
         string $ticketUuid,
         string $operationUuid,
@@ -102,7 +102,7 @@ class ProcessIndividualNoShowAction
                     'leg_order' => $s->leg_order,
                     'departure_uuid' => $s->departure?->uuid,
                 ])->values()->all(),
-                'terminal_p501_id' => $terminal->id,
+                'terminal_p501_id' => $terminal?->id,
                 'operation_uuid' => $operationUuid,
                 'local_recorded_at' => $localRecordedAt,
                 'server_recorded_at' => now(),
@@ -121,7 +121,7 @@ class ProcessIndividualNoShowAction
     private function handleAlreadyReleased(
         Ticket $ticket,
         Departure $departure,
-        TerminalP501 $terminal,
+        ?TerminalP501 $terminal,
         User $agent,
         ReservationSegment $segment,
         string $operationUuid,
@@ -135,7 +135,7 @@ class ProcessIndividualNoShowAction
 
         $isCrossTerminalConflict = $originalEvent !== null
             && $originalEvent->terminal_p501_id !== null
-            && $originalEvent->terminal_p501_id !== $terminal->id;
+            && $originalEvent->terminal_p501_id !== $terminal?->id;
 
         if ($isCrossTerminalConflict) {
             return SeatReleaseEvent::query()->create([
@@ -144,7 +144,7 @@ class ProcessIndividualNoShowAction
                 'seat_id' => $segment->seat_id,
                 'actual_stop_id' => $segment->origin_stop_id,
                 'released_segments' => [],
-                'terminal_p501_id' => $terminal->id,
+                'terminal_p501_id' => $terminal?->id,
                 'operation_uuid' => $operationUuid,
                 'local_recorded_at' => $localRecordedAt,
                 'server_recorded_at' => now(),
@@ -157,7 +157,7 @@ class ProcessIndividualNoShowAction
                     'accepted_event_uuid' => $originalEvent->uuid,
                     'accepted_terminal_uuid' => $originalEvent->terminal?->uuid,
                     'accepted_local_recorded_at' => $originalEvent->local_recorded_at->toISOString(),
-                    'conflicting_terminal_uuid' => $terminal->uuid,
+                    'conflicting_terminal_uuid' => $terminal?->uuid,
                     'conflicting_local_recorded_at' => $localRecordedAt->toISOString(),
                 ],
             ]);
@@ -169,7 +169,7 @@ class ProcessIndividualNoShowAction
     private function reject(
         Ticket $ticket,
         Departure $departure,
-        TerminalP501 $terminal,
+        ?TerminalP501 $terminal,
         User $agent,
         ?int $seatId,
         ?int $actualStopId,
@@ -183,7 +183,7 @@ class ProcessIndividualNoShowAction
             'seat_id' => $seatId,
             'actual_stop_id' => $actualStopId,
             'released_segments' => [],
-            'terminal_p501_id' => $terminal->id,
+            'terminal_p501_id' => $terminal?->id,
             'operation_uuid' => $operationUuid,
             'local_recorded_at' => $localRecordedAt,
             'server_recorded_at' => now(),

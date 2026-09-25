@@ -9,7 +9,7 @@ import {
     TicketStatusBadge,
 } from '@/components/manifest/status-badges';
 import { TicketDetailDialog } from '@/components/manifest/ticket-detail-dialog';
-import manifest from '@/routes/manifest';
+import departures from '@/routes/departures';
 import type { BreadcrumbItem } from '@/types';
 
 type ReservationRef = {
@@ -95,11 +95,11 @@ export default function ManifestReservationPage({
 
             <div className="kora-page-head mb-6">
                 <a
-                    href={manifest.index.url()}
+                    href={departures.index.url()}
                     className="mb-2 inline-flex items-center gap-1 text-[0.6875rem] text-muted-foreground hover:text-foreground"
                 >
                     <ArrowLeft className="size-3" />
-                    Manifestes
+                    Départs
                 </a>
                 <h1 className="flex items-center gap-2 text-[1.8125rem] font-extrabold tracking-[-0.035em] text-foreground">
                     Réservation
@@ -143,6 +143,6 @@ export default function ManifestReservationPage({
 
 ManifestReservationPage.layout = {
     breadcrumbs: [
-        { title: 'Manifestes', href: '/manifest' } satisfies BreadcrumbItem,
+        { title: 'Départs', href: '/departures' } satisfies BreadcrumbItem,
     ],
 };

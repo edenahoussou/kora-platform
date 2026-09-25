@@ -261,7 +261,7 @@ class OpsNotifier
     /**
      * La clôture no-show du départ a libéré des sièges.
      */
-    public function noShowsClosed(Departure $departure, TerminalP501 $terminal, User $agent, int $closedCount, string $closureOperationUuid): void
+    public function noShowsClosed(Departure $departure, ?TerminalP501 $terminal, User $agent, int $closedCount, string $closureOperationUuid): void
     {
         $departure->loadMissing('line');
 
