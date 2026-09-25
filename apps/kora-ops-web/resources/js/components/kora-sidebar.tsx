@@ -126,16 +126,6 @@ const navItems: NavEntry[] = [
                 permission: 'departures.view',
             },
             {
-                title: 'Embarquement',
-                href: '/boarding',
-                permission: 'departures.view',
-            },
-            {
-                title: 'Manifestes',
-                href: '/manifest',
-                permission: 'departures.view',
-            },
-            {
                 title: 'Lignes & arrêts',
                 href: '/network',
                 permission: 'network.view',

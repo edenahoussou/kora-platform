@@ -24,6 +24,10 @@ type KoraFilterBarProps = {
     filters: FilterConfig[];
     /** Base route URL for navigation (e.g. '/agencies'). */
     route: string;
+    /** Fallback values used when the URL carries no param (e.g. today's date). */
+    initialValues?: Record<string, string>;
+    /** Optional label block rendered before the search input (maquette .filter-label). */
+    label?: { caption: string; value: string };
 };
 
 /**
@@ -42,6 +46,8 @@ export function KoraFilterBar({
     searchPlaceholder = 'Rechercher…',
     filters,
     route: routeUrl,
+    initialValues,
+    label,
 }: KoraFilterBarProps) {
     // Inertia's own page.url (path + query string) is available identically
     // on the server and the client, unlike window.location which only
@@ -64,7 +70,10 @@ export function KoraFilterBar({
             const initial: Record<string, string> = {};
 
             for (const filter of filters) {
-                initial[filter.name] = urlParams.get(filter.name) ?? '';
+                initial[filter.name] =
+                    urlParams.get(filter.name) ??
+                    initialValues?.[filter.name] ??
+                    '';
             }
 
             return initial;
@@ -74,9 +83,11 @@ export function KoraFilterBar({
     const hasActiveFilters = useMemo(() => {
         return (
             searchValue.trim() !== '' ||
-            Object.values(filterValues).some((v) => v !== '')
+            Object.entries(filterValues).some(
+                ([name, v]) => v !== (initialValues?.[name] ?? ''),
+            )
         );
-    }, [searchValue, filterValues]);
+    }, [searchValue, filterValues, initialValues]);
 
     const buildUrl = useCallback(
         (search: string, values: Record<string, string>): string => {
@@ -111,7 +122,7 @@ export function KoraFilterBar({
         const cleared: Record<string, string> = {};
 
         for (const filter of filters) {
-            cleared[filter.name] = '';
+            cleared[filter.name] = initialValues?.[filter.name] ?? '';
         }
 
         setFilterValues(cleared);
@@ -130,6 +141,16 @@ export function KoraFilterBar({
             className="kora-filterbar mb-[14px] flex flex-col items-stretch gap-[9px] rounded-[0.9375rem] border border-border bg-card p-[13px] sm:flex-row sm:items-center"
             onKeyDown={handleKeyDown}
         >
+            {label && (
+                <div className="flex shrink-0 flex-col justify-center px-1">
+                    <span className="text-[0.5625rem] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
+                        {label.caption}
+                    </span>
+                    <strong className="text-[0.8125rem] font-bold text-foreground capitalize">
+                        {label.value}
+                    </strong>
+                </div>
+            )}
             <input
                 type="search"
                 value={searchValue}

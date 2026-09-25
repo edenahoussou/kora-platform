@@ -3,6 +3,10 @@ export type ManifestPassenger = {
     firstName: string;
     lastName: string;
     phone: string | null;
+    nationality: string | null;
+    documentTypeLabel: string | null;
+    documentNumber: string | null;
+    birthDate: string | null;
 };
 
 export type ManifestTicket = {
@@ -22,6 +26,7 @@ export type ManifestDepartureRef = {
 
 export type ManifestReservationRef = {
     uuid: string;
+    reference: string | null;
     /** null when the reservation's passenger count wasn't loaded for this row. */
     isGroupPurchase: boolean | null;
 };
