@@ -66,6 +66,12 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- Conformité à l'export : l'app ne chiffre rien elle-même. Elle
+	     parle à l'API en HTTPS et range les jetons dans le trousseau, deux
+	     mécanismes fournis par iOS et exemptés. Sans cette clé, App Store
+	     Connect repose la question à chaque envoi de build. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<!-- Écran « Autorisations » : iOS refuse l'accès sans ces textes. -->
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>KORA utilise votre position pour suivre votre bus et vous montrer les points KORA les plus proches.</string>
