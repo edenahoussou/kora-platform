@@ -117,6 +117,71 @@ it('logs in with a known trusted device using pin', function (): void {
         ->assertJsonStructure(['data' => ['token', 'expires_at', 'user', 'device']]);
 });
 
+it('logs in with the identifier email field', function (): void {
+    $this->seed(KoraBusRolePermissionSeeder::class);
+    $user = pinUser('identifier@example.com');
+    trustedDevice($user, 'identifier-device-fingerprint');
+
+    $this->postJson('/api/v1/auth/login', [
+        'identifier' => 'IDENTIFIER@example.com',
+        'pin' => '1234',
+        'device_name' => 'Tecno Spark 20',
+        'platform' => 'android',
+        'device_fingerprint' => 'identifier-device-fingerprint',
+    ])
+        ->assertOk()
+        ->assertJsonPath('data.user.email', 'identifier@example.com');
+});
+
+it('logs in with an international or local phone identifier', function (string $identifier): void {
+    $this->seed(KoraBusRolePermissionSeeder::class);
+    $user = pinUser('phone-login@example.com', '+2290197421860');
+    trustedDevice($user, 'phone-login-device-fingerprint');
+
+    $this->postJson('/api/v1/auth/login', [
+        'identifier' => $identifier,
+        'pin' => '1234',
+        'device_name' => 'Tecno Spark 20',
+        'platform' => 'android',
+        'device_fingerprint' => 'phone-login-device-fingerprint',
+    ])
+        ->assertOk()
+        ->assertJsonPath('data.user.uuid', $user->uuid);
+})->with([
+    '+2290197421860',
+    '01 97 42 18 60',
+]);
+
+it('rejects an ambiguous login identifier request', function (): void {
+    $this->postJson('/api/v1/auth/login', [
+        'identifier' => 'aicha@example.com',
+        'email' => 'legacy@example.com',
+        'pin' => '1234',
+        'device_name' => 'Tecno Spark 20',
+        'platform' => 'android',
+        'device_fingerprint' => 'ambiguous-device-fingerprint',
+    ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('identifier');
+});
+
+it('rejects a missing or malformed login identifier', function (): void {
+    $basePayload = [
+        'pin' => '1234',
+        'device_name' => 'Tecno Spark 20',
+        'platform' => 'android',
+        'device_fingerprint' => 'invalid-identifier-fingerprint',
+    ];
+
+    $this->postJson('/api/v1/auth/login', $basePayload)
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['identifier', 'email']);
+
+    $this->postJson('/api/v1/auth/login', $basePayload + ['identifier' => 'not-an-email-or-phone'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('identifier');
+});
+
 it('requires otp when logging in from a new device', function (): void {
     Notification::fake();
     pinUser('new-device@example.com');
@@ -134,6 +199,52 @@ it('requires otp when logging in from a new device', function (): void {
         ->assertJsonStructure(['data' => ['otp_challenge_uuid', 'expires_at']]);
 
     Notification::assertSentTo(User::query()->where('email', 'new-device@example.com')->firstOrFail(), OtpCodeNotification::class);
+});
+
+it('issues a new-device otp to WhatsApp for a phone login', function (): void {
+    Notification::fake();
+    $user = pinUser('phone-new-device@example.com', '+2290197421860');
+
+    $response = $this->postJson('/api/v1/auth/login', [
+        'identifier' => '01 97 42 18 60',
+        'pin' => '1234',
+        'device_name' => 'Infinix Note',
+        'platform' => 'android',
+        'device_fingerprint' => 'phone-new-device-fingerprint',
+    ])->assertAccepted();
+
+    $challenge = AuthOtpChallenge::query()->firstOrFail();
+
+    expect($response->json('data.otp_challenge_uuid'))->toBe($challenge->uuid)
+        ->and($challenge->email)->toBe($user->email)
+        ->and($challenge->user_id)->toBe($user->id);
+
+    Notification::assertSentTo($user, OtpCodeNotification::class);
+});
+
+it('rejects phone identifiers for registration otp requests', function (): void {
+    $this->postJson('/api/v1/auth/otp/request', [
+        'identifier' => '+2290197421860',
+        'purpose' => 'registration',
+    ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('identifier');
+});
+
+it('requests an otp by phone for an existing account', function (): void {
+    Notification::fake();
+    $user = pinUser('phone-otp@example.com', '+2290197421860');
+
+    $this->postJson('/api/v1/auth/otp/request', [
+        'identifier' => '01 97 42 18 60',
+        'purpose' => 'pin_reset',
+    ])
+        ->assertAccepted()
+        ->assertJsonPath('data.email', $user->email)
+        ->assertJsonPath('data.purpose', 'pin_reset');
+
+    expect(AuthOtpChallenge::query()->firstOrFail()->user_id)->toBe($user->id);
+    Notification::assertSentTo($user, OtpCodeNotification::class);
 });
 
 it('logs in from a new device after otp verification', function (): void {
@@ -235,6 +346,23 @@ it('rate limits otp requests', function (): void {
     $this->postJson('/api/v1/auth/otp/request', [
         'email' => 'limit@example.com',
         'purpose' => 'registration',
+    ])->assertTooManyRequests();
+});
+
+it('shares the otp rate limit across equivalent phone formats', function (): void {
+    Notification::fake();
+    pinUser('normalized-rate-limit@example.com', '+2290197421860');
+
+    for ($i = 0; $i < 3; $i++) {
+        $this->postJson('/api/v1/auth/otp/request', [
+            'identifier' => $i === 0 ? '+2290197421860' : '01 97 42 18 60',
+            'purpose' => 'pin_reset',
+        ])->assertAccepted();
+    }
+
+    $this->postJson('/api/v1/auth/otp/request', [
+        'identifier' => '+2290197421860',
+        'purpose' => 'pin_reset',
     ])->assertTooManyRequests();
 });
 
@@ -475,10 +603,11 @@ function verifiedOtpChallenge(string $email, OtpPurpose $purpose, ?User $user = 
     return [$challenge, $verificationToken];
 }
 
-function pinUser(string $email): User
+function pinUser(string $email, ?string $phone = null): User
 {
     return User::factory()->create([
         'email' => $email,
+        'phone' => $phone,
         'pin_hash' => Hash::make('1234'),
     ]);
 }

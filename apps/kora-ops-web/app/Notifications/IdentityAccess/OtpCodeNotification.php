@@ -3,13 +3,23 @@
 namespace App\Notifications\IdentityAccess;
 
 use App\Modules\IdentityAccess\Data\OtpPurpose;
+use App\Modules\Notifications\Channels\OtpCodeChannel;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class OtpCodeNotification extends Notification
+class OtpCodeNotification extends Notification implements ShouldBeEncrypted, ShouldQueue
 {
     use Queueable;
+
+    public int $tries = 3;
+
+    public int $timeout = 60;
+
+    /** @var array<int, int> */
+    public array $backoff = [15, 90, 300];
 
     public function __construct(
         private readonly string $code,
@@ -22,7 +32,12 @@ class OtpCodeNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return [OtpCodeChannel::class];
+    }
+
+    public function toWhatsApp(object $notifiable): string
+    {
+        return "Votre code KORA est {$this->code}. Il expire dans {$this->expiresInMinutes} minutes. Ne le partagez jamais.";
     }
 
     public function toMail(object $notifiable): MailMessage

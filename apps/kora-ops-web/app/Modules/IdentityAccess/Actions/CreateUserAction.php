@@ -3,6 +3,7 @@
 namespace App\Modules\IdentityAccess\Actions;
 
 use App\Models\User;
+use App\Modules\IdentityAccess\Contracts\PassengerIdentityResolver;
 use App\Modules\IdentityAccess\Data\OtpPurpose;
 use App\Modules\IdentityAccess\Data\RoleCategory;
 use App\Modules\IdentityAccess\Http\Requests\UserRoleResolver;
@@ -16,6 +17,7 @@ class CreateUserAction
     public function __construct(
         private readonly IssueOtpChallengeAction $issueOtpChallenge,
         private readonly UserRoleResolver $roleResolver,
+        private readonly PassengerIdentityResolver $identityResolver,
     ) {}
 
     /**
@@ -35,7 +37,7 @@ class CreateUserAction
             $user = User::query()->create([
                 'name' => $attributes['name'],
                 'email' => $attributes['email'],
-                'phone' => $attributes['phone'] ?? null,
+                'phone' => $this->identityResolver->normalizePhone($attributes['phone'] ?? null, $attributes['country_code'] ?? null),
                 'country_code' => $attributes['country_code'] ?? null,
                 'birth_date' => $attributes['birth_date'] ?? null,
                 'status' => $attributes['status'],
@@ -50,7 +52,7 @@ class CreateUserAction
         });
 
         $challenge = $this->issueOtpChallenge->handle(
-            $user->email,
+            $user,
             OtpPurpose::Registration,
             $request,
         );

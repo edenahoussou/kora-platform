@@ -1,18 +1,22 @@
 ---
 title: Connexion
-description: "Endpoint POST /api/v1/auth/login de l'API KORA BUS : connexion par email et PIN, token Sanctum, challenge OTP requis pour un nouvel appareil."
+description: "Endpoint POST /api/v1/auth/login de l'API KORA BUS : connexion par email ou téléphone et PIN, token Sanctum, challenge OTP WhatsApp requis pour un nouvel appareil."
 api: POST /api/v1/auth/login
 authMethod: none
 ---
 
 # Connexion
 
-Authentifie un passager avec email + PIN. Si l'appareil est inconnu, l'API retourne `202` avec un challenge OTP au lieu d'une session. L'app mobile doit alors compléter le flux OTP (`otp/verify` puis rappeler `login` avec `otp_challenge_uuid` + `verification_token`).
+Authentifie un passager avec un email ou un numéro de téléphone et un PIN. Les numéros locaux et internationaux sont normalisés avant résolution. Le champ historique `email` reste accepté comme alias de `identifier`, mais les deux champs ne peuvent pas être envoyés ensemble. Si l'appareil est inconnu, l'API retourne `202` avec un challenge OTP envoyé en priorité par WhatsApp, puis par email en cas d'échec. Le flux réel est `login` → `otp/verify` → rappel de `login` avec `otp_challenge_uuid` + `verification_token`.
 
 ## Paramètres
 
-<ParamField body="email" type="string" required>
-  Email du passager (format RFC, max 255).
+<ParamField body="identifier" type="string" required>
+  Email ou numéro de téléphone du passager. Les emails sont comparés en minuscules ; les téléphones locaux (indicatif KORA par défaut : +229) et internationaux sont normalisés au format international, max 255 caractères.
+</ParamField>
+
+<ParamField body="email" type="string">
+  Alias rétrocompatible de `identifier` pour les anciens clients. Ne pas envoyer `email` et `identifier` ensemble.
 </ParamField>
 
 <ParamField body="pin" type="string" required>
@@ -49,7 +53,7 @@ Authentifie un passager avec email + PIN. Si l'appareil est inconnu, l'API retou
 curl -X POST https://staging.koraexpress.app/api/v1/auth/login \
   -H 'Content-Type: application/json' \
   -d '{
-    "email": "passager@korabus.app",
+    "identifier": "passager@korabus.app",
     "pin": "9775",
     "device_name": "iPhone 15 Pro",
     "platform": "ios",
@@ -61,7 +65,7 @@ curl -X POST https://staging.koraexpress.app/api/v1/auth/login \
 const res = await fetch('https://staging.koraexpress.app/api/v1/auth/login', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ email, pin, device_name, platform, device_fingerprint }),
+  body: JSON.stringify({ identifier, pin, device_name, platform, device_fingerprint }),
 });
 const { data } = await res.json();
 ```
@@ -70,14 +74,14 @@ const { data } = await res.json();
 const res = await fetch('https://staging.koraexpress.app/api/v1/auth/login', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ email, pin, device_name, platform, device_fingerprint } satisfies LoginRequest),
+  body: JSON.stringify({ identifier, pin, device_name, platform, device_fingerprint } satisfies LoginRequest),
 });
 const data: AuthSession | OtpRequired = (await res.json()).data;
 ```
 
 ```dart Dart
 final res = await dio.post('/api/v1/auth/login', data: {
-  'email': 'passager@korabus.app',
+  'identifier': '01 97 42 18 60',
   'pin': '9775',
   'device_name': 'iPhone 15 Pro',
   'platform': 'ios',
@@ -130,7 +134,7 @@ final res = await dio.post('/api/v1/auth/login', data: {
 ```
 
 ```json 422 — Identifiants invalides
-{ "error": { "code": "invalid_credentials", "message": "L'email ou le PIN est incorrect." } }
+{ "error": { "code": "invalid_credentials", "message": "Identifiants invalides." } }
 ```
 
 ```json 423 — Compte verrouillé
@@ -159,7 +163,7 @@ final res = await dio.post('/api/v1/auth/login', data: {
   <ResponseField name="requires_otp" type="boolean" required>Toujours `true`.</ResponseField>
   <ResponseField name="otp_challenge_uuid" type="UUID" required>UUID du challenge à vérifier.</ResponseField>
   <ResponseField name="purpose" type="string" required>Toujours `login_new_device`.</ResponseField>
-  <ResponseField name="expires_at" type="string" required>Expiration du challenge (ISO 8601).</ResponseField>
+  <ResponseField name="expires_at" type="string" required>Expiration du challenge (ISO 8601). Le code est envoyé par WhatsApp si un téléphone est disponible, avec repli email.</ResponseField>
 </ResponseField>
 
 ## Codes de réponse

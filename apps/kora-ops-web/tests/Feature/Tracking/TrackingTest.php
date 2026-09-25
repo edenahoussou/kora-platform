@@ -219,7 +219,7 @@ it('answers unknown and not-assigned departures identically, and requires the tr
     expect($notAssigned->json('error.message'))->toBe($unknown->json('error.message'))
         ->and(TrackingSession::query()->count())->toBe(0);
 
-    Role::findByName('conductor')->revokePermissionTo('tracking.report');
+    Role::findByName('conductor', 'web')->revokePermissionTo('tracking.report');
     app(PermissionRegistrar::class)->forgetCachedPermissions();
 
     $this->withHeaders(trkHeaders($w['conductor']))->postJson('/api/v1/ops/tracking/positions/batch', [
@@ -241,6 +241,7 @@ it('closes the tracking session when the departure arrives or is cancelled', fun
 
     // Un départ annulé après coup ferme aussi une éventuelle nouvelle session.
     $other = trkDeparture(['conductor_id' => trkUser('conductor', $w['agency'])->id]);
+    TerminalP501::query()->create(['serial_number' => 'P501-TRK-02']);
     $this->withHeaders(trkHeaders($other->conductor, 'P501-TRK-02'))->postJson('/api/v1/ops/tracking/positions/batch', [
         'departure_uuid' => $other->uuid, 'positions' => trkPositions(1),
     ])->assertOk();

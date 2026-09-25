@@ -21,8 +21,12 @@ class AuthOtpController extends Controller
     /**
      * Request an OTP challenge for registration, login, PIN reset or account unlock.
      *
-     * Sends a one-time code to the user's email. The returned `otp_challenge_uuid` must
-     * be submitted to the verify endpoint.
+     * Sends a one-time code to WhatsApp when the account has a phone number, with email
+     * fallback. The returned `otp_challenge_uuid` must be submitted to the verify endpoint.
+     *
+     * @bodyParam identifier string required Email or phone number. For registration, this
+     * must be an email. Existing clients may use the `email` alias instead.
+     * @bodyParam email string Legacy alias for `identifier`; do not send both fields.
      *
      * @unauthenticated
      *
@@ -36,7 +40,7 @@ class AuthOtpController extends Controller
      * }
      * @response 422 scenario="Validation error" {
      *   "message": "The given data was invalid.",
-     *   "errors": {"email": ["The email field is required."]}
+     *   "errors": {"identifier": ["L'email ou le numéro de téléphone est obligatoire."]}
      * }
      * @response 404 scenario="User not found" {
      *   "error": {
@@ -51,9 +55,10 @@ class AuthOtpController extends Controller
     public function request(RequestOtpRequest $request): JsonResponse
     {
         try {
+            $payload = $request->payload();
             $challenge = $this->authOtpService->request(
-                $request->string('email')->toString(),
-                $request->string('purpose')->toString(),
+                $payload['identifier'],
+                $payload['purpose'],
                 $request,
             );
         } catch (UserNotFoundException $e) {

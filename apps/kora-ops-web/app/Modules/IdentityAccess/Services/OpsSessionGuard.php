@@ -4,6 +4,7 @@ namespace App\Modules\IdentityAccess\Services;
 
 use App\Models\User;
 use App\Modules\IdentityAccess\Data\OpsSessionErrorCode;
+use App\Modules\IdentityAccess\Data\RoleCategory;
 use App\Modules\IdentityAccess\Data\SystemRole;
 use App\Modules\IdentityAccess\Data\UserStatus;
 use App\Modules\IdentityAccess\Exceptions\OpsSessionException;
@@ -41,7 +42,15 @@ class OpsSessionGuard
             SystemRole::fieldRoles(),
         );
 
-        if (! $user->hasAnyRole($fieldRoles)) {
+        // Rôles système terrain ou rôle custom de catégorie « terrain »
+        // (créé via l'écran Rôles) actif.
+        $hasFieldRole = $user->hasAnyRole($fieldRoles)
+            || $user->roles()
+                ->where('category', RoleCategory::Terrain->value)
+                ->where('is_active', true)
+                ->exists();
+
+        if (! $hasFieldRole) {
             throw new OpsSessionException(OpsSessionErrorCode::RoleNotAuthorized);
         }
 
