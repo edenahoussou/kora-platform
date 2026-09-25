@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\IdentityAccess\Actions\HandshakeTerminalAction;
 use App\Modules\IdentityAccess\Actions\LogTerminalActivityAction;
 use App\Modules\IdentityAccess\Actions\RecordTerminalSyncAction;
+use App\Modules\IdentityAccess\Data\TerminalActivityType;
 use App\Modules\IdentityAccess\Http\Requests\TerminalActivityRequest;
 use App\Modules\IdentityAccess\Http\Requests\TerminalHandshakeRequest;
 use App\Modules\IdentityAccess\Http\Requests\TerminalSyncRequest;
@@ -166,6 +167,12 @@ class TerminalOpsMobileController extends Controller
         $terminal = $request->attributes->get('terminal');
 
         $logActivity->execute($terminal, $request->user(), $request->type(), $request->context());
+
+        // Un échec d'impression signalé par le terminal devient une alerte
+        // (notification + e-mail) — les autres activités ne notifient rien.
+        if ($request->type() === TerminalActivityType::Print) {
+            $notifier->printError($terminal, $request->user(), $request->context());
+        }
 
         return response()->json(status: 204);
     }
