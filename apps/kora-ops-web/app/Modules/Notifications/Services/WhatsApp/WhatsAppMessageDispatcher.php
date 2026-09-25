@@ -19,6 +19,7 @@ class WhatsAppMessageDispatcher
      */
     public function send(string $phone, string $text, ?string $documentData = null, ?string $documentFilename = null): array
     {
+        $phone = $this->normalizeRecipient($phone);
         $fallbackError = null;
 
         if ($this->isGenukaConfigured()) {
@@ -48,6 +49,18 @@ class WhatsAppMessageDispatcher
             'message_id' => $result['message_id'],
             'fallback_error' => $fallbackError,
         ];
+    }
+
+    /**
+     * WhatsApp attend les numéros béninois dans l'ancien format à 8 chiffres :
+     * le préfixe « 01 » du nouveau format national (+229 01 53 23 40 60) est
+     * rejeté avec « no LID found ». La forme canonique stockée en base reste
+     * la version internationale complète — la conversion ne concerne que
+     * l'envoi.
+     */
+    private function normalizeRecipient(string $phone): string
+    {
+        return preg_replace('/^\+?22901(\d{8})$/', '+229$1', trim($phone)) ?? $phone;
     }
 
     private function isGenukaConfigured(): bool

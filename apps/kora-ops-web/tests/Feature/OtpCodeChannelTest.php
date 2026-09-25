@@ -40,7 +40,7 @@ it('delivers otp through Genuka WhatsApp when a phone is available', function ()
         $payload = json_decode($request->body(), true);
 
         return str_contains($request->url(), 'wa.genuka.com')
-            && ($payload['to'] ?? null) === '+2290197421860'
+            && ($payload['to'] ?? null) === '+22997421860'
             && str_contains((string) ($payload['text'] ?? ''), '123456');
     });
 });
@@ -94,7 +94,7 @@ it('sends through WhatsApp for a notifiable routed by phone', function (): void 
         $payload = json_decode($request->body(), true);
 
         return str_contains($request->url(), 'wa.genuka.com')
-            && ($payload['to'] ?? null) === '+2290153234060'
+            && ($payload['to'] ?? null) === '+22953234060'
             && str_contains((string) ($payload['text'] ?? ''), '445566');
     });
 });
