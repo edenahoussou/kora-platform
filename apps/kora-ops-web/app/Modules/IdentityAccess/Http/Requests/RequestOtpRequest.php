@@ -39,12 +39,6 @@ class RequestOtpRequest extends FormRequest
             if (is_string($identifier) && ! resolve(AuthIdentifierResolver::class)->isValidIdentifier($identifier)) {
                 $validator->errors()->add('identifier', "L'email ou le numéro de téléphone n'est pas valide.");
             }
-
-            if ((string) $this->input('purpose') === OtpPurpose::Registration->value && is_string($identifier)) {
-                if (filter_var(trim($identifier), FILTER_VALIDATE_EMAIL) === false) {
-                    $validator->errors()->add('identifier', "L'inscription nécessite une adresse email.");
-                }
-            }
         });
     }
 

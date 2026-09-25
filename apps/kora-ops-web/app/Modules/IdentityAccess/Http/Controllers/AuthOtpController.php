@@ -3,6 +3,7 @@
 namespace App\Modules\IdentityAccess\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\IdentityAccess\Exceptions\AuthBusinessException;
 use App\Modules\IdentityAccess\Exceptions\UserNotFoundException;
 use App\Modules\IdentityAccess\Http\Requests\RequestOtpRequest;
 use App\Modules\IdentityAccess\Http\Requests\VerifyOtpRequest;
@@ -68,13 +69,21 @@ class AuthOtpController extends Controller
                     'message' => $e->getMessage(),
                 ],
             ], 404);
+        } catch (AuthBusinessException $e) {
+            return response()->json([
+                'error' => [
+                    'code' => $e->errorCode,
+                    'message' => $e->getMessage(),
+                ],
+            ], $e->status);
         }
 
         return response()->json([
             'data' => [
                 'otp_challenge_uuid' => $challenge->uuid,
                 'purpose' => $challenge->purpose->value,
-                'email' => $challenge->email,
+                'identifier' => $challenge->identifier,
+                'email' => $challenge->user()->value('email') ?? (filter_var($challenge->identifier, FILTER_VALIDATE_EMAIL) !== false ? $challenge->identifier : null),
                 'expires_at' => $challenge->expires_at->toISOString(),
             ],
         ], 202);

@@ -12,7 +12,7 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property string $uuid
- * @property string $email
+ * @property string $identifier
  * @property int|null $user_id
  * @property OtpPurpose $purpose
  * @property string $code_hash
@@ -22,6 +22,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $verified_at
  * @property Carbon|null $consumed_at
  * @property OtpChallengeStatus $status
+ * @property-read User|null $user
  */
 class AuthOtpChallenge extends KoraModel
 {
@@ -29,7 +30,7 @@ class AuthOtpChallenge extends KoraModel
 
     protected $fillable = [
         'uuid',
-        'email',
+        'identifier',
         'user_id',
         'purpose',
         'code_hash',
