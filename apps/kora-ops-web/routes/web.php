@@ -12,6 +12,9 @@ use App\Modules\Cash\Http\Controllers\CashMediaController;
 use App\Modules\Cash\Http\Controllers\CashSessionController;
 use App\Modules\Departures\Http\Controllers\DepartureController;
 use App\Modules\Departures\Http\Controllers\ManifestController;
+use App\Modules\Departures\Http\Controllers\ManifestPdfController;
+use App\Modules\Departures\Http\Controllers\ManifestPdfPreviewController;
+use App\Modules\Departures\Http\Controllers\ManifestPrintController;
 use App\Modules\Departures\Http\Controllers\ProgrammingController;
 use App\Modules\DynamicPricing\Http\Controllers\FareController;
 use App\Modules\DynamicPricing\Http\Controllers\PricingRuleController;
@@ -125,9 +128,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('departures/{departure:uuid}', [DepartureController::class, 'update'])->name('departures.update');
     Route::patch('departures/{departure:uuid}/status', [DepartureController::class, 'changeStatus'])->name('departures.status');
     Route::patch('departures/{departure:uuid}/delay', [DepartureController::class, 'recordDelay'])->name('departures.delay');
+    Route::post('departures/{departure:uuid}/no-show', [DepartureController::class, 'noShow'])->name('departures.no-show');
+    Route::post('departures/{departure:uuid}/early-exit', [DepartureController::class, 'earlyExit'])->name('departures.early-exit');
+    Route::post('departures/{departure:uuid}/close-no-shows', [DepartureController::class, 'closeNoShows'])->name('departures.close-no-shows');
+    Route::post('departures/{departure:uuid}/reverse-boarding', [DepartureController::class, 'reverseBoarding'])->name('departures.reverse-boarding');
     Route::inertia('boarding', 'boarding')->name('boarding');
-    Route::get('manifest', [ManifestController::class, 'index'])->name('manifest.index');
+    // Note : pas de page « liste de manifestes » — le manifeste d'un départ
+    // s'ouvre depuis la fiche départ (bouton Manifeste → manifest.show).
     Route::get('manifest/reservations/{reservation:uuid}', [ManifestController::class, 'reservation'])->name('manifest.reservations.show');
+    // Prévisualisation du futur manifeste PDF A4 (données fictives, validation
+    // visuelle) — doit rester déclarée AVANT le binding {departure:uuid}.
+    Route::get('manifest/pdf-preview', ManifestPdfPreviewController::class)->name('manifest.pdf-preview');
+    Route::get('manifest/{departure:uuid}/print', ManifestPrintController::class)->name('manifest.print');
+    Route::get('manifest/{departure:uuid}/pdf', ManifestPdfController::class)->name('manifest.pdf');
     Route::get('manifest/{departure:uuid}', [ManifestController::class, 'show'])->name('manifest.show');
     Route::get('fares', [FareController::class, 'index'])->name('fares.index');
     Route::get('fares/{fare:uuid}', [FareController::class, 'show'])->name('fares.show');
