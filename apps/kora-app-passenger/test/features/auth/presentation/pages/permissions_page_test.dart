@@ -11,6 +11,8 @@ import 'package:kora_app_passenger/core/di/injector.dart';
 import 'package:kora_app_passenger/core/error/failures.dart';
 import 'package:kora_app_passenger/core/l10n/app_localization.dart';
 import 'package:kora_app_passenger/core/services/app_permissions.dart';
+import 'package:kora_app_passenger/features/auth/domain/entities/auth_session.dart';
+import 'package:kora_app_passenger/features/auth/domain/entities/auth_user.dart';
 import 'package:kora_app_passenger/features/auth/domain/repositories/auth_repository.dart';
 import 'package:kora_app_passenger/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:kora_app_passenger/features/auth/presentation/pages/permissions_page.dart';
@@ -58,6 +60,7 @@ void main() {
   Future<void> pumpPage(
     WidgetTester tester, {
     Locale locale = const Locale('fr'),
+    AuthSession? session,
   }) async {
     tester.view.physicalSize = const Size(390 * 3, 1100 * 3);
     tester.view.devicePixelRatio = 3;
@@ -66,7 +69,7 @@ void main() {
     // L'écran lit l'utilisateur de la session ouverte : sans elle, il
     // n'aurait ni téléphone ni indicatif à reproposer.
     final auth = AuthBloc(repository)
-      ..add(AuthSessionOpened(StubAuthRepository.session));
+      ..add(AuthSessionOpened(session ?? StubAuthRepository.session));
     addTearDown(auth.close);
 
     await tester.pumpWidget(
@@ -152,12 +155,57 @@ void main() {
   testWidgets('refuse de continuer sans nom', (tester) async {
     await pumpPage(tester);
 
+    // Le champ arrive prérempli : on l'efface pour éprouver le garde.
+    await tester.enterText(find.byType(TextField).first, '');
     await tester.tap(find.text('Continuer vers KORA'));
     await tester.pumpAndSettle();
 
     expect(find.text('Indiquez votre nom'), findsOneWidget);
     expect(repository.calls, isEmpty);
     expect(done, isFalse);
+  });
+
+  testWidgets('le nom donné à l’inscription n’est pas redemandé', (
+    tester,
+  ) async {
+    // Une inscription par téléphone fait saisir le nom avant le code :
+    // le redemander ici, champ vide, reviendrait à le faire retaper.
+    await pumpPage(tester);
+
+    final champ = tester.widget<TextField>(find.byType(TextField).first);
+    expect(champ.controller!.text, 'Aïcha HOUNKPÈ');
+  });
+
+  testWidgets('un nom dérivé de l’adresse reste à saisir', (tester) async {
+    // Le serveur nomme un compte créé par e-mail d'après ce qui précède
+    // le `@`. Ce n'est pas un nom : l'écran le demande pour de bon.
+    final derived = AuthSession(
+      token: StubAuthRepository.session.token,
+      expiresAt: StubAuthRepository.session.expiresAt,
+      user: const AuthUser(
+        uuid: 'user-1',
+        name: 'aicha',
+        email: 'aicha@example.com',
+      ),
+    );
+
+    await pumpPage(tester, session: derived);
+
+    final champ = tester.widget<TextField>(find.byType(TextField).first);
+    expect(champ.controller!.text, isEmpty);
+  });
+
+  testWidgets('le numéro enregistré s’affiche sans son indicatif', (
+    tester,
+  ) async {
+    // Le serveur rend « +2290197421860 » : tel quel dans le champ, il
+    // s'affichait sous un indicatif « +229 » déjà là, et repartait
+    // doublé.
+    await pumpPage(tester, session: StubAuthRepository.sessionWithPhone);
+
+    final champ = tester.widget<TextField>(find.byType(TextField).last);
+    expect(champ.controller!.text, '0197421860');
+    expect(find.text('🇧🇯  +229'), findsOneWidget);
   });
 
   testWidgets('refuse un numéro entamé mais incomplet', (tester) async {

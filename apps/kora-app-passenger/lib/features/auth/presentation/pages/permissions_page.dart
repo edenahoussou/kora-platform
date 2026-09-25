@@ -60,14 +60,38 @@ class _PermissionsPageState extends State<PermissionsPage> {
   void initState() {
     super.initState();
 
-    // Le compte existe déjà. Son nom vient de l'e-mail et ne vaut rien
-    // ici, mais un téléphone déjà enregistré se repropose : l'écran sert
-    // aussi de rattrapage après un « Plus tard ».
+    // Le compte existe déjà : ce qu'il porte se repropose, l'écran
+    // servant aussi de rattrapage après un « Plus tard ».
     final user = context.read<AuthBloc>().state.session?.user;
-    if (user != null) {
-      _phone.text = user.phone ?? '';
-      _country = PhoneCountry.fromCode(user.countryCode);
+    if (user == null) return;
+
+    // Le nom d'une inscription par téléphone a été saisi par le
+    // voyageur : le redemander vide reviendrait à lui faire retaper ce
+    // qu'il vient de donner. Celui d'une inscription par e-mail, lui,
+    // est dérivé de l'adresse et ne vaut rien ici.
+    if (!_isDerivedFromEmail(user.name, user.email)) _name.text = user.name;
+
+    final phone = user.phone ?? '';
+    final country = PhoneCountry.fromPhone(phone);
+    if (country != null) {
+      // Le serveur rend le numéro au format international : sans cette
+      // séparation, le champ affichait « +2290197421860 » sous un
+      // indicatif « +229 » — et l'envoyait tel quel.
+      _country = country;
+      _phone.text = country.nationalPart(phone);
+      return;
     }
+
+    _phone.text = phone;
+    _country = PhoneCountry.fromCode(user.countryCode);
+  }
+
+  /// Le serveur nomme un compte créé par e-mail d'après la partie qui
+  /// précède le `@`. Ce n'est pas un nom : c'est un pis-aller, et
+  /// l'écran doit le demander pour de bon.
+  static bool _isDerivedFromEmail(String name, String email) {
+    final local = email.split('@').first.trim().toLowerCase();
+    return local.isNotEmpty && name.trim().toLowerCase() == local;
   }
 
   @override

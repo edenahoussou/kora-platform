@@ -27,7 +27,11 @@ void main() {
     // Le parcours arrive sur cet écran avec une adresse et un défi en
     // cours : c'est ce que « Renvoyer » réutilise pour redemander un code.
     flow = AuthFlowBloc(StubAuthRepository())
-      ..add(const AuthFlowEmailSubmitted(email: 'aicha.hounkpe@example.com'));
+      ..add(
+        const AuthFlowIdentifierSubmitted(
+          identifier: 'aicha.hounkpe@example.com',
+        ),
+      );
     addTearDown(flow.close);
 
     await tester.pumpWidget(
@@ -36,7 +40,7 @@ void main() {
         home: BlocProvider<AuthFlowBloc>.value(
           value: flow,
           child: OtpPage(
-            email: 'aicha.hounkpe@example.com',
+            identifier: 'aicha.hounkpe@example.com',
             validity: validity,
             onVerified: () => verified++,
           ),

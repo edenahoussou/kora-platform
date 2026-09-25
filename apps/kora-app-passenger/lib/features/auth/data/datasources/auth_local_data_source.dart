@@ -27,15 +27,14 @@ abstract class AuthLocalDataSource {
   /// Met à jour le seul profil, après un `auth/me`.
   Future<void> saveUser(AuthUser user);
 
-  /// Adresse du dernier compte connecté, ou `null` si l'app n'a jamais
-  /// servi.
-  Future<String?> readLastEmail();
+  /// Dernier compte connecté, ou `null` si l'app n'a jamais servi.
+  Future<String?> readLastIdentifier();
 
   /// Efface tout ce qui touche à la session.
   ///
-  /// **Ni l'empreinte de l'appareil ni la dernière adresse** : la
-  /// première évite un OTP à la reconnexion, la seconde évite de
-  /// redemander qui vous êtes. Aucune des deux ne donne accès au compte.
+  /// **Ni l'empreinte de l'appareil ni le dernier compte connecté** : la
+  /// première évite un OTP à la reconnexion, le second évite de
+  /// redemander qui vous êtes. Aucun des deux ne donne accès au compte.
   Future<void> clear();
 }
 
@@ -57,7 +56,15 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
         key: StorageKeys.authUser,
         value: jsonEncode(_userToJson(session.user)),
       ),
-      _storage.write(key: StorageKeys.lastEmail, value: session.user.email),
+      // Le téléphone d'abord : c'est par lui qu'on se reconnecte
+      // désormais, et l'e-mail ne reste que pour les comptes qui n'ont
+      // pas encore renseigné de numéro.
+      _storage.write(
+        key: StorageKeys.lastIdentifier,
+        value: session.user.phone?.trim().isNotEmpty ?? false
+            ? session.user.phone
+            : session.user.email,
+      ),
       // Nul si le serveur n'a pas renvoyé d'appareil : on efface alors
       // celui d'une session précédente plutôt que de le laisser mentir.
       _storage.write(
@@ -109,7 +116,14 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   );
 
   @override
-  Future<String?> readLastEmail() => _storage.read(key: StorageKeys.lastEmail);
+  Future<String?> readLastIdentifier() async {
+    final identifier = await _storage.read(key: StorageKeys.lastIdentifier);
+    if (identifier != null && identifier.isNotEmpty) return identifier;
+
+    // App mise à jour depuis la connexion par e-mail : le compte est
+    // encore rangé sous l'ancienne clé.
+    return _storage.read(key: StorageKeys.lastEmail);
+  }
 
   @override
   Future<void> clear() async {

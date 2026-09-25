@@ -392,11 +392,21 @@ class AppRouter {
             GoRoute(
               path: loginPath,
               builder: (context, state) =>
-                  LoginPage(email: state.extra as String?),
+                  LoginPage(identifier: state.extra as String?),
             ),
             GoRoute(
               path: signupPath,
-              builder: (context, state) => const SignupEmailPage(),
+              builder: (context, state) => SignupEmailPage(
+                // Le compte existe déjà : on remplace l'inscription par
+                // la connexion dans la pile, plutôt que d'empiler les
+                // deux écrans l'un sur l'autre. Le parcours est remis à
+                // zéro au passage, sinon l'écran de connexion afficherait
+                // encore le message de l'inscription ratée.
+                onSignIn: () {
+                  context.read<AuthFlowBloc>().add(const AuthFlowReset());
+                  context.pushReplacement(loginPath);
+                },
+              ),
             ),
             GoRoute(
               path: newDevicePath,
@@ -408,7 +418,17 @@ class AppRouter {
             ),
             GoRoute(
               path: createPinPath,
-              builder: (context, state) => const CreatePinPage(),
+              builder: (context, state) => CreatePinPage(
+                // Le 409 « compte déjà créé » tombe ici, au dernier
+                // appel du parcours : l'écran doit pouvoir rendre la
+                // main à la connexion. `go` et non `push` — l'inscription
+                // abandonnée n'a pas à rester sous la connexion, il n'y a
+                // plus rien à y reprendre.
+                onSignIn: () {
+                  context.read<AuthFlowBloc>().add(const AuthFlowReset());
+                  context.go(loginPath);
+                },
+              ),
             ),
           ],
         ),
@@ -879,10 +899,10 @@ class _AuthFlowNavigator extends StatelessWidget {
       listenWhen: (previous, current) => previous.step != current.step,
       listener: (context, flow) {
         switch (flow.step) {
-          case AuthFlowStep.email:
+          case AuthFlowStep.identifier:
             // Retour au début : après un PIN réinitialisé, on se
             // reconnecte avec le nouveau code.
-            context.go(AppRouter.loginPath, extra: flow.email);
+            context.go(AppRouter.loginPath, extra: flow.identifier);
           case AuthFlowStep.newDevice:
             context.push(AppRouter.newDevicePath);
           case AuthFlowStep.code:

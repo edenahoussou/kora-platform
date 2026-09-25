@@ -6,8 +6,9 @@ part of 'auth_flow_bloc.dart';
 /// après un code vérifié, on va choisir un PIN si on crée un compte, mais
 /// on retourne à la connexion si le code servait à valider un appareil.
 enum AuthFlowStep {
-  /// Saisie de l'adresse e-mail.
-  email,
+  /// Saisie du compte : le téléphone à la connexion, l'adresse e-mail à
+  /// l'inscription.
+  identifier,
 
   /// Appareil inconnu du serveur : on explique la vérification avant de
   /// demander le code (écran `new-device` de la maquette).
@@ -25,17 +26,19 @@ enum AuthFlowStep {
 
 class AuthFlowState extends Equatable {
   const AuthFlowState({
-    this.step = AuthFlowStep.email,
+    this.step = AuthFlowStep.identifier,
     this.purpose = OtpPurpose.registration,
     this.justRegistered = false,
     this.isSubmitting = false,
     this.challenge,
     this.verification,
     this.session,
-    this.email = '',
+    this.identifier = '',
+    this.registrationName = '',
     this.pendingPin = '',
     this.errorMessage = '',
     this.isAccountLocked = false,
+    this.accountExists = false,
     this.deviceName = '',
   });
 
@@ -64,7 +67,14 @@ class AuthFlowState extends Equatable {
   /// Renseignée quand [step] vaut [AuthFlowStep.done].
   final AuthSession? session;
 
-  final String email;
+  /// Le compte du parcours en cours : téléphone au format international,
+  /// ou e-mail pour une inscription.
+  final String identifier;
+
+  /// Le nom saisi à l'inscription par téléphone, gardé jusqu'à la
+  /// création du compte — c'est `register/complete` qui l'exige, pas
+  /// l'écran du code.
+  final String registrationName;
 
   /// PIN saisi lors d'une connexion, gardé le temps d'un aller-retour par
   /// l'OTP : le serveur le redemande quand on rappelle `login` avec le
@@ -76,6 +86,10 @@ class AuthFlowState extends Equatable {
   /// Compte bloqué après trop d'erreurs de PIN : l'écran propose alors le
   /// déverrouillage plutôt qu'un simple message d'échec.
   final bool isAccountLocked;
+
+  /// L'identifiant donné à l'inscription porte déjà un compte : l'écran
+  /// mène à la connexion plutôt que de laisser retaper la même chose.
+  final bool accountExists;
 
   /// Nom lisible de cet appareil, lu au moment où le serveur le refuse.
   /// L'écran « Nouvel appareil » le montre : c'est ce qui permet de
@@ -92,10 +106,12 @@ class AuthFlowState extends Equatable {
     OtpChallenge? challenge,
     OtpVerification? verification,
     AuthSession? session,
-    String? email,
+    String? identifier,
+    String? registrationName,
     String? pendingPin,
     String? errorMessage,
     bool? isAccountLocked,
+    bool? accountExists,
     String? deviceName,
   }) {
     return AuthFlowState(
@@ -106,10 +122,12 @@ class AuthFlowState extends Equatable {
       challenge: challenge ?? this.challenge,
       verification: verification ?? this.verification,
       session: session ?? this.session,
-      email: email ?? this.email,
+      identifier: identifier ?? this.identifier,
+      registrationName: registrationName ?? this.registrationName,
       pendingPin: pendingPin ?? this.pendingPin,
       errorMessage: errorMessage ?? this.errorMessage,
       isAccountLocked: isAccountLocked ?? this.isAccountLocked,
+      accountExists: accountExists ?? this.accountExists,
       deviceName: deviceName ?? this.deviceName,
     );
   }
@@ -123,10 +141,12 @@ class AuthFlowState extends Equatable {
     challenge,
     verification,
     session,
-    email,
+    identifier,
+    registrationName,
     pendingPin,
     errorMessage,
     isAccountLocked,
+    accountExists,
     deviceName,
   ];
 }

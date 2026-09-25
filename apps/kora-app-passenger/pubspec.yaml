@@ -2,7 +2,7 @@ name: kora_app_passenger
 description: "KORA EXPRESS — application mobile Passager (Clean Architecture + Bloc)."
 publish_to: 'none'
 
-version: 1.0.0+3
+version: 1.0.0+4
 
 environment:
   sdk: ^3.12.2
