@@ -2,27 +2,20 @@ import { Head, Link } from '@inertiajs/react';
 import {
     ArrowLeft,
     CircleAlert,
-    ClipboardCheck,
     FileText,
     Globe2,
     MoveDown,
     MoveUp,
     Printer,
     ShieldCheck,
-    Ticket as TicketIcon,
-    UserCheck,
     Users,
     UserX,
 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { KoraTable } from '@/components/kora-table';
 import type { TableColumn } from '@/components/kora-table';
 import type { ManifestRow } from '@/components/manifest/manifest-types';
-import {
-    JourneyStatusBadge,
-    TicketStatusBadge,
-} from '@/components/manifest/status-badges';
+import { JourneyStatusBadge } from '@/components/manifest/status-badges';
 import { TicketDetailDialog } from '@/components/manifest/ticket-detail-dialog';
 import { PanelAlert } from '@/components/panel-alert';
 import departures from '@/routes/departures';
@@ -178,17 +171,13 @@ export default function ManifestDetailPage({
             header: 'Billet',
             render: (row) =>
                 permissions.canViewTickets ? (
-                    <div>
-                        <TicketStatusBadge
-                            status={row.ticket?.status ?? null}
-                            statusLabel={row.ticket?.statusLabel ?? null}
-                        />
-                        {row.ticket && (
-                            <span className="mt-1 block font-mono text-[0.625rem] text-muted-foreground">
-                                {row.ticket.shortCode}
-                            </span>
-                        )}
-                    </div>
+                    row.ticket ? (
+                        <span className="font-mono text-[0.625rem] text-muted-foreground">
+                            {row.ticket.shortCode}
+                        </span>
+                    ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                    )
                 ) : (
                     <span className="text-xs text-muted-foreground">—</span>
                 ),
@@ -333,40 +322,6 @@ export default function ManifestDetailPage({
                     )}
             </div>
 
-            {/* Compteurs — cartes manifeste */}
-            <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-5">
-                <SummaryCard
-                    icon={Users}
-                    label="Passagers"
-                    value={summary.total}
-                    tone="total"
-                />
-                <SummaryCard
-                    icon={UserCheck}
-                    label="Embarqués"
-                    value={summary.boarded}
-                    tone="boarded"
-                />
-                <SummaryCard
-                    icon={UserX}
-                    label="Absents"
-                    value={summary.absent}
-                    tone="absent"
-                />
-                <SummaryCard
-                    icon={TicketIcon}
-                    label="Billets émis"
-                    value={summary.ticketIssued}
-                    tone="tickets"
-                />
-                <SummaryCard
-                    icon={ClipboardCheck}
-                    label="Identités complètes"
-                    value={identitiesComplete}
-                    tone="pending"
-                />
-            </div>
-
             {/* Table manifeste — maquette : siège, passager, nationalité,
                 pièce, montée, descente, embarquement */}
             <KoraTable
@@ -391,30 +346,6 @@ export default function ManifestDetailPage({
                 onOpenChange={setDialogOpen}
             />
         </>
-    );
-}
-
-type SummaryTone = 'total' | 'boarded' | 'absent' | 'tickets' | 'pending';
-
-function SummaryCard({
-    icon: Icon,
-    label,
-    value,
-    tone,
-}: {
-    icon: LucideIcon;
-    label: string;
-    value: number;
-    tone: SummaryTone;
-}) {
-    return (
-        <div className={`manifest-summary-card manifest-summary-card-${tone}`}>
-            <span className="manifest-summary-icon">
-                <Icon className="size-4" />
-            </span>
-            <strong className="manifest-summary-value">{value}</strong>
-            <span className="manifest-summary-label">{label}</span>
-        </div>
     );
 }
 
