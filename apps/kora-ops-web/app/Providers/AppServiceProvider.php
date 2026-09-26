@@ -22,6 +22,7 @@ use App\Modules\IdentityAccess\Contracts\PassengerIdentityResolver;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\IdentityAccess\Models\Role;
 use App\Modules\IdentityAccess\Models\TerminalP501;
+use App\Modules\IdentityAccess\Services\AuthIdentifierResolver;
 use App\Modules\IdentityAccess\Services\PhonePassengerIdentityResolver;
 use App\Modules\Payments\Providers\FedaPayAdapter;
 use App\Modules\Payments\Providers\MtnMomoAdapter;
@@ -195,11 +196,15 @@ class AppServiceProvider extends ServiceProvider
     protected function configureRateLimiting(): void
     {
         RateLimiter::for('auth-otp', fn (Request $request) => Limit::perMinute(3)->by(
-            $request->ip().'|'.strtolower((string) $request->input('email')),
+            $request->ip().'|'.resolve(AuthIdentifierResolver::class)->normalizeForRateLimit(
+                $request->input('identifier', $request->input('email')),
+            ),
         ));
 
         RateLimiter::for('auth-login', fn (Request $request) => Limit::perMinute(5)->by(
-            $request->ip().'|'.strtolower((string) $request->input('email')),
+            $request->ip().'|'.resolve(AuthIdentifierResolver::class)->normalizeForRateLimit(
+                $request->input('identifier', $request->input('email')),
+            ),
         ));
 
         RateLimiter::for('terminal-handshake', fn (Request $request) => Limit::perMinute(10)->by(
@@ -211,6 +216,10 @@ class AppServiceProvider extends ServiceProvider
         // un rattrapage après coupure réseau sans ouvrir la porte à un flux
         // illimité.
         RateLimiter::for('tracking-batch', fn (Request $request) => Limit::perMinute(30)->by(
+            $request->user()?->getAuthIdentifier().'|'.$request->ip(),
+        ));
+
+        RateLimiter::for('settings-probes', fn (Request $request) => Limit::perMinute(6)->by(
             $request->user()?->getAuthIdentifier().'|'.$request->ip(),
         ));
     }

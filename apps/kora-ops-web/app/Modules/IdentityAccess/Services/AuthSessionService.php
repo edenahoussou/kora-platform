@@ -11,10 +11,12 @@ use App\Modules\IdentityAccess\Actions\UpsertTrustedDeviceAction;
 use App\Modules\IdentityAccess\Contracts\PassengerIdentityResolver;
 use App\Modules\IdentityAccess\Data\OtpPurpose;
 use App\Modules\IdentityAccess\Data\UserStatus;
+use App\Modules\IdentityAccess\Exceptions\AuthBusinessException;
 use App\Modules\IdentityAccess\Exceptions\AuthLockedException;
 use App\Modules\IdentityAccess\Exceptions\AuthSuspendedException;
 use App\Modules\IdentityAccess\Models\AuthOtpChallenge;
 use App\Modules\IdentityAccess\Models\UserDevice;
+use App\Modules\Notifications\Channels\OtpCodeChannel;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -32,10 +34,11 @@ class AuthSessionService
         private IssueOtpChallengeAction $issueOtpChallenge,
         private UpsertTrustedDeviceAction $upsertTrustedDevice,
         private PassengerIdentityResolver $identityResolver,
+        private AuthIdentifierResolver $identifierResolver,
     ) {}
 
     /**
-     * @param  array{otp_challenge_uuid: string, verification_token: string, pin: string, device_name: string, platform: string, device_fingerprint: string, push_token?: string|null}  $input
+     * @param  array{otp_challenge_uuid: string, verification_token: string, pin: string, device_name: string, platform: string, device_fingerprint: string, push_token?: string|null, name?: string|null, email?: string|null, phone?: string|null, country_code?: string|null, birth_date?: string|null}  $input
      * @return array{user: User, device: UserDevice, token: string, token_expires_at: CarbonInterface|null}
      */
     public function completeRegistration(array $input): array
@@ -46,21 +49,81 @@ class AuthSessionService
             $input['verification_token'],
         );
 
-        $user = User::query()->firstOrCreate(
-            ['email' => $challenge->email],
-            [
-                'name' => $this->defaultNameFromEmail($challenge->email),
-                'status' => UserStatus::Active,
-                'email_verified_at' => now(),
-                'password' => Str::password(32),
-            ],
-        );
+        // L'identifiant du challenge fait foi : c'est lui qui a reçu le
+        // code. L'autre coordonnée peut être fournie à la complétion —
+        // email pour une inscription téléphone, téléphone pour email.
+        $identifier = $challenge->identifier;
+        $challengeIsEmail = filter_var($identifier, FILTER_VALIDATE_EMAIL) !== false;
 
-        $user->forceFill([
-            'pin_hash' => Hash::make($input['pin']),
-            'email_verified_at' => $user->email_verified_at ?? now(),
-            'status' => UserStatus::Active,
-        ])->save();
+        $phone = $challengeIsEmail
+            ? $this->normalizeOptionalPhone($input['phone'] ?? null, $input['country_code'] ?? null)
+            : $identifier;
+        $email = $challengeIsEmail
+            ? Str::lower($identifier)
+            : $this->normalizeOptionalEmail($input['email'] ?? null);
+
+        $phoneOwner = $phone !== null ? User::query()->where('phone', $phone)->first() : null;
+        $emailOwner = $email !== null ? User::query()->where('email', $email)->first() : null;
+
+        $user = $challengeIsEmail ? $emailOwner : $phoneOwner;
+
+        // La coordonnée secondaire, quand elle est fournie, ne peut pas
+        // appartenir à un compte différent de celui qu'on complète.
+        if ($challengeIsEmail && $phoneOwner !== null && $phoneOwner->isNot($user)) {
+            throw new AuthBusinessException('phone_taken', 'Ce numéro de téléphone est déjà utilisé par un autre compte.');
+        }
+
+        if (! $challengeIsEmail && $emailOwner !== null && $emailOwner->isNot($user)) {
+            throw new AuthBusinessException('email_taken', 'Cette adresse email est déjà utilisée par un autre compte.');
+        }
+
+        if ($user !== null && $user->pin_hash) {
+            // Un compte actif ne se « réinscrit » pas : la voie normale est
+            // la connexion (ou le PIN oublié), pas un claim silencieux.
+            throw new AuthBusinessException(
+                'account_exists',
+                'Un compte existe déjà avec cet identifiant. Connectez-vous.',
+                409,
+            );
+        }
+
+        if ($user !== null) {
+            // Claim : compte sans PIN (réservation assistée, OAuth sans
+            // PIN) — le code reçu prouve la possession de l'identifiant.
+            $user->forceFill([
+                'name' => filled($input['name'] ?? null) ? $input['name'] : $user->name,
+                'email' => $email ?? $user->email,
+                'phone' => $phone ?? $user->phone,
+                'country_code' => $input['country_code'] ?? $user->country_code,
+                'birth_date' => $input['birth_date'] ?? $user->birth_date,
+                'pin_hash' => Hash::make($input['pin']),
+                'email_verified_at' => $challengeIsEmail
+                    ? ($user->email_verified_at ?? now())
+                    : $user->email_verified_at,
+                'status' => UserStatus::Active,
+            ])->save();
+        } else {
+            $name = trim((string) ($input['name'] ?? ''));
+
+            if (! $challengeIsEmail && $name === '') {
+                throw new AuthBusinessException(
+                    'name_required',
+                    'Le nom est obligatoire pour créer votre compte.',
+                );
+            }
+
+            $user = User::query()->create([
+                'name' => $name !== '' ? $name : $this->defaultNameFromEmail((string) $email),
+                'email' => $email ?? 'traveler+'.Str::uuid().'@'.OtpCodeChannel::PLACEHOLDER_EMAIL_DOMAIN,
+                'phone' => $phone,
+                'country_code' => $input['country_code'] ?? null,
+                'birth_date' => $input['birth_date'] ?? null,
+                'status' => UserStatus::Active,
+                'email_verified_at' => $challengeIsEmail ? now() : null,
+                'password' => Str::password(32),
+                'pin_hash' => Hash::make($input['pin']),
+            ]);
+        }
 
         if ($user->wasRecentlyCreated || $user->roles()->doesntExist()) {
             $user->assignRole('passenger');
@@ -70,17 +133,17 @@ class AuthSessionService
     }
 
     /**
-     * @param  array{email: string, pin: string, device_name: string, platform: string, device_fingerprint: string, push_token?: string|null, otp_challenge_uuid?: string|null, verification_token?: string|null}  $input
+     * @param  array{identifier: string, pin: string, device_name: string, platform: string, device_fingerprint: string, push_token?: string|null, otp_challenge_uuid?: string|null, verification_token?: string|null}  $input
      * @return array{requires_otp?: bool, challenge?: AuthOtpChallenge, user?: User, device?: UserDevice, token?: string, token_expires_at?: CarbonInterface|null}
      *
      * @throws ValidationException With error_code meta: invalid_credentials, account_locked, account_suspended
      */
     public function login(array $input, Request $request): array
     {
-        $user = User::query()->where('email', Str::lower($input['email']))->first();
+        $user = $this->identifierResolver->findUser($input['identifier']);
 
         if (! $user) {
-            throw ValidationException::withMessages(['email' => ['Identifiants invalides.']]);
+            throw ValidationException::withMessages(['identifier' => ['Identifiants invalides.']]);
         }
 
         $status = enum_value($user->status);
@@ -100,7 +163,7 @@ class AuthSessionService
                 throw new AuthLockedException($user->refresh()->locked_until);
             }
 
-            throw ValidationException::withMessages(['email' => ['Identifiants invalides.']]);
+            throw ValidationException::withMessages(['identifier' => ['Identifiants invalides.']]);
         }
 
         $user->forceFill([
@@ -114,7 +177,7 @@ class AuthSessionService
         if (! $trustedDevice && ! ($input['otp_challenge_uuid'] ?? null)) {
             return [
                 'requires_otp' => true,
-                'challenge' => $this->issueOtpChallenge->handle($user->email, OtpPurpose::LoginNewDevice, $request),
+                'challenge' => $this->issueOtpChallenge->handle($user, OtpPurpose::LoginNewDevice, $request),
             ];
         }
 
@@ -148,7 +211,7 @@ class AuthSessionService
             $input['verification_token'],
         );
 
-        $user = $challenge->user ?: User::query()->where('email', $challenge->email)->first();
+        $user = $challenge->user ?: $this->identifierResolver->findUser($challenge->identifier);
 
         if (! $user) {
             throw ValidationException::withMessages(['email' => ['Compte introuvable.']]);
@@ -214,7 +277,7 @@ class AuthSessionService
             $input['verification_token'],
         );
 
-        $user = $challenge->user ?: User::query()->where('email', $challenge->email)->first();
+        $user = $challenge->user ?: $this->identifierResolver->findUser($challenge->identifier);
 
         if (! $user) {
             throw ValidationException::withMessages(['email' => ['Compte introuvable.']]);
@@ -250,6 +313,20 @@ class AuthSessionService
     private function defaultNameFromEmail(string $email): string
     {
         return Str::headline(Str::before($email, '@')) ?: 'KORA Passenger';
+    }
+
+    private function normalizeOptionalPhone(?string $phone, ?string $countryCode): ?string
+    {
+        if ($phone === null || trim($phone) === '') {
+            return null;
+        }
+
+        return $this->identityResolver->normalizePhone($phone, $countryCode);
+    }
+
+    private function normalizeOptionalEmail(?string $email): ?string
+    {
+        return $email !== null && trim($email) !== '' ? Str::lower(trim($email)) : null;
     }
 
     private const MAX_PIN_ATTEMPTS = 5;

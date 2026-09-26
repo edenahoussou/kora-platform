@@ -6,6 +6,7 @@ import '../../../../core/network/api_json.dart';
 import '../../domain/entities/city.dart';
 import '../../domain/entities/departure.dart';
 import '../../domain/entities/departure_search.dart';
+import '../../domain/entities/group_ticket.dart';
 import '../../domain/entities/line.dart';
 import '../../domain/entities/line_stop.dart';
 import '../../domain/entities/price.dart';
@@ -18,6 +19,7 @@ import '../models/itinerary_model.dart';
 import '../models/line_stop_model.dart';
 import '../models/passenger_ticket_model.dart';
 import '../models/seat_model.dart';
+import 'booking_cache_local_data_source.dart';
 import 'booking_data_source.dart';
 
 /// Couche DATA : le parcours Bus branché sur l'API KORA.
@@ -38,9 +40,14 @@ import 'booking_data_source.dart';
 /// (`DioException`, porteuse d'une `ApiException` typée) : c'est le
 /// repository qui les traduit en `Failure`.
 class BookingRemoteDataSourceImpl implements BookingDataSource {
-  BookingRemoteDataSourceImpl(this._dio, {required this.pending});
+  BookingRemoteDataSourceImpl(this._dio, {required this.pending, this.cache});
 
   final Dio _dio;
+
+  /// La copie locale des billets et des villes. Absente dans les tests
+  /// qui n'en ont que faire ; branchée dans l'app, c'est elle qui garde
+  /// l'onglet Voyages et l'accueil lisibles hors réseau (APP-PAY-006).
+  final BookingCacheLocalDataSource? cache;
 
   /// Source de repli pour ce que l'API ne sert pas encore : le prochain
   /// voyage de l'accueil. Injectée plutôt que construite
@@ -51,12 +58,26 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
 
   @override
   Future<List<City>> getCities() async {
-    final response = await _dio.get<dynamic>(ApiConstants.busCities);
+    final List<Map<String, dynamic>> raw;
+    try {
+      final response = await _dio.get<dynamic>(ApiConstants.busCities);
+      raw = ApiJson.list(response.data);
+      await cache?.rememberCities(raw);
+    } on DioException {
+      // Sans villes, l'accueil ne s'ouvre pas : la copie de la dernière
+      // visite vaut mieux qu'un écran de panne. Le catalogue bouge peu.
+      final kept = cache?.cities() ?? const <Map<String, dynamic>>[];
+      if (kept.isEmpty) rethrow;
+      return _citiesOf(kept);
+    }
 
-    final cities = [
-      for (final json in ApiJson.list(response.data))
-        CityModel.fromJson(json).toEntity(),
-    ]..removeWhere((city) => city.name.isEmpty || !city.isSearchable);
+    return _citiesOf(raw);
+  }
+
+  /// Les villes cherchables, triées comme la liste qu'on parcourt des yeux.
+  static List<City> _citiesOf(List<Map<String, dynamic>> raw) {
+    final cities = [for (final json in raw) CityModel.fromJson(json).toEntity()]
+      ..removeWhere((city) => city.name.isEmpty || !city.isSearchable);
 
     // Une ville sans arrêt physique est écartée : depuis MEZ-63 la
     // recherche interroge des arrêts, et la proposer mènerait le voyageur
@@ -243,23 +264,72 @@ class BookingRemoteDataSourceImpl implements BookingDataSource {
   /// retient ceux dont le voyageur est l'auteur **ou** le payeur.
   @override
   Future<List<Ticket>> getTickets() async {
-    final entries = <PassengerTicketModel>[];
+    final raw = <Map<String, dynamic>>[];
 
-    for (var page = 1; page <= _maxTicketPages; page++) {
-      final response = await _dio.get<dynamic>(
-        ApiConstants.tickets,
-        queryParameters: {'page': page},
-      );
+    try {
+      for (var page = 1; page <= _maxTicketPages; page++) {
+        final response = await _dio.get<dynamic>(
+          ApiConstants.tickets,
+          queryParameters: {'page': page},
+        );
 
-      entries.addAll([
-        for (final json in ApiJson.list(response.data))
-          PassengerTicketModel(json),
-      ]);
+        raw.addAll(ApiJson.list(response.data));
 
-      if (page >= _lastPageOf(response.data)) break;
+        if (page >= _lastPageOf(response.data)) break;
+      }
+    } on DioException {
+      // Hors réseau, la copie du téléphone vaut mieux qu'un écran d'erreur
+      // devant le convoyeur : c'est par cette liste qu'on rejoint le QR.
+      // Sans copie, l'échec reste un échec.
+      final kept = cache?.tickets() ?? const <Map<String, dynamic>>[];
+      if (kept.isEmpty) rethrow;
+      return _tripsOf([for (final json in kept) PassengerTicketModel(json)]);
     }
 
-    return _tripsOf(entries);
+    await cache?.rememberTickets(raw);
+    await _rememberQrCodes(raw);
+
+    return _tripsOf([for (final json in raw) PassengerTicketModel(json)]);
+  }
+
+  /// Garde les QR de chaque réservation, tirés de la même réponse.
+  ///
+  /// `GET /tickets` porte déjà la charge signée, le nom du voyageur et son
+  /// siège : inutile d'appeler `bookings/{uuid}/tickets` pour les avoir.
+  /// Le voyageur n'a donc **rien à ouvrir ni à télécharger** avant de
+  /// perdre le réseau — ouvrir l'onglet Voyages suffit.
+  Future<void> _rememberQrCodes(List<Map<String, dynamic>> raw) async {
+    final store = cache;
+    if (store == null) return;
+
+    final byReservation = <String, List<GroupTicket>>{};
+    for (final json in raw) {
+      final entry = PassengerTicketModel(json);
+      final reservationId = entry.reservationId;
+      if (reservationId == null || entry.qrCode.isEmpty) continue;
+
+      byReservation
+          .putIfAbsent(reservationId, () => [])
+          .add(
+            GroupTicket(
+              id: entry.uuid,
+              shortCode: entry.shortCode,
+              // `/tickets` parle le vocabulaire des voyages (`confirmed`,
+              // `completed`, `cancelled`) ; l'écran des QR, celui du contrôle.
+              status: switch (entry.status) {
+                'cancelled' => GroupTicketStatus.cancelled,
+                _ => GroupTicketStatus.issued,
+              },
+              qrCode: entry.qrCode,
+              passengerName: entry.passengerName,
+              seatCode: entry.seatCode,
+            ),
+          );
+    }
+
+    for (final entry in byReservation.entries) {
+      await store.rememberGroupTickets(entry.key, entry.value);
+    }
   }
 
   /// Plafond de pages lues d'un coup. Quinze billets par page, cela fait

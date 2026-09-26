@@ -11,6 +11,7 @@ use App\Modules\IdentityAccess\Actions\ResetUserPasswordAction;
 use App\Modules\IdentityAccess\Actions\RestoreUserAction;
 use App\Modules\IdentityAccess\Actions\UnlockUserAction;
 use App\Modules\IdentityAccess\Actions\UpdateUserAction;
+use App\Modules\IdentityAccess\Data\SystemRole;
 use App\Modules\IdentityAccess\Data\UserStatus;
 use App\Modules\IdentityAccess\Http\Requests\StoreUserRequest;
 use App\Modules\IdentityAccess\Http\Requests\UpdateUserRequest;
@@ -194,7 +195,9 @@ class UserController extends Controller
             ->get()
             ->map(fn (Role $role): array => [
                 'code' => $role->name,
-                'label' => $role->label ?: (string) __('system_role.'.$role->name),
+                'label' => SystemRole::tryFrom($role->name)?->translatedLabel()
+                    ?? $role->label
+                    ?? $role->name,
                 'category' => $role->category->value,
                 'isSystem' => (bool) $role->is_system,
                 'isActive' => (bool) $role->is_active,
@@ -226,7 +229,9 @@ class UserController extends Controller
             ] : null,
             'role' => $role ? [
                 'code' => $role->name,
-                'label' => $role->label ?: __('system_role.'.$role->name),
+                'label' => SystemRole::tryFrom($role->name)?->translatedLabel()
+                    ?? $role->label
+                    ?? $role->name,
                 'category' => $role->category->value,
             ] : null,
         ];

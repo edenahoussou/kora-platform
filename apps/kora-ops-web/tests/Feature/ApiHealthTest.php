@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
 it('returns kora bus service health with dependency checks', function (): void {
@@ -25,7 +26,7 @@ it('returns kora bus service health with dependency checks', function (): void {
 });
 
 it('reports a degraded status with 503 when the database is unreachable', function (): void {
-    DB::shouldReceive('connection')->andThrow(new RuntimeException('connection refused'));
+    DB::shouldReceive('connection')->andThrow(new QueryException('testing', 'select 1', [], new RuntimeException('connection refused')));
 
     $this->getJson('/api/v1/health')
         ->assertServiceUnavailable()

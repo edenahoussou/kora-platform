@@ -56,6 +56,11 @@ L'API KORA BUS utilise une structure d'erreur uniforme. Tous les clients mobiles
 | `otp_expired` | 422 | Code OTP expiré |
 | `otp_invalid` | 422 | Code OTP incorrect |
 | `verification_token_invalid` | 422 | Token de vérification invalide ou expiré |
+| `otp_delivery_unavailable` | 503 | Aucun canal (WhatsApp ni email joignable) ne peut délivrer le code — réessayer plus tard |
+| `account_exists` | 409 | Compte avec PIN déjà existant pour cet identifiant — passer par la connexion |
+| `name_required` | 422 | Nom obligatoire pour une inscription par téléphone créant un nouveau compte |
+| `phone_taken` | 422 | Numéro déjà utilisé par un autre compte |
+| `email_taken` | 422 | Email déjà utilisé par un autre compte |
 
 ### Exemples d'erreurs
 

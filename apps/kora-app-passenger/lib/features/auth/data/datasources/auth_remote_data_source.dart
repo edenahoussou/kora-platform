@@ -19,11 +19,26 @@ import '../models/auth_dtos.dart';
 class AuthApiException implements Exception {
   const AuthApiException(this.code, this.message);
 
-  /// Codes documentés dans `docs/mintlify/authentication.mdx`.
+  /// Codes documentés dans `docs/mintlify/guides/error-handling.mdx`.
   static const String accountLocked = 'account_locked';
   static const String accountSuspended = 'account_suspended';
   static const String emailRequired = 'email_required';
   static const String invalidOAuthToken = 'invalid_oauth_token';
+
+  /// Inscription par téléphone d'un compte neuf : le serveur n'a pas
+  /// d'adresse d'où tirer un nom, il le réclame.
+  static const String nameRequired = 'name_required';
+
+  /// Un compte avec PIN existe déjà pour cet identifiant : c'est une
+  /// connexion qu'il faut, pas une inscription.
+  static const String accountExists = 'account_exists';
+
+  static const String emailTaken = 'email_taken';
+  static const String phoneTaken = 'phone_taken';
+
+  /// Ni WhatsApp ni e-mail n'ont pu porter le code : le serveur refuse
+  /// plutôt que de créer un défi que personne ne recevra.
+  static const String otpDeliveryUnavailable = 'otp_delivery_unavailable';
 
   final String code;
   final String message;
@@ -38,7 +53,7 @@ class AuthApiException implements Exception {
 /// Lève des exceptions ; c'est le repository qui les traduit en `Failure`.
 abstract class AuthRemoteDataSource {
   Future<OtpChallenge> requestOtp({
-    required String email,
+    required String identifier,
     required OtpPurpose purpose,
   });
 
@@ -52,10 +67,14 @@ abstract class AuthRemoteDataSource {
     required OtpVerification verification,
     required String pin,
     required DeviceRegistration device,
+    String? name,
+    String? email,
+    String? phone,
+    String? countryCode,
   });
 
   Future<LoginOutcome> login({
-    required String email,
+    required String identifier,
     required String pin,
     required DeviceRegistration device,
     OtpVerification? verification,
@@ -104,15 +123,18 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<OtpChallenge> requestOtp({
-    required String email,
+    required String identifier,
     required OtpPurpose purpose,
   }) async {
     final response = await _post(ApiConstants.otpRequest, {
-      'email': email,
+      // `identifier` accepte le téléphone comme l'e-mail ; `email`, son
+      // alias d'avant, ne prend que le second. Les deux ensemble sont
+      // refusés par l'API, on n'envoie donc que celui-ci.
+      'identifier': identifier,
       'purpose': purpose.value,
     });
 
-    return AuthDtos.otpChallenge(response.data, email: email);
+    return AuthDtos.otpChallenge(response.data, identifier: identifier);
   }
 
   @override
@@ -135,11 +157,24 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required OtpVerification verification,
     required String pin,
     required DeviceRegistration device,
+    String? name,
+    String? email,
+    String? phone,
+    String? countryCode,
   }) async {
     final response = await _post(ApiConstants.registerComplete, {
       'otp_challenge_uuid': verification.challengeUuid,
       'verification_token': verification.verificationToken,
       'pin': pin,
+      // Facultatifs, sauf `name` pour une inscription par téléphone : le
+      // serveur n'a alors pas d'adresse d'où tirer un nom, et répond
+      // `422 name_required`. On n'envoie que ce qui est renseigné —
+      // une clé nulle vaudrait effacement du côté du serveur.
+      if (name != null && name.isNotEmpty) 'name': name,
+      if (email != null && email.isNotEmpty) 'email': email,
+      if (phone != null && phone.isNotEmpty) 'phone': phone,
+      if (countryCode != null && countryCode.isNotEmpty)
+        'country_code': countryCode,
       // Le serveur valide le PIN avec la règle `confirmed` de Laravel :
       // sans `pin_confirmation` identique, il répond 422 « La confirmation
       // du PIN ne correspond pas. ». L'écran fait déjà saisir le code deux
@@ -153,13 +188,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<LoginOutcome> login({
-    required String email,
+    required String identifier,
     required String pin,
     required DeviceRegistration device,
     OtpVerification? verification,
   }) async {
     final response = await _post(ApiConstants.login, {
-      'email': email,
+      'identifier': identifier,
       'pin': pin,
       ...device.toJson(),
       // Les deux champs vont ensemble : l'API refuse l'un sans l'autre.

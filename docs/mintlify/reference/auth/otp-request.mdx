@@ -1,18 +1,24 @@
 ---
 title: Demander un OTP
-description: "Endpoint POST /api/v1/auth/otp/request de l'API KORA BUS : envoi d'un code OTP par email pour inscription, nouveau device, reset PIN ou unlock."
+description: "Endpoint POST /api/v1/auth/otp/request de l'API KORA BUS : demande d'un code OTP par email ou téléphone pour inscription, nouveau device, reset PIN ou unlock."
 api: POST /api/v1/auth/otp/request
 authMethod: none
 ---
 
 # Demander un OTP
 
-Déclenche l'envoi d'un code OTP à 6 chiffres par email. Le `purpose` détermine le contexte et le rate limit applicable.
+Déclenche l'envoi d'un code OTP à 6 chiffres. `identifier` accepte un email ou un numéro de téléphone pour tous les contextes, y compris `registration` : le canal de livraison est choisi selon le type d'identifiant — email pour une adresse, WhatsApp pour un numéro (qui doit donc être WhatsApp). Pour un compte existant, WhatsApp est prioritaire lorsque le compte possède un téléphone, avec repli email. Le `purpose` détermine le contexte et le rate limit applicable.
+
+La livraison est synchrone : si aucun canal ne peut délivrer le code (WhatsApp indisponible et aucun email joignable), l'endpoint renvoie `503 otp_delivery_unavailable` au lieu de créer un challenge perdu.
 
 ## Paramètres
 
-<ParamField body="email" type="string" required>
-  Email du passager (format RFC, max 255).
+<ParamField body="identifier" type="string" required>
+  Email ou numéro de téléphone du compte. Les emails sont normalisés en minuscules et les numéros locaux ou internationaux au format international.
+</ParamField>
+
+<ParamField body="email" type="string">
+  Alias rétrocompatible de `identifier`. Ne pas envoyer les deux champs ensemble.
 </ParamField>
 
 <ParamField body="purpose" type="string" required>
@@ -24,14 +30,14 @@ Déclenche l'envoi d'un code OTP à 6 chiffres par email. Le `purpose` détermin
 ```bash cURL
 curl -X POST https://staging.koraexpress.app/api/v1/auth/otp/request \
   -H 'Content-Type: application/json' \
-  -d '{ "email": "passager@korabus.app", "purpose": "registration" }'
+  -d '{ "identifier": "passager@korabus.app", "purpose": "registration" }'
 ```
 
 ```javascript JavaScript
 const res = await fetch('https://staging.koraexpress.app/api/v1/auth/otp/request', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ email: 'passager@korabus.app', purpose: 'registration' }),
+  body: JSON.stringify({ identifier: 'passager@korabus.app', purpose: 'registration' }),
 });
 const { data } = await res.json();
 ```
@@ -40,14 +46,14 @@ const { data } = await res.json();
 const res = await fetch('https://staging.koraexpress.app/api/v1/auth/otp/request', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ email, purpose } satisfies RequestOtp),
+  body: JSON.stringify({ identifier, purpose } satisfies RequestOtp),
 });
 const data: OtpChallenge = (await res.json()).data;
 ```
 
 ```dart Dart
 final res = await dio.post('/api/v1/auth/otp/request', data: {
-  'email': 'passager@korabus.app',
+  'identifier': '+2290197421860',
   'purpose': 'registration',
 });
 final challengeUuid = res.data['data']['otp_challenge_uuid'];
@@ -62,6 +68,7 @@ final challengeUuid = res.data['data']['otp_challenge_uuid'];
   "data": {
     "otp_challenge_uuid": "6ff8f7f6-1eb3-3525-be4a-3932c805afed",
     "purpose": "registration",
+    "identifier": "passager@korabus.app",
     "email": "passager@korabus.app",
     "expires_at": "2026-08-17T13:10:00.000Z"
   }
@@ -72,7 +79,7 @@ final challengeUuid = res.data['data']['otp_challenge_uuid'];
 {
   "message": "The given data was invalid.",
   "errors": {
-    "email": ["The email field is required."],
+    "identifier": ["L'email ou le numéro de téléphone est obligatoire."],
     "purpose": ["The selected purpose is invalid."]
   }
 }
@@ -89,8 +96,11 @@ final challengeUuid = res.data['data']['otp_challenge_uuid'];
   <ResponseField name="purpose" type="string" required>
     Contexte de la demande (`registration`, `login_new_device`, `pin_reset`, `account_unlock`).
   </ResponseField>
-  <ResponseField name="email" type="string" required>
-    Email destinataire du code.
+  <ResponseField name="identifier" type="string" required>
+    Identifiant canonique ayant reçu le code (email normalisé ou téléphone international).
+  </ResponseField>
+  <ResponseField name="email" type="string">
+    Email du compte ou de l'identifiant quand il s'agit d'une adresse ; `null` pour un challenge adressé à un téléphone. Alias déprécié, conservé pour compatibilité.
   </ResponseField>
   <ResponseField name="expires_at" type="string" required>
     Date d'expiration du challenge (ISO 8601).
@@ -101,6 +111,8 @@ final challengeUuid = res.data['data']['otp_challenge_uuid'];
 
 | Code | Description |
 |------|-------------|
-| `202` | OTP envoyé par email. |
-| `422` | `email` invalide ou `purpose` non supporté. |
-| `429` | Rate limit `auth-otp` dépassé (3/min par IP + email). |
+| `202` | OTP envoyé par WhatsApp ou email. |
+| `404` | Compte inexistant pour `login_new_device`, `pin_reset` ou `account_unlock` (`user_not_found`). |
+| `422` | `identifier` invalide ou ambigu ; `purpose` non supporté. |
+| `429` | Rate limit `auth-otp` dépassé (3/min par IP + identifiant normalisé). |
+| `503` | Aucun canal ne peut délivrer le code (`otp_delivery_unavailable`). Réessayer plus tard. |

@@ -22,6 +22,7 @@ use App\Modules\CompanyAccounts\Models\CompanyCreditHold;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Models\Fare;
 use App\Modules\IdentityAccess\Models\Agency;
+use App\Modules\Settings\Settings\GeneralSettings;
 use App\Modules\Ticketing\Data\TicketIssuanceStatus;
 use App\Modules\Ticketing\Jobs\IssueReservationTicketsJob;
 use App\Modules\Ticketing\Models\Ticket;
@@ -31,8 +32,13 @@ use Illuminate\Support\Str;
 beforeEach(function (): void {
     $this->travelTo('2026-09-18 08:00:00');
     $this->seed(KoraBusRolePermissionSeeder::class);
-    config()->set('kora.assisted_bookings.support.call_phone', '+2290100000000');
-    config()->set('kora.assisted_bookings.support.whatsapp_phone', '+2290100000001');
+
+    // Les canaux de support se lisent dans GeneralSettings (les clés
+    // config('kora.assisted_bookings.*') ne servent qu'au seed initial).
+    $settings = app(GeneralSettings::class);
+    $settings->supportCallPhone = '+2290100000000';
+    $settings->supportWhatsappPhone = '+2290100000001';
+    $settings->save();
 });
 
 afterEach(function (): void {
@@ -49,7 +55,10 @@ it('does not expose an agency selection endpoint', function (): void {
 
 it('returns a stable 503 when the requested central support channel is unavailable', function (): void {
     $scenario = assistedBookingScenario();
-    config()->set('kora.assisted_bookings.support.call_phone', null);
+
+    $settings = app(GeneralSettings::class);
+    $settings->supportCallPhone = null;
+    $settings->save();
 
     $this->actingAs($scenario['passenger'])
         ->postJson("/api/v1/bookings/{$scenario['reservation']->uuid}/assistance", [

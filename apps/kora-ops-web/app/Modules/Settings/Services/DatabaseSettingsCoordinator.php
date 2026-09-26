@@ -3,6 +3,9 @@
 namespace App\Modules\Settings\Services;
 
 use App\Models\User;
+use App\Modules\BusNetwork\Data\LineStatus;
+use App\Modules\BusNetwork\Models\Line;
+use App\Modules\IdentityAccess\Data\UserStatus;
 use App\Modules\Settings\Contracts\SettingsCoordinator;
 use App\Modules\Settings\Data\SettingsGroup;
 use App\Modules\Settings\Data\SettingsSnapshot;
@@ -16,6 +19,8 @@ use Illuminate\Validation\ValidationException;
 use ReflectionClass;
 use Spatie\LaravelSettings\Settings;
 use Spatie\LaravelSettings\Support\SettingsCacheFactory;
+
+use function Illuminate\Support\enum_value;
 
 final class DatabaseSettingsCoordinator implements SettingsCoordinator
 {
@@ -53,8 +58,12 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
 
         /** @var SettingsSnapshot $snapshot */
         $snapshot = $this->database->transaction(function () use ($group, $update, $actor): SettingsSnapshot {
-            $settings = $this->settings($group);
             $this->lockGroup($group);
+
+            // Evict before resolving the settings object so an enabled cache
+            // cannot rehydrate a stale snapshot after the SQL lock is held.
+            $this->clearCache($group);
+            $settings = $this->settings($group);
 
             $before = $settings->toArray();
             $sensitive = $this->sensitiveProperties($settings);
@@ -121,6 +130,12 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
             $merged[$name] = null;
         }
 
+        if ($group === SettingsGroup::Integrations && array_key_exists('mapOsmAttribution', $merged)) {
+            // Leaflet renders attribution as HTML; persist plain text so a
+            // settings manager cannot inject markup into every map viewer.
+            $merged['mapOsmAttribution'] = trim(strip_tags((string) $merged['mapOsmAttribution']));
+        }
+
         $validator = Validator::make($merged, $this->rules($group));
         $validator->after(function ($validator) use ($group, $merged): void {
             foreach ($this->dependencyErrors($group, $merged) as $field => $message) {
@@ -152,7 +167,11 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
             return [
                 'quoteTtlMinutes' => ['required', 'integer', 'min:1', 'max:10080'],
                 'saleCutoffMinutes' => ['required', 'integer', 'min:0', 'max:1440'],
-                'saleCutoffOverrides' => ['required', 'array'],
+                // An empty override map is a valid, intentional state. The
+                // coordinator merges partial updates with the persisted
+                // snapshot before validation, so the array itself only needs
+                // to keep its shape here.
+                'saleCutoffOverrides' => ['array'],
                 'paymentTimeoutMinutes' => ['required', 'integer', 'min:1', 'max:1440'],
                 'staleDepartureHours' => ['required', 'integer', 'min:1', 'max:8760'],
                 'maxDepartureDelayMinutes' => ['required', 'integer', 'min:0', 'max:10080'],
@@ -175,10 +194,10 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
             'emecfTestMode' => ['required', 'boolean'],
             'emecfToken' => ['nullable', 'string', 'max:500'],
             'emecfDefaultIfu' => ['required', 'string', 'max:32'],
-            'emecfTestInvoiceUrl' => ['required', 'url', 'max:500'],
-            'emecfTestInfoUrl' => ['required', 'url', 'max:500'],
-            'emecfProductionInvoiceUrl' => ['required', 'url', 'max:500'],
-            'emecfProductionInfoUrl' => ['required', 'url', 'max:500'],
+            'emecfTestInvoiceUrl' => ['required', 'url:http,https', 'max:500'],
+            'emecfTestInfoUrl' => ['required', 'url:http,https', 'max:500'],
+            'emecfProductionInvoiceUrl' => ['required', 'url:http,https', 'max:500'],
+            'emecfProductionInfoUrl' => ['required', 'url:http,https', 'max:500'],
             'emecfHttpTimeout' => ['required', 'integer', 'min:1', 'max:300'],
             'emecfConnectTimeout' => ['required', 'integer', 'min:1', 'max:300'],
             'emecfRetry' => ['required', 'integer', 'min:0', 'max:10'],
@@ -192,10 +211,21 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
             'emecfInfoRequestTimeout' => ['required', 'integer', 'min:1', 'max:300'],
             'emecfMaxRetryAttempts' => ['required', 'integer', 'min:0', 'max:10'],
             'emecfRetryBackoffMultiplier' => ['required', 'integer', 'min:1', 'max:10'],
+            'emecfNim' => ['nullable', 'string', 'max:32'],
+            'emecfShopName' => ['nullable', 'string', 'max:150'],
+            'emecfAccountStatus' => ['nullable', 'string', 'max:32'],
+            'emecfAddress1' => ['nullable', 'string', 'max:500'],
+            'emecfAddress2' => ['nullable', 'string', 'max:500'],
+            'emecfAddress3' => ['nullable', 'string', 'max:500'],
+            'emecfContact1' => ['nullable', 'string', 'max:150'],
+            'emecfContact2' => ['nullable', 'string', 'max:150'],
+            'emecfContact3' => ['nullable', 'string', 'max:150'],
+            'emecfApiVersion' => ['nullable', 'string', 'max:16'],
+            'emecfTokenValidUntil' => ['nullable', 'string', 'max:64'],
             'fedapayEnabled' => ['required', 'boolean'],
             'fedapaySecretKey' => ['nullable', 'string', 'max:500'],
             'fedapayEnvironment' => ['required', 'in:sandbox,live'],
-            'fedapayCallbackUrl' => ['nullable', 'url', 'max:500'],
+            'fedapayCallbackUrl' => ['nullable', 'url:http,https', 'max:500'],
             'fedapayWebhookSecret' => ['nullable', 'string', 'max:500'],
             'fedapayCurrency' => ['required', 'regex:/^[A-Z]{3}$/'],
             'fedapayDefaultPhoneCountry' => ['required', 'regex:/^[a-z]{2}$/'],
@@ -207,7 +237,7 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
             'mtnMomoUserId' => ['nullable', 'string', 'max:500'],
             'mtnMomoApiKey' => ['nullable', 'string', 'max:500'],
             'mtnMomoEnvironment' => ['required', 'in:sandbox,production'],
-            'mtnMomoCallbackUrl' => ['nullable', 'url', 'max:500'],
+            'mtnMomoCallbackUrl' => ['nullable', 'url:http,https', 'max:500'],
             'mtnMomoTargetEnvironment' => ['required', 'string', 'max:64'],
             'mtnMomoSandboxCurrency' => ['required', 'regex:/^[A-Z]{3}$/'],
             'mtnMomoProductionCurrency' => ['required', 'regex:/^[A-Z]{3}$/'],
@@ -216,10 +246,10 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
             'mapGoogleApiKey' => ['nullable', 'string', 'max:500'],
             'mapOsmTileUrl' => ['required', 'regex:/^https?:\\/\\/.+/', 'max:500'],
             'mapOsmAttribution' => ['required', 'string', 'max:1000'],
-            'genukaUrl' => ['required', 'url', 'max:500'],
+            'genukaUrl' => ['required', 'url:http,https', 'max:500'],
             'genukaToken' => ['nullable', 'string', 'max:500'],
             'genukaConnectionId' => ['nullable', 'string', 'max:500'],
-            'wahaUrl' => ['required', 'url', 'max:500'],
+            'wahaUrl' => ['required', 'url:http,https', 'max:500'],
             'wahaToken' => ['nullable', 'string', 'max:500'],
             'wahaSession' => ['required', 'string', 'max:120'],
             'wahaNewContactDelaySeconds' => ['required', 'integer', 'min:0', 'max:3600'],
@@ -248,6 +278,28 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
                 $errors['opsSessionTtlMinutes'] = 'The session TTL cannot exceed the maximum lifetime.';
             }
 
+            $overrides = $values['saleCutoffOverrides'] ?? [];
+            $activeLineUuids = Line::query()
+                ->whereIn('uuid', array_keys($overrides))
+                ->where('status', LineStatus::Active->value)
+                ->pluck('uuid')
+                ->map(static fn (mixed $uuid): string => (string) $uuid)
+                ->all();
+
+            foreach ($overrides as $lineUuid => $minutes) {
+                if (! is_string($lineUuid) || ! in_array($lineUuid, $activeLineUuids, true)) {
+                    $errors['saleCutoffOverrides'] = 'Chaque override doit cibler une ligne active.';
+
+                    break;
+                }
+
+                if (! is_numeric($minutes) || (int) $minutes != (float) $minutes || (int) $minutes < 0 || (int) $minutes > 1440) {
+                    $errors['saleCutoffOverrides'] = 'Chaque override doit être compris entre 0 et 1440 minutes.';
+
+                    break;
+                }
+            }
+
             return $errors;
         }
 
@@ -269,6 +321,25 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
             $errors['mapGoogleApiKey'] = 'A Google Maps API key is required when Google is the active provider.';
         }
 
+        foreach (['emecfTestInvoiceUrl', 'emecfTestInfoUrl', 'emecfProductionInvoiceUrl', 'emecfProductionInfoUrl'] as $field) {
+            if (! $this->hasAllowedHost($values[$field], 'impots.bj')) {
+                $errors[$field] = 'Les endpoints e-MECeF doivent rester sur le domaine officiel de la DGI.';
+            }
+        }
+
+        if (! $this->hasAllowedHost($values['genukaUrl'], 'genuka.com')) {
+            $errors['genukaUrl'] = 'L’endpoint Genuka doit rester sur le domaine officiel Genuka.';
+        }
+
+        $configuredWahaHost = strtolower((string) parse_url((string) config('services.waha.url'), PHP_URL_HOST));
+
+        if (! $this->hasExactHost($values['wahaUrl'], 'waha')
+            && ! $this->hasExactHost($values['wahaUrl'], 'localhost')
+            && ! $this->hasExactHost($values['wahaUrl'], '127.0.0.1')
+            && ! $this->hasExactHost($values['wahaUrl'], $configuredWahaHost)) {
+            $errors['wahaUrl'] = 'L’endpoint WAHA doit rester sur le service interne autorisé.';
+        }
+
         foreach (['google', 'facebook', 'tiktok'] as $provider) {
             $clientId = $provider.'OauthClientId';
             $clientSecret = $provider.'OauthClientSecret';
@@ -283,9 +354,43 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
 
     private function authorize(string $permission, User $actor): void
     {
-        if (! Gate::forUser($actor)->allows($permission)) {
+        if (enum_value($actor->status) !== UserStatus::Active->value || ! Gate::forUser($actor)->allows($permission)) {
             throw new AuthorizationException("Missing permission [{$permission}].");
         }
+    }
+
+    private function clearCache(SettingsGroup $group): void
+    {
+        $class = $group->settingsClass();
+
+        app(SettingsCacheFactory::class)->build($class::repository())->clear();
+    }
+
+    private function hasAllowedHost(mixed $url, string $suffix): bool
+    {
+        if (! is_string($url)) {
+            return false;
+        }
+
+        $parts = parse_url($url);
+        $host = strtolower((string) ($parts['host'] ?? ''));
+
+        return $host !== ''
+            && ! isset($parts['user'], $parts['pass'])
+            && ($host === $suffix || str_ends_with($host, '.'.$suffix));
+    }
+
+    private function hasExactHost(mixed $url, string $expectedHost): bool
+    {
+        if ($expectedHost === '') {
+            return false;
+        }
+
+        $parts = is_string($url) ? parse_url($url) : false;
+
+        return is_array($parts)
+            && ! isset($parts['user'], $parts['pass'])
+            && strtolower((string) ($parts['host'] ?? '')) === $expectedHost;
     }
 
     private function settings(SettingsGroup $group): Settings

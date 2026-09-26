@@ -19,10 +19,18 @@ class RecordTerminalSyncAction
      * (sync_batches / sync_operations) n'est pas du ressort de ce ticket.
      *
      * @param  array<string, mixed>  $summary
+     * @param  array{hardware_model?: string|null, os_version?: string|null, app_version?: string|null}  $telemetry
      */
-    public function execute(TerminalP501 $terminal, User $user, array $summary = []): TerminalP501
-    {
-        $terminal->update(['last_sync_at' => now()]);
+    public function execute(
+        TerminalP501 $terminal,
+        User $user,
+        array $summary = [],
+        array $telemetry = [],
+    ): TerminalP501 {
+        $terminal->update([
+            'last_sync_at' => now(),
+            ...array_filter($telemetry, static fn (mixed $value): bool => $value !== null && $value !== ''),
+        ]);
 
         $this->logActivity->execute($terminal, $user, TerminalActivityType::Sync, $summary);
 

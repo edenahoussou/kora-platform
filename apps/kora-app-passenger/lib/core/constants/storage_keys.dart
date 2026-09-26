@@ -12,6 +12,23 @@ class StorageKeys {
   static const String onboardingSeen = 'kora_onboarding_seen';
   static const String preferredLanguage = 'kora_preferred_language';
 
+  /// Les réservations confiées à une agence depuis ce téléphone : l'API
+  /// ne les liste pas.
+  static const String assistedBookings = 'kora_assisted_bookings';
+
+  /// Les billets émis, réservation par réservation. C'est eux que l'écran
+  /// des QR relit quand le réseau manque à l'embarquement.
+  static const String groupTickets = 'kora_group_tickets';
+
+  /// La dernière liste de billets rendue par l'API, telle quelle : sans
+  /// elle, l'onglet Voyages est vide hors réseau et le QR devient
+  /// injoignable.
+  static const String tickets = 'kora_tickets';
+
+  /// Les villes desservies, gardées pour que l'accueil s'ouvre sans
+  /// réseau plutôt que d'annoncer une panne.
+  static const String cities = 'kora_cities';
+
   // --- FlutterSecureStorage (données SENSIBLES) ---
   // Ne jamais mettre un token, un mot de passe ou une donnée bancaire
   // dans SharedPreferences : toujours passer par FlutterSecureStorage
@@ -31,9 +48,18 @@ class StorageKeys {
   /// l'app sur son nom sans attendre le réseau.
   static const String authUser = 'kora_secure_auth_user';
 
-  /// Adresse du dernier compte connecté. Survit à la déconnexion : c'est
-  /// elle que l'écran de connexion affiche (« Bon retour parmi nous »),
-  /// et sans elle il faudrait redemander l'e-mail à chaque fois.
+  /// Dernier compte connecté, tel qu'on s'y reconnecte : le téléphone du
+  /// compte, ou son e-mail s'il n'en a pas. Survit à la déconnexion :
+  /// c'est lui que l'écran de connexion affiche (« Bon retour parmi
+  /// nous »), et sans lui il faudrait redemander qui vous êtes à chaque
+  /// fois.
+  static const String lastIdentifier = 'kora_secure_last_identifier';
+
+  /// L'ancienne clé, qui ne gardait qu'une adresse e-mail.
+  ///
+  /// Relue une dernière fois quand [lastIdentifier] est vide : une app
+  /// déjà installée a son e-mail ici, et l'effacer ferait réapparaître un
+  /// écran de connexion anonyme à la mise à jour.
   static const String lastEmail = 'kora_secure_last_email';
 
   /// L'appareil rattaché à la session ouverte. Sans lui, l'écran

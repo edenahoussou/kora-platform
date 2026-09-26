@@ -1,9 +1,9 @@
-// Le code promo passe par le devis (MEZ-73).
+// Le code promo, appliqué puis retiré.
 //
 // Avant le blocage — le cas normal, le récapitulatif précédant le
 // paiement — c'est un simple devis, que le checkout bloque ensuite tel
-// quel. Après le blocage — le voyageur revient du paiement — il faut
-// libérer puis rebloquer les mêmes sièges.
+// quel. Après le blocage — le voyageur revient du paiement — le serveur
+// recalcule la réservation en place, sans lâcher les sièges.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kora_app_passenger/core/error/failures.dart';
@@ -112,7 +112,19 @@ void main() {
       expect(state.promoError, 'Ce code promotionnel est inconnu.');
     });
 
-    test('un champ vide ne touche à rien', () async {
+    test('le champ vidé retire le code appliqué', () async {
+      await reprice(code: 'TEST2000');
+      repository.calls.clear();
+
+      final state = await reprice(code: '');
+
+      // Un devis sans code : le tarif normal revient.
+      expect(repository.calls, ['groupQuote:1']);
+      expect(state.quote?.promotion, isNull);
+      expect(state.quote?.total, const Price(12500));
+    });
+
+    test('un champ vide, sans code appliqué, ne touche à rien', () async {
       bloc.add(
         SeatHoldRepriceRequested(
           departure: departure,
@@ -133,23 +145,39 @@ void main() {
       repository.calls.clear();
     });
 
-    test('un code valide : devis remisé, puis on rebloque et on renvoie les '
-        'voyageurs', () async {
-      final state = await reprice(code: 'TEST2000');
+    test(
+      'un code valide recalcule la réservation, sans lâcher les sièges',
+      () async {
+        final before = bloc.state.hold;
 
-      // Le devis d'abord, avant qu'on lâche quoi que ce soit.
-      expect(repository.calls, [
-        'groupQuote:1:promo=TEST2000',
-        'release:hold-groupe-1',
-        'holdGroup:1',
-        'passengers:1',
-      ]);
+        final state = await reprice(code: 'TEST2000');
+
+        // Ni libération ni nouveau blocage : un seul appel, sur la
+        // réservation retenue.
+        expect(repository.calls, ['promoCode:hold-groupe-1:TEST2000']);
+        expect(state.status, SeatHoldStatus.held);
+        expect(state.hold?.id, before?.id);
+        expect(state.hold?.seatLabels, before?.seatLabels);
+        expect(state.hold?.total, const Price(11250));
+        expect(state.quote?.promotion?.code, 'TEST2000');
+        expect(state.quote?.total, const Price(11250));
+      },
+    );
+
+    test('le code appliqué se retire, et le tarif normal revient', () async {
+      await reprice(code: 'TEST2000');
+      repository.calls.clear();
+
+      final state = await reprice(code: '');
+
+      expect(repository.calls, ['promoCode:hold-groupe-1:aucun']);
       expect(state.status, SeatHoldStatus.held);
-      expect(state.quote?.promotion?.code, 'TEST2000');
-      expect(state.quote?.total, const Price(11250));
+      expect(state.quote?.promotion, isNull);
+      expect(state.hold?.total, const Price(12500));
+      expect(state.quote?.total, const Price(12500));
     });
 
-    test('un code refusé ne lâche pas le siège', () async {
+    test('un code refusé ne change rien', () async {
       repository.promoFailure = const ValidationFailure(
         'Ce code promotionnel est inconnu.',
       );
@@ -157,58 +185,10 @@ void main() {
 
       final state = await reprice(code: 'NOPE');
 
-      // Seul le devis est parti : ni libération, ni nouveau blocage.
-      expect(repository.calls, ['groupQuote:1:promo=NOPE']);
+      expect(repository.calls, ['promoCode:hold-groupe-1:NOPE']);
       expect(state.hold, before);
       expect(state.quote?.promotion, isNull);
       expect(state.promoError, 'Ce code promotionnel est inconnu.');
     });
-
-    test(
-      'un siège pris entre-temps fait perdre le blocage, et le dit',
-      () async {
-        repository.nextHoldFailures.add(
-          const SeatUnavailableFailure('Le siège 5C vient d’être pris.'),
-        );
-
-        bloc.add(
-          SeatHoldRepriceRequested(
-            departure: departure,
-            passengers: [passenger],
-            promoCode: 'TEST2000',
-          ),
-        );
-        final state = await bloc.stream.firstWhere(
-          (state) => state.status == SeatHoldStatus.expired,
-        );
-
-        // L'écran de fin de délai prend le relais pour rechoisir un siège.
-        expect(state.hold, isNull);
-        expect(state.failure?.message, 'Le siège 5C vient d’être pris.');
-      },
-    );
-
-    test(
-      'une libération refusée garde la réservation au tarif normal',
-      () async {
-        repository.releaseFailure = const AuthFailure(
-          'This action is unauthorized.',
-        );
-        final before = bloc.state.hold;
-
-        final state = await reprice(code: 'TEST2000');
-
-        // Pas de nouveau blocage : il serait refusé, l'ancien tenant encore
-        // le siège, et le voyageur perdrait tout.
-        expect(repository.calls, [
-          'groupQuote:1:promo=TEST2000',
-          'release:hold-groupe-1',
-        ]);
-        expect(state.status, SeatHoldStatus.held);
-        expect(state.hold, before);
-        expect(state.quote?.promotion, isNull);
-        expect(state.promoUnavailable, isTrue);
-      },
-    );
   });
 }

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Le blanc du logo : c'est lui qui remplit le fond de l'icône
+         adaptative, sous le lettrage navy et or. -->
+    <color name="ic_launcher_background">#FFFFFF</color>
+</resources>

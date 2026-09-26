@@ -2,10 +2,9 @@
 
 use App\Models\User;
 use App\Modules\Booking\Models\ReservationSegment;
-use App\Modules\Departures\Actions\ComputeManifestVersionAction;
-use App\Modules\Departures\Actions\GenerateBorderManifestPdfAction;
-use App\Modules\Departures\Actions\ResolveManifestSegmentsAction;
+use App\Modules\Departures\Actions\GenerateManifestPdfAction;
 use App\Modules\Departures\Models\Departure;
+use App\Modules\Departures\Services\ManifestDocumentService;
 use App\Modules\IdentityAccess\Models\TerminalP501;
 use Database\Seeders\KoraBorderManifestDemoSeeder;
 use Database\Seeders\KoraBusRolePermissionSeeder;
@@ -39,9 +38,8 @@ function seededConductorHeaders(): array
 /** Action réelle dont seul l'appel à Chromium est remplacé. */
 function seededBorderManifestAction(): MockInterface
 {
-    return Mockery::mock(GenerateBorderManifestPdfAction::class, [
-        app(ResolveManifestSegmentsAction::class),
-        app(ComputeManifestVersionAction::class),
+    return Mockery::mock(GenerateManifestPdfAction::class, [
+        app(ManifestDocumentService::class),
     ])->makePartial()->shouldAllowMockingProtectedMethods();
 }
 
@@ -80,14 +78,20 @@ it('A — prints the complete international manifest, long names included', func
         ->once()
         ->withArgs(function (string $html): bool {
             expect($html)->toContain('Bakary Salifou Ouedraogo')
-                ->toContain('CI-SN-2026-0000123456789')
-                ->toContain('NO-TYPE-42')
+                ->toContain(str_repeat('•', 21).'789')   // CI-SN-2026-0000123456789 masqué
+                ->toContain(str_repeat('•', 7).'-42')    // NO-TYPE-42 masqué
+                ->not->toContain('CI-SN-2026')
+                ->not->toContain('NO-TYPE-42');
+
+            // « XOF » peut apparaître fortuitement dans les data-URI base64
+            // (fonts/logo embarqués) — on vérifie le rendu hors ressources.
+            expect(preg_replace('/data:[^"\')\s]+/', '', $html))
                 ->not->toContain('XOF');
 
             return true;
         })
         ->andReturn('%PDF-A');
-    $this->instance(GenerateBorderManifestPdfAction::class, $action);
+    $this->instance(GenerateManifestPdfAction::class, $action);
 
     $this->withHeaders(seededConductorHeaders())
         ->get('/api/v1/ops/departures/'.seededDeparture('BJ-FRT-01')->uuid.'/manifest/pdf')
@@ -97,7 +101,7 @@ it('A — prints the complete international manifest, long names included', func
 it('B — refuses the incomplete manifest and names only the blocking passengers', function (): void {
     $action = seededBorderManifestAction();
     $action->shouldReceive('renderPdf')->never();
-    $this->instance(GenerateBorderManifestPdfAction::class, $action);
+    $this->instance(GenerateManifestPdfAction::class, $action);
 
     $response = $this->withHeaders(seededConductorHeaders())
         ->getJson('/api/v1/ops/departures/'.seededDeparture('BJ-FRT-02')->uuid.'/manifest/pdf')
@@ -119,19 +123,21 @@ it('D — refuses an international departure with no passenger', function (): vo
         ->assertJsonPath('error.code', 'manifest_incomplete');
 });
 
-it('E — lists only the boarded passengers of the departure already on the road', function (): void {
+it('E — lists every passenger of the departure already on the road, absents flagged', function (): void {
     $action = seededBorderManifestAction();
     $action->shouldReceive('renderPdf')
         ->once()
         ->withArgs(function (string $html): bool {
             expect($html)->toContain('Mariam')->toContain('Wilfried')
-                ->not->toContain('Xavier')   // absent : billet jamais utilisé
-                ->not->toContain('Yvonne');  // annulée
+                ->toContain('Xavier')   // absent : affiché avec le badge « Absent »
+                ->toContain('Yvonne')   // annulée : affichée avec le badge « Annulé »
+                ->toContain('Absent')
+                ->toContain('Annulé');
 
             return true;
         })
         ->andReturn('%PDF-E');
-    $this->instance(GenerateBorderManifestPdfAction::class, $action);
+    $this->instance(GenerateManifestPdfAction::class, $action);
 
     $this->withHeaders(seededConductorHeaders())
         ->get('/api/v1/ops/departures/'.seededDeparture('BJ-FRT-05')->uuid.'/manifest/pdf')
@@ -148,7 +154,7 @@ it('F — prints the 52-passenger manifest', function (): void {
             return true;
         })
         ->andReturn('%PDF-F');
-    $this->instance(GenerateBorderManifestPdfAction::class, $action);
+    $this->instance(GenerateManifestPdfAction::class, $action);
 
     $this->withHeaders(seededConductorHeaders())
         ->get('/api/v1/ops/departures/'.seededDeparture('BJ-FRT-06')->uuid.'/manifest/pdf')

@@ -28,7 +28,7 @@ class RequestUserPinResetAction
         $this->revokeAccess->execute($user, $actor);
 
         $challenge = $this->issueOtpChallenge->handle(
-            $user->email,
+            $user,
             OtpPurpose::PinReset,
             $request,
         );

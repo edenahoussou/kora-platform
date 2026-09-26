@@ -1,14 +1,36 @@
 // Tests de l'écran de création du PIN : saisie, effacement, validation
 // incomplète, double saisie et transmission du code choisi.
 
+import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kora_app_passenger/core/error/failures.dart';
+import 'package:kora_app_passenger/core/l10n/app_localization.dart';
+import 'package:kora_app_passenger/features/auth/domain/entities/auth_session.dart';
+import 'package:kora_app_passenger/features/auth/domain/entities/otp_challenge.dart';
 import 'package:kora_app_passenger/features/auth/presentation/bloc/auth_flow_bloc.dart';
 import 'package:kora_app_passenger/features/auth/presentation/pages/create_pin_page.dart';
 
 import '../../../../support/stub_auth_repository.dart';
+
+/// Dépôt dont la création de compte se heurte au 409 `account_exists` :
+/// le code a bien été vérifié, c'est la dernière étape qui refuse.
+class _ExistingAccountRepository extends StubAuthRepository {
+  @override
+  Future<Either<Failure, AuthSession>> completeRegistration({
+    required OtpVerification verification,
+    required String pin,
+    String? name,
+    String? email,
+    String? phone,
+    String? countryCode,
+  }) async => const Left(
+    AccountExistsFailure('Un compte existe déjà pour cet identifiant.'),
+  );
+}
 
 void main() {
   late List<String> submitted;
@@ -182,6 +204,66 @@ void main() {
       find.text('Saisissez à nouveau votre code personnel.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('un compte déjà créé mène à la connexion', (tester) async {
+    // Le 409 ne tombe pas à la demande du code : il tombe **ici**, au
+    // dernier appel, une fois le code vérifié et le PIN choisi. C'est
+    // donc cet écran qui doit ouvrir le chemin vers la connexion, et
+    // non celui de l'inscription.
+    tester.view.physicalSize = const Size(390 * 3, 900 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    var signedIn = false;
+    final flow = AuthFlowBloc(_ExistingAccountRepository())
+      ..add(const AuthFlowIdentifierSubmitted(identifier: 'aicha@example.com'));
+    addTearDown(flow.close);
+    await tester.pumpAndSettle();
+
+    // Le code vérifié amène au choix du PIN.
+    flow.add(const AuthFlowCodeSubmitted('123456'));
+    await tester.pumpAndSettle();
+    expect(flow.state.step, AuthFlowStep.pin);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        locale: const Locale('fr'),
+        supportedLocales: const [Locale('fr'), Locale('en')],
+        localizationsDelegates: const [
+          AppLocalization.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: BlocProvider<AuthFlowBloc>.value(
+          value: flow,
+          child: CreatePinPage(onSignIn: () => signedIn = true),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Les deux temps du PIN, puis le refus du serveur.
+    for (var pass = 0; pass < 2; pass++) {
+      for (final digit in ['1', '2', '3', '4']) {
+        await tester.tap(find.text(digit));
+      }
+      await tester.tap(find.text('✓'));
+      await tester.pumpAndSettle();
+    }
+
+    expect(
+      find.text('Un compte existe déjà pour cet identifiant.'),
+      findsOneWidget,
+    );
+    expect(find.text('Ce compte existe déjà.'), findsOneWidget);
+
+    await tester.tap(find.text('Connectez-vous plutôt'));
+    await tester.pumpAndSettle();
+
+    expect(signedIn, isTrue);
   });
 }
 

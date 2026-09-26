@@ -5,12 +5,25 @@ namespace App\Modules\IdentityAccess\Actions;
 use App\Models\User;
 use App\Modules\IdentityAccess\Data\OpsSessionRevocationReason;
 use App\Modules\IdentityAccess\Models\TerminalSession;
+use App\Modules\Notifications\Services\OpsNotifier;
 use Laravel\Sanctum\PersonalAccessToken;
 
 use function activity;
 
 class RevokeOpsSessionAction
 {
+    /** Motifs de révocation qui relèvent du terminal (et déclenchent l'alerte « terminal révoqué »). */
+    private const array TERMINAL_REASONS = [
+        'terminal_deactivated',
+        'terminal_lost',
+        'terminal_maintenance',
+        'terminal_reassigned',
+    ];
+
+    public function __construct(
+        private OpsNotifier $notifier,
+    ) {}
+
     /**
      * Termine une session OPS : supprime le jeton Sanctum associé
      * (déconnexion immédiate), marque la session révoquée avec son motif et
@@ -55,6 +68,10 @@ class RevokeOpsSessionAction
                 'reason' => $reasonValue,
             ])
             ->log($this->description($reasonValue));
+
+        if (in_array($reasonValue, self::TERMINAL_REASONS, true)) {
+            $this->notifier->terminalRevoked($session, $reasonValue);
+        }
     }
 
     private function description(string $reason): string

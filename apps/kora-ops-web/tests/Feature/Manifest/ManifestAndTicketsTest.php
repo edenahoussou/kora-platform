@@ -335,7 +335,6 @@ it('forbids users without departures.view from accessing the manifest', function
     $passenger = User::factory()->create();
     $passenger->assignRole('passenger');
 
-    $this->actingAs($passenger)->get(route('manifest.index'))->assertForbidden();
     $this->actingAs($passenger)->get(route('manifest.show', $departure))->assertForbidden();
 });
 

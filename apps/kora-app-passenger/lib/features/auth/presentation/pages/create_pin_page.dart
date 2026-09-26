@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 
+import '../../../../core/l10n/app_localization.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../bloc/auth_flow_bloc.dart';
 import '../widgets/pin_pad.dart';
@@ -32,6 +33,7 @@ class CreatePinPage extends StatefulWidget {
         'Saisissez à nouveau vos 4 chiffres pour éviter toute faute de '
         'frappe.',
     this.onSubmit,
+    this.onSignIn,
   });
 
   final String title;
@@ -44,6 +46,15 @@ class CreatePinPage extends StatefulWidget {
   /// Reçoit le code saisi. Injecté par la route pour que l'écran reste
   /// testable sans routeur.
   final ValueChanged<String>? onSubmit;
+
+  /// Où mène « Connectez-vous plutôt ».
+  ///
+  /// C'est **ici** que le compte déjà existant se découvre : le serveur
+  /// ne refuse pas la demande de code, il refuse la création du compte,
+  /// au tout dernier appel. Le voyageur a donc traversé le code et choisi
+  /// un PIN avant de l'apprendre — raison de plus pour lui ouvrir le
+  /// chemin plutôt que de le laisser devant un mur.
+  final VoidCallback? onSignIn;
 
   @override
   State<CreatePinPage> createState() => _CreatePinPageState();
@@ -167,6 +178,27 @@ class _CreatePinPageState extends State<CreatePinPage> {
                                 fontSize: 12,
                                 fontWeight: FontWeight.w800,
                               ),
+                            ),
+                          ],
+                          if (flow.accountExists) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              context.l10n.signupAccountExistsLead,
+                              textAlign: TextAlign.center,
+                              style: AppTextStyles.body(
+                                context.koraColors.textMuted,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                final goToSignIn = widget.onSignIn;
+                                if (goToSignIn != null) {
+                                  goToSignIn();
+                                  return;
+                                }
+                                Navigator.of(context).maybePop();
+                              },
+                              child: Text(context.l10n.signupAccountExistsLink),
                             ),
                           ],
                         ],

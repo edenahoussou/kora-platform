@@ -9,6 +9,8 @@ import '../../domain/entities/group_payer.dart';
 import '../../domain/entities/group_quote.dart';
 import '../../domain/entities/group_ticket.dart';
 import '../../domain/entities/passenger.dart';
+import '../../domain/entities/price.dart';
+import '../../domain/entities/reservation_pricing.dart';
 import '../../domain/entities/seat.dart';
 import '../../domain/entities/seat_hold.dart';
 import '../models/company_account_model.dart';
@@ -152,6 +154,65 @@ class ReservationRemoteDataSource {
     ).toEntity();
   }
 
+  /// Annule la réservation, et avec elle tous ses billets.
+  ///
+  /// Le serveur rend la réservation close ; l'app n'en garde que le
+  /// statut, seule chose dont l'écran ait besoin pour dire ce qui s'est
+  /// passé.
+  Future<String> cancelBooking(String reservationId) async {
+    final response = await _dio.post<dynamic>(
+      ApiConstants.bookingCancel(reservationId),
+    );
+
+    return ApiJson.string(
+      ApiJson.map(_payload(response.data))['status'],
+      'cancelled',
+    );
+  }
+
+  /// Applique ou retire un code promo sur une réservation déjà retenue.
+  ///
+  /// `null` retire la remise en cours. Le serveur recalcule le total dans
+  /// la même transaction : ni libération ni nouveau blocage, les sièges et
+  /// les identités restent en place. Un code refusé revient en 422, avec
+  /// son message sous `promo_code`.
+  Future<ReservationPricing> updatePromoCode({
+    required String reservationId,
+    String? promoCode,
+  }) async {
+    final response = await _dio.put<dynamic>(
+      ApiConstants.bookingPromoCode(reservationId),
+      // Toujours présent, même nul : c'est `null` qui dit « retire ».
+      data: {'promo_code': promoCode},
+    );
+
+    final json = ApiJson.map(_payload(response.data));
+    final currency = ApiJson.string(json['currency'], 'XOF');
+    final promotion = ApiJson.map(json['promotion']);
+    final discount = ApiJson.intOrNull(json['promotion_discount_amount']) ?? 0;
+    final total = ApiJson.intOrNull(json['total_amount']) ?? 0;
+    final expiresAt = ApiJson.stringOrNull(json['expires_at']);
+
+    return ReservationPricing(
+      total: Price(total, currency: _currencyLabel(currency)),
+      subtotal: Price(
+        ApiJson.intOrNull(json['subtotal_amount']) ?? total + discount,
+        currency: _currencyLabel(currency),
+      ),
+      promotion: promotion.isEmpty
+          ? null
+          : QuotePromotion(
+              code: ApiJson.string(promotion['code']),
+              name: ApiJson.stringOrNull(promotion['name']),
+              discount: Price(
+                ApiJson.intOrNull(promotion['discount_amount']) ?? discount,
+                currency: _currencyLabel(currency),
+              ),
+            ),
+      expiresAt: expiresAt == null ? null : DateTime.tryParse(expiresAt),
+    );
+  }
+
   /// Les comptes entreprise dont le voyageur est membre actif.
   ///
   /// Rangé ici plutôt que dans une couche à part : c'est un seul point
@@ -248,6 +309,10 @@ String _isoDay(DateTime date) {
 }
 
 /// Déballe l'enveloppe `{ "data": … }` quand elle est là.
+/// `XOF` est le code ISO ; `FCFA` est ce que lit le voyageur.
+String _currencyLabel(String currency) =>
+    currency.toUpperCase() == 'XOF' ? 'FCFA' : currency;
+
 Object? _payload(Object? body) {
   if (body is Map && body['data'] != null) return body['data'];
   return body;

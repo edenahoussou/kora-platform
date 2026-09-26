@@ -86,13 +86,49 @@ export function TicketDetailDialog({
                                 </div>
                                 <div>
                                     <dt className="text-muted-foreground">
+                                        Nationalité
+                                    </dt>
+                                    <dd className="mt-0.5 font-bold text-foreground">
+                                        {row.passenger?.nationality
+                                            ? row.passenger.nationality.toUpperCase()
+                                            : '—'}
+                                    </dd>
+                                </div>
+                                <div>
+                                    <dt className="text-muted-foreground">
+                                        Pièce d'identité
+                                    </dt>
+                                    <dd className="mt-0.5 font-bold text-foreground">
+                                        {row.passenger?.documentTypeLabel
+                                            ? `${row.passenger.documentTypeLabel} ${row.passenger.documentNumber ?? ''}`.trim()
+                                            : '—'}
+                                    </dd>
+                                </div>
+                                <div>
+                                    <dt className="text-muted-foreground">
+                                        Naissance
+                                    </dt>
+                                    <dd className="mt-0.5 font-bold text-foreground">
+                                        {row.passenger?.birthDate ?? '—'}
+                                    </dd>
+                                </div>
+                                <div>
+                                    <dt className="text-muted-foreground">
+                                        Réservation
+                                    </dt>
+                                    <dd className="mt-0.5 font-mono font-bold text-foreground">
+                                        {row.reservation?.reference ?? '—'}
+                                    </dd>
+                                </div>
+                                <div>
+                                    <dt className="text-muted-foreground">
                                         Émis le
                                     </dt>
                                     <dd className="mt-0.5 font-bold text-foreground">
                                         {row.ticket?.issuedAt
                                             ? new Date(
-                                                  row.ticket.issuedAt,
-                                              ).toLocaleString('fr-FR')
+                                                row.ticket.issuedAt,
+                                            ).toLocaleString('fr-FR')
                                             : '—'}
                                     </dd>
                                 </div>

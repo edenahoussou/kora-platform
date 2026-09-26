@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CompanyAccountWebController;
+use App\Http\Controllers\PublicLegalController;
 use App\Modules\AssistedBooking\Http\Controllers\AssistedBookingController;
 use App\Modules\Booking\Http\Controllers\CounterSaleController;
 use App\Modules\BusNetwork\Http\Controllers\BusAmenityController;
@@ -11,6 +12,9 @@ use App\Modules\Cash\Http\Controllers\CashMediaController;
 use App\Modules\Cash\Http\Controllers\CashSessionController;
 use App\Modules\Departures\Http\Controllers\DepartureController;
 use App\Modules\Departures\Http\Controllers\ManifestController;
+use App\Modules\Departures\Http\Controllers\ManifestPdfController;
+use App\Modules\Departures\Http\Controllers\ManifestPdfPreviewController;
+use App\Modules\Departures\Http\Controllers\ManifestPrintController;
 use App\Modules\Departures\Http\Controllers\ProgrammingController;
 use App\Modules\DynamicPricing\Http\Controllers\FareController;
 use App\Modules\DynamicPricing\Http\Controllers\PricingRuleController;
@@ -32,6 +36,11 @@ Route::get('/', fn () => Auth::check()
     ? redirect()->route('dashboard')
     : redirect()->route('login')
 )->name('home');
+
+Route::get('privacy-policy', [PublicLegalController::class, 'privacyPolicy'])
+    ->name('privacy-policy');
+Route::get('account-deletion', [PublicLegalController::class, 'accountDeletion'])
+    ->name('account-deletion');
 
 Route::get('tickets/{ticket:uuid}/pdf/signed', [TicketViewController::class, 'signedPdf'])
     ->middleware('signed')
@@ -119,9 +128,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('departures/{departure:uuid}', [DepartureController::class, 'update'])->name('departures.update');
     Route::patch('departures/{departure:uuid}/status', [DepartureController::class, 'changeStatus'])->name('departures.status');
     Route::patch('departures/{departure:uuid}/delay', [DepartureController::class, 'recordDelay'])->name('departures.delay');
+    Route::post('departures/{departure:uuid}/no-show', [DepartureController::class, 'noShow'])->name('departures.no-show');
+    Route::post('departures/{departure:uuid}/early-exit', [DepartureController::class, 'earlyExit'])->name('departures.early-exit');
+    Route::post('departures/{departure:uuid}/close-no-shows', [DepartureController::class, 'closeNoShows'])->name('departures.close-no-shows');
+    Route::post('departures/{departure:uuid}/reverse-boarding', [DepartureController::class, 'reverseBoarding'])->name('departures.reverse-boarding');
     Route::inertia('boarding', 'boarding')->name('boarding');
-    Route::get('manifest', [ManifestController::class, 'index'])->name('manifest.index');
+    // Note : pas de page « liste de manifestes » — le manifeste d'un départ
+    // s'ouvre depuis la fiche départ (bouton Manifeste → manifest.show).
     Route::get('manifest/reservations/{reservation:uuid}', [ManifestController::class, 'reservation'])->name('manifest.reservations.show');
+    // Prévisualisation du futur manifeste PDF A4 (données fictives, validation
+    // visuelle) — doit rester déclarée AVANT le binding {departure:uuid}.
+    Route::get('manifest/pdf-preview', ManifestPdfPreviewController::class)->name('manifest.pdf-preview');
+    Route::get('manifest/{departure:uuid}/print', ManifestPrintController::class)->name('manifest.print');
+    Route::get('manifest/{departure:uuid}/pdf', ManifestPdfController::class)->name('manifest.pdf');
     Route::get('manifest/{departure:uuid}', [ManifestController::class, 'show'])->name('manifest.show');
     Route::get('fares', [FareController::class, 'index'])->name('fares.index');
     Route::get('fares/{fare:uuid}', [FareController::class, 'show'])->name('fares.show');
@@ -142,7 +161,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('tax-rules', [TaxRuleController::class, 'store'])->name('tax-rules.store');
     Route::put('tax-rules/{taxRule:uuid}', [TaxRuleController::class, 'update'])->name('tax-rules.update');
     Route::patch('tax-rules/{taxRule:uuid}/status', [TaxRuleController::class, 'changeStatus'])->name('tax-rules.status');
-    Route::inertia('passengers', 'passengers')->name('passengers');
     Route::get('tickets', [TicketIndexController::class, 'index'])->name('tickets');
     Route::get('tickets/{ticket:uuid}', [TicketViewController::class, 'show'])->name('tickets.show');
     Route::get('tickets/{ticket:uuid}/pdf', [TicketViewController::class, 'pdf'])->name('tickets.pdf');
@@ -189,18 +207,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('cash-registers/{cashRegister:uuid}', [AgencyController::class, 'updateCashRegister'])->name('agencies.cash-registers.update');
     Route::patch('cash-registers/{cashRegister:uuid}/status', [AgencyController::class, 'changeCashRegisterStatus'])->name('agencies.cash-registers.status');
 
-    // Terminaux P501 — services/endpoints backend (MEZ-XX). L'écran
-    // d'administration lui-même (page "terminals" ci-dessous, toujours en
-    // "coming soon") est livré séparément dans MEZ-99.
+    // Terminaux P501 — endpoints JSON consommés par le panneau Inertia et
+    // conservés pour les consommateurs backend existants.
     Route::prefix('terminals')->name('terminals.')->group(function (): void {
         Route::get('data', [TerminalP501Controller::class, 'index'])->name('index');
         Route::post('/', [TerminalP501Controller::class, 'store'])->name('store');
-        Route::get('{terminal:uuid}', [TerminalP501Controller::class, 'show'])->name('show');
         Route::post('{terminal:uuid}/activate', [TerminalP501Controller::class, 'activate'])->name('activate');
         Route::post('{terminal:uuid}/deactivate', [TerminalP501Controller::class, 'deactivate'])->name('deactivate');
         Route::post('{terminal:uuid}/maintenance', [TerminalP501Controller::class, 'maintenance'])->name('maintenance');
         Route::post('{terminal:uuid}/lost', [TerminalP501Controller::class, 'reportLost'])->name('lost');
         Route::post('{terminal:uuid}/assign', [TerminalP501Controller::class, 'assign'])->name('assign');
+        Route::post('{terminal:uuid}/unassign', [TerminalP501Controller::class, 'unassign'])->name('unassign');
+        Route::post('{terminal:uuid}/recover', [TerminalP501Controller::class, 'recover'])->name('recover');
+        Route::post('{terminal:uuid}/stock', [TerminalP501Controller::class, 'returnToStock'])->name('stock');
+        Route::post('{terminal:uuid}/revoke-sessions', [TerminalP501Controller::class, 'revokeSessions'])->name('revoke-sessions');
     });
 
     // =========================================================

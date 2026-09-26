@@ -4,10 +4,13 @@ namespace App\Modules\DynamicPricing\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\BusNetwork\Models\Line;
+use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\DynamicPricing\Actions\ChangePricingRuleStatusAction;
 use App\Modules\DynamicPricing\Actions\CreatePricingRuleAction;
 use App\Modules\DynamicPricing\Actions\UpdatePricingRuleAction;
 use App\Modules\DynamicPricing\Actions\UpdatePricingSettingAction;
+use App\Modules\DynamicPricing\Data\FareDirection;
+use App\Modules\DynamicPricing\Data\PricingRuleScope;
 use App\Modules\DynamicPricing\Data\PricingRuleStatus;
 use App\Modules\DynamicPricing\Data\PricingRuleType;
 use App\Modules\DynamicPricing\Http\Requests\ChangePricingRuleStatusRequest;
@@ -29,12 +32,17 @@ class PricingRuleController extends Controller
         Gate::authorize('viewAny', PricingRule::class);
 
         $query = PricingRule::query()
-            ->with(['line:id,uuid,code,name'])
+            ->with(['line:id,uuid,code,name', 'originStop:id,uuid,name', 'destinationStop:id,uuid,name'])
             ->orderBy('priority');
 
         $status = $request->string('status')->trim()->value();
         if ($status !== '' && in_array($status, array_column(PricingRuleStatus::cases(), 'value'), true)) {
             $query->where('status', $status);
+        }
+
+        $scope = $request->string('scope')->trim()->value();
+        if ($scope !== '' && in_array($scope, PricingRuleScope::values(), true)) {
+            $query->where('scope_type', $scope);
         }
 
         $lineId = $request->string('line')->trim()->value();
@@ -51,11 +59,21 @@ class PricingRuleController extends Controller
             'rules' => $query->paginate(15)->through(fn (PricingRule $rule): array => $this->serializeRule($rule)),
             'statuses' => PricingRuleStatus::options(),
             'types' => PricingRuleType::options(),
-            'lines' => Line::query()->orderBy('code')->get()->map(fn (Line $line): array => [
-                'uuid' => $line->uuid,
-                'code' => $line->code,
-                'name' => $line->name,
-            ]),
+            'scopes' => PricingRuleScope::options(),
+            'lines' => Line::query()
+                ->with('stops:id,line_id,uuid,name,stop_order')
+                ->orderBy('code')
+                ->get()
+                ->map(fn (Line $line): array => [
+                    'uuid' => $line->uuid,
+                    'code' => $line->code,
+                    'name' => $line->name,
+                    'stops' => $line->stops->map(fn (Stop $stop): array => [
+                        'uuid' => $stop->uuid,
+                        'name' => $stop->name,
+                        'stopOrder' => $stop->stop_order,
+                    ])->values(),
+                ]),
             'settings' => [
                 'floorCoefficient' => $setting?->floor_coefficient !== null ? (float) $setting->floor_coefficient : null,
                 'ceilingCoefficient' => $setting?->ceiling_coefficient !== null ? (float) $setting->ceiling_coefficient : null,
@@ -121,9 +139,15 @@ class PricingRuleController extends Controller
 
         return [
             'uuid' => $rule->uuid,
+            'scope' => ($rule->scope_type ?? $rule->effectiveScope())->value,
+            'direction' => ($rule->direction ?? FareDirection::Both)->value,
             'lineUuid' => $rule->line?->uuid,
             'lineCode' => $rule->line?->code,
             'lineName' => $rule->line?->name,
+            'originStopUuid' => $rule->originStop?->uuid,
+            'originStopName' => $rule->originStop?->name,
+            'destinationStopUuid' => $rule->destinationStop?->uuid,
+            'destinationStopName' => $rule->destinationStop?->name,
             'type' => PricingRuleType::from((string) $rule->getRawOriginal('type'))->value,
             'percentage' => (float) $rule->percentage,
             'priority' => (int) $rule->priority,

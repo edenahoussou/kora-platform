@@ -16,6 +16,7 @@ use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\PaymentManager;
 use App\Modules\Payments\Providers\Fake\FakePaymentProvider;
+use App\Modules\Settings\Settings\IntegrationsSettings;
 use App\Modules\Ticketing\Data\TicketIssuanceStatus;
 use App\Modules\Ticketing\Models\Ticket;
 use Carbon\CarbonImmutable;
@@ -80,7 +81,10 @@ it('uses EUR only as the MTN sandbox protocol currency without applying an FX ra
             'currency' => 'EUR',
         ]);
 
-    config()->set('payments.providers.mtn_momo.environment', 'production');
+    // Le manager lit l'environnement MTN dans IntegrationsSettings.
+    $settings = app(IntegrationsSettings::class);
+    $settings->mtnMomoEnvironment = 'production';
+    $settings->save();
 
     expect($manager->providerCurrency('mtn_momo'))->toBe('XOF')
         ->and($manager->providerAmount('mtn_momo', 15000, 'XOF'))->toBe([

@@ -37,6 +37,7 @@ class SeatHoldBloc extends Bloc<SeatHoldEvent, SeatHoldState> {
     on<SeatHoldCheckoutRequested>(_onCheckoutRequested);
     on<SeatHoldReleased>(_onReleased);
     on<SeatHoldSettled>(_onSettled);
+    on<SeatHoldResumed>(_onResumed);
     on<SeatHoldTicked>(_onTicked);
     on<SeatHoldRepriceRequested>(_onRepriceRequested);
   }
@@ -231,6 +232,21 @@ class SeatHoldBloc extends Bloc<SeatHoldEvent, SeatHoldState> {
     );
   }
 
+  /// Les voyageurs sont déjà rattachés à la réservation, depuis son envoi
+  /// à l'agence : elle est payable telle quelle.
+  void _onResumed(SeatHoldResumed event, Emitter<SeatHoldState> emit) {
+    emit(
+      SeatHoldState(
+        status: SeatHoldStatus.held,
+        hold: event.hold,
+        remaining: event.hold.remaining(_clock()),
+        passengers: event.passengers,
+        passengersStatus: PassengersStatus.saved,
+      ),
+    );
+    _startTicking();
+  }
+
   void _onTicked(SeatHoldTicked event, Emitter<SeatHoldState> emit) {
     final hold = state.hold;
     if (hold == null) return;
@@ -253,18 +269,20 @@ class SeatHoldBloc extends Bloc<SeatHoldEvent, SeatHoldState> {
     );
   }
 
-  /// Applique ou remplace un code promo.
+  /// Applique, remplace ou retire un code promo.
   ///
-  /// MEZ-73 n'accepte le code qu'au devis. **Avant le blocage** — le cas
-  /// normal, le récapitulatif précédant le paiement — c'est donc un simple
-  /// devis : accepté, il devient le prix affiché puis bloqué ; refusé,
-  /// rien ne change et le message du serveur s'affiche.
+  /// Un code vide **retire** la remise en cours ; sans remise appliquée,
+  /// il ne demande rien.
   ///
-  /// **Après le blocage** — le voyageur revient du paiement — le blocage
-  /// a figé l'ancien devis : il faut libérer puis rebloquer les mêmes
-  /// sièges au nouveau prix. Le devis passe d'abord, pour qu'un code
-  /// refusé ne lâche rien ; si la libération est refusée, la réservation
-  /// reste au tarif normal plutôt que d'être perdue.
+  /// **Avant le blocage** — le cas normal, le récapitulatif précédant le
+  /// paiement — c'est un simple devis, avec ou sans code : accepté, il
+  /// devient le prix affiché puis bloqué ; refusé, rien ne change et le
+  /// message du serveur s'affiche.
+  ///
+  /// **Après le blocage** — le voyageur revient du paiement — le serveur
+  /// recalcule la réservation en place (`PUT bookings/{uuid}/promo-code`).
+  /// Ni libération ni nouveau blocage : les sièges, les identités et
+  /// l'échéance restent les mêmes, seul le montant change.
   Future<void> _onRepriceRequested(
     SeatHoldRepriceRequested event,
     Emitter<SeatHoldState> emit,
@@ -272,22 +290,27 @@ class SeatHoldBloc extends Bloc<SeatHoldEvent, SeatHoldState> {
     if (state.isRepricing || state.isCheckingOut) return;
 
     final code = event.promoCode.trim().toUpperCase();
-    // Un champ vide ne demande rien.
-    if (code.isEmpty) return;
+    final applied = state.quote?.promotion;
+    // Un champ vide retire le code appliqué ; sans code appliqué, il ne
+    // demande rien.
+    final removing = code.isEmpty;
+    if (removing && applied == null) return;
 
     emit(
-      state.copyWith(
-        promoStatus: PromoStatus.applying,
-        clearPromoError: true,
-        promoUnavailable: false,
-      ),
+      state.copyWith(promoStatus: PromoStatus.applying, clearPromoError: true),
     );
+
+    final current = state.hold;
+    if (current != null) {
+      await _repriceHeld(event, emit, current, removing ? null : code);
+      return;
+    }
 
     final quoted = await _repository.groupQuote(
       departure: event.departure,
       passengers: event.passengers.length,
       returnDeparture: event.returnDeparture,
-      promoCode: code,
+      promoCode: removing ? null : code,
     );
 
     final refused = quoted.fold((failure) => failure, (_) => null);
@@ -300,73 +323,67 @@ class SeatHoldBloc extends Bloc<SeatHoldEvent, SeatHoldState> {
       );
       return;
     }
-    final quote = quoted.getOrElse(() => throw StateError('devis absent'));
 
-    final current = state.hold;
-    if (current == null) {
-      emit(state.copyWith(promoStatus: PromoStatus.idle, quote: quote));
-      return;
-    }
+    emit(
+      state.copyWith(
+        promoStatus: PromoStatus.idle,
+        quote: quoted.getOrElse(() => throw StateError('devis absent')),
+      ),
+    );
+  }
 
-    _ticker?.cancel();
-    final released = await _repository.release(current.id);
-
-    // Sans libération, l'ancienne réservation garde les sièges : le
-    // nouveau blocage serait refusé, et le voyageur perdrait tout. On
-    // garde donc la réservation au tarif normal plutôt que de la risquer.
-    if (released.isLeft()) {
-      emit(
-        state.copyWith(promoStatus: PromoStatus.idle, promoUnavailable: true),
-      );
-      _startTicking();
-      return;
-    }
-
-    final held = await _repository.holdGroup(
-      quote: quote,
-      seats: [for (final passenger in event.passengers) passenger.seat],
-      returnSeats: event.returnSeats,
-      payer: event.payer,
-      idempotencyKey: 'kora-${quote.id}',
+  /// Le même geste, sur une réservation déjà retenue : c'est le serveur
+  /// qui recalcule, l'app n'a qu'à reprendre le montant qu'il rend.
+  Future<void> _repriceHeld(
+    SeatHoldRepriceRequested event,
+    Emitter<SeatHoldState> emit,
+    SeatHold current,
+    String? code,
+  ) async {
+    final updated = await _repository.updatePromoCode(
+      reservationId: current.id,
+      promoCode: code,
     );
 
-    final lost = held.fold((failure) => failure, (_) => null);
-    if (lost != null) {
+    final refused = updated.fold((failure) => failure, (_) => null);
+    if (refused != null) {
+      // Rien n'a bougé côté serveur : le blocage et son prix tiennent.
       emit(
-        SeatHoldState(
-          status: SeatHoldStatus.expired,
-          departure: state.departure,
-          passengers: state.passengers,
-          failure: lost,
+        state.copyWith(
+          promoStatus: PromoStatus.idle,
+          promoError: refused.message,
         ),
       );
       return;
     }
-    final hold = held.getOrElse(() => throw StateError('blocage absent'));
+    final pricing = updated.getOrElse(() => throw StateError('prix absent'));
 
-    // Les identités vivaient sur l'ancienne réservation : sans elles, la
-    // nouvelle ne serait pas payable.
-    final saved = await _repository.savePassengers(
-      reservationId: hold.id,
-      passengers: event.passengers,
+    final hold = SeatHold(
+      id: current.id,
+      expiresAt: pricing.expiresAt?.toUtc() ?? current.expiresAt,
+      seatLabels: current.seatLabels,
+      total: pricing.total,
     );
-    final refreshed = saved.getOrElse(() => hold);
 
+    final previous = state.quote;
     emit(
-      SeatHoldState(
-        status: SeatHoldStatus.held,
-        hold: refreshed,
-        remaining: refreshed.remaining(_clock()),
-        departure: state.departure,
-        passengers: state.passengers,
-        passengersStatus: saved.isRight()
-            ? PassengersStatus.saved
-            : PassengersStatus.failure,
-        failure: saved.fold((failure) => failure, (_) => null),
-        quote: quote,
+      state.copyWith(
+        promoStatus: PromoStatus.idle,
+        hold: hold,
+        remaining: hold.remaining(_clock()),
+        quote: previous == null
+            ? null
+            : GroupQuote(
+                id: previous.id,
+                subtotal: pricing.subtotal,
+                total: pricing.total,
+                passengerCount: previous.passengerCount,
+                discount: previous.discount,
+                expiresAt: previous.expiresAt,
+                promotion: pricing.promotion,
+              ),
       ),
     );
-    _startTicking();
   }
 
   /// Une seconde : c'est la granularité qu'affiche le décompte (`MM:SS`).

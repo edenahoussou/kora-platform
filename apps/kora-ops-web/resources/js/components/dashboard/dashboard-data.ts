@@ -11,11 +11,9 @@ import {
     ReceiptText,
     Route,
     Ticket,
-    Users,
 } from 'lucide-react';
 import { cash, sale } from '@/routes';
 import { index as departures } from '@/routes/departures';
-import { index as manifest } from '@/routes/manifest';
 
 export type MetricTone = 'gold' | 'blue' | 'navy' | 'green';
 
@@ -133,13 +131,6 @@ export const quickActions: QuickAction[] = [
         icon: CircleDollarSign,
         href: cash().url,
         accent: 'blue',
-    },
-    {
-        title: 'Manifestes',
-        description: 'Préparer les listes passagers',
-        icon: Users,
-        href: manifest().url,
-        accent: 'navy',
     },
     {
         title: 'Départs',

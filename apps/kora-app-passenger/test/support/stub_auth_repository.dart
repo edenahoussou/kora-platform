@@ -66,14 +66,14 @@ class StubAuthRepository implements AuthRepository {
 
   @override
   Future<Either<Failure, OtpChallenge>> requestOtp({
-    required String email,
+    required String identifier,
     required OtpPurpose purpose,
   }) async => _answer(
     'requestOtp:${purpose.value}',
     OtpChallenge(
       uuid: 'challenge-${++_challenges}',
       purpose: purpose,
-      email: email,
+      identifier: identifier,
       expiresAt: DateTime.now().add(const Duration(minutes: 15)),
     ),
   );
@@ -96,14 +96,23 @@ class StubAuthRepository implements AuthRepository {
   Future<Either<Failure, AuthSession>> completeRegistration({
     required OtpVerification verification,
     required String pin,
-  }) async => _answer('completeRegistration:$pin', session);
+    String? name,
+    String? email,
+    String? phone,
+    String? countryCode,
+  }) async => _answer(
+    // Le nom apparaît dans la trace : c'est lui que le serveur exige
+    // pour une inscription par téléphone.
+    'completeRegistration:$pin${name == null || name.isEmpty ? '' : ':$name'}',
+    session,
+  );
 
   @override
   Future<Either<Failure, LoginOutcome>> login({
-    required String email,
+    required String identifier,
     required String pin,
     OtpVerification? verification,
-  }) async => _answer('login:$email', LoginSucceeded(session));
+  }) async => _answer('login:$identifier', LoginSucceeded(session));
 
   @override
   Future<Either<Failure, AuthSession>> loginWithProvider({
@@ -116,7 +125,7 @@ class StubAuthRepository implements AuthRepository {
       _answer('currentSession', null);
 
   @override
-  Future<String?> lastEmail() async => null;
+  Future<String?> lastIdentifier() async => null;
 
   @override
   Future<DeviceRegistration> currentDevice() async => const DeviceRegistration(

@@ -17,6 +17,7 @@ import 'package:kora_app_passenger/features/booking/domain/entities/group_quote.
 import 'package:kora_app_passenger/features/booking/domain/entities/group_ticket.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/passenger.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/price.dart';
+import 'package:kora_app_passenger/features/booking/domain/entities/reservation_pricing.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/seat.dart';
 import 'package:kora_app_passenger/features/booking/domain/entities/seat_hold.dart';
 import 'package:kora_app_passenger/features/booking/domain/repositories/reservation_repository.dart';
@@ -124,6 +125,46 @@ class StubReservationRepository implements ReservationRepository {
                 amount: Price(discount),
               )
             : GroupDiscount.none,
+        expiresAt: now.add(holdDuration),
+      ),
+    );
+  }
+
+  /// L'annulation demandée par le détail d'un billet.
+  @override
+  Future<Either<Failure, Unit>> cancelBooking(String reservationId) async {
+    calls.add('cancelBooking:$reservationId');
+    final failure = cancelFailure;
+    return failure == null ? const Right(unit) : Left(failure);
+  }
+
+  /// Échec rendu par [cancelBooking] — un serveur qui refuse.
+  Failure? cancelFailure;
+
+  /// Le prix rendu par [updatePromoCode] : le même barème que le devis,
+  /// appliqué à la réservation déjà retenue.
+  @override
+  Future<Either<Failure, ReservationPricing>> updatePromoCode({
+    required String reservationId,
+    String? promoCode,
+  }) async {
+    calls.add('promoCode:$reservationId:${promoCode ?? 'aucun'}');
+
+    // Un code refusé par le serveur : 422 sur `promo_code`. Retirer, lui,
+    // ne peut pas être refusé pour cause de code inconnu.
+    final promoFailure = this.promoFailure;
+    if (promoCode != null && promoFailure != null) return Left(promoFailure);
+
+    const subtotal = 12500;
+    final promo = promoCode == null ? 0 : subtotal ~/ 10;
+
+    return Right(
+      ReservationPricing(
+        total: Price(subtotal - promo),
+        subtotal: const Price(subtotal),
+        promotion: promoCode == null
+            ? null
+            : QuotePromotion(code: promoCode, discount: Price(promo)),
         expiresAt: now.add(holdDuration),
       ),
     );

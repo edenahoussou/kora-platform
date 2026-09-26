@@ -10,7 +10,7 @@ import '../../domain/repositories/auth_repository.dart';
 part 'auth_flow_event.dart';
 part 'auth_flow_state.dart';
 
-/// Couche PRESENTATION : la chorégraphie e-mail → code → PIN.
+/// Couche PRESENTATION : la chorégraphie compte → code → PIN.
 ///
 /// Le même parcours sert quatre motifs (inscription, appareil inconnu, PIN
 /// oublié, déverrouillage) : c'est [AuthFlowState.purpose] qui décide de
@@ -22,7 +22,7 @@ part 'auth_flow_state.dart';
 /// ensuite.
 class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
   AuthFlowBloc(this._repository) : super(const AuthFlowState()) {
-    on<AuthFlowEmailSubmitted>(_onEmailSubmitted);
+    on<AuthFlowIdentifierSubmitted>(_onIdentifierSubmitted);
     on<AuthFlowLoginSubmitted>(_onLoginSubmitted);
     on<AuthFlowNewDeviceRequested>(_onNewDeviceRequested);
     on<AuthFlowNewDeviceConfirmed>(_onNewDeviceConfirmed);
@@ -35,21 +35,23 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
 
   final AuthRepository _repository;
 
-  Future<void> _onEmailSubmitted(
-    AuthFlowEmailSubmitted event,
+  Future<void> _onIdentifierSubmitted(
+    AuthFlowIdentifierSubmitted event,
     Emitter<AuthFlowState> emit,
   ) async {
     emit(
       state.copyWith(
         isSubmitting: true,
         errorMessage: '',
-        email: event.email,
+        accountExists: false,
+        identifier: event.identifier,
         purpose: event.purpose,
+        registrationName: event.name,
       ),
     );
 
     final result = await _repository.requestOtp(
-      email: event.email,
+      identifier: event.identifier,
       purpose: event.purpose,
     );
 
@@ -74,13 +76,13 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
         isSubmitting: true,
         errorMessage: '',
         isAccountLocked: false,
-        email: event.email,
+        identifier: event.identifier,
         pendingPin: event.pin,
       ),
     );
 
     final result = await _repository.login(
-      email: event.email,
+      identifier: event.identifier,
       pin: event.pin,
       // Présent seulement au second passage : après avoir relevé le défi
       // d'un appareil inconnu.
@@ -105,7 +107,7 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
             challenge: OtpChallenge(
               uuid: challenge.uuid,
               purpose: OtpPurpose.loginNewDevice,
-              email: event.email,
+              identifier: event.identifier,
               expiresAt: challenge.expiresAt,
             ),
           ),
@@ -131,7 +133,7 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
       state.copyWith(
         step: AuthFlowStep.newDevice,
         purpose: OtpPurpose.loginNewDevice,
-        email: event.email,
+        identifier: event.identifier,
         errorMessage: '',
         deviceName: await _deviceName(),
       ),
@@ -151,8 +153,8 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
     }
 
     add(
-      AuthFlowEmailSubmitted(
-        email: state.email,
+      AuthFlowIdentifierSubmitted(
+        identifier: state.identifier,
         purpose: OtpPurpose.loginNewDevice,
       ),
     );
@@ -213,13 +215,18 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
         // demande. Le jeton de vérification reste en main et partira
         // avec cette connexion-là.
         if (state.pendingPin.isEmpty) {
-          emit(state.copyWith(step: AuthFlowStep.email));
+          emit(state.copyWith(step: AuthFlowStep.identifier));
           return;
         }
 
         // Sinon on rappelle `login` avec le jeton : c'est ce que demande
         // la documentation, et le PIN a été gardé pour ne pas le retaper.
-        add(AuthFlowLoginSubmitted(email: state.email, pin: state.pendingPin));
+        add(
+          AuthFlowLoginSubmitted(
+            identifier: state.identifier,
+            pin: state.pendingPin,
+          ),
+        );
       case OtpPurpose.accountUnlock:
         await _unlock(emit, verified.verification!);
     }
@@ -229,12 +236,12 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
     AuthFlowCodeResent event,
     Emitter<AuthFlowState> emit,
   ) async {
-    if (state.email.isEmpty) return;
+    if (state.identifier.isEmpty) return;
 
     emit(state.copyWith(isSubmitting: true, errorMessage: ''));
 
     final result = await _repository.requestOtp(
-      email: state.email,
+      identifier: state.identifier,
       purpose: state.purpose,
     );
 
@@ -267,7 +274,10 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
       emit(
         result.fold(
           (failure) => _failed(failure),
-          (_) => state.copyWith(isSubmitting: false, step: AuthFlowStep.email),
+          (_) => state.copyWith(
+            isSubmitting: false,
+            step: AuthFlowStep.identifier,
+          ),
         ),
       );
       return;
@@ -276,6 +286,9 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
     final result = await _repository.completeRegistration(
       verification: verification,
       pin: event.pin,
+      // Renseigné pour une inscription par téléphone, vide sinon : le
+      // serveur dérive alors le nom de l'adresse.
+      name: state.registrationName,
     );
 
     emit(
@@ -338,6 +351,7 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
       isSubmitting: false,
       errorMessage: failure.message,
       isAccountLocked: failure is AccountLockedFailure,
+      accountExists: failure is AccountExistsFailure,
     );
   }
 }

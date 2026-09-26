@@ -3,7 +3,10 @@ import {
     ArrowRight,
     Clock3,
     Gauge,
+    Globe2,
     Info,
+    Milestone,
+    Route,
     Target,
     TrendingDown,
     TrendingUp,
@@ -14,12 +17,27 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import pricingRules from '@/routes/pricing-rules';
-import type { PricingRuleRecord } from './pricing-rule-types';
+import type {
+    PricingRuleDirection,
+    PricingRuleRecord,
+    PricingRuleScope,
+} from './pricing-rule-types';
 
-type LineOption = { uuid: string; code: string; name: string };
+export type LineStopOption = { uuid: string; name: string; stopOrder: number };
+
+type LineOption = {
+    uuid: string;
+    code: string;
+    name: string;
+    stops: LineStopOption[];
+};
 
 type Draft = {
+    scope: PricingRuleScope;
     lineId: string;
+    originStopId: string;
+    destinationStopId: string;
+    direction: PricingRuleDirection;
     type: 'increase' | 'decrease';
     percentage: string;
     priority: string;
@@ -45,7 +63,11 @@ function toDateTimeLocal(iso: string | null): string {
 
 function createDraft(rule: PricingRuleRecord | null): Draft {
     return {
+        scope: rule?.scope ?? (rule?.lineUuid ? 'line' : 'network'),
         lineId: rule?.lineUuid ?? '',
+        originStopId: rule?.originStopUuid ?? '',
+        destinationStopId: rule?.destinationStopUuid ?? '',
+        direction: rule?.direction ?? 'both',
         type: (rule?.type as Draft['type']) ?? 'increase',
         percentage: rule ? String(rule.percentage) : '',
         priority: rule ? String(rule.priority) : '10',
@@ -144,6 +166,13 @@ export function PricingRuleBuilder({
         ? pricingRules.update.form({ pricingRule: rule.uuid })
         : pricingRules.store.form();
     const selectedLine = lines.find((line) => line.uuid === draft.lineId);
+    const lineStops = selectedLine?.stops ?? [];
+    const selectedOriginStop = lineStops.find(
+        (stop) => stop.uuid === draft.originStopId,
+    );
+    const selectedDestinationStop = lineStops.find(
+        (stop) => stop.uuid === draft.destinationStopId,
+    );
     const percentage = Number(draft.percentage) || 0;
     const referenceAmount = 10000;
     const coefficient =
@@ -155,18 +184,59 @@ export function PricingRuleBuilder({
     const adjustment = simulatedAmount - referenceAmount;
 
     const statement = useMemo(() => {
-        const scope = selectedLine
-            ? `${selectedLine.code} · ${selectedLine.name}`
-            : 'une ligne à sélectionner';
+        const scope =
+            draft.scope === 'network'
+                ? 'tout le réseau'
+                : draft.scope === 'segment'
+                  ? selectedOriginStop && selectedDestinationStop
+                      ? `le segment ${selectedOriginStop.name} → ${selectedDestinationStop.name} (${selectedLine?.code ?? '…'})`
+                      : 'un segment à définir'
+                  : selectedLine
+                    ? `la ligne ${selectedLine.code} · ${selectedLine.name}`
+                    : 'une ligne à sélectionner';
+        const direction =
+            draft.scope !== 'network' && draft.direction !== 'both'
+                ? draft.direction === 'outbound'
+                    ? ', sens aller'
+                    : ', sens retour'
+                : '';
         const effect = draft.type === 'increase' ? 'majoration' : 'réduction';
         const value = draft.percentage ? `${draft.percentage} %` : '… %';
 
-        return `Sur ${scope}, appliquer une ${effect} de ${value} lorsque ${formatCondition(draft)}.`;
-    }, [draft, selectedLine]);
+        return `Sur ${scope}${direction}, appliquer une ${effect} de ${value} lorsque ${formatCondition(draft)}.`;
+    }, [draft, selectedLine, selectedOriginStop, selectedDestinationStop]);
 
-    const update = (key: keyof Draft, value: string) => {
+    const update = <K extends keyof Draft>(key: K, value: Draft[K]) => {
         setDraft((current) => ({ ...current, [key]: value }));
     };
+
+    const updateScope = (scope: PricingRuleScope) => {
+        setDraft((current) => ({
+            ...current,
+            scope,
+            lineId: scope === 'network' ? '' : current.lineId,
+            originStopId: scope === 'segment' ? current.originStopId : '',
+            destinationStopId:
+                scope === 'segment' ? current.destinationStopId : '',
+        }));
+    };
+
+    const updateLine = (lineId: string) => {
+        setDraft((current) => ({
+            ...current,
+            lineId,
+            originStopId: '',
+            destinationStopId: '',
+        }));
+    };
+
+    const canSubmitDraft =
+        draft.scope === 'network' ||
+        (draft.scope === 'line' && draft.lineId !== '') ||
+        (draft.scope === 'segment' &&
+            draft.lineId !== '' &&
+            draft.originStopId !== '' &&
+            draft.destinationStopId !== '');
 
     return (
         <section className="rounded-[18px] bg-card p-6 shadow-sm ring-1 ring-border sm:p-7">
@@ -227,33 +297,53 @@ export function PricingRuleBuilder({
 
                         <div className="grid gap-5 sm:grid-cols-2">
                             <div className="grid gap-2">
-                                <FieldLabel required>Ligne ciblée</FieldLabel>
-                                <select
-                                    name="line_id"
-                                    value={draft.lineId}
-                                    onChange={(event) =>
-                                        update('lineId', event.target.value)
-                                    }
-                                    required
-                                    className="h-11 w-full rounded-[10px] bg-muted/60 px-3 text-sm text-foreground ring-1 ring-border transition-[box-shadow,background-color] duration-300 outline-none focus:bg-card focus:ring-2 focus:ring-gold/40"
-                                >
-                                    <option value="">
-                                        Sélectionner une ligne
-                                    </option>
-                                    {lines.map((line) => (
-                                        <option
-                                            key={line.uuid}
-                                            value={line.uuid}
+                                <FieldLabel required>Portée</FieldLabel>
+                                <div className="grid grid-cols-3 gap-1.5 rounded-[10px] bg-muted/60 p-1.5 ring-1 ring-border">
+                                    {[
+                                        {
+                                            value: 'network',
+                                            label: 'Réseau',
+                                            icon: Globe2,
+                                        },
+                                        {
+                                            value: 'line',
+                                            label: 'Ligne',
+                                            icon: Route,
+                                        },
+                                        {
+                                            value: 'segment',
+                                            label: 'Segment',
+                                            icon: Milestone,
+                                        },
+                                    ].map(({ value, label, icon: Icon }) => (
+                                        <button
+                                            key={value}
+                                            type="button"
+                                            onClick={() =>
+                                                updateScope(
+                                                    value as PricingRuleScope,
+                                                )
+                                            }
+                                            className={`flex h-9 items-center justify-center gap-1.5 rounded-[8px] text-xs font-bold transition-[transform,background-color,color,box-shadow] duration-300 active:scale-[0.98] ${draft.scope === value ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:bg-card/70 hover:text-foreground'}`}
                                         >
-                                            {line.code} · {line.name}
-                                        </option>
+                                            <Icon
+                                                className="size-3.5"
+                                                strokeWidth={1.8}
+                                            />
+                                            {label}
+                                        </button>
                                     ))}
-                                </select>
+                                </div>
+                                <input
+                                    type="hidden"
+                                    name="scope_type"
+                                    value={draft.scope}
+                                />
                                 <FieldHint>
-                                    La ligne rend la portée commerciale
-                                    explicite.
+                                    Réseau = toutes les lignes. Segment = une
+                                    paire d'arrêts O/D.
                                 </FieldHint>
-                                <InputError message={errors.line_id} />
+                                <InputError message={errors.scope_type} />
                             </div>
                             <div className="grid gap-2">
                                 <FieldLabel required>Priorité</FieldLabel>
@@ -277,6 +367,143 @@ export function PricingRuleBuilder({
                             </div>
                         </div>
 
+                        {draft.scope !== 'network' && (
+                            <div className="grid gap-5 sm:grid-cols-2">
+                                <div className="grid gap-2">
+                                    <FieldLabel required>
+                                        Ligne ciblée
+                                    </FieldLabel>
+                                    <select
+                                        name="line_id"
+                                        value={draft.lineId}
+                                        onChange={(event) =>
+                                            updateLine(event.target.value)
+                                        }
+                                        required
+                                        className="h-11 w-full rounded-[10px] bg-muted/60 px-3 text-sm text-foreground ring-1 ring-border transition-[box-shadow,background-color] duration-300 outline-none focus:bg-card focus:ring-2 focus:ring-gold/40"
+                                    >
+                                        <option value="">
+                                            Sélectionner une ligne
+                                        </option>
+                                        {lines.map((line) => (
+                                            <option
+                                                key={line.uuid}
+                                                value={line.uuid}
+                                            >
+                                                {line.code} · {line.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <FieldHint>
+                                        La ligne rend la portée commerciale
+                                        explicite.
+                                    </FieldHint>
+                                    <InputError message={errors.line_id} />
+                                </div>
+                                <div className="grid gap-2">
+                                    <FieldLabel>Direction</FieldLabel>
+                                    <select
+                                        name="direction"
+                                        value={draft.direction}
+                                        onChange={(event) =>
+                                            update(
+                                                'direction',
+                                                event.target
+                                                    .value as PricingRuleDirection,
+                                            )
+                                        }
+                                        className="h-11 w-full rounded-[10px] bg-muted/60 px-3 text-sm text-foreground ring-1 ring-border transition-[box-shadow,background-color] duration-300 outline-none focus:bg-card focus:ring-2 focus:ring-gold/40"
+                                    >
+                                        <option value="both">
+                                            Les deux sens
+                                        </option>
+                                        <option value="outbound">Aller</option>
+                                        <option value="return">Retour</option>
+                                    </select>
+                                    <FieldHint>
+                                        Sens de circulation concerné sur la
+                                        ligne.
+                                    </FieldHint>
+                                    <InputError message={errors.direction} />
+                                </div>
+                            </div>
+                        )}
+
+                        {draft.scope === 'segment' && (
+                            <div className="grid gap-5 sm:grid-cols-2">
+                                <div className="grid gap-2">
+                                    <FieldLabel required>
+                                        Arrêt d'origine
+                                    </FieldLabel>
+                                    <select
+                                        name="origin_stop_id"
+                                        value={draft.originStopId}
+                                        onChange={(event) =>
+                                            update(
+                                                'originStopId',
+                                                event.target.value,
+                                            )
+                                        }
+                                        required
+                                        disabled={!selectedLine}
+                                        className="h-11 w-full rounded-[10px] bg-muted/60 px-3 text-sm text-foreground ring-1 ring-border transition-[box-shadow,background-color] duration-300 outline-none focus:bg-card focus:ring-2 focus:ring-gold/40 disabled:opacity-50"
+                                    >
+                                        <option value="">
+                                            {selectedLine
+                                                ? 'Sélectionner un arrêt'
+                                                : 'Choisir une ligne d\u2019abord'}
+                                        </option>
+                                        {lineStops.map((stop) => (
+                                            <option
+                                                key={stop.uuid}
+                                                value={stop.uuid}
+                                            >
+                                                {stop.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <InputError
+                                        message={errors.origin_stop_id}
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <FieldLabel required>
+                                        Arrêt de destination
+                                    </FieldLabel>
+                                    <select
+                                        name="destination_stop_id"
+                                        value={draft.destinationStopId}
+                                        onChange={(event) =>
+                                            update(
+                                                'destinationStopId',
+                                                event.target.value,
+                                            )
+                                        }
+                                        required
+                                        disabled={!selectedLine}
+                                        className="h-11 w-full rounded-[10px] bg-muted/60 px-3 text-sm text-foreground ring-1 ring-border transition-[box-shadow,background-color] duration-300 outline-none focus:bg-card focus:ring-2 focus:ring-gold/40 disabled:opacity-50"
+                                    >
+                                        <option value="">
+                                            {selectedLine
+                                                ? 'Sélectionner un arrêt'
+                                                : 'Choisir une ligne d\u2019abord'}
+                                        </option>
+                                        {lineStops.map((stop) => (
+                                            <option
+                                                key={stop.uuid}
+                                                value={stop.uuid}
+                                            >
+                                                {stop.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <InputError
+                                        message={errors.destination_stop_id}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
                         <div className="grid gap-5 sm:grid-cols-[1fr_1fr_0.75fr]">
                             <div className="grid gap-2">
                                 <FieldLabel required>
@@ -299,7 +526,10 @@ export function PricingRuleBuilder({
                                             key={value}
                                             type="button"
                                             onClick={() =>
-                                                update('type', value)
+                                                update(
+                                                    'type',
+                                                    value as Draft['type'],
+                                                )
                                             }
                                             className={`flex h-9 items-center justify-center gap-1.5 rounded-[8px] text-xs font-bold transition-[transform,background-color,color,box-shadow] duration-300 active:scale-[0.98] ${draft.type === value ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:bg-card/70 hover:text-foreground'}`}
                                         >
@@ -532,7 +762,7 @@ export function PricingRuleBuilder({
                                     size="kora"
                                     variant="kora"
                                     type="submit"
-                                    disabled={processing || !draft.lineId}
+                                    disabled={processing || !canSubmitDraft}
                                     className="group"
                                 >
                                     {processing

@@ -14,11 +14,11 @@ final class IntegrationsSettings extends Settings
 
     public string $emecfTestInvoiceUrl = 'https://developper.impots.bj/sygmef-emcf/api/';
 
-    public string $emecfTestInfoUrl = 'https://developper.impots.bj/sygmef-emcf/api/';
+    public string $emecfTestInfoUrl = 'https://developper.impots.bj/sygmef-emcf/api/info';
 
     public string $emecfProductionInvoiceUrl = 'https://sygmef.impots.bj/emcf/api/';
 
-    public string $emecfProductionInfoUrl = 'https://sygmef.impots.bj/emcf/api/';
+    public string $emecfProductionInfoUrl = 'https://sygmef.impots.bj/emcf/api/info';
 
     public int $emecfHttpTimeout = 30;
 
@@ -45,6 +45,28 @@ final class IntegrationsSettings extends Settings
     public int $emecfMaxRetryAttempts = 3;
 
     public int $emecfRetryBackoffMultiplier = 2;
+
+    public ?string $emecfNim = null;
+
+    public ?string $emecfShopName = null;
+
+    public ?string $emecfAccountStatus = null;
+
+    public ?string $emecfAddress1 = null;
+
+    public ?string $emecfAddress2 = null;
+
+    public ?string $emecfAddress3 = null;
+
+    public ?string $emecfContact1 = null;
+
+    public ?string $emecfContact2 = null;
+
+    public ?string $emecfContact3 = null;
+
+    public ?string $emecfApiVersion = null;
+
+    public ?string $emecfTokenValidUntil = null;
 
     public bool $fedapayEnabled = false;
 

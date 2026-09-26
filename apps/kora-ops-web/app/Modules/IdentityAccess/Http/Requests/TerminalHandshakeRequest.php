@@ -18,6 +18,9 @@ class TerminalHandshakeRequest extends FormRequest
     {
         return [
             'serial_number' => ['required', 'string', 'max:64'],
+            'hardware_model' => ['nullable', 'string', 'max:128'],
+            'os_version' => ['nullable', 'string', 'max:64'],
+            'app_version' => ['nullable', 'string', 'max:64'],
         ];
     }
 
@@ -29,5 +32,17 @@ class TerminalHandshakeRequest extends FormRequest
     public function serialNumber(): string
     {
         return $this->string('serial_number')->trim()->value();
+    }
+
+    /**
+     * @return array{hardware_model: string|null, os_version: string|null, app_version: string|null}
+     */
+    public function telemetry(): array
+    {
+        return [
+            'hardware_model' => $this->string('hardware_model')->trim()->value() ?: null,
+            'os_version' => $this->string('os_version')->trim()->value() ?: null,
+            'app_version' => $this->string('app_version')->trim()->value() ?: null,
+        ];
     }
 }

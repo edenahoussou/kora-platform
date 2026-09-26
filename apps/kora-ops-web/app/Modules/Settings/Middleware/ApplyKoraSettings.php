@@ -24,6 +24,11 @@ final class ApplyKoraSettings
 
             $settings = app(GeneralSettings::class);
 
+            // app.timezone est exposé pour les conversions d'affichage
+            // (setTimezone(config('app.timezone'))), mais on ne touche pas à
+            // date_default_timezone_set : le process reste en UTC pour que
+            // les timestamps écrits par la console, la queue et les tests
+            // soient relus sans décalage.
             config([
                 'app.name' => $settings->displayName,
                 'app.locale' => $settings->locale,
@@ -32,7 +37,6 @@ final class ApplyKoraSettings
             ]);
 
             App::setLocale($settings->locale);
-            date_default_timezone_set($settings->timezone);
         } catch (QueryException $exception) {
             // A first deploy can receive traffic while migrations are pending.
             // The normal Laravel configuration remains the safe fallback then.

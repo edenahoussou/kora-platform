@@ -1,12 +1,12 @@
 ---
 title: Authentification
-description: "Guide d'authentification KORA BUS : flow OTP email + PIN, émission de tokens Sanctum, OAuth sociale Google, Facebook et TikTok pour le mobile."
+description: "Guide d'authentification KORA BUS : connexion par email ou téléphone + PIN, OTP WhatsApp avec repli email, émission de tokens Sanctum et OAuth sociale."
 ---
 
 
 # Authentification
 
-KORA BUS utilise un flow d'authentification basé sur **OTP email + PIN** avec émission d'un **token Sanctum** (Bearer). Ce flow est conçu pour les applications mobiles qui doivent gérer des appareils de confiance.
+KORA BUS utilise un flow d'authentification basé sur **email ou téléphone + PIN**, avec un **OTP WhatsApp prioritaire et email de repli** lorsqu'une vérification est nécessaire, puis émission d'un **token Sanctum** (Bearer). Ce flow est conçu pour les applications mobiles qui doivent gérer des appareils de confiance.
 
 Une alternative **OAuth sociale** (Google, Facebook, TikTok) est disponible pour l'application passager.
 
@@ -14,17 +14,17 @@ Une alternative **OAuth sociale** (Google, Facebook, TikTok) est disponible pour
 
 <Steps>
   <Step title="1. Demander un OTP">
-    L'utilisateur saisit son email. L'API envoie un code OTP à 6 chiffres par email et retourne un `otp_challenge_uuid`.
+    Pour une inscription, l'utilisateur saisit son email **ou** son numéro de téléphone WhatsApp. L'API envoie un code OTP à 6 chiffres sur le canal correspondant (email ou WhatsApp) et retourne un `otp_challenge_uuid`. Pour un compte existant, les demandes `pin_reset` et `account_unlock` acceptent aussi les deux formes ; WhatsApp est prioritaire si le compte possède un téléphone, avec repli email. Si aucun canal ne peut délivrer le code, l'API répond `503 otp_delivery_unavailable`.
 
 ```bash
 curl -X POST https://staging.koraexpress.app/api/v1/auth/otp/request \
   -H 'Content-Type: application/json' \
-  -d '{ "email": "passager@korabus.app", "purpose": "registration" }'
+  -d '{ "identifier": "passager@korabus.app", "purpose": "registration" }'
 ```
 
 ```dart
 final res = await dio.post('/api/v1/auth/otp/request', data: {
-  'email': 'passager@korabus.app',
+  'identifier': 'passager@korabus.app',
   'purpose': 'registration',
 });
 final challengeUuid = res.data['data']['otp_challenge_uuid'];
@@ -113,17 +113,17 @@ Voir la référence : [Compléter l'inscription](/reference/auth/register-comple
   </Step>
 
   <Step title="4. Connexion (utilisateur existant)">
-    Si l'utilisateur a déjà un compte, il se connecte avec email + PIN. Si c'est un **nouvel appareil**, l'API exige un OTP supplémentaire.
+    Si l'utilisateur a déjà un compte, il se connecte avec email ou téléphone + PIN. Les numéros locaux et internationaux sont normalisés avant résolution. Si c'est un **nouvel appareil**, l'API exige un OTP supplémentaire envoyé par WhatsApp si un téléphone est disponible, avec repli email.
 
 ```bash
 curl -X POST https://staging.koraexpress.app/api/v1/auth/login \
   -H 'Content-Type: application/json' \
-  -d '{ "email": "passager@korabus.app", "pin": "9775", "device_name": "Samsung S24", "platform": "android", "device_fingerprint": "f6e5d4c3b2a1" }'
+  -d '{ "identifier": "passager@korabus.app", "pin": "9775", "device_name": "Samsung S24", "platform": "android", "device_fingerprint": "f6e5d4c3b2a1" }'
 ```
 
 ```dart
 final res = await dio.post('/api/v1/auth/login', data: {
-  'email': 'passager@korabus.app',
+  'identifier': '01 97 42 18 60',
   'pin': '9775',
   'device_name': 'Samsung Galaxy S24',
   'platform': 'android',
@@ -133,7 +133,7 @@ final token = res.data['data']['token'];
 ```
 
 <Warning>
-  **Nouvel appareil** : Si la connexion provient d'un appareil inconnu, l'API retourne `202` avec `requires_otp: true` au lieu d'un token. Le client doit enchaîner : `otp/request` → `otp/verify` → `login` avec `otp_challenge_uuid` + `verification_token`.
+  **Nouvel appareil** : Si la connexion provient d'un appareil inconnu, l'API retourne `202` avec `requires_otp: true` au lieu d'un token. Le client doit enchaîner : `login` → `otp/verify` → rappel de `login` avec `otp_challenge_uuid` + `verification_token`. Le client ne doit pas demander un second OTP via `otp/request` pour ce challenge.
 </Warning>
 
 Voir la référence : [Connexion](/reference/auth/login).

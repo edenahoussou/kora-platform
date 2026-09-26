@@ -9,6 +9,8 @@ authMethod: none
 
 Finalise la création d'un compte après vérification OTP. L'utilisateur choisit un PIN à 4 chiffres et enregistre son appareil. L'API crée le compte et émet un token Sanctum.
 
+L'identifiant du challenge fait foi : pour un challenge email, le compte est créé ou rattaché par email ; pour un challenge téléphone, par numéro normalisé. Un compte existant **sans PIN** (ex. créé via réservation assistée) est revendiqué — le code OTP prouve la possession de l'identifiant. Un compte **avec PIN** ne peut pas se « réinscrire » (`409 account_exists`). Pour une inscription par téléphone d'un nouveau compte, `name` est obligatoire.
+
 ## Paramètres
 
 <ParamField body="otp_challenge_uuid" type="UUID" required>
@@ -37,6 +39,26 @@ Finalise la création d'un compte après vérification OTP. L'utilisateur choisi
 
 <ParamField body="device_fingerprint" type="string" required>
   Empreinte unique et stable de l'appareil (min 16, max 255).
+</ParamField>
+
+<ParamField body="name" type="string">
+  Nom complet du passager (max 120). Obligatoire pour une inscription par téléphone créant un nouveau compte (`422 name_required` sinon). Dérivé de l'email si absent pour une inscription email.
+</ParamField>
+
+<ParamField body="email" type="string">
+  Adresse email à rattacher au compte lors d'une inscription par téléphone (max 255). `422 email_taken` si déjà utilisée par un autre compte.
+</ParamField>
+
+<ParamField body="phone" type="string">
+  Numéro de téléphone à rattacher lors d'une inscription par email (max 20). `422 phone_taken` si déjà utilisé par un autre compte.
+</ParamField>
+
+<ParamField body="country_code" type="string">
+  Indicatif pays explicite pour normaliser `phone` (ex. `+229`).
+</ParamField>
+
+<ParamField body="birth_date" type="string">
+  Date de naissance (ISO 8601, antérieure à aujourd'hui).
 </ParamField>
 
 <ParamField body="push_token" type="string">
@@ -167,6 +189,7 @@ final token = res.data['data']['token'];
 
 | Code | Description |
 |------|-------------|
-| `201` | Compte créé, token émis. |
-| `422` | `verification_token` invalide/expiré, PIN invalide, ou email déjà utilisé. |
+| `201` | Compte créé ou revendiqué, token émis. |
+| `409` | `account_exists` — un compte avec PIN existe déjà pour cet identifiant ; passer par la connexion. |
+| `422` | `verification_token` invalide/expiré, PIN invalide, `name_required`, `phone_taken` ou `email_taken`. |
 | `429` | Rate limit `auth-login` dépassé (5/min). |

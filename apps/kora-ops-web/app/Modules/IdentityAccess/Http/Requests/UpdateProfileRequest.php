@@ -2,6 +2,7 @@
 
 namespace App\Modules\IdentityAccess\Http\Requests;
 
+use App\Modules\IdentityAccess\Contracts\PassengerIdentityResolver;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -10,6 +11,22 @@ class UpdateProfileRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    /**
+     * Le téléphone est stocké normalisé (+229…): l'unicité doit être
+     * contrôlée sur la forme stockée, pas sur la saisie brute.
+     */
+    protected function prepareForValidation(): void
+    {
+        $phone = $this->input('phone');
+
+        if (is_string($phone) && trim($phone) !== '') {
+            $this->merge([
+                'phone' => resolve(PassengerIdentityResolver::class)
+                    ->normalizePhone($phone, $this->input('country_code')),
+            ]);
+        }
     }
 
     /**
@@ -22,7 +39,7 @@ class UpdateProfileRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email:rfc', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
-            'phone' => ['nullable', 'string', 'max:20', 'regex:/^\+?[\d\s\-.()]{6,20}$/'],
+            'phone' => ['nullable', 'string', 'max:20', 'regex:/^\+?[\d\s\-.()]{6,20}$/', Rule::unique('users', 'phone')->ignore($userId)],
             'country_code' => ['nullable', 'string', 'max:4', 'regex:/^\+?[\d\s\-.()]{1,7}$/'],
             'birth_date' => ['nullable', 'date', 'before:today'],
         ];
@@ -42,6 +59,7 @@ class UpdateProfileRequest extends FormRequest
             'email.unique' => 'Cette adresse email est déjà utilisée.',
             'phone.max' => 'Le numéro de téléphone ne peut pas dépasser 20 caractères.',
             'phone.regex' => 'Le numéro de téléphone doit être au format international (ex: +2290191003606) ou local (ex: 0191003606).',
+            'phone.unique' => 'Ce numéro de téléphone est déjà utilisé.',
             'country_code.max' => "L'indicatif pays ne peut pas dépasser 4 caractères.",
             'country_code.regex' => "L'indicatif pays doit contenir uniquement des chiffres (ex: +229).",
             'birth_date.date' => "La date de naissance n'est pas valide.",

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\IdentityAccess\Actions\RevokeOpsSessionAction;
 use App\Modules\IdentityAccess\Data\OpsSessionRevocationReason;
+use App\Modules\IdentityAccess\Exceptions\AuthBusinessException;
 use App\Modules\IdentityAccess\Exceptions\AuthLockedException;
 use App\Modules\IdentityAccess\Exceptions\AuthSuspendedException;
 use App\Modules\IdentityAccess\Http\Requests\ChangePinRequest;
@@ -72,16 +73,31 @@ class AuthSessionController extends Controller
      */
     public function completeRegistration(CompleteRegistrationRequest $request): JsonResponse
     {
-        return response()->json(['data' => $this->sessionPayload(
-            $this->authSessionService->completeRegistration($request->payload()),
-        )], 201);
+        try {
+            return response()->json(['data' => $this->sessionPayload(
+                $this->authSessionService->completeRegistration($request->payload()),
+            )], 201);
+        } catch (AuthBusinessException $e) {
+            return response()->json([
+                'error' => [
+                    'code' => $e->errorCode,
+                    'message' => $e->getMessage(),
+                ],
+            ], $e->status);
+        }
     }
 
     /**
-     * Authenticate a user with email/phone and PIN.
+     * Authenticate a user with an email or phone number and PIN. The legacy `email`
+     * field remains accepted as an alias for `identifier`.
      *
-     * Returns a Sanctum session token. If OTP is required, returns a 202 with an OTP challenge
-     * instead of a token.
+     * Returns a Sanctum session token. If OTP is required for a new device, returns a 202 with
+     * a challenge sent by WhatsApp when possible, then email as fallback.
+     *
+     * @bodyParam identifier string required Email or phone number. Local and international
+     * numbers are normalized before lookup. Do not send together with `email`.
+     * @bodyParam email string Legacy alias for `identifier`, accepted for existing clients.
+     * @bodyParam pin string required Four-digit PIN.
      *
      * @unauthenticated
      *
@@ -115,7 +131,7 @@ class AuthSessionController extends Controller
      *   "data": {
      *     "requires_otp": true,
      *     "otp_challenge_uuid": "b1234567-89ab-cdef-0123-456789abcdef",
-     *     "purpose": "login",
+     *     "purpose": "login_new_device",
      *     "expires_at": "2026-08-20T13:10:00.000Z"
      *   }
      * }
@@ -165,6 +181,13 @@ class AuthSessionController extends Controller
                     'message' => 'Identifiants invalides.',
                 ],
             ], 422);
+        } catch (AuthBusinessException $e) {
+            return response()->json([
+                'error' => [
+                    'code' => $e->errorCode,
+                    'message' => $e->getMessage(),
+                ],
+            ], $e->status);
         }
 
         if (($result['requires_otp'] ?? false) && isset($result['challenge'])) {

@@ -11,7 +11,6 @@ import {
     ShieldCheck,
     Store,
     Ticket,
-    Users,
     Wallet,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -126,16 +125,6 @@ const navItems: NavEntry[] = [
                 permission: 'departures.view',
             },
             {
-                title: 'Embarquement',
-                href: '/boarding',
-                permission: 'departures.view',
-            },
-            {
-                title: 'Manifestes',
-                href: '/manifest',
-                permission: 'departures.view',
-            },
-            {
                 title: 'Lignes & arrêts',
                 href: '/network',
                 permission: 'network.view',
@@ -182,12 +171,6 @@ const navItems: NavEntry[] = [
         ],
     },
     {
-        title: 'Passagers',
-        href: '/passengers',
-        icon: Users,
-        permission: 'bookings.view',
-    },
-    {
         title: 'Billets',
         href: '/tickets',
         icon: FileText,
@@ -216,7 +199,14 @@ const navItems: NavEntry[] = [
         title: 'Administration',
         href: '/users',
         icon: ShieldCheck,
-        permission: ['users.view', 'roles.view'],
+        permission: [
+            'users.view',
+            'roles.view',
+            'terminals.view',
+            'settings.general.view',
+            'settings.operations.view',
+            'settings.integrations.view',
+        ],
         children: [
             {
                 title: 'Utilisateurs',
@@ -227,6 +217,20 @@ const navItems: NavEntry[] = [
                 title: 'Rôles et permissions',
                 href: '/roles',
                 permission: 'roles.view',
+            },
+            {
+                title: 'Terminaux P501',
+                href: '/terminals',
+                permission: 'terminals.view',
+            },
+            {
+                title: 'Paramètres',
+                href: '/administration/settings/general',
+                permission: [
+                    'settings.general.view',
+                    'settings.operations.view',
+                    'settings.integrations.view',
+                ],
             },
         ],
     },

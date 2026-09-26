@@ -12,10 +12,9 @@ use App\Modules\BusNetwork\Models\Line;
 use App\Modules\BusNetwork\Models\PhysicalStop;
 use App\Modules\BusNetwork\Models\Seat;
 use App\Modules\BusNetwork\Models\Stop;
-use App\Modules\Departures\Actions\ComputeManifestVersionAction;
-use App\Modules\Departures\Actions\GenerateBorderManifestPdfAction;
-use App\Modules\Departures\Actions\ResolveManifestSegmentsAction;
+use App\Modules\Departures\Actions\GenerateManifestPdfAction;
 use App\Modules\Departures\Models\Departure;
+use App\Modules\Departures\Services\ManifestDocumentService;
 use App\Modules\IdentityAccess\Models\TerminalP501;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Ticketing\Models\Ticket;
@@ -684,9 +683,8 @@ function borderManifestScenario(bool $international = true, array $passengerOver
  */
 function borderManifestAction(): MockInterface
 {
-    return Mockery::mock(GenerateBorderManifestPdfAction::class, [
-        app(ResolveManifestSegmentsAction::class),
-        app(ComputeManifestVersionAction::class),
+    return Mockery::mock(GenerateManifestPdfAction::class, [
+        app(ManifestDocumentService::class),
     ])->makePartial()->shouldAllowMockingProtectedMethods();
 }
 
@@ -698,17 +696,22 @@ it('returns the border manifest PDF for a complete international departure, with
         ->once()
         ->withArgs(function (string $html): bool {
             expect($html)->toContain('Traoré')
-                ->toContain('PP123456')
+                ->toContain(str_repeat('•', 5).'456') // PP123456 masqué
+                ->not->toContain('PP123456')
                 ->toContain('BJ')
-                ->toContain('Destination Gare')
-                ->not->toContain('10000')
+                ->toContain('Destination Gare');
+
+            // Les fonts/logo en data-URI base64 peuvent contenir ces
+            // sous-chaînes par hasard — on les exclut avant l'assertion.
+            $visible = preg_replace('/data:[^"\')\s]+/', '', $html);
+            expect($visible)->not->toContain('10000')
                 ->not->toContain('XOF')
                 ->not->toContain('FCFA');
 
             return true;
         })
         ->andReturn('%PDF-KORA border manifest');
-    $this->instance(GenerateBorderManifestPdfAction::class, $action);
+    $this->instance(GenerateManifestPdfAction::class, $action);
 
     $this->withToken($scenario['token'])
         ->withHeader('X-Terminal-Serial', $scenario['terminal']->serial_number)
@@ -722,7 +725,7 @@ it('refuses the border manifest when an international passenger lacks a mandator
 
     $action = borderManifestAction();
     $action->shouldReceive('renderPdf')->never();
-    $this->instance(GenerateBorderManifestPdfAction::class, $action);
+    $this->instance(GenerateManifestPdfAction::class, $action);
 
     $this->withToken($scenario['token'])
         ->withHeader('X-Terminal-Serial', $scenario['terminal']->serial_number)
@@ -774,7 +777,7 @@ it('returns a stable, non-leaking error when border manifest generation fails', 
     $action->shouldReceive('renderPdf')
         ->once()
         ->andThrow(new RuntimeException('Chromium crashed at /var/private/path.'));
-    $this->instance(GenerateBorderManifestPdfAction::class, $action);
+    $this->instance(GenerateManifestPdfAction::class, $action);
 
     $response = $this->withToken($scenario['token'])
         ->withHeader('X-Terminal-Serial', $scenario['terminal']->serial_number)

@@ -20,7 +20,7 @@ Le [glossaire partagé](../CONTEXT.md) fixe les termes compte voyageur, fiche vo
 - Le téléphone personnel du payeur est obligatoire, même au guichet et même s'il ne voyage pas. Le compte d'un payeur qui achète uniquement pour autrui existe lui aussi sans activation de l'application.
 - Distinguer le créateur de la réservation, le payeur personnel ou entreprise et chaque voyageur. L'agent qui enregistre une vente n'est pas le payeur du client.
 - Un numéro personnel correspond à un seul compte. Un voyageur sans numéro personnel conserve une fiche et un billet, mais ne bénéficie pas de fidélité. Le numéro d'un parent ou d'un tiers peut servir de contact sans créer un compte au nom de l'enfant ni attribuer ses points au tiers.
-- L'activation de l'accès utilise un code SMS puis la définition d'un PIN, sur le compte existant. Elle ne recrée ni le compte ni les soldes et ne conditionne pas l'achat, le voyage ou l'acquisition de points.
+- L'activation de l'accès utilise un OTP WhatsApp (email de repli) puis la définition d'un PIN, sur le compte existant. Elle ne recrée ni le compte ni les soldes et ne conditionne pas l'achat, le voyage ou l'acquisition de points.
 - Le payeur consulte l'achat et ses justificatifs de paiement. Chaque voyageur consulte son propre billet et son propre Wallet ; il n'accède pas aux soldes ni à l'ensemble des billets des autres voyageurs du groupe.
 
 **Conséquence sur l'existant :** MEZ-57 prévoit actuellement un téléphone obligatoire dans la saisie des voyageurs groupe/entreprise. Les travaux d'identité et de formulaires devront distinguer téléphone personnel et contact tiers pour permettre les fiches sans compte décidées ici. Réutiliser le numéro d'un adulte comme identité personnelle de plusieurs voyageurs ne constitue pas une solution.
@@ -44,7 +44,7 @@ Le cash sert aux achats KORA BUS. Aucun transfert entre utilisateurs ni retrait 
 3. Avant confirmation, KORA présente le titulaire, le billet concerné, le montant total et la répartition points/cash. L'agent confirme le paiement sous sa responsabilité.
 4. Le débit conserve sa référence, l'agent, l'agence, le billet et l'horodatage. Le titulaire reçoit une notification comportant le montant et les références nécessaires pour contester.
 
-Aucune checklist, photographie de pièce ou validation systématique par un supérieur n'est imposée dans ce parcours. Il n'impose pas non plus l'activation de l'application ou un code SMS pour chaque débit au guichet ; le SMS reste requis pour l'activation de l'accès numérique.
+Aucune checklist, photographie de pièce ou validation systématique par un supérieur n'est imposée dans ce parcours. Il n'impose pas non plus l'activation de l'application ou un OTP pour chaque débit au guichet ; l'OTP reste requis pour l'activation de l'accès numérique.
 
 **Risque accepté :** le contrôle visuel repose sur l'agent, sans preuve automatique que le contrôle a été correctement réalisé. L'audit permet de retrouver l'auteur de l'opération ; la notification informe après le débit et ne constitue pas une autorisation préalable. Ce choix produit ne vaut pas validation externe du dispositif cash.
 

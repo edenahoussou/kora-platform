@@ -8,7 +8,7 @@ use App\Modules\Boarding\Models\BoardingEvent;
 use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Data\LineType;
 use App\Modules\Departures\Actions\ComputeManifestVersionAction;
-use App\Modules\Departures\Actions\GenerateBorderManifestPdfAction;
+use App\Modules\Departures\Actions\GenerateManifestPdfAction;
 use App\Modules\Departures\Actions\ResolveManifestSegmentsAction;
 use App\Modules\Departures\Exceptions\BorderManifestIncompleteException;
 use App\Modules\Departures\Http\Resources\OpsDepartureResource;
@@ -285,7 +285,7 @@ class OpsDepartureController extends Controller
      *   "error": { "code": "manifest_pdf_generation_failed", "message": "Le manifeste frontière n'a pas pu être généré." }
      * }
      */
-    public function manifestPdf(Departure $departure, GenerateBorderManifestPdfAction $generatePdf): Response|JsonResponse
+    public function manifestPdf(Departure $departure, GenerateManifestPdfAction $generatePdf): Response|JsonResponse
     {
         Gate::authorize('viewAsCrew', $departure);
 

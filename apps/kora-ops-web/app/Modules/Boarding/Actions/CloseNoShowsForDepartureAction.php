@@ -47,7 +47,7 @@ class CloseNoShowsForDepartureAction
      */
     public function execute(
         Departure $departure,
-        TerminalP501 $terminal,
+        ?TerminalP501 $terminal,
         User $agent,
         string $closureOperationUuid,
         CarbonInterface $localRecordedAt,
@@ -93,7 +93,7 @@ class CloseNoShowsForDepartureAction
                         'leg_order' => $s->leg_order,
                         'departure_uuid' => $s->departure?->uuid,
                     ])->values()->all(),
-                    'terminal_p501_id' => $terminal->id,
+                    'terminal_p501_id' => $terminal?->id,
                     'operation_uuid' => $ticketOperationUuid,
                     'local_recorded_at' => $localRecordedAt,
                     'server_recorded_at' => now(),

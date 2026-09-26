@@ -19,6 +19,7 @@ use App\Modules\Fiscalization\Models\FiscalInvoice;
 use App\Modules\Fiscalization\Services\FiscalInvoicePayloadBuilder;
 use App\Modules\Payments\Data\PaymentStatus;
 use App\Modules\Payments\Models\Payment;
+use App\Modules\Settings\Settings\IntegrationsSettings;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
@@ -59,8 +60,12 @@ it('distributes the unit price without rounding loss across passengers', functio
 });
 
 it('marks the fiscal invoice as failed when e-MECeF is not configured', function (): void {
-    config()->set('emecf.token', null);
-    config()->set('emecf.default_ifu', '0000000000000');
+    // Le job lit la configuration e-MECeF dans IntegrationsSettings
+    // (les clés config('emecf.*') ne sont rechargées qu'au runtime job).
+    $settings = app(IntegrationsSettings::class);
+    $settings->emecfToken = null;
+    $settings->emecfDefaultIfu = '0000000000000';
+    $settings->save();
 
     $user = User::factory()->create();
     $reservation = createFiscalizationReservation($user);

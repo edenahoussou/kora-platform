@@ -2,8 +2,12 @@
 
 namespace App\Modules\IdentityAccess\Data;
 
+use App\Modules\Support\Enums\Concerns\HasEnumUtilities;
+
 enum RoleCategory: string
 {
+    use HasEnumUtilities;
+
     case Central = 'central';
     case Agency = 'agency';
     case Terrain = 'terrain';

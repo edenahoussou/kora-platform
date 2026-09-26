@@ -20,6 +20,185 @@ String ticketDocumentErrorText(AppLocalization l10n, TicketDocumentError e) =>
       TicketDocumentError.unexpected => l10n.ticketsPdfErrorUnexpected,
     };
 
+/// Les lignes d'action du PDF officiel, à poser dans une liste (`KoraMenuList`).
+///
+/// Partagées par le détail d'un billet et la fenêtre du QR code : le même
+/// document, les mêmes gestes, la même façon de dire où il en est.
+List<KoraMenuItem> officialTicketMenuItems(
+  BuildContext context, {
+  required String ticketId,
+  required TicketDocumentEntry entry,
+  required TicketDocumentCubit cubit,
+}) {
+  final l10n = context.l10n;
+  final document = entry.document;
+  final error = entry.error;
+
+  // Un billet inaccessible, ou annulé, ne le deviendra pas en réessayant :
+  // la ligne s'efface plutôt que de promettre.
+  final canDownload =
+      error != TicketDocumentError.inaccessible &&
+      error != TicketDocumentError.notDownloadable;
+
+  return [
+    if (document != null)
+      KoraMenuItem(
+        icon: Icons.picture_as_pdf_rounded,
+        title: l10n.ticketsPdfOpen,
+        subtitle: document.isStale
+            ? l10n.ticketDetailPdfOfflineSubtitle
+            : l10n.ticketDetailPdfSavedSubtitle,
+        onTap: () => openTicketDocument(context, document),
+      ),
+    if (canDownload)
+      KoraMenuItem(
+        icon: Icons.file_download_outlined,
+        title: switch (entry.phase) {
+          TicketDocumentPhase.downloading => l10n.ticketsPdfDownloading,
+          TicketDocumentPhase.failed => l10n.actionRetry,
+          _ when document != null => l10n.ticketsPdfRedownload,
+          _ => l10n.ticketsPdfDownload,
+        },
+        // L'erreur du serveur se lit ici, à la place du sous-titre : c'est
+        // la ligne qui la corrigera.
+        subtitle: error != null
+            ? ticketDocumentErrorText(l10n, error)
+            : l10n.ticketDetailPdfSubtitle,
+        trailing: entry.isDownloading
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.gold,
+                ),
+              )
+            : null,
+        onTap: entry.isDownloading
+            ? null
+            : () => downloadTicketDocument(context, cubit, ticketId),
+      ),
+    if (document != null)
+      KoraMenuItem(
+        icon: Icons.save_alt_rounded,
+        title: l10n.ticketsPdfSaveCopy,
+        subtitle: l10n.ticketDetailPdfCopySubtitle,
+        onTap: () => saveTicketDocumentCopy(context, document),
+      ),
+  ];
+}
+
+/// Télécharge le PDF, puis dit ce qui s'est passé.
+Future<void> downloadTicketDocument(
+  BuildContext context,
+  TicketDocumentCubit cubit,
+  String ticketId,
+) async {
+  final l10n = context.l10n;
+  final document = await cubit.download(ticketId);
+  if (!context.mounted) return;
+
+  final entry = cubit.state.of(ticketId);
+  final error = entry.error;
+  if (document == null && error != null) {
+    final detail = entry.detail;
+    final text = ticketDocumentErrorText(l10n, error);
+    KoraToaster.show(context, detail == null ? text : '$text\n$detail');
+  } else if (document != null) {
+    KoraToaster.show(
+      context,
+      document.isStale ? l10n.ticketsPdfOffline : l10n.ticketsPdfReady,
+    );
+  }
+}
+
+/// Ouvre le PDF dans l'application du téléphone.
+Future<void> openTicketDocument(
+  BuildContext context,
+  TicketDocument document,
+) async {
+  final l10n = context.l10n;
+  try {
+    final opened = await TicketDocumentActions.open(document);
+    if (!opened && context.mounted) {
+      KoraToaster.show(context, l10n.ticketsPdfOpenFailed);
+    }
+  } on Object {
+    if (context.mounted) KoraToaster.show(context, l10n.ticketsPdfOpenFailed);
+  }
+}
+
+Future<void> shareTicketDocument(
+  BuildContext context,
+  TicketDocument document,
+) async {
+  final l10n = context.l10n;
+  try {
+    await TicketDocumentActions.share(document);
+  } on Object {
+    if (context.mounted) {
+      KoraToaster.show(context, l10n.ticketsPdfErrorUnexpected);
+    }
+  }
+}
+
+Future<void> saveTicketDocumentCopy(
+  BuildContext context,
+  TicketDocument document,
+) async {
+  final l10n = context.l10n;
+  try {
+    final saved = await TicketDocumentActions.saveCopy(document);
+    // Le sélecteur refermé sans choix : rien n'a été enregistré.
+    if (saved && context.mounted) {
+      KoraToaster.show(context, l10n.ticketsDownloadDone);
+    }
+  } on Object {
+    if (context.mounted) {
+      KoraToaster.show(context, l10n.ticketsPdfErrorUnexpected);
+    }
+  }
+}
+
+/// Le PDF officiel en liste d'actions, pour la fenêtre du QR code.
+class OfficialTicketMenu extends StatefulWidget {
+  const OfficialTicketMenu({super.key, required this.ticketId, this.cubit});
+
+  final String ticketId;
+  final TicketDocumentCubit? cubit;
+
+  @override
+  State<OfficialTicketMenu> createState() => _OfficialTicketMenuState();
+}
+
+class _OfficialTicketMenuState extends State<OfficialTicketMenu> {
+  late final TicketDocumentCubit _cubit =
+      widget.cubit ?? getIt<TicketDocumentCubit>();
+
+  @override
+  void initState() {
+    super.initState();
+    _cubit.restore(widget.ticketId);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<TicketDocumentCubit, TicketDocumentState>(
+      bloc: _cubit,
+      buildWhen: (previous, current) =>
+          previous.of(widget.ticketId) != current.of(widget.ticketId),
+      builder: (context, state) => KoraMenuList(
+        items: officialTicketMenuItems(
+          context,
+          ticketId: widget.ticketId,
+          entry: state.of(widget.ticketId),
+          cubit: _cubit,
+        ),
+      ),
+    );
+  }
+}
+
 /// Le PDF officiel d'un billet : le télécharger, puis l'ouvrir, le partager
 /// ou en garder une copie.
 ///

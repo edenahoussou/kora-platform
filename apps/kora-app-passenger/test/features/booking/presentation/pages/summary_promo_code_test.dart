@@ -149,7 +149,7 @@ void main() {
   }
 
   Future<void> goToPayment(WidgetTester tester) async {
-    await tester.tap(find.text('Continuer vers le paiement'));
+    await tester.tap(find.text('En ligne'));
     await settle(tester);
   }
 
@@ -216,6 +216,23 @@ void main() {
     expect(find.text(money(11250)), findsOneWidget);
   });
 
+  testWidgets('le code appliqué se retire, et le tarif normal revient', (
+    tester,
+  ) async {
+    await pumpSummary(tester);
+    await applyCode(tester, 'TEST2000');
+    expect(find.text(money(11250)), findsOneWidget);
+
+    await tester.tap(find.text('Retirer'));
+    await settle(tester);
+
+    // Un devis sans code : plus de ligne de remise, et le tarif normal.
+    expect(repository.calls.last, 'groupQuote:1');
+    expect(find.text('Code TEST2000 appliqué'), findsNothing);
+    expect(find.text('Code promo TEST2000'), findsNothing);
+    expect(find.text(money(12500)), findsWidgets);
+  });
+
   testWidgets('le code appliqué grise le bouton, un autre code le rend', (
     tester,
   ) async {
@@ -226,8 +243,6 @@ void main() {
       find.widgetWithText(KoraButton, 'Appliquer le code'),
     );
 
-    // Plus de retrait : le code se remplace, il ne s'enlève pas.
-    expect(find.text('Retirer'), findsNothing);
     // Le champ reprend le code appliqué : un second appui ne ferait rien.
     expect(applyButton().onPressed, isNull);
 
@@ -263,7 +278,7 @@ void main() {
     await goToPayment(tester);
 
     expect(sentToPayment, isNull);
-    expect(find.text('Continuer vers le paiement'), findsOneWidget);
+    expect(find.text('En ligne'), findsOneWidget);
     // Le toast de KoraToaster : entrée, pause, sortie.
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('La vente est fermée pour ce départ.'), findsOneWidget);

@@ -15,9 +15,14 @@ import '../entities/user_preferences.dart';
 /// se connecter. Le `verification_token` circule d'une étape à l'autre —
 /// il est à usage unique et ne vaut que pour le motif demandé.
 abstract class AuthRepository {
-  /// Envoie un code à six chiffres à [email].
+  /// Envoie un code à six chiffres au compte [identifier].
+  ///
+  /// [identifier] est un téléphone au format international (`+22997…`) ou
+  /// une adresse e-mail. Le serveur choisit la voie : WhatsApp dès que le
+  /// compte a un téléphone, e-mail sinon. L'inscription, elle, reste
+  /// adossée à l'e-mail — c'est l'API qui l'impose.
   Future<Either<Failure, OtpChallenge>> requestOtp({
-    required String email,
+    required String identifier,
     required OtpPurpose purpose,
   });
 
@@ -29,9 +34,18 @@ abstract class AuthRepository {
   });
 
   /// Crée le compte : PIN choisi + enregistrement de l'appareil.
+  ///
+  /// [name] accompagne une inscription par **téléphone** : le serveur n'a
+  /// alors pas d'adresse d'où tirer un nom et répond `422 name_required`
+  /// sans lui. Les autres champs rattachent au compte ce que l'écran a
+  /// recueilli en plus de l'identifiant.
   Future<Either<Failure, AuthSession>> completeRegistration({
     required OtpVerification verification,
     required String pin,
+    String? name,
+    String? email,
+    String? phone,
+    String? countryCode,
   });
 
   /// Connecte un compte existant.
@@ -40,7 +54,7 @@ abstract class AuthRepository {
   /// reconnaît pas l'appareil : il faut alors vérifier un code et
   /// rappeler cette méthode avec [verification].
   Future<Either<Failure, LoginOutcome>> login({
-    required String email,
+    required String identifier,
     required String pin,
     OtpVerification? verification,
   });
@@ -52,11 +66,13 @@ abstract class AuthRepository {
   /// connectivité.
   Future<Either<Failure, AuthSession?>> currentSession();
 
-  /// Adresse du dernier compte connecté sur cet appareil, ou `null`.
+  /// Dernier compte connecté sur cet appareil, ou `null`.
   ///
   /// Sert à l'écran de connexion, qui ne demande que le PIN : la maquette
-  /// suppose qu'on sait déjà de quel compte il s'agit.
-  Future<String?> lastEmail();
+  /// suppose qu'on sait déjà de quel compte il s'agit. C'est le téléphone
+  /// du compte quand il en a un — ce que le voyageur retape de mémoire —
+  /// et son e-mail sinon.
+  Future<String?> lastIdentifier();
 
   /// L'appareil courant, tel qu'il est déclaré à l'API.
   ///

@@ -3,6 +3,8 @@
 namespace App\Modules\IdentityAccess\Http\Requests;
 
 use App\Modules\IdentityAccess\Data\DevicePlatform;
+use App\Modules\IdentityAccess\Services\AuthIdentifierResolver;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -19,7 +21,8 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'email:rfc', 'max:255'],
+            'identifier' => ['nullable', 'string', 'max:255', 'required_without:email'],
+            'email' => ['nullable', 'email:rfc', 'max:255', 'required_without:identifier'],
             'pin' => ['required', 'digits:4'],
             'device_name' => ['required', 'string', 'max:120'],
             'platform' => ['required', Rule::in(DevicePlatform::values())],
@@ -30,13 +33,30 @@ class LoginRequest extends FormRequest
         ];
     }
 
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            $identifier = $this->input('identifier', $this->input('email'));
+
+            if ($this->filled('identifier') && $this->filled('email')) {
+                $validator->errors()->add('identifier', 'Utilisez identifier ou email, mais pas les deux.');
+            }
+
+            if (is_string($identifier) && ! resolve(AuthIdentifierResolver::class)->isValidIdentifier($identifier)) {
+                $validator->errors()->add('identifier', "L'email ou le numéro de téléphone n'est pas valide.");
+            }
+        });
+    }
+
     /**
      * @return array<string, string>
      */
     public function messages(): array
     {
         return [
-            'email.required' => "L'adresse email est obligatoire.",
+            'identifier.required_without' => "L'email ou le numéro de téléphone est obligatoire.",
+            'identifier.max' => "L'identifiant ne peut pas dépasser 255 caractères.",
+            'email.required_without' => "L'email ou le numéro de téléphone est obligatoire.",
             'email.email' => 'Veuillez saisir une adresse email valide.',
             'email.max' => "L'adresse email ne peut pas dépasser 255 caractères.",
             'pin.required' => 'Le PIN est obligatoire.',
@@ -57,13 +77,13 @@ class LoginRequest extends FormRequest
     }
 
     /**
-     * @return array{email: string, pin: string, device_name: string, platform: string, device_fingerprint: string, push_token?: string|null, otp_challenge_uuid?: string|null, verification_token?: string|null}
+     * @return array{identifier: string, pin: string, device_name: string, platform: string, device_fingerprint: string, push_token?: string|null, otp_challenge_uuid?: string|null, verification_token?: string|null}
      */
     public function payload(): array
     {
         $validated = $this->validated();
         $payload = [
-            'email' => (string) $validated['email'],
+            'identifier' => (string) ($validated['identifier'] ?? $validated['email']),
             'pin' => (string) $validated['pin'],
             'device_name' => (string) $validated['device_name'],
             'platform' => (string) $validated['platform'],

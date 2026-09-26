@@ -4,6 +4,7 @@ namespace App\Modules\IdentityAccess\Services;
 
 use App\Models\User;
 use App\Modules\IdentityAccess\Contracts\PassengerIdentityResolver;
+use App\Modules\Notifications\Channels\OtpCodeChannel;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -11,24 +12,57 @@ class PhonePassengerIdentityResolver implements PassengerIdentityResolver
 {
     public function normalizePhone(?string $phone, ?string $countryCode = null): ?string
     {
-        $normalized = preg_replace('/[^0-9+]/', '', trim((string) $phone));
+        $rawPhone = trim((string) $phone);
+        $normalized = preg_replace('/\D+/', '', $rawPhone);
 
         if ($normalized === null || $normalized === '') {
             return null;
         }
 
+        $dialCode = $this->resolveDialCode($countryCode);
+
+        if (str_starts_with($rawPhone, '+')) {
+            return '+'.$normalized;
+        }
+
         if (str_starts_with($normalized, '00')) {
-            $normalized = '+'.substr($normalized, 2);
+            return '+'.substr($normalized, 2);
         }
 
-        if (! str_starts_with($normalized, '+')) {
-            $dialCode = $countryCode !== null && $countryCode !== ''
-                ? preg_replace('/[^0-9]/', '', $countryCode)
-                : '229';
-            $normalized = '+'.$dialCode.$normalized;
+        if (str_starts_with($normalized, $dialCode) && strlen($normalized) > strlen($dialCode) + 6) {
+            return '+'.$normalized;
         }
 
-        return $normalized;
+        return '+'.$dialCode.$normalized;
+    }
+
+    private function resolveDialCode(?string $countryCode): string
+    {
+        $countryCode = strtoupper(trim((string) $countryCode));
+
+        if ($countryCode === '') {
+            return '229';
+        }
+
+        $numericCode = preg_replace('/\D+/', '', $countryCode);
+
+        if ($numericCode !== '') {
+            return $numericCode;
+        }
+
+        return match ($countryCode) {
+            'BJ' => '229',
+            'BF' => '226',
+            'CI' => '225',
+            'GH' => '233',
+            'GN' => '224',
+            'ML' => '223',
+            'NE' => '227',
+            'NG' => '234',
+            'SN' => '221',
+            'TG' => '228',
+            default => '229',
+        };
     }
 
     public function resolveByPhone(string $normalizedPhone): ?User
@@ -51,7 +85,7 @@ class PhonePassengerIdentityResolver implements PassengerIdentityResolver
 
         return User::query()->create([
             'name' => trim($name),
-            'email' => 'traveler+'.Str::uuid().'@accounts.kora.invalid',
+            'email' => 'traveler+'.Str::uuid().'@'.OtpCodeChannel::PLACEHOLDER_EMAIL_DOMAIN,
             'phone' => $normalizedPhone,
             'password' => Str::random(64),
         ]);

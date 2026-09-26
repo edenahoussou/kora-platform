@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_design_system/flutter_design_system.dart';
 
 import '../../../../core/widgets/screen_header.dart';
+import '../../domain/entities/phone_country.dart';
 import '../bloc/auth_flow_bloc.dart';
 
 /// Vérification du code envoyé par e-mail — écran `otp` de la maquette :
@@ -18,13 +19,15 @@ import '../bloc/auth_flow_bloc.dart';
 /// Le décompte part de l'échéance **renvoyée par le serveur**, pas d'une
 /// durée fixe : un code demandé il y a dix minutes n'en a plus quinze.
 class OtpPage extends StatefulWidget {
-  const OtpPage({super.key, this.email, this.onVerified, this.validity});
+  const OtpPage({super.key, this.identifier, this.onVerified, this.validity});
 
   /// Adresse à laquelle le code a été envoyé — affichée masquée.
   ///
   /// Facultative : le parcours la connaît déjà. Utile aux tests, qui
   /// montent l'écran seul.
-  final String? email;
+  /// Le compte visé : un téléphone au format international, ou une
+  /// adresse e-mail à l'inscription.
+  final String? identifier;
 
   final VoidCallback? onVerified;
 
@@ -63,8 +66,10 @@ class _OtpPageState extends State<OtpPage> {
     return challenge.remainingAt(DateTime.now());
   }
 
-  String get _email =>
-      widget.email ?? context.read<AuthFlowBloc>().state.challenge?.email ?? '';
+  String get _account =>
+      widget.identifier ??
+      context.read<AuthFlowBloc>().state.challenge?.identifier ??
+      '';
 
   @override
   void dispose() {
@@ -171,7 +176,7 @@ class _OtpPageState extends State<OtpPage> {
                             // propre), et non dans celle du texte courant,
                             // presque noire en thème clair.
                             TextSpan(
-                              text: _maskEmail(_email),
+                              text: _maskAccount(_account),
                               style: const TextStyle(
                                 fontWeight: FontWeight.w800,
                               ),
@@ -362,14 +367,27 @@ class _CodeBoxState extends State<_CodeBox> {
   }
 }
 
-/// `a•••••@exemple.com` — on ne réaffiche pas l'adresse en clair sur un
-/// écran de vérification : elle sert à confirmer qu'on a visé la bonne
-/// boîte, pas à la divulguer si l'écran est vu par-dessus l'épaule.
-String _maskEmail(String email) {
-  final at = email.indexOf('@');
-  if (at <= 1) return email;
+/// `a•••••@exemple.com`, `+229 •• •• 18 60` — on ne réaffiche pas le
+/// compte en clair sur un écran de vérification : il sert à confirmer
+/// qu'on a visé la bonne boîte ou le bon téléphone, pas à le divulguer si
+/// l'écran est vu par-dessus l'épaule.
+String _maskAccount(String account) {
+  final at = account.indexOf('@');
+  if (at > 1) {
+    return '${account[0]}${'•' * (at - 1)}${account.substring(at)}';
+  }
+  if (at != -1) return account;
 
-  return '${email[0]}${'•' * (at - 1)}${email.substring(at)}';
+  // Un téléphone : on garde l'indicatif, qui ne désigne personne, et les
+  // deux derniers chiffres, qui suffisent à se reconnaître.
+  final country = PhoneCountry.fromPhone(account);
+  if (country == null || account.length <= country.code.length + 2) {
+    return account;
+  }
+
+  final national = country.nationalPart(account);
+  final hidden = '•' * (national.length - 2);
+  return '${country.code} $hidden${national.substring(national.length - 2)}';
 }
 
 /// `04:12`

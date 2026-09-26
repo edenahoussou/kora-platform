@@ -68,6 +68,7 @@ class KoraMenuItem extends StatelessWidget {
     this.onTap,
     this.isDestructive = false,
     this.trailing,
+    this.glyph,
   });
 
   final IconData icon;
@@ -83,6 +84,11 @@ class KoraMenuItem extends StatelessWidget {
   /// interrupteur pour les lignes de réglage (`settingRow`), là où les
   /// lignes d'action gardent leur chevron.
   final Widget? trailing;
+
+  /// Ce qui remplace le pictogramme, quand une icône de marque est
+  /// attendue à sa place — le logo WhatsApp, par exemple. [icon] reste
+  /// exigé : il sert de repli partout où le dessin n'a pas lieu d'être.
+  final Widget? glyph;
 
   @override
   Widget build(BuildContext context) {
@@ -116,7 +122,7 @@ class KoraMenuItem extends StatelessWidget {
                       : koraColors.background,
                   borderRadius: BorderRadius.circular(AppRadius.base),
                 ),
-                child: Icon(icon, size: 18, color: titleColor),
+                child: glyph ?? Icon(icon, size: 18, color: titleColor),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(

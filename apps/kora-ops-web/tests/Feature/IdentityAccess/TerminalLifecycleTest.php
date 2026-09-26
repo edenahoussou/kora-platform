@@ -7,6 +7,7 @@ use App\Modules\IdentityAccess\Models\TerminalAssignment;
 use App\Modules\IdentityAccess\Models\TerminalP501;
 use App\Modules\IdentityAccess\Models\TerminalSession;
 use Database\Seeders\KoraBusRolePermissionSeeder;
+use Inertia\Testing\AssertableInertia;
 use Laravel\Sanctum\PersonalAccessToken;
 use Spatie\Activitylog\Models\Activity;
 
@@ -61,6 +62,21 @@ it('lists and registers terminals without exposing numeric ids', function (): vo
     expect(Activity::query()->where('description', 'terminal_registered')->where('causer_id', $admin->id)->exists())->toBeTrue();
 });
 
+it('rejects a duplicate serial number even with a different letter case', function (): void {
+    $admin = terminalOperationsDirector();
+    TerminalP501::query()->create(['serial_number' => 'P501-000010']);
+
+    $this->actingAs($admin)
+        ->postJson(route('terminals.store'), ['serial_number' => 'P501-000010'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('serial_number');
+
+    $this->actingAs($admin)
+        ->postJson(route('terminals.store'), ['serial_number' => 'p501-000010'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('serial_number');
+});
+
 it('registers a phone terminal with an explicit type, and defaults existing/omitted registrations to p501', function (): void {
     // Voir ticket "Supporter le scan par caméra téléphone en alternative
     // au P501" : même table, même contrat — seul `type` distingue un
@@ -93,7 +109,7 @@ it('lets a view-only role see terminals but blocks every mutating action', funct
         ->assertOk();
 
     $this->actingAs($viewer)
-        ->getJson(route('terminals.show', $terminal))
+        ->get(route('terminals.show', $terminal))
         ->assertOk();
 
     $this->actingAs($viewer)
@@ -230,8 +246,11 @@ it('shows terminal detail with assignment history', function (): void {
         ->postJson(route('terminals.assign', $terminal), ['assigned_user_id' => $conductor->id]);
 
     $this->actingAs($admin)
-        ->getJson(route('terminals.show', $terminal))
+        ->get(route('terminals.show', $terminal))
         ->assertOk()
-        ->assertJsonPath('data.status', 'maintenance')
-        ->assertJsonPath('assignment_history.0.assigned_user.uuid', $conductor->uuid);
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('terminals/detail')
+            ->where('terminal.status', 'maintenance')
+            ->where('assignmentHistory.0.assigned_user.uuid', $conductor->uuid),
+        );
 });

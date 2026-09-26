@@ -8,6 +8,8 @@ use App\Modules\IdentityAccess\Models\TerminalAssignment;
 use App\Modules\IdentityAccess\Models\TerminalP501;
 use Illuminate\Support\Facades\DB;
 
+use function activity;
+
 class AssignTerminalAction
 {
     public function __construct(
@@ -53,6 +55,16 @@ class AssignTerminalAction
             if ($previousUserId !== $assignedUserId) {
                 $this->revokeSessions->execute($terminal, OpsSessionRevocationReason::TerminalReassigned->value);
             }
+
+            activity()
+                ->performedOn($terminal)
+                ->causedBy($actor)
+                ->withProperties([
+                    'assigned_user_id' => $assignedUserId,
+                    'agency_id' => $agencyId,
+                    'reason' => $data['reason'] ?? null,
+                ])
+                ->log('terminal_assigned');
 
             // refresh() ne recharge que les attributs, pas les relations déjà
             // chargées (ou non) sur l'instance — on charge explicitement

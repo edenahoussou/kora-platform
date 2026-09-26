@@ -1,9 +1,6 @@
 <?php
 
 use App\Models\User;
-use App\Modules\BusNetwork\Models\Line;
-use App\Modules\BusNetwork\Models\PhysicalStop;
-use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\DynamicPricing\Models\Fare;
 use App\Modules\DynamicPricing\Models\ServiceClass;
 use Database\Seeders\KoraBusRolePermissionSeeder;
@@ -15,69 +12,6 @@ beforeEach(function (): void {
     $this->seed(KoraBusRolePermissionSeeder::class);
     $this->seed(KoraServiceClassSeeder::class);
 });
-
-function commercialDirector(): User
-{
-    $user = User::factory()->create();
-    $user->assignRole('commercial_director');
-
-    return $user;
-}
-
-function lineWithStops(): array
-{
-    $line = Line::query()->create([
-        'uuid' => Str::uuid()->toString(),
-        'code' => 'L'.Str::random(6),
-        'name' => 'Cotonou - Parakou',
-        'type' => 'nationale',
-        'status' => 'active',
-    ]);
-
-    $suffix = Str::random(6);
-
-    $originPhysical = PhysicalStop::query()->create([
-        'uuid' => Str::uuid()->toString(),
-        'name' => 'Cotonou Fares '.$suffix,
-        'city' => 'Cotonou',
-        'country' => 'BJ',
-        'status' => 'active',
-    ]);
-
-    $origin = Stop::query()->create([
-        'uuid' => Str::uuid()->toString(),
-        'line_id' => $line->id,
-        'physical_stop_id' => $originPhysical->id,
-        'name' => 'Cotonou',
-        'city' => 'Cotonou',
-        'country' => 'BJ',
-        'stop_order' => 1,
-        'km_from_origin' => 0,
-        'status' => 'active',
-    ]);
-
-    $destinationPhysical = PhysicalStop::query()->create([
-        'uuid' => Str::uuid()->toString(),
-        'name' => 'Parakou Fares '.$suffix,
-        'city' => 'Parakou',
-        'country' => 'BJ',
-        'status' => 'active',
-    ]);
-
-    $destination = Stop::query()->create([
-        'uuid' => Str::uuid()->toString(),
-        'line_id' => $line->id,
-        'physical_stop_id' => $destinationPhysical->id,
-        'name' => 'Parakou',
-        'city' => 'Parakou',
-        'country' => 'BJ',
-        'stop_order' => 2,
-        'km_from_origin' => 420,
-        'status' => 'active',
-    ]);
-
-    return [$line, $origin, $destination];
-}
 
 it('lists fares with line, segment, service class, and price without exposing numeric ids', function (): void {
     [$line, $origin, $destination] = lineWithStops();

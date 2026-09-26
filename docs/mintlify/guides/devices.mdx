@@ -12,13 +12,13 @@ KORA BUS gère un modèle d'**appareils de confiance** : chaque connexion depuis
 
 <Steps>
   <Step title="Première connexion">
-    L'utilisateur se connecte avec email + PIN. L'API enregistre l'appareil (nom, plateforme, fingerprint) comme **trusted** et émet un token Sanctum lié à cet appareil.
+    L'utilisateur se connecte avec un email ou un téléphone + PIN. L'API enregistre l'appareil (nom, plateforme, fingerprint) comme **trusted** et émet un token Sanctum lié à cet appareil.
   </Step>
   <Step title="Nouvel appareil détecté">
     Si la connexion provient d'un fingerprint inconnu, l'API retourne `202` avec `requires_otp: true`. L'utilisateur doit vérifier son identité par OTP avant que l'appareil ne soit approuvé.
   </Step>
   <Step title="Appareil connu">
-    Les connexions suivantes depuis un appareil trusted se font sans OTP — uniquement email + PIN.
+    Les connexions suivantes depuis un appareil trusted se font sans OTP — uniquement email ou téléphone + PIN.
   </Step>
   <Step title="Révocation">
     L'utilisateur peut révoquer un appareil à tout moment. L'appareil révoqué devra refaire un OTP à la prochaine connexion.

@@ -4,33 +4,58 @@ namespace App\Modules\Departures\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Modules\BusNetwork\Models\Bus;
+use App\Modules\Boarding\Actions\CloseNoShowsForDepartureAction;
+use App\Modules\Boarding\Actions\ProcessIndividualNoShowAction;
+use App\Modules\Boarding\Actions\ProcessSeatReleaseAction;
+use App\Modules\Boarding\Actions\ReverseBoardingEventAction;
+use App\Modules\Boarding\Data\BoardingEventStatus;
+use App\Modules\Boarding\Data\SeatReleaseEventStatus;
+use App\Modules\Boarding\Exceptions\SeatReleaseTicketUnknownException;
+use App\Modules\Boarding\Models\BoardingEvent;
+use App\Modules\Boarding\Models\SeatReleaseEvent;
+use App\Modules\Booking\Data\ReservationSegmentStatus;
+use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Models\Line;
+use App\Modules\BusNetwork\Models\PhysicalStop;
+use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Actions\ChangeDepartureStatusAction;
 use App\Modules\Departures\Actions\CreateDepartureAction;
 use App\Modules\Departures\Actions\RecordDepartureDelayAction;
 use App\Modules\Departures\Actions\UpdateDepartureAction;
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Http\Requests\ChangeDepartureStatusRequest;
+use App\Modules\Departures\Http\Requests\CloseDepartureNoShowsRequest;
 use App\Modules\Departures\Http\Requests\RecordDepartureDelayRequest;
+use App\Modules\Departures\Http\Requests\RecordEarlyExitRequest;
+use App\Modules\Departures\Http\Requests\RecordPassengerNoShowRequest;
+use App\Modules\Departures\Http\Requests\ReverseDepartureBoardingRequest;
 use App\Modules\Departures\Http\Requests\StoreDepartureRequest;
 use App\Modules\Departures\Http\Requests\UpdateDepartureRequest;
 use App\Modules\Departures\Models\Departure;
+use App\Modules\Departures\Services\DepartureDetailService;
+use App\Modules\Departures\Services\DepartureOccupancyService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class DepartureController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, DepartureOccupancyService $occupancyService): Response
     {
         Gate::authorize('viewAny', Departure::class);
 
         $query = Departure::query()
-            ->with(['line:id,uuid,code,name', 'bus:id,uuid,registration_number,seat_count', 'driver:id,uuid,name', 'conductor:id,uuid,name'])
-            ->orderBy('departure_date', 'desc')
+            ->with([
+                'line:id,uuid,code,name',
+                'line.stops' => fn ($stops) => $stops->where('status', 'active')->orderBy('stop_order'),
+                'line.stops.physicalStop:id,uuid,name,code,city',
+                'bus:id,uuid,registration_number,seat_count',
+                'driver:id,uuid,name',
+                'conductor:id,uuid,name',
+            ])
             ->orderBy('departure_time');
 
         $search = $request->string('q')->trim()->value();
@@ -55,9 +80,22 @@ class DepartureController extends Controller
             }
         }
 
+        // Tableau d'exploitation du jour : sans date explicite, on affiche
+        // les départs du jour courant (timezone applicative).
         $date = $request->string('date')->trim()->value();
-        if ($date !== '') {
-            $query->whereDate('departure_date', $date);
+        if ($date === '') {
+            $date = now()->toDateString();
+        }
+        $query->whereDate('departure_date', $date);
+
+        $city = $request->string('city')->trim()->value();
+        if ($city !== '') {
+            $query->whereHas('line.firstStop.physicalStop', fn ($stop) => $stop->where('city', $city));
+        }
+
+        $physicalStopUuid = $request->string('physical_stop')->trim()->value();
+        if ($physicalStopUuid !== '') {
+            $query->whereHas('line.firstStop.physicalStop', fn ($stop) => $stop->where('uuid', $physicalStopUuid));
         }
 
         $paginated = $query->paginate(15);
@@ -65,12 +103,20 @@ class DepartureController extends Controller
         $stats = $this->buildStats($date);
 
         return inertia('departures', [
-            'departures' => $paginated->through(fn (Departure $departure): array => $this->serializeDeparture($departure)),
+            'departures' => $paginated->through(fn (Departure $departure): array => $this->serializeDeparture($departure, $occupancyService)),
             'statuses' => DepartureStatus::options(),
             'lines' => $this->lineOptions(),
-            'buses' => $this->busOptions(),
-            'drivers' => $this->userOptions('bus_driver'),
-            'conductors' => $this->userOptions('conductor'),
+            'cities' => $this->cityOptions(),
+            'physicalStops' => $this->physicalStopOptions(),
+            'appliedDate' => $date,
+            'filters' => [
+                'q' => $search,
+                'date' => $date,
+                'city' => $city,
+                'physical_stop' => $physicalStopUuid,
+                'line_uuid' => $lineUuid,
+                'status' => $status,
+            ],
             'stats' => $stats,
             'permissions' => [
                 'canCreate' => Gate::allows('create', Departure::class),
@@ -80,34 +126,14 @@ class DepartureController extends Controller
         ]);
     }
 
-    public function show(Request $request, Departure $departure): Response
+    public function show(Request $request, Departure $departure, DepartureDetailService $detail): Response
     {
         Gate::authorize('view', $departure);
 
-        $departure->load([
-            'line.stops' => fn ($q) => $q->where('status', 'active')->orderBy('stop_order'),
-            'bus:id,uuid,registration_number,seat_count',
-            'bus.seats' => fn ($q) => $q->orderByRaw('LENGTH(code), code'),
-            'driver:id,uuid,name',
-            'conductor:id,uuid,name',
-            'creator:id,name',
-        ]);
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
 
-        return inertia('departures/detail', [
-            'departure' => $this->serializeDepartureDetail($departure),
-            'programmingSource' => $departure->plannedOccurrence?->programme->uuid,
-            'canProgram' => $request->user()?->can('departures.manage') ?? false,
-            'statuses' => DepartureStatus::options(),
-            'lines' => $this->lineOptions(),
-            'buses' => $this->busOptions(),
-            'drivers' => $this->userOptions('bus_driver'),
-            'conductors' => $this->userOptions('conductor'),
-            'timeline' => $this->buildTimeline($departure),
-            'permissions' => [
-                'canUpdate' => Gate::allows('update', $departure),
-                'canCancel' => Gate::allows('delete', $departure),
-            ],
-        ]);
+        return inertia('departures/detail', $detail->payload($departure, $user));
     }
 
     public function store(StoreDepartureRequest $request, CreateDepartureAction $createDeparture): RedirectResponse
@@ -152,22 +178,30 @@ class DepartureController extends Controller
     }
 
     /** @return array<string, mixed> */
-    private function serializeDeparture(Departure $departure): array
+    private function serializeDeparture(Departure $departure, DepartureOccupancyService $occupancyService): array
     {
         $seatCount = $departure->bus->seat_count ?? 0;
-        $reservationsCount = $departure->reservationSegments()->distinct('reservation_id')->count('reservation_id');
-        $fillRate = $seatCount > 0 ? round($reservationsCount / $seatCount * 100) : 0;
+        $occupancy = $occupancyService->occupancy($departure, $seatCount);
+        $reservationsCount = $occupancy['passengers'];
+        $fillRate = $occupancy['peakFillRate'];
+
+        $activeStops = $departure->line?->stops;
+        $originStop = $activeStops?->first();
+        $destinationStop = $activeStops?->last();
 
         return [
             'uuid' => $departure->uuid,
             'lineUuid' => $departure->line?->uuid,
             'lineCode' => $departure->line->code ?? '—',
             'lineName' => $departure->line->name ?? '—',
+            'originCity' => $originStop?->physicalStop->city ?? $originStop?->city,
+            'destinationCity' => $destinationStop?->physicalStop->city ?? $destinationStop?->city,
+            'originPoint' => $originStop?->physicalStop->name ?? $originStop?->name,
             'busUuid' => $departure->bus?->uuid,
             'busRegistration' => $departure->bus->registration_number ?? 'À affecter',
             'busSeatCount' => $seatCount,
             'departureDate' => $departure->departure_date?->format('Y-m-d'),
-            'departureTime' => $departure->departure_time,
+            'departureTime' => substr((string) $departure->departure_time, 0, 5),
             'delayMinutes' => (int) $departure->delay_minutes,
             'delayReason' => $departure->delay_reason,
             'delayRecordedAt' => $departure->delay_recorded_at?->toIso8601String(),
@@ -177,67 +211,144 @@ class DepartureController extends Controller
             'conductorUuid' => $departure->conductor?->uuid,
             'conductorName' => $departure->conductor?->name,
             'fillRate' => $fillRate,
+            'averageFillRate' => $occupancy['averageFillRate'],
+            'peakLegLabel' => $occupancy['peakLegLabel'],
+            'peakLoad' => $occupancy['peakLoad'],
             'reservationsCount' => $reservationsCount,
             'status' => (string) $departure->getRawOriginal('status'),
         ];
     }
 
-    /** @return array<string, mixed> */
-    private function serializeDepartureDetail(Departure $departure): array
+    /**
+     * Signale un no-show depuis la fiche départ (ops web, sans terminal
+     * P501 — `terminal_p501_id` reste null sur l'événement).
+     */
+    public function noShow(RecordPassengerNoShowRequest $request, Departure $departure, ProcessIndividualNoShowAction $noShow): RedirectResponse
     {
-        $stops = [];
-        foreach ($departure->line->stops ?? [] as $stop) {
-            $stops[] = [
-                'uuid' => $stop->uuid,
-                'name' => $stop->name,
-                'stopOrder' => $stop->stop_order,
-                'city' => $stop->city,
-            ];
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
+
+        try {
+            $event = $noShow->execute($departure, null, $user, $request->payload()['ticket_uuid'], (string) Str::uuid(), now());
+        } catch (SeatReleaseTicketUnknownException) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('Billet introuvable.')]);
+
+            return back();
         }
 
-        $seats = [];
-        foreach ($departure->bus->seats ?? [] as $seat) {
-            $seats[] = [
-                'uuid' => $seat->uuid,
-                'code' => $seat->code,
-                'type' => (string) $seat->getRawOriginal('type'),
-                'sellable' => (bool) $seat->sellable,
-                'status' => (string) $seat->getRawOriginal('status'),
-            ];
+        $this->flashSeatReleaseResult($event, __('No-show enregistré — tronçons libérés.'));
+
+        return back();
+    }
+
+    /**
+     * Descente anticipée depuis la fiche départ : libère la portion non
+     * parcourue du billet à partir de l'arrêt réel choisi.
+     */
+    public function earlyExit(RecordEarlyExitRequest $request, Departure $departure, ProcessSeatReleaseAction $release): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
+
+        $payload = $request->payload();
+        $actualStop = Stop::query()
+            ->where('uuid', $payload['stop_uuid'])
+            ->where('line_id', $departure->line_id)
+            ->firstOrFail();
+
+        try {
+            $event = $release->execute($departure, null, $user, $payload['ticket_uuid'], $actualStop, (string) Str::uuid(), now());
+        } catch (SeatReleaseTicketUnknownException) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('Billet introuvable.')]);
+
+            return back();
         }
 
-        $seatCount = $departure->bus->seat_count ?? 0;
-        $reservationsCount = $departure->reservationSegments()->distinct('reservation_id')->count('reservation_id');
-        $fillRate = $seatCount > 0 ? round($reservationsCount / $seatCount * 100) : 0;
+        $this->flashSeatReleaseResult($event, __('Descente anticipée enregistrée — tronçons libérés.'));
 
-        return [
-            'uuid' => $departure->uuid,
-            'lineUuid' => $departure->line?->uuid,
-            'lineCode' => $departure->line->code ?? '—',
-            'lineName' => $departure->line->name ?? '—',
-            'lineEstimatedDuration' => $departure->line->estimated_duration_minutes,
-            'stops' => $stops,
-            'busUuid' => $departure->bus?->uuid,
-            'busRegistration' => $departure->bus->registration_number ?? 'À affecter',
-            'busSeatCount' => $seatCount,
-            'seats' => $seats,
-            'departureDate' => $departure->departure_date?->format('Y-m-d'),
-            'departureTime' => $departure->departure_time,
-            'delayMinutes' => (int) $departure->delay_minutes,
-            'delayReason' => $departure->delay_reason,
-            'delayRecordedAt' => $departure->delay_recorded_at?->toIso8601String(),
-            'estimatedArrivalAt' => $departure->estimated_arrival_at?->toIso8601String(),
-            'driverUuid' => $departure->driver?->uuid,
-            'driverName' => $departure->driver?->name,
-            'conductorUuid' => $departure->conductor?->uuid,
-            'conductorName' => $departure->conductor?->name,
-            'creatorName' => $departure->creator?->name,
-            'fillRate' => $fillRate,
-            'reservationsCount' => $reservationsCount,
-            'status' => (string) $departure->getRawOriginal('status'),
-            'createdAt' => $departure->created_at?->toIso8601String(),
-            'updatedAt' => $departure->updated_at?->toIso8601String(),
-        ];
+        return back();
+    }
+
+    /**
+     * Clôture no-show du départ depuis la fiche : chaque billet encore
+     * « ticketed » devient no-show (sièges remis en vente). Idempotent —
+     * une relecture retombe sur les mêmes événements dérivés.
+     */
+    public function closeNoShows(CloseDepartureNoShowsRequest $request, Departure $departure, CloseNoShowsForDepartureAction $close): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
+
+        if (! in_array((string) $departure->getRawOriginal('status'), ['departed', 'arrived'], true)) {
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => __('La clôture no-show exige un départ en route ou arrivé.'),
+            ]);
+
+            return back();
+        }
+
+        $events = $close->execute($departure, null, $user, (string) Str::uuid(), now());
+
+        Inertia::flash('toast', $events->isNotEmpty()
+            ? ['type' => 'success', 'message' => __(':count no-show clôturé(s) — tronçons libérés.', ['count' => $events->count()])]
+            : ['type' => 'info', 'message' => __('Aucun billet à clôturer — tout le monde a été contrôlé.')]);
+
+        return back();
+    }
+
+    /**
+     * Annulation exceptionnelle d'un embarquement depuis la fiche
+     * (erreur de scan P501). Motif obligatoire, audit immuable — le
+     * segment repasse à « ticketed » et redevient scannable.
+     */
+    public function reverseBoarding(ReverseDepartureBoardingRequest $request, Departure $departure, ReverseBoardingEventAction $reverse): RedirectResponse
+    {
+        $payload = $request->payload();
+
+        $event = BoardingEvent::query()
+            ->where('departure_id', $departure->id)
+            ->where('status', BoardingEventStatus::Accepted)
+            ->whereHas('ticket', fn ($q) => $q->where('uuid', $payload['ticket_uuid']))
+            ->latest('server_recorded_at')
+            ->first();
+
+        if ($event === null) {
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => __('Aucun embarquement accepté à annuler pour ce billet.'),
+            ]);
+
+            return back();
+        }
+
+        $reverse->execute($event, $request->user(), $payload['reason']);
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __('Embarquement annulé — le billet redevient contrôlable.'),
+        ]);
+
+        return back();
+    }
+
+    /**
+     * L'événement peut être accepté, rejeté (règle métier) ou en conflit
+     * (libération concurrente depuis un terminal P501) — le toast reflète
+     * l'issue réelle au lieu d'annoncer un succès systématique.
+     */
+    private function flashSeatReleaseResult(SeatReleaseEvent $event, string $successMessage): void
+    {
+        if ($event->status === SeatReleaseEventStatus::Accepted) {
+            Inertia::flash('toast', ['type' => 'success', 'message' => $successMessage]);
+
+            return;
+        }
+
+        $message = $event->conflict_payload['message'] ?? __('La libération a été refusée.');
+        $type = $event->status === SeatReleaseEventStatus::Conflict ? 'error' : 'error';
+
+        Inertia::flash('toast', ['type' => $type, 'message' => $message]);
     }
 
     /** @return array<int, array{uuid: string, label: string}> */
@@ -254,73 +365,98 @@ class DepartureController extends Controller
             ->all();
     }
 
-    /** @return array<int, array{uuid: string, label: string}> */
-    private function busOptions(): array
+    /** @return array<int, string> */
+    private function cityOptions(): array
     {
-        return Bus::query()
+        return PhysicalStop::query()
             ->where('status', 'active')
-            ->orderBy('registration_number')
-            ->get()
-            ->map(fn (Bus $bus): array => [
-                'uuid' => (string) $bus->uuid,
-                'label' => (string) $bus->registration_number,
-            ])
+            ->whereNotNull('city')
+            ->distinct()
+            ->orderBy('city')
+            ->pluck('city')
             ->all();
     }
 
     /** @return array<int, array{uuid: string, label: string}> */
-    private function userOptions(string $role): array
+    private function physicalStopOptions(): array
     {
-        return User::query()
-            ->role($role)
+        return PhysicalStop::query()
+            ->where('status', 'active')
+            ->orderBy('city')
             ->orderBy('name')
-            ->get()
-            ->map(fn (User $user): array => [
-                'uuid' => (string) $user->uuid,
-                'label' => (string) $user->name,
+            ->get(['uuid', 'name', 'city'])
+            ->map(fn (PhysicalStop $stop): array => [
+                'uuid' => (string) $stop->uuid,
+                'label' => $stop->name.' · '.$stop->city,
             ])
             ->all();
     }
 
-    /** @return array{total: int, scheduled: int, boarding: int, departed: int, arrived: int, cancelled: int} */
-    private function buildStats(?string $date): array
+    /** @return array{total: int, scheduled: int, boarding: int, departed: int, arrived: int, cancelled: int, punctuality: float|null, fillRate: float|null, seatsSold: int} */
+    private function buildStats(string $date): array
     {
-        $query = Departure::query();
-        if ($date !== null && $date !== '') {
-            $query->whereDate('departure_date', $date);
+        $departures = Departure::query()
+            ->whereDate('departure_date', $date)
+            ->with(['bus:id,seat_count', 'line:id'])
+            ->get(['id', 'status', 'delay_minutes', 'bus_id', 'line_id']);
+
+        $lineIds = $departures->pluck('line_id')->filter()->unique()->values();
+        $ordersByLine = Stop::query()
+            ->whereIn('line_id', $lineIds)
+            ->where('status', 'active')
+            ->orderBy('stop_order')
+            ->get(['line_id', 'stop_order'])
+            ->groupBy('line_id')
+            ->map(fn ($stops) => $stops->pluck('stop_order')->map(fn ($order) => (int) $order)->values()->all());
+
+        $segments = ReservationSegment::query()
+            ->whereIn('departure_id', $departures->modelKeys())
+            ->whereIn('status', ReservationSegmentStatus::occupyingValues())
+            ->get(['departure_id', 'reservation_id', 'origin_stop_order', 'destination_stop_order'])
+            ->groupBy('departure_id');
+
+        $seatCapacity = 0;
+        $seatLegs = 0;
+        $passengerLegs = 0;
+        $seatsSold = 0;
+
+        foreach ($departures as $departure) {
+            $seatCount = (int) ($departure->bus->seat_count ?? 0);
+            $orders = $ordersByLine->get($departure->line_id) ?? [];
+            $legCount = max(0, count($orders) - 1);
+            $positionOf = array_flip($orders);
+            $departureSegments = $segments->get($departure->id) ?? collect();
+
+            $seatCapacity += $seatCount;
+            $seatLegs += $legCount * $seatCount;
+            $seatsSold += $departureSegments->pluck('reservation_id')->unique()->count();
+
+            foreach ($departureSegments as $segment) {
+                $from = $positionOf[(int) $segment->origin_stop_order] ?? null;
+                $to = $positionOf[(int) $segment->destination_stop_order] ?? null;
+                if ($from === null || $to === null || $to <= $from) {
+                    continue;
+                }
+                $passengerLegs += $to - $from;
+            }
         }
+        $completed = $departures->filter(fn (Departure $departure) => in_array(
+            (string) $departure->getRawOriginal('status'),
+            [DepartureStatus::Departed->value, DepartureStatus::Arrived->value],
+            true,
+        ));
+        $onTime = $completed->filter(fn (Departure $departure) => (int) $departure->delay_minutes <= 15)->count();
 
         return [
-            'total' => $query->count(),
-            'scheduled' => (clone $query)->where('status', DepartureStatus::Scheduled->value)->count(),
-            'boarding' => (clone $query)->where('status', DepartureStatus::Boarding->value)->count(),
-            'departed' => (clone $query)->where('status', DepartureStatus::Departed->value)->count(),
-            'arrived' => (clone $query)->where('status', DepartureStatus::Arrived->value)->count(),
-            'cancelled' => (clone $query)->where('status', DepartureStatus::Cancelled->value)->count(),
+            'total' => $departures->count(),
+            'scheduled' => $departures->filter(fn (Departure $d) => (string) $d->getRawOriginal('status') === DepartureStatus::Scheduled->value)->count(),
+            'boarding' => $departures->filter(fn (Departure $d) => (string) $d->getRawOriginal('status') === DepartureStatus::Boarding->value)->count(),
+            'departed' => $departures->filter(fn (Departure $d) => (string) $d->getRawOriginal('status') === DepartureStatus::Departed->value)->count(),
+            'arrived' => $departures->filter(fn (Departure $d) => (string) $d->getRawOriginal('status') === DepartureStatus::Arrived->value)->count(),
+            'cancelled' => $departures->filter(fn (Departure $d) => (string) $d->getRawOriginal('status') === DepartureStatus::Cancelled->value)->count(),
+            'punctuality' => $completed->isEmpty() ? null : round($onTime / $completed->count() * 100, 1),
+            'fillRate' => $seatLegs > 0 ? round($passengerLegs / $seatLegs * 100, 1) : null,
+            'seatsSold' => $seatsSold,
         ];
-    }
-
-    /**
-     * @return array<int, array{label: string, date: string|null}>
-     */
-    private function buildTimeline(Departure $departure): array
-    {
-        $events = [];
-
-        if ($departure->created_at !== null) {
-            $events[] = [
-                'label' => 'Départ programmé',
-                'date' => $departure->created_at->toIso8601String(),
-            ];
-        }
-
-        if ($departure->updated_at !== null && $departure->created_at !== null && $departure->updated_at->notEqualTo($departure->created_at)) {
-            $events[] = [
-                'label' => 'Dernière mise à jour',
-                'date' => $departure->updated_at->toIso8601String(),
-            ];
-        }
-
-        return $events;
     }
 }

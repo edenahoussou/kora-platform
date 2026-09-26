@@ -59,6 +59,9 @@ tags:
     name: 'OPS Web — Suivi de la flotte'
     description: "\nPositions des départs actuellement en circulation, pour la carte OPS Web\n(ticket MEZ-100). Protégé par permission ET par périmètre : un\ngestionnaire d'agence (`tracking.view-agency`) ne voit que sa propre\nagence, un rôle réseau (`tracking.view-network`) voit toute la flotte\n(filtrable par agence). Ne retourne que des UUID, des codes métier et les\ndonnées nécessaires à la carte — aucun identifiant numérique interne."
   -
+    name: 'OPS — Notifications'
+    description: "\nAlertes opérationnelles boarding pour le convoyeur (OPS Mobile) et les\nopérateurs (OPS Web) : même contrat, mêmes autorisations. Chaque\nutilisateur ne voit que SES notifications ; aucune ne contient de donnée\nfinancière ni d'identifiant numérique.\n\nTypes (`type`) : departure_assigned, departure_modified, manifest_stale,\nterminal_revoked (critique), scan_conflict (critique), operation_rejected,\nsync_completed, sync_failed, no_show_closed, print_error.\n\n`action` dit au client quoi proposer : none, open_departure, refresh_manifest,\nreauthenticate, review_scan_conflict, review_rejected_operations, retry_sync,\ncheck_printer.\n\nRécupération fiable : les notifications sont persistées AVANT toute\ndiffusion temps réel. Après une coupure ou un redémarrage, le client\nappelle `GET /notifications?since=<created_at de la dernière reçue>` et\ndéduplique par `uuid`. Le temps réel (canal privé\n`ops-notifications.{user_uuid}`, événement `ops.notification.published`)\nn'est qu'un accélérateur : sans lui, rien n'est perdu.\n\nErreurs : `{ error: { code, message, action } }` — mêmes codes que les\nsessions OPS (session_expired, session_revoked, permission_denied…)."
+  -
     name: Payments
     description: "\nPayment lifecycle endpoints: initiation, polling status, and provider webhook confirmation."
   -
@@ -2489,7 +2492,7 @@ paths:
     post:
       summary: 'Request an OTP challenge for registration, login, PIN reset or account unlock.'
       operationId: requestAnOTPChallengeForRegistrationLoginPINResetOrAccountUnlock
-      description: "Sends a one-time code to the user's email. The returned `otp_challenge_uuid` must\nbe submitted to the verify endpoint."
+      description: "Sends a one-time code to WhatsApp when the account has a phone number, with email\nfallback. The returned `otp_challenge_uuid` must be submitted to the verify endpoint."
       parameters: []
       responses:
         202:
@@ -2549,8 +2552,8 @@ paths:
                 example:
                   message: 'The given data was invalid.'
                   errors:
-                    email:
-                      - 'The email field is required.'
+                    identifier:
+                      - "L'email ou le numéro de téléphone est obligatoire."
                 properties:
                   message:
                     type: string
@@ -2558,10 +2561,10 @@ paths:
                   errors:
                     type: object
                     properties:
-                      email:
+                      identifier:
                         type: array
                         example:
-                          - 'The email field is required.'
+                          - "L'email ou le numéro de téléphone est obligatoire."
                         items:
                           type: string
         429:
@@ -2585,10 +2588,16 @@ paths:
             schema:
               type: object
               properties:
+                identifier:
+                  type: string
+                  description: "Email or phone number. For registration, this\nmust be an email. Existing clients may use the `email` alias instead."
+                  example: architecto
+                  nullable: true
                 email:
                   type: string
-                  description: 'Le champ value doit être une adresse e-mail valide. Le champ value ne doit pas dépasser 255 caractères.'
+                  description: 'Legacy alias for `identifier`; do not send both fields.'
                   example: gbailey@example.net
+                  nullable: true
                 purpose:
                   type: string
                   description: ''
@@ -2599,7 +2608,7 @@ paths:
                     - pin_reset
                     - account_unlock
               required:
-                - email
+                - identifier
                 - purpose
       security: []
   /api/v1/auth/otp/verify:
@@ -3108,9 +3117,9 @@ paths:
       security: []
   /api/v1/auth/login:
     post:
-      summary: 'Authenticate a user with email/phone and PIN.'
-      operationId: authenticateAUserWithEmailphoneAndPIN
-      description: "Returns a Sanctum session token. If OTP is required, returns a 202 with an OTP challenge\ninstead of a token."
+      summary: "Authenticate a user with an email or phone number and PIN. The legacy `email`\nfield remains accepted as an alias for `identifier`."
+      operationId: authenticateAUserWithAnEmailOrPhoneNumberAndPINTheLegacyemailFieldRemainsAcceptedAsAnAliasForidentifier
+      description: "Returns a Sanctum session token. If OTP is required for a new device, returns a 202 with\na challenge sent by WhatsApp when possible, then email as fallback."
       parameters: []
       responses:
         200:
@@ -3224,7 +3233,7 @@ paths:
                   data:
                     requires_otp: true
                     otp_challenge_uuid: b1234567-89ab-cdef-0123-456789abcdef
-                    purpose: login
+                    purpose: login_new_device
                     expires_at: '2026-08-20T13:10:00.000Z'
                 properties:
                   data:
@@ -3238,7 +3247,7 @@ paths:
                         example: 00000000-0000-4000-8000-000000000000
                       purpose:
                         type: string
-                        example: login
+                        example: login_new_device
                       expires_at:
                         type: string
                         example: '2026-08-20T13:10:00.000Z'
@@ -3315,14 +3324,20 @@ paths:
             schema:
               type: object
               properties:
+                identifier:
+                  type: string
+                  description: "Email or phone number. Local and international\nnumbers are normalized before lookup. Do not send together with `email`."
+                  example: architecto
+                  nullable: true
                 email:
                   type: string
-                  description: 'Le champ value doit être une adresse e-mail valide. Le champ value ne doit pas dépasser 255 caractères.'
+                  description: 'Legacy alias for `identifier`, accepted for existing clients.'
                   example: gbailey@example.net
+                  nullable: true
                 pin:
                   type: string
-                  description: 'Le champ value doit contenir 4 chiffres.'
-                  example: '9775'
+                  description: 'Four-digit PIN.'
+                  example: architecto
                 device_name:
                   type: string
                   description: 'Le champ value ne doit pas dépasser 120 caractères.'
@@ -3356,7 +3371,7 @@ paths:
                   example: yvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtnnoqi
                   nullable: true
               required:
-                - email
+                - identifier
                 - pin
                 - device_name
                 - platform
@@ -8637,6 +8652,680 @@ paths:
       tags:
         - 'OPS Web — Suivi de la flotte'
       security: []
+  /api/v1/notifications:
+    get:
+      summary: "Notifications de l'utilisateur, les plus récentes d'abord."
+      operationId: notificationsDeLutilisateurLesPlusRcentesDabord
+      description: ''
+      parameters:
+        -
+          in: query
+          name: unread
+          description: 'Uniquement les non lues.'
+          example: false
+          required: false
+          schema:
+            type: boolean
+            description: 'Uniquement les non lues.'
+            example: false
+        -
+          in: query
+          name: type
+          description: 'Filtrer par type.'
+          example: scan_conflict
+          required: false
+          schema:
+            type: string
+            description: 'Filtrer par type.'
+            example: scan_conflict
+        -
+          in: query
+          name: severity
+          description: 'info, warning ou critical.'
+          example: critical
+          required: false
+          schema:
+            type: string
+            description: 'info, warning ou critical.'
+            example: critical
+        -
+          in: query
+          name: since
+          description: 'Date ISO 8601 (inclusive) : reprise après coupure.'
+          example: '2026-09-21T08:00:00Z'
+          required: false
+          schema:
+            type: string
+            description: 'Date ISO 8601 (inclusive) : reprise après coupure.'
+            example: '2026-09-21T08:00:00Z'
+        -
+          in: query
+          name: per_page
+          description: '1 à 100 (30 par défaut).'
+          example: 30
+          required: false
+          schema:
+            type: integer
+            description: '1 à 100 (30 par défaut).'
+            example: 30
+        -
+          in: query
+          name: page
+          description: Page.
+          example: 1
+          required: false
+          schema:
+            type: integer
+            description: Page.
+            example: 1
+      responses:
+        200:
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    -
+                      uuid: 0c9d3e2a-6c0f-4f57-8d0e-0d6a3c1f5b11
+                      event_uuid: 5a1f0d43-1b52-4f0a-a7f7-0b6c4d2e9a10
+                      type: scan_conflict
+                      severity: critical
+                      title: 'Conflit de scan'
+                      message: 'Un billet du départ COT-LFW du 21/09/2026 à 07:30 a été scanné sur deux terminaux (P501-000123 et P501-000124). Vérifiez l’embarquement du passager.'
+                      action: review_scan_conflict
+                      is_read: false
+                      read_at: null
+                      created_at: '2026-09-21T07:41:12.000Z'
+                      occurred_at: '2026-09-21T07:41:12.000Z'
+                      departure:
+                        uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                        line_code: COT-LFW
+                        date: '2026-09-21'
+                        time: '07:30'
+                      terminal:
+                        uuid: b3091549-9179-454e-8440-58179f2208df
+                        serial_number: P501-000124
+                      data:
+                        code: conflict
+                        accepted_terminal_serial: P501-000123
+                        conflicting_terminal_serial: P501-000124
+                  meta:
+                    current_page: 1
+                    per_page: 30
+                    total: 1
+                    last_page: 1
+                    unread_count: 1
+                    critical_unread_count: 1
+                    server_time: '2026-09-21T07:45:00.000Z'
+                properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        uuid: 0c9d3e2a-6c0f-4f57-8d0e-0d6a3c1f5b11
+                        event_uuid: 5a1f0d43-1b52-4f0a-a7f7-0b6c4d2e9a10
+                        type: scan_conflict
+                        severity: critical
+                        title: 'Conflit de scan'
+                        message: 'Un billet du départ COT-LFW du 21/09/2026 à 07:30 a été scanné sur deux terminaux (P501-000123 et P501-000124). Vérifiez l’embarquement du passager.'
+                        action: review_scan_conflict
+                        is_read: false
+                        read_at: null
+                        created_at: '2026-09-21T07:41:12.000Z'
+                        occurred_at: '2026-09-21T07:41:12.000Z'
+                        departure:
+                          uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                          line_code: COT-LFW
+                          date: '2026-09-21'
+                          time: '07:30'
+                        terminal:
+                          uuid: b3091549-9179-454e-8440-58179f2208df
+                          serial_number: P501-000124
+                        data:
+                          code: conflict
+                          accepted_terminal_serial: P501-000123
+                          conflicting_terminal_serial: P501-000124
+                    items:
+                      type: object
+                      properties:
+                        uuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        event_uuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        type:
+                          type: string
+                          example: scan_conflict
+                        severity:
+                          type: string
+                          example: critical
+                        title:
+                          type: string
+                          example: 'Conflit de scan'
+                        message:
+                          type: string
+                          example: 'Un billet du départ COT-LFW du 21/09/2026 à 07:30 a été scanné sur deux terminaux (P501-000123 et P501-000124). Vérifiez l’embarquement du passager.'
+                        action:
+                          type: string
+                          example: review_scan_conflict
+                        is_read:
+                          type: boolean
+                          example: false
+                        read_at:
+                          type: string
+                          example: null
+                          nullable: true
+                        created_at:
+                          type: string
+                          example: '2026-09-21T07:41:12.000Z'
+                        occurred_at:
+                          type: string
+                          example: '2026-09-21T07:41:12.000Z'
+                        departure:
+                          type: object
+                          properties:
+                            uuid:
+                              type: string
+                              example: 00000000-0000-4000-8000-000000000000
+                            line_code:
+                              type: string
+                              example: COT-LFW
+                            date:
+                              type: string
+                              example: '2026-09-21'
+                            time:
+                              type: string
+                              example: '07:30'
+                        terminal:
+                          type: object
+                          properties:
+                            uuid:
+                              type: string
+                              example: 00000000-0000-4000-8000-000000000000
+                            serial_number:
+                              type: string
+                              example: P501-000124
+                        data:
+                          type: object
+                          properties:
+                            code:
+                              type: string
+                              example: conflict
+                            accepted_terminal_serial:
+                              type: string
+                              example: P501-000123
+                            conflicting_terminal_serial:
+                              type: string
+                              example: P501-000124
+                  meta:
+                    type: object
+                    properties:
+                      current_page:
+                        type: integer
+                        example: 1
+                      per_page:
+                        type: integer
+                        example: 30
+                      total:
+                        type: integer
+                        example: 1
+                      last_page:
+                        type: integer
+                        example: 1
+                      unread_count:
+                        type: integer
+                        example: 1
+                      critical_unread_count:
+                        type: integer
+                        example: 1
+                      server_time:
+                        type: string
+                        example: '2026-09-21T07:45:00.000Z'
+        401:
+          description: 'Session expirée'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: session_expired
+                    message: 'Votre session a expiré. Reconnectez-vous.'
+                    action: reauthenticate
+                    reason: expired
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: session_expired
+                      message:
+                        type: string
+                        example: 'Votre session a expiré. Reconnectez-vous.'
+                      action:
+                        type: string
+                        example: reauthenticate
+                      reason:
+                        type: string
+                        example: expired
+        403:
+          description: 'Sans permission'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: permission_denied
+                    message: 'Votre compte n’a pas la permission d’utiliser KORA OPS Mobile.'
+                    action: contact_agency
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: permission_denied
+                      message:
+                        type: string
+                        example: 'Votre compte n’a pas la permission d’utiliser KORA OPS Mobile.'
+                      action:
+                        type: string
+                        example: contact_agency
+      tags:
+        - 'OPS — Notifications'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                unread:
+                  type: boolean
+                  description: ''
+                  example: false
+                type:
+                  type: string
+                  description: ''
+                  example: departure_assigned
+                  enum:
+                    - departure_assigned
+                    - departure_modified
+                    - manifest_stale
+                    - terminal_revoked
+                    - scan_conflict
+                    - operation_rejected
+                    - sync_completed
+                    - sync_failed
+                    - no_show_closed
+                    - print_error
+                    - departure_departed
+                    - incident_reported
+                    - incident_critical
+                severity:
+                  type: string
+                  description: ''
+                  example: info
+                  enum:
+                    - info
+                    - warning
+                    - critical
+                since:
+                  type: string
+                  description: 'Le champ value doit être une date valide.'
+                  example: '2026-09-25T08:16:41'
+                per_page:
+                  type: integer
+                  description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 100.'
+                  example: 1
+                page:
+                  type: integer
+                  description: 'Le champ value doit être au moins 1.'
+                  example: 22
+  /api/v1/notifications/unread-count:
+    get:
+      summary: 'Nombre de notifications non lues (badge), dont les critiques.'
+      operationId: nombreDeNotificationsNonLuesbadgeDontLesCritiques
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: Compteurs
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    unread: 3
+                    critical_unread: 1
+                  meta:
+                    server_time: '2026-09-21T07:45:00.000Z'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      unread:
+                        type: integer
+                        example: 3
+                      critical_unread:
+                        type: integer
+                        example: 1
+                  meta:
+                    type: object
+                    properties:
+                      server_time:
+                        type: string
+                        example: '2026-09-21T07:45:00.000Z'
+      tags:
+        - 'OPS — Notifications'
+  /api/v1/notifications/preferences:
+    get:
+      summary: "Préférences effectives de l'utilisateur, un élément par type."
+      operationId: prfrencesEffectivesDeLutilisateurUnlmentParType
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: Préférences
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    -
+                      type: scan_conflict
+                      title: 'Conflit de scan'
+                      severity: critical
+                      disableable: false
+                      mail_supported: true
+                      in_app: true
+                      mail: true
+                    -
+                      type: sync_completed
+                      title: 'Synchronisation terminée'
+                      severity: info
+                      disableable: true
+                      mail_supported: false
+                      in_app: true
+                      mail: true
+                properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        type: scan_conflict
+                        title: 'Conflit de scan'
+                        severity: critical
+                        disableable: false
+                        mail_supported: true
+                        in_app: true
+                        mail: true
+                      -
+                        type: sync_completed
+                        title: 'Synchronisation terminée'
+                        severity: info
+                        disableable: true
+                        mail_supported: false
+                        in_app: true
+                        mail: true
+                    items:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                          example: scan_conflict
+                        title:
+                          type: string
+                          example: 'Conflit de scan'
+                        severity:
+                          type: string
+                          example: critical
+                        disableable:
+                          type: boolean
+                          example: false
+                        mail_supported:
+                          type: boolean
+                          example: false
+                        in_app:
+                          type: boolean
+                          example: false
+                        mail:
+                          type: boolean
+                          example: false
+      tags:
+        - 'OPS — Notifications'
+    put:
+      summary: "Met à jour des préférences. Tout ou rien : désactiver une alerte\ncritique est refusé (422) et n'enregistre rien."
+      operationId: metJourDesPrfrencesToutOuRienDsactiverUneAlerteCritiqueEstRefus422EtNenregistreRien
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: 'Préférences mises à jour'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    -
+                      type: sync_completed
+                      title: 'Synchronisation terminée'
+                      severity: info
+                      disableable: true
+                      mail_supported: false
+                      in_app: false
+                      mail: true
+                properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        type: sync_completed
+                        title: 'Synchronisation terminée'
+                        severity: info
+                        disableable: true
+                        mail_supported: false
+                        in_app: false
+                        mail: true
+                    items:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                          example: sync_completed
+                        title:
+                          type: string
+                          example: 'Synchronisation terminée'
+                        severity:
+                          type: string
+                          example: info
+                        disableable:
+                          type: boolean
+                          example: false
+                        mail_supported:
+                          type: boolean
+                          example: false
+                        in_app:
+                          type: boolean
+                          example: false
+                        mail:
+                          type: boolean
+                          example: false
+        422:
+          description: 'Alerte critique'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: notification_not_disableable
+                    message: 'Les alertes critiques ne peuvent pas être désactivées.'
+                    types:
+                      - scan_conflict
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: notification_not_disableable
+                      message:
+                        type: string
+                        example: 'Les alertes critiques ne peuvent pas être désactivées.'
+                      types:
+                        type: array
+                        example:
+                          - scan_conflict
+                        items:
+                          type: string
+      tags:
+        - 'OPS — Notifications'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                preferences:
+                  type: array
+                  description: 'Préférences à modifier.'
+                  example:
+                    - []
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        description: "Type d'événement."
+                        example: sync_completed
+                      in_app:
+                        type: boolean
+                        description: 'Recevoir la notification.'
+                        example: false
+                      mail:
+                        type: boolean
+                        description: "Recevoir l'e-mail d'alerte (types d'alerte uniquement)."
+                        example: false
+                    required:
+                      - type
+              required:
+                - preferences
+  /api/v1/notifications/read-all:
+    post:
+      summary: "Marque toutes les notifications non lues comme lues (jusqu'à `before`\nsi fourni : celles reçues depuis restent non lues)."
+      operationId: marqueToutesLesNotificationsNonLuesCommeLuesjusqubeforeSiFourniCellesReuesDepuisRestentNonLues
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: 'Notifications lues'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    updated: 3
+                  meta:
+                    unread_count: 0
+                    server_time: '2026-09-21T07:46:00.000Z'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      updated:
+                        type: integer
+                        example: 3
+                  meta:
+                    type: object
+                    properties:
+                      unread_count:
+                        type: integer
+                        example: 0
+                      server_time:
+                        type: string
+                        example: '2026-09-21T07:46:00.000Z'
+      tags:
+        - 'OPS — Notifications'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                before:
+                  type: string
+                  description: 'Date ISO 8601 : seules les notifications créées jusque-là sont marquées.'
+                  example: '2026-09-21T07:45:00Z'
+  '/api/v1/notifications/{notification}/read':
+    post:
+      summary: "Marque une notification lue (idempotent). Introuvable (404) si elle\nn'appartient pas à l'utilisateur."
+      operationId: marqueUneNotificationLueidempotentIntrouvable404SiElleNappartientPasLutilisateur
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: 'Notification lue'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 0c9d3e2a-6c0f-4f57-8d0e-0d6a3c1f5b11
+                    type: scan_conflict
+                    is_read: true
+                    read_at: '2026-09-21T07:46:00.000Z'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      type:
+                        type: string
+                        example: scan_conflict
+                      is_read:
+                        type: boolean
+                        example: false
+                      read_at:
+                        type: string
+                        example: '2026-09-21T07:46:00.000Z'
+        404:
+          description: "Notification d'un autre utilisateur ou inconnue"
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'No query results for model [App\Modules\Notifications\Models\OpsNotification].'
+                properties:
+                  message:
+                    type: string
+                    example: 'No query results for model [App\Modules\Notifications\Models\OpsNotification].'
+      tags:
+        - 'OPS — Notifications'
+    parameters:
+      -
+        in: path
+        name: notification
+        description: 'UUID de la notification.'
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
   /api/v1/payments/methods:
     get:
       summary: 'List available payment methods and providers.'

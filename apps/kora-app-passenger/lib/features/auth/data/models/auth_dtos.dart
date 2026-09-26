@@ -28,15 +28,18 @@ abstract final class AuthDtos {
     return Map<String, dynamic>.from(body);
   }
 
-  static OtpChallenge otpChallenge(Object? body, {required String email}) {
+  static OtpChallenge otpChallenge(Object? body, {required String identifier}) {
     final data = unwrap(body);
 
     return OtpChallenge(
       uuid: '${data['otp_challenge_uuid']}',
       purpose: OtpPurpose.fromValue('${data['purpose']}'),
-      // L'API renvoie l'e-mail visé ; on garde celui saisi en secours,
-      // l'écran OTP l'affiche masqué.
-      email: data['email'] as String? ?? email,
+      // `identifier` est la valeur qui a **reçu** le code, normalisée
+      // par le serveur (`01 97…` devient `+22997…`). On retombe sur la
+      // saisie quand la réponse ne le porte pas : c'est ce que l'écran
+      // OTP affiche masqué, et il ne doit jamais être vide. `email`, lui,
+      // vaut `null` dès que l'identifiant est un téléphone.
+      identifier: data['identifier'] as String? ?? identifier,
       expiresAt: _date(data['expires_at']) ?? DateTime.now().add(_otpFallback),
     );
   }

@@ -1,7 +1,10 @@
 <?php
 
 use App\Modules\IdentityAccess\Http\Controllers\RoleController;
+use App\Modules\IdentityAccess\Http\Controllers\TerminalManagementController;
 use App\Modules\IdentityAccess\Http\Controllers\UserController;
+use App\Modules\Settings\Http\Controllers\IntegrationConnectionTestController;
+use App\Modules\Settings\Http\Controllers\SettingsController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
@@ -13,8 +16,26 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         ]);
     };
 
-    Route::get('administration', $comingSoon('Administration', 'Gérez les comptes, rôles, paramètres et intégrations.', 'Administration'))
+    Route::get('administration', fn () => to_route('administration.settings'))
         ->name('administration');
+
+    Route::get('administration/settings', [SettingsController::class, 'index'])
+        ->name('administration.settings');
+    Route::get('administration/settings/general', [SettingsController::class, 'general'])
+        ->name('administration.settings.general');
+    Route::patch('administration/settings/general', [SettingsController::class, 'updateGeneral'])
+        ->name('administration.settings.general.update');
+    Route::get('administration/settings/operations', [SettingsController::class, 'operations'])
+        ->name('administration.settings.operations');
+    Route::patch('administration/settings/operations', [SettingsController::class, 'updateOperations'])
+        ->name('administration.settings.operations.update');
+    Route::get('administration/settings/integrations', [SettingsController::class, 'integrations'])
+        ->name('administration.settings.integrations');
+    Route::patch('administration/settings/integrations', [SettingsController::class, 'updateIntegrations'])
+        ->name('administration.settings.integrations.update');
+    Route::post('administration/settings/integrations/{provider}/test', IntegrationConnectionTestController::class)
+        ->middleware('throttle:settings-probes')
+        ->name('administration.settings.integrations.test');
 
     Route::get('users', [UserController::class, 'index'])->name('users');
     Route::get('users/{user:uuid}', [UserController::class, 'show'])->name('users.show');
@@ -33,8 +54,10 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::delete('roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy');
     Route::post('roles/{role}/restore', [RoleController::class, 'restore'])->name('roles.restore');
 
-    Route::get('terminals', $comingSoon('Terminaux P501', 'Administrez les terminaux autorisés par numéro de série et affectation.', 'Administration'))
+    Route::get('terminals', [TerminalManagementController::class, 'index'])
         ->name('terminals');
+    Route::get('terminals/{terminal:uuid}', [TerminalManagementController::class, 'show'])
+        ->name('terminals.show');
     Route::get('integrations', $comingSoon('Intégrations', 'Supervisez CassKai, MECeF, Mobile Money et les files de synchronisation.', 'Administration'))
         ->name('integrations');
     Route::get('audit', $comingSoon('Journal d’audit', 'Retrouvez chaque action sensible et son contexte.', 'Administration'))
