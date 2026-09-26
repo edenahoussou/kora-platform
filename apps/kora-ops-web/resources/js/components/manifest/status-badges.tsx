@@ -8,10 +8,11 @@ const journeyStatusTones: Record<string, Tone> = {
     hold_expired: 'muted',
     payment_pending: 'gold',
     payment_confirmed: 'blue',
-    ticket_issued: 'navy',
-    boarded: 'navy',
+    ticket_issued: 'gold',
+    boarded: 'blue',
     absent: 'destructive',
-    cancelled: 'destructive',
+    cancelled: 'muted',
+    early_drop_off: 'muted',
 };
 
 export function JourneyStatusBadge({

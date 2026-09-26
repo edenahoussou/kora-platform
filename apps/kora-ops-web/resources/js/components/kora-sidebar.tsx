@@ -11,7 +11,6 @@ import {
     ShieldCheck,
     Store,
     Ticket,
-    Users,
     Wallet,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -170,12 +169,6 @@ const navItems: NavEntry[] = [
                 permission: 'company-accounts.view',
             },
         ],
-    },
-    {
-        title: 'Passagers',
-        href: '/passengers',
-        icon: Users,
-        permission: 'bookings.view',
     },
     {
         title: 'Billets',
