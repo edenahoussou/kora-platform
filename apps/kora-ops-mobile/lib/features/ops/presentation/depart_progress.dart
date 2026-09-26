@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:permission_handler/permission_handler.dart' as ph;
 import 'package:kora_ops_mobile/features/ops/domain/entities/depart.dart';
 import 'package:kora_ops_mobile/features/ops/domain/repositories/departure_repository.dart';
+import 'package:permission_handler/permission_handler.dart' as ph;
 
 import '../../../core/services/kora_dialogs.dart';
 import '../../../injection/injection.dart';

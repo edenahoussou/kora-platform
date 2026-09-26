@@ -59,7 +59,8 @@ class SpeedDialAction {
 /// explicite) peut sinon entrer en collision pendant une transition de
 /// page et produire le même type de scintillement.
 class ActionSpeedDial extends StatefulWidget {
-  const ActionSpeedDial({required this.actions, required this.heroTag, super.key});
+  const ActionSpeedDial(
+      {required this.actions, required this.heroTag, super.key});
 
   final List<SpeedDialAction> actions;
   final String heroTag;

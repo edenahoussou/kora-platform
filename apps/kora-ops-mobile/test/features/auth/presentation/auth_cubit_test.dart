@@ -102,8 +102,7 @@ void main() {
     blocTest<AuthCubit, AuthState>(
       'purge la session et émet Unauthenticated(savedEmail conservé) sur un 401',
       build: () {
-        when(() => repository.purgeLocalSession())
-            .thenAnswer((_) async {});
+        when(() => repository.purgeLocalSession()).thenAnswer((_) async {});
         when(() => repository.lastEmail())
             .thenAnswer((_) async => 'aicha.hounkpe@kora-express.com');
         return buildCubit();

@@ -29,6 +29,7 @@ class _PinEntryPageState extends State<PinEntryPage> {
   static const int _pinLength = 4;
 
   String _pin = '';
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -71,14 +72,16 @@ class _PinEntryPageState extends State<PinEntryPage> {
     final AuthFlowBloc flowBloc = context.read<AuthFlowBloc>();
     final String email = flowBloc.state.email;
 
-    KoraDialogs.showLoading(context, message: 'Connexion…');
+    // Même loader qu'sur ChangePinPage (superposition dans la page, pas
+    // un KoraDialogs.showLoading) — échange du 24/09/2026.
+    setState(() => _isSubmitting = true);
 
     flowBloc.add(AuthFlowLoginSubmitted(email: email, pin: _pin));
     final AuthFlowState next = await flowBloc.stream
         .firstWhere((AuthFlowState state) => !state.isSubmitting);
 
     if (!mounted) return;
-    KoraDialogs.hideLoading(context);
+    setState(() => _isSubmitting = false);
 
     if (next.hasError) {
       setState(() => _pin = '');
@@ -134,26 +137,60 @@ class _PinEntryPageState extends State<PinEntryPage> {
               ),
               child: BlocBuilder<AuthFlowBloc, AuthFlowState>(
                 builder: (BuildContext context, AuthFlowState state) {
-                  return ListView(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.lg, vertical: AppSpacing.xl),
+                  return Stack(
                     children: <Widget>[
-                      const _Logo(),
-                      const SizedBox(height: AppSpacing.lg),
-                      _Header(email: state.email),
-                      PinDots(
-                          filled: _pin.length, total: _pinLength, onNavy: true),
-                      PinKeypad(onKey: _onKey, onNavy: true),
-                      const SizedBox(height: AppSpacing.md),
-                      Center(
-                        child: TextButton(
-                          onPressed: () =>
-                              context.push(AppRoutes.loginForgotPassword),
-                          style: TextButton.styleFrom(
-                              foregroundColor: AppColors.white),
-                          child: const Text('PIN oublié ?'),
-                        ),
+                      ListView(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.lg, vertical: AppSpacing.xl),
+                        children: <Widget>[
+                          const _Logo(),
+                          const SizedBox(height: AppSpacing.lg),
+                          _Header(
+                            email: state.email,
+                            onChangeEmail: _isSubmitting
+                                ? null
+                                : () => context.canPop()
+                                    ? context.pop()
+                                    : context.go(AppRoutes.loginEmail),
+                          ),
+                          IgnorePointer(
+                            ignoring: _isSubmitting,
+                            child: Opacity(
+                              opacity: _isSubmitting ? 0.4 : 1,
+                              child: Column(
+                                children: <Widget>[
+                                  PinDots(
+                                      filled: _pin.length,
+                                      total: _pinLength,
+                                      onNavy: true),
+                                  PinKeypad(onKey: _onKey, onNavy: true),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          Center(
+                            child: TextButton(
+                              onPressed: _isSubmitting
+                                  ? null
+                                  : () => context
+                                      .push(AppRoutes.loginForgotPassword),
+                              style: TextButton.styleFrom(
+                                  foregroundColor: AppColors.white),
+                              child: const Text('PIN oublié ?'),
+                            ),
+                          ),
+                        ],
                       ),
+                      if (_isSubmitting)
+                        const Positioned.fill(
+                          child: IgnorePointer(
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                  color: AppColors.gold),
+                            ),
+                          ),
+                        ),
                     ],
                   );
                 },
@@ -182,9 +219,19 @@ class _Logo extends StatelessWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.email});
+  const _Header({required this.email, required this.onChangeEmail});
 
   final String email;
+
+  /// Retour à la saisie de l'email — `context.pop()` si cet écran a été
+  /// atteint depuis `LoginEmailPage` (parcours normal), sinon
+  /// `context.go(AppRoutes.loginEmail)` : sur un appareil déjà reconnu,
+  /// `AuthGuard` amène directement ici sans passer par cette page — voir
+  /// `auth_guard.dart` — rien à dépiler dans ce cas (échange du
+  /// 24/09/2026 : impossible de corriger un email mal saisi jusque-là).
+  /// `null` pendant une soumission en cours — désactive le lien plutôt
+  /// que de permettre de quitter l'écran au milieu d'une connexion.
+  final VoidCallback? onChangeEmail;
 
   @override
   Widget build(BuildContext context) {
@@ -203,9 +250,34 @@ class _Header extends StatelessWidget {
               letterSpacing: -0.575),
         ),
         const SizedBox(height: 6),
-        Text(email,
-            style: TextStyle(
-                color: AppColors.white.withValues(alpha: 0.65), fontSize: 13)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Flexible(
+              child: Text(
+                email,
+                style: TextStyle(
+                    color: AppColors.white.withValues(alpha: 0.65),
+                    fontSize: 13),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: onChangeEmail,
+              child: const Text(
+                'Modifier',
+                style: TextStyle(
+                  color: AppColors.gold,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  decoration: TextDecoration.underline,
+                  decorationColor: AppColors.gold,
+                ),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }

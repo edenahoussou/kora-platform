@@ -90,7 +90,8 @@ class AppConfig {
   }
 
   static void init() {
-    const String rawEnv = String.fromEnvironment('ENV', defaultValue: 'dev');
+    const String rawEnv =
+        String.fromEnvironment('ENV', defaultValue: 'staging');
     final Environment env = EnvironmentX.fromString(rawEnv);
 
     bool resolveUseMockHardware(bool defaultValue) {
@@ -112,7 +113,7 @@ class AppConfig {
         _instance = AppConfig._(
           environment: env,
           appName: 'KORA OPS (dev)',
-          apiBaseUrl: 'http://192.168.1.69/kora-ops-web/public/',
+          apiBaseUrl: 'http://192.168.1.71/kora-ops-web/public/',
           enableDebugBanner: true,
           enableLogging: true,
           useMockHardware: resolveUseMockHardware(true),

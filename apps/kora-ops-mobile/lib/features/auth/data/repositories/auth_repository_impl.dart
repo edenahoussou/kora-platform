@@ -149,8 +149,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String currentPin,
     required String newPin,
   }) =>
-      _attempt(() =>
-          _remote.changePin(currentPin: currentPin, newPin: newPin));
+      _attempt(() => _remote.changePin(currentPin: currentPin, newPin: newPin));
 
   @override
   Future<Result<void>> unlockAccount(OtpVerification verification) =>

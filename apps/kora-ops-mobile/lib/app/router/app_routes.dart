@@ -57,6 +57,7 @@ abstract final class AppRoutes {
   /// Alertes opérationnelles du convoyeur (MEZ-97), accessible depuis la
   /// cloche de `NotificationButton` sur tous les écrans.
   static const String notifications = '/notifications';
+  static const String notificationDetail = '/notifications/detail';
 
   /// Formulaire de signalement d'incident (MEZ-98) — accessible depuis
   /// Accueil et Manifeste.

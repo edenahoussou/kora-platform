@@ -366,8 +366,7 @@ class _DelayPromptDialogState extends State<_DelayPromptDialog> {
             foregroundColor: AppColors.onGold,
             disabledBackgroundColor:
                 KoraDialogs._primaryColor.withValues(alpha: 0.5),
-            disabledForegroundColor:
-                AppColors.onGold.withValues(alpha: 0.5),
+            disabledForegroundColor: AppColors.onGold.withValues(alpha: 0.5),
           ),
           onPressed: _isValid
               ? () => Navigator.of(context).pop((

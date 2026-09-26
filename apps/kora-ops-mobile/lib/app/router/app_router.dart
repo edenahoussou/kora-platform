@@ -7,6 +7,7 @@ import 'package:kora_ops_mobile/features/terminal/presentation/cubit/terminal_cu
 import '../../core/widgets/kora_bottom_nav.dart';
 import '../../features/auth/presentation/bloc/auth_flow_bloc.dart';
 import '../../features/auth/presentation/cubit/auth_cubit.dart';
+import '../../features/auth/presentation/pages/change_pin_page.dart';
 import '../../features/auth/presentation/pages/forgot_password_page.dart';
 import '../../features/auth/presentation/pages/login_email_page.dart';
 import '../../features/auth/presentation/pages/new_pin_page.dart';
@@ -21,13 +22,14 @@ import '../../features/home/presentation/pages/accueil_page.dart';
 import '../../features/incidents/presentation/pages/incident_report_page.dart';
 import '../../features/manifeste/presentation/pages/detail_passager_page.dart';
 import '../../features/manifeste/presentation/pages/manifeste_page.dart';
+import '../../features/notifications/domain/entities/ops_notification.dart';
+import '../../features/notifications/presentation/pages/notification_detail_page.dart';
 import '../../features/notifications/presentation/pages/notifications_page.dart';
 import '../../features/onboarding/data/onboarding_store.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/printing/presentation/cubit/printing_cubit.dart';
 import '../../features/printing/presentation/pages/boarding_pdf_preview_page.dart';
 import '../../features/printing/presentation/pages/printer_test_page.dart';
-import '../../features/auth/presentation/pages/change_pin_page.dart';
 import '../../features/profil/presentation/pages/mes_informations_page.dart';
 import '../../features/profil/presentation/pages/preferences_page.dart';
 import '../../features/profil/presentation/pages/profil_page.dart';
@@ -166,6 +168,12 @@ class AppRouter {
         builder: (context, state) => const NotificationsPage(),
       ),
       GoRoute(
+        path: AppRoutes.notificationDetail,
+        builder: (context, state) => NotificationDetailPage(
+          notification: state.extra! as OpsNotification,
+        ),
+      ),
+      GoRoute(
         path: AppRoutes.printerTest,
         builder: (context, state) => BlocProvider<PrintingCubit>(
           create: (_) => getIt<PrintingCubit>(),
@@ -237,8 +245,7 @@ class _ScaffoldWithBottomNav extends StatefulWidget {
   final StatefulNavigationShell navigationShell;
 
   @override
-  State<_ScaffoldWithBottomNav> createState() =>
-      _ScaffoldWithBottomNavState();
+  State<_ScaffoldWithBottomNav> createState() => _ScaffoldWithBottomNavState();
 }
 
 class _ScaffoldWithBottomNavState extends State<_ScaffoldWithBottomNav> {

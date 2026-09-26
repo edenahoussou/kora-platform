@@ -55,7 +55,8 @@ class TrackingSyncEngine {
   /// Enfile une mesure GPS réelle et retourne la position créée (sa
   /// séquence en particulier, pour que l'appelant sache si c'est la
   /// première de la session — voir `TrackingTaskHandler._onFix`).
-  Future<TrackingPosition> enqueueFix(String departureUuid, LocationFix fix) async {
+  Future<TrackingPosition> enqueueFix(
+      String departureUuid, LocationFix fix) async {
     final int sequence = await _local.nextSequence();
     final TrackingPosition position = TrackingPosition(
       positionUuid: _uuid.v4(),
@@ -105,29 +106,26 @@ class TrackingSyncEngine {
     _flushing = true;
 
     try {
-      final List<TrackingPosition> pending = await _local.listPending(departureUuid);
+      final List<TrackingPosition> pending =
+          await _local.listPending(departureUuid);
       if (pending.isEmpty) return;
 
       for (int i = 0; i < pending.length; i += batchChunkSize) {
         final List<TrackingPosition> chunk =
             pending.sublist(i, math.min(i + batchChunkSize, pending.length));
-
-        await _remote.sendBatch(departureUuid: departureUuid, positions: chunk);
-        for (final TrackingPosition position in chunk) {
-          await _local.markSynced(position.positionUuid);
-        }
-        lastError = null; // au moins un lot est passé : la voie est bonne.
+        await _sendChunk(departureUuid, chunk);
       }
 
       await _local.pruneSynced(olderThan: const Duration(days: 2));
     } on DioException catch (error) {
       if (_isNetworkUnreachable(error)) _online = false;
-      // Toute autre erreur (auth, serveur, validation) : les positions
-      // restent en file, retentées au prochain appel — aucune n'est
-      // perdue. `_online` reste vrai : ce n'est pas un problème réseau,
-      // réessayer immédiatement ne servirait à rien tant que la cause
-      // (ex. permission) n'a pas changé, mais bloquer TOUT envoi (comme
-      // le ferait `_online = false`) serait pire — voir _logFailure.
+      // Toute autre erreur (auth, serveur, validation SUR UNE POSITION
+      // ISOLÉE — voir _sendChunk) : les positions restent en file,
+      // retentées au prochain appel — aucune n'est perdue. `_online`
+      // reste vrai : ce n'est pas un problème réseau, réessayer
+      // immédiatement ne servirait à rien tant que la cause (ex.
+      // permission) n'a pas changé, mais bloquer TOUT envoi (comme le
+      // ferait `_online = false`) serait pire — voir _logFailure.
       _logFailure(error);
     } on Object catch (error, stackTrace) {
       // N'importe quelle autre exception (réponse au format inattendu,
@@ -144,6 +142,55 @@ class TrackingSyncEngine {
       lastError = 'Erreur inattendue : $error';
     } finally {
       _flushing = false;
+    }
+  }
+
+  /// Envoie UN lot, et marque chaque position synchronisée en cas de
+  /// succès — voir docstring [flush].
+  ///
+  /// Sur un rejet de validation (HTTP 422) touchant plusieurs positions à
+  /// la fois : contrairement à une coupure réseau, réessayer EXACTEMENT
+  /// le même lot échouera exactement pareil, indéfiniment (constaté le
+  /// 24/09/2026 : un `heading_degrees` à 360° — valide en boussole, hors
+  /// de la plage `[0, 359.99]` attendue côté serveur — bloquait un lot de
+  /// 50 positions en boucle, aucune n'était jamais synchronisée). Plutôt
+  /// que de laisser tout le lot bloqué, on le retente scindé en deux
+  /// moitiés pour ISOLER la ou les positions fautives : les positions
+  /// saines du lot repartent normalement, seule la position réellement en
+  /// cause reste à traiter.
+  ///
+  /// Un lot réduit à UNE SEULE position qui échoue encore en 422 est
+  /// définitivement invalide (le serveur ne l'acceptera jamais telle
+  /// quelle) — elle est marquée synchronisée quand même plutôt que de
+  /// rester bloquée pour de bon : la garder en file bloquerait TOUTES les
+  /// positions mesurées après elle, un compromis bien pire qu'accepter la
+  /// perte de ce point isolé (la trace de l'échec reste dans
+  /// [lastError]/les journaux, voir [_logFailure]).
+  Future<void> _sendChunk(
+      String departureUuid, List<TrackingPosition> chunk) async {
+    try {
+      await _remote.sendBatch(departureUuid: departureUuid, positions: chunk);
+      for (final TrackingPosition position in chunk) {
+        await _local.markSynced(position.positionUuid);
+      }
+      lastError = null; // au moins un lot est passé : la voie est bonne.
+    } on DioException catch (error) {
+      final bool isValidationFailure = error.response?.statusCode == 422;
+
+      if (!isValidationFailure || chunk.length == 1) {
+        if (isValidationFailure) {
+          // Isolée : plus rien à scinder, une nouvelle tentative
+          // donnerait exactement le même refus — voir docstring.
+          _logFailure(error);
+          await _local.markSynced(chunk.single.positionUuid);
+          return;
+        }
+        rethrow; // réseau, auth, serveur : laissé à `flush()`.
+      }
+
+      final int mid = chunk.length ~/ 2;
+      await _sendChunk(departureUuid, chunk.sublist(0, mid));
+      await _sendChunk(departureUuid, chunk.sublist(mid));
     }
   }
 
@@ -174,8 +221,9 @@ class TrackingSyncEngine {
 
   void markOffline() => _online = false;
 
-  Future<int> pendingCount(String departureUuid) =>
-      _local.listPending(departureUuid).then((List<TrackingPosition> l) => l.length);
+  Future<int> pendingCount(String departureUuid) => _local
+      .listPending(departureUuid)
+      .then((List<TrackingPosition> l) => l.length);
 
   bool _isNetworkUnreachable(DioException error) =>
       error.type == DioExceptionType.connectionError ||

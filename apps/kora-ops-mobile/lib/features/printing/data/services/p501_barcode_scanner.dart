@@ -5,11 +5,12 @@ import '../../domain/services/barcode_scanner.dart';
 /// Implémentation matérielle pilotant le scanner intégré du terminal P501
 /// via `MethodChannel`.
 ///
-/// **À faire côté natif** (non fourni par ce scaffold — aucun SDK P501 n'a
-/// été fourni au moment de la génération, voir document.md § Adaptateurs
-/// P501) : enregistrer un `MethodChannel` nommé [channelName] dans
-/// `android/.../MainActivity.kt`, gérer la méthode `scan` et retourner la
-/// chaîne décodée (ou lever une erreur native mappée en `PlatformException`).
+/// Côté natif (`android/.../MainActivity.kt`) : un `BroadcastReceiver`
+/// écoute la diffusion "scan.rcv.message" émise par l'app pré-installée
+/// "Scan Tools" du terminal à l'appui de la gâchette physique — voir la
+/// docstring de `MainActivity` pour le détail du contrat (extras
+/// "barocode"/"length") et le réglage requis côté terminal (Scan Tools →
+/// Settings → Output Mode → "Broadcast Mode").
 class P501BarcodeScanner implements BarcodeScanner {
   P501BarcodeScanner({MethodChannel? channel})
       : _channel = channel ?? const MethodChannel(channelName);

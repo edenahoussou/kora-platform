@@ -40,6 +40,15 @@ kotlin {
     }
 }
 
+dependencies {
+    // ContextCompat.registerReceiver(..., flags) — utilisé par
+    // MainActivity pour le canal natif du scanner P501 (voir sa
+    // docstring). Version explicite plutôt que de compter sur ce que
+    // Flutter apporte transitivement, pour être sûr que cette surcharge
+    // (androidx.core 1.9.0+) est bien disponible.
+    implementation("androidx.core:core-ktx:1.13.1")
+}
+
 flutter {
     source = "../.."
 }

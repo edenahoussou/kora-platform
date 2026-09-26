@@ -251,7 +251,8 @@ void main() {
           ));
     });
 
-    test('rejet même hors ligne : pas de mise en file (contrairement à un '
+    test(
+        'rejet même hors ligne : pas de mise en file (contrairement à un '
         'billet authentique, voir test "hors ligne" plus bas)', () async {
       when(() => qrVerifier.verify('QR-FORGED-OFFLINE'))
           .thenAnswer((_) async => const TicketQrSignatureInvalid());

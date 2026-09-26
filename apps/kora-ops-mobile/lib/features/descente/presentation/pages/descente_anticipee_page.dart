@@ -109,10 +109,9 @@ class _SeatMapView extends StatelessWidget {
   /// `DetailPassagerPage`. Un siège sans passager résolu (donnée
   /// incohérente) n'ouvre rien plutôt que planter.
   void _onSeatTap(BuildContext context, Seat seat) {
-    final Passenger? passenger = passengers
-        .cast<Passenger?>()
-        .firstWhere((Passenger? p) => p?.siege == seat.numero,
-            orElse: () => null);
+    final Passenger? passenger = passengers.cast<Passenger?>().firstWhere(
+        (Passenger? p) => p?.siege == seat.numero,
+        orElse: () => null);
     if (passenger == null) return;
 
     final ticket = MockOpsDataSource.ticketFor(passenger, depart.id);
