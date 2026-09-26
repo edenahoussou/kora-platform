@@ -81,10 +81,11 @@ class DepartureController extends Controller
         }
 
         // Tableau d'exploitation du jour : sans date explicite, on affiche
-        // les départs du jour courant (timezone applicative).
+        // les départs du jour courant dans le fuseau société — now() nu
+        // reste en UTC car ApplyKoraSettings ne touche pas PHP.
         $date = $request->string('date')->trim()->value();
         if ($date === '') {
-            $date = now()->toDateString();
+            $date = now(config('app.timezone'))->toDateString();
         }
         $query->whereDate('departure_date', $date);
 

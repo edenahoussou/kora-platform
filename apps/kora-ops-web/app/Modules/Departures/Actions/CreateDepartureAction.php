@@ -34,9 +34,13 @@ class CreateDepartureAction
                 $conductorId = User::query()->where('uuid', $attributes['conductor_uuid'])->firstOrFail(['id'])->id;
             }
 
-            $departureDateTime = CarbonImmutable::parse($attributes['departure_date'].' '.$attributes['departure_time']);
+            // La saisie est en heure murale du fuseau d'affichage société
+            // (config('app.timezone'), posé par ApplyKoraSettings) — on en
+            // déduit l'instant UTC canonique dans scheduled_at.
+            $timezone = config('app.timezone');
+            $departureDateTime = CarbonImmutable::parse($attributes['departure_date'].' '.$attributes['departure_time'], $timezone);
             $estimatedArrivalAt = $line->estimated_duration_minutes
-                ? $departureDateTime->addMinutes((int) $line->estimated_duration_minutes)
+                ? $departureDateTime->addMinutes((int) $line->estimated_duration_minutes)->utc()
                 : null;
 
             $departure = new Departure([
@@ -44,6 +48,8 @@ class CreateDepartureAction
                 'bus_id' => $bus->id,
                 'departure_date' => $attributes['departure_date'],
                 'departure_time' => $attributes['departure_time'],
+                'scheduled_at' => $departureDateTime,
+                'departure_timezone' => $timezone,
                 'estimated_arrival_at' => $estimatedArrivalAt,
                 'driver_id' => $driverId,
                 'conductor_id' => $conductorId,

@@ -140,7 +140,7 @@ class Departure extends KoraModel
 
         return CarbonImmutable::parse(
             $this->departure_date?->toDateString().' '.substr((string) $this->departure_time, 0, 8),
-            config('app.timezone'),
+            $this->departure_timezone ?? config('app.timezone'),
         );
     }
 

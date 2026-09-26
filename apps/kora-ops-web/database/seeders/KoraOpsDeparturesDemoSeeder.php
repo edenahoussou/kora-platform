@@ -261,8 +261,10 @@ class KoraOpsInternationalToursDemoSeeder extends Seeder
         );
 
         // Immuable quoi qu'en dise la config de l'app : addMinutes() ne modifie jamais $scheduled.
-        $scheduled = CarbonImmutable::parse(now()->modify($when)->toDateString().' '.$time);
-        $arrival = $scheduled->addMinutes((int) $line->estimated_duration_minutes);
+        // L'heure affichée est la murale société (Porto-Novo) — les instants
+        // UTC vont dans scheduled_at / estimated_arrival_at.
+        $scheduled = CarbonImmutable::parse(now('Africa/Porto-Novo')->modify($when)->toDateString().' '.$time, 'Africa/Porto-Novo');
+        $arrival = $scheduled->addMinutes((int) $line->estimated_duration_minutes)->utc();
 
         $departure = Departure::query()->where('bus_id', $bus->id)->where('line_id', $line->id)->first()
             ?? Departure::query()->create([
@@ -270,6 +272,8 @@ class KoraOpsInternationalToursDemoSeeder extends Seeder
                 'bus_id' => $bus->id,
                 'departure_date' => $scheduled->toDateString(),
                 'departure_time' => $time,
+                'scheduled_at' => $scheduled,
+                'departure_timezone' => 'Africa/Porto-Novo',
                 'estimated_arrival_at' => $arrival,
                 'status' => 'scheduled',
             ]);
@@ -278,6 +282,8 @@ class KoraOpsInternationalToursDemoSeeder extends Seeder
         Departure::withoutEvents(fn () => $departure->forceFill([
             'departure_date' => $scheduled->toDateString(),
             'departure_time' => $time,
+            'scheduled_at' => $scheduled,
+            'departure_timezone' => 'Africa/Porto-Novo',
             'estimated_arrival_at' => $arrival,
             'status' => 'scheduled',
             'conductor_id' => $this->conductor->id,

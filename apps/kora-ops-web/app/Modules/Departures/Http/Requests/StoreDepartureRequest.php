@@ -21,7 +21,7 @@ class StoreDepartureRequest extends FormRequest
         return [
             'line_uuid' => ['required', 'uuid', Rule::exists(Line::class, 'uuid')->whereNull('deleted_at')],
             'bus_uuid' => ['required', 'uuid', Rule::exists(Bus::class, 'uuid')->whereNull('deleted_at')],
-            'departure_date' => ['required', 'date', 'after_or_equal:today'],
+            'departure_date' => ['required', 'date', 'after_or_equal:'.today(config('app.timezone'))->toDateString()],
             'departure_time' => ['required', 'date_format:H:i'],
             'driver_uuid' => ['nullable', 'uuid', 'exists:users,uuid'],
             'conductor_uuid' => ['nullable', 'uuid', 'exists:users,uuid'],

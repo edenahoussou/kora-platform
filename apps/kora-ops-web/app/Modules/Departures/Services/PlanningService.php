@@ -210,7 +210,9 @@ class PlanningService
         if ($assessment['state'] !== 'ready') {
             throw ValidationException::withMessages(['publication' => $assessment['blockers'] ?: ['Les conditions de publication ne sont plus réunies.']]);
         }
-        $time = $item->scheduled_at->setTimezone(config('app.timezone'));
+        // Même règle qu'à la publication : heure murale du créneau dans
+        // departure_date/departure_time, instant UTC pour l'arrivée estimée.
+        $local = $item->scheduled_at->setTimezone($item->timezone);
         $item->departure->update([
             'line_id' => $item->line_id,
             'bus_id' => $item->bus_id,
@@ -220,9 +222,9 @@ class PlanningService
             'mechanic_id' => $item->mechanic_id,
             'scheduled_at' => $item->scheduled_at,
             'departure_timezone' => $item->timezone,
-            'departure_date' => $time->toDateString(),
-            'departure_time' => $time->format('H:i:s'),
-            'estimated_arrival_at' => $item->arrival_at->setTimezone(config('app.timezone')),
+            'departure_date' => $local->toDateString(),
+            'departure_time' => $local->format('H:i:s'),
+            'estimated_arrival_at' => $item->arrival_at->utc(),
             'stop_times' => $item->snapshot['stops'],
         ]);
         PriceQuote::query()->where('departure_id', $item->departure_id)->update(['expires_at' => now()]);

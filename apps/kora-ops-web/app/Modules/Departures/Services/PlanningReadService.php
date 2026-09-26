@@ -250,7 +250,7 @@ class PlanningReadService
      */
     public function workspace(array $filters): array
     {
-        $date = CarbonImmutable::parse($filters['date'] ?? now()->toDateString());
+        $date = CarbonImmutable::parse($filters['date'] ?? now(config('app.timezone'))->toDateString());
         $view = $filters['view'] ?? 'week';
         $from = $view === 'week' ? $date->startOfWeek() : ($view === 'month' ? $date->startOfMonth()->startOfWeek() : $date);
         $until = $view === 'week' ? $date->endOfWeek() : ($view === 'month' ? $date->endOfMonth()->endOfWeek() : $date);

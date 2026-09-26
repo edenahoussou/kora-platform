@@ -85,6 +85,26 @@ it('requires a bus for publication then publishes once with local timezone prese
     expect(Departure::count())->toBe(1)->and(Departure::first()->scheduledDepartureAt()->utc()->format('H:i'))->toBe('06:00');
 });
 
+it('stores the slot local wall-clock on the published departure whatever the runtime timezone', function (): void {
+    $programme = programmingProgramme($this);
+    $planning = app(PlanningService::class);
+    $planning->generate($programme, $programme->starts_on, $programme->ends_on, $this->actor);
+    $planning->mutate([['uuid' => $programme->occurrences()->first()->uuid, 'revision' => 1]], 'assign', ['bus_uuid' => $this->bus->uuid], $this->actor);
+    $item = $programme->occurrences()->first()->refresh();
+    $planning->mutate([['uuid' => $item->uuid, 'revision' => $item->revision]], 'publish', [], $this->actor);
+
+    // Créneau 07:00 Africa/Porto-Novo (UTC+1) → instant UTC 06:00. Les
+    // colonnes d'affichage portent l'heure locale du créneau même quand la
+    // publication tourne en console/queue (app.timezone = UTC hors HTTP) ;
+    // estimated_arrival_at reste un instant UTC.
+    $departure = Departure::query()->sole();
+    expect(substr((string) $departure->departure_time, 0, 5))->toBe('07:00')
+        ->and($departure->departure_date->toDateString())->toBe('2026-09-07')
+        ->and($departure->departure_timezone)->toBe('Africa/Porto-Novo')
+        ->and($departure->scheduledDepartureAt()->utc()->format('H:i'))->toBe('06:00')
+        ->and($departure->estimated_arrival_at?->format('H:i'))->toBe('09:00');
+});
+
 it('rejects overlapping resource assignments', function (): void {
     $this->slot['bus_uuid'] = $this->bus->uuid;
     $programme = programmingProgramme($this);

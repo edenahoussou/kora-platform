@@ -121,7 +121,7 @@ class DepartureSearchService
             ->when(
                 $date !== null,
                 fn ($query) => $query->whereDate('departure_date', $date),
-                fn ($query) => $query->where('departure_date', '>=', CarbonImmutable::now()->toDateString()),
+                fn ($query) => $query->where('departure_date', '>=', CarbonImmutable::now(config('app.timezone'))->toDateString()),
             )
             ->where('status', DepartureStatus::Scheduled->value)
             ->whereIn('line_id', $lineIds)

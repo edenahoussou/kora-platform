@@ -14,6 +14,7 @@ use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Ticketing\Models\Ticket;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -69,13 +70,24 @@ class KoraManifestDemoSeeder extends Seeder
             ['composition_id' => $composition->id, 'seat_count' => 8, 'status' => 'active'],
         );
 
+        // Heures murales Porto-Novo → instant UTC dans scheduled_at.
+        $upcomingDate = now('Africa/Porto-Novo')->addDays(2)->toDateString();
+        $departedDate = now('Africa/Porto-Novo')->subDay()->toDateString();
         $upcoming = Departure::query()->firstOrCreate(
-            ['line_id' => $line->id, 'bus_id' => $bus->id, 'departure_date' => now()->addDays(2)->toDateString(), 'departure_time' => '08:00'],
-            ['status' => 'scheduled'],
+            ['line_id' => $line->id, 'bus_id' => $bus->id, 'departure_date' => $upcomingDate, 'departure_time' => '08:00'],
+            [
+                'status' => 'scheduled',
+                'scheduled_at' => CarbonImmutable::parse($upcomingDate.' 08:00', 'Africa/Porto-Novo'),
+                'departure_timezone' => 'Africa/Porto-Novo',
+            ],
         );
         $departed = Departure::query()->firstOrCreate(
-            ['line_id' => $line->id, 'bus_id' => $bus->id, 'departure_date' => now()->subDay()->toDateString(), 'departure_time' => '08:00'],
-            ['status' => 'departed'],
+            ['line_id' => $line->id, 'bus_id' => $bus->id, 'departure_date' => $departedDate, 'departure_time' => '08:00'],
+            [
+                'status' => 'departed',
+                'scheduled_at' => CarbonImmutable::parse($departedDate.' 08:00', 'Africa/Porto-Novo'),
+                'departure_timezone' => 'Africa/Porto-Novo',
+            ],
         );
 
         // 1. Solo passenger, ticket already issued.

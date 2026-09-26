@@ -274,15 +274,18 @@ class PublicationService
                 if ($assessment['state'] !== 'ready') {
                     throw ValidationException::withMessages(['publication' => implode(' ', $assessment['blockers']) ?: 'Un bus doit être affecté avant publication.']);
                 }
-                $time = $entry->scheduled_at->setTimezone(config('app.timezone'));
+                // Les colonnes d'affichage portent l'heure murale du créneau
+                // (son fuseau, pas config('app.timezone') qui vaut UTC en
+                // console/queue — cf. bus:maintain-programmes).
+                $local = $entry->scheduled_at->setTimezone($entry->timezone);
                 $departure = Departure::query()->create([
                     'uuid' => (string) Str::uuid(),
                     'line_id' => $entry->line_id, 'bus_id' => $entry->bus_id,
                     'driver_id' => $entry->driver_id, 'secondary_driver_id' => $entry->secondary_driver_id,
                     'conductor_id' => $entry->conductor_id, 'mechanic_id' => $entry->mechanic_id,
-                    'departure_date' => $time->toDateString(), 'departure_time' => $time->format('H:i:s'),
+                    'departure_date' => $local->toDateString(), 'departure_time' => $local->format('H:i:s'),
                     'scheduled_at' => $entry->scheduled_at, 'departure_timezone' => $entry->timezone,
-                    'estimated_arrival_at' => $entry->arrival_at->setTimezone(config('app.timezone')),
+                    'estimated_arrival_at' => $entry->arrival_at->utc(),
                     'stop_times' => $entry->snapshot['stops'], 'status' => 'scheduled', 'created_by' => $actor->id,
                 ]);
                 $entry->update(['departure_id' => $departure->id, 'revision' => $entry->revision + 1]);
