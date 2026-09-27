@@ -1,148 +1,126 @@
 import type { LucideIcon } from 'lucide-react';
 import {
-    Activity,
-    AlertTriangle,
+    BadgePercent,
     Banknote,
+    Bell,
+    Building2,
     BusFront,
+    ChartLine,
     CircleDollarSign,
-    FileCheck2,
-    Gauge,
-    PackageCheck,
-    ReceiptText,
+    FileBarChart,
+    Package,
+    Receipt,
     Route,
+    Settings,
+    ShieldCheck,
+    Smartphone,
+    Tags,
     Ticket,
+    UserPlus,
+    Wallet,
+    Wrench,
 } from 'lucide-react';
-import { cash, sale } from '@/routes';
-import { index as departures } from '@/routes/departures';
 
 export type MetricTone = 'gold' | 'blue' | 'navy' | 'green';
+export type MetricKey = 'sales' | 'tickets' | 'cash' | 'departures';
 
 export type DashboardMetric = {
-    label: string;
     value: string;
     trend: string;
-    icon: LucideIcon;
-    tone: MetricTone;
     spark: number[];
 };
 
+export type DashboardMetricEntry = DashboardMetric & {
+    key: MetricKey;
+    label: string;
+    icon: LucideIcon;
+    tone: MetricTone;
+};
+
+export type ActivityPoint = {
+    label: string;
+    value: number;
+    isBest: boolean;
+};
+
 export type DashboardActivity = {
+    bucket: 'hour' | 'day';
+    points: ActivityPoint[];
+};
+
+export type PriorityTone = 'urgent' | 'control' | 'success' | 'parcel';
+
+export type PriorityItem = {
+    uuid: string;
     category: string;
     title: string;
     detail: string;
     time: string;
-    icon: LucideIcon;
-    tone: 'urgent' | 'control' | 'success' | 'parcel';
+    tone: PriorityTone;
+    href: string | null;
 };
 
 export type QuickAction = {
     title: string;
     description: string;
-    icon: LucideIcon;
-    href: string;
+    icon: string;
+    href: string | null;
     accent: MetricTone;
 };
 
-export const dashboardMetrics: DashboardMetric[] = [
-    {
-        label: 'Ventes du jour',
-        value: '284 500 FCFA',
-        trend: '+ 12,8 %',
-        icon: Banknote,
-        tone: 'gold',
-        spark: [24, 38, 32, 52, 46, 67],
-    },
-    {
-        label: 'Billets émis',
-        value: '38',
-        trend: '+ 6 aujourd’hui',
-        icon: Ticket,
-        tone: 'blue',
-        spark: [31, 46, 39, 61, 53, 74],
-    },
-    {
-        label: 'Caisse attendue',
-        value: '337 000 FCFA',
-        trend: 'Conforme',
-        icon: CircleDollarSign,
-        tone: 'navy',
-        spark: [42, 38, 49, 57, 53, 64],
-    },
-    {
-        label: 'Départs à venir',
-        value: '7',
-        trend: 'Prochain à 10:30',
-        icon: BusFront,
-        tone: 'green',
-        spark: [22, 36, 42, 34, 55, 48],
-    },
-];
+export type NetworkReadings = {
+    punctuality: string;
+    tracked: string;
+    toWatch: string;
+};
 
-export const weeklyActivity = [58, 73, 62, 84, 77, 91, 68];
+export type HeroAction = {
+    label: string;
+    href: string;
+};
 
-export const weeklyLabels = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+export type DashboardPeriod = {
+    preset: string;
+    from: string;
+    to: string;
+    label: string;
+    bucket: string;
+    timezone: string;
+    comparisonFrom: string;
+    comparisonTo: string;
+};
 
-export const dashboardActivities: DashboardActivity[] = [
-    {
-        category: 'Exploitation',
-        title: 'Départ CTN–PAR retardé',
-        detail: 'Mise à jour il y a 4 min',
-        time: '10:30',
-        icon: AlertTriangle,
-        tone: 'urgent',
-    },
-    {
-        category: 'Finance',
-        title: 'Écart de rapprochement',
-        detail: 'CassKai · 145 000 FCFA',
-        time: '09:54',
-        icon: FileCheck2,
-        tone: 'control',
-    },
-    {
-        category: 'Validé',
-        title: 'Reversement validé',
-        detail: 'KORA POINT Dantokpa',
-        time: '09:21',
-        icon: ReceiptText,
-        tone: 'success',
-    },
-    {
-        category: 'Colis',
-        title: '6 colis à remettre',
-        detail: 'Agence Cotonou Centre',
-        time: '08:48',
-        icon: PackageCheck,
-        tone: 'parcel',
-    },
-];
+/** Libellés, icônes et tons des quatre KPIs — les valeurs arrivent du backend. */
+export const metricCards: Record<
+    MetricKey,
+    { label: string; icon: LucideIcon; tone: MetricTone }
+> = {
+    sales: { label: 'Ventes', icon: Banknote, tone: 'gold' },
+    tickets: { label: 'Billets émis', icon: Ticket, tone: 'blue' },
+    cash: { label: 'Caisse attendue', icon: CircleDollarSign, tone: 'navy' },
+    departures: { label: 'Départs', icon: BusFront, tone: 'green' },
+};
 
-export const quickActions: QuickAction[] = [
-    {
-        title: 'Nouvelle vente',
-        description: 'Émettre un billet en quelques étapes',
-        icon: Ticket,
-        href: sale().url,
-        accent: 'gold',
-    },
-    {
-        title: 'Ma caisse',
-        description: 'Contrôler les encaissements du jour',
-        icon: CircleDollarSign,
-        href: cash().url,
-        accent: 'blue',
-    },
-    {
-        title: 'Départs',
-        description: 'Superviser la cadence du réseau',
-        icon: Route,
-        href: departures().url,
-        accent: 'green',
-    },
-];
+/** Ordre d'affichage des KPIs. */
+export const metricOrder: MetricKey[] = ['sales', 'tickets', 'cash', 'departures'];
 
-export const networkReadings = [
-    { label: 'Ponctualité', value: '91,3 %', icon: Gauge },
-    { label: 'Départs suivis', value: '46', icon: Activity },
-    { label: 'À suivre', value: '5', icon: Route },
-];
+export const quickActionIcons: Record<string, LucideIcon> = {
+    ticket: Ticket,
+    cash: CircleDollarSign,
+    route: Route,
+    'user-plus': UserPlus,
+    shield: ShieldCheck,
+    settings: Settings,
+    terminal: Smartphone,
+    package: Package,
+    fleet: BusFront,
+    wrench: Wrench,
+    report: FileBarChart,
+    chart: ChartLine,
+    alert: Bell,
+    invoice: Receipt,
+    wallet: Wallet,
+    pricing: Tags,
+    promo: BadgePercent,
+    company: Building2,
+};

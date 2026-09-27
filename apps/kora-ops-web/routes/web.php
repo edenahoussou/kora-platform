@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CompanyAccountWebController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PublicLegalController;
 use App\Modules\AssistedBooking\Http\Controllers\AssistedBookingController;
 use App\Modules\Booking\Http\Controllers\CounterSaleController;
@@ -52,7 +53,7 @@ Route::get('tickets/preview/{scenario}', [TicketPreviewController::class, 'show'
 
 Route::middleware(['auth', 'verified'])->group(function () {
     // Dashboard
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // =========================================================
     // V1 MVP — Bus core (pages stubs, to be implemented)

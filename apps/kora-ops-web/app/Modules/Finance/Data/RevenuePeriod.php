@@ -10,7 +10,7 @@ final readonly class RevenuePeriod
     public const TIMEZONE = 'Africa/Porto-Novo';
 
     /** @var list<string> */
-    public const PRESETS = ['this_week', 'this_month', 'last_month', 'last_year', 'custom'];
+    public const PRESETS = ['today', 'this_week', 'this_month', 'last_month', 'last_year', 'custom'];
 
     public function __construct(
         public string $preset,
@@ -32,6 +32,7 @@ final readonly class RevenuePeriod
         $today = ($now ?? CarbonImmutable::now(self::TIMEZONE))->setTimezone(self::TIMEZONE)->startOfDay();
 
         [$start, $end] = match ($preset) {
+            'today' => [$today, $today],
             'this_week' => [$today->startOfWeek(), $today],
             'this_month' => [$today->startOfMonth(), $today],
             'last_month' => [$today->subMonthNoOverflow()->startOfMonth(), $today->startOfMonth()->subDay()],

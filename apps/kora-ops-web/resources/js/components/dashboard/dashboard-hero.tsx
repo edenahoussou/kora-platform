@@ -1,7 +1,17 @@
 import { Link, usePage } from '@inertiajs/react';
-import { ArrowUpRight, BusFront, CircleCheck } from 'lucide-react';
-import { networkReadings } from '@/components/dashboard/dashboard-data';
-import { reports, sale } from '@/routes';
+import {
+    Activity,
+    ArrowUpRight,
+    BusFront,
+    CircleCheck,
+    Gauge,
+    Route,
+} from 'lucide-react';
+import type {
+    HeroAction,
+    NetworkReadings,
+} from '@/components/dashboard/dashboard-data';
+import { reports } from '@/routes';
 import type { Auth } from '@/types/auth';
 
 const LONG_DATE_FORMATTER = new Intl.DateTimeFormat('fr-FR', {
@@ -18,7 +28,18 @@ function greetingFor(hour: number): string {
     return 'Bonsoir';
 }
 
-export function DashboardHero() {
+type DashboardHeroProps = {
+    heroAction: HeroAction;
+    network: NetworkReadings;
+};
+
+const readings = [
+    { key: 'punctuality', label: 'Ponctualité', icon: Gauge },
+    { key: 'tracked', label: 'Départs suivis', icon: Activity },
+    { key: 'toWatch', label: 'À suivre', icon: Route },
+] as const;
+
+export function DashboardHero({ heroAction, network }: DashboardHeroProps) {
     const { auth } = usePage().props as { auth: Auth };
     const user = auth?.user ?? null;
     const now = new Date();
@@ -51,10 +72,10 @@ export function DashboardHero() {
 
                 <div className="mt-6 flex flex-wrap gap-2.5">
                     <Link
-                        href={sale()}
+                        href={heroAction.href}
                         className="group inline-flex min-h-11 items-center gap-2 rounded-[0.75rem] bg-gold px-4 text-[0.75rem] font-extrabold text-[var(--kora)] shadow-[0_10px_24px_rgba(246,176,0,0.2)] transition-transform duration-300 hover:-translate-y-1 focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--kora)]"
                     >
-                        Nouvelle vente
+                        {heroAction.label}
                         <ArrowUpRight className="size-4 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                     </Link>
                     <Link
@@ -92,14 +113,14 @@ export function DashboardHero() {
                 </div>
 
                 <div className="mt-7 grid grid-cols-3 gap-3">
-                    {networkReadings.map(({ label, value, icon: Icon }) => (
+                    {readings.map(({ key, label, icon: Icon }) => (
                         <div
-                            key={label}
+                            key={key}
                             className="border-l border-white/12 pl-3 first:border-l-0 first:pl-0"
                         >
                             <Icon className="mb-2 size-3.5 text-gold" />
                             <strong className="block text-[0.9375rem]">
-                                {value}
+                                {network[key]}
                             </strong>
                             <small className="mt-1 block text-[0.5625rem] text-white/45">
                                 {label}
