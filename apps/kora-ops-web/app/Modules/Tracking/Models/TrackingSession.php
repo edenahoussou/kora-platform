@@ -131,6 +131,17 @@ class TrackingSession extends KoraModel
     }
 
     /**
+     * Dernière position ingérée (toutes statuts confondus, y compris les
+     * heartbeats `gps_unavailable`) — donne notamment la `source` affichée.
+     *
+     * @return BelongsTo<TrackingPosition, $this>
+     */
+    public function lastPosition(): BelongsTo
+    {
+        return $this->belongsTo(TrackingPosition::class, 'last_position_id');
+    }
+
+    /**
      * @param  Builder<TrackingSession>  $query
      * @return Builder<TrackingSession>
      */

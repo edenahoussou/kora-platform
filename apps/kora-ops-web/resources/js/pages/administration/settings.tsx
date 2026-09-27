@@ -822,7 +822,7 @@ export default function SettingsPage({
                         value={String(value(definition.key) ?? '')}
                         configured={Boolean(
                             (snapshot.values as Record<string, unknown>)[
-                                definition.key
+                            definition.key
                             ],
                         )}
                         multiline={definition.multiline}
@@ -857,7 +857,7 @@ export default function SettingsPage({
                     showConfigured={definition.showConfigured}
                     value={
                         value(definition.key) as
-                            string | number | null | undefined
+                        string | number | null | undefined
                     }
                     type={definition.type}
                     suffix={definition.suffix}
@@ -1302,6 +1302,103 @@ export default function SettingsPage({
                         />
                     </div>
                 </SettingsSection>
+                <SettingsSection
+                    title="Suivi de flotte"
+                    description="Seuils de fraîcheur GPS, fenêtres d’ingestion des positions P501 et tolérances de l’itinéraire affiché sur la carte OPS."
+                >
+                    <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                        <SettingsField
+                            label="Position considérée ancienne"
+                            hint="Au-delà, le bus passe du signal « en direct » à « position ancienne »."
+                            value={value('trackingStaleAfterSeconds') as number}
+                            type="number"
+                            suffix="s"
+                            disabled={!permissions.canManage}
+                            error={error('trackingStaleAfterSeconds')}
+                            onChange={(nextValue) => setNumber('trackingStaleAfterSeconds', nextValue)}
+                        />
+                        <SettingsField
+                            label="Terminal hors ligne après"
+                            hint="Sans activité du P501 depuis ce délai, la session est signalée hors ligne."
+                            value={value('trackingTerminalOfflineAfterSeconds') as number}
+                            type="number"
+                            suffix="s"
+                            disabled={!permissions.canManage}
+                            error={error('trackingTerminalOfflineAfterSeconds')}
+                            onChange={(nextValue) => setNumber('trackingTerminalOfflineAfterSeconds', nextValue)}
+                        />
+                        <SettingsField
+                            label="Précision dégradée au-delà de"
+                            hint="Rayon d’incertitude GPS à partir duquel une position est marquée dégradée."
+                            value={value('trackingDegradedAccuracyMeters') as number}
+                            type="number"
+                            suffix="m"
+                            disabled={!permissions.canManage}
+                            error={error('trackingDegradedAccuracyMeters')}
+                            onChange={(nextValue) => setNumber('trackingDegradedAccuracyMeters', nextValue)}
+                        />
+                        <SettingsField
+                            label="Couloir d’itinéraire"
+                            hint="Écart maximal à la polyligne des arrêts avant le badge « Écart détecté »."
+                            value={value('trackingRouteCorridorMeters') as number}
+                            type="number"
+                            suffix="m"
+                            disabled={!permissions.canManage}
+                            error={error('trackingRouteCorridorMeters')}
+                            onChange={(nextValue) => setNumber('trackingRouteCorridorMeters', nextValue)}
+                        />
+                        <SettingsField
+                            label="Historique carte par bus"
+                            hint="Positions récentes exposées par session pour dessiner la trajectoire."
+                            value={value('trackingRecentPositionsLimit') as number}
+                            type="number"
+                            suffix="pts"
+                            disabled={!permissions.canManage}
+                            error={error('trackingRecentPositionsLimit')}
+                            onChange={(nextValue) => setNumber('trackingRecentPositionsLimit', nextValue)}
+                        />
+                        <SettingsField
+                            label="Tolérance dérive d’horloge"
+                            hint="Marge acceptée pour une trame horodatée dans le futur."
+                            value={value('trackingMaxClockSkewSeconds') as number}
+                            type="number"
+                            suffix="s"
+                            disabled={!permissions.canManage}
+                            error={error('trackingMaxClockSkewSeconds')}
+                            onChange={(nextValue) => setNumber('trackingMaxClockSkewSeconds', nextValue)}
+                        />
+                        <SettingsField
+                            label="Âge max d’une position"
+                            hint="Une trame plus ancienne est rejetée à l’ingestion."
+                            value={value('trackingMaxPositionAgeMinutes') as number}
+                            type="number"
+                            suffix="min"
+                            disabled={!permissions.canManage}
+                            error={error('trackingMaxPositionAgeMinutes')}
+                            onChange={(nextValue) => setNumber('trackingMaxPositionAgeMinutes', nextValue)}
+                        />
+                        <SettingsField
+                            label="Positions max par lot"
+                            hint="Taille maximale d’un lot d’ingestion envoyé par un terminal."
+                            value={value('trackingMaxPositionsPerBatch') as number}
+                            type="number"
+                            suffix="pos"
+                            disabled={!permissions.canManage}
+                            error={error('trackingMaxPositionsPerBatch')}
+                            onChange={(nextValue) => setNumber('trackingMaxPositionsPerBatch', nextValue)}
+                        />
+                        <SettingsField
+                            label="Cache dernière position"
+                            hint="TTL du cache de lecture rapide devant la base."
+                            value={value('trackingCacheTtlSeconds') as number}
+                            type="number"
+                            suffix="s"
+                            disabled={!permissions.canManage}
+                            error={error('trackingCacheTtlSeconds')}
+                            onChange={(nextValue) => setNumber('trackingCacheTtlSeconds', nextValue)}
+                        />
+                    </div>
+                </SettingsSection>
                 <details
                     className="group rounded-2xl border border-border bg-card shadow-sm"
                     open={false}
@@ -1407,11 +1504,11 @@ export default function SettingsPage({
                                         Env ·{' '}
                                         {options.environmentLabel
                                             ? options.environmentLabel(
-                                                  value(options.environmentKey),
-                                              )
+                                                value(options.environmentKey),
+                                            )
                                             : String(
-                                                  value(options.environmentKey),
-                                              )}
+                                                value(options.environmentKey),
+                                            )}
                                     </span>
                                 )}
                             </span>
@@ -1761,17 +1858,17 @@ export default function SettingsPage({
                             tips={
                                 group === 'general'
                                     ? [
-                                          {
-                                              title: 'Nom et notifications',
-                                              text: 'Le nom d’affichage est repris dans les messages et les documents générés par KORA.',
-                                          },
-                                          {
-                                              title: 'Fuseau de référence',
-                                              text: 'Conservez Africa/Porto-Novo pour garder les départs et les journaux alignés sur l’exploitation béninoise.',
-                                          },
-                                      ]
+                                        {
+                                            title: 'Nom et notifications',
+                                            text: 'Le nom d’affichage est repris dans les messages et les documents générés par KORA.',
+                                        },
+                                        {
+                                            title: 'Fuseau de référence',
+                                            text: 'Conservez Africa/Porto-Novo pour garder les départs et les journaux alignés sur l’exploitation béninoise.',
+                                        },
+                                    ]
                                     : group === 'operations'
-                                      ? [
+                                        ? [
                                             {
                                                 title: 'Confirmez les impacts',
                                                 text: 'Les délais de vente et de session peuvent modifier immédiatement les parcours en cours.',
@@ -1781,7 +1878,7 @@ export default function SettingsPage({
                                                 text: 'Utilisez un override de ligne lorsque la règle globale ne décrit pas une exploitation particulière.',
                                             },
                                         ]
-                                      : [
+                                        : [
                                             {
                                                 title: 'Testez la configuration enregistrée',
                                                 text: 'Un probe utilise uniquement les valeurs déjà sauvegardées, jamais les champs encore en édition.',

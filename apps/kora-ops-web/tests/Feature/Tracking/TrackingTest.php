@@ -6,6 +6,7 @@ use App\Modules\BusNetwork\Models\Line;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\IdentityAccess\Models\TerminalP501;
+use App\Modules\Settings\Settings\OperationsSettings;
 use App\Modules\Tracking\Data\TrackingLiveState;
 use App\Modules\Tracking\Data\TrackingSessionCloseReason;
 use App\Modules\Tracking\Data\TrackingSessionStatus;
@@ -186,7 +187,10 @@ it('records a GPS-unavailable heartbeat without erasing the last known coordinat
 });
 
 it('flags a low-accuracy position as degraded and reflects it as stale once old enough', function (): void {
-    config(['tracking.degraded_accuracy_meters' => 20, 'tracking.stale_after_seconds' => 60]);
+    app(OperationsSettings::class)->fill([
+        'trackingDegradedAccuracyMeters' => 20,
+        'trackingStaleAfterSeconds' => 60,
+    ])->save();
 
     $w = trkWorld();
     $this->withHeaders(trkHeaders($w['conductor']))->postJson('/api/v1/ops/tracking/positions/batch', [

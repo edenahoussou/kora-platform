@@ -3,8 +3,6 @@
 namespace App\Modules\Tracking\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Tracking\Http\Resources\FleetTrackingResource;
-use App\Modules\Tracking\Models\TrackingSession;
 use App\Modules\Tracking\Services\FleetTrackingQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,15 +35,6 @@ class FleetTrackingController extends Controller
             ->build($user, ['agency' => (string) $request->string('agency')])
             ->get();
 
-        $lastSeenAt = $fleetQuery->terminalLastSeenAt($sessions);
-
-        return response()->json([
-            'data' => $sessions
-                ->map(fn (TrackingSession $session): array => (new FleetTrackingResource(
-                    $session,
-                    $lastSeenAt[$session->terminal_p501_id] ?? null,
-                ))->resolve($request))
-                ->values(),
-        ]);
+        return response()->json(['data' => $fleetQuery->present($sessions)]);
     }
 }

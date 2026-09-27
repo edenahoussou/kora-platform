@@ -290,8 +290,11 @@ it('feeds the priority panel with unread ops notifications', function (): void {
         'message' => 'Deux scans sur le même siège',
         'occurred_at' => now(),
     ]);
-    OpsNotification::create([
-        'uuid' => (string) Str::uuid(),
+    $user->notifications()->create([
+        'id' => (string) Str::uuid(),
+        'type' => OpsNotification::class,
+        'data' => ['type' => 'scan_conflict'],
+        'audience' => 'ops',
         'event_id' => $event->id,
         'user_id' => $user->id,
     ]);

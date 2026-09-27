@@ -2,6 +2,7 @@
 
 namespace App\Modules\Tracking\Services;
 
+use App\Modules\Settings\Settings\OperationsSettings;
 use App\Modules\Tracking\Models\TrackingSession;
 use Illuminate\Support\Facades\Cache;
 
@@ -28,7 +29,7 @@ class TrackingPositionCache
     {
         return Cache::remember(
             $this->key($session),
-            (int) config('tracking.cache_ttl_seconds', 600),
+            app(OperationsSettings::class)->trackingCacheTtlSeconds,
             fn (): array => $this->snapshot($session),
         );
     }
@@ -38,7 +39,7 @@ class TrackingPositionCache
         Cache::put(
             $this->key($session),
             $this->snapshot($session),
-            (int) config('tracking.cache_ttl_seconds', 600),
+            app(OperationsSettings::class)->trackingCacheTtlSeconds,
         );
     }
 

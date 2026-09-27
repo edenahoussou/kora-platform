@@ -2,6 +2,7 @@
 
 namespace App\Modules\Tracking\Http\Requests;
 
+use App\Modules\Settings\Settings\OperationsSettings;
 use App\Modules\Tracking\Data\TrackingPositionSource;
 use App\Modules\Tracking\Data\TrackingPositionStatus;
 use Illuminate\Foundation\Http\FormRequest;
@@ -25,7 +26,7 @@ class IngestTrackingPositionsRequest extends FormRequest
      */
     public function rules(): array
     {
-        $max = (int) config('tracking.max_positions_per_batch', 200);
+        $max = app(OperationsSettings::class)->trackingMaxPositionsPerBatch;
 
         return [
             'departure_uuid' => ['required', 'uuid'],

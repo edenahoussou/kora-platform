@@ -12,7 +12,7 @@ import {
     Ticket,
     Wallet,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { usePermissions } from '@/hooks/use-permissions';
@@ -122,6 +122,11 @@ const navItems: NavEntry[] = [
                 title: 'Départs',
                 href: '/departures',
                 permission: 'departures.view',
+            },
+            {
+                title: 'Suivi de flotte',
+                href: '/operations/fleet-tracking',
+                permission: ['tracking.view-agency', 'tracking.view-network'],
             },
             {
                 title: 'Lignes & arrêts',
@@ -257,6 +262,39 @@ export function KoraSidebar({
     const { can, canAny } = usePermissions();
     const [openGroups, setOpenGroups] = useState<string[]>([]);
 
+    // La sidebar est remontée à chaque visite Inertia : on restaure les
+    // groupes ouverts manuellement. Différé d'un tick pour rester hors du
+    // rendu d'hydration (SSR → localStorage = mismatch sinon), et le
+    // groupe de la page active est déjà forcé ouvert via `hasActiveChild`.
+    useEffect(() => {
+        const restore = setTimeout(() => {
+            try {
+                const saved = JSON.parse(
+                    localStorage.getItem('kora-sidebar-groups') ?? '[]',
+                );
+
+                if (Array.isArray(saved) && saved.length > 0) {
+                    setOpenGroups(saved.filter((t) => typeof t === 'string'));
+                }
+            } catch {
+                // localStorage indisponible ou JSON corrompu : navigation simple.
+            }
+        }, 0);
+
+        return () => clearTimeout(restore);
+    }, []);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem(
+                'kora-sidebar-groups',
+                JSON.stringify(openGroups),
+            );
+        } catch {
+            // Stockage indisponible : l'état vit juste en mémoire.
+        }
+    }, [openGroups]);
+
     const canAccess = (permission: NavPermission): boolean => {
         if (Array.isArray(permission)) {
             return canAny(permission);
@@ -372,10 +410,14 @@ export function KoraSidebar({
                     const active = isActive(item.href);
 
                     if (item.children) {
-                        const isOpen = openGroups.includes(item.title);
                         const hasActiveChild = item.children.some((c) =>
                             isActive(c.href),
                         );
+                        // Le groupe contenant la page active reste toujours
+                        // déplié — le repère "où suis-je" ne doit jamais
+                        // disparaître après un reload ou un remount.
+                        const isOpen =
+                            openGroups.includes(item.title) || hasActiveChild;
 
                         return (
                             <div key={item.title} className="mt-1.5">

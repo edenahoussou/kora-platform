@@ -47,6 +47,8 @@ The PostgreSQL workflow creates a temporary `kora_test_*` database, runs migrati
 
 Use PostgreSQL locally with `.env`; keep `.env.example` generic. Never commit real passwords, payment credentials, MECeF credentials, Firebase keys, or P501 device secrets.
 
+**Operational parameters live in settings groups, not env files.** Any tunable tied to operations or tracking (thresholds, delays, tolerances, limits, ingestion windows) must be a persisted `Settings` property (`app/Modules/Settings/Settings/`), editable from the KORA OPS settings screen and audited — never a `config()` key or env variable. See `../../CONTEXT.md` ("Paramétrage runtime").
+
 ## Ticket QR Signing (Ed25519)
 
 Ticket QR codes are signed with **Ed25519 asymmetric cryptography** via libsodium (`sodium_crypto_sign_detached`). The server holds the private key and signs; the KORA P501 boarding app holds only the public key and verifies offline. Even if the P501 device is compromised, no one can forge tickets without the private key.

@@ -30,6 +30,7 @@ use App\Modules\Payments\Http\Controllers\AgencyPaymentAccountController;
 use App\Modules\Ticketing\Http\Controllers\TicketIndexController;
 use App\Modules\Ticketing\Http\Controllers\TicketPreviewController;
 use App\Modules\Ticketing\Http\Controllers\TicketViewController;
+use App\Modules\Tracking\Http\Controllers\FleetTrackingPageController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -134,6 +135,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('departures/{departure:uuid}/close-no-shows', [DepartureController::class, 'closeNoShows'])->name('departures.close-no-shows');
     Route::post('departures/{departure:uuid}/reverse-boarding', [DepartureController::class, 'reverseBoarding'])->name('departures.reverse-boarding');
     Route::inertia('boarding', 'boarding')->name('boarding');
+    Route::get('operations/fleet-tracking', [FleetTrackingPageController::class, 'index'])
+        ->name('operations.fleet-tracking');
     // Note : pas de page « liste de manifestes » — le manifeste d'un départ
     // s'ouvre depuis la fiche départ (bouton Manifeste → manifest.show).
     Route::get('manifest/reservations/{reservation:uuid}', [ManifestController::class, 'reservation'])->name('manifest.reservations.show');

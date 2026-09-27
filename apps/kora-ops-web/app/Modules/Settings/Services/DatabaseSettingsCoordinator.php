@@ -190,6 +190,15 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
                 'passengerDepartureReminderHours' => ['required', 'array', 'min:1', 'max:5'],
                 'passengerDepartureReminderHours.*' => ['required', 'integer', 'min:1', 'max:720'],
                 'passengerDelayThresholdMinutes' => ['required', 'integer', 'min:1', 'max:10080'],
+                'trackingStaleAfterSeconds' => ['required', 'integer', 'min:10', 'max:3600'],
+                'trackingTerminalOfflineAfterSeconds' => ['required', 'integer', 'min:30', 'max:86400'],
+                'trackingDegradedAccuracyMeters' => ['required', 'integer', 'min:1', 'max:10000'],
+                'trackingRouteCorridorMeters' => ['required', 'integer', 'min:50', 'max:50000'],
+                'trackingRecentPositionsLimit' => ['required', 'integer', 'min:0', 'max:500'],
+                'trackingMaxClockSkewSeconds' => ['required', 'integer', 'min:0', 'max:3600'],
+                'trackingMaxPositionAgeMinutes' => ['required', 'integer', 'min:1', 'max:1440'],
+                'trackingMaxPositionsPerBatch' => ['required', 'integer', 'min:1', 'max:1000'],
+                'trackingCacheTtlSeconds' => ['required', 'integer', 'min:0', 'max:86400'],
             ];
         }
 

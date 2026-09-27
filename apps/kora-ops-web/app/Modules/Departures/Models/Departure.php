@@ -8,6 +8,7 @@ use App\Modules\Booking\Models\ReservationSegment;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\Departures\Data\DepartureStatus;
+use App\Modules\FleetLite\Models\Incident;
 use App\Modules\Notifications\Observers\DepartureOpsNotificationObserver;
 use App\Modules\Support\Models\KoraModel;
 use App\Modules\Tracking\Observers\TrackingSessionObserver;
@@ -130,6 +131,12 @@ class Departure extends KoraModel
     public function plannedOccurrence(): HasOne
     {
         return $this->hasOne(PlannedDeparture::class, 'departure_id');
+    }
+
+    /** @return HasMany<Incident, $this> */
+    public function incidents(): HasMany
+    {
+        return $this->hasMany(Incident::class);
     }
 
     public function scheduledDepartureAt(): CarbonImmutable
