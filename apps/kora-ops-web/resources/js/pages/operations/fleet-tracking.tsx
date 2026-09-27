@@ -8,20 +8,17 @@ import {
     Radio,
     RefreshCw,
     Search,
-    Sparkles,
     SquareSplitHorizontal,
     Table as TableIcon,
     X,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { toast } from 'sonner';
 import { KoraTooltip } from '@/components/kora-tooltip';
-import { FleetMap } from '@/components/tracking/fleet-map';
 import type { FleetMapCommand } from '@/components/tracking/fleet-map';
 import { FleetSidePanel } from '@/components/tracking/fleet-side-panel';
 import { FleetTrackingTable } from '@/components/tracking/fleet-tracking-table';
 import { FleetVehicleDetail } from '@/components/tracking/fleet-vehicle-detail';
-import { MOCK_FLEET_SESSIONS } from '@/components/tracking/mock-tracking-data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -39,8 +36,16 @@ import type {
     TrackingIncident,
 } from '@/types/tracking';
 
+// Leaflet touche `window` au chargement : la carte n'est jamais
+// importée côté SSR — le chunk est résolu au premier rendu client.
+const FleetMap = lazy(() =>
+    import('@/components/tracking/fleet-map').then((module) => ({
+        default: module.FleetMap,
+    })),
+);
+
 export default function FleetTrackingPage({
-    sessions: initialSessions = [],
+    sessions = [],
     lines = [],
     agencies = [],
     canViewNetwork = false,
@@ -53,17 +58,6 @@ export default function FleetTrackingPage({
     const [viewMode, setViewMode] = useState<'hybrid' | 'map' | 'table'>(
         initialFilters.view || 'hybrid',
     );
-
-    // Data source mode: 'api' or 'demo'
-    const [dataSource, setDataSource] = useState<'api' | 'demo'>(
-        initialSessions.length > 0 ? 'api' : 'demo',
-    );
-
-    // Demo sessions state
-    const [demoSessions, setDemoSessions] = useState<FleetTrackingSession[]>(MOCK_FLEET_SESSIONS);
-
-    // Active sessions list based on data source
-    const sessions = dataSource === 'api' ? initialSessions : demoSessions;
 
     // Selected session for detail panel
     const [selectedSessionUuid, setSelectedSessionUuid] = useState<string | null>(null);
@@ -88,6 +82,14 @@ export default function FleetTrackingPage({
     // Dark mode detection
     const [isDarkMode, setIsDarkMode] = useState(false);
 
+    // `false` côté serveur et à l'hydratation, `true` ensuite — garde la
+    // carte (Leaflet) hors du graphe SSR sans risque de mismatch.
+    const isHydrated = useSyncExternalStore(
+        () => () => { },
+        () => true,
+        () => false,
+    );
+
     useEffect(() => {
         const checkDark = () => {
             setIsDarkMode(document.documentElement.classList.contains('dark'));
@@ -105,75 +107,9 @@ export default function FleetTrackingPage({
         return () => observer.disconnect();
     }, []);
 
-    // Switch data source
-    const handleSwitchDataSource = (source: 'api' | 'demo') => {
-        setDataSource(source);
-
-        if (source === 'demo') {
-            toast.info('Mode simulation activé : 6 véhicules virtuels KORA BUS.');
-        } else {
-            toast.info(`Mode API en direct : ${initialSessions.length} session(s) active(s).`);
-        }
-    };
-
-    // Live simulation tick effect (moves simulated buses slightly)
+    // Auto-polling des positions réelles
     useEffect(() => {
-        if (dataSource !== 'demo') {
-            return;
-        }
-
-        const interval = setInterval(() => {
-            setDemoSessions((prev) =>
-                prev.map((s) => {
-                    if (s.state !== 'live' || !s.position?.latitude || !s.position?.longitude) {
-                        return s;
-                    }
-
-                    const headingRad = ((s.position.heading_degrees ?? 0) * Math.PI) / 180;
-                    const deltaLat = Math.cos(headingRad) * 0.0006;
-                    const deltaLng = Math.sin(headingRad) * 0.0006;
-
-                    const newLat = Number((s.position.latitude + deltaLat).toFixed(5));
-                    const newLng = Number((s.position.longitude + deltaLng).toFixed(5));
-                    const newRecordedAt = new Date().toISOString();
-
-                    const newHistory = [
-                        {
-                            uuid: `hist-${Date.now()}`,
-                            latitude: s.position.latitude,
-                            longitude: s.position.longitude,
-                            speed_kmh: s.position.speed_kmh,
-                            heading_degrees: s.position.heading_degrees,
-                            accuracy_meters: s.position.accuracy_meters,
-                            recorded_at: s.position.recorded_at,
-                            source: s.position.source ?? 'gps',
-                        },
-                        ...(s.recent_positions ?? []).slice(0, 9),
-                    ];
-
-                    return {
-                        ...s,
-                        position: {
-                            ...s.position,
-                            latitude: newLat,
-                            longitude: newLng,
-                            recorded_at: newRecordedAt,
-                            age_seconds: 5,
-                        },
-                        recent_positions: newHistory,
-                    };
-                }),
-            );
-
-            setLastSyncTime(new Date());
-        }, 8000);
-
-        return () => clearInterval(interval);
-    }, [dataSource]);
-
-    // Auto-polling for real API data
-    useEffect(() => {
-        if (dataSource !== 'api' || pollingIntervalMs <= 0) {
+        if (pollingIntervalMs <= 0) {
             return;
         }
 
@@ -189,29 +125,20 @@ export default function FleetTrackingPage({
         }, pollingIntervalMs);
 
         return () => clearInterval(interval);
-    }, [dataSource, pollingIntervalMs]);
+    }, [pollingIntervalMs]);
 
     // Manual Refresh
     const handleManualRefresh = () => {
         setIsRefreshing(true);
 
-        if (dataSource === 'api') {
-            router.reload({
-                only: ['sessions'],
-                onFinish: () => {
-                    setIsRefreshing(false);
-                    setLastSyncTime(new Date());
-                    toast.success('Données de flotte rafraîchies.');
-                },
-            });
-        } else {
-            setTimeout(() => {
-                setDemoSessions([...MOCK_FLEET_SESSIONS]);
+        router.reload({
+            only: ['sessions'],
+            onFinish: () => {
                 setIsRefreshing(false);
                 setLastSyncTime(new Date());
-                toast.success('Simulation réinitialisée.');
-            }, 300);
-        }
+                toast.success('Données de flotte rafraîchies.');
+            },
+        });
     };
 
     // Filtered Sessions
@@ -266,11 +193,11 @@ export default function FleetTrackingPage({
         const avgSpeed =
             movingBuses.length > 0
                 ? Math.round(
-                      movingBuses.reduce(
-                          (acc, s) => acc + (s.position?.speed_kmh ?? 0),
-                          0,
-                      ) / movingBuses.length,
-                  )
+                    movingBuses.reduce(
+                        (acc, s) => acc + (s.position?.speed_kmh ?? 0),
+                        0,
+                    ) / movingBuses.length,
+                )
                 : 0;
 
         return { total, live, stale, alert, avgSpeed };
@@ -319,6 +246,31 @@ export default function FleetTrackingPage({
         );
     }, [sessions, selectedSessionUuid]);
 
+    const mapSkeleton = (
+        <div className="flex h-full w-full items-center justify-center bg-muted/40">
+            <MapIcon className="h-6 w-6 animate-pulse text-muted-foreground/40" />
+        </div>
+    );
+
+    const renderFleetMap = (className: string) =>
+        isHydrated ? (
+            <Suspense fallback={mapSkeleton}>
+                <FleetMap
+                    sessions={filteredSessions}
+                    selectedSessionUuid={selectedSessionUuid}
+                    onSelectSession={handleSelectSession}
+                    osmTileUrl={mapConfig?.osm?.tileUrl}
+                    osmAttribution={mapConfig?.osm?.attribution}
+                    isDarkMode={isDarkMode}
+                    mapCommand={mapCommand}
+                    onMapCommandHandled={() => setMapCommand(null)}
+                    className={className}
+                />
+            </Suspense>
+        ) : (
+            mapSkeleton
+        );
+
     return (
         <>
             <Head title="Suivi de flotte — Exploitation" />
@@ -336,12 +288,6 @@ export default function FleetTrackingPage({
                         </div>
                         <h1 className="text-[1.8125rem] font-extrabold tracking-[-0.035em] text-foreground flex items-center gap-3">
                             Suivi de flotte
-                            {dataSource === 'demo' && (
-                                <span className="inline-flex items-center gap-1.5 rounded-full bg-gold/15 border border-gold/30 px-3 py-0.5 text-xs font-black tracking-wide text-gold">
-                                    <Sparkles className="size-3 text-gold" />
-                                    Mode Démo UI
-                                </span>
-                            )}
                         </h1>
                         <p className="mt-1 text-xs text-muted-foreground max-w-2xl">
                             Supervision télémétrique en direct des bus en circulation, de leur vitesse, cap et fraîcheur GPS.
@@ -350,35 +296,6 @@ export default function FleetTrackingPage({
 
                     {/* View Switcher & Action Controls */}
                     <div className="flex flex-wrap items-center gap-2.5">
-                        {/* Simulation / API Switcher */}
-                        <div className="flex items-center rounded-xl border border-border/70 bg-card p-1 shadow-sm">
-                            <button
-                                type="button"
-                                onClick={() => handleSwitchDataSource('api')}
-                                className={cn(
-                                    'rounded-lg px-2.5 py-1 text-xs font-bold transition-all',
-                                    dataSource === 'api'
-                                        ? 'bg-primary text-white shadow-sm'
-                                        : 'text-muted-foreground hover:text-foreground',
-                                )}
-                            >
-                                API Directe
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => handleSwitchDataSource('demo')}
-                                className={cn(
-                                    'rounded-lg px-2.5 py-1 text-xs font-bold transition-all flex items-center gap-1',
-                                    dataSource === 'demo'
-                                        ? 'bg-gold text-kora font-black shadow-sm'
-                                        : 'text-muted-foreground hover:text-foreground',
-                                )}
-                            >
-                                <Sparkles className="size-3" />
-                                Démo Ouest-Afrique
-                            </button>
-                        </div>
-
                         {/* View Switcher Buttons */}
                         <div className="flex items-center rounded-xl border border-border/70 bg-card p-1 shadow-sm">
                             <button
@@ -429,7 +346,10 @@ export default function FleetTrackingPage({
 
                         {/* Sync Time & Refresh Button */}
                         <div className="flex items-center gap-2">
-                            <span className="text-[0.625rem] text-muted-foreground hidden lg:inline font-mono">
+                            <span
+                                className="text-[0.625rem] text-muted-foreground hidden lg:inline font-mono"
+                                suppressHydrationWarning
+                            >
                                 Synchro : {lastSyncTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                             </span>
 
@@ -737,36 +657,40 @@ export default function FleetTrackingPage({
                                 onToggleCollapse={() => setSidePanelCollapsed((prev) => !prev)}
                             />
 
-                            <div className="flex-1 h-full min-w-0">
-                                <FleetMap
-                                    sessions={filteredSessions}
-                                    selectedSessionUuid={selectedSessionUuid}
-                                    onSelectSession={handleSelectSession}
-                                    osmTileUrl={mapConfig?.osm?.tileUrl}
-                                    osmAttribution={mapConfig?.osm?.attribution}
-                                    isDarkMode={isDarkMode}
-                                    mapCommand={mapCommand}
-                                    onMapCommandHandled={() => setMapCommand(null)}
-                                    className="border-0 rounded-none h-full"
-                                />
+                            <div className="relative flex-1 h-full min-w-0">
+                                {sessions.length === 0 && (
+                                    <div className="pointer-events-none absolute inset-0 z-[410] flex items-center justify-center p-6">
+                                        <div className="rounded-2xl border border-border/70 bg-background/90 px-6 py-4 text-center shadow-xl backdrop-blur">
+                                            <p className="text-sm font-bold text-foreground">
+                                                Aucun bus en circulation
+                                            </p>
+                                            <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+                                                Une session de suivi s'ouvre automatiquement au départ effectif d'un bus dont le terminal P501 est actif.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                                {renderFleetMap('h-full rounded-none border-0')}
                             </div>
                         </div>
                     )}
 
                     {/* View: Full Map */}
                     {viewMode === 'map' && (
-                        <div className="w-full h-[640px] lg:h-[720px] rounded-2xl overflow-hidden border border-border/60 shadow-sm">
-                            <FleetMap
-                                sessions={filteredSessions}
-                                selectedSessionUuid={selectedSessionUuid}
-                                onSelectSession={handleSelectSession}
-                                osmTileUrl={mapConfig?.osm?.tileUrl}
-                                osmAttribution={mapConfig?.osm?.attribution}
-                                isDarkMode={isDarkMode}
-                                mapCommand={mapCommand}
-                                onMapCommandHandled={() => setMapCommand(null)}
-                                className="h-full border-0"
-                            />
+                        <div className="relative w-full h-[640px] lg:h-[720px] rounded-2xl overflow-hidden border border-border/60 shadow-sm">
+                            {sessions.length === 0 && (
+                                <div className="pointer-events-none absolute inset-0 z-[410] flex items-center justify-center p-6">
+                                    <div className="rounded-2xl border border-border/70 bg-background/90 px-6 py-4 text-center shadow-xl backdrop-blur">
+                                        <p className="text-sm font-bold text-foreground">
+                                            Aucun bus en circulation
+                                        </p>
+                                        <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+                                            Une session de suivi s'ouvre automatiquement au départ effectif d'un bus dont le terminal P501 est actif.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                            {renderFleetMap('h-full border-0')}
                         </div>
                     )}
 

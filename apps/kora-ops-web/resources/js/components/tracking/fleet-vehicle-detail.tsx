@@ -167,6 +167,8 @@ export function FleetVehicleDetail({
 
     const pos = session.position;
     const history = session.recent_positions ?? [];
+    // L'API borne déjà la série ; le drawer n'en montre que les 10 plus récents.
+    const visibleHistory = history.slice(0, 10);
     const plannedStops = session.planned_stops;
     const adherence = session.route_adherence;
     const incidents = session.incidents;
@@ -210,11 +212,11 @@ export function FleetVehicleDetail({
         icon: typeof User;
         member: TrackingCrewMember | null | undefined;
     }> = [
-        { key: 'driver', label: 'Chauffeur principal', icon: User, member: crew?.driver },
-        { key: 'secondary_driver', label: 'Chauffeur secondaire', icon: Users, member: crew?.secondary_driver },
-        { key: 'conductor', label: 'Convoyeur', icon: UserCheck, member: crew?.conductor },
-        { key: 'mechanic', label: 'Mécanicien', icon: Wrench, member: crew?.mechanic },
-    ];
+            { key: 'driver', label: 'Chauffeur principal', icon: User, member: crew?.driver },
+            { key: 'secondary_driver', label: 'Chauffeur secondaire', icon: Users, member: crew?.secondary_driver },
+            { key: 'conductor', label: 'Convoyeur', icon: UserCheck, member: crew?.conductor },
+            { key: 'mechanic', label: 'Mécanicien', icon: Wrench, member: crew?.mechanic },
+        ];
 
     const handleCopyCoords = () => {
         if (!pos?.latitude || !pos?.longitude) {
@@ -334,26 +336,26 @@ export function FleetVehicleDetail({
                                             }
                                         >
                                             <div className="p-3.5 space-y-1 cursor-help">
-                                            <span className="text-[0.625rem] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1 underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">
-                                                <Gauge className="size-3 text-digital" />
-                                                Vitesse
-                                            </span>
-                                            <div className="flex items-baseline gap-1">
-                                                <span className="text-2xl font-black font-mono tracking-tight text-foreground">
-                                                    {pos.speed_kmh !== null ? Math.round(pos.speed_kmh) : 0}
+                                                <span className="text-[0.625rem] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1 underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">
+                                                    <Gauge className="size-3 text-digital" />
+                                                    Vitesse
                                                 </span>
-                                                <span className="text-xs font-bold text-muted-foreground">
-                                                    km/h
-                                                </span>
-                                            </div>
-                                            <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden mt-1.5">
-                                                <div
-                                                    className="bg-digital h-full rounded-full transition-all duration-500"
-                                                    style={{
-                                                        width: `${Math.min(100, ((pos.speed_kmh ?? 0) / 100) * 100)}%`,
-                                                    }}
-                                                />
-                                            </div>
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-2xl font-black font-mono tracking-tight text-foreground">
+                                                        {pos.speed_kmh !== null ? Math.round(pos.speed_kmh) : 0}
+                                                    </span>
+                                                    <span className="text-xs font-bold text-muted-foreground">
+                                                        km/h
+                                                    </span>
+                                                </div>
+                                                <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden mt-1.5">
+                                                    <div
+                                                        className="bg-digital h-full rounded-full transition-all duration-500"
+                                                        style={{
+                                                            width: `${Math.min(100, ((pos.speed_kmh ?? 0) / 100) * 100)}%`,
+                                                        }}
+                                                    />
+                                                </div>
                                             </div>
                                         </KoraTooltip>
 
@@ -368,18 +370,18 @@ export function FleetVehicleDetail({
                                             }
                                         >
                                             <div className="p-3.5 space-y-1 cursor-help">
-                                            <span className="text-[0.625rem] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1 underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">
-                                                <Navigation className="size-3 text-gold" />
-                                                Cap
-                                            </span>
-                                            <div className="flex items-baseline gap-1">
-                                                <span className="text-lg font-black font-mono tracking-tight text-foreground">
-                                                    {formatHeadingText(pos.heading_degrees)}
+                                                <span className="text-[0.625rem] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1 underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">
+                                                    <Navigation className="size-3 text-gold" />
+                                                    Cap
                                                 </span>
-                                            </div>
-                                            <p className="text-[0.625rem] text-muted-foreground truncate">
-                                                Direction de progression
-                                            </p>
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-lg font-black font-mono tracking-tight text-foreground">
+                                                        {formatHeadingText(pos.heading_degrees)}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[0.625rem] text-muted-foreground truncate">
+                                                    Direction de progression
+                                                </p>
                                             </div>
                                         </KoraTooltip>
                                     </div>
@@ -400,29 +402,28 @@ export function FleetVehicleDetail({
                                             }
                                         >
                                             <div className="p-3.5 space-y-1 cursor-help">
-                                            <span className="text-[0.625rem] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1 underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">
-                                                <Radio className="size-3 text-emerald-500" />
-                                                Précision
-                                            </span>
-                                            <div className="flex items-baseline gap-1.5">
-                                                <span className="text-lg font-black font-mono text-foreground">
-                                                    {pos.accuracy_meters !== null
-                                                        ? `± ${pos.accuracy_meters} m`
-                                                        : '—'}
+                                                <span className="text-[0.625rem] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1 underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">
+                                                    <Radio className="size-3 text-emerald-500" />
+                                                    Précision
                                                 </span>
-                                                <span
-                                                    className={`rounded px-1.5 py-0.5 text-[0.5625rem] font-extrabold uppercase ${
-                                                        pos.quality === 'accurate'
+                                                <div className="flex items-baseline gap-1.5">
+                                                    <span className="text-lg font-black font-mono text-foreground">
+                                                        {pos.accuracy_meters !== null
+                                                            ? `± ${pos.accuracy_meters} m`
+                                                            : '—'}
+                                                    </span>
+                                                    <span
+                                                        className={`rounded px-1.5 py-0.5 text-[0.5625rem] font-extrabold uppercase ${pos.quality === 'accurate'
                                                             ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
                                                             : 'bg-amber-500/10 text-amber-700 dark:text-amber-400'
-                                                    }`}
-                                                >
-                                                    {pos.quality === 'accurate' ? 'Optimal' : 'Dégradé'}
-                                                </span>
-                                            </div>
-                                            <p className="text-[0.625rem] text-muted-foreground">
-                                                Incertitude satellite
-                                            </p>
+                                                            }`}
+                                                    >
+                                                        {pos.quality === 'accurate' ? 'Optimal' : 'Dégradé'}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[0.625rem] text-muted-foreground">
+                                                    Incertitude satellite
+                                                </p>
                                             </div>
                                         </KoraTooltip>
 
@@ -438,18 +439,18 @@ export function FleetVehicleDetail({
                                             }
                                         >
                                             <div className="p-3.5 space-y-1 cursor-help">
-                                            <span className="text-[0.625rem] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1 underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">
-                                                <Clock className="size-3 text-amber-500" />
-                                                Fraîcheur
-                                            </span>
-                                            <div className="flex items-baseline gap-1">
-                                                <span className="text-base font-black text-foreground">
-                                                    {formatAge(pos.age_seconds)}
+                                                <span className="text-[0.625rem] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1 underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">
+                                                    <Clock className="size-3 text-amber-500" />
+                                                    Fraîcheur
                                                 </span>
-                                            </div>
-                                            <p className="text-[0.625rem] text-muted-foreground">
-                                                Dernière trame reçue
-                                            </p>
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-base font-black text-foreground">
+                                                        {formatAge(pos.age_seconds)}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[0.625rem] text-muted-foreground">
+                                                    Dernière trame reçue
+                                                </p>
                                             </div>
                                         </KoraTooltip>
                                     </div>
@@ -530,21 +531,21 @@ export function FleetVehicleDetail({
                                         className={cn(
                                             'flex items-center gap-2.5 border-b border-border/40 px-3.5 py-2.5',
                                             adherence.status === 'deviation' &&
-                                                'bg-amber-500/5 dark:bg-amber-500/10',
+                                            'bg-amber-500/5 dark:bg-amber-500/10',
                                             adherence.status === 'on_route' &&
-                                                'bg-emerald-500/5 dark:bg-emerald-500/10',
+                                            'bg-emerald-500/5 dark:bg-emerald-500/10',
                                         )}
                                     >
                                         <AdherenceIcon
                                             className={cn(
                                                 'size-4 shrink-0',
                                                 adherence.status === 'on_route' &&
-                                                    'text-emerald-600 dark:text-emerald-400',
+                                                'text-emerald-600 dark:text-emerald-400',
                                                 adherence.status === 'deviation' &&
-                                                    'text-amber-600 dark:text-amber-400',
+                                                'text-amber-600 dark:text-amber-400',
                                                 (adherence.status === 'insufficient_data' ||
                                                     adherence.status === 'unavailable') &&
-                                                    'text-muted-foreground',
+                                                'text-muted-foreground',
                                             )}
                                         />
                                         <div className="flex-1 min-w-0">
@@ -929,13 +930,17 @@ export function FleetVehicleDetail({
                         <div className="flex items-center justify-between">
                             <h4 className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                                 <Clock className="size-3.5 text-digital" />
-                                Historique récent du trajet ({history.length} points)
+                                Historique récent du trajet (
+                                {history.length > visibleHistory.length
+                                    ? `${visibleHistory.length} derniers points sur ${history.length}`
+                                    : `${history.length} points`}
+                                )
                             </h4>
                         </div>
 
                         {history.length > 0 ? (
                             <div className="grid gap-x-5 rounded-xl border border-border/60 bg-card p-3 shadow-sm sm:grid-cols-2">
-                                {history.map((point, index) => {
+                                {visibleHistory.map((point, index) => {
                                     const timeStr = new Date(point.recorded_at).toLocaleTimeString([], {
                                         hour: '2-digit',
                                         minute: '2-digit',
@@ -950,9 +955,8 @@ export function FleetVehicleDetail({
                                         >
                                             <div className="flex items-center gap-2">
                                                 <span
-                                                    className={`size-2 rounded-full ${
-                                                        isMostRecent ? 'bg-emerald-500' : 'bg-muted-foreground/40'
-                                                    }`}
+                                                    className={`size-2 rounded-full ${isMostRecent ? 'bg-emerald-500' : 'bg-muted-foreground/40'
+                                                        }`}
                                                 />
                                                 <span className="font-mono text-[0.6875rem] font-bold text-foreground">
                                                     {timeStr}
