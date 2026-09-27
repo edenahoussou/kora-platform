@@ -25,6 +25,8 @@ use Illuminate\Support\Carbon;
  */
 class UserDevice extends KoraModel
 {
+    protected $hidden = ['id', 'device_fingerprint_hash', 'push_token'];
+
     protected $fillable = [
         'uuid',
         'user_id',

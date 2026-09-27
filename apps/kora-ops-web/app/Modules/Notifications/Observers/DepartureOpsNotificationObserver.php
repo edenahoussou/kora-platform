@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\Notifications\Services\OpsNotifier;
+use App\Modules\Notifications\Services\PassengerNotificationPublisher;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Throwable;
@@ -22,7 +23,7 @@ class DepartureOpsNotificationObserver
 {
     private const array CREW_COLUMNS = ['driver_id', 'secondary_driver_id', 'conductor_id', 'mechanic_id'];
 
-    public function __construct(private OpsNotifier $notifier) {}
+    public function __construct(private OpsNotifier $notifier, private PassengerNotificationPublisher $passengerNotifications) {}
 
     public function created(Departure $departure): void
     {
@@ -102,6 +103,14 @@ class DepartureOpsNotificationObserver
                 $removedCrew = $removed === [] ? new Collection : User::query()->whereIn('id', $removed)->get();
 
                 $this->notifier->departureModified($departure, $changes, $removedCrew);
+                if (in_array('cancelled', $changes, true)) {
+                    $this->passengerNotifications->departureChanged($departure, 'cancelled');
+                } elseif (array_intersect($changes, ['date', 'time', 'bus', 'line']) !== []) {
+                    $this->passengerNotifications->departureChanged($departure, 'modified');
+                }
+                if (array_intersect($changes, ['date', 'time']) !== []) {
+                    $this->passengerNotifications->scheduleDepartureReminders($departure);
+                }
             }
         });
     }

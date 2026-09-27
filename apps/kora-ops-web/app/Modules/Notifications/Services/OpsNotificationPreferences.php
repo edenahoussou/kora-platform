@@ -31,6 +31,7 @@ class OpsNotificationPreferences
 
         return match ($channel) {
             OpsNotificationChannel::Mail => $preference->mail,
+            OpsNotificationChannel::Push => $preference->in_app,
             default => $preference->in_app,
         };
     }
@@ -56,7 +57,7 @@ class OpsNotificationPreferences
                 'title' => $type->title(),
                 'severity' => $type->severity()->value,
                 'disableable' => $disableable,
-                'mail_supported' => $type->isAlert(),
+                'mail_supported' => $type->sendsMail(),
                 'in_app' => ! $disableable || $preference === null || $preference->in_app,
                 'mail' => ! $disableable || $preference === null || $preference->mail,
             ];

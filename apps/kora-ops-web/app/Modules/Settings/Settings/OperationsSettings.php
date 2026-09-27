@@ -43,6 +43,11 @@ final class OperationsSettings extends Settings
 
     public int $manifestStaleDebounceSeconds = 120;
 
+    /** @var array<int, int> */
+    public array $passengerDepartureReminderHours = [24, 2];
+
+    public int $passengerDelayThresholdMinutes = 1;
+
     public static function group(): string
     {
         return 'operations';

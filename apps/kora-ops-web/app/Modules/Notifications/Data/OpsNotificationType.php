@@ -28,12 +28,18 @@ enum OpsNotificationType: string
     /** Incident grave (accident, sécurité) : alerte critique, non désactivable. */
     case IncidentCritical = 'incident_critical';
 
+    case FiscalizationFailed = 'fiscalization_failed';
+    case CashVarianceSubmitted = 'cash_variance_submitted';
+    case AssistedBookingRequested = 'assisted_booking_requested';
+    case AssistedBookingReassigned = 'assisted_booking_reassigned';
+    case DepartureDelayed = 'departure_delayed';
+
     public function severity(): OpsNotificationSeverity
     {
         return match ($this) {
-            self::TerminalRevoked, self::ScanConflict, self::IncidentCritical => OpsNotificationSeverity::Critical,
+            self::TerminalRevoked, self::ScanConflict, self::IncidentCritical, self::FiscalizationFailed => OpsNotificationSeverity::Critical,
             self::ManifestStale, self::OperationRejected, self::SyncFailed, self::PrintError, self::IncidentReported => OpsNotificationSeverity::Warning,
-            self::DepartureAssigned, self::DepartureModified, self::SyncCompleted, self::NoShowClosed, self::DepartureDeparted => OpsNotificationSeverity::Info,
+            self::DepartureAssigned, self::DepartureModified, self::SyncCompleted, self::NoShowClosed, self::DepartureDeparted, self::CashVarianceSubmitted, self::AssistedBookingRequested, self::AssistedBookingReassigned, self::DepartureDelayed => OpsNotificationSeverity::Info,
         };
     }
 
@@ -53,13 +59,18 @@ enum OpsNotificationType: string
             self::DepartureDeparted => 'Bus parti',
             self::IncidentReported => 'Incident signalé',
             self::IncidentCritical => 'Incident grave signalé',
+            self::FiscalizationFailed => 'Échec de fiscalisation',
+            self::CashVarianceSubmitted => 'Écart de caisse à approuver',
+            self::AssistedBookingRequested => 'Nouvelle demande d’assistance',
+            self::AssistedBookingReassigned => 'Demande réaffectée',
+            self::DepartureDelayed => 'Départ retardé',
         };
     }
 
     public function action(): OpsNotificationAction
     {
         return match ($this) {
-            self::DepartureAssigned, self::DepartureModified, self::NoShowClosed, self::DepartureDeparted, self::IncidentReported, self::IncidentCritical => OpsNotificationAction::OpenDeparture,
+            self::DepartureAssigned, self::DepartureModified, self::NoShowClosed, self::DepartureDeparted, self::IncidentReported, self::IncidentCritical, self::DepartureDelayed => OpsNotificationAction::OpenDeparture,
             self::ManifestStale => OpsNotificationAction::RefreshManifest,
             self::TerminalRevoked => OpsNotificationAction::Reauthenticate,
             self::ScanConflict => OpsNotificationAction::ReviewScanConflict,
@@ -67,6 +78,7 @@ enum OpsNotificationType: string
             self::SyncFailed => OpsNotificationAction::RetrySync,
             self::PrintError => OpsNotificationAction::CheckPrinter,
             self::SyncCompleted => OpsNotificationAction::None,
+            self::FiscalizationFailed, self::CashVarianceSubmitted, self::AssistedBookingRequested, self::AssistedBookingReassigned => OpsNotificationAction::None,
         };
     }
 
@@ -76,10 +88,18 @@ enum OpsNotificationType: string
      * super-administrateurs en copie) et les super-administrateurs sont
      * notifiés.
      */
-    public function isAlert(): bool
+    public function sendsMail(): bool
     {
         return match ($this) {
-            self::TerminalRevoked, self::ScanConflict, self::OperationRejected, self::SyncFailed, self::PrintError, self::IncidentReported, self::IncidentCritical => true,
+            self::TerminalRevoked, self::ScanConflict, self::OperationRejected, self::SyncFailed, self::PrintError, self::IncidentReported, self::IncidentCritical, self::FiscalizationFailed, self::CashVarianceSubmitted, self::AssistedBookingRequested, self::AssistedBookingReassigned, self::DepartureDelayed => true,
+            default => false,
+        };
+    }
+
+    public function notifiesSystemAdministrators(): bool
+    {
+        return match ($this) {
+            self::TerminalRevoked, self::ScanConflict, self::OperationRejected, self::SyncFailed, self::PrintError, self::IncidentReported, self::IncidentCritical, self::FiscalizationFailed, self::CashVarianceSubmitted, self::AssistedBookingRequested, self::AssistedBookingReassigned, self::DepartureDelayed => true,
             default => false,
         };
     }

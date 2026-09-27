@@ -20,6 +20,7 @@ use App\Modules\Departures\Actions\ResolveDepartureSellabilityAction;
 use App\Modules\Departures\Data\SellabilityReason;
 use App\Modules\IdentityAccess\Data\AgencyStatus;
 use App\Modules\IdentityAccess\Models\Agency;
+use App\Modules\Notifications\Services\OpsNotifier;
 use App\Modules\SeatInventory\Actions\BuildSeatAvailabilityAction;
 use App\Modules\SeatInventory\Data\SeatAvailabilityStatus;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +37,7 @@ class AssistedBookingWorkflow
         private ApplyItinerarySeatHoldAction $applyItinerarySeatHold,
         private BuildSeatAvailabilityAction $buildSeatAvailability,
         private AssistedBookingSupportChannels $supportChannels,
+        private OpsNotifier $notifier,
     ) {}
 
     public function claim(AssistedBooking $assistedBooking, User $actor): AssistedBooking
@@ -193,7 +195,8 @@ class AssistedBookingWorkflow
         Agency $agency,
         string $reason,
     ): AssistedBooking {
-        return DB::transaction(function () use ($assistedBooking, $actor, $agency, $reason): AssistedBooking {
+        $previousAssignee = null;
+        $assistance = DB::transaction(function () use ($assistedBooking, $actor, $agency, $reason, &$previousAssignee): AssistedBooking {
             Reservation::query()->whereKey($assistedBooking->reservation_id)->lockForUpdate()->firstOrFail();
             $lockedAssistance = AssistedBooking::query()->whereKey($assistedBooking->getKey())->lockForUpdate()->firstOrFail();
             if ($lockedAssistance->status->isTerminal()) {
@@ -204,7 +207,8 @@ class AssistedBookingWorkflow
             }
 
             $previousAgencyUuid = $lockedAssistance->handlingAgency()->value('uuid');
-            $previousAssigneeUuid = $lockedAssistance->assignedUser()->value('uuid');
+            $previousAssignee = $lockedAssistance->assignedUser()->first();
+            $previousAssigneeUuid = $previousAssignee?->uuid;
             $lockedAssistance->update([
                 'preferred_agency_id' => $agency->id,
                 'assigned_user_id' => null,
@@ -223,6 +227,10 @@ class AssistedBookingWorkflow
 
             return $lockedAssistance->load(['reservation', 'handlingAgency', 'assignedUser']);
         });
+
+        $this->notifier->assistedBookingReassigned($assistance, $previousAssignee);
+
+        return $assistance;
     }
 
     public function refuse(AssistedBooking $assistedBooking, User $actor, string $reasonCode, string $reasonNote): AssistedBooking
@@ -375,7 +383,7 @@ class AssistedBookingWorkflow
 
         $this->supportChannels->ensureAvailable($channel);
 
-        return DB::transaction(function () use ($reservation, $actor, $channel, $contactName, $contactPhone, $idempotencyKey): AssistedBooking {
+        $assistance = DB::transaction(function () use ($reservation, $actor, $channel, $contactName, $contactPhone, $idempotencyKey): AssistedBooking {
             $lockedReservation = Reservation::query()
                 ->whereKey($reservation->getKey())
                 ->with(['segments.departure.line', 'segments.originStop', 'segments.destinationStop', 'segments.seat', 'passengers'])
@@ -442,6 +450,12 @@ class AssistedBookingWorkflow
 
             return $assistedBooking->load(['reservation', 'handlingAgency', 'assignedUser']);
         });
+
+        if ($assistance->wasRecentlyCreated) {
+            $this->notifier->assistedBookingRequested($assistance);
+        }
+
+        return $assistance;
     }
 
     private function ensureRequestable(Reservation $reservation): void

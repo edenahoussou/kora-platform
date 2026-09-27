@@ -101,6 +101,70 @@ it('redacts, encrypts, preserves and explicitly clears integration secrets', fun
     expect(DB::table('activity_log')->latest('id')->value('properties'))->not->toContain('first-secret');
 });
 
+it('stores Firebase push configuration in integrations and redacts the service account key', function (): void {
+    $admin = settingsAdmin();
+    $this->actingAs($admin);
+    $coordinator = app(SettingsCoordinator::class);
+    $privateKey = "-----BEGIN PRIVATE KEY-----\nunit-test-private-key\n-----END PRIVATE KEY-----\n";
+    $serviceAccount = json_encode([
+        'type' => 'service_account',
+        'project_id' => 'kora-test',
+        'client_email' => 'firebase-adminsdk@kora-test.iam.gserviceaccount.com',
+        'private_key' => $privateKey,
+    ], JSON_THROW_ON_ERROR);
+
+    $snapshot = $coordinator->update(
+        SettingsGroup::Integrations,
+        new IntegrationsSettingsUpdate([
+            'firebasePushEnabled' => true,
+            'firebaseProjectId' => 'kora-test',
+            'firebaseWebApiKey' => 'public-web-api-key',
+            'firebaseWebMessagingSenderId' => '123456789',
+            'firebaseWebAppId' => '1:123456789:web:abcd',
+            'firebaseWebVapidKey' => 'public-vapid-key',
+            'firebaseServiceAccountJson' => $serviceAccount,
+        ]),
+        $admin,
+    );
+
+    expect($snapshot->values['firebaseServiceAccountJson'])->toBeTrue()
+        ->and($snapshot->sensitiveProperties)->toContain('firebaseServiceAccountJson');
+
+    $payload = (string) DB::table('settings')
+        ->where('group', 'integrations')
+        ->where('name', 'firebaseServiceAccountJson')
+        ->value('payload');
+
+    expect($payload)->not->toContain('unit-test-private-key')
+        ->and($payload)->not->toContain($privateKey);
+});
+
+it('rejects enabling Firebase push when the service account project does not match', function (): void {
+    $admin = settingsAdmin();
+    $this->actingAs($admin);
+    $coordinator = app(SettingsCoordinator::class);
+    $serviceAccount = json_encode([
+        'type' => 'service_account',
+        'project_id' => 'another-project',
+        'client_email' => 'firebase-adminsdk@another-project.iam.gserviceaccount.com',
+        'private_key' => 'private-key',
+    ], JSON_THROW_ON_ERROR);
+
+    expect(fn () => $coordinator->update(
+        SettingsGroup::Integrations,
+        new IntegrationsSettingsUpdate([
+            'firebasePushEnabled' => true,
+            'firebaseProjectId' => 'kora-test',
+            'firebaseWebApiKey' => 'public-web-api-key',
+            'firebaseWebMessagingSenderId' => '123456789',
+            'firebaseWebAppId' => '1:123456789:web:abcd',
+            'firebaseWebVapidKey' => 'public-vapid-key',
+            'firebaseServiceAccountJson' => $serviceAccount,
+        ]),
+        $admin,
+    ))->toThrow(ValidationException::class);
+});
+
 it('rejects unauthorized updates, invalid values and no-op audit writes', function (): void {
     $viewer = User::factory()->create();
     $viewer->givePermissionTo('settings.general.view');

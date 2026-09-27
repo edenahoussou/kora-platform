@@ -12,6 +12,7 @@ class RevokeDeviceAction
         $device->update([
             'status' => UserDeviceStatus::Revoked,
             'revoked_at' => now(),
+            'push_token' => null,
         ]);
 
         $device->user

@@ -237,6 +237,13 @@ it('records a delay reusing the OPS Web rules', function (): void {
         ->assertJsonPath('data.delay_minutes', 25)
         ->assertJsonPath('data.delay_reason', 'Attente d\'un car de correspondance');
 
+    expect(progEventsOf('departure_delayed'))->toBe(1);
+
+    $onTime = progDeparture(['conductor_id' => $w['conductor']->id]);
+    $this->withHeaders($headers)->patchJson("/api/v1/ops/departures/{$onTime->uuid}/delay", ['delay_minutes' => 0, 'delay_reason' => 'Départ à l’heure'])
+        ->assertOk();
+    expect(progEventsOf('departure_delayed'))->toBe(1);
+
     // Un départ déjà parti n'accepte plus de retard.
     $departure->update(['status' => 'departed']);
     $this->withHeaders($headers)->patchJson("/api/v1/ops/departures/{$departure->uuid}/delay", ['delay_minutes' => 30, 'delay_reason' => 'Trafic'])

@@ -24,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withBroadcasting(__DIR__.'/../routes/channels.php', ['prefix' => 'api/v1', 'middleware' => ['auth:sanctum']])
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->statefulApi();
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         // Trust the Nginx reverse proxy on the VPS so Laravel generates

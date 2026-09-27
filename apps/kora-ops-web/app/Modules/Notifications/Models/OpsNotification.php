@@ -3,9 +3,8 @@
 namespace App\Modules\Notifications\Models;
 
 use App\Models\User;
-use App\Modules\Support\Models\KoraModel;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Carbon;
 
 /**
@@ -13,17 +12,24 @@ use Illuminate\Support\Carbon;
  *
  * @property int $id
  * @property string $uuid
- * @property int $event_id
+ * @property int|null $event_id
  * @property int $user_id
  * @property Carbon|null $read_at
  * @property Carbon|null $created_at
- * @property OpsNotificationEvent $event
+ * @property OpsNotificationEvent|null $event
  * @property User $user
  */
-class OpsNotification extends KoraModel
+class OpsNotification extends DatabaseNotification
 {
+    protected $table = 'notifications';
+
     protected $fillable = [
-        'uuid',
+        'id',
+        'type',
+        'data',
+        'notifiable_type',
+        'notifiable_id',
+        'audience',
         'event_id',
         'user_id',
         'read_at',
@@ -32,6 +38,7 @@ class OpsNotification extends KoraModel
     protected function casts(): array
     {
         return [
+            'data' => 'array',
             'read_at' => 'datetime',
         ];
     }
@@ -52,13 +59,9 @@ class OpsNotification extends KoraModel
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * @param  Builder<OpsNotification>  $query
-     * @return Builder<OpsNotification>
-     */
-    public function scopeUnread(Builder $query): Builder
+    public function getUuidAttribute(): string
     {
-        return $query->whereNull('read_at');
+        return (string) $this->getKey();
     }
 
     public function isRead(): bool

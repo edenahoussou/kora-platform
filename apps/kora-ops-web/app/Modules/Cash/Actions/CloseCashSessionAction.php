@@ -10,18 +10,21 @@ use App\Modules\Cash\Data\CashSessionStatus;
 use App\Modules\Cash\Models\CashLedger;
 use App\Modules\Cash\Models\CashMovement;
 use App\Modules\Cash\Models\CashSession;
+use App\Modules\Notifications\Services\OpsNotifier;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 class CloseCashSessionAction
 {
+    public function __construct(private OpsNotifier $notifier) {}
+
     /**
      * @param  list<array{uuid: string, actual_balance: int, closing_comment?: string|null, evidence: UploadedFile, evidence_captured_at?: string}>  $ledgers
      */
     public function execute(CashSession $session, User $agent, array $ledgers): CashSession
     {
-        return DB::transaction(function () use ($session, $agent, $ledgers): CashSession {
+        $closed = DB::transaction(function () use ($session, $agent, $ledgers): CashSession {
             $lockedSession = CashSession::query()
                 ->with('ledgers')
                 ->whereKey($session->getKey())
@@ -109,6 +112,12 @@ class CloseCashSessionAction
 
             return $lockedSession->fresh('ledgers.agencyPaymentAccount');
         }, attempts: 3);
+
+        if ($closed->status === CashSessionStatus::PendingApproval) {
+            $this->notifier->cashVarianceSubmitted($closed);
+        }
+
+        return $closed;
     }
 
     private function expectedBalance(CashLedger $ledger): int

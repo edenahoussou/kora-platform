@@ -555,7 +555,7 @@ it('stores and retrieves user preferences', function (): void {
     $this->withToken($token)
         ->getJson('/api/v1/auth/preferences')
         ->assertOk()
-        ->assertJsonPath('data.push_notifications', true)
+        ->assertJsonPath('data.push_notifications', false)
         ->assertJsonPath('data.locale', 'fr');
 });
 

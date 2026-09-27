@@ -67,6 +67,9 @@ class UserPreferenceController extends Controller
     {
         $preference = $this->getOrCreate($request);
         $preference->update($request->payload());
+        if ($preference->wasChanged('push_notifications') && ! $preference->push_notifications) {
+            $request->user()->devices()->update(['push_token' => null]);
+        }
 
         return response()->json(['data' => new UserPreferenceResource($preference->refresh())]);
     }
@@ -76,7 +79,7 @@ class UserPreferenceController extends Controller
         return UserPreference::query()->firstOrCreate(
             ['user_id' => $request->user()->id],
             [
-                'push_notifications' => true,
+                'push_notifications' => false,
                 'whatsapp_notifications' => true,
                 'email_notifications' => true,
                 'locale' => 'fr',
