@@ -125,7 +125,6 @@ class AccueilPage extends StatelessWidget {
                       child: _QuickTile(
                         icon: Icons.directions_bus_filled,
                         label: 'Tournée',
-                        highlighted: true,
                         onTap: () => context.go(AppRoutes.tournee),
                       ),
                     ),
@@ -135,12 +134,14 @@ class AccueilPage extends StatelessWidget {
                           ? _QuickTile(
                               icon: progressStep.icon,
                               label: progressStep.label,
+                              highlighted: true,
                               onTap: () => progressDeparture(
                                   context, depart, progressStep),
                             )
                           : _QuickTile(
                               icon: Icons.qr_code_scanner_rounded,
                               label: 'Scan',
+                              highlighted: true,
                               onTap: () => context.go(AppRoutes.scanBoarding),
                             ),
                     ),

@@ -175,7 +175,24 @@ class TrackingSyncEngine {
       }
       lastError = null; // au moins un lot est passé : la voie est bonne.
     } on DioException catch (error) {
-      final bool isValidationFailure = error.response?.statusCode == 422;
+      final int? status = error.response?.statusCode;
+
+      if (status == 409) {
+        // Départ déjà arrivé/annulé (échange du 26/09/2026) : aucun
+        // réessai ne passera jamais, quelle que soit la taille du lot —
+        // `TrackingCubit` arrête déjà l'envoi côté client dès `arrived`,
+        // ceci couvre les positions mises en file juste avant (coupure
+        // réseau, app en arrière-plan) et déjà en attente à ce moment-là.
+        // Comme pour le 422 isolé ci-dessous : les garder en file
+        // bloquerait tout le reste sans jamais aboutir.
+        _logFailure(error);
+        for (final TrackingPosition position in chunk) {
+          await _local.markSynced(position.positionUuid);
+        }
+        return;
+      }
+
+      final bool isValidationFailure = status == 422;
 
       if (!isValidationFailure || chunk.length == 1) {
         if (isValidationFailure) {

@@ -26,9 +26,15 @@ class AuthApiException implements Exception {
 
 /// Couche DATA : les appels réseau du flux d'authentification. Lève des
 /// exceptions ; c'est le repository qui les traduit en [Failure].
+///
+/// [identifier] est un email OU un numéro de téléphone au format
+/// international (E.164) — voir docstring de `AuthRepository`. Un seul
+/// des deux champs doit être envoyé au serveur (`identifier`), jamais
+/// `email` en plus : voir `LoginRequest`/`RequestOtpRequest` côté API,
+/// qui rejette la requête si les deux sont présents.
 abstract class AuthRemoteDataSource {
   Future<OtpChallenge> requestOtp({
-    required String email,
+    required String identifier,
     required OtpPurpose purpose,
   });
 
@@ -39,7 +45,7 @@ abstract class AuthRemoteDataSource {
   });
 
   Future<LoginOutcome> login({
-    required String email,
+    required String identifier,
     required String pin,
     required DeviceRegistration device,
     OtpVerification? verification,
@@ -49,18 +55,17 @@ abstract class AuthRemoteDataSource {
 
   Future<void> logout();
 
-  Future<void> resetPin({
-    required OtpVerification verification,
-    required String pin,
-  });
-
   /// PIN actuel + nouveau — pas de vérification OTP ici (contrairement à
   /// [resetPin]) : l'utilisateur est déjà connecté, connaître son PIN
-  /// actuel suffit à prouver son identité. Voir `ChangePinRequest` côté
-  /// backend, déjà en place (`POST /auth/pin/change`).
+  /// actuel suffit à prouver son identité.
   Future<void> changePin({
     required String currentPin,
     required String newPin,
+  });
+
+  Future<void> resetPin({
+    required OtpVerification verification,
+    required String pin,
   });
 
   Future<void> unlockAccount(OtpVerification verification);
@@ -73,15 +78,15 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<OtpChallenge> requestOtp({
-    required String email,
+    required String identifier,
     required OtpPurpose purpose,
   }) async {
     final response = await _post(ApiConstants.otpRequest, <String, dynamic>{
-      'email': email,
+      'identifier': identifier,
       'purpose': purpose.value,
     });
 
-    return AuthDtos.otpChallenge(response.data, email: email);
+    return AuthDtos.otpChallenge(response.data, identifier: identifier);
   }
 
   @override
@@ -101,13 +106,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<LoginOutcome> login({
-    required String email,
+    required String identifier,
     required String pin,
     required DeviceRegistration device,
     OtpVerification? verification,
   }) async {
     final response = await _post(ApiConstants.login, <String, dynamic>{
-      'email': email,
+      'identifier': identifier,
       'pin': pin,
       ...device.toJson(),
       if (verification != null) ...<String, dynamic>{

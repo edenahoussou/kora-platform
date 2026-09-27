@@ -22,7 +22,8 @@ export function PanelAlert({
             'border-gold bg-gold/10 [&>svg]:text-[color-mix(in_srgb,var(--gold)_75%,var(--foreground))]',
         danger: 'border-destructive bg-destructive/10 [&>svg]:text-destructive',
         info: 'border-[var(--digital)] bg-digital/10 [&>svg]:text-[var(--digital)]',
-        success: 'border-emerald-500 bg-emerald-500/10 [&>svg]:text-emerald-600',
+        success:
+            'border-emerald-500 bg-emerald-500/10 [&>svg]:text-emerald-600',
     };
 
     return (

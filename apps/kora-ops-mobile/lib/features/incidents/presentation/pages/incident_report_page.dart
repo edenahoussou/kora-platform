@@ -14,6 +14,9 @@ import '../../../../core/widgets/screen_header.dart';
 import '../../../../injection/injection.dart';
 import '../../../ops/domain/entities/depart.dart';
 import '../../../ops/presentation/cubit/selected_depart_cubit.dart';
+import '../../../tracking/domain/services/location_fix.dart';
+import '../../../tracking/domain/services/location_permission_status.dart';
+import '../../../tracking/domain/services/location_provider.dart';
 import '../../domain/entities/incident.dart';
 import '../../domain/repositories/incident_repository.dart';
 
@@ -21,9 +24,11 @@ import '../../domain/repositories/incident_repository.dart';
 /// pour le départ géré — voir MEZ-98. Toujours accepté, même hors ligne
 /// (`IncidentRepository.report`, file locale — voir `SyncCubit`).
 ///
-/// Pas de capture GPS pour l'instant : le backend l'accepte
-/// (`latitude`/`longitude` optionnels), mais aucune dépendance de
-/// géolocalisation n'existe dans le projet — à ajouter si besoin.
+/// Position GPS best-effort (échange du 26/09/2026) : une seule mesure au
+/// moment de l'envoi, via `LocationProvider` (déjà utilisé par le suivi de
+/// bus, voir module Tracking) — jamais bloquant. Ni permission refusée,
+/// ni GPS coupé, ni délai dépassé n'empêchent l'envoi : l'incident part
+/// simplement sans position dans ce cas (comme avant ce changement).
 class IncidentReportPage extends StatefulWidget {
   const IncidentReportPage({super.key});
 
@@ -54,12 +59,15 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     }
 
     setState(() => _submitting = true);
+    final LocationFix? fix = await _currentPositionOrNull();
     final result = await getIt<IncidentRepository>().report(
       operationUuid: const Uuid().v4(),
       departureUuid: depart.id,
       type: _type,
       description: description,
       localRecordedAt: DateTime.now(),
+      latitude: fix?.latitude,
+      longitude: fix?.longitude,
     );
     if (!mounted) return;
     setState(() => _submitting = false);
@@ -82,6 +90,35 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
         description: failure.message,
       ),
     );
+  }
+
+  /// Une seule mesure de position, best-effort — jamais de demande de
+  /// permission ici (`checkPermission`, pas `requestPermission` : ce n'est
+  /// pas le moment d'interrompre un signalement urgent avec une boîte de
+  /// dialogue système ; la permission se demande ailleurs, voir
+  /// `TrackingCubit`). `null` dans tous les cas où la position n'est pas
+  /// immédiatement disponible (permission refusée, GPS coupé, délai
+  /// dépassé) — l'incident part quand même.
+  Future<LocationFix?> _currentPositionOrNull() async {
+    try {
+      final LocationProvider location = getIt<LocationProvider>();
+
+      final LocationPermissionStatus permission =
+          await location.checkPermission();
+      if (permission == LocationPermissionStatus.denied ||
+          permission == LocationPermissionStatus.deniedForever) {
+        return null;
+      }
+
+      if (!await location.isLocationServiceEnabled()) return null;
+
+      return await location
+          .watchPosition(intervalSeconds: 1, minDistanceMeters: 0)
+          .first
+          .timeout(const Duration(seconds: 6));
+    } on Object {
+      return null;
+    }
   }
 
   @override

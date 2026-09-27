@@ -3,12 +3,12 @@ part of 'auth_flow_bloc.dart';
 /// L'étape à afficher. C'est le parcours qui décide de l'écran suivant,
 /// pas l'écran lui-même.
 enum AuthFlowStep {
-  /// Saisie de l'adresse e-mail (première ouverture de l'app sur cet
-  /// appareil, ou lien "pas moi" depuis l'écran PIN).
-  email,
+  /// Saisie de l'identifiant — email ou téléphone (première ouverture de
+  /// l'app sur cet appareil, ou lien "pas moi" depuis l'écran PIN).
+  identifier,
 
-  /// Saisie du PIN — email déjà connu (appareil déjà reconnu ou juste
-  /// saisi à l'étape précédente).
+  /// Saisie du PIN — identifiant déjà connu (appareil déjà reconnu ou
+  /// juste saisi à l'étape précédente).
   pin,
 
   /// Saisie du code à six chiffres — appareil inconnu du serveur, ou
@@ -25,13 +25,13 @@ enum AuthFlowStep {
 
 class AuthFlowState extends Equatable {
   const AuthFlowState({
-    this.step = AuthFlowStep.email,
+    this.step = AuthFlowStep.identifier,
     this.purpose = OtpPurpose.loginNewDevice,
     this.isSubmitting = false,
     this.challenge,
     this.verification,
     this.session,
-    this.email = '',
+    this.identifier = '',
     this.pendingPin = '',
     this.errorMessage = '',
     this.isAccountLocked = false,
@@ -50,7 +50,8 @@ class AuthFlowState extends Equatable {
   /// Renseignée quand [step] vaut [AuthFlowStep.done].
   final AuthSession? session;
 
-  final String email;
+  /// Email ou numéro de téléphone (E.164) saisi par l'utilisateur.
+  final String identifier;
 
   /// PIN saisi lors d'une connexion, gardé le temps d'un aller-retour par
   /// l'OTP : le serveur le redemande quand on rappelle `login` avec le
@@ -72,7 +73,7 @@ class AuthFlowState extends Equatable {
     OtpChallenge? challenge,
     OtpVerification? verification,
     AuthSession? session,
-    String? email,
+    String? identifier,
     String? pendingPin,
     String? errorMessage,
     bool? isAccountLocked,
@@ -84,7 +85,7 @@ class AuthFlowState extends Equatable {
       challenge: challenge ?? this.challenge,
       verification: verification ?? this.verification,
       session: session ?? this.session,
-      email: email ?? this.email,
+      identifier: identifier ?? this.identifier,
       pendingPin: pendingPin ?? this.pendingPin,
       errorMessage: errorMessage ?? this.errorMessage,
       isAccountLocked: isAccountLocked ?? this.isAccountLocked,
@@ -99,7 +100,7 @@ class AuthFlowState extends Equatable {
         challenge,
         verification,
         session,
-        email,
+        identifier,
         pendingPin,
         errorMessage,
         isAccountLocked,

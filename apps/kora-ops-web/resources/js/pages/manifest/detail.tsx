@@ -304,14 +304,16 @@ export default function ManifestDetailPage({
                 {summary.absent > 0 && (
                     <PanelAlert tone="danger" icon={UserX}>
                         <strong>
-                            {summary.absent} absent{summary.absent > 1 ? 's' : ''}
+                            {summary.absent} absent
+                            {summary.absent > 1 ? 's' : ''}
                         </strong>{' '}
                         déclaré{summary.absent > 1 ? 's' : ''} no-show — sièges
                         libérés pour revente sur le manifeste imprimé.
                     </PanelAlert>
                 )}
                 {summary.total > 0 &&
-                    summary.boarded === summary.total - summary.absent - summary.cancelled &&
+                    summary.boarded ===
+                        summary.total - summary.absent - summary.cancelled &&
                     summary.boarded > 0 &&
                     ['departed', 'arrived'].includes(departure.status) && (
                         <PanelAlert tone="success" icon={ShieldCheck}>

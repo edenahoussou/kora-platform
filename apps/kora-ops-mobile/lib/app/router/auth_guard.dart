@@ -87,12 +87,12 @@ class AuthGuard extends ChangeNotifier {
     // parcours `/login/*` — la déconnexion peut être déclenchée depuis
     // n'importe quel onglet (ex. `/profil`, voir document.md § Profil).
     if (!isInLoginFlow) {
-      final String? savedEmail = switch (state) {
-        AuthUnauthenticated(:final savedEmail) => savedEmail,
-        AuthCheckFailed(:final savedEmail) => savedEmail,
+      final String? savedIdentifier = switch (state) {
+        AuthUnauthenticated(:final savedIdentifier) => savedIdentifier,
+        AuthCheckFailed(:final savedIdentifier) => savedIdentifier,
         _ => null,
       };
-      return savedEmail == null ? AppRoutes.loginEmail : AppRoutes.loginPin;
+      return savedIdentifier == null ? AppRoutes.loginEmail : AppRoutes.loginPin;
     }
 
     return null;

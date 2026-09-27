@@ -4,6 +4,7 @@ namespace App\Modules\Tracking\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Models\Departure;
 use App\Modules\Departures\Services\CrewDepartureScope;
 use App\Modules\IdentityAccess\Data\OpsSessionErrorCode;
@@ -30,7 +31,8 @@ use Illuminate\Http\Request;
  * vérifie en plus que le départ est bien affecté à ce convoyeur.
  *
  * Erreurs : `{ error: { code, message } }` — `departure_not_assigned` (403),
- * `too_many_positions` (422), plus les codes de session OPS.
+ * `departure_ended` (409, départ déjà arrivé/annulé), `too_many_positions` (422),
+ * plus les codes de session OPS.
  */
 class OpsTrackingController extends Controller
 {
@@ -61,6 +63,10 @@ class OpsTrackingController extends Controller
 
         if ($departure === null || ! app(CrewDepartureScope::class)->canReportTracking($agent, $departure)) {
             throw TrackingException::notAssigned();
+        }
+
+        if (in_array($departure->status, [DepartureStatus::Arrived, DepartureStatus::Cancelled], true)) {
+            throw TrackingException::departureEnded();
         }
 
         $terminal = $request->attributes->get('terminal');

@@ -127,8 +127,8 @@ export function TicketDetailDialog({
                                     <dd className="mt-0.5 font-bold text-foreground">
                                         {row.ticket?.issuedAt
                                             ? new Date(
-                                                row.ticket.issuedAt,
-                                            ).toLocaleString('fr-FR')
+                                                  row.ticket.issuedAt,
+                                              ).toLocaleString('fr-FR')
                                             : '—'}
                                     </dd>
                                 </div>

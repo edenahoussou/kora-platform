@@ -24,16 +24,16 @@ class AuthAuthenticated extends AuthState {
   List<Object?> get props => <Object?>[user];
 }
 
-/// [savedEmail] non nul si un email est déjà enregistré sur l'appareil —
+/// [savedIdentifier] non nul si un email est déjà enregistré sur l'appareil —
 /// [AuthGuard] s'en sert pour rediriger vers l'écran PIN plutôt que l'écran
 /// email.
 class AuthUnauthenticated extends AuthState {
-  const AuthUnauthenticated({this.savedEmail});
+  const AuthUnauthenticated({this.savedIdentifier});
 
-  final String? savedEmail;
+  final String? savedIdentifier;
 
   @override
-  List<Object?> get props => <Object?>[savedEmail];
+  List<Object?> get props => <Object?>[savedIdentifier];
 }
 
 /// Absence de réseau détectée au démarrage/retour au premier plan, sans
@@ -41,11 +41,11 @@ class AuthUnauthenticated extends AuthState {
 /// "déconnecté" à tort, ni bloquer indéfiniment sur un chargement — voir
 /// périmètre du ticket "absence de réseau".
 class AuthCheckFailed extends AuthState {
-  const AuthCheckFailed(this.message, {this.savedEmail});
+  const AuthCheckFailed(this.message, {this.savedIdentifier});
 
   final String message;
-  final String? savedEmail;
+  final String? savedIdentifier;
 
   @override
-  List<Object?> get props => <Object?>[message, savedEmail];
+  List<Object?> get props => <Object?>[message, savedIdentifier];
 }

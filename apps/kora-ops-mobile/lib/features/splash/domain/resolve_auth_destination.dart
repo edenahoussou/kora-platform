@@ -22,8 +22,8 @@ String resolveAuthDestination(
       return terminalState is TerminalLinked
           ? AppRoutes.home
           : AppRoutes.terminalSetup;
-    case AuthUnauthenticated(savedEmail: final String? savedEmail):
-      return savedEmail == null ? AppRoutes.loginEmail : AppRoutes.loginPin;
+    case AuthUnauthenticated(savedIdentifier: final String? savedIdentifier):
+      return savedIdentifier == null ? AppRoutes.loginEmail : AppRoutes.loginPin;
     case AuthInitial() || AuthLoading():
       // Ne devrait pas arriver : on attend toujours checkAuthStatus() avant
       // d'appeler cette fonction.

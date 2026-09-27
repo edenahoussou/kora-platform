@@ -9,13 +9,15 @@ class OtpChallenge extends Equatable {
   const OtpChallenge({
     required this.uuid,
     required this.purpose,
-    required this.email,
+    required this.identifier,
     required this.expiresAt,
   });
 
   final String uuid;
   final OtpPurpose purpose;
-  final String email;
+
+  /// L'email ou le numéro de téléphone (E.164) auquel le code a été envoyé.
+  final String identifier;
 
   /// Passé ce moment, le code ne vaut plus rien.
   final DateTime expiresAt;
@@ -28,7 +30,7 @@ class OtpChallenge extends Equatable {
   }
 
   @override
-  List<Object?> get props => <Object?>[uuid, purpose, email, expiresAt];
+  List<Object?> get props => <Object?>[uuid, purpose, identifier, expiresAt];
 }
 
 /// Le jeton à usage unique rendu par `otp/verify`, à présenter à l'appel

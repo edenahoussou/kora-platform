@@ -114,7 +114,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
         // PIN oublié : le code confirme l'identité, il reste à en choisir
         // un nouveau.
         await context.push(AppRoutes.loginNewPin);
-      case AuthFlowStep.email:
+      case AuthFlowStep.identifier:
       case AuthFlowStep.pin:
       case AuthFlowStep.code:
         // Un appareil toujours inconnu après vérification (cas très rare :
@@ -140,11 +140,25 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
     }
   }
 
-  String _maskEmail(String? email) {
-    if (email == null) return '';
-    final int at = email.indexOf('@');
-    if (at <= 1) return email;
-    return '${email[0]}${'•' * (at - 1)}${email.substring(at)}';
+  String _maskIdentifier(String? identifier) {
+    if (identifier == null || identifier.isEmpty) return '';
+
+    final int at = identifier.indexOf('@');
+    if (at > 1) {
+      // Email : première lettre visible, domaine intact.
+      return '${identifier[0]}${'•' * (at - 1)}${identifier.substring(at)}';
+    }
+
+    // Téléphone (+22961234567) : indicatif pays + 2 derniers chiffres
+    // visibles, le reste masqué.
+    final RegExpMatch? country = RegExp(r'^\+\d{1,3}').firstMatch(identifier);
+    final int prefixEnd = country?.end ?? 1;
+    if (identifier.length <= prefixEnd + 2) return identifier;
+
+    final String prefix = identifier.substring(0, prefixEnd);
+    final String tail = identifier.substring(identifier.length - 2);
+    final int maskedLength = identifier.length - prefixEnd - 2;
+    return '$prefix${'•' * maskedLength}$tail';
   }
 
   String _formatRemaining(Duration remaining) {
@@ -180,7 +194,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                           children: <InlineSpan>[
                             const TextSpan(text: 'Saisissez le code envoyé à '),
                             TextSpan(
-                              text: _maskEmail(state.email),
+                              text: _maskIdentifier(state.identifier),
                               style:
                                   const TextStyle(fontWeight: FontWeight.w800),
                             ),

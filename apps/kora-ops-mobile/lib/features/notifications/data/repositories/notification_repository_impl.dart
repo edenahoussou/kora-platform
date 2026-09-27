@@ -44,6 +44,15 @@ class NotificationRepositoryImpl implements NotificationRepository {
   Future<List<OpsNotification>> readCache() => _local.readCache();
 
   @override
+  Future<Result<List<OpsNotification>>> listSent() async {
+    try {
+      return Result<List<OpsNotification>>.success(await _remote.listSent());
+    } on DioException catch (error) {
+      return Result<List<OpsNotification>>.failure(_failureOf(error));
+    }
+  }
+
+  @override
   Future<OpsNotificationCounts> unreadCounts() async {
     try {
       return await _remote.unreadCount();

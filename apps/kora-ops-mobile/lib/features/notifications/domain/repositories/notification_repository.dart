@@ -22,6 +22,14 @@ abstract class NotificationRepository {
   /// les alertes non acquittées après redémarrage").
   Future<Result<List<OpsNotification>>> list();
 
+  /// Événements que l'utilisateur a lui-même déclenchés (incident
+  /// signalé, départ fait progresser…) — page "Notifications envoyées"
+  /// (Profil), `GET /notifications/sent`. Jamais mêlées à [list] (voir
+  /// échange du 26/09/2026 : se voir notifier de sa propre action
+  /// n'apporte rien). Pas de cache local, comme `DepartureListCubit` :
+  /// vue de consultation, pas une file à restaurer hors ligne.
+  Future<Result<List<OpsNotification>>> listSent();
+
   /// Relit uniquement le cache local — restauration immédiate au
   /// démarrage, avant même le premier appel réseau.
   Future<List<OpsNotification>> readCache();

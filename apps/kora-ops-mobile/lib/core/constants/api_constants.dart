@@ -72,6 +72,7 @@ abstract final class ApiConstants {
   // Notifications opérationnelles (MEZ-96/MEZ-97) — même contrat OPS
   // Mobile / OPS Web (voir OpsNotificationController).
   static const String notificationsIndex = '$_v1/notifications';
+  static const String notificationsSentIndex = '$_v1/notifications/sent';
   static const String notificationsUnreadCount =
       '$_v1/notifications/unread-count';
   static const String notificationsMarkAllRead = '$_v1/notifications/read-all';

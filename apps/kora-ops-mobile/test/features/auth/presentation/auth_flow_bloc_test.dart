@@ -47,21 +47,22 @@ void main() {
 
   AuthFlowBloc buildBloc() => AuthFlowBloc(repository);
 
-  group('AuthFlowEmailEntered', () {
+  group('AuthFlowIdentifierEntered', () {
     blocTest<AuthFlowBloc, AuthFlowState>(
-      'mémorise l’email et passe à l’étape PIN sans appel réseau',
+      'mémorise l’identifiant (email ou téléphone) et passe à l’étape PIN sans appel réseau',
       build: buildBloc,
-      act: (AuthFlowBloc bloc) => bloc
-          .add(const AuthFlowEmailEntered('aicha.hounkpe@kora-express.com')),
+      act: (AuthFlowBloc bloc) => bloc.add(
+          const AuthFlowIdentifierEntered('aicha.hounkpe@kora-express.com')),
       expect: () => <AuthFlowState>[
         const AuthFlowState(
-          email: 'aicha.hounkpe@kora-express.com',
+          identifier: 'aicha.hounkpe@kora-express.com',
           step: AuthFlowStep.pin,
         ),
       ],
       verify: (_) {
         verifyNever(() => repository.requestOtp(
-            email: any(named: 'email'), purpose: any(named: 'purpose')));
+            identifier: any(named: 'identifier'),
+            purpose: any(named: 'purpose')));
       },
     );
   });
@@ -71,7 +72,7 @@ void main() {
       'connecte directement quand l’appareil est déjà connu',
       build: () {
         when(() => repository.login(
-              email: any(named: 'email'),
+              identifier: any(named: 'identifier'),
               pin: any(named: 'pin'),
               verification: any(named: 'verification'),
             )).thenAnswer((_) async => Result<LoginOutcome>.success(
@@ -80,16 +81,16 @@ void main() {
         return buildBloc();
       },
       act: (AuthFlowBloc bloc) => bloc.add(const AuthFlowLoginSubmitted(
-          email: 'aicha.hounkpe@kora-express.com', pin: '1234')),
+          identifier: 'aicha.hounkpe@kora-express.com', pin: '1234')),
       expect: () => <AuthFlowState>[
         const AuthFlowState(
           isSubmitting: true,
-          email: 'aicha.hounkpe@kora-express.com',
+          identifier: 'aicha.hounkpe@kora-express.com',
           pendingPin: '1234',
         ),
         AuthFlowState(
           step: AuthFlowStep.done,
-          email: 'aicha.hounkpe@kora-express.com',
+          identifier: 'aicha.hounkpe@kora-express.com',
           pendingPin: '1234',
           session: session,
         ),
@@ -100,7 +101,7 @@ void main() {
       'passe à l’étape code quand l’appareil est inconnu (202)',
       build: () {
         when(() => repository.login(
-                  email: any(named: 'email'),
+                  identifier: any(named: 'identifier'),
                   pin: any(named: 'pin'),
                   verification: any(named: 'verification'),
                 ))
@@ -109,11 +110,11 @@ void main() {
         return buildBloc();
       },
       act: (AuthFlowBloc bloc) => bloc.add(const AuthFlowLoginSubmitted(
-          email: 'aicha.hounkpe@kora-express.com', pin: '1234')),
+          identifier: 'aicha.hounkpe@kora-express.com', pin: '1234')),
       expect: () => <dynamic>[
         const AuthFlowState(
           isSubmitting: true,
-          email: 'aicha.hounkpe@kora-express.com',
+          identifier: 'aicha.hounkpe@kora-express.com',
           pendingPin: '1234',
         ),
         isA<AuthFlowState>()
@@ -127,7 +128,7 @@ void main() {
       'signale un compte verrouillé sans changer d’étape',
       build: () {
         when(() => repository.login(
-                  email: any(named: 'email'),
+                  identifier: any(named: 'identifier'),
                   pin: any(named: 'pin'),
                   verification: any(named: 'verification'),
                 ))
@@ -136,15 +137,15 @@ void main() {
         return buildBloc();
       },
       act: (AuthFlowBloc bloc) => bloc.add(const AuthFlowLoginSubmitted(
-          email: 'aicha.hounkpe@kora-express.com', pin: '0000')),
+          identifier: 'aicha.hounkpe@kora-express.com', pin: '0000')),
       expect: () => <dynamic>[
         const AuthFlowState(
           isSubmitting: true,
-          email: 'aicha.hounkpe@kora-express.com',
+          identifier: 'aicha.hounkpe@kora-express.com',
           pendingPin: '0000',
         ),
         isA<AuthFlowState>()
-            .having((s) => s.step, 'step', AuthFlowStep.email)
+            .having((s) => s.step, 'step', AuthFlowStep.identifier)
             .having((s) => s.isAccountLocked, 'isAccountLocked', isTrue)
             .having(
                 (s) => s.errorMessage, 'errorMessage', 'Compte verrouillé.'),
@@ -168,7 +169,7 @@ void main() {
               ),
             ));
         when(() => repository.login(
-                  email: any(named: 'email'),
+                  identifier: any(named: 'identifier'),
                   pin: any(named: 'pin'),
                   verification: any(named: 'verification'),
                 ))
@@ -179,12 +180,12 @@ void main() {
       seed: () => AuthFlowState(
         step: AuthFlowStep.code,
         purpose: OtpPurpose.loginNewDevice,
-        email: 'aicha.hounkpe@kora-express.com',
+        identifier: 'aicha.hounkpe@kora-express.com',
         pendingPin: '1234',
         challenge: OtpChallenge(
           uuid: 'chal-1',
           purpose: OtpPurpose.loginNewDevice,
-          email: 'aicha.hounkpe@kora-express.com',
+          identifier: 'aicha.hounkpe@kora-express.com',
           expiresAt: DateTime.now().add(const Duration(minutes: 15)),
         ),
       ),
@@ -222,7 +223,7 @@ void main() {
               code: any(named: 'code'),
             )).called(1);
         verify(() => repository.login(
-              email: any(named: 'email'),
+              identifier: any(named: 'identifier'),
               pin: any(named: 'pin'),
               verification: any(named: 'verification'),
             )).called(1);
@@ -235,13 +236,13 @@ void main() {
       'demande un OTP pin_reset puis passe à l’étape code',
       build: () {
         when(() => repository.requestOtp(
-              email: any(named: 'email'),
+              identifier: any(named: 'identifier'),
               purpose: OtpPurpose.pinReset,
             )).thenAnswer((_) async => Result<OtpChallenge>.success(
               OtpChallenge(
                 uuid: 'chal-2',
                 purpose: OtpPurpose.pinReset,
-                email: 'aicha.hounkpe@kora-express.com',
+                identifier: 'aicha.hounkpe@kora-express.com',
                 expiresAt: DateTime.now().add(const Duration(minutes: 15)),
               ),
             ));
@@ -277,11 +278,11 @@ void main() {
       seed: () => AuthFlowState(
         step: AuthFlowStep.code,
         purpose: OtpPurpose.pinReset,
-        email: 'aicha.hounkpe@kora-express.com',
+        identifier: 'aicha.hounkpe@kora-express.com',
         challenge: OtpChallenge(
           uuid: 'chal-2',
           purpose: OtpPurpose.pinReset,
-          email: 'aicha.hounkpe@kora-express.com',
+          identifier: 'aicha.hounkpe@kora-express.com',
           expiresAt: DateTime.now().add(const Duration(minutes: 15)),
         ),
       ),
@@ -303,7 +304,7 @@ void main() {
       ],
       verify: (_) {
         verifyNever(() => repository.login(
-              email: any(named: 'email'),
+              identifier: any(named: 'identifier'),
               pin: any(named: 'pin'),
               verification: any(named: 'verification'),
             ));
@@ -322,7 +323,7 @@ void main() {
       seed: () => const AuthFlowState(
         step: AuthFlowStep.newPin,
         purpose: OtpPurpose.pinReset,
-        email: 'aicha.hounkpe@kora-express.com',
+        identifier: 'aicha.hounkpe@kora-express.com',
         verification: OtpVerification(
           challengeUuid: 'chal-2',
           purpose: OtpPurpose.pinReset,
@@ -343,7 +344,7 @@ void main() {
     'AuthFlowReset remet le parcours à zéro',
     build: buildBloc,
     seed: () => const AuthFlowState(
-        step: AuthFlowStep.pin, email: 'aicha.hounkpe@kora-express.com'),
+        step: AuthFlowStep.pin, identifier: 'aicha.hounkpe@kora-express.com'),
     act: (AuthFlowBloc bloc) => bloc.add(const AuthFlowReset()),
     expect: () => <AuthFlowState>[const AuthFlowState()],
   );

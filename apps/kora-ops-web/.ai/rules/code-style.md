@@ -1,11 +1,11 @@
 ---
 paths:
-  - 'app/**'
-  - 'config/**'
-  - 'database/**'
-  - 'routes/**'
-  - 'tests/**'
-  - 'resources/**'
+    - 'app/**'
+    - 'config/**'
+    - 'database/**'
+    - 'routes/**'
+    - 'tests/**'
+    - 'resources/**'
 ---
 
 # Commentaires et PHPDoc

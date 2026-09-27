@@ -9,7 +9,9 @@ use App\Modules\Notifications\Actions\MarkOpsNotificationReadAction;
 use App\Modules\Notifications\Http\Requests\ListOpsNotificationsRequest;
 use App\Modules\Notifications\Http\Requests\MarkAllOpsNotificationsReadRequest;
 use App\Modules\Notifications\Http\Resources\OpsNotificationResource;
+use App\Modules\Notifications\Http\Resources\OpsSentNotificationResource;
 use App\Modules\Notifications\Models\OpsNotification;
+use App\Modules\Notifications\Models\OpsNotificationEvent;
 use App\Modules\Notifications\Services\OpsNotificationQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -102,6 +104,60 @@ class OpsNotificationController extends Controller
                 'unread_count' => $counts['unread'],
                 'critical_unread_count' => $counts['critical_unread'],
                 'server_time' => now()->toISOString(),
+            ],
+        ]);
+    }
+
+    /**
+     * Événements que l'utilisateur a lui-même déclenchés (incident
+     * signalé, départ fait progresser…), les plus récents d'abord — ils
+     * n'apparaissent jamais dans `GET /notifications` (voir
+     * `OpsNotificationQuery::forUser`).
+     *
+     * @authenticated
+     *
+     * @queryParam per_page integer 1 à 100 (30 par défaut). Example: 30
+     * @queryParam page integer Page. Example: 1
+     *
+     * @response 200 scenario="Notifications envoyées" {
+     *   "data": [
+     *     {
+     *       "uuid": "5a1f0d43-1b52-4f0a-a7f7-0b6c4d2e9a10",
+     *       "event_uuid": "5a1f0d43-1b52-4f0a-a7f7-0b6c4d2e9a10",
+     *       "type": "incident_reported",
+     *       "severity": "warning",
+     *       "title": "Incident signalé",
+     *       "message": "Incident (panne) signalé par Awa Traoré sur le départ COT-LFW du 21/09/2026 à 07:30 : Fuite de liquide de refroidissement",
+     *       "action": "open_departure",
+     *       "is_read": true,
+     *       "read_at": null,
+     *       "created_at": "2026-09-21T07:41:12.000Z",
+     *       "occurred_at": "2026-09-21T07:41:12.000Z",
+     *       "departure": { "uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e", "line_code": "COT-LFW", "date": "2026-09-21", "time": "07:30" },
+     *       "terminal": null,
+     *       "data": { "incident_uuid": "3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e41", "incident_type": "breakdown" }
+     *     }
+     *   ],
+     *   "meta": { "current_page": 1, "per_page": 30, "total": 1, "last_page": 1 }
+     * }
+     */
+    public function sent(Request $request, OpsNotificationQuery $notifications): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $perPage = min(100, max(1, $request->integer('per_page', 30)));
+        $page = $notifications->paginateSent($user, $perPage);
+
+        return response()->json([
+            'data' => collect($page->items())
+                ->map(fn (OpsNotificationEvent $event): array => (new OpsSentNotificationResource($event))->resolve($request))
+                ->values(),
+            'meta' => [
+                'current_page' => $page->currentPage(),
+                'per_page' => $page->perPage(),
+                'total' => $page->total(),
+                'last_page' => $page->lastPage(),
             ],
         ]);
     }

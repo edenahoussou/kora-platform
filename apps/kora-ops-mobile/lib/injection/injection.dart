@@ -46,6 +46,7 @@ import '../features/notifications/data/datasources/notification_remote_datasourc
 import '../features/notifications/data/repositories/notification_repository_impl.dart';
 import '../features/notifications/domain/repositories/notification_repository.dart';
 import '../features/notifications/presentation/cubit/notification_cubit.dart';
+import '../features/notifications/presentation/cubit/sent_notification_cubit.dart';
 import '../features/onboarding/data/onboarding_store.dart';
 import '../features/ops/data/datasources/departure_remote_datasource.dart';
 import '../features/ops/data/datasources/selected_departure_local_datasource.dart';
@@ -524,5 +525,8 @@ Future<void> configureDependencies() async {
   );
   getIt.registerSingleton<NotificationCubit>(
     NotificationCubit(getIt<NotificationRepository>(), getIt<AuthCubit>()),
+  );
+  getIt.registerSingleton<SentNotificationCubit>(
+    SentNotificationCubit(getIt<NotificationRepository>()),
   );
 }

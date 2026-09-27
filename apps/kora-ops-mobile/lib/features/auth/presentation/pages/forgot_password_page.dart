@@ -8,10 +8,11 @@ import '../../../../core/services/kora_dialogs.dart';
 import '../../../../core/widgets/kora_button.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../bloc/auth_flow_bloc.dart';
+import '../widgets/identifier_input.dart';
 
-/// Écran "PIN oublié" — envoie un code de vérification à l'email saisi,
-/// première étape du parcours `pin_reset` (email → OTP → nouveau PIN).
-/// Route : `/login/forgot-password`.
+/// Écran "PIN oublié" — envoie un code de vérification à l'identifiant
+/// (email ou téléphone) saisi, première étape du parcours `pin_reset`
+/// (identifiant → OTP → nouveau PIN). Route : `/login/forgot-password`.
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
 
@@ -20,27 +21,20 @@ class ForgotPasswordPage extends StatefulWidget {
 }
 
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
-  final TextEditingController _emailController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final IdentifierInputController _controller = IdentifierInputController();
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _controller.dispose();
     super.dispose();
-  }
-
-  String? _validateEmail(String? value) {
-    final String email = value?.trim() ?? '';
-    if (email.isEmpty) return 'Adresse email requise.';
-    final bool isValid = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
-    return isValid ? null : 'Adresse email invalide.';
   }
 
   Future<void> _submit(BuildContext context) async {
     if (!_formKey.currentState!.validate()) return;
 
     final AuthFlowBloc bloc = context.read<AuthFlowBloc>();
-    bloc.add(AuthFlowPinResetRequested(_emailController.text.trim()));
+    bloc.add(AuthFlowPinResetRequested(_controller.resolved));
 
     // AuthFlowPinResetRequested est asynchrone côté bloc (appel réseau) ;
     // on attend le prochain état stable avant de décider où naviguer.
@@ -80,22 +74,13 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     Text(
-                      'Saisissez l\'adresse email associée à votre compte KORA. '
-                      'Nous vous enverrons un code pour choisir un nouveau PIN.',
+                      "Saisissez l'email ou le numéro de téléphone associé "
+                      'à votre compte KORA. Nous vous enverrons un code '
+                      'pour choisir un nouveau PIN.',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     const SizedBox(height: AppSpacing.lg),
-                    Text('Adresse email',
-                        style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: AppSpacing.sm),
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      autofillHints: const <String>[AutofillHints.email],
-                      decoration: const InputDecoration(
-                          hintText: 'nom.prenom@kora-express.com'),
-                      validator: _validateEmail,
-                    ),
+                    IdentifierInput(controller: _controller),
                     const SizedBox(height: AppSpacing.lg),
                     BlocBuilder<AuthFlowBloc, AuthFlowState>(
                       builder: (BuildContext context, AuthFlowState state) =>

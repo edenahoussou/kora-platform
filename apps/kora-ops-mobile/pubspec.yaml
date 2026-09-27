@@ -10,6 +10,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   cupertino_icons: ^1.0.8
 
   # Vérification hors ligne de l'authenticité des billets (Ed25519) —
@@ -100,7 +102,12 @@ dependencies:
   # Serialization
   json_annotation: ^4.9.0
 
-  intl: ^0.19.0
+  intl: 
+
+  # Saisie de numéro de téléphone au format international (E.164) — login
+  # par téléphone en plus de l'email, voir migration backend du 25/09/2026
+  # (colonne `identifier`).
+  phone_form_field: ^10.0.17
 
   # Dialogues (succès/erreur/warning/info/confirmation/chargement)
   pro_dialog: ^1.0.9

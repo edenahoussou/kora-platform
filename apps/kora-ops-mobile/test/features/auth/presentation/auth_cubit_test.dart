@@ -46,27 +46,28 @@ void main() {
     );
 
     blocTest<AuthCubit, AuthState>(
-      'émet [Loading, Unauthenticated(savedEmail)] si aucune session mais un email enregistré',
+      'émet [Loading, Unauthenticated(savedIdentifier)] si aucune session mais un identifiant enregistré',
       build: () {
         when(() => repository.currentSession())
             .thenAnswer((_) async => const Result<AuthSession?>.success(null));
-        when(() => repository.lastEmail())
+        when(() => repository.lastIdentifier())
             .thenAnswer((_) async => 'aicha.hounkpe@kora-express.com');
         return buildCubit();
       },
       act: (AuthCubit cubit) => cubit.checkAuthStatus(),
       expect: () => <AuthState>[
         const AuthLoading(),
-        const AuthUnauthenticated(savedEmail: 'aicha.hounkpe@kora-express.com'),
+        const AuthUnauthenticated(
+            savedIdentifier: 'aicha.hounkpe@kora-express.com'),
       ],
     );
 
     blocTest<AuthCubit, AuthState>(
-      'émet [Loading, Unauthenticated(null)] si aucune session ni email enregistré',
+      'émet [Loading, Unauthenticated(null)] si aucune session ni identifiant enregistré',
       build: () {
         when(() => repository.currentSession())
             .thenAnswer((_) async => const Result<AuthSession?>.success(null));
-        when(() => repository.lastEmail()).thenAnswer((_) async => null);
+        when(() => repository.lastIdentifier()).thenAnswer((_) async => null);
         return buildCubit();
       },
       act: (AuthCubit cubit) => cubit.checkAuthStatus(),
@@ -80,7 +81,7 @@ void main() {
         when(() => repository.currentSession()).thenAnswer((_) async =>
             const Result<AuthSession?>.failure(
                 UnknownFailure('stockage sécurisé inaccessible')));
-        when(() => repository.lastEmail()).thenAnswer((_) async => null);
+        when(() => repository.lastIdentifier()).thenAnswer((_) async => null);
         return buildCubit();
       },
       act: (AuthCubit cubit) => cubit.checkAuthStatus(),
@@ -100,16 +101,17 @@ void main() {
 
   group('sessionExpired', () {
     blocTest<AuthCubit, AuthState>(
-      'purge la session et émet Unauthenticated(savedEmail conservé) sur un 401',
+      'purge la session et émet Unauthenticated(savedIdentifier conservé) sur un 401',
       build: () {
         when(() => repository.purgeLocalSession()).thenAnswer((_) async {});
-        when(() => repository.lastEmail())
+        when(() => repository.lastIdentifier())
             .thenAnswer((_) async => 'aicha.hounkpe@kora-express.com');
         return buildCubit();
       },
       act: (AuthCubit cubit) => cubit.sessionExpired(),
       expect: () => <AuthState>[
-        const AuthUnauthenticated(savedEmail: 'aicha.hounkpe@kora-express.com'),
+        const AuthUnauthenticated(
+            savedIdentifier: 'aicha.hounkpe@kora-express.com'),
       ],
       verify: (_) {
         // Pas d'appel réseau ici : le serveur a déjà rejeté ce token,
@@ -123,18 +125,19 @@ void main() {
 
   group('logout', () {
     blocTest<AuthCubit, AuthState>(
-      'émet [Loading, Unauthenticated(savedEmail conservé)]',
+      'émet [Loading, Unauthenticated(savedIdentifier conservé)]',
       build: () {
         when(() => repository.logout())
             .thenAnswer((_) async => const Result<void>.success(null));
-        when(() => repository.lastEmail())
+        when(() => repository.lastIdentifier())
             .thenAnswer((_) async => 'aicha.hounkpe@kora-express.com');
         return buildCubit();
       },
       act: (AuthCubit cubit) => cubit.logout(),
       expect: () => <AuthState>[
         const AuthLoading(),
-        const AuthUnauthenticated(savedEmail: 'aicha.hounkpe@kora-express.com'),
+        const AuthUnauthenticated(
+            savedIdentifier: 'aicha.hounkpe@kora-express.com'),
       ],
     );
 
@@ -143,14 +146,15 @@ void main() {
       build: () {
         when(() => repository.logout()).thenAnswer(
             (_) async => const Result<void>.failure(NetworkFailure()));
-        when(() => repository.lastEmail())
+        when(() => repository.lastIdentifier())
             .thenAnswer((_) async => 'aicha.hounkpe@kora-express.com');
         return buildCubit();
       },
       act: (AuthCubit cubit) => cubit.logout(),
       expect: () => <AuthState>[
         const AuthLoading(),
-        const AuthUnauthenticated(savedEmail: 'aicha.hounkpe@kora-express.com'),
+        const AuthUnauthenticated(
+            savedIdentifier: 'aicha.hounkpe@kora-express.com'),
       ],
     );
   });

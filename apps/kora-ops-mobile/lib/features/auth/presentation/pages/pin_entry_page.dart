@@ -39,15 +39,15 @@ class _PinEntryPageState extends State<PinEntryPage> {
     // on le reprend de AuthCubit, seule source qui l'a lu du stockage
     // sécurisé à ce stade (voir AuthGuard.redirect).
     final AuthFlowBloc flowBloc = context.read<AuthFlowBloc>();
-    if (flowBloc.state.email.isEmpty) {
+    if (flowBloc.state.identifier.isEmpty) {
       final AuthState authState = context.read<AuthCubit>().state;
-      final String? savedEmail = switch (authState) {
-        AuthUnauthenticated(:final savedEmail) => savedEmail,
-        AuthCheckFailed(:final savedEmail) => savedEmail,
+      final String? savedIdentifier = switch (authState) {
+        AuthUnauthenticated(:final savedIdentifier) => savedIdentifier,
+        AuthCheckFailed(:final savedIdentifier) => savedIdentifier,
         _ => null,
       };
-      if (savedEmail != null) {
-        flowBloc.add(AuthFlowEmailEntered(savedEmail));
+      if (savedIdentifier != null) {
+        flowBloc.add(AuthFlowIdentifierEntered(savedIdentifier));
       }
     }
   }
@@ -70,13 +70,13 @@ class _PinEntryPageState extends State<PinEntryPage> {
 
   Future<void> _submit() async {
     final AuthFlowBloc flowBloc = context.read<AuthFlowBloc>();
-    final String email = flowBloc.state.email;
+    final String identifier = flowBloc.state.identifier;
 
     // Même loader qu'sur ChangePinPage (superposition dans la page, pas
     // un KoraDialogs.showLoading) — échange du 24/09/2026.
     setState(() => _isSubmitting = true);
 
-    flowBloc.add(AuthFlowLoginSubmitted(email: email, pin: _pin));
+    flowBloc.add(AuthFlowLoginSubmitted(identifier: identifier, pin: _pin));
     final AuthFlowState next = await flowBloc.stream
         .firstWhere((AuthFlowState state) => !state.isSubmitting);
 
@@ -108,7 +108,7 @@ class _PinEntryPageState extends State<PinEntryPage> {
           context.read<AuthCubit>().authenticate(session.user);
         }
         if (mounted) context.go(AppRoutes.home);
-      case AuthFlowStep.email:
+      case AuthFlowStep.identifier:
       case AuthFlowStep.pin:
       case AuthFlowStep.newPin:
         // Ne devrait pas arriver depuis une soumission de PIN réussie —
@@ -146,8 +146,8 @@ class _PinEntryPageState extends State<PinEntryPage> {
                           const _Logo(),
                           const SizedBox(height: AppSpacing.lg),
                           _Header(
-                            email: state.email,
-                            onChangeEmail: _isSubmitting
+                            identifier: state.identifier,
+                            onChangeIdentifier: _isSubmitting
                                 ? null
                                 : () => context.canPop()
                                     ? context.pop()
@@ -219,9 +219,10 @@ class _Logo extends StatelessWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.email, required this.onChangeEmail});
+  const _Header(
+      {required this.identifier, required this.onChangeIdentifier});
 
-  final String email;
+  final String identifier;
 
   /// Retour à la saisie de l'email — `context.pop()` si cet écran a été
   /// atteint depuis `LoginEmailPage` (parcours normal), sinon
@@ -231,7 +232,7 @@ class _Header extends StatelessWidget {
   /// 24/09/2026 : impossible de corriger un email mal saisi jusque-là).
   /// `null` pendant une soumission en cours — désactive le lien plutôt
   /// que de permettre de quitter l'écran au milieu d'une connexion.
-  final VoidCallback? onChangeEmail;
+  final VoidCallback? onChangeIdentifier;
 
   @override
   Widget build(BuildContext context) {
@@ -255,7 +256,7 @@ class _Header extends StatelessWidget {
           children: <Widget>[
             Flexible(
               child: Text(
-                email,
+                identifier,
                 style: TextStyle(
                     color: AppColors.white.withValues(alpha: 0.65),
                     fontSize: 13),
@@ -264,7 +265,7 @@ class _Header extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             GestureDetector(
-              onTap: onChangeEmail,
+              onTap: onChangeIdentifier,
               child: const Text(
                 'Modifier',
                 style: TextStyle(
