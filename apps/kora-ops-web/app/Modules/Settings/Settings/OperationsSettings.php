@@ -48,6 +48,24 @@ final class OperationsSettings extends Settings
 
     public int $passengerDelayThresholdMinutes = 1;
 
+    public int $trackingStaleAfterSeconds = 90;
+
+    public int $trackingTerminalOfflineAfterSeconds = 300;
+
+    public int $trackingDegradedAccuracyMeters = 75;
+
+    public int $trackingRouteCorridorMeters = 1000;
+
+    public int $trackingRecentPositionsLimit = 60;
+
+    public int $trackingMaxClockSkewSeconds = 120;
+
+    public int $trackingMaxPositionAgeMinutes = 180;
+
+    public int $trackingMaxPositionsPerBatch = 200;
+
+    public int $trackingCacheTtlSeconds = 600;
+
     public static function group(): string
     {
         return 'operations';
