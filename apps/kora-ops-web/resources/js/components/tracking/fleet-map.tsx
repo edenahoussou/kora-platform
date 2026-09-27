@@ -553,7 +553,7 @@ export function FleetMap({
     };
 
     return (
-        <div className={`relative h-full w-full overflow-hidden rounded-2xl border border-border/60 bg-muted/20 ${className ?? ''}`}>
+        <div className={`relative isolate h-full w-full overflow-hidden rounded-2xl border border-border/60 bg-muted/20 ${className ?? ''}`}>
             {/* The Map DOM Container */}
             <div ref={containerRef} className="h-full w-full" />
 

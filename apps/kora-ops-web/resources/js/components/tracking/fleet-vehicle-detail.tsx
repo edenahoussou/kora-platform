@@ -322,23 +322,22 @@ export function FleetVehicleDetail({
                                 {/* Card: Speed + Heading */}
                                 <div className="rounded-xl border border-border/60 bg-card shadow-sm">
                                     <div className="grid grid-cols-2 divide-x divide-border/50">
-                                        <div className="p-3.5 space-y-1">
-                                            <KoraTooltip
-                                                side="top"
-                                                content={
-                                                    <>
-                                                        <span className="block font-black">Vitesse instantanée</span>
-                                                        Calculée par le GPS du terminal Android à partir du déplacement
-                                                        entre deux trames consécutives (Δdistance ÷ Δtemps).
-                                                        0 km/h = véhicule à l'arrêt.
-                                                    </>
-                                                }
-                                            >
-                                                <span className="text-[0.625rem] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1 cursor-help underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">
-                                                    <Gauge className="size-3 text-digital" />
-                                                    Vitesse
-                                                </span>
-                                            </KoraTooltip>
+                                        <KoraTooltip
+                                            side="top"
+                                            content={
+                                                <>
+                                                    <span className="block font-black">Vitesse instantanée</span>
+                                                    Calculée par le GPS du terminal Android à partir du déplacement
+                                                    entre deux trames consécutives (Δdistance ÷ Δtemps).
+                                                    0 km/h = véhicule à l'arrêt.
+                                                </>
+                                            }
+                                        >
+                                            <div className="p-3.5 space-y-1 cursor-help">
+                                            <span className="text-[0.625rem] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1 underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">
+                                                <Gauge className="size-3 text-digital" />
+                                                Vitesse
+                                            </span>
                                             <div className="flex items-baseline gap-1">
                                                 <span className="text-2xl font-black font-mono tracking-tight text-foreground">
                                                     {pos.speed_kmh !== null ? Math.round(pos.speed_kmh) : 0}
@@ -355,24 +354,24 @@ export function FleetVehicleDetail({
                                                     }}
                                                 />
                                             </div>
-                                        </div>
+                                            </div>
+                                        </KoraTooltip>
 
-                                        <div className="p-3.5 space-y-1">
-                                            <KoraTooltip
-                                                side="top"
-                                                content={
-                                                    <>
-                                                        <span className="block font-black">Cap &amp; orientation</span>
-                                                        Cap boussole en degrés (0–360°, 0 = Nord) remonté par le
-                                                        GPS — il oriente l'encoche du marqueur bus sur la carte.
-                                                    </>
-                                                }
-                                            >
-                                                <span className="text-[0.625rem] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1 cursor-help underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">
-                                                    <Navigation className="size-3 text-gold" />
-                                                    Cap
-                                                </span>
-                                            </KoraTooltip>
+                                        <KoraTooltip
+                                            side="top"
+                                            content={
+                                                <>
+                                                    <span className="block font-black">Cap &amp; orientation</span>
+                                                    Cap boussole en degrés (0–360°, 0 = Nord) remonté par le
+                                                    GPS — il oriente l'encoche du marqueur bus sur la carte.
+                                                </>
+                                            }
+                                        >
+                                            <div className="p-3.5 space-y-1 cursor-help">
+                                            <span className="text-[0.625rem] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1 underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">
+                                                <Navigation className="size-3 text-gold" />
+                                                Cap
+                                            </span>
                                             <div className="flex items-baseline gap-1">
                                                 <span className="text-lg font-black font-mono tracking-tight text-foreground">
                                                     {formatHeadingText(pos.heading_degrees)}
@@ -381,30 +380,30 @@ export function FleetVehicleDetail({
                                             <p className="text-[0.625rem] text-muted-foreground truncate">
                                                 Direction de progression
                                             </p>
-                                        </div>
+                                            </div>
+                                        </KoraTooltip>
                                     </div>
                                 </div>
 
                                 {/* Card: Accuracy + Freshness */}
                                 <div className="rounded-xl border border-border/60 bg-card shadow-sm">
                                     <div className="grid grid-cols-2 divide-x divide-border/50">
-                                        <div className="p-3.5 space-y-1">
-                                            <KoraTooltip
-                                                side="top"
-                                                content={
-                                                    <>
-                                                        <span className="block font-black">Précision du signal</span>
-                                                        Rayon d'incertitude du fix GPS en mètres : plus la valeur
-                                                        est faible, plus la position est fiable. Optimal ≤ ~10 m,
-                                                        dégradé au-delà (zone dense, ciel couvert).
-                                                    </>
-                                                }
-                                            >
-                                                <span className="text-[0.625rem] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1 cursor-help underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">
-                                                    <Radio className="size-3 text-emerald-500" />
-                                                    Précision
-                                                </span>
-                                            </KoraTooltip>
+                                        <KoraTooltip
+                                            side="top"
+                                            content={
+                                                <>
+                                                    <span className="block font-black">Précision du signal</span>
+                                                    Rayon d'incertitude du fix GPS en mètres : plus la valeur
+                                                    est faible, plus la position est fiable. Optimal ≤ ~10 m,
+                                                    dégradé au-delà (zone dense, ciel couvert).
+                                                </>
+                                            }
+                                        >
+                                            <div className="p-3.5 space-y-1 cursor-help">
+                                            <span className="text-[0.625rem] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1 underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">
+                                                <Radio className="size-3 text-emerald-500" />
+                                                Précision
+                                            </span>
                                             <div className="flex items-baseline gap-1.5">
                                                 <span className="text-lg font-black font-mono text-foreground">
                                                     {pos.accuracy_meters !== null
@@ -424,25 +423,25 @@ export function FleetVehicleDetail({
                                             <p className="text-[0.625rem] text-muted-foreground">
                                                 Incertitude satellite
                                             </p>
-                                        </div>
+                                            </div>
+                                        </KoraTooltip>
 
-                                        <div className="p-3.5 space-y-1">
-                                            <KoraTooltip
-                                                side="top"
-                                                content={
-                                                    <>
-                                                        <span className="block font-black">Fraîcheur du point</span>
-                                                        Temps écoulé depuis la réception de la dernière trame GPS
-                                                        par le serveur : &lt; 90 s = en direct, &gt; 90 s =
-                                                        position ancienne.
-                                                    </>
-                                                }
-                                            >
-                                                <span className="text-[0.625rem] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1 cursor-help underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">
-                                                    <Clock className="size-3 text-amber-500" />
-                                                    Fraîcheur
-                                                </span>
-                                            </KoraTooltip>
+                                        <KoraTooltip
+                                            side="top"
+                                            content={
+                                                <>
+                                                    <span className="block font-black">Fraîcheur du point</span>
+                                                    Temps écoulé depuis la réception de la dernière trame GPS
+                                                    par le serveur : &lt; 90 s = en direct, &gt; 90 s =
+                                                    position ancienne.
+                                                </>
+                                            }
+                                        >
+                                            <div className="p-3.5 space-y-1 cursor-help">
+                                            <span className="text-[0.625rem] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1 underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">
+                                                <Clock className="size-3 text-amber-500" />
+                                                Fraîcheur
+                                            </span>
                                             <div className="flex items-baseline gap-1">
                                                 <span className="text-base font-black text-foreground">
                                                     {formatAge(pos.age_seconds)}
@@ -451,7 +450,8 @@ export function FleetVehicleDetail({
                                             <p className="text-[0.625rem] text-muted-foreground">
                                                 Dernière trame reçue
                                             </p>
-                                        </div>
+                                            </div>
+                                        </KoraTooltip>
                                     </div>
                                 </div>
                             </div>
