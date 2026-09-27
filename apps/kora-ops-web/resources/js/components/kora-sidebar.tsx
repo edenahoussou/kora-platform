@@ -124,6 +124,11 @@ const navItems: NavEntry[] = [
                 permission: 'departures.view',
             },
             {
+                title: 'Suivi de flotte',
+                href: '/operations/fleet-tracking',
+                permission: ['tracking.view-agency', 'tracking.view-network'],
+            },
+            {
                 title: 'Lignes & arrêts',
                 href: '/network',
                 permission: 'network.view',
