@@ -27,11 +27,19 @@ const TILES = {
         url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
         attribution:
             '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: ['a', 'b', 'c', 'd'],
     },
     light: {
         url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
         attribution:
             '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: ['a', 'b', 'c', 'd'],
+    },
+    osm: {
+        url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        subdomains: ['a', 'b', 'c'],
     },
 };
 
@@ -89,8 +97,9 @@ export function FleetMap({
     const markersRef = useRef<Record<string, L.Marker>>({});
     const polylineRef = useRef<L.Polyline | null>(null);
     const historyDotsRef = useRef<L.CircleMarker[]>([]);
-    const [activeTileType, setActiveTileType] = useState<'ops' | 'osm'>('ops');
+    const [activeTileType, setActiveTileType] = useState<'ops' | 'osm'>('osm');
     const [showLegend, setShowLegend] = useState<boolean>(true);
+    const [tileErrorCount, setTileErrorCount] = useState(0);
 
     // Initial map mount
     useEffect(() => {
@@ -111,13 +120,30 @@ export function FleetMap({
             })
             .addTo(map);
 
-        const tileConfig = isDarkMode ? TILES.dark : TILES.light;
+        let tileConfig = TILES.osm;
+
+        if (activeTileType === 'ops') {
+            tileConfig = isDarkMode ? TILES.dark : TILES.light;
+        }
+
         const tileLayer = L.tileLayer(tileConfig.url, {
             attribution: tileConfig.attribution,
             maxZoom: 19,
+            subdomains: tileConfig.subdomains as any,
         }).addTo(map);
 
         tileLayerRef.current = tileLayer;
+
+        // Auto-fallback to OSM if the OPS tiles fail to load
+        tileLayer.on('tileerror', () => {
+            setTileErrorCount((prev) => prev + 1);
+
+            if (activeTileType !== 'osm' && tileErrorCount > 5) {
+                tileLayer.setUrl(TILES.osm.url);
+                setActiveTileType('osm');
+            }
+        });
+
         mapRef.current = map;
 
         return () => {
@@ -133,10 +159,13 @@ export function FleetMap({
             return;
         }
 
-        let nextUrl = isDarkMode ? TILES.dark.url : TILES.light.url;
-        let nextAttr = isDarkMode ? TILES.dark.attribution : TILES.light.attribution;
+        let nextUrl = TILES.osm.url;
+        let nextAttr = TILES.osm.attribution;
 
-        if (activeTileType === 'osm' && osmTileUrl) {
+        if (activeTileType === 'ops') {
+            nextUrl = isDarkMode ? TILES.dark.url : TILES.light.url;
+            nextAttr = isDarkMode ? TILES.dark.attribution : TILES.light.attribution;
+        } else if (osmTileUrl) {
             nextUrl = osmTileUrl;
             nextAttr = osmAttribution || '';
         }
