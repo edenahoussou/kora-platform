@@ -18,7 +18,7 @@ class UserPreferenceFactory extends Factory
     public function definition(): array
     {
         return [
-            'push_notifications' => true,
+            'push_notifications' => false,
             'whatsapp_notifications' => true,
             'email_notifications' => true,
             'locale' => 'fr',

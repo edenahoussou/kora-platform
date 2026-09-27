@@ -90,9 +90,10 @@ class UpdateDepartureAction
 
             $date = $attributes['departure_date'] ?? $departure->departure_date->format('Y-m-d');
             $time = $attributes['departure_time'] ?? $departure->departure_time;
-            $departureDateTime = CarbonImmutable::parse($date.' '.$time);
+            $timezone = $departure->departure_timezone ?? config('app.timezone');
+            $departureDateTime = CarbonImmutable::parse($date.' '.$time, $timezone);
             $estimatedArrivalAt = $line->estimated_duration_minutes
-                ? $departureDateTime->addMinutes((int) $line->estimated_duration_minutes)
+                ? $departureDateTime->addMinutes((int) $line->estimated_duration_minutes)->utc()
                 : null;
 
             $departure->fill([
@@ -100,6 +101,8 @@ class UpdateDepartureAction
                 'bus_id' => $busId,
                 'departure_date' => $date,
                 'departure_time' => $time,
+                'scheduled_at' => $departureDateTime,
+                'departure_timezone' => $timezone,
                 'estimated_arrival_at' => $estimatedArrivalAt,
                 'driver_id' => $driverId,
                 'conductor_id' => $conductorId,

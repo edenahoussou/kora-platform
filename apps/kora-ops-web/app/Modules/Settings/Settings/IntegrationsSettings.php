@@ -6,6 +6,28 @@ use Spatie\LaravelSettings\Settings;
 
 final class IntegrationsSettings extends Settings
 {
+    public bool $firebasePushEnabled = false;
+
+    public ?string $firebaseProjectId = null;
+
+    public ?string $firebaseWebApiKey = null;
+
+    public ?string $firebaseWebAuthDomain = null;
+
+    public ?string $firebaseWebStorageBucket = null;
+
+    public ?string $firebaseWebMessagingSenderId = null;
+
+    public ?string $firebaseWebAppId = null;
+
+    public ?string $firebaseAndroidAppId = null;
+
+    public ?string $firebaseIosAppId = null;
+
+    public ?string $firebaseWebVapidKey = null;
+
+    public ?string $firebaseServiceAccountJson = null;
+
     public bool $emecfTestMode = true;
 
     public ?string $emecfToken = null;
@@ -157,6 +179,7 @@ final class IntegrationsSettings extends Settings
     public static function encrypted(): array
     {
         return [
+            'firebaseServiceAccountJson',
             'emecfToken',
             'fedapaySecretKey',
             'fedapayWebhookSecret',

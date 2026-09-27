@@ -8,6 +8,7 @@ use App\Modules\BusNetwork\Models\Line;
 use App\Modules\BusNetwork\Models\Stop;
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Models\Departure;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -43,7 +44,7 @@ class KoraDepartureSeeder extends Seeder
         $drivers = User::query()->where('email', 'like', 'driver.%@kora.demo')->limit(2)->get();
         $conductors = User::query()->where('email', 'like', 'conductor.%@kora.demo')->limit(2)->get();
 
-        $today = Carbon::today();
+        $today = Carbon::today('Africa/Porto-Novo');
         $tomorrow = $today->copy()->addDay();
         $dayAfterTomorrow = $today->copy()->addDays(2);
 
@@ -81,9 +82,12 @@ class KoraDepartureSeeder extends Seeder
                 continue;
             }
 
-            $departureDateTime = Carbon::parse($data['date']->format('Y-m-d').' '.$data['time']);
+            // Les horaires saisis sont en heure locale de Porto-Novo :
+            // on les convertit en instants UTC pour scheduled_at et
+            // estimated_arrival_at (timestamps relus en UTC).
+            $departureDateTime = CarbonImmutable::parse($data['date']->format('Y-m-d').' '.$data['time'], 'Africa/Porto-Novo');
             $estimatedArrivalAt = $data['line']->estimated_duration_minutes
-                ? $departureDateTime->addMinutes((int) $data['line']->estimated_duration_minutes)
+                ? $departureDateTime->addMinutes((int) $data['line']->estimated_duration_minutes)->utc()
                 : null;
 
             $stopTimes = $this->buildStopTimes($data['line']);

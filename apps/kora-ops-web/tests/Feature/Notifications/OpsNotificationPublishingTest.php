@@ -1,6 +1,9 @@
 <?php
 
 use App\Models\User;
+use App\Modules\AssistedBooking\Models\AssistedBooking;
+use App\Modules\Booking\Data\ReservationStatus;
+use App\Modules\Booking\Models\Reservation;
 use App\Modules\BusNetwork\Models\Bus;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\Departures\Models\Departure;
@@ -18,6 +21,7 @@ use App\Modules\Notifications\Models\OpsNotification;
 use App\Modules\Notifications\Models\OpsNotificationDelivery;
 use App\Modules\Notifications\Models\OpsNotificationEvent;
 use App\Modules\Notifications\Models\OpsNotificationPreference;
+use App\Modules\Notifications\Services\OpsNotifier;
 use Database\Seeders\KoraBusRolePermissionSeeder;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -386,4 +390,57 @@ it('turns a printing failure reported by the terminal into an alert, once per fa
 
     Mail::assertSent(OpsAlertMail::class, fn (OpsAlertMail $mail): bool => $mail->hasTo($w['directorA']->email) && $mail->hasCc($w['admin']->email));
     Mail::assertSent(OpsAlertMail::class, 2);
+});
+
+it('routes new and reassigned assistance notifications to claim-capable agencies and network profiles', function (): void {
+    $agencyA = Agency::factory()->create();
+    $agencyB = Agency::factory()->create();
+    $agentA = pubUser('agency_agent', $agencyA);
+    $agentB = pubUser('agency_agent', $agencyB);
+    $directorA = pubUser('operations_director', $agencyA);
+    $directorB = pubUser('operations_director', $agencyB);
+    $unrelated = pubUser('conductor', $agencyA);
+    $departure = pubDeparture();
+    $reservation = Reservation::query()->create([
+        'departure_id' => $departure->id,
+        'created_by_user_id' => $agentA->id,
+        'status' => ReservationStatus::AssistancePending,
+        'total_amount' => 10000,
+        'currency' => 'XOF',
+        'channel' => 'mobile',
+        'expires_at' => now()->addDay(),
+    ]);
+    $assistance = AssistedBooking::query()->create([
+        'reservation_id' => $reservation->id,
+        'preferred_agency_id' => $agencyA->id,
+        'assigned_user_id' => $agentA->id,
+        'origin_channel' => 'mobile',
+        'handoff_channel' => 'whatsapp',
+        'status' => 'pending',
+        'contact_name' => 'Voyageur',
+        'contact_phone' => '+2290100000000',
+        'snapshot' => ['legs' => [], 'requested_seats' => [], 'passenger_count' => 1],
+        'original_total_amount' => 10000,
+        'currency' => 'XOF',
+        'idempotency_key' => (string) Str::uuid(),
+        'expires_at' => now()->addDay(),
+    ]);
+    $notifier = app(OpsNotifier::class);
+
+    $notifier->assistedBookingRequested($assistance);
+    $notifier->assistedBookingRequested($assistance);
+
+    $requestedEvent = OpsNotificationEvent::query()->where('type', OpsNotificationType::AssistedBookingRequested->value)->firstOrFail();
+    $requestedRecipients = OpsNotification::query()->where('event_id', $requestedEvent->id)->pluck('user_id')->all();
+    expect($requestedRecipients)->toContain($agentA->id, $directorA->id, $directorB->id)
+        ->not->toContain($agentB->id, $unrelated->id)
+        ->and(OpsNotificationEvent::query()->where('type', OpsNotificationType::AssistedBookingRequested->value)->count())->toBe(1);
+
+    $assistance->update(['preferred_agency_id' => $agencyB->id]);
+    $notifier->assistedBookingReassigned($assistance, $agentA);
+
+    $reassignedEvent = OpsNotificationEvent::query()->where('type', OpsNotificationType::AssistedBookingReassigned->value)->firstOrFail();
+    $reassignedRecipients = OpsNotification::query()->where('event_id', $reassignedEvent->id)->pluck('user_id')->all();
+    expect($reassignedRecipients)->toContain($agentA->id, $agentB->id, $directorA->id, $directorB->id)
+        ->not->toContain($unrelated->id);
 });

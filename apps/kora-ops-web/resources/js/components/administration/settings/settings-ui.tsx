@@ -150,19 +150,21 @@ export function SettingsPageHeader({
                     {description}
                 </p>
             </div>
-            <div className="hidden items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 shadow-[0_7px_28px_rgba(0,29,78,0.04)] lg:flex">
-                <span className="grid size-9 place-items-center rounded-lg bg-kora text-gold">
-                    <ShieldCheck className="size-4" strokeWidth={1.9} />
-                </span>
-                <div className="text-[11px] leading-4">
-                    <span className="block font-bold text-foreground">
-                        Configuration runtime
+            {group !== 'integrations' && (
+                <div className="hidden items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 shadow-[0_7px_28px_rgba(0,29,78,0.04)] lg:flex">
+                    <span className="grid size-9 place-items-center rounded-lg bg-kora text-gold">
+                        <ShieldCheck className="size-4" strokeWidth={1.9} />
                     </span>
-                    <span className="mt-0.5 block text-muted-foreground">
-                        Appliquée aux prochaines requêtes et jobs.
-                    </span>
+                    <div className="text-[11px] leading-4">
+                        <span className="block font-bold text-foreground">
+                            Configuration runtime
+                        </span>
+                        <span className="mt-0.5 block text-muted-foreground">
+                            Appliquée aux prochaines requêtes et jobs.
+                        </span>
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 }
@@ -223,6 +225,10 @@ export function SettingsField({
     suffix,
     icon: Icon,
     placeholder,
+    required = false,
+    source,
+    configured = false,
+    showConfigured = false,
 }: {
     label: string;
     hint?: string;
@@ -234,17 +240,40 @@ export function SettingsField({
     suffix?: string;
     icon?: LucideIcon;
     placeholder?: string;
+    required?: boolean;
+    source?: string;
+    configured?: boolean;
+    showConfigured?: boolean;
 }) {
     return (
         <label className="grid content-start gap-1.5">
-            <span className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                {Icon && (
-                    <Icon
-                        className="size-3.5 text-muted-foreground"
-                        strokeWidth={2}
-                    />
+            <span className="flex flex-wrap items-center gap-1.5 text-xs font-bold text-foreground">
+                <span className="flex items-center gap-1.5">
+                    {Icon && (
+                        <Icon
+                            className="size-3.5 text-muted-foreground"
+                            strokeWidth={2}
+                        />
+                    )}
+                    {label}
+                    {required && (
+                        <span className="rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-extrabold tracking-wide text-amber-700 dark:text-amber-300">
+                            Requis
+                        </span>
+                    )}
+                </span>
+                {showConfigured && (
+                    <span
+                        className={cn(
+                            'rounded-full px-1.5 py-0.5 text-[9px] font-extrabold tracking-wide',
+                            configured
+                                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                : 'bg-muted text-muted-foreground',
+                        )}
+                    >
+                        {configured ? 'Configuré' : 'À configurer'}
+                    </span>
                 )}
-                {label}
             </span>
             <span className="relative block">
                 <Input
@@ -265,6 +294,11 @@ export function SettingsField({
                     </span>
                 )}
             </span>
+            {source && (
+                <span className="text-[10px] leading-4 text-muted-foreground/80">
+                    Où le trouver : {source}
+                </span>
+            )}
             {error ? (
                 <span className="text-[11px] font-semibold text-destructive">
                     {error}
@@ -407,12 +441,16 @@ export function SettingsToggle({
     checked,
     onChange,
     disabled,
+    icon: Icon,
+    required = false,
 }: {
     label: string;
     hint?: string;
     checked: boolean;
     onChange: (checked: boolean) => void;
     disabled: boolean;
+    icon?: LucideIcon;
+    required?: boolean;
 }) {
     return (
         <div
@@ -423,7 +461,18 @@ export function SettingsToggle({
         >
             <span className="min-w-0">
                 <span className="block text-xs font-bold text-foreground">
+                    {Icon && (
+                        <Icon
+                            className="mr-1.5 inline size-3.5 align-[-2px] text-muted-foreground"
+                            strokeWidth={2}
+                        />
+                    )}
                     {label}
+                    {required && (
+                        <span className="ml-1.5 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-extrabold tracking-wide text-amber-700 dark:text-amber-300">
+                            Requis
+                        </span>
+                    )}
                 </span>
                 {hint && (
                     <span className="mt-0.5 block text-[11px] leading-4 text-muted-foreground">
@@ -464,6 +513,10 @@ export function SettingsSecretField({
     disabled,
     cleared,
     error,
+    multiline = false,
+    icon: Icon,
+    required = false,
+    source,
     onChange,
     onClear,
 }: {
@@ -474,6 +527,10 @@ export function SettingsSecretField({
     disabled: boolean;
     cleared: boolean;
     error?: string;
+    multiline?: boolean;
+    icon?: LucideIcon;
+    required?: boolean;
+    source?: string;
     onChange: (value: string) => void;
     onClear: () => void;
 }) {
@@ -481,11 +538,23 @@ export function SettingsSecretField({
         <div className="grid content-start gap-1.5">
             <span className="flex items-center justify-between gap-2">
                 <span className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                    <LockKeyhole
-                        className="size-3.5 text-muted-foreground"
-                        strokeWidth={2}
-                    />
+                    {Icon ? (
+                        <Icon
+                            className="size-3.5 text-muted-foreground"
+                            strokeWidth={2}
+                        />
+                    ) : (
+                        <LockKeyhole
+                            className="size-3.5 text-muted-foreground"
+                            strokeWidth={2}
+                        />
+                    )}
                     {label}
+                    {required && (
+                        <span className="rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-extrabold tracking-wide text-amber-700 dark:text-amber-300">
+                            Requis
+                        </span>
+                    )}
                 </span>
                 <span
                     className={cn(
@@ -504,19 +573,40 @@ export function SettingsSecretField({
                           : 'Non configuré'}
                 </span>
             </span>
-            <Input
-                type="password"
-                value={value}
-                disabled={disabled}
-                placeholder={
-                    configured
-                        ? 'Secret enregistré — saisir pour remplacer'
-                        : 'Non configuré'
-                }
-                onChange={(event) => onChange(event.target.value)}
-                aria-invalid={Boolean(error)}
-                className="h-10 rounded-[10px] border-border bg-background text-[13px] shadow-none transition-[border-color,box-shadow] focus-visible:border-gold focus-visible:ring-[3px] focus-visible:ring-gold/15"
-            />
+            {multiline ? (
+                <textarea
+                    value={value}
+                    disabled={disabled}
+                    placeholder={
+                        configured
+                            ? 'Secret enregistré — saisir pour remplacer'
+                            : 'Non configuré'
+                    }
+                    onChange={(event) => onChange(event.target.value)}
+                    aria-invalid={Boolean(error)}
+                    rows={6}
+                    className="min-h-36 w-full rounded-[10px] border border-border bg-background px-3 py-2 font-mono text-xs shadow-none transition-[border-color,box-shadow] outline-none focus-visible:border-gold focus-visible:ring-[3px] focus-visible:ring-gold/15 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+            ) : (
+                <Input
+                    type="password"
+                    value={value}
+                    disabled={disabled}
+                    placeholder={
+                        configured
+                            ? 'Secret enregistré — saisir pour remplacer'
+                            : 'Non configuré'
+                    }
+                    onChange={(event) => onChange(event.target.value)}
+                    aria-invalid={Boolean(error)}
+                    className="h-10 rounded-[10px] border-border bg-background text-[13px] shadow-none transition-[border-color,box-shadow] focus-visible:border-gold focus-visible:ring-[3px] focus-visible:ring-gold/15"
+                />
+            )}
+            {source && (
+                <span className="text-[10px] leading-4 text-muted-foreground/80">
+                    Où le trouver : {source}
+                </span>
+            )}
             <span className="flex flex-wrap items-center justify-between gap-2">
                 {hint ? (
                     <span className="text-[11px] leading-4 text-muted-foreground">

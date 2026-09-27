@@ -73,6 +73,17 @@ class OpsNotificationRecipientResolver
             ->get();
     }
 
+    /** @return Collection<int, User> */
+    public function usersWithPermission(string $permission, ?int $agencyId = null): Collection
+    {
+        return User::query()
+            ->where('status', UserStatus::Active->value)
+            ->when($agencyId !== null, fn (Builder $query) => $query->where('agency_id', $agencyId))
+            ->get()
+            ->filter(fn (User $user): bool => $user->can($permission) && $this->canReceive($user))
+            ->values();
+    }
+
     /**
      * Destinataires de la notification (canal in_app) : les concernés, les
      * directeurs des opérations de l'agence du convoyeur et, pour les
@@ -88,7 +99,7 @@ class OpsNotificationRecipientResolver
             $recipients = $recipients->merge($this->operationsDirectorsOf($draft->subject));
         }
 
-        if ($draft->type->isAlert()) {
+        if ($draft->type->notifiesSystemAdministrators()) {
             $recipients = $recipients->merge($this->superAdmins());
         }
 

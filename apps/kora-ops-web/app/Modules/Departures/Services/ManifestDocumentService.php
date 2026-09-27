@@ -171,6 +171,9 @@ class ManifestDocumentService
         $passenger = $segment->reservationPassenger;
         $ticket = $passenger !== null ? ($ticketsByPassengerId[$passenger->id] ?? null) : null;
         $documentType = $passenger?->document_type === null ? null : (string) enum_value($passenger->document_type);
+        // Le resolver rend des instants UTC — le document affiche l'heure
+        // locale du départ (montée/descente lisibles par l'équipage).
+        $timezone = $departure->departure_timezone ?? config('app.timezone');
 
         return [
             'index' => $index + 1,
@@ -183,9 +186,9 @@ class ManifestDocumentService
             'documentNumber' => self::mask($passenger?->document_number),
             'birthDate' => $passenger?->birth_date?->format('d/m/Y') ?? '—',
             'originStop' => $segment->originStop->name,
-            'originTime' => $this->stopTimeResolver->departureAt($departure, $segment->originStop)?->format('H:i') ?? '—',
+            'originTime' => $this->stopTimeResolver->departureAt($departure, $segment->originStop)?->setTimezone($timezone)->format('H:i') ?? '—',
             'destinationStop' => $segment->destinationStop->name,
-            'destinationTime' => $this->stopTimeResolver->arrivalAt($departure, $segment->destinationStop)?->format('H:i') ?? '—',
+            'destinationTime' => $this->stopTimeResolver->arrivalAt($departure, $segment->destinationStop)?->setTimezone($timezone)->format('H:i') ?? '—',
             'boardingLabel' => $this->boardingLabel($status),
             'boardingTone' => $this->boardingTone($status),
         ];

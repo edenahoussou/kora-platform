@@ -11,4 +11,6 @@ enum OpsNotificationChannel: string
     case Realtime = 'realtime';
 
     case Mail = 'mail';
+
+    case Push = 'push';
 }

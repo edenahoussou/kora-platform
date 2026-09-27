@@ -8,15 +8,18 @@ use App\Modules\Notifications\Data\OpsNotificationDeliveryStatus;
 use App\Modules\Notifications\Data\OpsNotificationDraft;
 use App\Modules\Notifications\Events\OpsNotificationPublished;
 use App\Modules\Notifications\Http\Resources\OpsNotificationResource;
-use App\Modules\Notifications\Jobs\SendOpsAlertMailJob;
 use App\Modules\Notifications\Models\OpsNotification;
 use App\Modules\Notifications\Models\OpsNotificationDelivery;
 use App\Modules\Notifications\Models\OpsNotificationEvent;
+use App\Modules\Notifications\Notifications\OpsInboxNotification;
+use App\Modules\Notifications\Notifications\OpsMailDispatchNotification;
+use App\Modules\Notifications\Notifications\OpsPushNotification;
 use App\Modules\Notifications\Services\OpsNotificationPreferences;
 use App\Modules\Notifications\Services\OpsNotificationRecipientResolver;
 use App\Modules\Settings\Settings\OperationsSettings;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -69,14 +72,43 @@ class PublishOpsNotificationAction
                 continue;
             }
 
-            $notification = OpsNotification::query()->firstOrCreate([
-                'event_id' => $event->id,
-                'user_id' => $user->id,
-            ]);
+            $notification = OpsNotification::query()
+                ->where('event_id', $event->id)
+                ->where('user_id', $user->id)
+                ->first();
+            $wasCreated = $notification === null;
 
-            $this->recordDelivery($event, $user, OpsNotificationChannel::InApp, OpsNotificationDeliveryStatus::Sent, $notification);
+            if ($notification === null) {
+                $inboxNotification = new OpsInboxNotification($event);
 
-            if ($notification->wasRecentlyCreated) {
+                try {
+                    Notification::sendNow($user, $inboxNotification, ['opsDatabase']);
+                } catch (UniqueConstraintViolationException) {
+                    // Un rejeu concurrent peut déjà avoir écrit le couple événement/utilisateur.
+                }
+
+                $notification = OpsNotification::query()->whereKey($inboxNotification->id)->first()
+                    ?? OpsNotification::query()
+                        ->where('event_id', $event->id)
+                        ->where('user_id', $user->id)
+                        ->first();
+
+                if ($notification === null) {
+                    throw new \RuntimeException('La notification database Laravel n’a pas été persistée.');
+                }
+
+                $notification->forceFill([
+                    'event_id' => $event->id,
+                    'user_id' => $user->id,
+                    'audience' => 'ops',
+                ])->save();
+            }
+
+            $this->recordDelivery($event, $user, OpsNotificationChannel::InApp, OpsNotificationDeliveryStatus::Sent, notificationUuid: $notification->uuid);
+
+            Notification::sendNow($user, new OpsPushNotification($event->id), ['opsPush']);
+
+            if ($wasCreated) {
                 $created[] = [$notification, $user];
             }
         }
@@ -128,16 +160,16 @@ class PublishOpsNotificationAction
                 (new OpsNotificationResource($notification))->resolve(request()),
             ));
 
-            $this->recordDelivery($event, $user, OpsNotificationChannel::Realtime, OpsNotificationDeliveryStatus::Sent, $notification);
+            $this->recordDelivery($event, $user, OpsNotificationChannel::Realtime, OpsNotificationDeliveryStatus::Sent, notificationUuid: $notification->uuid);
         } catch (Throwable $exception) {
             // Le temps réel est un plus : la notification reste récupérable par l'API.
-            $this->recordDelivery($event, $user, OpsNotificationChannel::Realtime, OpsNotificationDeliveryStatus::Failed, $notification, error: Str::limit($exception->getMessage(), 250, ''));
+            $this->recordDelivery($event, $user, OpsNotificationChannel::Realtime, OpsNotificationDeliveryStatus::Failed, notificationUuid: $notification->uuid, error: Str::limit($exception->getMessage(), 250, ''));
         }
     }
 
     private function scheduleMail(OpsNotificationEvent $event, OpsNotificationDraft $draft): void
     {
-        if (! $draft->type->isAlert() || ! app(OperationsSettings::class)->notificationsMailEnabled) {
+        if (! $draft->type->sendsMail() || ! app(OperationsSettings::class)->notificationsMailEnabled) {
             return;
         }
 
@@ -167,7 +199,11 @@ class PublishOpsNotificationAction
             ->exists();
 
         if ($hasWork) {
-            SendOpsAlertMailJob::dispatch($event->id)->afterCommit();
+            Notification::sendNow(
+                Notification::route('opsMail', (string) $event->id),
+                new OpsMailDispatchNotification($event->id),
+                ['opsMail'],
+            );
         }
     }
 
@@ -176,13 +212,14 @@ class PublishOpsNotificationAction
         User $user,
         OpsNotificationChannel $channel,
         OpsNotificationDeliveryStatus $status,
-        ?OpsNotification $notification = null,
+        ?string $notificationUuid = null,
         ?string $error = null,
     ): void {
         $delivery = OpsNotificationDelivery::query()->firstOrNew([
             'event_id' => $event->id,
             'recipient_user_id' => $user->id,
             'channel' => $channel->value,
+            'endpoint_key' => 'user',
         ]);
 
         // Une livraison réussie n'est jamais rétrogradée par un retry.
@@ -191,7 +228,7 @@ class PublishOpsNotificationAction
         }
 
         $delivery->fill([
-            'notification_id' => $notification?->id,
+            'notification_uuid' => $notificationUuid,
             'status' => $status,
             'attempts' => $delivery->attempts + 1,
             'error' => $error,

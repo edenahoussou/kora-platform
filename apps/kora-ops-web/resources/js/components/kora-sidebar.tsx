@@ -1,7 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
     AlertTriangle,
-    Bell,
     Bus,
     FileText,
     LayoutDashboard,
@@ -233,12 +232,6 @@ const navItems: NavEntry[] = [
                 ],
             },
         ],
-    },
-    {
-        title: 'Notifications',
-        href: '/notifications',
-        icon: Bell,
-        permission: null,
     },
     {
         title: 'Alertes',

@@ -16,12 +16,16 @@ use App\Modules\FleetLite\Http\Controllers\OpsIncidentController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthDeviceController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthOAuthController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthOtpController;
+use App\Modules\IdentityAccess\Http\Controllers\AuthPushTokenController;
 use App\Modules\IdentityAccess\Http\Controllers\AuthSessionController;
 use App\Modules\IdentityAccess\Http\Controllers\OpsSessionController;
 use App\Modules\IdentityAccess\Http\Controllers\TerminalOpsMobileController;
 use App\Modules\IdentityAccess\Http\Controllers\UserPreferenceController;
 use App\Modules\Notifications\Http\Controllers\OpsNotificationController;
 use App\Modules\Notifications\Http\Controllers\OpsNotificationPreferenceController;
+use App\Modules\Notifications\Http\Controllers\OpsWebPushPreferenceController;
+use App\Modules\Notifications\Http\Controllers\PassengerFirebaseConfigurationController;
+use App\Modules\Notifications\Http\Controllers\PassengerNotificationController;
 use App\Modules\Payments\Http\Controllers\PaymentController;
 use App\Modules\Support\Http\Controllers\HealthController;
 use App\Modules\Sync\Http\Controllers\OpsSyncController;
@@ -62,6 +66,14 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::put('preferences', [UserPreferenceController::class, 'update'])->name('preferences.update');
             Route::get('devices', [AuthDeviceController::class, 'index'])->name('devices.index');
             Route::delete('devices/{device:uuid}', [AuthDeviceController::class, 'destroy'])->name('devices.destroy');
+            Route::put('devices/{device:uuid}/push-token', [AuthPushTokenController::class, 'update'])->name('devices.push-token.update');
+            Route::prefix('passenger/notifications')->name('passenger.notifications.')->group(function (): void {
+                Route::get('/', [PassengerNotificationController::class, 'index'])->name('index');
+                Route::get('unread-count', [PassengerNotificationController::class, 'unreadCount'])->name('unread-count');
+                Route::post('read-all', [PassengerNotificationController::class, 'markAllRead'])->name('read-all');
+                Route::post('{notification}/read', [PassengerNotificationController::class, 'markRead'])->name('read');
+            });
+            Route::get('passenger/firebase-configuration', [PassengerFirebaseConfigurationController::class, 'show'])->name('passenger.firebase-configuration');
             Route::post('logout', [AuthSessionController::class, 'logout'])->name('logout');
         });
     });
@@ -217,6 +229,10 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::post('read-all', [OpsNotificationController::class, 'markAllRead'])->name('read-all');
             Route::post('{notification}/read', [OpsNotificationController::class, 'markRead'])->name('read');
         });
+
+    Route::get('notifications/web-push-configuration', [OpsWebPushPreferenceController::class, 'configuration'])
+        ->middleware('auth:sanctum')
+        ->name('notifications.web-push-configuration');
 
     Route::prefix('bus')
         ->name('bus.')

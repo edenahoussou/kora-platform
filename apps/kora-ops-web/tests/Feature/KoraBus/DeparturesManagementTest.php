@@ -258,8 +258,10 @@ it('creates a departure and computes estimated arrival from line duration', func
         ->and($departure->status)->toBe(DepartureStatus::Scheduled)
         ->and($departure->estimated_arrival_at)->not->toBeNull();
 
-    // 08:00 + 1260 minutes (21h) = 05:00 next day
-    expect($departure->estimated_arrival_at->format('H:i'))->toBe('05:00');
+    // 08:00 locale (Porto-Novo, UTC+1) = 07:00 UTC ; +1260 min (21h)
+    // = 04:00 UTC le lendemain, soit 05:00 en heure locale.
+    expect($departure->scheduledDepartureAt()->utc()->format('H:i'))->toBe('07:00')
+        ->and($departure->estimated_arrival_at->setTimezone('Africa/Porto-Novo')->format('H:i'))->toBe('05:00');
 });
 
 it('updates a scheduled departure and blocks modification after departure', function (): void {

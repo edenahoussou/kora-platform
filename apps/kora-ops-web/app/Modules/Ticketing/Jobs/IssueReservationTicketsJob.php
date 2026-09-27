@@ -7,6 +7,7 @@ use App\Jobs\SendReservationWhatsAppNotificationJob;
 use App\Modules\Booking\Data\ReservationSegmentStatus;
 use App\Modules\Booking\Data\ReservationStatus;
 use App\Modules\Booking\Models\Reservation;
+use App\Modules\Notifications\Services\PassengerNotificationPublisher;
 use App\Modules\Ticketing\Actions\IssueCounterSaleTicketsAction;
 use App\Modules\Ticketing\Data\TicketIssuanceStatus;
 use Illuminate\Bus\Queueable;
@@ -29,7 +30,7 @@ class IssueReservationTicketsJob implements ShouldQueue
 
     public function __construct(public readonly int $reservationId) {}
 
-    public function handle(IssueCounterSaleTicketsAction $issueTickets): void
+    public function handle(IssueCounterSaleTicketsAction $issueTickets, PassengerNotificationPublisher $passengerNotifications): void
     {
         $reservation = Reservation::query()->find($this->reservationId);
 
@@ -43,7 +44,7 @@ class IssueReservationTicketsJob implements ShouldQueue
 
         $ticketed = false;
         try {
-            DB::transaction(function () use ($issueTickets, &$ticketed): void {
+            DB::transaction(function () use ($issueTickets, $passengerNotifications, &$ticketed): void {
                 $reservation = Reservation::query()
                     ->with(['passengers', 'segments', 'tickets'])
                     ->whereKey($this->reservationId)
@@ -60,6 +61,7 @@ class IssueReservationTicketsJob implements ShouldQueue
                         'ticket_issuance_status' => TicketIssuanceStatus::Failed,
                         'ticket_issuance_error' => 'Aucun passager n’est disponible pour émettre les billets.',
                     ]);
+                    $passengerNotifications->ticketIssuanceFailed($reservation);
 
                     return;
                 }
@@ -104,7 +106,16 @@ class IssueReservationTicketsJob implements ShouldQueue
         }
 
         if ($ticketed) {
+            $passengerNotifications->reservationConfirmed(Reservation::query()->findOrFail($this->reservationId));
             $this->dispatchPostIssuanceJobs();
+        }
+    }
+
+    public function failed(Throwable $exception): void
+    {
+        $reservation = Reservation::query()->find($this->reservationId);
+        if ($reservation !== null && $reservation->ticket_issuance_status === TicketIssuanceStatus::Failed) {
+            app(PassengerNotificationPublisher::class)->ticketIssuanceFailed($reservation);
         }
     }
 

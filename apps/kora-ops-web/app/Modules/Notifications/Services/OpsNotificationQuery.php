@@ -21,7 +21,9 @@ class OpsNotificationQuery
      */
     public function forUser(User $user): Builder
     {
-        return OpsNotification::query()->where('user_id', $user->id);
+        return OpsNotification::query()
+            ->where('audience', 'ops')
+            ->where('user_id', $user->id);
     }
 
     /**
@@ -47,15 +49,9 @@ class OpsNotificationQuery
         }
 
         if ($filters['type'] !== null || $filters['severity'] !== null) {
-            $query->whereHas('event', function (Builder $event) use ($filters): void {
-                if ($filters['type'] !== null) {
-                    $event->where('type', $filters['type']);
-                }
-
-                if ($filters['severity'] !== null) {
-                    $event->where('severity', $filters['severity']);
-                }
-            });
+            $query
+                ->when($filters['type'] !== null, fn (Builder $filtered) => $filtered->whereJsonContains('data', ['type' => $filters['type']]))
+                ->when($filters['severity'] !== null, fn (Builder $filtered) => $filtered->whereJsonContains('data', ['severity' => $filters['severity']]));
         }
 
         return $query->paginate($perPage);
@@ -71,7 +67,10 @@ class OpsNotificationQuery
         return [
             'unread' => (clone $unread)->count(),
             'critical_unread' => (clone $unread)
-                ->whereHas('event', fn (Builder $event) => $event->where('severity', OpsNotificationSeverity::Critical->value))
+                ->where(function (Builder $query): void {
+                    $query->whereHas('event', fn (Builder $event) => $event->where('severity', OpsNotificationSeverity::Critical->value))
+                        ->orWhereJsonContains('data', ['severity' => OpsNotificationSeverity::Critical->value]);
+                })
                 ->count(),
         ];
     }

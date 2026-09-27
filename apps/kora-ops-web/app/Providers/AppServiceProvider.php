@@ -16,6 +16,7 @@ use App\Modules\Departures\Models\Departure;
 use App\Modules\DynamicPricing\Models\Fare;
 use App\Modules\Expenses\Models\Expense;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
+use App\Modules\Fiscalization\Observers\FiscalInvoiceObserver;
 use App\Modules\Fiscalization\Services\DatabaseFiscalSyncAttemptRecorder;
 use App\Modules\Fiscalization\Services\FiscalSyncAttemptRecorder;
 use App\Modules\IdentityAccess\Contracts\PassengerIdentityResolver;
@@ -24,6 +25,13 @@ use App\Modules\IdentityAccess\Models\Role;
 use App\Modules\IdentityAccess\Models\TerminalP501;
 use App\Modules\IdentityAccess\Services\AuthIdentifierResolver;
 use App\Modules\IdentityAccess\Services\PhonePassengerIdentityResolver;
+use App\Modules\Notifications\Channels\OpsDatabaseChannel;
+use App\Modules\Notifications\Channels\OpsFirebaseChannel;
+use App\Modules\Notifications\Channels\OpsMailChannel;
+use App\Modules\Notifications\Channels\PassengerDatabaseChannel;
+use App\Modules\Notifications\Channels\PassengerFcmChannel;
+use App\Modules\Notifications\Observers\PaymentRefundNotificationObserver;
+use App\Modules\Payments\Models\PaymentRefund;
 use App\Modules\Payments\Providers\FedaPayAdapter;
 use App\Modules\Payments\Providers\MtnMomoAdapter;
 use App\Modules\Settings\Contracts\SettingsCoordinator;
@@ -55,6 +63,7 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -118,6 +127,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Notification::extend('opsPush', fn (): OpsFirebaseChannel => app(OpsFirebaseChannel::class));
+        Notification::extend('opsMail', fn (): OpsMailChannel => app(OpsMailChannel::class));
+        Notification::extend('passengerDatabase', fn (): PassengerDatabaseChannel => app(PassengerDatabaseChannel::class));
+        Notification::extend('passengerFcm', fn (): PassengerFcmChannel => app(PassengerFcmChannel::class));
+        Notification::extend('opsDatabase', fn (): OpsDatabaseChannel => app(OpsDatabaseChannel::class));
+        FiscalInvoice::observe(FiscalInvoiceObserver::class);
+        PaymentRefund::observe(PaymentRefundNotificationObserver::class);
         $this->registerPolicies();
         $this->configureRateLimiting();
         $this->configureDefaults();

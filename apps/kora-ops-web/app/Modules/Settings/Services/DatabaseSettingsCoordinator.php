@@ -187,10 +187,24 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
                 'notificationsMailEnabled' => ['required', 'boolean'],
                 'notificationsMailTries' => ['required', 'integer', 'min:1', 'max:10'],
                 'manifestStaleDebounceSeconds' => ['required', 'integer', 'min:0', 'max:86400'],
+                'passengerDepartureReminderHours' => ['required', 'array', 'min:1', 'max:5'],
+                'passengerDepartureReminderHours.*' => ['required', 'integer', 'min:1', 'max:720'],
+                'passengerDelayThresholdMinutes' => ['required', 'integer', 'min:1', 'max:10080'],
             ];
         }
 
         return [
+            'firebasePushEnabled' => ['required', 'boolean'],
+            'firebaseProjectId' => ['nullable', 'string', 'max:200'],
+            'firebaseWebApiKey' => ['nullable', 'string', 'max:500'],
+            'firebaseWebAuthDomain' => ['nullable', 'string', 'max:500'],
+            'firebaseWebStorageBucket' => ['nullable', 'string', 'max:500'],
+            'firebaseWebMessagingSenderId' => ['nullable', 'string', 'max:100'],
+            'firebaseWebAppId' => ['nullable', 'string', 'max:500'],
+            'firebaseAndroidAppId' => ['nullable', 'string', 'max:500'],
+            'firebaseIosAppId' => ['nullable', 'string', 'max:500'],
+            'firebaseWebVapidKey' => ['nullable', 'string', 'max:500'],
+            'firebaseServiceAccountJson' => ['nullable', 'string', 'max:30000'],
             'emecfTestMode' => ['required', 'boolean'],
             'emecfToken' => ['nullable', 'string', 'max:500'],
             'emecfDefaultIfu' => ['required', 'string', 'max:32'],
@@ -308,6 +322,34 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
         }
 
         $errors = [];
+
+        if ((bool) $values['firebasePushEnabled']) {
+            $requiredFirebaseFields = [
+                'firebaseProjectId',
+                'firebaseWebApiKey',
+                'firebaseWebMessagingSenderId',
+                'firebaseWebAppId',
+                'firebaseWebVapidKey',
+                'firebaseServiceAccountJson',
+            ];
+
+            foreach ($requiredFirebaseFields as $field) {
+                if (blank($values[$field])) {
+                    $errors[$field] = 'Cette valeur est requise pour activer Firebase Push.';
+                }
+            }
+
+            $credentials = json_decode((string) $values['firebaseServiceAccountJson'], true);
+            if (! is_array($credentials)
+                || ($credentials['type'] ?? null) !== 'service_account'
+                || blank($credentials['project_id'] ?? null)
+                || blank($credentials['client_email'] ?? null)
+                || blank($credentials['private_key'] ?? null)) {
+                $errors['firebaseServiceAccountJson'] = 'Le JSON doit être une clé de compte de service Firebase valide.';
+            } elseif ($credentials['project_id'] !== $values['firebaseProjectId']) {
+                $errors['firebaseProjectId'] = 'Le projet Firebase doit correspondre au compte de service.';
+            }
+        }
 
         if ((bool) $values['fedapayEnabled'] && blank($values['fedapaySecretKey'])) {
             $errors['fedapaySecretKey'] = 'A FedaPay secret key is required when the provider is enabled.';

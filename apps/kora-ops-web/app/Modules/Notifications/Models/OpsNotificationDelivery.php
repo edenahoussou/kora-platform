@@ -10,13 +10,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * Audit de livraison : un événement, un destinataire, un canal, un résultat.
+ * Audit de livraison par destinataire, canal et terminal.
  *
  * @property int $id
  * @property int $event_id
- * @property int|null $notification_id
+ * @property string|null $notification_uuid
  * @property int $recipient_user_id
  * @property OpsNotificationChannel $channel
+ * @property string $endpoint_key
  * @property OpsNotificationDeliveryStatus $status
  * @property string|null $mail_role
  * @property int $attempts
@@ -29,9 +30,10 @@ class OpsNotificationDelivery extends KoraModel
     protected $fillable = [
         'uuid',
         'event_id',
-        'notification_id',
+        'notification_uuid',
         'recipient_user_id',
         'channel',
+        'endpoint_key',
         'status',
         'mail_role',
         'attempts',

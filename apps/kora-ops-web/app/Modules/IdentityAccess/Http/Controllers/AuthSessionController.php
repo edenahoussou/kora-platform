@@ -382,6 +382,7 @@ class AuthSessionController extends Controller
     public function logout(Request $request, OpsSessionTokenReader $tokens, RevokeOpsSessionAction $revokeSession): JsonResponse
     {
         $user = $request->user();
+        $deviceUuid = $request->validate(['device_uuid' => ['nullable', 'uuid']])['device_uuid'] ?? null;
         $tokenId = $tokens->tokenId($request);
 
         // Une session OPS liée à ce jeton est fermée avec lui (motif `logout`),
@@ -396,6 +397,10 @@ class AuthSessionController extends Controller
             foreach ($sessions as $session) {
                 $revokeSession->execute($session, OpsSessionRevocationReason::Logout, $user);
             }
+        }
+
+        if ($user instanceof User && $deviceUuid !== null) {
+            $user->devices()->where('uuid', $deviceUuid)->update(['push_token' => null]);
         }
 
         $user?->currentAccessToken()?->delete();

@@ -3,8 +3,11 @@
 namespace App\Modules\Notifications\Services;
 
 use App\Models\User;
+use App\Modules\AssistedBooking\Models\AssistedBooking;
 use App\Modules\Boarding\Models\BoardingEvent;
+use App\Modules\Cash\Models\CashSession;
 use App\Modules\Departures\Models\Departure;
+use App\Modules\Fiscalization\Models\FiscalInvoice;
 use App\Modules\FleetLite\Data\IncidentType;
 use App\Modules\FleetLite\Models\Incident;
 use App\Modules\IdentityAccess\Models\TerminalP501;
@@ -378,6 +381,91 @@ class OpsNotifier
             $user,
             $departure,
             $terminal,
+        );
+    }
+
+    public function fiscalizationFailed(FiscalInvoice $invoice): void
+    {
+        $invoice->loadMissing(['requestedBy', 'reservation']);
+        $recipients = $this->resolver->usersWithPermission('fiscalization.view');
+        if ($invoice->requestedBy !== null) {
+            $recipients->push($invoice->requestedBy);
+        }
+
+        $this->publish(
+            OpsNotificationType::FiscalizationFailed,
+            'fiscalization_failed:'.$invoice->uuid,
+            'La fiscalisation d’une facture a échoué après ses dernières tentatives.',
+            ['invoice_uuid' => $invoice->uuid],
+            $recipients,
+            $invoice->requestedBy,
+        );
+    }
+
+    public function cashVarianceSubmitted(CashSession $session): void
+    {
+        $session->loadMissing(['agency', 'agent']);
+        $recipients = $this->resolver->usersWithPermission('cash.approve-variance', $session->agency_id);
+
+        $this->publish(
+            OpsNotificationType::CashVarianceSubmitted,
+            'cash_variance_submitted:'.$session->uuid,
+            'Une clôture de caisse de votre agence présente un écart et attend une approbation.',
+            ['cash_session_uuid' => $session->uuid, 'agency_uuid' => $session->agency?->uuid],
+            $recipients,
+            $session->agent,
+        );
+    }
+
+    public function assistedBookingRequested(AssistedBooking $assistance): void
+    {
+        $recipients = $this->resolver->usersWithPermission('assisted-bookings.view-network')
+            ->merge($this->resolver->usersWithPermission('assisted-bookings.claim', $assistance->preferred_agency_id));
+
+        $this->publish(
+            OpsNotificationType::AssistedBookingRequested,
+            'assisted_booking_requested:'.$assistance->uuid,
+            'Une nouvelle demande d’assistance attend une prise en charge.',
+            ['assisted_booking_uuid' => $assistance->uuid],
+            $recipients,
+            null,
+        );
+    }
+
+    public function assistedBookingReassigned(AssistedBooking $assistance, ?User $previousAssignee): void
+    {
+        $assistance->loadMissing('handlingAgency');
+        $recipients = $this->resolver->usersWithPermission('assisted-bookings.view-network')
+            ->merge($this->resolver->usersWithPermission('assisted-bookings.claim', $assistance->preferred_agency_id));
+        if ($previousAssignee !== null) {
+            $recipients->push($previousAssignee);
+        }
+
+        $this->publish(
+            OpsNotificationType::AssistedBookingReassigned,
+            'assisted_booking_reassigned:'.$assistance->uuid.':'.($assistance->updated_at?->getTimestamp() ?? 0),
+            'Une demande d’assistance a été réaffectée à votre agence.',
+            ['assisted_booking_uuid' => $assistance->uuid, 'agency_uuid' => $assistance->handlingAgency?->uuid],
+            $recipients,
+            null,
+        );
+    }
+
+    public function departureDelayed(Departure $departure, int $delayMinutes): void
+    {
+        if ($delayMinutes <= 0) {
+            return;
+        }
+
+        $departure->loadMissing('line');
+        $this->publish(
+            OpsNotificationType::DepartureDelayed,
+            'departure_delayed:'.$departure->uuid.':'.($departure->delay_recorded_at?->getTimestamp() ?? $this->stamp($departure)),
+            sprintf('Le départ %s a été retardé de %d minutes.', $this->describe($departure), $delayMinutes),
+            ['delay_minutes' => $delayMinutes],
+            $this->resolver->crewOf($departure),
+            $this->subjectOf($departure),
+            $departure,
         );
     }
 

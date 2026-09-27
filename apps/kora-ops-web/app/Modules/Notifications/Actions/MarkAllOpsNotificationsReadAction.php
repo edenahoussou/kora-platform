@@ -17,6 +17,7 @@ class MarkAllOpsNotificationsReadAction
     public function execute(User $user, ?Carbon $before = null): int
     {
         $query = OpsNotification::query()
+            ->where('audience', 'ops')
             ->where('user_id', $user->id)
             ->whereNull('read_at');
 

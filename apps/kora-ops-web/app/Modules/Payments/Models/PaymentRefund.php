@@ -10,6 +10,9 @@ use App\Modules\Payments\Data\PaymentRefundStatus;
 use App\Modules\Support\Models\KoraModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property PaymentRefundStatus $status
+ */
 class PaymentRefund extends KoraModel
 {
     use HasPublicUuid;

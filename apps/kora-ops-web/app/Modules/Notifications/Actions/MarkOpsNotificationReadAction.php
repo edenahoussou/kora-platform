@@ -15,7 +15,8 @@ class MarkOpsNotificationReadAction
     public function execute(User $user, string $notificationUuid): OpsNotification
     {
         $notification = OpsNotification::query()
-            ->where('uuid', $notificationUuid)
+            ->whereKey($notificationUuid)
+            ->where('audience', 'ops')
             ->where('user_id', $user->id)
             ->firstOrFail();
 

@@ -18,6 +18,7 @@ use App\Modules\IdentityAccess\Data\TerminalType;
 use App\Modules\IdentityAccess\Models\TerminalP501;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Ticketing\Models\Ticket;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -425,7 +426,10 @@ class KoraBorderManifestDemoSeeder extends Seeder
             ['composition_id' => $this->composition->id, 'seat_count' => self::SEAT_COUNT, 'status' => 'active'],
         );
 
-        $date = now()->modify($when)->toDateString();
+        $date = now('Africa/Porto-Novo')->modify($when)->toDateString();
+        // Heure murale locale → instants UTC en base (scheduled_at,
+        // estimated_arrival_at) comme pour les départs publiés.
+        $scheduled = CarbonImmutable::parse($date.' '.$time, 'Africa/Porto-Novo');
 
         $departure = Departure::query()->where('bus_id', $bus->id)->where('line_id', $line->id)->first()
             ?? Departure::query()->create([
@@ -433,7 +437,9 @@ class KoraBorderManifestDemoSeeder extends Seeder
                 'bus_id' => $bus->id,
                 'departure_date' => $date,
                 'departure_time' => $time,
-                'estimated_arrival_at' => now()->modify($when)->addHours(3),
+                'scheduled_at' => $scheduled,
+                'departure_timezone' => 'Africa/Porto-Novo',
+                'estimated_arrival_at' => $scheduled->addHours(3)->utc(),
                 'status' => $status,
             ]);
 
@@ -441,6 +447,8 @@ class KoraBorderManifestDemoSeeder extends Seeder
         $departure->forceFill([
             'departure_date' => $date,
             'departure_time' => $time,
+            'scheduled_at' => $scheduled,
+            'departure_timezone' => 'Africa/Porto-Novo',
             'status' => $status,
             'conductor_id' => $this->conductor->id,
         ])->save();

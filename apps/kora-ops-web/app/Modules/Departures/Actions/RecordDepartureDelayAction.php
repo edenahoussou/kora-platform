@@ -6,12 +6,16 @@ use App\Models\User;
 use App\Modules\Departures\Data\DepartureStatus;
 use App\Modules\Departures\Events\DepartureDelayRecorded;
 use App\Modules\Departures\Models\Departure;
+use App\Modules\Notifications\Services\OpsNotifier;
+use App\Modules\Notifications\Services\PassengerNotificationPublisher;
 use App\Modules\Settings\Settings\OperationsSettings;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class RecordDepartureDelayAction
 {
+    public function __construct(private OpsNotifier $notifier, private PassengerNotificationPublisher $passengerNotifications) {}
+
     public function handle(Departure $departure, User $actor, int $delayMinutes, string $reason): Departure
     {
         $reason = trim($reason);
@@ -29,7 +33,7 @@ class RecordDepartureDelayAction
             ]);
         }
 
-        return DB::transaction(function () use ($departure, $actor, $delayMinutes, $reason): Departure {
+        $updated = DB::transaction(function () use ($departure, $actor, $delayMinutes, $reason): Departure {
             $lockedDeparture = Departure::query()
                 ->whereKey($departure->getKey())
                 ->lockForUpdate()
@@ -75,5 +79,21 @@ class RecordDepartureDelayAction
 
             return $lockedDeparture->refresh();
         });
+
+        if ($delayMinutes > 0) {
+            $this->notifier->departureDelayed($updated, $delayMinutes);
+        }
+
+        $settings = app(OperationsSettings::class);
+        if ($delayMinutes >= $settings->passengerDelayThresholdMinutes) {
+            $eta = $updated->scheduledDepartureAt()->addMinutes($delayMinutes)->toIso8601String();
+            $this->passengerNotifications->departureDelayed($updated, $eta);
+        }
+
+        if ((int) $departure->delay_minutes !== $delayMinutes) {
+            $this->passengerNotifications->scheduleDepartureReminders($updated);
+        }
+
+        return $updated;
     }
 }
