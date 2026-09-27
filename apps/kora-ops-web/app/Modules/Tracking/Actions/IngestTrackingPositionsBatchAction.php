@@ -3,12 +3,13 @@
 namespace App\Modules\Tracking\Actions;
 
 use App\Models\User;
+use App\Modules\BusNetwork\Data\StopStatus;
 use App\Modules\IdentityAccess\Models\TerminalP501;
+use App\Modules\Settings\Settings\OperationsSettings;
 use App\Modules\Tracking\Data\TrackingPositionQuality;
 use App\Modules\Tracking\Data\TrackingPositionStatus;
 use App\Modules\Tracking\Events\FleetPositionUpdated;
 use App\Modules\Tracking\Exceptions\TrackingException;
-use App\Modules\Tracking\Http\Resources\FleetTrackingResource;
 use App\Modules\Tracking\Models\TrackingPosition;
 use App\Modules\Tracking\Models\TrackingSession;
 use App\Modules\Tracking\Services\FleetTrackingQuery;
@@ -32,9 +33,9 @@ use function activity;
  * plus récente que celle déjà enregistrée — un paquet en retard ne fait
  * jamais régresser l'état affiché.
  *
- * Un horodatage impossible (trop dans le futur ou trop ancien — voir
- * config/tracking.php) est rejeté individuellement ; le reste du lot est
- * traité normalement.
+ * Un horodatage impossible (trop dans le futur ou trop ancien — seuils
+ * `trackingMax*` de OperationsSettings) est rejeté individuellement ; le
+ * reste du lot est traité normalement.
  */
 class IngestTrackingPositionsBatchAction
 {
@@ -114,7 +115,7 @@ class IngestTrackingPositionsBatchAction
 
         $positionStatus = TrackingPositionStatus::from($item['status']);
         $accuracy = $item['accuracy_meters'] ?? null;
-        $quality = $accuracy !== null && $accuracy > (float) config('tracking.degraded_accuracy_meters', 75)
+        $quality = $accuracy !== null && $accuracy > (float) app(OperationsSettings::class)->trackingDegradedAccuracyMeters
             ? TrackingPositionQuality::Degraded
             : TrackingPositionQuality::Accurate;
 
@@ -165,13 +166,13 @@ class IngestTrackingPositionsBatchAction
 
     private function rejectionReason(Carbon $recordedAt): ?string
     {
-        $skew = (int) config('tracking.max_clock_skew_seconds', 120);
+        $skew = app(OperationsSettings::class)->trackingMaxClockSkewSeconds;
 
         if ($recordedAt->gt(now()->addSeconds($skew))) {
             return 'timestamp_in_future';
         }
 
-        $maxAge = (int) config('tracking.max_position_age_minutes', 180);
+        $maxAge = app(OperationsSettings::class)->trackingMaxPositionAgeMinutes;
 
         if ($recordedAt->lt(now()->subMinutes($maxAge))) {
             return 'timestamp_too_old';
@@ -182,12 +183,24 @@ class IngestTrackingPositionsBatchAction
 
     private function broadcast(TrackingSession $session): void
     {
-        $session->loadMissing(['departure.line', 'bus', 'terminal.agency', 'conductor']);
+        $session->loadMissing([
+            'departure.line.stops' => fn ($stops) => $stops->where('status', StopStatus::Active->value)->orderBy('stop_order'),
+            'departure.conductor',
+            'departure.driver',
+            'departure.secondaryDriver',
+            'departure.mechanic',
+            'departure.incidents.creator',
+            'bus.busModel',
+            'terminal.agency',
+            'conductor',
+            'lastPosition',
+        ]);
 
-        $lastSeenAt = $this->fleetQuery->terminalLastSeenAt(collect([$session]))[$session->terminal_p501_id] ?? null;
+        // Même charge utile que la page et l'API (FleetTrackingQuery::present)
+        // : un client abonné au canal voit exactement ce que voit un client
+        // qui interroge fleet/tracking.
+        $payload = $this->fleetQuery->present(collect([$session]))->first();
 
-        $payload = (new FleetTrackingResource($session, $lastSeenAt))->resolve(request());
-
-        Event::dispatch(new FleetPositionUpdated($session->terminal->agency?->uuid, $payload));
+        Event::dispatch(new FleetPositionUpdated($session->terminal->agency?->uuid, $payload ?? []));
     }
 }

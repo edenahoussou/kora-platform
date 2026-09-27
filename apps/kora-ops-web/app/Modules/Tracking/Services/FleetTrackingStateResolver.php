@@ -2,6 +2,7 @@
 
 namespace App\Modules\Tracking\Services;
 
+use App\Modules\Settings\Settings\OperationsSettings;
 use App\Modules\Tracking\Data\TrackingLiveState;
 use App\Modules\Tracking\Data\TrackingPositionStatus;
 use App\Modules\Tracking\Models\TrackingSession;
@@ -17,11 +18,11 @@ use Illuminate\Support\Carbon;
  *  1. session close → `session_closed` (l'historique reste consultable,
  *     mais n'est plus « en circulation »)
  *  2. terminal sans activité récente (aucune requête ops.session depuis
- *     `terminal_offline_after_seconds`) → `terminal_offline` — prime sur
+ *     `trackingTerminalOfflineAfterSeconds`) → `terminal_offline` — prime sur
  *     l'âge de la position : un terminal injoignable n'est pas juste "en
  *     retard", il ne répond plus du tout
  *  3. dernier signal du terminal = heartbeat GPS indisponible → `gps_unavailable`
- *  4. dernière position plus vieille que `stale_after_seconds` → `stale`
+ *  4. dernière position plus vieille que `trackingStaleAfterSeconds` → `stale`
  *  5. sinon → `live`
  */
 class FleetTrackingStateResolver
@@ -32,7 +33,7 @@ class FleetTrackingStateResolver
             return TrackingLiveState::SessionClosed;
         }
 
-        $offlineAfter = (int) config('tracking.terminal_offline_after_seconds', 300);
+        $offlineAfter = app(OperationsSettings::class)->trackingTerminalOfflineAfterSeconds;
 
         if ($terminalLastSeenAt === null || $terminalLastSeenAt->lte(now()->subSeconds($offlineAfter))) {
             return TrackingLiveState::TerminalOffline;
@@ -42,7 +43,7 @@ class FleetTrackingStateResolver
             return TrackingLiveState::GpsUnavailable;
         }
 
-        $staleAfter = (int) config('tracking.stale_after_seconds', 90);
+        $staleAfter = app(OperationsSettings::class)->trackingStaleAfterSeconds;
 
         if ($session->last_position_at === null || $session->last_position_at->lte(now()->subSeconds($staleAfter))) {
             return TrackingLiveState::Stale;

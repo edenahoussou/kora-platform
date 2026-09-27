@@ -5,8 +5,6 @@ namespace App\Modules\Tracking\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\BusNetwork\Models\Line;
 use App\Modules\IdentityAccess\Models\Agency;
-use App\Modules\Tracking\Http\Resources\FleetTrackingResource;
-use App\Modules\Tracking\Models\TrackingSession;
 use App\Modules\Tracking\Services\FleetTrackingQuery;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -29,14 +27,7 @@ class FleetTrackingPageController extends Controller
             ->build($user, array_filter(['agency' => $agencyFilter]))
             ->get();
 
-        $lastSeenAt = $fleetQuery->terminalLastSeenAt($sessions);
-
-        $initialData = $sessions
-            ->map(fn (TrackingSession $session): array => (new FleetTrackingResource(
-                $session,
-                $lastSeenAt[$session->terminal_p501_id] ?? null,
-            ))->resolve($request))
-            ->values();
+        $initialData = $fleetQuery->present($sessions);
 
         $lines = Line::query()
             ->orderBy('code')
