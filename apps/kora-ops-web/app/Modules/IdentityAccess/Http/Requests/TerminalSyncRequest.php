@@ -51,4 +51,16 @@ class TerminalSyncRequest extends FormRequest
             'app_version' => $this->string('app_version')->trim()->value() ?: null,
         ];
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'serial_number' => ['description' => 'Numéro de série du terminal OPS.'],
+            'summary' => ['description' => 'Résumé des données synchronisées.'],
+            'hardware_model' => ['description' => 'Modèle matériel du terminal.'],
+            'os_version' => ['description' => 'Version du système d’exploitation.'],
+            'app_version' => ['description' => 'Version de l’application cliente.'],
+        ];
+    }
 }

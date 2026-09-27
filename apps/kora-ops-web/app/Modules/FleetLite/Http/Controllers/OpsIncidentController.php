@@ -99,6 +99,9 @@ class OpsIncidentController extends Controller
      * @queryParam status string open, in_progress, resolved ou cancelled. Example: open
      * @queryParam departure_uuid string Filtrer par départ. Example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
      * @queryParam per_page integer 1 à 100 (30 par défaut). Example: 30
+     *
+     * @response 200 scenario="Incidents du convoyeur" {"data":[{"uuid":"6f1b0c9e-3f6a-4c0e-9a55-2d7b7d0a1c11","type":"breakdown","status":"open","description":"Crevaison au niveau de Ouidah.","latitude":6.3654,"longitude":2.4183,"occurred_at":"2026-09-22T09:14:00.000Z","created_at":"2026-09-22T09:14:05.000Z","departure":{"uuid":"9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e","line_code":"COT-LFW","date":"2026-09-22","time":"08:00"}}],"meta":{"current_page":1,"per_page":30,"total":1,"last_page":1}}
+     * @response 401 scenario="Session absente ou expirée" {"error":{"code":"session_expired","message":"Votre session a expiré.","action":"reauthenticate"}}
      */
     public function index(ListIncidentsRequest $request): JsonResponse
     {
@@ -139,6 +142,9 @@ class OpsIncidentController extends Controller
      * @authenticated
      *
      * @urlParam incident string required UUID de l'incident. Example: 6f1b0c9e-3f6a-4c0e-9a55-2d7b7d0a1c11
+     *
+     * @response 200 scenario="Incident du convoyeur" {"data":{"uuid":"6f1b0c9e-3f6a-4c0e-9a55-2d7b7d0a1c11","type":"breakdown","status":"open","description":"Crevaison au niveau de Ouidah.","latitude":6.3654,"longitude":2.4183,"occurred_at":"2026-09-22T09:14:00.000Z","created_at":"2026-09-22T09:14:05.000Z","departure":{"uuid":"9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e","line_code":"COT-LFW","date":"2026-09-22","time":"08:00"}}}
+     * @response 404 scenario="Incident absent de ce compte" {"message":"No query results for model [App\\Modules\\FleetLite\\Models\\Incident]."}
      */
     public function show(Request $request, string $incident): JsonResponse
     {

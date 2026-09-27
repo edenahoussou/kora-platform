@@ -30,4 +30,15 @@ class ListIncidentsRequest extends FormRequest
     {
         return $this->integer('per_page', 30);
     }
+
+    /** @return array<string, array{description: string}> */
+    public function queryParameters(): array
+    {
+        return [
+            'status' => ['description' => 'Statut demandé ou observé.'],
+            'departure_uuid' => ['description' => 'UUID du départ concerné.'],
+            'per_page' => ['description' => 'Nombre d’éléments par page.'],
+            'page' => ['description' => 'Numéro de page.'],
+        ];
+    }
 }

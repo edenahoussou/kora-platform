@@ -72,4 +72,23 @@ class IngestTrackingPositionsRequest extends FormRequest
             'source' => $item['source'] ?? TrackingPositionSource::Gps->value,
         ])->all();
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'departure_uuid' => ['description' => 'UUID du départ concerné.'],
+            'positions' => ['description' => 'Positions de suivi à ingérer.'],
+            'positions.*.position_uuid' => ['description' => 'UUID unique de la position.'],
+            'positions.*.sequence' => ['description' => 'Numéro de séquence de la position.'],
+            'positions.*.recorded_at' => ['description' => 'Date et heure de la position.'],
+            'positions.*.status' => ['description' => 'Statut demandé ou observé.'],
+            'positions.*.latitude' => ['description' => 'Latitude GPS en degrés décimaux.'],
+            'positions.*.longitude' => ['description' => 'Longitude GPS en degrés décimaux.'],
+            'positions.*.accuracy_meters' => ['description' => 'Précision GPS en mètres.'],
+            'positions.*.speed_kmh' => ['description' => 'Valeur de « speed kmh ».'],
+            'positions.*.heading_degrees' => ['description' => 'Cap en degrés.'],
+            'positions.*.source' => ['description' => 'Source de la position.'],
+        ];
+    }
 }

@@ -77,4 +77,22 @@ class ItineraryHoldRequest extends FormRequest
     {
         return $this->input('payer', ['type' => 'personal']);
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'itinerary_quote_uuid' => ['description' => 'UUID du devis d’itinéraire.'],
+            'idempotency_key' => ['description' => 'Clé d’idempotence de la demande.'],
+            'payer' => ['description' => 'Informations sur le payeur.'],
+            'payer.type' => ['description' => 'Type de l’événement ou de la ressource.'],
+            'payer.user_uuid' => ['description' => 'UUID du membre à rattacher au compte.'],
+            'payer.company_account_uuid' => ['description' => 'Valeur de « company account uuid ».'],
+            'passengers' => ['description' => 'Voyageurs de la réservation.'],
+            'passengers.*.passenger_index' => ['description' => 'Index du voyageur dans la réservation.'],
+            'passengers.*.seat_assignments' => ['description' => 'Attributions de sièges par segment.'],
+            'passengers.*.seat_assignments.*.leg_order' => ['description' => 'Ordre du segment dans l’itinéraire.'],
+            'passengers.*.seat_assignments.*.seat_uuid' => ['description' => 'UUID du siège attribué.'],
+        ];
+    }
 }

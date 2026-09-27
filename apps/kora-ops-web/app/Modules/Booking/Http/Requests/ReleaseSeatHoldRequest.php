@@ -25,4 +25,12 @@ class ReleaseSeatHoldRequest extends FormRequest
     {
         return [];
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+
+        ];
+    }
 }

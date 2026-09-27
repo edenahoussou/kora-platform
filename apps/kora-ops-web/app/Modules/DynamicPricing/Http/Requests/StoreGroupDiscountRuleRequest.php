@@ -24,4 +24,16 @@ class StoreGroupDiscountRuleRequest extends FormRequest
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
         ];
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'status' => ['description' => 'Statut demandé ou observé.'],
+            'passenger_threshold' => ['description' => 'Seuil de passagers pour appliquer la remise.'],
+            'percentage' => ['description' => 'Pourcentage de remise.'],
+            'starts_at' => ['description' => 'Date de début d’application.'],
+            'ends_at' => ['description' => 'Date de fin d’application.'],
+        ];
+    }
 }

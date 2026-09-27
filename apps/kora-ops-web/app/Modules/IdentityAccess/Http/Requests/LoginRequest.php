@@ -101,4 +101,20 @@ class LoginRequest extends FormRequest
 
         return $payload;
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'identifier' => ['description' => 'Identifiant de connexion, sous forme d’email ou de téléphone.'],
+            'email' => ['description' => 'Adresse email.'],
+            'pin' => ['description' => 'Code PIN du compte.'],
+            'device_name' => ['description' => 'Nom de l’appareil à enregistrer.'],
+            'platform' => ['description' => 'Plateforme de l’appareil ou du client.'],
+            'device_fingerprint' => ['description' => 'Valeur de « device fingerprint ».'],
+            'push_token' => ['description' => 'Jeton de notification push de l’appareil.'],
+            'otp_challenge_uuid' => ['description' => 'UUID du challenge OTP.'],
+            'verification_token' => ['description' => 'Jeton de vérification à usage unique.'],
+        ];
+    }
 }

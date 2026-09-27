@@ -1,0 +1,52 @@
+---
+title: Notifications passager
+description: "Comprendre l’inbox KORA BUS, les notifications push FCM et l’inscription des appareils mobiles."
+---
+
+# Notifications passager
+
+L’inbox et le push sont deux vues du même événement métier, mais leurs rôles diffèrent : l’inbox est l’historique persistant dans l’application ; FCM est un canal qui peut avertir l’utilisateur lorsque l’application est en arrière-plan ou fermée.
+
+## Flux d’inscription mobile
+
+<Steps>
+  <Step title="Authentifier et obtenir l’appareil">
+    L’application s’authentifie normalement. La réponse de session contient `data.device.uuid`. Pour un nouvel appareil, l’API le crée seulement après la vérification OTP et l’établissement de la session.
+  </Step>
+  <Step title="Demander le consentement et obtenir le token">
+    Après une action explicite de l’utilisateur, l’application demande l’autorisation du système et récupère le token FCM au moyen du SDK Firebase Messaging installé dans l’application mobile.
+  </Step>
+  <Step title="Transmettre le token à l’API">
+    L’application envoie le token et l’UUID d’appareil à `PUT /api/v1/auth/devices/{device_uuid}/push-token`. Le réglage `push_notifications` du compte doit être activé et Firebase doit être configuré côté serveur.
+  </Step>
+  <Step title="Synchroniser les renouvellements et retraits">
+    Quand le SDK signale un nouveau token, l’application renvoie le token à la même route. Lors d’une désactivation, elle envoie `enabled: false`. Pour retirer le token au logout, incluez `device_uuid` dans `POST /api/v1/auth/logout` ; la révocation de l’appareil retire aussi le token côté serveur.
+  </Step>
+</Steps>
+
+```dart
+await authDio.put('/api/v1/auth/devices/$deviceUuid/push-token', data: {
+  'enabled': true,
+  'push_token': fcmToken,
+});
+```
+
+Le SDK Firebase et les identifiants d’application Android/iOS restent gérés dans l’application mobile par l’équipe mobile. Ne transmettez jamais le fichier de compte de service Firebase au client : les clés privées et l’envoi FCM côté serveur restent dans Laravel. Le endpoint de configuration passager ne retourne que les valeurs publiques Firebase nécessaires au client mobile.
+
+## Inbox et canaux
+
+- `GET /api/v1/auth/passenger/notifications` liste les notifications BUS du compte authentifié avec pagination et état lu/non lu.
+- `GET /api/v1/auth/passenger/notifications/unread-count` fournit le compteur de badge.
+- `POST /api/v1/auth/passenger/notifications/{notification}/read` et `POST /api/v1/auth/passenger/notifications/read-all` mettent à jour la lecture.
+- L’API isole l’inbox par utilisateur ; aucun compte passager associé signifie qu’aucune inbox personnelle ne peut être créée.
+- Une notification est d’abord persistée dans l’inbox. Un push peut être envoyé en complément à chaque appareil inscrit et autorisé. Un refus, une absence de token ou un échec FCM ne retire pas la notification de l’inbox.
+
+<Note>
+  Les notifications push doivent rester courtes et ne pas contenir de données sensibles. L’application récupère le détail et l’état courant depuis l’API authentifiée.
+</Note>
+
+## Configuration Firebase mobile
+
+Après authentification, l’application peut appeler `GET /api/v1/auth/passenger/firebase-configuration?platform=android` ou `platform=ios`. La réponse indique `enabled: false` si le push ne peut pas être configuré ou si une valeur cliente manque. Les paramètres secrets du serveur ne sont jamais exposés par cette route.
+
+Voir les références [Configuration Firebase mobile](/reference/notifications/firebase-configuration), [Inbox passager](/reference/notifications/inbox) et [Token push appareil](/reference/auth/devices-push-token).

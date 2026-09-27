@@ -66,4 +66,17 @@ class OAuthTokenRequest extends FormRequest
             'push_token' => isset($validated['push_token']) ? (string) $validated['push_token'] : null,
         ];
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'provider' => ['description' => 'Fournisseur OAuth ou de paiement.'],
+            'provider_token' => ['description' => 'Jeton OAuth fourni par le fournisseur.'],
+            'device_name' => ['description' => 'Nom de l’appareil à enregistrer.'],
+            'platform' => ['description' => 'Plateforme de l’appareil ou du client.'],
+            'device_fingerprint' => ['description' => 'Valeur de « device fingerprint ».'],
+            'push_token' => ['description' => 'Jeton de notification push de l’appareil.'],
+        ];
+    }
 }

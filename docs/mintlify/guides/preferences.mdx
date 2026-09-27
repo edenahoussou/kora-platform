@@ -8,11 +8,17 @@ description: "Consultez et modifiez les préférences utilisateur KORA BUS : not
 
 Chaque utilisateur peut configurer ses canaux de notification, sa langue et son thème d'affichage. Les préférences sont stockées côté serveur et synchronisées entre appareils.
 
+## Préférences push et inbox
+
+`push_notifications` est le réglage du compte qui autorise les notifications push. Il ne crée pas de token FCM et ne remplace pas la permission système du téléphone. L’inscription d’un token se fait par appareil, depuis l’application mobile, après consentement explicite ; voir le [guide des notifications](/guides/notifications).
+
+Les notifications disponibles dans l’inbox sont persistées côté serveur. Le push est un canal de livraison complémentaire : l’inbox continue de fonctionner si l’utilisateur refuse la permission, si aucun appareil n’est inscrit ou si Firebase est indisponible.
+
 ## Canaux de notification
 
 | Canal | Champ | Description |
 |-------|-------|-------------|
-| Push | `push_notifications` | Notifications natives (FCM/APNs) — boarding, statut paiement |
+| Push | `push_notifications` | Autorise l’envoi push FCM vers les appareils inscrits du compte |
 | WhatsApp | `whatsapp_notifications` | Messages WhatsApp — rappel de départ, changements |
 | Email | `email_notifications` | Emails — confirmations, reçus |
 
@@ -37,7 +43,7 @@ await authDio.put('/api/v1/auth/preferences', data: {
 ```
 
 <Note>
-  Les modifications sont **partielles** : vous pouvez envoyer uniquement les champs à modifier. Les champs omis conservent leur valeur actuelle.
+  Les modifications sont **partielles** : vous pouvez envoyer uniquement les champs à modifier. Les champs omis conservent leur valeur actuelle. Désactiver `push_notifications` retire également les tokens push enregistrés sur les appareils du compte.
 </Note>
 
 ## Langue et thème

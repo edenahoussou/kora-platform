@@ -47,4 +47,14 @@ class TerminalActivityRequest extends FormRequest
     {
         return (array) $this->input('context', []);
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'serial_number' => ['description' => 'Numéro de série du terminal OPS.'],
+            'type' => ['description' => 'Type de l’événement ou de la ressource.'],
+            'context' => ['description' => 'Contexte complémentaire de l’événement.'],
+        ];
+    }
 }

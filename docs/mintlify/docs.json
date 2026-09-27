@@ -54,6 +54,7 @@
                 "icon": "shield",
                 "pages": [
                   "guides/devices",
+                  "guides/notifications",
                   "guides/preferences",
                   "guides/error-handling"
                 ]
@@ -94,6 +95,7 @@
                   "reference/auth/me-update",
                   "reference/auth/devices-list",
                   "reference/auth/devices-revoke",
+                  "reference/auth/devices-push-token",
                   "reference/auth/preferences-get",
                   "reference/auth/preferences-update",
                   "reference/auth/logout"
@@ -152,6 +154,17 @@
                 "pages": [
                   "reference/health",
                   "reference/health-ping"
+                ]
+              },
+              {
+                "group": "Notifications passager",
+                "icon": "bell",
+                "pages": [
+                  "reference/notifications/inbox",
+                  "reference/notifications/unread-count",
+                  "reference/notifications/read",
+                  "reference/notifications/read-all",
+                  "reference/notifications/firebase-configuration"
                 ]
               }
             ]

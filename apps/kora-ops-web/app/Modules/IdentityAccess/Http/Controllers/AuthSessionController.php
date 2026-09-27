@@ -374,6 +374,8 @@ class AuthSessionController extends Controller
      *
      * @authenticated
      *
+     * @bodyParam device_uuid string UUID de l’appareil courant. Optionnel ; permet aussi de retirer son token push. Example: a3091549-9179-454e-8440-58179f2208df
+     *
      * @response 204 scenario="Logged out"
      * @response 401 scenario="Unauthenticated" {
      *   "message": "Unauthenticated."

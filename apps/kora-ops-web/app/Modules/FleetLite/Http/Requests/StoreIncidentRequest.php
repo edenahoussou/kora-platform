@@ -66,4 +66,18 @@ class StoreIncidentRequest extends FormRequest
     {
         return $this->filled('occurred_at') ? Carbon::parse($this->string('occurred_at')->toString()) : null;
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'incident_uuid' => ['description' => 'UUID de l’incident côté client.'],
+            'type' => ['description' => 'Type de l’événement ou de la ressource.'],
+            'description' => ['description' => 'Description détaillée de l’incident.'],
+            'departure_uuid' => ['description' => 'UUID du départ concerné.'],
+            'latitude' => ['description' => 'Latitude GPS en degrés décimaux.'],
+            'longitude' => ['description' => 'Longitude GPS en degrés décimaux.'],
+            'occurred_at' => ['description' => 'Date et heure de l’événement au format ISO 8601.'],
+        ];
+    }
 }

@@ -30,4 +30,12 @@ class UpdateReservationPromoCodeRequest extends FormRequest
 
         return $value === null ? null : trim((string) $value);
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'promo_code' => ['description' => 'Code promotionnel à appliquer.'],
+        ];
+    }
 }

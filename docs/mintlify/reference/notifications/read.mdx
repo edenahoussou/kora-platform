@@ -1,0 +1,17 @@
+---
+title: Marquer une notification comme lue
+description: "Marquer comme lue une notification de l’inbox du passager authentifié."
+api: POST /api/v1/auth/passenger/notifications/{notification}/read
+---
+
+# Marquer une notification comme lue
+
+Le paramètre `notification` est l’UUID reçu dans l’inbox. Seule une notification appartenant à l’utilisateur authentifié peut être modifiée.
+
+```bash
+curl -X POST 'https://staging.koraexpress.app/api/v1/auth/passenger/notifications/a3091549-9179-454e-8440-58179f2208df/read' \
+  -H 'Authorization: Bearer <token-de-session>' \
+  -H 'Accept: application/json'
+```
+
+La réponse `data` contient la notification actualisée avec `is_read: true` et `read_at` renseigné. Une notification absente de l’inbox renvoie `404`.

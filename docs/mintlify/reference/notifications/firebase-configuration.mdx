@@ -1,0 +1,17 @@
+---
+title: Configuration Firebase mobile
+description: "Récupérer les paramètres publics Firebase pour configurer le client Android ou iOS."
+api: GET /api/v1/auth/passenger/firebase-configuration
+---
+
+# Configuration Firebase mobile
+
+Retourne les paramètres Firebase publics prévus pour le client mobile authentifié. `platform` est requis et accepte `android` ou `ios`.
+
+```bash
+curl 'https://staging.koraexpress.app/api/v1/auth/passenger/firebase-configuration?platform=android' \
+  -H 'Authorization: Bearer <token-de-session>' \
+  -H 'Accept: application/json'
+```
+
+Lorsque Firebase est disponible, `data` contient `enabled`, `api_key`, `project_id`, `messaging_sender_id` et `app_id`. Sinon la réponse est `{"data":{"enabled":false}}`. Cette route n’expose aucune clé de compte de service ni secret serveur.

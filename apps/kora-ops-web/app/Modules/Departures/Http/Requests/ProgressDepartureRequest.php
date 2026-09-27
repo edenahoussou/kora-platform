@@ -41,4 +41,13 @@ class ProgressDepartureRequest extends FormRequest
     {
         return $this->filled('occurred_at') ? Carbon::parse($this->string('occurred_at')->toString()) : null;
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'status' => ['description' => 'Statut demandé ou observé.'],
+            'occurred_at' => ['description' => 'Date et heure de l’événement au format ISO 8601.'],
+        ];
+    }
 }

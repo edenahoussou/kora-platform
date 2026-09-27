@@ -8,8 +8,25 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
 
+/**
+ * @group Passager — Notifications
+ *
+ * Inbox BUS du passager authentifié. Les notifications sont isolées par compte.
+ */
 class PassengerNotificationController extends Controller
 {
+    /**
+     * Liste l’inbox passager, de la plus récente à la plus ancienne.
+     *
+     * @authenticated
+     *
+     * @queryParam unread boolean Ne retourner que les notifications non lues. Example: true
+     * @queryParam per_page integer Nombre d’éléments par page, de 1 à 50 (20 par défaut). Example: 20
+     * @queryParam page integer Numéro de page. Example: 1
+     *
+     * @response 200 scenario="Inbox passager" {"data":[{"uuid":"a3091549-9179-454e-8440-58179f2208df","type":"booking_confirmed","title":"Réservation confirmée","message":"Votre réservation est confirmée.","resource_uuid":"b4102650-a280-4655-9551-69280321aaef","is_read":false,"read_at":null,"created_at":"2026-09-27T10:00:00.000Z","data":[]}],"meta":{"current_page":1,"last_page":1,"per_page":20,"total":1,"unread_count":1}}
+     * @response 401 scenario="Non authentifié" {"message":"Unauthenticated."}
+     */
     public function index(Request $request): JsonResponse
     {
         /** @var User $user */
@@ -25,6 +42,14 @@ class PassengerNotificationController extends Controller
         ]);
     }
 
+    /**
+     * Retourne le nombre de notifications passager non lues.
+     *
+     * @authenticated
+     *
+     * @response 200 scenario="Compteur non lu" {"data":{"unread":2}}
+     * @response 401 scenario="Non authentifié" {"message":"Unauthenticated."}
+     */
     public function unreadCount(Request $request): JsonResponse
     {
         /** @var User $user */
@@ -33,6 +58,16 @@ class PassengerNotificationController extends Controller
         return response()->json(['data' => ['unread' => $user->notifications()->where('audience', 'passenger')->whereNull('read_at')->count()]]);
     }
 
+    /**
+     * Marque comme lue une notification de l’utilisateur authentifié.
+     *
+     * @authenticated
+     *
+     * @urlParam notification string required UUID de la notification. Example: a3091549-9179-454e-8440-58179f2208df
+     *
+     * @response 200 scenario="Notification lue" {"data":{"uuid":"a3091549-9179-454e-8440-58179f2208df","type":"booking_confirmed","title":"Réservation confirmée","message":"Votre réservation est confirmée.","resource_uuid":null,"is_read":true,"read_at":"2026-09-27T10:05:00.000Z","created_at":"2026-09-27T10:00:00.000Z","data":[]}}
+     * @response 404 scenario="Notification absente de cette inbox" {"message":"Not found."}
+     */
     public function markRead(Request $request, string $notification): JsonResponse
     {
         /** @var User $user */
@@ -43,6 +78,13 @@ class PassengerNotificationController extends Controller
         return response()->json(['data' => $this->serialize($record->fresh())]);
     }
 
+    /**
+     * Marque toutes les notifications passager non lues comme lues.
+     *
+     * @authenticated
+     *
+     * @response 200 scenario="Inbox marquée comme lue" {"data":{"updated":2,"unread":0}}
+     */
     public function markAllRead(Request $request): JsonResponse
     {
         /** @var User $user */

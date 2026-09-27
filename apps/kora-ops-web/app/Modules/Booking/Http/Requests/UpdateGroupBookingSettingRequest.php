@@ -19,4 +19,13 @@ class UpdateGroupBookingSettingRequest extends FormRequest
             'maximum_passengers' => ['required', 'integer', 'gte:minimum_passengers'],
         ];
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'minimum_passengers' => ['description' => 'Nombre minimal de passagers.'],
+            'maximum_passengers' => ['description' => 'Nombre maximal de passagers.'],
+        ];
+    }
 }

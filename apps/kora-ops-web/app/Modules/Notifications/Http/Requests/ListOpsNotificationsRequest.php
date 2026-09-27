@@ -47,4 +47,17 @@ class ListOpsNotificationsRequest extends FormRequest
             'since' => $this->filled('since') ? Carbon::parse($this->string('since')->toString())->utc() : null,
         ];
     }
+
+    /** @return array<string, array{description: string}> */
+    public function queryParameters(): array
+    {
+        return [
+            'unread' => ['description' => 'Filtrer les notifications non lues.'],
+            'type' => ['description' => 'Type de l’événement ou de la ressource.'],
+            'severity' => ['description' => 'Niveau de criticité.'],
+            'since' => ['description' => 'Ne retourner que les éléments depuis cette date.'],
+            'per_page' => ['description' => 'Nombre d’éléments par page.'],
+            'page' => ['description' => 'Numéro de page.'],
+        ];
+    }
 }

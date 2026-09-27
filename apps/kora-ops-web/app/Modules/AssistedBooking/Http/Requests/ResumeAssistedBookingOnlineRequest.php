@@ -34,4 +34,17 @@ class ResumeAssistedBookingOnlineRequest extends FormRequest
             'passengers.*.seat_assignments.*.seat_uuid' => ['required', 'uuid', 'distinct'],
         ];
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'idempotency_key' => ['description' => 'Clé d’idempotence de la demande.'],
+            'passengers' => ['description' => 'Voyageurs de la réservation.'],
+            'passengers.*.passenger_index' => ['description' => 'Index du voyageur dans la réservation.'],
+            'passengers.*.seat_assignments' => ['description' => 'Attributions de sièges par segment.'],
+            'passengers.*.seat_assignments.*.leg_order' => ['description' => 'Ordre du segment dans l’itinéraire.'],
+            'passengers.*.seat_assignments.*.seat_uuid' => ['description' => 'UUID du siège attribué.'],
+        ];
+    }
 }

@@ -6,6 +6,26 @@ rss: true
 
 # Changelog
 
+<Update label="2026-09-27" description="Inbox passager et inscription FCM" tags={["Notifications", "Firebase", "API Reference"]}>
+
+## Notifications passager et push FCM
+
+La documentation couvre maintenant la différence entre l’inbox persistante et le push, ainsi que le cycle d’inscription et de renouvellement des tokens FCM par appareil.
+
+### Références API
+
+- **Inscription push** : `PUT /api/v1/auth/devices/{device_uuid}/push-token` associe ou retire le token sur un appareil existant de l’utilisateur authentifié.
+- **Inbox passager** : liste paginée, compteur non lu, lecture individuelle et lecture globale.
+- **Configuration cliente Firebase** : les valeurs publiques mobiles sont retournées par `GET /api/v1/auth/passenger/firebase-configuration`; les secrets serveur restent privés.
+- L’OpenAPI a été régénéré depuis les FormRequests et les annotations Scribe des contrôleurs.
+
+### Guides
+
+- Mise à jour du flux de confiance appareil et de l’inscription FCM.
+- Clarification des préférences push et de l’indépendance de l’inbox lorsque le push est indisponible.
+
+</Update>
+
 <Update label="2026-09-11" description="API Mes voyages" tags={["API Reference", "Tickets"]}>
 
 ## Endpoint « Mes voyages » — billets du passager authentifié
