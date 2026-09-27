@@ -50,8 +50,8 @@ class OpsNotificationQuery
 
         if ($filters['type'] !== null || $filters['severity'] !== null) {
             $query
-                ->when($filters['type'] !== null, fn (Builder $filtered) => $filtered->where('data->type', $filters['type']))
-                ->when($filters['severity'] !== null, fn (Builder $filtered) => $filtered->where('data->severity', $filters['severity']));
+                ->when($filters['type'] !== null, fn (Builder $filtered) => $filtered->whereJsonContains('data', ['type' => $filters['type']]))
+                ->when($filters['severity'] !== null, fn (Builder $filtered) => $filtered->whereJsonContains('data', ['severity' => $filters['severity']]));
         }
 
         return $query->paginate($perPage);
@@ -69,7 +69,7 @@ class OpsNotificationQuery
             'critical_unread' => (clone $unread)
                 ->where(function (Builder $query): void {
                     $query->whereHas('event', fn (Builder $event) => $event->where('severity', OpsNotificationSeverity::Critical->value))
-                        ->orWhere('data->severity', OpsNotificationSeverity::Critical->value);
+                        ->orWhereJsonContains('data', ['severity' => OpsNotificationSeverity::Critical->value]);
                 })
                 ->count(),
         ];
