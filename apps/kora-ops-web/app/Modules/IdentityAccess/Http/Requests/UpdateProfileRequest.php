@@ -82,4 +82,16 @@ class UpdateProfileRequest extends FormRequest
             'birth_date' => isset($validated['birth_date']) ? (string) $validated['birth_date'] : null,
         ];
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'name' => ['description' => 'Nom affiché ou nom de l’appareil.'],
+            'email' => ['description' => 'Adresse email.'],
+            'phone' => ['description' => 'Numéro de téléphone.'],
+            'country_code' => ['description' => 'Indicatif téléphonique du pays.'],
+            'birth_date' => ['description' => 'Date de naissance.'],
+        ];
+    }
 }

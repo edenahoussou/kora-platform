@@ -34,4 +34,15 @@ class StoreAssistedBookingRequest extends FormRequest
             'idempotency_key' => ['required', 'string', 'max:100'],
         ];
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'channel' => ['description' => 'Canal de la demande d’assistance.'],
+            'contact_name' => ['description' => 'Nom de la personne à contacter.'],
+            'contact_phone' => ['description' => 'Numéro de téléphone international du contact.'],
+            'idempotency_key' => ['description' => 'Clé d’idempotence de la demande.'],
+        ];
+    }
 }

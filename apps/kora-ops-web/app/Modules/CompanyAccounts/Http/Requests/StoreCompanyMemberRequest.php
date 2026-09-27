@@ -21,4 +21,13 @@ class StoreCompanyMemberRequest extends FormRequest
             'role' => ['required', Rule::enum(CompanyMemberRole::class)],
         ];
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'user_uuid' => ['description' => 'UUID du membre à rattacher au compte.'],
+            'role' => ['description' => 'Rôle du membre du compte entreprise.'],
+        ];
+    }
 }

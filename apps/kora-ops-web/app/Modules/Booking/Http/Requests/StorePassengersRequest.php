@@ -70,4 +70,23 @@ class StorePassengersRequest extends JsonValidationRequest
             ];
         }, $passengers);
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'passengers' => ['description' => 'Voyageurs de la réservation.'],
+            'passengers.*.first_name' => ['description' => 'Prénom du voyageur.'],
+            'passengers.*.last_name' => ['description' => 'Nom de famille du voyageur.'],
+            'passengers.*.phone' => ['description' => 'Numéro de téléphone.'],
+            'passengers.*.email' => ['description' => 'Adresse email.'],
+            'passengers.*.document_number' => ['description' => 'Numéro de pièce d’identité.'],
+            'passengers.*.document_type' => ['description' => 'Type de pièce d’identité.'],
+            'passengers.*.nationality' => ['description' => 'Nationalité au format ISO 3166-1 alpha-2.'],
+            'passengers.*.birth_date' => ['description' => 'Date de naissance.'],
+            'passengers.*.passenger_index' => ['description' => 'Index du voyageur dans la réservation.'],
+            'passengers.*.seat_uuid' => ['description' => 'UUID du siège attribué.'],
+            'passengers.*.yellow_fever_vaccinated' => ['description' => 'Indique si le voyageur est vacciné contre la fièvre jaune.'],
+        ];
+    }
 }

@@ -33,4 +33,14 @@ class CheckManifestVersionsRequest extends FormRequest
             'known_version' => $d['known_version'] ?? null,
         ], $this->input('departures', []));
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'departures' => ['description' => 'Valeur de « departures ».'],
+            'departures.*.departure_uuid' => ['description' => 'UUID du départ concerné.'],
+            'departures.*.known_version' => ['description' => 'Valeur de « known version ».'],
+        ];
+    }
 }

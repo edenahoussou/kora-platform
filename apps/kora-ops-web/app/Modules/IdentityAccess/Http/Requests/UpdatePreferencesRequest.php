@@ -50,4 +50,16 @@ class UpdatePreferencesRequest extends FormRequest
     {
         return array_filter($this->validated(), fn ($value) => $value !== null, ARRAY_FILTER_USE_BOTH);
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'push_notifications' => ['description' => 'Valeur de « push notifications ».'],
+            'whatsapp_notifications' => ['description' => 'Valeur de « whatsapp notifications ».'],
+            'email_notifications' => ['description' => 'Valeur de « email notifications ».'],
+            'locale' => ['description' => 'Langue préférée.'],
+            'theme' => ['description' => 'Thème d’affichage préféré.'],
+        ];
+    }
 }

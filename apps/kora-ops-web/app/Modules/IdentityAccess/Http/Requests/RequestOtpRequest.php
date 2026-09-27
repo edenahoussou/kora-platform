@@ -70,4 +70,14 @@ class RequestOtpRequest extends FormRequest
             'purpose' => (string) $validated['purpose'],
         ];
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'identifier' => ['description' => 'Identifiant de connexion, sous forme d’email ou de téléphone.'],
+            'email' => ['description' => 'Adresse email.'],
+            'purpose' => ['description' => 'Motif de la demande OTP.'],
+        ];
+    }
 }

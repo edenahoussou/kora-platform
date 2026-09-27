@@ -25,4 +25,12 @@ class ReverseBoardingEventRequest extends FormRequest
     {
         return $this->string('reason')->trim()->value();
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'reason' => ['description' => 'Motif de l’action.'],
+        ];
+    }
 }

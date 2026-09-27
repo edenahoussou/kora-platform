@@ -89,4 +89,23 @@ class CompleteRegistrationRequest extends FormRequest
             'birth_date' => isset($validated['birth_date']) ? (string) $validated['birth_date'] : null,
         ];
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'otp_challenge_uuid' => ['description' => 'UUID du challenge OTP.'],
+            'verification_token' => ['description' => 'Jeton de vérification à usage unique.'],
+            'pin' => ['description' => 'Code PIN du compte.'],
+            'name' => ['description' => 'Nom affiché ou nom de l’appareil.'],
+            'email' => ['description' => 'Adresse email.'],
+            'phone' => ['description' => 'Numéro de téléphone.'],
+            'country_code' => ['description' => 'Indicatif téléphonique du pays.'],
+            'birth_date' => ['description' => 'Date de naissance.'],
+            'device_name' => ['description' => 'Nom de l’appareil à enregistrer.'],
+            'platform' => ['description' => 'Plateforme de l’appareil ou du client.'],
+            'device_fingerprint' => ['description' => 'Valeur de « device fingerprint ».'],
+            'push_token' => ['description' => 'Jeton de notification push de l’appareil.'],
+        ];
+    }
 }

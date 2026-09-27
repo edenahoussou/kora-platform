@@ -53,4 +53,16 @@ class SeatReleaseRequest extends FormRequest
     {
         return Carbon::parse($this->input('local_recorded_at'));
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'departure_uuid' => ['description' => 'UUID du départ concerné.'],
+            'ticket_uuid' => ['description' => 'UUID du billet concerné.'],
+            'actual_stop_uuid' => ['description' => 'UUID de l’arrêt réel.'],
+            'operation_uuid' => ['description' => 'UUID idempotent de l’opération cliente.'],
+            'local_recorded_at' => ['description' => 'Date et heure locales de l’enregistrement.'],
+        ];
+    }
 }

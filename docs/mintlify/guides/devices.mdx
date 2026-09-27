@@ -6,19 +6,19 @@ description: "Gérez les appareils de confiance KORA BUS : vérification OTP sur
 
 # Gestion des appareils
 
-KORA BUS gère un modèle d'**appareils de confiance** : chaque connexion depuis un nouvel appareil déclenche une vérification OTP supplémentaire, puis l'appareil est enregistré comme **trusted**. L'utilisateur peut lister et révoquer ses appareils à tout moment.
+KORA BUS gère des appareils de confiance liés au compte. Un nouvel appareil déclenche une vérification OTP. L’appareil est créé après la vérification réussie, puis l’utilisateur peut le lister et le révoquer à tout moment.
 
 ## Comment fonctionne la confiance d'appareil
 
 <Steps>
-  <Step title="Première connexion">
-    L'utilisateur se connecte avec un email ou un téléphone + PIN. L'API enregistre l'appareil (nom, plateforme, fingerprint) comme **trusted** et émet un token Sanctum lié à cet appareil.
+  <Step title="Connexion depuis un nouvel appareil">
+    L’application envoie son nom, sa plateforme et son fingerprint à `POST /api/v1/auth/login`. Si le fingerprint est inconnu, l’API répond `202` avec `requires_otp: true` et un challenge. À cette étape, l’appareil n’est pas encore enregistré comme appareil de confiance.
   </Step>
-  <Step title="Nouvel appareil détecté">
-    Si la connexion provient d'un fingerprint inconnu, l'API retourne `202` avec `requires_otp: true`. L'utilisateur doit vérifier son identité par OTP avant que l'appareil ne soit approuvé.
+  <Step title="Vérification OTP réussie">
+    Après `POST /api/v1/auth/otp/verify`, l’application relance `POST /api/v1/auth/login` avec `otp_challenge_uuid` et `verification_token`. L’API crée alors l’appareil et retourne son UUID avec la session. C’est cet UUID qui permet ensuite d’inscrire un token FCM.
   </Step>
   <Step title="Appareil connu">
-    Les connexions suivantes depuis un appareil trusted se font sans OTP — uniquement email ou téléphone + PIN.
+    Les connexions suivantes depuis un appareil actif connu se font sans OTP supplémentaire — avec les identifiants et le PIN.
   </Step>
   <Step title="Révocation">
     L'utilisateur peut révoquer un appareil à tout moment. L'appareil révoqué devra refaire un OTP à la prochaine connexion.
@@ -51,11 +51,24 @@ await authDio.delete('/api/v1/auth/devices/${deviceUuid}');
   Révoquer l'**appareil courant** déconnecte immédiatement l'utilisateur. Le token courant est invalidé côté serveur.
 </Warning>
 
+## Inscrire le token push après la connexion
+
+Le SDK Firebase côté application mobile crée et renouvelle le token FCM. Après une demande de permission explicite et l’obtention du token, l’application l’envoie à `PUT /api/v1/auth/devices/{device_uuid}/push-token`, en utilisant l’UUID renvoyé par l’authentification. Le serveur n’enregistre donc pas le device à partir de cet endpoint : il ne fait qu’associer ou retirer un token d’un appareil actif appartenant à l’utilisateur.
+
+```dart
+await authDio.put('/api/v1/auth/devices/$deviceUuid/push-token', data: {
+  'enabled': true,
+  'push_token': fcmToken,
+});
+```
+
+Quand FCM renouvelle le token, renvoyez le nouveau token au même endpoint. Pour le retirer, envoyez `enabled: false`. Voir [Inscrire ou retirer un token push](/reference/auth/devices-push-token) et le [guide des notifications](/guides/notifications).
+
 ## Sécurité multi-appareils
 
 - Chaque appareil a son **propre token** Sanctum. Révoquer un appareil n'affecte pas les autres.
 - Le `device_fingerprint` doit être **unique et stable** par appareil — utilisez un identifiant matériel ou un UUID persistant côté app.
-- Le `push_token` (FCM/APNs) est optionnel mais recommandé pour les notifications de boarding et de statut de paiement.
+- Chaque installation peut enregistrer son propre token FCM après opt-in. Le token est supprimé quand l’utilisateur désactive les push ou à la révocation de l’appareil.
 
 <Note>
   Voir aussi : [Bonnes pratiques de sécurité](/security/best-practices) pour le stockage sécurisé du token et du fingerprint.

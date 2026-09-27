@@ -47,4 +47,13 @@ class UnlockAccountRequest extends FormRequest
             'verification_token' => (string) $validated['verification_token'],
         ];
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'otp_challenge_uuid' => ['description' => 'UUID du challenge OTP.'],
+            'verification_token' => ['description' => 'Jeton de vérification à usage unique.'],
+        ];
+    }
 }

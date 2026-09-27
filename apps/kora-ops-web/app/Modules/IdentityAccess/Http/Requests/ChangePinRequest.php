@@ -50,4 +50,13 @@ class ChangePinRequest extends FormRequest
             'new_pin' => (string) $validated['new_pin'],
         ];
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'current_pin' => ['description' => 'Code PIN actuellement défini.'],
+            'new_pin' => ['description' => 'Nouveau code PIN.'],
+        ];
+    }
 }

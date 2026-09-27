@@ -39,4 +39,14 @@ class VerifyOtpRequest extends FormRequest
             'code.digits' => 'Le code doit contenir exactement 6 chiffres.',
         ];
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'otp_challenge_uuid' => ['description' => 'UUID du challenge OTP.'],
+            'purpose' => ['description' => 'Motif de la demande OTP.'],
+            'code' => ['description' => 'Code OTP reçu par le canal de vérification.'],
+        ];
+    }
 }

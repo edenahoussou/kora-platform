@@ -23,6 +23,11 @@ class FleetTrackingController extends Controller
 {
     /**
      * @queryParam agency string UUID d'agence — rôles à périmètre réseau uniquement. Example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+     *
+     * @authenticated
+     *
+     * @response 200 scenario="Départs suivis" {"data":[]}
+     * @response 403 scenario="Permission de suivi manquante" {"error":{"code":"permission_denied","message":"Votre compte n’a pas accès au suivi de la flotte."}}
      */
     public function index(Request $request, FleetTrackingQuery $fleetQuery): JsonResponse
     {

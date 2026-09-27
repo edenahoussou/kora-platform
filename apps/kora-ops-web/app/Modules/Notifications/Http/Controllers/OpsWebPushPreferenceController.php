@@ -12,8 +12,22 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * @group OPS — Notifications
+ *
+ * Configuration publique du client web et inscription des tokens push OPS.
+ */
 class OpsWebPushPreferenceController extends Controller
 {
+    /**
+     * Retourne la configuration Firebase cliente pour le push web.
+     *
+     * @authenticated
+     *
+     * @response 200 scenario="Configuration Firebase disponible" {"configured":true,"firebase":{"apiKey":"AIzaSyExamplePublicKey","authDomain":"kora-bus.firebaseapp.com","projectId":"kora-bus-prod","storageBucket":"kora-bus-prod.appspot.com","messagingSenderId":"123456789012","appId":"1:123456789012:web:abcdef123456","vapidKey":"BExamplePublicVapidKey"}}
+     * @response 200 scenario="Configuration Firebase indisponible" {"configured":false,"firebase":null}
+     * @response 401 scenario="Non authentifié" {"message":"Unauthenticated."}
+     */
     public function configuration(IntegrationsSettings $settings, FirebaseMessagingClient $firebase): JsonResponse
     {
         $configured = $firebase->isServerConfigured()

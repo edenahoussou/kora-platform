@@ -25,4 +25,17 @@ class StoreCompanyAccountRequest extends FormRequest
             'monthly_credit_limit' => ['required', 'integer', 'min:0'],
         ];
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'name' => ['description' => 'Nom affiché ou nom de l’appareil.'],
+            'type' => ['description' => 'Type de l’événement ou de la ressource.'],
+            'reference' => ['description' => 'Valeur de « reference ».'],
+            'phone' => ['description' => 'Numéro de téléphone.'],
+            'email' => ['description' => 'Adresse email.'],
+            'monthly_credit_limit' => ['description' => 'Plafond de crédit mensuel en unité monétaire.'],
+        ];
+    }
 }

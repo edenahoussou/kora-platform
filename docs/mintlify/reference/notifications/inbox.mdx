@@ -1,0 +1,25 @@
+---
+title: Lister l’inbox passager
+description: "Lister les notifications BUS du passager authentifié avec pagination et filtre non lu."
+api: GET /api/v1/auth/passenger/notifications
+---
+
+# Lister l’inbox passager
+
+Retourne les notifications persistées pour le compte passager authentifié, de la plus récente à la plus ancienne. Les notifications d’un autre compte ne sont jamais exposées.
+
+| Paramètre | Type | Description |
+|-----------|------|-------------|
+| `unread` | boolean | Utiliser `true` pour ne retourner que les notifications non lues. |
+| `per_page` | integer | Taille de page entre 1 et 50 ; valeur par défaut : 20. |
+| `page` | integer | Page à récupérer. |
+
+```bash
+curl 'https://staging.koraexpress.app/api/v1/auth/passenger/notifications?unread=true&per_page=20&page=1' \
+  -H 'Authorization: Bearer <token-de-session>' \
+  -H 'Accept: application/json'
+```
+
+La réponse contient `data` (notifications) et `meta` (`current_page`, `last_page`, `per_page`, `total`, `unread_count`). Chaque entrée fournit `uuid`, `type`, `title`, `message`, `resource_uuid`, `is_read`, `read_at`, `created_at` et `data`.
+
+Utilisez [le compteur non lu](/reference/notifications/unread-count) pour le badge et les routes de [lecture individuelle](/reference/notifications/read) ou de [lecture globale](/reference/notifications/read-all) pour synchroniser l’état.

@@ -62,6 +62,9 @@ tags:
     name: 'OPS — Notifications'
     description: "\nAlertes opérationnelles boarding pour le convoyeur (OPS Mobile) et les\nopérateurs (OPS Web) : même contrat, mêmes autorisations. Chaque\nutilisateur ne voit que SES notifications ; aucune ne contient de donnée\nfinancière ni d'identifiant numérique.\n\nTypes (`type`) : departure_assigned, departure_modified, manifest_stale,\nterminal_revoked (critique), scan_conflict (critique), operation_rejected,\nsync_completed, sync_failed, no_show_closed, print_error.\n\n`action` dit au client quoi proposer : none, open_departure, refresh_manifest,\nreauthenticate, review_scan_conflict, review_rejected_operations, retry_sync,\ncheck_printer.\n\nRécupération fiable : les notifications sont persistées AVANT toute\ndiffusion temps réel. Après une coupure ou un redémarrage, le client\nappelle `GET /notifications?since=<created_at de la dernière reçue>` et\ndéduplique par `uuid`. Le temps réel (canal privé\n`ops-notifications.{user_uuid}`, événement `ops.notification.published`)\nn'est qu'un accélérateur : sans lui, rien n'est perdu.\n\nErreurs : `{ error: { code, message, action } }` — mêmes codes que les\nsessions OPS (session_expired, session_revoked, permission_denied…)."
   -
+    name: 'Passager — Notifications'
+    description: "\nInbox BUS du passager authentifié. Les notifications sont isolées par compte."
+  -
     name: Payments
     description: "\nPayment lifecycle endpoints: initiation, polling status, and provider webhook confirmation."
   -
@@ -1021,57 +1024,15 @@ paths:
             schema:
               type: object
               properties:
-                from_physical_stop_uuid:
-                  type: string
-                  description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
-                  example: 00000000-0000-4000-8000-000000000000
-                to_physical_stop_uuid:
-                  type: string
-                  description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
-                  example: 00000000-0000-4000-8000-000000000000
                 date:
                   type: string
                   description: 'Travel date (Y-m-d).'
                   example: '2026-09-07'
-                passenger_count:
-                  type: integer
-                  description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 10.'
-                  example: 7
-                sort:
-                  type: string
-                  description: ''
-                  example: departure_time
-                  enum:
-                    - departure_time
-                    - arrival_time
-                    - price
-                    - duration
-                    - connections
-                sort_direction:
-                  type: string
-                  description: ''
-                  example: asc
-                  enum:
-                    - asc
-                    - desc
-                service_class_code:
-                  type: string
-                  description: 'Must match an existing stored value.'
-                  example: architecto
-                trip_type:
-                  type: string
-                  description: ''
-                  example: one_way
-                  enum:
-                    - one_way
-                    - round_trip
                 return_date:
                   type: string
                   description: 'Return date (Y-m-d). Required when trip_type is round_trip.'
                   example: '2026-09-14'
               required:
-                - from_physical_stop_uuid
-                - to_physical_stop_uuid
                 - date
       security: []
   /api/v1/bus/itinerary-quotes:
@@ -1343,19 +1304,19 @@ paths:
                   properties:
                     type:
                       type: string
-                      description: 'This field is required when <code>payer</code> is present.'
+                      description: 'Type de l’événement ou de la ressource. This field is required when <code>payer</code> is present.'
                       example: personal
                       enum:
                         - personal
                         - company
                     user_uuid:
                       type: string
-                      description: 'Le champ value doit être un UUID valide.'
+                      description: 'UUID du membre à rattacher au compte. Le champ value doit être un UUID valide.'
                       example: 00000000-0000-4000-8000-000000000000
                       nullable: true
                     company_account_uuid:
                       type: string
-                      description: 'This field is required when <code>payer.type</code> is <code>company</code>. Le champ value doit être un UUID valide. Must match an existing stored value.'
+                      description: 'Valeur de « company account uuid ». This field is required when <code>payer.type</code> is <code>company</code>. Le champ value doit être un UUID valide. Must match an existing stored value.'
                       example: 00000000-0000-4000-8000-000000000000
                 passengers:
                   type: array
@@ -2600,7 +2561,7 @@ paths:
                   nullable: true
                 purpose:
                   type: string
-                  description: ''
+                  description: 'Motif de la demande OTP.'
                   example: registration
                   enum:
                     - registration
@@ -2681,11 +2642,11 @@ paths:
               properties:
                 otp_challenge_uuid:
                   type: string
-                  description: 'Le champ value doit être un UUID valide.'
+                  description: 'UUID du challenge OTP. Le champ value doit être un UUID valide.'
                   example: 00000000-0000-4000-8000-000000000000
                 purpose:
                   type: string
-                  description: ''
+                  description: 'Motif de la demande OTP.'
                   example: registration
                   enum:
                     - registration
@@ -2694,7 +2655,7 @@ paths:
                     - account_unlock
                 code:
                   type: string
-                  description: 'Le champ value doit contenir 6 chiffres.'
+                  description: 'Code OTP reçu par le canal de vérification. Le champ value doit contenir 6 chiffres.'
                   example: '569775'
               required:
                 - otp_challenge_uuid
@@ -2804,15 +2765,15 @@ paths:
               properties:
                 otp_challenge_uuid:
                   type: string
-                  description: 'Le champ value doit être un UUID valide.'
+                  description: 'UUID du challenge OTP. Le champ value doit être un UUID valide.'
                   example: 00000000-0000-4000-8000-000000000000
                 verification_token:
                   type: string
-                  description: 'Le champ value doit contenir 64 caractères.'
+                  description: 'Jeton de vérification à usage unique. Le champ value doit contenir 64 caractères.'
                   example: gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn
                 pin:
                   type: string
-                  description: 'Le champ value doit contenir 4 chiffres.'
+                  description: 'Code PIN du compte. Le champ value doit contenir 4 chiffres.'
                   example: '9775'
               required:
                 - otp_challenge_uuid
@@ -2922,11 +2883,11 @@ paths:
               properties:
                 otp_challenge_uuid:
                   type: string
-                  description: 'Le champ value doit être un UUID valide.'
+                  description: 'UUID du challenge OTP. Le champ value doit être un UUID valide.'
                   example: 00000000-0000-4000-8000-000000000000
                 verification_token:
                   type: string
-                  description: 'Le champ value doit contenir 64 caractères.'
+                  description: 'Jeton de vérification à usage unique. Le champ value doit contenir 64 caractères.'
                   example: gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn
               required:
                 - otp_challenge_uuid
@@ -3075,23 +3036,48 @@ paths:
               properties:
                 otp_challenge_uuid:
                   type: string
-                  description: 'Le champ value doit être un UUID valide.'
+                  description: 'UUID du challenge OTP. Le champ value doit être un UUID valide.'
                   example: 00000000-0000-4000-8000-000000000000
                 verification_token:
                   type: string
-                  description: 'Le champ value doit contenir 64 caractères.'
+                  description: 'Jeton de vérification à usage unique. Le champ value doit contenir 64 caractères.'
                   example: gzmiyvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtn
                 pin:
                   type: string
-                  description: 'Le champ value doit contenir 4 chiffres.'
+                  description: 'Code PIN du compte. Le champ value doit contenir 4 chiffres.'
                   example: '9775'
+                name:
+                  type: string
+                  description: 'Nom affiché ou nom de l’appareil. Le champ value ne doit pas dépasser 120 caractères.'
+                  example: 'n'
+                  nullable: true
+                email:
+                  type: string
+                  description: 'Adresse email. Le champ value doit être une adresse e-mail valide. Le champ value ne doit pas dépasser 255 caractères.'
+                  example: ashly64@example.com
+                  nullable: true
+                phone:
+                  type: string
+                  description: 'Numéro de téléphone. Must match the regex /^\+?[\d\s\-.()]{6,20}$/. Le champ value ne doit pas dépasser 20 caractères.'
+                  example: vdljnikhwaykcmyu
+                  nullable: true
+                country_code:
+                  type: string
+                  description: 'Indicatif téléphonique du pays. Must match the regex /^\+?[\d\s\-.()]{1,7}$/. Le champ value ne doit pas dépasser 4 caractères.'
+                  example: wpwl
+                  nullable: true
+                birth_date:
+                  type: string
+                  description: 'Date de naissance. Le champ value doit être une date valide. Le champ value doit être une date antérieure à <code>today</code>.'
+                  example: '2022-10-21'
+                  nullable: true
                 device_name:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 120 caractères.'
+                  description: 'Nom de l’appareil à enregistrer. Le champ value ne doit pas dépasser 120 caractères.'
                   example: 'n'
                 platform:
                   type: string
-                  description: ''
+                  description: 'Plateforme de l’appareil ou du client.'
                   example: android
                   enum:
                     - android
@@ -3100,11 +3086,11 @@ paths:
                     - unknown
                 device_fingerprint:
                   type: string
-                  description: 'Le champ value doit contenir au moins 16 caractères. Le champ value ne doit pas dépasser 255 caractères.'
+                  description: 'Valeur de « device fingerprint ». Le champ value doit contenir au moins 16 caractères. Le champ value ne doit pas dépasser 255 caractères.'
                   example: g
                 push_token:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 512 caractères.'
+                  description: 'Jeton de notification push de l’appareil. Le champ value ne doit pas dépasser 512 caractères.'
                   example: z
                   nullable: true
               required:
@@ -3340,11 +3326,11 @@ paths:
                   example: architecto
                 device_name:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 120 caractères.'
+                  description: 'Nom de l’appareil à enregistrer. Le champ value ne doit pas dépasser 120 caractères.'
                   example: 'n'
                 platform:
                   type: string
-                  description: ''
+                  description: 'Plateforme de l’appareil ou du client.'
                   example: android
                   enum:
                     - android
@@ -3353,21 +3339,21 @@ paths:
                     - unknown
                 device_fingerprint:
                   type: string
-                  description: 'Le champ value doit contenir au moins 16 caractères. Le champ value ne doit pas dépasser 255 caractères.'
+                  description: 'Valeur de « device fingerprint ». Le champ value doit contenir au moins 16 caractères. Le champ value ne doit pas dépasser 255 caractères.'
                   example: g
                 push_token:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 512 caractères.'
+                  description: 'Jeton de notification push de l’appareil. Le champ value ne doit pas dépasser 512 caractères.'
                   example: z
                   nullable: true
                 otp_challenge_uuid:
                   type: string
-                  description: 'This field is required when <code>verification_token</code> is present. Le champ value doit être un UUID valide.'
+                  description: 'UUID du challenge OTP. This field is required when <code>verification_token</code> is present. Le champ value doit être un UUID valide.'
                   example: 00000000-0000-4000-8000-000000000000
                   nullable: true
                 verification_token:
                   type: string
-                  description: 'This field is required when <code>otp_challenge_uuid</code> is present. Le champ value doit contenir 64 caractères.'
+                  description: 'Jeton de vérification à usage unique. This field is required when <code>otp_challenge_uuid</code> is present. Le champ value doit contenir 64 caractères.'
                   example: yvdljnikhwaykcmyuwpwlvqwrsitcpscqldzsnrwtujwvlxjklqppwqbewtnnoqi
                   nullable: true
               required:
@@ -3661,7 +3647,7 @@ paths:
               properties:
                 provider:
                   type: string
-                  description: ''
+                  description: 'Fournisseur OAuth ou de paiement.'
                   example: google
                   enum:
                     - google
@@ -3669,15 +3655,15 @@ paths:
                     - tiktok
                 provider_token:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 4096 caractères.'
+                  description: 'Jeton OAuth fourni par le fournisseur. Le champ value ne doit pas dépasser 4096 caractères.'
                   example: b
                 device_name:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 120 caractères.'
+                  description: 'Nom de l’appareil à enregistrer. Le champ value ne doit pas dépasser 120 caractères.'
                   example: 'n'
                 platform:
                   type: string
-                  description: ''
+                  description: 'Plateforme de l’appareil ou du client.'
                   example: android
                   enum:
                     - android
@@ -3686,11 +3672,11 @@ paths:
                     - unknown
                 device_fingerprint:
                   type: string
-                  description: 'Le champ value doit contenir au moins 16 caractères. Le champ value ne doit pas dépasser 255 caractères.'
+                  description: 'Valeur de « device fingerprint ». Le champ value doit contenir au moins 16 caractères. Le champ value ne doit pas dépasser 255 caractères.'
                   example: g
                 push_token:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 512 caractères.'
+                  description: 'Jeton de notification push de l’appareil. Le champ value ne doit pas dépasser 512 caractères.'
                   example: z
                   nullable: true
               required:
@@ -3896,20 +3882,20 @@ paths:
               properties:
                 name:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 120 caractères.'
+                  description: 'Nom affiché ou nom de l’appareil. Le champ value ne doit pas dépasser 120 caractères.'
                   example: b
                 email:
                   type: string
-                  description: 'Le champ value doit être une adresse e-mail valide. Le champ value ne doit pas dépasser 255 caractères.'
+                  description: 'Adresse email. Le champ value doit être une adresse e-mail valide. Le champ value ne doit pas dépasser 255 caractères.'
                   example: zbailey@example.net
                 phone:
                   type: string
-                  description: 'Must match the regex /^\+?[\d\s\-.()]{6,20}$/. Le champ value ne doit pas dépasser 20 caractères.'
+                  description: 'Numéro de téléphone. Must match the regex /^\+?[\d\s\-.()]{6,20}$/. Le champ value ne doit pas dépasser 20 caractères.'
                   example: iyvdljnikhwaykcm
                   nullable: true
                 country_code:
                   type: string
-                  description: 'Must match the regex /^\+?[\d\s\-.()]{1,7}$/. Le champ value ne doit pas dépasser 4 caractères.'
+                  description: 'Indicatif téléphonique du pays. Must match the regex /^\+?[\d\s\-.()]{1,7}$/. Le champ value ne doit pas dépasser 4 caractères.'
                   example: yuwp
                   nullable: true
                 birth_date:
@@ -4035,11 +4021,11 @@ paths:
               properties:
                 current_pin:
                   type: string
-                  description: 'Le champ value doit contenir 4 chiffres.'
+                  description: 'Code PIN actuellement défini. Le champ value doit contenir 4 chiffres.'
                   example: '9775'
                 new_pin:
                   type: string
-                  description: 'Le champ value doit contenir 4 chiffres. Must not be one of <code></code>.'
+                  description: 'Nouveau code PIN. Le champ value doit contenir 4 chiffres. Must not be one of <code></code>.'
                   example: '9775'
               required:
                 - current_pin
@@ -4182,22 +4168,22 @@ paths:
               properties:
                 push_notifications:
                   type: boolean
-                  description: ''
+                  description: 'Valeur de « push notifications ».'
                   example: false
                   nullable: true
                 whatsapp_notifications:
                   type: boolean
-                  description: ''
+                  description: 'Valeur de « whatsapp notifications ».'
                   example: false
                   nullable: true
                 email_notifications:
                   type: boolean
-                  description: ''
+                  description: 'Valeur de « email notifications ».'
                   example: false
                   nullable: true
                 locale:
                   type: string
-                  description: ''
+                  description: 'Langue préférée.'
                   example: fr
                   enum:
                     - fr
@@ -4205,7 +4191,7 @@ paths:
                   nullable: true
                 theme:
                   type: string
-                  description: ''
+                  description: 'Thème d’affichage préféré.'
                   example: light
                   enum:
                     - light
@@ -4329,6 +4315,122 @@ paths:
         required: true
         schema:
           type: string
+  '/api/v1/auth/devices/{device_uuid}/push-token':
+    put:
+      summary: "Register or remove the FCM token for one of the authenticated user's devices."
+      operationId: registerOrRemoveTheFCMTokenForOneOfTheAuthenticatedUsersDevices
+      description: "Push must be enabled in the user's preferences and Firebase must be configured\nbefore a token can be registered."
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  -
+                    description: 'Token registered'
+                    type: object
+                    example:
+                      data:
+                        enabled: true
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          enabled:
+                            type: boolean
+                            example: false
+                  -
+                    description: 'Token removed'
+                    type: object
+                    example:
+                      data:
+                        enabled: false
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          enabled:
+                            type: boolean
+                            example: false
+        401:
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        404:
+          description: 'Device does not belong to the authenticated user or is inactive'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Not found.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Not found.'
+        422:
+          description: 'Push preference is disabled, Firebase is not configured, or input is invalid'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'The given data was invalid.'
+                  errors:
+                    enabled:
+                      - 'Activez les notifications push dans vos préférences avant d’inscrire cet appareil.'
+                properties:
+                  message:
+                    type: string
+                    example: 'The given data was invalid.'
+                  errors:
+                    type: object
+                    properties:
+                      enabled:
+                        type: array
+                        example:
+                          - 'Activez les notifications push dans vos préférences avant d’inscrire cet appareil.'
+                        items:
+                          type: string
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                  description: 'Whether push is enabled for this device. Send false to remove its token.'
+                  example: false
+                push_token:
+                  type: string
+                  description: 'FCM registration token for this app installation. Required only when enabled is true; maximum 4096 characters.'
+                  example: fcm-registration-token
+                  nullable: true
+              required:
+                - enabled
+    parameters:
+      -
+        in: path
+        name: device_uuid
+        description: 'UUID of the device returned by the auth session.'
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
   /api/v1/auth/logout:
     post:
       summary: 'Revoke the current access token.'
@@ -4357,6 +4459,17 @@ paths:
                     example: Unauthenticated.
       tags:
         - Auth
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                device_uuid:
+                  type: string
+                  description: 'UUID de l’appareil courant. Optionnel ; permet aussi de retirer son token push.'
+                  example: 00000000-0000-4000-8000-000000000000
   /api/v1/company-accounts:
     get:
       summary: 'List active company accounts visible to the authenticated user.'
@@ -4553,11 +4666,11 @@ paths:
               properties:
                 name:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 255 caractères.'
+                  description: 'Nom affiché ou nom de l’appareil. Le champ value ne doit pas dépasser 255 caractères.'
                   example: b
                 type:
                   type: string
-                  description: ''
+                  description: 'Type de l’événement ou de la ressource.'
                   example: company
                   enum:
                     - company
@@ -4565,21 +4678,21 @@ paths:
                     - embassy
                 reference:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 255 caractères.'
+                  description: 'Valeur de « reference ». Le champ value ne doit pas dépasser 255 caractères.'
                   example: 'n'
                 phone:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 32 caractères.'
+                  description: 'Numéro de téléphone. Le champ value ne doit pas dépasser 32 caractères.'
                   example: g
                   nullable: true
                 email:
                   type: string
-                  description: 'Le champ value doit être une adresse e-mail valide. Le champ value ne doit pas dépasser 255 caractères.'
+                  description: 'Adresse email. Le champ value doit être une adresse e-mail valide. Le champ value ne doit pas dépasser 255 caractères.'
                   example: rowan.gulgowski@example.com
                   nullable: true
                 monthly_credit_limit:
                   type: integer
-                  description: 'Le champ value doit être au moins 0.'
+                  description: 'Plafond de crédit mensuel en unité monétaire. Le champ value doit être au moins 0.'
                   example: 42
               required:
                 - name
@@ -4700,11 +4813,11 @@ paths:
               properties:
                 name:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 255 caractères.'
+                  description: 'Nom affiché ou nom de l’appareil. Le champ value ne doit pas dépasser 255 caractères.'
                   example: b
                 type:
                   type: string
-                  description: ''
+                  description: 'Type de l’événement ou de la ressource.'
                   example: company
                   enum:
                     - company
@@ -4712,21 +4825,21 @@ paths:
                     - embassy
                 reference:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 255 caractères.'
+                  description: 'Valeur de « reference ». Le champ value ne doit pas dépasser 255 caractères.'
                   example: 'n'
                 phone:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 32 caractères.'
+                  description: 'Numéro de téléphone. Le champ value ne doit pas dépasser 32 caractères.'
                   example: g
                   nullable: true
                 email:
                   type: string
-                  description: 'Le champ value doit être une adresse e-mail valide. Le champ value ne doit pas dépasser 255 caractères.'
+                  description: 'Adresse email. Le champ value doit être une adresse e-mail valide. Le champ value ne doit pas dépasser 255 caractères.'
                   example: rowan.gulgowski@example.com
                   nullable: true
                 monthly_credit_limit:
                   type: integer
-                  description: 'Le champ value doit être au moins 0.'
+                  description: 'Plafond de crédit mensuel en unité monétaire. Le champ value doit être au moins 0.'
                   example: 42
               required:
                 - name
@@ -4938,11 +5051,11 @@ paths:
               properties:
                 user_uuid:
                   type: string
-                  description: 'Le champ value doit être un UUID valide. Must match an existing stored value.'
+                  description: 'UUID du membre à rattacher au compte. Le champ value doit être un UUID valide. Must match an existing stored value.'
                   example: 00000000-0000-4000-8000-000000000000
                 role:
                   type: string
-                  description: ''
+                  description: 'Rôle du membre du compte entreprise.'
                   example: referent
                   enum:
                     - referent
@@ -4965,7 +5078,11 @@ paths:
       operationId: authenticateTheRequestForChannelAccess
       description: ''
       parameters: []
-      responses: {}
+      responses:
+        200:
+          description: Channel authorization payload for an authenticated subscriber.
+        403:
+          description: The authenticated user is not authorized to subscribe to the channel.
       tags:
         - Endpoints
       security: []
@@ -5461,11 +5578,11 @@ paths:
               properties:
                 minimum_passengers:
                   type: integer
-                  description: 'Le champ value doit être au moins 1.'
+                  description: 'Nombre minimal de passagers. Le champ value doit être au moins 1.'
                   example: 16
                 maximum_passengers:
                   type: integer
-                  description: ''
+                  description: 'Nombre maximal de passagers.'
                   example: 16
               required:
                 - minimum_passengers
@@ -6743,37 +6860,145 @@ paths:
             type: integer
             description: '1 à 100 (30 par défaut).'
             example: 30
-      responses: {}
+        -
+          in: query
+          name: page
+          description: 'Numéro de page. Le champ value doit être au moins 1.'
+          example: 66
+          required: false
+          schema:
+            type: integer
+            description: 'Numéro de page. Le champ value doit être au moins 1.'
+            example: 66
+      responses:
+        200:
+          description: 'Incidents du convoyeur'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    -
+                      uuid: 6f1b0c9e-3f6a-4c0e-9a55-2d7b7d0a1c11
+                      type: breakdown
+                      status: open
+                      description: 'Crevaison au niveau de Ouidah.'
+                      latitude: 6.3654
+                      longitude: 2.4183
+                      occurred_at: '2026-09-22T09:14:00.000Z'
+                      created_at: '2026-09-22T09:14:05.000Z'
+                      departure:
+                        uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                        line_code: COT-LFW
+                        date: '2026-09-22'
+                        time: '08:00'
+                  meta:
+                    current_page: 1
+                    per_page: 30
+                    total: 1
+                    last_page: 1
+                properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        uuid: 6f1b0c9e-3f6a-4c0e-9a55-2d7b7d0a1c11
+                        type: breakdown
+                        status: open
+                        description: 'Crevaison au niveau de Ouidah.'
+                        latitude: 6.3654
+                        longitude: 2.4183
+                        occurred_at: '2026-09-22T09:14:00.000Z'
+                        created_at: '2026-09-22T09:14:05.000Z'
+                        departure:
+                          uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                          line_code: COT-LFW
+                          date: '2026-09-22'
+                          time: '08:00'
+                    items:
+                      type: object
+                      properties:
+                        uuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        type:
+                          type: string
+                          example: breakdown
+                        status:
+                          type: string
+                          example: open
+                        description:
+                          type: string
+                          example: 'Crevaison au niveau de Ouidah.'
+                        latitude:
+                          type: number
+                          example: 6.3654
+                        longitude:
+                          type: number
+                          example: 2.4183
+                        occurred_at:
+                          type: string
+                          example: '2026-09-22T09:14:00.000Z'
+                        created_at:
+                          type: string
+                          example: '2026-09-22T09:14:05.000Z'
+                        departure:
+                          type: object
+                          properties:
+                            uuid:
+                              type: string
+                              example: 00000000-0000-4000-8000-000000000000
+                            line_code:
+                              type: string
+                              example: COT-LFW
+                            date:
+                              type: string
+                              example: '2026-09-22'
+                            time:
+                              type: string
+                              example: '08:00'
+                  meta:
+                    type: object
+                    properties:
+                      current_page:
+                        type: integer
+                        example: 1
+                      per_page:
+                        type: integer
+                        example: 30
+                      total:
+                        type: integer
+                        example: 1
+                      last_page:
+                        type: integer
+                        example: 1
+        401:
+          description: 'Session absente ou expirée'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: session_expired
+                    message: 'Votre session a expiré.'
+                    action: reauthenticate
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: session_expired
+                      message:
+                        type: string
+                        example: 'Votre session a expiré.'
+                      action:
+                        type: string
+                        example: reauthenticate
       tags:
         - 'OPS Mobile — Incidents'
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                status:
-                  type: string
-                  description: ''
-                  example: open
-                  enum:
-                    - open
-                    - in_progress
-                    - resolved
-                    - cancelled
-                departure_uuid:
-                  type: string
-                  description: 'Le champ value doit être un UUID valide.'
-                  example: 00000000-0000-4000-8000-000000000000
-                per_page:
-                  type: integer
-                  description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 100.'
-                  example: 7
-                page:
-                  type: integer
-                  description: 'Le champ value doit être au moins 1.'
-                  example: 66
     post:
       summary: 'Signale un incident.'
       operationId: signaleUnIncident
@@ -6959,7 +7184,83 @@ paths:
       operationId: dtailDunDeMESIncidents404PourCeluiDunAutre
       description: ''
       parameters: []
-      responses: {}
+      responses:
+        200:
+          description: 'Incident du convoyeur'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: 6f1b0c9e-3f6a-4c0e-9a55-2d7b7d0a1c11
+                    type: breakdown
+                    status: open
+                    description: 'Crevaison au niveau de Ouidah.'
+                    latitude: 6.3654
+                    longitude: 2.4183
+                    occurred_at: '2026-09-22T09:14:00.000Z'
+                    created_at: '2026-09-22T09:14:05.000Z'
+                    departure:
+                      uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                      line_code: COT-LFW
+                      date: '2026-09-22'
+                      time: '08:00'
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      type:
+                        type: string
+                        example: breakdown
+                      status:
+                        type: string
+                        example: open
+                      description:
+                        type: string
+                        example: 'Crevaison au niveau de Ouidah.'
+                      latitude:
+                        type: number
+                        example: 6.3654
+                      longitude:
+                        type: number
+                        example: 2.4183
+                      occurred_at:
+                        type: string
+                        example: '2026-09-22T09:14:00.000Z'
+                      created_at:
+                        type: string
+                        example: '2026-09-22T09:14:05.000Z'
+                      departure:
+                        type: object
+                        properties:
+                          uuid:
+                            type: string
+                            example: 00000000-0000-4000-8000-000000000000
+                          line_code:
+                            type: string
+                            example: COT-LFW
+                          date:
+                            type: string
+                            example: '2026-09-22'
+                          time:
+                            type: string
+                            example: '08:00'
+        404:
+          description: 'Incident absent de ce compte'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'No query results for model [App\Modules\FleetLite\Models\Incident].'
+                properties:
+                  message:
+                    type: string
+                    example: 'No query results for model [App\Modules\FleetLite\Models\Incident].'
       tags:
         - 'OPS Mobile — Incidents'
     parameters:
@@ -8427,8 +8728,23 @@ paths:
               properties:
                 serial_number:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 64 caractères.'
+                  description: 'Numéro de série du terminal OPS. Le champ value ne doit pas dépasser 64 caractères.'
                   example: b
+                hardware_model:
+                  type: string
+                  description: 'Modèle matériel du terminal. Le champ value ne doit pas dépasser 128 caractères.'
+                  example: 'n'
+                  nullable: true
+                os_version:
+                  type: string
+                  description: 'Version du système d’exploitation. Le champ value ne doit pas dépasser 64 caractères.'
+                  example: g
+                  nullable: true
+                app_version:
+                  type: string
+                  description: 'Version de l’application cliente. Le champ value ne doit pas dépasser 64 caractères.'
+                  example: z
+                  nullable: true
               required:
                 - serial_number
   /api/v1/ops-mobile/terminal/sync:
@@ -8535,6 +8851,22 @@ paths:
                   description: 'Résumé libre de ce qui a été synchronisé (compté, jamais interprété par ce endpoint).'
                   example: null
                   properties: {}
+                  nullable: true
+                hardware_model:
+                  type: string
+                  description: 'Modèle matériel du terminal. Le champ value ne doit pas dépasser 128 caractères.'
+                  example: 'n'
+                  nullable: true
+                os_version:
+                  type: string
+                  description: 'Version du système d’exploitation. Le champ value ne doit pas dépasser 64 caractères.'
+                  example: g
+                  nullable: true
+                app_version:
+                  type: string
+                  description: 'Version de l’application cliente. Le champ value ne doit pas dépasser 64 caractères.'
+                  example: z
+                  nullable: true
   /api/v1/ops-mobile/terminal/activity:
     post:
       summary: "Journalise un scan, une impression ou une erreur pour le terminal en\ncours d'utilisation."
@@ -8611,11 +8943,11 @@ paths:
               properties:
                 serial_number:
                   type: string
-                  description: 'Le champ value ne doit pas dépasser 64 caractères.'
+                  description: 'Numéro de série du terminal OPS. Le champ value ne doit pas dépasser 64 caractères.'
                   example: b
                 type:
                   type: string
-                  description: ''
+                  description: 'Type de l’événement ou de la ressource.'
                   example: handshake
                   enum:
                     - handshake
@@ -8625,7 +8957,7 @@ paths:
                     - error
                 context:
                   type: object
-                  description: ''
+                  description: 'Contexte complémentaire de l’événement.'
                   example: null
                   properties: {}
                   nullable: true
@@ -8648,10 +8980,41 @@ paths:
             type: string
             description: "UUID d'agence — rôles à périmètre réseau uniquement."
             example: 00000000-0000-4000-8000-000000000000
-      responses: {}
+      responses:
+        200:
+          description: 'Départs suivis'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data: []
+                properties:
+                  data:
+                    type: array
+                    example: []
+        403:
+          description: 'Permission de suivi manquante'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    code: permission_denied
+                    message: 'Votre compte n’a pas accès au suivi de la flotte.'
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: permission_denied
+                      message:
+                        type: string
+                        example: 'Votre compte n’a pas accès au suivi de la flotte.'
       tags:
         - 'OPS Web — Suivi de la flotte'
-      security: []
   /api/v1/notifications:
     get:
       summary: "Notifications de l'utilisateur, les plus récentes d'abord."
@@ -8938,55 +9301,6 @@ paths:
                         example: contact_agency
       tags:
         - 'OPS — Notifications'
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                unread:
-                  type: boolean
-                  description: ''
-                  example: false
-                type:
-                  type: string
-                  description: ''
-                  example: departure_assigned
-                  enum:
-                    - departure_assigned
-                    - departure_modified
-                    - manifest_stale
-                    - terminal_revoked
-                    - scan_conflict
-                    - operation_rejected
-                    - sync_completed
-                    - sync_failed
-                    - no_show_closed
-                    - print_error
-                    - departure_departed
-                    - incident_reported
-                    - incident_critical
-                severity:
-                  type: string
-                  description: ''
-                  example: info
-                  enum:
-                    - info
-                    - warning
-                    - critical
-                since:
-                  type: string
-                  description: 'Le champ value doit être une date valide.'
-                  example: '2026-09-25T08:16:41'
-                per_page:
-                  type: integer
-                  description: 'Le champ value doit être au moins 1. Le champ value ne doit pas être supérieur à 100.'
-                  example: 1
-                page:
-                  type: integer
-                  description: 'Le champ value doit être au moins 1.'
-                  example: 22
   /api/v1/notifications/unread-count:
     get:
       summary: 'Nombre de notifications non lues (badge), dont les critiques.'
@@ -9326,6 +9640,474 @@ paths:
         required: true
         schema:
           type: string
+  /api/v1/notifications/web-push-configuration:
+    get:
+      summary: 'Retourne la configuration Firebase cliente pour le push web.'
+      operationId: retourneLaConfigurationFirebaseClientePourLePushWeb
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  -
+                    description: 'Configuration Firebase disponible'
+                    type: object
+                    example:
+                      configured: true
+                      firebase:
+                        apiKey: AIzaSyExamplePublicKey
+                        authDomain: kora-bus.firebaseapp.com
+                        projectId: kora-bus-prod
+                        storageBucket: kora-bus-prod.appspot.com
+                        messagingSenderId: '123456789012'
+                        appId: '1:123456789012:web:abcdef123456'
+                        vapidKey: BExamplePublicVapidKey
+                    properties:
+                      configured:
+                        type: boolean
+                        example: false
+                      firebase:
+                        type: object
+                        properties:
+                          apiKey:
+                            type: string
+                            example: AIzaSyExamplePublicKey
+                          authDomain:
+                            type: string
+                            example: kora-bus.firebaseapp.com
+                          projectId:
+                            type: string
+                            example: kora-bus-prod
+                          storageBucket:
+                            type: string
+                            example: kora-bus-prod.appspot.com
+                          messagingSenderId:
+                            type: string
+                            example: '123456789012'
+                          appId:
+                            type: string
+                            example: '1:123456789012:web:abcdef123456'
+                          vapidKey:
+                            type: string
+                            example: BExamplePublicVapidKey
+                  -
+                    description: 'Configuration Firebase indisponible'
+                    type: object
+                    example:
+                      configured: false
+                      firebase: null
+                    properties:
+                      configured:
+                        type: boolean
+                        example: false
+                      firebase:
+                        type: string
+                        example: null
+                        nullable: true
+        401:
+          description: 'Non authentifié'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'OPS — Notifications'
+  /api/v1/auth/passenger/notifications:
+    get:
+      summary: 'Liste l’inbox passager, de la plus récente à la plus ancienne.'
+      operationId: listeLinboxPassagerDeLaPlusRcenteLaPlusAncienne
+      description: ''
+      parameters:
+        -
+          in: query
+          name: unread
+          description: 'Ne retourner que les notifications non lues.'
+          example: false
+          required: false
+          schema:
+            type: boolean
+            description: 'Ne retourner que les notifications non lues.'
+            example: false
+        -
+          in: query
+          name: per_page
+          description: 'Nombre d’éléments par page, de 1 à 50 (20 par défaut).'
+          example: 20
+          required: false
+          schema:
+            type: integer
+            description: 'Nombre d’éléments par page, de 1 à 50 (20 par défaut).'
+            example: 20
+        -
+          in: query
+          name: page
+          description: 'Numéro de page.'
+          example: 1
+          required: false
+          schema:
+            type: integer
+            description: 'Numéro de page.'
+            example: 1
+      responses:
+        200:
+          description: 'Inbox passager'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    -
+                      uuid: a3091549-9179-454e-8440-58179f2208df
+                      type: booking_confirmed
+                      title: 'Réservation confirmée'
+                      message: 'Votre réservation est confirmée.'
+                      resource_uuid: b4102650-a280-4655-9551-69280321aaef
+                      is_read: false
+                      read_at: null
+                      created_at: '2026-09-27T10:00:00.000Z'
+                      data: []
+                  meta:
+                    current_page: 1
+                    last_page: 1
+                    per_page: 20
+                    total: 1
+                    unread_count: 1
+                properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        uuid: a3091549-9179-454e-8440-58179f2208df
+                        type: booking_confirmed
+                        title: 'Réservation confirmée'
+                        message: 'Votre réservation est confirmée.'
+                        resource_uuid: b4102650-a280-4655-9551-69280321aaef
+                        is_read: false
+                        read_at: null
+                        created_at: '2026-09-27T10:00:00.000Z'
+                        data: []
+                    items:
+                      type: object
+                      properties:
+                        uuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        type:
+                          type: string
+                          example: booking_confirmed
+                        title:
+                          type: string
+                          example: 'Réservation confirmée'
+                        message:
+                          type: string
+                          example: 'Votre réservation est confirmée.'
+                        resource_uuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        is_read:
+                          type: boolean
+                          example: false
+                        read_at:
+                          type: string
+                          example: null
+                          nullable: true
+                        created_at:
+                          type: string
+                          example: '2026-09-27T10:00:00.000Z'
+                        data:
+                          type: array
+                          example: []
+                  meta:
+                    type: object
+                    properties:
+                      current_page:
+                        type: integer
+                        example: 1
+                      last_page:
+                        type: integer
+                        example: 1
+                      per_page:
+                        type: integer
+                        example: 20
+                      total:
+                        type: integer
+                        example: 1
+                      unread_count:
+                        type: integer
+                        example: 1
+        401:
+          description: 'Non authentifié'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'Passager — Notifications'
+  /api/v1/auth/passenger/notifications/unread-count:
+    get:
+      summary: 'Retourne le nombre de notifications passager non lues.'
+      operationId: retourneLeNombreDeNotificationsPassagerNonLues
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: 'Compteur non lu'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    unread: 2
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      unread:
+                        type: integer
+                        example: 2
+        401:
+          description: 'Non authentifié'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'Passager — Notifications'
+  /api/v1/auth/passenger/notifications/read-all:
+    post:
+      summary: 'Marque toutes les notifications passager non lues comme lues.'
+      operationId: marqueToutesLesNotificationsPassagerNonLuesCommeLues
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: 'Inbox marquée comme lue'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    updated: 2
+                    unread: 0
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      updated:
+                        type: integer
+                        example: 2
+                      unread:
+                        type: integer
+                        example: 0
+      tags:
+        - 'Passager — Notifications'
+  '/api/v1/auth/passenger/notifications/{notification}/read':
+    post:
+      summary: 'Marque comme lue une notification de l’utilisateur authentifié.'
+      operationId: marqueCommeLueUneNotificationDeLutilisateurAuthentifi
+      description: ''
+      parameters: []
+      responses:
+        200:
+          description: 'Notification lue'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    uuid: a3091549-9179-454e-8440-58179f2208df
+                    type: booking_confirmed
+                    title: 'Réservation confirmée'
+                    message: 'Votre réservation est confirmée.'
+                    resource_uuid: null
+                    is_read: true
+                    read_at: '2026-09-27T10:05:00.000Z'
+                    created_at: '2026-09-27T10:00:00.000Z'
+                    data: []
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: 00000000-0000-4000-8000-000000000000
+                      type:
+                        type: string
+                        example: booking_confirmed
+                      title:
+                        type: string
+                        example: 'Réservation confirmée'
+                      message:
+                        type: string
+                        example: 'Votre réservation est confirmée.'
+                      resource_uuid:
+                        type: string
+                        example: null
+                        nullable: true
+                      is_read:
+                        type: boolean
+                        example: false
+                      read_at:
+                        type: string
+                        example: '2026-09-27T10:05:00.000Z'
+                      created_at:
+                        type: string
+                        example: '2026-09-27T10:00:00.000Z'
+                      data:
+                        type: array
+                        example: []
+        404:
+          description: 'Notification absente de cette inbox'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Not found.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Not found.'
+      tags:
+        - 'Passager — Notifications'
+    parameters:
+      -
+        in: path
+        name: notification
+        description: 'UUID de la notification.'
+        example: 00000000-0000-4000-8000-000000000000
+        required: true
+        schema:
+          type: string
+  /api/v1/auth/passenger/firebase-configuration:
+    get:
+      summary: 'Retourne la configuration Firebase publique correspondant à la plateforme.'
+      operationId: retourneLaConfigurationFirebasePubliqueCorrespondantLaPlateforme
+      description: ''
+      parameters:
+        -
+          in: query
+          name: platform
+          description: 'Plateforme cliente : android ou ios.'
+          example: android
+          required: true
+          schema:
+            type: string
+            description: 'Plateforme cliente : android ou ios.'
+            example: android
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  -
+                    description: 'Configuration disponible'
+                    type: object
+                    example:
+                      data:
+                        enabled: true
+                        api_key: AIzaSyExamplePublicKey
+                        project_id: kora-bus-prod
+                        messaging_sender_id: '123456789012'
+                        app_id: '1:123456789012:android:abcdef123456'
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          enabled:
+                            type: boolean
+                            example: false
+                          api_key:
+                            type: string
+                            example: AIzaSyExamplePublicKey
+                          project_id:
+                            type: string
+                            example: kora-bus-prod
+                          messaging_sender_id:
+                            type: string
+                            example: '123456789012'
+                          app_id:
+                            type: string
+                            example: '1:123456789012:android:abcdef123456'
+                  -
+                    description: 'Configuration indisponible'
+                    type: object
+                    example:
+                      data:
+                        enabled: false
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          enabled:
+                            type: boolean
+                            example: false
+        401:
+          description: 'Non authentifié'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        422:
+          description: 'Plateforme invalide'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'The given data was invalid.'
+                  errors:
+                    platform:
+                      - 'The selected platform is invalid.'
+                properties:
+                  message:
+                    type: string
+                    example: 'The given data was invalid.'
+                  errors:
+                    type: object
+                    properties:
+                      platform:
+                        type: array
+                        example:
+                          - 'The selected platform is invalid.'
+                        items:
+                          type: string
+      tags:
+        - 'Passager — Notifications'
   /api/v1/payments/methods:
     get:
       summary: 'List available payment methods and providers.'

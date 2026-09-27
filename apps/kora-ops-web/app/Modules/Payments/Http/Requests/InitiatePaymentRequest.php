@@ -55,4 +55,19 @@ class InitiatePaymentRequest extends FormRequest
             'mobile_money_amount' => $this->input('mobile_money_amount') === null ? null : $this->integer('mobile_money_amount'),
         ];
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'reservation_uuid' => ['description' => 'UUID de la réservation à payer.'],
+            'method' => ['description' => 'Méthode de paiement.'],
+            'provider' => ['description' => 'Fournisseur OAuth ou de paiement.'],
+            'idempotency_key' => ['description' => 'Clé d’idempotence de la demande.'],
+            'phone' => ['description' => 'Numéro de téléphone.'],
+            'mobile_money_network' => ['description' => 'Réseau Mobile Money utilisé.'],
+            'wallet_amount' => ['description' => 'Montant débité du portefeuille.'],
+            'mobile_money_amount' => ['description' => 'Montant payé par Mobile Money.'],
+        ];
+    }
 }

@@ -65,6 +65,27 @@ if ($normalizedOpenApi === null || $normalizedOpenApi === $openApi) {
 
 $openApi = $normalizedOpenApi;
 
+// Scribe discovers Laravel's broadcasting authorization route but cannot infer
+// its dynamically generated channel authorization response.
+$broadcastingPath = '/api/v1/broadcasting/auth';
+$broadcastingPathPattern = sprintf(
+    '/(  %s:\n    get:\n.*?      responses:) \{\}/s',
+    preg_quote($broadcastingPath, '/'),
+);
+$normalizedOpenApi = preg_replace(
+    $broadcastingPathPattern,
+    "$1\n        200:\n          description: Channel authorization payload for an authenticated subscriber.\n        403:\n          description: The authenticated user is not authorized to subscribe to the channel.",
+    $openApi,
+    1,
+);
+
+if ($normalizedOpenApi === null || $normalizedOpenApi === $openApi) {
+    fwrite(STDERR, "Unable to normalize the broadcasting authorization response in the OpenAPI specification.\n");
+    exit(1);
+}
+
+$openApi = $normalizedOpenApi;
+
 if (! str_contains($openApi, 'securitySchemes:')) {
     $openApi = preg_replace(
         '/^tags:\n/m',

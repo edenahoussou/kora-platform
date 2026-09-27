@@ -36,6 +36,11 @@ class SendPassengerDepartureReminderJob implements ShouldQueue
             return;
         }
 
-        $notifications->departureReminder($reservation, $departure->uuid.':'.$this->offsetHours.'h:'.$this->expectedDepartureAt);
+        $notifications->departureReminder(
+            $reservation,
+            $departure,
+            $this->offsetHours,
+            $departure->uuid.':'.$this->offsetHours.'h:'.$this->expectedDepartureAt,
+        );
     }
 }

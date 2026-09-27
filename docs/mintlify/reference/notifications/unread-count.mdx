@@ -1,0 +1,19 @@
+---
+title: Compter les notifications non lues
+description: "Obtenir le nombre de notifications passager non lues pour actualiser le badge."
+api: GET /api/v1/auth/passenger/notifications/unread-count
+---
+
+# Compter les notifications non lues
+
+Retourne le compteur de l’inbox passager authentifiée.
+
+```bash
+curl 'https://staging.koraexpress.app/api/v1/auth/passenger/notifications/unread-count' \
+  -H 'Authorization: Bearer <token-de-session>' \
+  -H 'Accept: application/json'
+```
+
+```json
+{"data":{"unread":2}}
+```

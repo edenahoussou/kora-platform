@@ -30,4 +30,12 @@ class MarkAllOpsNotificationsReadRequest extends FormRequest
         // of converting to the display timezone before the SQL comparison.
         return $this->filled('before') ? Carbon::parse($this->string('before')->toString())->utc() : null;
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'before' => ['description' => 'Date limite des notifications à marquer comme lues.'],
+        ];
+    }
 }

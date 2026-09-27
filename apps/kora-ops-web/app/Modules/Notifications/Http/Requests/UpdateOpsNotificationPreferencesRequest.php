@@ -36,4 +36,15 @@ class UpdateOpsNotificationPreferencesRequest extends FormRequest
 
         return $preferences;
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'preferences' => ['description' => 'Préférences de notification par type.'],
+            'preferences.*.type' => ['description' => 'Type de l’événement ou de la ressource.'],
+            'preferences.*.in_app' => ['description' => 'Activer ou désactiver la livraison dans l’inbox.'],
+            'preferences.*.mail' => ['description' => 'Activer ou désactiver la livraison par email.'],
+        ];
+    }
 }

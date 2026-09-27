@@ -34,4 +34,13 @@ class RecordOpsDelayRequest extends FormRequest
     {
         return $this->string('delay_reason')->toString();
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'delay_minutes' => ['description' => 'Retard constaté en minutes.'],
+            'delay_reason' => ['description' => 'Motif du retard.'],
+        ];
+    }
 }

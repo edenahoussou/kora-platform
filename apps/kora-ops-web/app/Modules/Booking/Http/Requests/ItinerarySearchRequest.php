@@ -59,4 +59,20 @@ class ItinerarySearchRequest extends FormRequest
 
         return $date !== '' ? CarbonImmutable::parse($date) : null;
     }
+
+    /** @return array<string, array{description: string}> */
+    public function queryParameters(): array
+    {
+        return [
+            'from_physical_stop_uuid' => ['description' => 'Valeur de « from physical stop uuid ».'],
+            'to_physical_stop_uuid' => ['description' => 'Valeur de « to physical stop uuid ».'],
+            'date' => ['description' => 'Date du trajet au format YYYY-MM-DD.'],
+            'passenger_count' => ['description' => 'Nombre de passagers.'],
+            'sort' => ['description' => 'Critère de tri des résultats.'],
+            'sort_direction' => ['description' => 'Valeur de « sort direction ».'],
+            'service_class_code' => ['description' => 'Valeur de « service class code ».'],
+            'trip_type' => ['description' => 'Type de trajet.'],
+            'return_date' => ['description' => 'Date du trajet retour au format YYYY-MM-DD.'],
+        ];
+    }
 }

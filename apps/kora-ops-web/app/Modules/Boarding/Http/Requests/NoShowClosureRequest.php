@@ -40,4 +40,14 @@ class NoShowClosureRequest extends FormRequest
     {
         return Carbon::parse($this->input('local_recorded_at'));
     }
+
+    /** @return array<string, array{description: string}> */
+    public function bodyParameters(): array
+    {
+        return [
+            'departure_uuid' => ['description' => 'UUID du départ concerné.'],
+            'operation_uuid' => ['description' => 'UUID idempotent de l’opération cliente.'],
+            'local_recorded_at' => ['description' => 'Date et heure locales de l’enregistrement.'],
+        ];
+    }
 }

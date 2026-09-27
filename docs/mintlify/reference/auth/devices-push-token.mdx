@@ -1,0 +1,30 @@
+---
+title: Inscrire un token push
+description: "Associer ou retirer un token FCM sur l’appareil actif de l’utilisateur authentifié."
+api: PUT /api/v1/auth/devices/{device_uuid}/push-token
+---
+
+# Inscrire ou retirer un token push
+
+Cette route associe un token FCM à un appareil déjà enregistré. Elle ne crée pas l’appareil : récupérez `data.device.uuid` dans la réponse d’authentification. L’utilisateur doit être authentifié, avoir activé `push_notifications` dans ses préférences, et Firebase doit être configuré côté serveur.
+
+Après consentement explicite et permission du système, l’application transmet le token généré par Firebase Messaging :
+
+```bash
+curl -X PUT 'https://staging.koraexpress.app/api/v1/auth/devices/a3091549-9179-454e-8440-58179f2208df/push-token' \
+  -H 'Authorization: Bearer <token-de-session>' \
+  -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{"enabled":true,"push_token":"<token-fcm>"}'
+```
+
+Pour synchroniser le renouvellement, renvoyez le nouveau token à cette route. Pour le retrait, envoyez `{"enabled":false}`. Les préférences push ou la révocation de l’appareil retirent également les tokens serveur.
+
+<ResponseField name="data.enabled" type="boolean" required>Vaut `true` après association et `false` après retrait.</ResponseField>
+
+| Code | Description |
+|------|-------------|
+| `200` | Token associé ou retiré. |
+| `401` | Session absente ou invalide. |
+| `404` | Appareil inactif ou n’appartenant pas à l’utilisateur. |
+| `422` | Préférence push désactivée, Firebase non configuré ou entrée invalide. |
