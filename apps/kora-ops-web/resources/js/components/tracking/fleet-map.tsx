@@ -7,6 +7,7 @@ import {
     Maximize2,
     Route,
     Sparkles,
+    Waypoints,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -38,18 +39,21 @@ type Props = {
     className?: string;
 };
 
-const TILES = {
+const TILES: Record<
+    'dark' | 'light' | 'osm',
+    { url: string; attribution: string; subdomains?: string[] }
+> = {
+    // Satellite Esri en mode sombre — les basemaps Carto exigent une clé
+    // API depuis 2025, OpenTopoMap et Esri restent publics (attribution).
     dark: {
-        url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-        attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: ['a', 'b', 'c', 'd'],
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        attribution: '&copy; Esri, Maxar, Earthstar Geographics',
     },
     light: {
-        url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+        url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
         attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: ['a', 'b', 'c', 'd'],
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)',
+        subdomains: ['a', 'b', 'c'],
     },
     osm: {
         url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -72,13 +76,12 @@ function buildMarkerHtml(session: FleetTrackingSession, isSelected: boolean): st
     return `
         <div class="kora-fleet-marker group cursor-pointer ${isSelected ? 'is-selected ring-4 ring-gold ring-offset-2' : ''}" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
             <div class="relative flex items-center justify-center">
-                ${
-                    session.state === 'live'
-                        ? `<span class="absolute inline-flex h-10 w-10 animate-ping rounded-full bg-emerald-400/30"></span>`
-                        : session.state === 'stale'
-                          ? `<span class="absolute inline-flex h-9 w-9 animate-pulse rounded-full bg-amber-400/20"></span>`
-                          : ''
-                }
+                ${session.state === 'live'
+            ? `<span class="absolute inline-flex h-10 w-10 animate-ping rounded-full bg-emerald-400/30"></span>`
+            : session.state === 'stale'
+                ? `<span class="absolute inline-flex h-9 w-9 animate-pulse rounded-full bg-amber-400/20"></span>`
+                : ''
+        }
                 <div class="relative flex h-8 w-8 items-center justify-center rounded-full shadow-lg transition-transform duration-300 group-hover:scale-110" style="background-color: ${meta.colorHex}; border: 2px solid #ffffff; box-shadow: 0 4px 14px rgba(0,0,0,0.35);">
                     <svg class="h-4 w-4" style="color: #ffffff;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><path d="M9 18h5"/><circle cx="7" cy="18" r="2"/><circle cx="16" cy="18" r="2"/>
@@ -87,21 +90,19 @@ function buildMarkerHtml(session: FleetTrackingSession, isSelected: boolean): st
                 <div style="position: absolute; inset: 0; transform: rotate(${heading}deg); pointer-events: none;">
                     <div style="position: absolute; top: -6px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 6px solid ${meta.colorHex}; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.45));"></div>
                 </div>
-                ${
-                    activeIncidents > 0
-                        ? `<span class="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-0.5 text-[8px] font-black leading-none text-white border border-white shadow-md z-10">${activeIncidents}</span>`
-                        : ''
-                }
+                ${activeIncidents > 0
+            ? `<span class="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-0.5 text-[8px] font-black leading-none text-white border border-white shadow-md z-10">${activeIncidents}</span>`
+            : ''
+        }
             </div>
             <div class="mt-1 flex flex-col items-center pointer-events-none">
                 <span class="rounded-md bg-kora/90 px-1.5 py-0.5 text-[10px] font-extrabold tracking-tight text-white shadow-md border border-white/20 whitespace-nowrap">
                     ${session.bus.registration_number}
                 </span>
-                ${
-                    speed
-                        ? `<span class="rounded bg-black/75 px-1 text-[8px] font-bold text-amber-300 backdrop-blur-sm -mt-0.5">${speed}</span>`
-                        : ''
-                }
+                ${speed
+            ? `<span class="rounded bg-black/75 px-1 text-[8px] font-bold text-amber-300 backdrop-blur-sm -mt-0.5">${speed}</span>`
+            : ''
+        }
             </div>
         </div>
     `;
@@ -143,7 +144,11 @@ export function FleetMap({
     const autoFittedSessionRef = useRef<string | null>(null);
     const [activeTileType, setActiveTileType] = useState<'ops' | 'osm'>('osm');
     const [showLegend, setShowLegend] = useState<boolean>(true);
-    const [tileErrorCount, setTileErrorCount] = useState(0);
+    // Couches du trajet sélectionné — visibles par défaut, togglables
+    const [showPlannedRoute, setShowPlannedRoute] = useState(true);
+    const [showTrajectory, setShowTrajectory] = useState(true);
+    const tileErrorCountRef = useRef(0);
+    const activeTileTypeRef = useRef(activeTileType);
 
     // Initial map mount
     useEffect(() => {
@@ -178,12 +183,15 @@ export function FleetMap({
 
         tileLayerRef.current = tileLayer;
 
-        // Auto-fallback to OSM if the OPS tiles fail to load
+        // Auto-fallback to OSM if the OPS tiles fail to load — le handler
+        // est figé dans la closure du mount : refs obligatoires pour lire
+        // l'état courant (compteur et provider actif).
         tileLayer.on('tileerror', () => {
-            setTileErrorCount((prev) => prev + 1);
+            tileErrorCountRef.current += 1;
 
-            if (activeTileType !== 'osm' && tileErrorCount > 5) {
+            if (activeTileTypeRef.current !== 'osm' && tileErrorCountRef.current > 5) {
                 tileLayer.setUrl(TILES.osm.url);
+                activeTileTypeRef.current = 'osm';
                 setActiveTileType('osm');
             }
         });
@@ -191,8 +199,19 @@ export function FleetMap({
         mapRef.current = map;
 
         return () => {
+            // Les couches appartiennent à la map détruite : on vide les refs
+            // pour qu'elles se recréent sur la map recréée par React
+            // (double-invocation StrictMode / remount après hydration).
             map.remove();
             mapRef.current = null;
+            markersRef.current = {};
+            polylineRef.current = null;
+            corridorRef.current = null;
+            plannedLineRef.current = null;
+            historyDotsRef.current = [];
+            stopMarkersRef.current = [];
+            incidentMarkersRef.current = [];
+            autoFittedSessionRef.current = null;
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -213,6 +232,9 @@ export function FleetMap({
             nextUrl = osmTileUrl;
             nextAttr = osmAttribution || '';
         }
+
+        activeTileTypeRef.current = activeTileType;
+        tileErrorCountRef.current = 0;
 
         tileLayerRef.current.setUrl(nextUrl);
         tileLayerRef.current.options.attribution = nextAttr;
@@ -308,6 +330,7 @@ export function FleetMap({
     const selectedSession =
         sessions.find((s) => s.session_uuid === selectedSessionUuid) ?? null;
     const hasPlannedRoute = (selectedSession?.planned_stops?.length ?? 0) >= 2;
+    const hasTrajectory = (selectedSession?.recent_positions?.length ?? 0) >= 2;
     const hasMappedIncidents = (selectedSession?.incidents ?? []).some(
         (i) => i.latitude !== null && i.longitude !== null && i.status !== 'cancelled',
     );
@@ -356,7 +379,7 @@ export function FleetMap({
             .filter((stop) => stop.latitude && stop.longitude)
             .sort((a, b) => a.order - b.order);
 
-        if (plannedStops.length >= 2) {
+        if (showPlannedRoute && plannedStops.length >= 2) {
             const routeLatLngs: [number, number][] = plannedStops.map((stop) => [
                 stop.latitude,
                 stop.longitude,
@@ -428,7 +451,7 @@ export function FleetMap({
             });
 
         // Actual trajectory polyline + breadcrumbs
-        if (selected.recent_positions && selected.recent_positions.length >= 2) {
+        if (showTrajectory && selected.recent_positions && selected.recent_positions.length >= 2) {
             const sorted = [...selected.recent_positions].sort(
                 (a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime(),
             );
@@ -472,13 +495,14 @@ export function FleetMap({
 
         // Frame the planned route once per selection so ops sees itinerary vs trajectory
         if (
+            showPlannedRoute &&
             plannedStops.length >= 2 &&
             autoFittedSessionRef.current !== selected.session_uuid
         ) {
             autoFittedSessionRef.current = selected.session_uuid;
             fitRouteBounds(selected);
         }
-    }, [selectedSessionUuid, sessions, isDarkMode]);
+    }, [selectedSessionUuid, sessions, isDarkMode, showPlannedRoute, showTrajectory]);
 
     // External commands from the detail sheet (locate incident, fit route)
     useEffect(() => {
@@ -583,16 +607,42 @@ export function FleetMap({
                     </Button>
                 )}
 
-                {hasPlannedRoute && selectedSession && (
+                {selectedSession && hasPlannedRoute && (
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => fitRouteBounds(selectedSession)}
-                        className="h-9 gap-1.5 rounded-xl border-gold/50 bg-background/95 px-3 text-xs font-bold text-foreground shadow-lg backdrop-blur hover:bg-gold/10"
-                        title="Cadrer la vue sur l'itinéraire prévu complet"
+                        onClick={() => {
+                            const next = !showPlannedRoute;
+                            setShowPlannedRoute(next);
+
+                            if (next) {
+                                fitRouteBounds(selectedSession);
+                            }
+                        }}
+                        className={`h-9 gap-1.5 rounded-xl px-3 text-xs font-bold shadow-lg backdrop-blur ${showPlannedRoute
+                            ? 'border-gold/60 bg-gold/15 text-gold hover:bg-gold/25'
+                            : 'border-border/80 bg-background/90 text-muted-foreground hover:bg-background'
+                            }`}
+                        title="Afficher / masquer l'itinéraire prévu (ligne dorée)"
                     >
-                        <Route className="size-3.5 text-gold" />
+                        <Route className="size-3.5" />
                         <span>Itinéraire</span>
+                    </Button>
+                )}
+
+                {selectedSession && hasTrajectory && (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowTrajectory((v) => !v)}
+                        className={`h-9 gap-1.5 rounded-xl px-3 text-xs font-bold shadow-lg backdrop-blur ${showTrajectory
+                            ? 'border-[#0057b8]/60 bg-[#0057b8]/15 text-[#0057b8] hover:bg-[#0057b8]/25 dark:border-[#4f8edc]/60 dark:bg-[#4f8edc]/15 dark:text-[#4f8edc] dark:hover:bg-[#4f8edc]/25'
+                            : 'border-border/80 bg-background/90 text-muted-foreground hover:bg-background'
+                            }`}
+                        title="Afficher / masquer la trajectoire réelle GPS (ligne bleue)"
+                    >
+                        <Waypoints className="size-3.5" />
+                        <span>Trajectoire</span>
                     </Button>
                 )}
 
@@ -671,45 +721,50 @@ export function FleetMap({
                     </div>
 
                     {/* Selected-session overlay legend */}
-                    {selectedSession && (hasPlannedRoute || hasMappedIncidents) && (
-                        <div className="mt-3 space-y-1.5 border-t border-border/50 pt-2.5">
-                            <span className="text-[0.625rem] font-black uppercase tracking-wider text-muted-foreground">
-                                Itinéraire du trajet
-                            </span>
-                            {hasPlannedRoute && (
-                                <div className="flex items-center gap-2">
-                                    <span
-                                        className="inline-block w-5 shrink-0"
-                                        style={{
-                                            borderTop: '3px dashed #f6b000',
-                                        }}
-                                    />
-                                    <span className="font-semibold text-[0.6875rem] text-foreground">
-                                        Itinéraire prévu
-                                    </span>
-                                </div>
-                            )}
-                            <div className="flex items-center gap-2">
-                                <span
-                                    className="inline-block w-5 shrink-0"
-                                    style={{ borderTop: '3px solid #0057b8' }}
-                                />
-                                <span className="font-semibold text-[0.6875rem] text-foreground">
-                                    Trajectoire réelle (GPS)
+                    {selectedSession &&
+                        ((hasPlannedRoute && showPlannedRoute) ||
+                            (hasTrajectory && showTrajectory) ||
+                            hasMappedIncidents) && (
+                            <div className="mt-3 space-y-1.5 border-t border-border/50 pt-2.5">
+                                <span className="text-[0.625rem] font-black uppercase tracking-wider text-muted-foreground">
+                                    Itinéraire du trajet
                                 </span>
+                                {hasPlannedRoute && showPlannedRoute && (
+                                    <div className="flex items-center gap-2">
+                                        <span
+                                            className="inline-block w-5 shrink-0"
+                                            style={{
+                                                borderTop: '3px dashed #f6b000',
+                                            }}
+                                        />
+                                        <span className="font-semibold text-[0.6875rem] text-foreground">
+                                            Itinéraire prévu
+                                        </span>
+                                    </div>
+                                )}
+                                {hasTrajectory && showTrajectory && (
+                                    <div className="flex items-center gap-2">
+                                        <span
+                                            className="inline-block w-5 shrink-0"
+                                            style={{ borderTop: '3px solid #0057b8' }}
+                                        />
+                                        <span className="font-semibold text-[0.6875rem] text-foreground">
+                                            Trajectoire réelle (GPS)
+                                        </span>
+                                    </div>
+                                )}
+                                {hasMappedIncidents && (
+                                    <div className="flex items-center gap-2">
+                                        <span className="flex size-4 shrink-0 items-center justify-center rounded bg-rose-500 text-white">
+                                            <span className="text-[9px] font-black leading-none">!</span>
+                                        </span>
+                                        <span className="font-semibold text-[0.6875rem] text-foreground">
+                                            Incident signalé
+                                        </span>
+                                    </div>
+                                )}
                             </div>
-                            {hasMappedIncidents && (
-                                <div className="flex items-center gap-2">
-                                    <span className="flex size-4 shrink-0 items-center justify-center rounded bg-rose-500 text-white">
-                                        <span className="text-[9px] font-black leading-none">!</span>
-                                    </span>
-                                    <span className="font-semibold text-[0.6875rem] text-foreground">
-                                        Incident signalé
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-                    )}
+                        )}
                 </div>
             )}
         </div>
