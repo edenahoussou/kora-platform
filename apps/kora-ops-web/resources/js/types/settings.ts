@@ -29,6 +29,8 @@ export type OperationsSettingsValues = {
     notificationsMailEnabled: boolean;
     notificationsMailTries: number;
     manifestStaleDebounceSeconds: number;
+    passengerDepartureReminderHours: number[];
+    passengerDelayThresholdMinutes: number;
 };
 
 export type IntegrationsSettingsValues = Record<

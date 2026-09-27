@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
-import { Bell, Menu, Moon, Search, Sun } from 'lucide-react';
-import { useState } from 'react';
+import { Menu, Moon, Search, Sun } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { OpsNotificationDrawer } from '@/components/ops-notification-drawer';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -10,8 +11,15 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAppearance } from '@/hooks/use-appearance';
+import { getOpsMessaging, listenForOpsPush } from '@/lib/firebase-messaging';
+import type { OpsFirebaseConfig } from '@/lib/firebase-messaging';
 import { logout } from '@/routes';
+import {
+    unreadCount as notificationUnreadCount,
+    webPushConfiguration,
+} from '@/routes/api/v1/notifications';
 import { edit } from '@/routes/profile';
+import { update as updatePushPreference } from '@/routes/settings/notifications/push';
 import type { User } from '@/types';
 
 type Props = {
@@ -21,7 +29,99 @@ type Props = {
 
 export function KoraTopbar({ user, onMenuClick }: Props) {
     const [query, setQuery] = useState('');
+    const [unreadCount, setUnreadCount] = useState(0);
     const { resolvedAppearance, updateAppearance } = useAppearance();
+
+    const refreshUnreadCount = useCallback(async () => {
+        try {
+            const response = await fetch(notificationUnreadCount.url(), {
+                credentials: 'same-origin',
+                headers: { Accept: 'application/json' },
+            });
+
+            if (!response.ok) {
+                return;
+            }
+
+            const result = (await response.json()) as {
+                data: { unread: number };
+            };
+            setUnreadCount(result.data.unread);
+        } catch {
+            // A transient count failure leaves the last known badge in place.
+        }
+    }, []);
+
+    useEffect(() => {
+        const initialRefresh = window.setTimeout(
+            () => void refreshUnreadCount(),
+            0,
+        );
+        const timer = window.setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                void refreshUnreadCount();
+            }
+        }, 30_000);
+        const onFocus = () => void refreshUnreadCount();
+        const onVisibility = () => {
+            if (document.visibilityState === 'visible') {
+                void refreshUnreadCount();
+            }
+        };
+        window.addEventListener('focus', onFocus);
+        document.addEventListener('visibilitychange', onVisibility);
+
+        return () => {
+            window.clearTimeout(initialRefresh);
+            window.clearInterval(timer);
+            window.removeEventListener('focus', onFocus);
+            document.removeEventListener('visibilitychange', onVisibility);
+        };
+    }, [refreshUnreadCount]);
+
+    useEffect(() => {
+        if (
+            !('Notification' in window) ||
+            Notification.permission !== 'granted'
+        ) {
+            return;
+        }
+
+        let unsubscribe: (() => void) | undefined;
+        let cancelled = false;
+        void fetch(webPushConfiguration.url(), {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+        })
+            .then((response) =>
+                response.ok
+                    ? (response.json() as Promise<{
+                          configured: boolean;
+                          firebase: OpsFirebaseConfig | null;
+                      }>)
+                    : null,
+            )
+            .then(async (config) => {
+                if (!config?.configured || !config.firebase || cancelled) {
+                    return;
+                }
+
+                const messaging = await getOpsMessaging(config.firebase);
+
+                if (messaging && !cancelled) {
+                    unsubscribe = listenForOpsPush(
+                        messaging,
+                        () => void refreshUnreadCount(),
+                    );
+                }
+            })
+            .catch(() => undefined);
+
+        return () => {
+            cancelled = true;
+            unsubscribe?.();
+        };
+    }, [refreshUnreadCount]);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -31,12 +131,48 @@ export function KoraTopbar({ user, onMenuClick }: Props) {
         }
     };
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        const fingerprint = window.localStorage.getItem(
+            'kora-ops-web-push-device',
+        );
+
+        if (
+            fingerprint &&
+            window.localStorage.getItem('kora-ops-web-push-enabled') === 'true'
+        ) {
+            const xsrf = document.cookie
+                .split('; ')
+                .find((part) => part.startsWith('XSRF-TOKEN='))
+                ?.slice('XSRF-TOKEN='.length);
+
+            try {
+                await fetch(updatePushPreference.url(), {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-XSRF-TOKEN': xsrf ? decodeURIComponent(xsrf) : '',
+                    },
+                    body: JSON.stringify({
+                        device_fingerprint: fingerprint,
+                        device_name: 'Navigateur Web',
+                        push_token: null,
+                    }),
+                });
+            } catch {
+                // Logout still proceeds if best-effort token cleanup is offline.
+            }
+        }
+
         router.post(
             logout().url,
             {},
             {
-                onFinish: () => router.flushAll(),
+                onFinish: () => {
+                    window.localStorage.removeItem('kora-ops-web-push-enabled');
+                    router.flushAll();
+                },
             },
         );
     };
@@ -88,15 +224,10 @@ export function KoraTopbar({ user, onMenuClick }: Props) {
                 EN
             </button>
 
-            {/* Alerts */}
-            <button
-                type="button"
-                className="relative grid size-[2.625rem] place-items-center rounded-[0.75rem] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                aria-label="Alertes"
-            >
-                <Bell className="size-5" />
-                <span className="absolute top-2 right-2 size-[7px] rounded-full border-2 border-background bg-gold" />
-            </button>
+            <OpsNotificationDrawer
+                unreadCount={unreadCount}
+                onUnreadCountChange={setUnreadCount}
+            />
 
             {/* Theme toggle */}
             <button

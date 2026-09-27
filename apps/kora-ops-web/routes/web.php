@@ -313,9 +313,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Rapports — V2
     Route::get('reports', $comingSoon('Rapports', 'Consultez et préparez les rapports de votre périmètre.', 'V2'))->name('reports');
 
-    // Notifications — V2
-    Route::get('notifications', $comingSoon('Notifications', 'Suivez les confirmations, rappels et alertes envoyés sur chaque canal.', 'V2'))->name('notifications');
-
     // Alertes — V2
     Route::get('alerts', $comingSoon('Centre des alertes', 'Priorisez les situations qui nécessitent votre attention.', 'V2'))->name('alerts');
 });
