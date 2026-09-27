@@ -5,6 +5,7 @@ import {
     Gauge,
     Navigation,
     Search,
+    TriangleAlert,
     User,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -12,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { FleetTrackingSession } from '@/types/tracking';
-import { FleetTrackingBadge } from './fleet-tracking-badge';
+import { FleetTrackingBadge, countActiveIncidents } from './fleet-tracking-badge';
 
 type Props = {
     sessions: FleetTrackingSession[];
@@ -89,7 +90,7 @@ export function FleetSidePanel({
     return (
         <aside
             className={cn(
-                'flex flex-col border-r border-border/60 bg-card w-80 lg:w-96 shrink-0 h-full overflow-hidden transition-all duration-300',
+                'flex flex-col border-r border-border/60 bg-card w-80 md:w-96 lg:w-[26rem] xl:w-[28rem] shrink-0 h-full overflow-hidden transition-all duration-300',
                 className,
             )}
         >
@@ -159,7 +160,7 @@ export function FleetSidePanel({
             </div>
 
             {/* List of Vehicles */}
-            <div className="flex-1 overflow-y-auto p-2.5 space-y-2">
+            <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
                 {filteredSessions.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 text-center px-4">
                         <Bus className="size-8 text-muted-foreground/40 mb-2" />
@@ -175,6 +176,7 @@ export function FleetSidePanel({
                         const isSelected = session.session_uuid === selectedSessionUuid;
                         const speed = session.position?.speed_kmh;
                         const heading = session.position?.heading_degrees;
+                        const activeIncidents = countActiveIncidents(session);
 
                         return (
                             <button
@@ -182,7 +184,7 @@ export function FleetSidePanel({
                                 type="button"
                                 onClick={() => onSelectSession(session)}
                                 className={cn(
-                                    'w-full text-left rounded-xl p-3 border transition-all duration-200 cursor-pointer',
+                                    'w-full text-left rounded-xl p-3.5 border transition-all duration-200 cursor-pointer',
                                     isSelected
                                         ? 'border-gold bg-gold/5 shadow-md ring-1 ring-gold dark:bg-gold/10'
                                         : 'border-border/60 bg-card hover:border-border hover:bg-muted/30 hover:shadow-sm',
@@ -197,6 +199,15 @@ export function FleetSidePanel({
                                         {session.departure.line_code && (
                                             <span className="text-[0.625rem] font-extrabold text-primary dark:text-gold uppercase tracking-wider">
                                                 {session.departure.line_code}
+                                            </span>
+                                        )}
+                                        {activeIncidents > 0 && (
+                                            <span
+                                                className="inline-flex items-center gap-0.5 rounded-full bg-rose-500/15 border border-rose-500/30 px-1.5 py-0.5 text-[0.5625rem] font-extrabold text-rose-700 dark:text-rose-400"
+                                                title={`${activeIncidents} incident(s) actif(s) déclaré(s)`}
+                                            >
+                                                <TriangleAlert className="size-2.5" />
+                                                {activeIncidents}
                                             </span>
                                         )}
                                     </div>
@@ -219,7 +230,7 @@ export function FleetSidePanel({
                                 <div className="flex items-center justify-between pt-2 border-t border-border/40 text-[0.625rem] text-muted-foreground">
                                     <div className="flex items-center gap-1">
                                         <User className="size-3 text-muted-foreground/70" />
-                                        <span className="truncate max-w-[110px]">
+                                        <span className="truncate max-w-[150px]">
                                             {session.conductor.name}
                                         </span>
                                     </div>

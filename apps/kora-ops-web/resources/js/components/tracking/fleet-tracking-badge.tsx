@@ -1,12 +1,20 @@
 import {
     AlertOctagon,
+    CarFront,
     CheckCircle2,
     Clock,
+    Flag,
     Radio,
+    ShieldAlert,
     WifiOff,
+    Wrench,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { TrackingLiveState } from '@/types/tracking';
+import type {
+    TrackingIncidentStatus,
+    TrackingIncidentType,
+    TrackingLiveState,
+} from '@/types/tracking';
 
 type Props = {
     state: TrackingLiveState;
@@ -92,6 +100,55 @@ export const TRACKING_STATE_META: Record<
         icon: CheckCircle2,
     },
 };
+
+export const INCIDENT_TYPE_META: Record<
+    TrackingIncidentType,
+    { label: string; icon: typeof Wrench }
+> = {
+    breakdown: { label: 'Panne', icon: Wrench },
+    delay: { label: 'Retard', icon: Clock },
+    accident: { label: 'Accident', icon: CarFront },
+    security: { label: 'Sécurité', icon: ShieldAlert },
+    other: { label: 'Autre', icon: Flag },
+};
+
+export const INCIDENT_STATUS_META: Record<
+    TrackingIncidentStatus,
+    { label: string; markerColor: string; badgeClass: string }
+> = {
+    open: {
+        label: 'Ouvert',
+        markerColor: '#ef4444',
+        badgeClass:
+            'bg-rose-500/10 text-rose-700 border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-400 dark:border-rose-500/30',
+    },
+    in_progress: {
+        label: 'En cours',
+        markerColor: '#f59e0b',
+        badgeClass:
+            'bg-amber-500/10 text-amber-700 border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30',
+    },
+    resolved: {
+        label: 'Résolu',
+        markerColor: '#10b981',
+        badgeClass:
+            'bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/30',
+    },
+    cancelled: {
+        label: 'Annulé',
+        markerColor: '#94a3b8',
+        badgeClass:
+            'bg-muted text-muted-foreground border-border/40 dark:bg-muted/40 dark:text-muted-foreground',
+    },
+};
+
+export function countActiveIncidents(session: {
+    incidents?: { status: TrackingIncidentStatus }[];
+}): number {
+    return (session.incidents ?? []).filter(
+        (i) => i.status === 'open' || i.status === 'in_progress',
+    ).length;
+}
 
 export function formatAge(seconds: number | null | undefined): string {
     if (seconds === null || seconds === undefined || isNaN(seconds)) {

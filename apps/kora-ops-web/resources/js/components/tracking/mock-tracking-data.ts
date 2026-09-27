@@ -1,4 +1,7 @@
-import type { FleetTrackingSession, TrackingHistoricalPoint } from '@/types/tracking';
+import type {
+    FleetTrackingSession,
+    TrackingHistoricalPoint,
+} from '@/types/tracking';
 
 function makeHistory(
     baseLat: number,
@@ -25,6 +28,25 @@ function makeHistory(
     }
 
     return points;
+}
+
+function makeWaypointHistory(
+    waypoints: [number, number][],
+    speed: number,
+    heading: number,
+): TrackingHistoricalPoint[] {
+    const now = Date.now();
+
+    return waypoints.map(([lat, lng], index) => ({
+        uuid: `hist-wp-${Math.random().toString(36).slice(2, 9)}`,
+        latitude: lat,
+        longitude: lng,
+        speed_kmh: Math.max(20, Math.round(speed - (waypoints.length - 1 - index) * 3)),
+        heading_degrees: heading,
+        accuracy_meters: Number((4.5 + (waypoints.length - 1 - index) * 0.5).toFixed(1)),
+        recorded_at: new Date(now - (waypoints.length - 1 - index) * 30 * 1000).toISOString(),
+        source: 'gps',
+    }));
 }
 
 export const MOCK_FLEET_SESSIONS: FleetTrackingSession[] = [
@@ -75,6 +97,52 @@ export const MOCK_FLEET_SESSIONS: FleetTrackingSession[] = [
             code: 'AG-COT',
         },
         recent_positions: makeHistory(6.2814, 1.8251, -0.002, 0.008, 76, 265),
+        crew: {
+            driver: { uuid: 'crew-d01-1', name: 'Moussa Gnankan', phone: '+229 90 11 22 33' },
+            secondary_driver: { uuid: 'crew-d01-2', name: 'Firmin Ahoudou', phone: '+229 96 67 78 89' },
+            conductor: { uuid: 'cond-demo-01', name: 'Sosthène Dossou', phone: '+229 97 12 34 56' },
+            mechanic: { uuid: 'crew-d01-4', name: 'Bertin Zinsou', phone: '+229 91 33 44 55' },
+        },
+        planned_stops: [
+            { uuid: 'stop-cl-1', name: 'Gare Centrale', city: 'Cotonou', order: 1, km_from_origin: 0, latitude: 6.3654, longitude: 2.4183 },
+            { uuid: 'stop-cl-2', name: 'Ouidah', city: 'Ouidah', order: 2, km_from_origin: 40, latitude: 6.3631, longitude: 2.0851 },
+            { uuid: 'stop-cl-3', name: 'Grand-Popo', city: 'Grand-Popo', order: 3, km_from_origin: 85, latitude: 6.2819, longitude: 1.8231 },
+            { uuid: 'stop-cl-4', name: 'Hillacondji (Frontière)', city: 'Hillacondji', order: 4, km_from_origin: 100, latitude: 6.3067, longitude: 1.6640 },
+            { uuid: 'stop-cl-5', name: 'Gare Grand-Marché', city: 'Lomé', order: 5, km_from_origin: 150, latitude: 6.1375, longitude: 1.2123 },
+        ],
+        incidents: [
+            {
+                uuid: 'inc-demo-01a',
+                type: 'delay',
+                status: 'in_progress',
+                description: 'Ralentissement annoncé au poste frontière de Hillacondji, file d’attente contrôle.',
+                latitude: 6.3067,
+                longitude: 1.6640,
+                occurred_at: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
+                reporter_name: 'Sosthène Dossou',
+            },
+            {
+                uuid: 'inc-demo-01b',
+                type: 'delay',
+                status: 'resolved',
+                description: 'Embouteillage dense à la sortie de Cotonou, circulation rétablie.',
+                latitude: 6.3680,
+                longitude: 2.3400,
+                occurred_at: new Date(Date.now() - 70 * 60 * 1000).toISOString(),
+                reporter_name: 'Sosthène Dossou',
+            },
+            {
+                uuid: 'inc-demo-01c',
+                type: 'breakdown',
+                status: 'resolved',
+                description: 'Essuie-glace défaillant remplacé au départ, départ décalé de 10 minutes.',
+                latitude: 6.3654,
+                longitude: 2.4183,
+                occurred_at: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
+                reporter_name: 'Sosthène Dossou',
+            },
+        ],
+        route_adherence: { status: 'on_route', distance_from_route_m: 85 },
     },
     {
         session_uuid: 'session-demo-02-cotpar',
@@ -122,7 +190,66 @@ export const MOCK_FLEET_SESSIONS: FleetTrackingSession[] = [
             name: 'Agence Cotonou Littoral',
             code: 'AG-COT',
         },
-        recent_positions: makeHistory(7.4251, 2.1483, 0.009, 0.002, 82, 15),
+        // Trajectoire déviant volontairement à l'est du couloir Bohicon → Dassa
+        recent_positions: makeWaypointHistory(
+            [
+                [7.2180, 2.0740],
+                [7.2760, 2.0880],
+                [7.3290, 2.1020],
+                [7.3720, 2.1180],
+                [7.4020, 2.1360],
+                [7.4251, 2.1483],
+            ],
+            82,
+            35,
+        ),
+        crew: {
+            driver: { uuid: 'crew-d02-1', name: 'Rémi Tossou', phone: '+229 90 55 66 77' },
+            secondary_driver: { uuid: 'crew-d02-2', name: 'Ulrich Deguenon', phone: '+229 96 88 99 00' },
+            conductor: { uuid: 'cond-demo-02', name: 'Raoul Agbodjan', phone: '+229 96 23 45 67' },
+            mechanic: null,
+        },
+        planned_stops: [
+            { uuid: 'stop-cp-1', name: 'Gare Centrale', city: 'Cotonou', order: 1, km_from_origin: 0, latitude: 6.3654, longitude: 2.4183 },
+            { uuid: 'stop-cp-2', name: 'Allada', city: 'Allada', order: 2, km_from_origin: 55, latitude: 6.6650, longitude: 2.1510 },
+            { uuid: 'stop-cp-3', name: 'Bohicon', city: 'Bohicon', order: 3, km_from_origin: 135, latitude: 7.1780, longitude: 2.0670 },
+            { uuid: 'stop-cp-4', name: 'Dassa-Zoumé', city: 'Dassa-Zoumé', order: 4, km_from_origin: 200, latitude: 7.7500, longitude: 2.1830 },
+            { uuid: 'stop-cp-5', name: 'Savalou', city: 'Savalou', order: 5, km_from_origin: 220, latitude: 7.9280, longitude: 1.9760 },
+            { uuid: 'stop-cp-6', name: 'Gare Dépôt', city: 'Parakou', order: 6, km_from_origin: 420, latitude: 9.3370, longitude: 2.6300 },
+        ],
+        incidents: [
+            {
+                uuid: 'inc-demo-02a',
+                type: 'security',
+                status: 'open',
+                description: 'Déviation contrôlée — escorte gendarmerie imposée après le contrôle de Bohicon.',
+                latitude: 7.2100,
+                longitude: 2.0780,
+                occurred_at: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
+                reporter_name: 'Raoul Agbodjan',
+            },
+            {
+                uuid: 'inc-demo-02b',
+                type: 'other',
+                status: 'resolved',
+                description: 'Contrôle documentaire prolongé à Allada — véhicule reparti après vérification.',
+                latitude: 6.6650,
+                longitude: 2.1510,
+                occurred_at: new Date(Date.now() - 110 * 60 * 1000).toISOString(),
+                reporter_name: 'Raoul Agbodjan',
+            },
+            {
+                uuid: 'inc-demo-02c',
+                type: 'delay',
+                status: 'resolved',
+                description: 'Départ retardé — correspondance passagers attendue à la gare centrale.',
+                latitude: 6.3654,
+                longitude: 2.4183,
+                occurred_at: new Date(Date.now() - 160 * 60 * 1000).toISOString(),
+                reporter_name: 'Raoul Agbodjan',
+            },
+        ],
+        route_adherence: { status: 'deviation', distance_from_route_m: 3400 },
     },
     {
         session_uuid: 'session-demo-03-porcot',
@@ -171,6 +298,30 @@ export const MOCK_FLEET_SESSIONS: FleetTrackingSession[] = [
             code: 'AG-POR',
         },
         recent_positions: makeHistory(6.3882, 2.4554, -0.003, -0.004, 25, 240),
+        crew: {
+            driver: { uuid: 'crew-d03-1', name: 'Coffi Ahossi', phone: '+229 94 11 22 33' },
+            secondary_driver: null,
+            conductor: { uuid: 'cond-demo-03', name: 'Bernadette Houndékon', phone: '+229 95 34 56 78' },
+            mechanic: null,
+        },
+        planned_stops: [
+            { uuid: 'stop-pc-1', name: 'Ouando', city: 'Porto-Novo', order: 1, km_from_origin: 0, latitude: 6.4790, longitude: 2.6280 },
+            { uuid: 'stop-pc-2', name: 'Missérété', city: 'Akpro-Missérété', order: 2, km_from_origin: 10, latitude: 6.5600, longitude: 2.5900 },
+            { uuid: 'stop-pc-3', name: 'Étoile Rouge', city: 'Cotonou', order: 3, km_from_origin: 30, latitude: 6.3703, longitude: 2.4280 },
+        ],
+        incidents: [
+            {
+                uuid: 'inc-demo-03a',
+                type: 'delay',
+                status: 'open',
+                description: 'Embouteillage dense à l’entrée de Cotonou — véhicule à l’arrêt depuis 15 minutes.',
+                latitude: 6.3882,
+                longitude: 2.4554,
+                occurred_at: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+                reporter_name: 'Bernadette Houndékon',
+            },
+        ],
+        route_adherence: { status: 'insufficient_data', distance_from_route_m: null },
     },
     {
         session_uuid: 'session-demo-04-parnat',
@@ -219,6 +370,32 @@ export const MOCK_FLEET_SESSIONS: FleetTrackingSession[] = [
             code: 'AG-PAR',
         },
         recent_positions: makeHistory(9.7082, 1.6664, 0.006, -0.005, 60, 310),
+        crew: {
+            driver: { uuid: 'crew-d04-1', name: 'Yacoubou Sanni', phone: '+229 93 22 33 44' },
+            secondary_driver: { uuid: 'crew-d04-2', name: 'Osséni Touré', phone: '+229 95 44 55 66' },
+            conductor: { uuid: 'cond-demo-04', name: 'Idrissou Mama', phone: '+229 94 45 67 89' },
+            mechanic: { uuid: 'crew-d04-4', name: 'Karim Adjovi', phone: '+229 92 66 77 88' },
+        },
+        planned_stops: [
+            { uuid: 'stop-pn-1', name: 'Gare Dépôt', city: 'Parakou', order: 1, km_from_origin: 0, latitude: 9.3370, longitude: 2.6300 },
+            { uuid: 'stop-pn-2', name: 'N’Dali', city: 'N’Dali', order: 2, km_from_origin: 60, latitude: 9.8610, longitude: 2.7160 },
+            { uuid: 'stop-pn-3', name: 'Djougou', city: 'Djougou', order: 3, km_from_origin: 185, latitude: 9.7085, longitude: 1.6664 },
+            { uuid: 'stop-pn-4', name: 'Copargo', city: 'Copargo', order: 4, km_from_origin: 200, latitude: 9.8350, longitude: 1.5500 },
+            { uuid: 'stop-pn-5', name: 'Gare Centrale', city: 'Natitingou', order: 5, km_from_origin: 260, latitude: 10.3042, longitude: 1.3796 },
+        ],
+        incidents: [
+            {
+                uuid: 'inc-demo-04a',
+                type: 'breakdown',
+                status: 'in_progress',
+                description: 'Perte de puissance moteur — diagnostic en cours avec le mécanicien de bord à Djougou.',
+                latitude: 9.7082,
+                longitude: 1.6664,
+                occurred_at: new Date(Date.now() - 50 * 60 * 1000).toISOString(),
+                reporter_name: 'Idrissou Mama',
+            },
+        ],
+        route_adherence: { status: 'insufficient_data', distance_from_route_m: null },
     },
     {
         session_uuid: 'session-demo-05-abicot',
@@ -267,6 +444,20 @@ export const MOCK_FLEET_SESSIONS: FleetTrackingSession[] = [
             code: 'AG-ABI',
         },
         recent_positions: makeHistory(5.2891, -3.1254, 0.001, 0.005, 50, 90),
+        crew: {
+            driver: { uuid: 'crew-d05-1', name: 'Koffi N’Guessan', phone: '+225 05 11 22 33' },
+            secondary_driver: { uuid: 'crew-d05-2', name: 'Aya Konan', phone: '+225 07 44 55 66' },
+            conductor: { uuid: 'cond-demo-05', name: 'Kouassi Yao', phone: '+225 07 58 12 34' },
+            mechanic: { uuid: 'crew-d05-4', name: 'Seydou Ouattara', phone: '+225 05 77 88 99' },
+        },
+        planned_stops: [
+            { uuid: 'stop-ac-1', name: 'Treichville', city: 'Abidjan', order: 1, km_from_origin: 0, latitude: 5.3097, longitude: -4.0083 },
+            { uuid: 'stop-ac-2', name: 'Grand-Bassam', city: 'Grand-Bassam', order: 2, km_from_origin: 40, latitude: 5.2118, longitude: -3.7388 },
+            { uuid: 'stop-ac-3', name: 'Gare Grand-Marché', city: 'Lomé', order: 3, km_from_origin: 170, latitude: 6.1375, longitude: 1.2123 },
+            { uuid: 'stop-ac-4', name: 'Gare Centrale', city: 'Cotonou', order: 4, km_from_origin: 320, latitude: 6.3654, longitude: 2.4183 },
+        ],
+        incidents: [],
+        route_adherence: { status: 'insufficient_data', distance_from_route_m: null },
     },
     {
         session_uuid: 'session-demo-06-malcot',
@@ -315,5 +506,31 @@ export const MOCK_FLEET_SESSIONS: FleetTrackingSession[] = [
             code: 'AG-MAL',
         },
         recent_positions: makeHistory(11.1342, 2.9381, -0.008, 0.001, 71, 175),
+        crew: {
+            driver: { uuid: 'crew-d06-1', name: 'Issa Boukari', phone: '+229 97 11 22 33' },
+            secondary_driver: { uuid: 'crew-d06-2', name: 'Salifou Dramane', phone: '+229 96 44 55 66' },
+            conductor: { uuid: 'cond-demo-06', name: 'Abdoulaye Bio', phone: '+229 97 56 78 90' },
+            mechanic: { uuid: 'crew-d06-4', name: 'Moumouni Garba', phone: '+229 91 77 88 99' },
+        },
+        planned_stops: [
+            { uuid: 'stop-mc-1', name: 'Frontière Niger', city: 'Malanville', order: 1, km_from_origin: 0, latitude: 11.8682, longitude: 3.3850 },
+            { uuid: 'stop-mc-2', name: 'Kandi', city: 'Kandi', order: 2, km_from_origin: 90, latitude: 11.1342, longitude: 2.9381 },
+            { uuid: 'stop-mc-3', name: 'Gare Dépôt', city: 'Parakou', order: 3, km_from_origin: 290, latitude: 9.3370, longitude: 2.6300 },
+            { uuid: 'stop-mc-4', name: 'Bohicon', city: 'Bohicon', order: 4, km_from_origin: 560, latitude: 7.1780, longitude: 2.0670 },
+            { uuid: 'stop-mc-5', name: 'Gare Centrale', city: 'Cotonou', order: 5, km_from_origin: 680, latitude: 6.3654, longitude: 2.4183 },
+        ],
+        incidents: [
+            {
+                uuid: 'inc-demo-06a',
+                type: 'delay',
+                status: 'resolved',
+                description: 'Contrôle douanier à Malanville — départ retardé de 20 minutes, situation régularisée.',
+                latitude: 11.8682,
+                longitude: 3.3850,
+                occurred_at: new Date(Date.now() - 300 * 60 * 1000).toISOString(),
+                reporter_name: 'Abdoulaye Bio',
+            },
+        ],
+        route_adherence: { status: 'on_route', distance_from_route_m: 120 },
     },
 ];

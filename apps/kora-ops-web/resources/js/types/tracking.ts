@@ -68,6 +68,58 @@ export type TrackingHistoricalPoint = {
     source: TrackingPositionSource;
 };
 
+export type TrackingCrewMember = {
+    uuid: string;
+    name: string;
+    phone?: string;
+};
+
+export type TrackingCrew = {
+    driver: TrackingCrewMember | null;
+    secondary_driver: TrackingCrewMember | null;
+    conductor: TrackingCrewMember | null;
+    mechanic: TrackingCrewMember | null;
+};
+
+export type TrackingIncidentType =
+    | 'breakdown'
+    | 'delay'
+    | 'accident'
+    | 'security'
+    | 'other';
+
+export type TrackingIncidentStatus =
+    | 'open'
+    | 'in_progress'
+    | 'resolved'
+    | 'cancelled';
+
+export type TrackingIncident = {
+    uuid: string;
+    type: TrackingIncidentType;
+    status: TrackingIncidentStatus;
+    description: string;
+    latitude: number | null;
+    longitude: number | null;
+    occurred_at: string | null;
+    reporter_name?: string | null;
+};
+
+export type TrackingPlannedStop = {
+    uuid: string;
+    name: string;
+    city: string;
+    order: number;
+    km_from_origin: number | null;
+    latitude: number;
+    longitude: number;
+};
+
+export type TrackingRouteAdherence = {
+    status: 'on_route' | 'deviation' | 'unavailable' | 'insufficient_data';
+    distance_from_route_m: number | null;
+};
+
 export type FleetTrackingSession = {
     session_uuid: string;
     state: TrackingLiveState;
@@ -83,6 +135,10 @@ export type FleetTrackingSession = {
         code: string;
     };
     recent_positions?: TrackingHistoricalPoint[];
+    crew?: TrackingCrew;
+    planned_stops?: TrackingPlannedStop[];
+    incidents?: TrackingIncident[];
+    route_adherence?: TrackingRouteAdherence;
 };
 
 export type FleetTrackingPageProps = {

@@ -15,7 +15,9 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { KoraTooltip } from '@/components/kora-tooltip';
 import { FleetMap } from '@/components/tracking/fleet-map';
+import type { FleetMapCommand } from '@/components/tracking/fleet-map';
 import { FleetSidePanel } from '@/components/tracking/fleet-side-panel';
 import { FleetTrackingTable } from '@/components/tracking/fleet-tracking-table';
 import { FleetVehicleDetail } from '@/components/tracking/fleet-vehicle-detail';
@@ -34,6 +36,7 @@ import type { BreadcrumbItem } from '@/types';
 import type {
     FleetTrackingPageProps,
     FleetTrackingSession,
+    TrackingIncident,
 } from '@/types/tracking';
 
 export default function FleetTrackingPage({
@@ -65,6 +68,9 @@ export default function FleetTrackingPage({
     // Selected session for detail panel
     const [selectedSessionUuid, setSelectedSessionUuid] = useState<string | null>(null);
     const [detailOpen, setDetailOpen] = useState(false);
+
+    // One-shot map command issued from the detail sheet
+    const [mapCommand, setMapCommand] = useState<FleetMapCommand | null>(null);
 
     // Side panel collapse state
     const [sidePanelCollapsed, setSidePanelCollapsed] = useState(false);
@@ -284,6 +290,29 @@ export default function FleetTrackingPage({
         setViewMode('hybrid');
     };
 
+    const handleShowRoute = (session: FleetTrackingSession) => {
+        setSelectedSessionUuid(session.session_uuid);
+        setViewMode('hybrid');
+        setMapCommand({ nonce: Date.now(), kind: 'fitRoute' });
+        setDetailOpen(false);
+    };
+
+    const handleLocateIncident = (incident: TrackingIncident) => {
+        if (incident.latitude === null || incident.longitude === null) {
+            return;
+        }
+
+        setViewMode('hybrid');
+        setMapCommand({
+            nonce: Date.now(),
+            kind: 'flyTo',
+            latitude: incident.latitude,
+            longitude: incident.longitude,
+            zoom: 13,
+        });
+        setDetailOpen(false);
+    };
+
     const selectedSession = useMemo(() => {
         return (
             sessions.find((s) => s.session_uuid === selectedSessionUuid) ?? null
@@ -424,130 +453,190 @@ export default function FleetTrackingPage({
                 {/* Real-time KPI Metric Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                     {/* Total Active */}
-                    <button
-                        type="button"
-                        onClick={() => setSelectedState('all')}
-                        className={cn(
-                            'text-left rounded-2xl border p-4 transition-all duration-200 cursor-pointer',
-                            selectedState === 'all'
-                                ? 'border-primary ring-2 ring-primary/20 bg-primary/5 dark:bg-primary/10 shadow-sm'
-                                : 'border-border/60 bg-card hover:border-border hover:shadow-sm',
-                        )}
+                    <KoraTooltip
+                        side="bottom"
+                        content={
+                            <>
+                                <span className="block font-black">En circulation</span>
+                                Sessions de suivi actives : un bus par départ en
+                                cours dont le terminal embarqué a ouvert une
+                                session de tracking.
+                            </>
+                        }
                     >
-                        <div className="flex items-center justify-between text-muted-foreground mb-1">
-                            <span className="text-[0.625rem] font-black uppercase tracking-wider">
-                                En circulation
-                            </span>
-                            <Bus className="size-4 text-primary" />
-                        </div>
-                        <div className="flex items-baseline gap-2">
-                            <span className="text-2xl font-black font-mono tracking-tight text-foreground">
-                                {kpis.total}
-                            </span>
-                            <span className="text-[0.625rem] font-bold text-muted-foreground">
-                                bus actifs
-                            </span>
-                        </div>
-                    </button>
+                        <button
+                            type="button"
+                            onClick={() => setSelectedState('all')}
+                            className={cn(
+                                'w-full text-left rounded-2xl border p-4 transition-all duration-200 cursor-pointer',
+                                selectedState === 'all'
+                                    ? 'border-primary ring-2 ring-primary/20 bg-primary/5 dark:bg-primary/10 shadow-sm'
+                                    : 'border-border/60 bg-card hover:border-border hover:shadow-sm',
+                            )}
+                        >
+                            <div className="flex items-center justify-between text-muted-foreground mb-1">
+                                <span className="text-[0.625rem] font-black uppercase tracking-wider">
+                                    En circulation
+                                </span>
+                                <Bus className="size-4 text-primary" />
+                            </div>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-2xl font-black font-mono tracking-tight text-foreground">
+                                    {kpis.total}
+                                </span>
+                                <span className="text-[0.625rem] font-bold text-muted-foreground">
+                                    bus actifs
+                                </span>
+                            </div>
+                        </button>
+                    </KoraTooltip>
 
                     {/* Live Fixes */}
-                    <button
-                        type="button"
-                        onClick={() => setSelectedState('live')}
-                        className={cn(
-                            'text-left rounded-2xl border p-4 transition-all duration-200 cursor-pointer',
-                            selectedState === 'live'
-                                ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-500/5 dark:bg-emerald-500/10 shadow-sm'
-                                : 'border-border/60 bg-card hover:border-border hover:shadow-sm',
-                        )}
+                    <KoraTooltip
+                        side="bottom"
+                        content={
+                            <>
+                                <span className="block font-black">En direct</span>
+                                Bus dont la dernière trame GPS a été reçue il y a
+                                moins de 90 secondes — position considérée temps
+                                réel.
+                            </>
+                        }
                     >
-                        <div className="flex items-center justify-between text-muted-foreground mb-1">
-                            <span className="text-[0.625rem] font-black uppercase tracking-wider">
-                                En direct (&lt; 90s)
-                            </span>
-                            <Radio className="size-4 text-emerald-500" />
-                        </div>
-                        <div className="flex items-baseline gap-2">
-                            <span className="text-2xl font-black font-mono tracking-tight text-emerald-600 dark:text-emerald-400">
-                                {kpis.live}
-                            </span>
-                            <span className="text-[0.625rem] font-bold text-emerald-600/70 dark:text-emerald-400/70">
-                                optimaux
-                            </span>
-                        </div>
-                    </button>
+                        <button
+                            type="button"
+                            onClick={() => setSelectedState('live')}
+                            className={cn(
+                                'w-full text-left rounded-2xl border p-4 transition-all duration-200 cursor-pointer',
+                                selectedState === 'live'
+                                    ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-500/5 dark:bg-emerald-500/10 shadow-sm'
+                                    : 'border-border/60 bg-card hover:border-border hover:shadow-sm',
+                            )}
+                        >
+                            <div className="flex items-center justify-between text-muted-foreground mb-1">
+                                <span className="text-[0.625rem] font-black uppercase tracking-wider">
+                                    En direct (&lt; 90s)
+                                </span>
+                                <Radio className="size-4 text-emerald-500" />
+                            </div>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-2xl font-black font-mono tracking-tight text-emerald-600 dark:text-emerald-400">
+                                    {kpis.live}
+                                </span>
+                                <span className="text-[0.625rem] font-bold text-emerald-600/70 dark:text-emerald-400/70">
+                                    optimaux
+                                </span>
+                            </div>
+                        </button>
+                    </KoraTooltip>
 
                     {/* Stale Positions */}
-                    <button
-                        type="button"
-                        onClick={() => setSelectedState('stale')}
-                        className={cn(
-                            'text-left rounded-2xl border p-4 transition-all duration-200 cursor-pointer',
-                            selectedState === 'stale'
-                                ? 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-500/5 dark:bg-amber-500/10 shadow-sm'
-                                : 'border-border/60 bg-card hover:border-border hover:shadow-sm',
-                        )}
+                    <KoraTooltip
+                        side="bottom"
+                        content={
+                            <>
+                                <span className="block font-black">Signal ancien</span>
+                                Dernière trame GPS reçue il y a plus de 90 s — la
+                                position affichée peut être en retard sur la
+                                position réelle du bus.
+                            </>
+                        }
                     >
-                        <div className="flex items-center justify-between text-muted-foreground mb-1">
-                            <span className="text-[0.625rem] font-black uppercase tracking-wider">
-                                Signal ancien (&gt; 90s)
-                            </span>
-                            <Clock className="size-4 text-amber-500" />
-                        </div>
-                        <div className="flex items-baseline gap-2">
-                            <span className="text-2xl font-black font-mono tracking-tight text-amber-600 dark:text-amber-400">
-                                {kpis.stale}
-                            </span>
-                            <span className="text-[0.625rem] font-bold text-amber-600/70 dark:text-amber-400/70">
-                                retardés
-                            </span>
-                        </div>
-                    </button>
+                        <button
+                            type="button"
+                            onClick={() => setSelectedState('stale')}
+                            className={cn(
+                                'w-full text-left rounded-2xl border p-4 transition-all duration-200 cursor-pointer',
+                                selectedState === 'stale'
+                                    ? 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-500/5 dark:bg-amber-500/10 shadow-sm'
+                                    : 'border-border/60 bg-card hover:border-border hover:shadow-sm',
+                            )}
+                        >
+                            <div className="flex items-center justify-between text-muted-foreground mb-1">
+                                <span className="text-[0.625rem] font-black uppercase tracking-wider">
+                                    Signal ancien (&gt; 90s)
+                                </span>
+                                <Clock className="size-4 text-amber-500" />
+                            </div>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-2xl font-black font-mono tracking-tight text-amber-600 dark:text-amber-400">
+                                    {kpis.stale}
+                                </span>
+                                <span className="text-[0.625rem] font-bold text-amber-600/70 dark:text-amber-400/70">
+                                    retardés
+                                </span>
+                            </div>
+                        </button>
+                    </KoraTooltip>
 
                     {/* GPS Alert / Offline */}
-                    <button
-                        type="button"
-                        onClick={() => setSelectedState('gps_unavailable')}
-                        className={cn(
-                            'text-left rounded-2xl border p-4 transition-all duration-200 cursor-pointer',
-                            selectedState === 'gps_unavailable' || selectedState === 'terminal_offline'
-                                ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-500/5 dark:bg-rose-500/10 shadow-sm'
-                                : 'border-border/60 bg-card hover:border-border hover:shadow-sm',
-                        )}
+                    <KoraTooltip
+                        side="bottom"
+                        content={
+                            <>
+                                <span className="block font-black">Anomalies / Hors ligne</span>
+                                Terminal P501 injoignable depuis plus de 5 min
+                                (hors ligne) ou GPS sans fix satellite — bus à
+                                contacter ou à surveiller.
+                            </>
+                        }
                     >
-                        <div className="flex items-center justify-between text-muted-foreground mb-1">
-                            <span className="text-[0.625rem] font-black uppercase tracking-wider">
-                                Anomalies / Hors ligne
-                            </span>
-                            <AlertOctagon className="size-4 text-rose-500" />
-                        </div>
-                        <div className="flex items-baseline gap-2">
-                            <span className="text-2xl font-black font-mono tracking-tight text-rose-600 dark:text-rose-400">
-                                {kpis.alert}
-                            </span>
-                            <span className="text-[0.625rem] font-bold text-rose-600/70 dark:text-rose-400/70">
-                                à surveiller
-                            </span>
-                        </div>
-                    </button>
+                        <button
+                            type="button"
+                            onClick={() => setSelectedState('gps_unavailable')}
+                            className={cn(
+                                'w-full text-left rounded-2xl border p-4 transition-all duration-200 cursor-pointer',
+                                selectedState === 'gps_unavailable' || selectedState === 'terminal_offline'
+                                    ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-500/5 dark:bg-rose-500/10 shadow-sm'
+                                    : 'border-border/60 bg-card hover:border-border hover:shadow-sm',
+                            )}
+                        >
+                            <div className="flex items-center justify-between text-muted-foreground mb-1">
+                                <span className="text-[0.625rem] font-black uppercase tracking-wider">
+                                    Anomalies / Hors ligne
+                                </span>
+                                <AlertOctagon className="size-4 text-rose-500" />
+                            </div>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-2xl font-black font-mono tracking-tight text-rose-600 dark:text-rose-400">
+                                    {kpis.alert}
+                                </span>
+                                <span className="text-[0.625rem] font-bold text-rose-600/70 dark:text-rose-400/70">
+                                    à surveiller
+                                </span>
+                            </div>
+                        </button>
+                    </KoraTooltip>
 
                     {/* Average Speed */}
-                    <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm col-span-2 sm:col-span-1">
-                        <div className="flex items-center justify-between text-muted-foreground mb-1">
-                            <span className="text-[0.625rem] font-black uppercase tracking-wider">
-                                Vitesse moyenne
-                            </span>
-                            <Gauge className="size-4 text-digital" />
+                    <KoraTooltip
+                        side="bottom"
+                        content={
+                            <>
+                                <span className="block font-black">Vitesse moyenne de flotte</span>
+                                Σ vitesses instantanées GPS ÷ nombre de bus en
+                                mouvement (&gt; 5 km/h). Les bus à l'arrêt sont
+                                exclus du calcul.
+                            </>
+                        }
+                    >
+                        <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm col-span-2 sm:col-span-1 h-full">
+                            <div className="flex items-center justify-between text-muted-foreground mb-1">
+                                <span className="text-[0.625rem] font-black uppercase tracking-wider">
+                                    Vitesse moyenne
+                                </span>
+                                <Gauge className="size-4 text-digital" />
+                            </div>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-2xl font-black font-mono tracking-tight text-foreground">
+                                    {kpis.avgSpeed}
+                                </span>
+                                <span className="text-[0.625rem] font-bold text-muted-foreground">
+                                    km/h en route
+                                </span>
+                            </div>
                         </div>
-                        <div className="flex items-baseline gap-2">
-                            <span className="text-2xl font-black font-mono tracking-tight text-foreground">
-                                {kpis.avgSpeed}
-                            </span>
-                            <span className="text-[0.625rem] font-bold text-muted-foreground">
-                                km/h en route
-                            </span>
-                        </div>
-                    </div>
+                    </KoraTooltip>
                 </div>
 
                 {/* Persistent Filter Bar */}
@@ -656,6 +745,8 @@ export default function FleetTrackingPage({
                                     osmTileUrl={mapConfig?.osm?.tileUrl}
                                     osmAttribution={mapConfig?.osm?.attribution}
                                     isDarkMode={isDarkMode}
+                                    mapCommand={mapCommand}
+                                    onMapCommandHandled={() => setMapCommand(null)}
                                     className="border-0 rounded-none h-full"
                                 />
                             </div>
@@ -672,6 +763,8 @@ export default function FleetTrackingPage({
                                 osmTileUrl={mapConfig?.osm?.tileUrl}
                                 osmAttribution={mapConfig?.osm?.attribution}
                                 isDarkMode={isDarkMode}
+                                mapCommand={mapCommand}
+                                onMapCommandHandled={() => setMapCommand(null)}
                                 className="h-full border-0"
                             />
                         </div>
@@ -699,6 +792,8 @@ export default function FleetTrackingPage({
                     handleSwitchToMapWithSession(s);
                     setDetailOpen(false);
                 }}
+                onShowRoute={handleShowRoute}
+                onLocateIncident={handleLocateIncident}
             />
         </>
     );
