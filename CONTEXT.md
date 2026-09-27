@@ -16,6 +16,9 @@ Credential d'un fournisseur métier (e-MECeF, paiement, cartographie, Genuka/WAH
 **Groupe de paramètres**:
 Ensemble transactionnel et verrouillable de paramètres partageant une autorisation et un audit : `general`, `operations` ou `integrations`.
 
+**Regle**:
+Tout paramètre lié à l'exploitation ou au suivi (seuils, délais, tolérances, limites, fenêtres d'ingestion) est un paramètre administrable : il vit dans un groupe de paramètres persisté en base et modifiable depuis l'écran Paramètres de KORA OPS, jamais en dur dans un fichier `config/*.php` ou une variable d'environnement. Un changement de comportement métier ne doit jamais exiger un accès au code ou un redéploiement.
+
 ## Language
 
 **Ecosysteme KORA cible**:
