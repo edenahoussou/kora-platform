@@ -2,6 +2,7 @@
 
 namespace App\Modules\BusNetwork\Http\Requests;
 
+use App\Modules\BusNetwork\Actions\ResolveStopsPayloadAction;
 use App\Modules\BusNetwork\Data\LineStatus;
 use App\Modules\BusNetwork\Data\LineType;
 use App\Modules\BusNetwork\Models\Line;
@@ -34,6 +35,22 @@ class UpdateLineRequest extends FormRequest
             'distance_km' => ['nullable', 'integer', 'min:0'],
             'estimated_duration_minutes' => ['nullable', 'integer', 'min:0'],
             'status' => ['sometimes', 'required', Rule::enum(LineStatus::class)],
+            'stops' => ['nullable', 'array'],
+            'stops.*.uuid' => ['nullable', 'string'],
+            'stops.*.name' => ['required_with:stops', 'string', 'max:255'],
+            'stops.*.city' => ['required_with:stops', 'string', 'max:255'],
+            'stops.*.country' => ['required_with:stops', 'string', 'max:2'],
+            'stops.*.stop_order' => ['required_with:stops', 'integer', 'min:1'],
+            'stops.*.physical_stop_uuid' => ['required_without:stops.*.physical_stop', 'string', 'exists:physical_stops,uuid'],
+            'stops.*.physical_stop' => ['required_without:stops.*.physical_stop_uuid', 'array'],
+            'stops.*.physical_stop.name' => ['required_with:stops.*.physical_stop', 'string', 'max:255'],
+            'stops.*.physical_stop.city' => ['required_with:stops.*.physical_stop', 'string', 'max:255'],
+            'stops.*.physical_stop.country' => ['required_with:stops.*.physical_stop', 'string', 'max:2'],
+            'stops.*.physical_stop.latitude' => ['required_with:stops.*.physical_stop', 'numeric', 'between:-90,90'],
+            'stops.*.physical_stop.longitude' => ['required_with:stops.*.physical_stop', 'numeric', 'between:-180,180'],
+            'stops.*.km_from_origin' => ['nullable', 'numeric', 'min:0'],
+            'stops.*.latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'stops.*.longitude' => ['nullable', 'numeric', 'between:-180,180'],
         ];
     }
 
@@ -70,5 +87,13 @@ class UpdateLineRequest extends FormRequest
         }
 
         return $payload;
+    }
+
+    /**
+     * @return array<int, array{uuid?: string|null, name: string, city: string, country: string, stop_order: int, physical_stop_id: int, km_from_origin: float, latitude: float|null, longitude: float|null}>
+     */
+    public function stops(): array
+    {
+        return app(ResolveStopsPayloadAction::class)->execute($this->array('stops'));
     }
 }

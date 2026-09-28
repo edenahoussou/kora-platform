@@ -1,4 +1,5 @@
 import 'leaflet/dist/leaflet.css';
+import { useForm } from '@inertiajs/react';
 import L from 'leaflet';
 import {
     ArrowDown,
@@ -21,8 +22,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import type { MockLine, MockLineStop, MockPhysicalStation } from './network-preview-data';
-import { MOCK_PHYSICAL_STATIONS } from './network-preview-data';
+import network from '@/routes/network';
 import type { PlaceResult, RouteCalculationResult, RoutePoint } from './route-calculator';
 import {
     calculateRoadRoute,
@@ -30,6 +30,11 @@ import {
     reverseGeocode,
     searchPlaces,
 } from './route-calculator';
+import type {
+    LineRecord,
+    LineStopRecord,
+    PhysicalStationRecord,
+} from './types';
 
 let stopIdCounter = 0;
 function createStopUuid(): string {
@@ -38,11 +43,42 @@ function createStopUuid(): string {
     return `stop-${stopIdCounter}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+type StopPayload = {
+    uuid?: string;
+    stop_order: number;
+    km_from_origin: number;
+    latitude: number | null;
+    longitude: number | null;
+    name: string;
+    city: string;
+    country: string;
+    physical_stop_uuid?: string;
+    physical_stop?: {
+        name: string;
+        city: string;
+        country: string;
+        latitude: number | null;
+        longitude: number | null;
+    };
+};
+
+type StudioFormData = {
+    code: string;
+    name: string;
+    type: string;
+    bidirectional: boolean;
+    status: string;
+    distance_km: number | null;
+    estimated_duration_minutes: number | null;
+    countries_crossed: string[];
+    stops: StopPayload[];
+};
+
 type Props = {
     open: boolean;
     onClose: () => void;
-    onSaveLine: (line: MockLine) => void;
-    initialLine?: MockLine | null;
+    physicalStations: PhysicalStationRecord[];
+    initialLine?: LineRecord | null;
 };
 
 // Coordonnées par défaut : Centre Bénin (Dassa / Savè)
@@ -52,9 +88,22 @@ const DEFAULT_ZOOM = 7;
 export function LineCreatorStudio({
     open,
     onClose,
-    onSaveLine,
+    physicalStations,
     initialLine,
 }: Props) {
+    // Soumission Inertia vers le backend (payload construit à la sauvegarde)
+    const form = useForm<StudioFormData>({
+        code: initialLine?.code ?? '',
+        name: initialLine?.name ?? '',
+        type: initialLine?.type ?? 'nationale',
+        bidirectional: initialLine?.bidirectional ?? true,
+        status: initialLine?.status ?? 'draft',
+        distance_km: null,
+        estimated_duration_minutes: null,
+        countries_crossed: [],
+        stops: [],
+    });
+
     // Métadonnées de la ligne
     const [name, setName] = useState(initialLine?.name ?? '');
     const [code, setCode] = useState(initialLine?.code ?? '');
@@ -67,17 +116,18 @@ export function LineCreatorStudio({
     const [activeDirection, setActiveDirection] = useState<'outbound' | 'return'>('outbound');
 
     // Arrêts ordonnés du sens Aller
-    const [stops, setStops] = useState<MockLineStop[]>(
+    const [stops, setStops] = useState<LineStopRecord[]>(
         initialLine?.stops ?? [],
     );
 
     // Calcul d'itinéraire
     const [routeResult, setRouteResult] = useState<RouteCalculationResult | null>(null);
-    const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
+    // Cumul kilométrique du sens Aller (autorité pour km_from_origin au save)
+    const outboundKmRef = useRef<number[]>([]);
 
     // Recherche de gare
     const [searchQuery, setSearchQuery] = useState('');
-    const [searchResults, setSearchResults] = useState<MockPhysicalStation[]>([]);
+    const [searchResults, setSearchResults] = useState<PhysicalStationRecord[]>([]);
     const [placeResults, setPlaceResults] = useState<PlaceResult[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [isPlacesLoading, setIsPlacesLoading] = useState(false);
@@ -112,16 +162,29 @@ export function LineCreatorStudio({
 
     const activeRouteResult = displayStops.length < 2 ? null : routeResult;
 
+    // Cumul/étape affichés : privilégier le tracé calculé quand il couvre tous les arrêts
+    const allGeolocated = displayStops.every(
+        (s) => s.latitude !== null && s.longitude !== null,
+    );
+    const kmAt = (idx: number): number =>
+        allGeolocated && routeResult?.cumulativeDistances[idx] !== undefined
+            ? routeResult.cumulativeDistances[idx]
+            : (displayStops[idx]?.kmFromOrigin ?? 0);
+    const legKmAt = (idx: number): number | undefined =>
+        allGeolocated && routeResult?.legDistances[idx] !== undefined
+            ? routeResult.legDistances[idx]
+            : displayStops[idx]?.legDistanceKm;
+
     // Ajout centralisé d'un arrêt avec inférence intelligente
     const addStop = useCallback(
         (
             stopData: Omit<
-                MockLineStop,
+                LineStopRecord,
                 'uuid' | 'stopOrder' | 'kmFromOrigin' | 'legDistanceKm' | 'status'
             >,
         ) => {
             const nextOrder = stops.length + 1;
-            const newStop: MockLineStop = {
+            const newStop: LineStopRecord = {
                 ...stopData,
                 uuid: createStopUuid(),
                 stopOrder: nextOrder,
@@ -141,16 +204,22 @@ export function LineCreatorStudio({
             }
 
             const countries = Array.from(new Set(nextStops.map((s) => s.country)));
+            const origin = nextStops[0];
+            const terminus = nextStops[nextStops.length - 1];
 
             if (countries.length > 1) {
                 setType('internationale');
             } else if (
                 nextStops.length >= 2 &&
+                origin.latitude !== null &&
+                origin.longitude !== null &&
+                terminus.latitude !== null &&
+                terminus.longitude !== null &&
                 haversineKm(
-                    nextStops[0].latitude,
-                    nextStops[0].longitude,
-                    nextStops[nextStops.length - 1].latitude,
-                    nextStops[nextStops.length - 1].longitude,
+                    origin.latitude,
+                    origin.longitude,
+                    terminus.latitude,
+                    terminus.longitude,
                 ) > 200
             ) {
                 setType('nationale');
@@ -160,14 +229,29 @@ export function LineCreatorStudio({
     );
 
     // Recalcul du tracé routier à chaque modification d'arrêts
+    const geoStops = displayStops.filter(
+        (s): s is LineStopRecord & { latitude: number; longitude: number } =>
+            s.latitude !== null && s.longitude !== null,
+    );
+    const stopsSignature = geoStops
+        .map((s) => `${s.uuid}@${s.latitude},${s.longitude}`)
+        .join('|');
+    const [computedSignature, setComputedSignature] = useState('');
+    const isCalculatingRoute =
+        geoStops.length >= 2 && computedSignature !== stopsSignature;
+
     useEffect(() => {
-        if (displayStops.length < 2) {
+        const signature = geoStops
+            .map((s) => `${s.uuid}@${s.latitude},${s.longitude}`)
+            .join('|');
+
+        if (geoStops.length < 2) {
             return;
         }
 
         let isCancelled = false;
 
-        const routePoints: RoutePoint[] = displayStops.map((s) => ({
+        const routePoints: RoutePoint[] = geoStops.map((s) => ({
             id: s.uuid,
             label: s.name,
             city: s.city,
@@ -182,13 +266,19 @@ export function LineCreatorStudio({
             }
 
             setRouteResult(result);
-            setIsCalculatingRoute(false);
+            setComputedSignature(signature);
+
+            // Le cumul de l'aller fait foi pour km_from_origin au save
+            if (activeDirection === 'outbound') {
+                outboundKmRef.current = result.cumulativeDistances;
+            }
         });
 
         return () => {
             isCancelled = true;
         };
-    }, [displayStops]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [stopsSignature, activeDirection]);
 
     const addStopRef = useRef(addStop);
 
@@ -256,6 +346,10 @@ export function LineCreatorStudio({
         const currentMarkerUuids = new Set<string>();
 
         displayStops.forEach((stop, index) => {
+            if (stop.latitude === null || stop.longitude === null) {
+                return;
+            }
+
             currentMarkerUuids.add(stop.uuid);
             const isFirst = index === 0;
             const isLast = index === displayStops.length - 1 && displayStops.length > 1;
@@ -377,13 +471,16 @@ export function LineCreatorStudio({
     // Ajuster automatiquement les limites de la carte pour englober le trajet
     const fitRouteBounds = () => {
         const map = mapInstanceRef.current;
+        const geoStops = displayStops.filter(
+            (s) => s.latitude !== null && s.longitude !== null,
+        );
 
-        if (!map || displayStops.length === 0) {
+        if (!map || geoStops.length === 0) {
             return;
         }
 
         const bounds = L.latLngBounds(
-            displayStops.map((s) => [s.latitude, s.longitude] as [number, number]),
+            geoStops.map((s) => [s.latitude!, s.longitude!] as [number, number]),
         );
         map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
     };
@@ -406,11 +503,13 @@ export function LineCreatorStudio({
 
         setIsSearching(true);
         const lower = trimmed.toLowerCase();
-        const filtered = MOCK_PHYSICAL_STATIONS.filter(
+        const filtered = physicalStations.filter(
             (st) =>
-                st.name.toLowerCase().includes(lower) ||
-                st.city.toLowerCase().includes(lower) ||
-                st.code.toLowerCase().includes(lower),
+                st.latitude !== null &&
+                st.longitude !== null &&
+                (st.name.toLowerCase().includes(lower) ||
+                    st.city.toLowerCase().includes(lower) ||
+                    st.code.toLowerCase().includes(lower)),
         );
         setSearchResults(filtered);
 
@@ -448,7 +547,11 @@ export function LineCreatorStudio({
     };
 
     // Ajouter une gare depuis la liste des résultats de recherche
-    const handleAddPhysicalStation = (station: MockPhysicalStation) => {
+    const handleAddPhysicalStation = (station: PhysicalStationRecord) => {
+        if (station.latitude === null || station.longitude === null) {
+            return;
+        }
+
         addStop({
             name: station.name,
             city: station.city,
@@ -466,7 +569,7 @@ export function LineCreatorStudio({
         });
     };
 
-    // Ajouter un lieu trouvé sur la carte (géocodage OSM) — créera un physical stop au branchement backend
+    // Ajouter un lieu trouvé sur la carte (géocodage OSM) — physical stop résolu côté backend
     const handleAddMapPlace = (place: PlaceResult) => {
         addStop({
             name: place.label,
@@ -535,50 +638,85 @@ export function LineCreatorStudio({
     };
 
     // Centrer la carte sur un arrêt précis
-    const focusOnStop = (stop: MockLineStop) => {
+    const focusOnStop = (stop: LineStopRecord) => {
         setSelectedStopUuid(stop.uuid);
+
+        if (stop.latitude === null || stop.longitude === null) {
+            return;
+        }
+
         mapInstanceRef.current?.flyTo([stop.latitude, stop.longitude], 13, {
             duration: 0.7,
         });
     };
 
-    // Sauvegarde de la ligne
+    // Sauvegarde de la ligne vers le backend (création ou mise à jour)
     const handleSave = () => {
         if (stops.length < 2) {
-            alert('Veuillez ajouter au moins 2 arrêts (origine et terminus) pour valider la ligne.');
-
             return;
         }
 
         const origin = stops[0];
-        const destination = stops[stops.length - 1];
-        const totalDistance = activeRouteResult?.totalDistanceKm ?? stops[stops.length - 1].kmFromOrigin;
-        const duration = activeRouteResult?.estimatedDurationMinutes ?? 120;
+        const terminus = stops[stops.length - 1];
+        const totalDistance =
+            activeDirection === 'outbound'
+                ? (activeRouteResult?.totalDistanceKm ??
+                    outboundKmRef.current.at(-1) ??
+                    terminus.kmFromOrigin)
+                : (outboundKmRef.current.at(-1) ?? terminus.kmFromOrigin);
+        const duration = activeRouteResult?.estimatedDurationMinutes ?? null;
         const countries = Array.from(new Set(stops.map((s) => s.country)));
 
-        const newLine: MockLine = {
-            uuid: initialLine?.uuid ?? createStopUuid().replace('stop-', 'line-'),
-            code: code.trim() || `${origin.city.substring(0, 3).toUpperCase()}-${destination.city.substring(0, 3).toUpperCase()}`,
-            name: name.trim() || `Liaison ${origin.city} → ${destination.city}`,
-            type,
-            bidirectional,
-            itinerary: `${origin.city} → ${destination.city}`,
-            originCity: origin.city,
-            destinationCity: destination.city,
-            stopsCount: stops.length,
-            activeStopsCount: stops.length,
-            segmentsCount: (stops.length * (stops.length - 1)) / 2,
-            distanceKm: totalDistance,
-            estimatedDurationMinutes: duration,
-            status: initialLine?.status ?? 'active',
-            countriesCrossed: countries,
-            stops,
-            fares: initialLine?.fares ?? [],
-            updatedAt: new Date().toISOString(),
+        const stopsPayload: StopPayload[] = stops.map((s, idx) => ({
+            ...(s.uuid.startsWith('stop-') ? {} : { uuid: s.uuid }),
+            stop_order: idx + 1,
+            km_from_origin: outboundKmRef.current[idx] ?? s.kmFromOrigin,
+            latitude: s.latitude,
+            longitude: s.longitude,
+            name: s.name,
+            city: s.city,
+            country: s.country,
+            ...(s.physicalStopUuid
+                ? { physical_stop_uuid: s.physicalStopUuid }
+                : {
+                    physical_stop: {
+                        name: s.name,
+                        city: s.city,
+                        country: s.country,
+                        latitude: s.latitude,
+                        longitude: s.longitude,
+                    },
+                }),
+        }));
+
+        form.transform(
+            (): StudioFormData => ({
+                code:
+                    code.trim() ||
+                    `${origin.city.substring(0, 3).toUpperCase()}-${terminus.city.substring(0, 3).toUpperCase()}`,
+                name: name.trim() || `Liaison ${origin.city} → ${terminus.city}`,
+                type,
+                bidirectional,
+                status: initialLine?.status ?? 'draft',
+                distance_km:
+                    totalDistance !== null ? Math.round(totalDistance) : null,
+                estimated_duration_minutes:
+                    duration !== null ? Math.round(duration) : null,
+                countries_crossed: countries,
+                stops: stopsPayload,
+            }),
+        );
+
+        const options = {
+            preserveScroll: true,
+            onSuccess: () => onClose(),
         };
 
-        onSaveLine(newLine);
-        onClose();
+        if (initialLine) {
+            form.put(network.update.url({ line: initialLine.uuid }), options);
+        } else {
+            form.post(network.store.url(), options);
+        }
     };
 
     if (!open) {
@@ -620,12 +758,27 @@ export function LineCreatorStudio({
                         type="button"
                         onClick={handleSave}
                         className="btn btn-primary"
-                        disabled={stops.length < 2}
+                        disabled={stops.length < 2 || form.processing}
                     >
-                        <Check className="size-4" /> Enregistrer la ligne
+                        <Check className="size-4" />
+                        {form.processing ? 'Enregistrement…' : 'Enregistrer la ligne'}
                     </button>
                 </div>
             </header>
+
+            {/* Erreurs de validation renvoyées par le backend */}
+            {Object.keys(form.errors).length > 0 && (
+                <div className="mx-6 mt-4 shrink-0 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-xs text-rose-600 dark:text-rose-400">
+                    <strong className="block font-extrabold mb-1">
+                        Impossible d'enregistrer la ligne
+                    </strong>
+                    <ul className="list-disc pl-4 space-y-0.5">
+                        {Object.entries(form.errors).map(([key, message]) => (
+                            <li key={key}>{message}</li>
+                        ))}
+                    </ul>
+                </div>
+            )}
 
             {/* Corps du Studio : 2 colonnes (Timeline & Métadonnées | Carte Leaflet) */}
             <div className="flex flex-1 overflow-hidden">
@@ -753,6 +906,11 @@ export function LineCreatorStudio({
                                         placeholder="COT-PAR"
                                         className="h-9 uppercase font-bold text-xs"
                                     />
+                                    {form.errors.code && (
+                                        <p className="text-[0.6875rem] font-semibold text-rose-500">
+                                            {form.errors.code}
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="col-span-2 space-y-1">
                                     <Label htmlFor="studio-name" className="text-xs">Nom commercial</Label>
@@ -763,6 +921,11 @@ export function LineCreatorStudio({
                                         placeholder="Ex: Ligne Express Nord"
                                         className="h-9 text-xs"
                                     />
+                                    {form.errors.name && (
+                                        <p className="text-[0.6875rem] font-semibold text-rose-500">
+                                            {form.errors.name}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
 
@@ -992,7 +1155,10 @@ export function LineCreatorStudio({
                                                                 )}
                                                             </div>
                                                             <span className="mt-0.5 block text-[0.6875rem] text-muted-foreground truncate">
-                                                                {stop.city}, {stop.country} · GPS {stop.latitude.toFixed(4)}, {stop.longitude.toFixed(4)}
+                                                                {stop.city}, {stop.country}
+                                                                {stop.latitude !== null &&
+                                                                    stop.longitude !== null &&
+                                                                    ` · GPS ${stop.latitude.toFixed(4)}, ${stop.longitude.toFixed(4)}`}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -1044,12 +1210,12 @@ export function LineCreatorStudio({
                                                     <span className="text-muted-foreground">
                                                         Distance depuis l’origine :{' '}
                                                         <strong className="text-foreground font-bold">
-                                                            {stop.kmFromOrigin} km
+                                                            {kmAt(index)} km
                                                         </strong>
                                                     </span>
-                                                    {index > 0 && stop.legDistanceKm !== undefined && (
+                                                    {index > 0 && legKmAt(index) !== undefined && (
                                                         <span className="font-semibold text-gold">
-                                                            +{stop.legDistanceKm} km
+                                                            +{legKmAt(index)} km
                                                         </span>
                                                     )}
                                                 </div>

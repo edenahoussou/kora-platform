@@ -2,10 +2,10 @@
 
 namespace App\Modules\BusNetwork\Http\Requests;
 
+use App\Modules\BusNetwork\Actions\ResolveStopsPayloadAction;
 use App\Modules\BusNetwork\Data\LineStatus;
 use App\Modules\BusNetwork\Data\LineType;
 use App\Modules\BusNetwork\Models\Line;
-use App\Modules\BusNetwork\Models\PhysicalStop;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -30,11 +30,18 @@ class StoreLineRequest extends FormRequest
             'estimated_duration_minutes' => ['nullable', 'integer', 'min:0'],
             'status' => ['required', Rule::enum(LineStatus::class)],
             'stops' => ['nullable', 'array'],
+            'stops.*.uuid' => ['nullable', 'string'],
             'stops.*.name' => ['required_with:stops', 'string', 'max:255'],
             'stops.*.city' => ['required_with:stops', 'string', 'max:255'],
             'stops.*.country' => ['required_with:stops', 'string', 'max:2'],
             'stops.*.stop_order' => ['required_with:stops', 'integer', 'min:1'],
-            'stops.*.physical_stop_uuid' => ['required_with:stops', 'string', 'exists:physical_stops,uuid'],
+            'stops.*.physical_stop_uuid' => ['required_without:stops.*.physical_stop', 'string', 'exists:physical_stops,uuid'],
+            'stops.*.physical_stop' => ['required_without:stops.*.physical_stop_uuid', 'array'],
+            'stops.*.physical_stop.name' => ['required_with:stops.*.physical_stop', 'string', 'max:255'],
+            'stops.*.physical_stop.city' => ['required_with:stops.*.physical_stop', 'string', 'max:255'],
+            'stops.*.physical_stop.country' => ['required_with:stops.*.physical_stop', 'string', 'max:2'],
+            'stops.*.physical_stop.latitude' => ['required_with:stops.*.physical_stop', 'numeric', 'between:-90,90'],
+            'stops.*.physical_stop.longitude' => ['required_with:stops.*.physical_stop', 'numeric', 'between:-180,180'],
             'stops.*.km_from_origin' => ['nullable', 'numeric', 'min:0'],
             'stops.*.latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'stops.*.longitude' => ['nullable', 'numeric', 'between:-180,180'],
@@ -63,21 +70,6 @@ class StoreLineRequest extends FormRequest
      */
     public function stops(): array
     {
-        $stops = $this->array('stops');
-
-        return collect($stops)->map(function (array $stop): array {
-            $physicalStop = PhysicalStop::query()->where('uuid', $stop['physical_stop_uuid'])->firstOrFail();
-
-            return [
-                'name' => trim((string) $stop['name']),
-                'city' => trim((string) $stop['city']),
-                'country' => strtoupper(trim((string) $stop['country'])),
-                'stop_order' => (int) $stop['stop_order'],
-                'physical_stop_id' => $physicalStop->id,
-                'km_from_origin' => isset($stop['km_from_origin']) ? (float) $stop['km_from_origin'] : 0.0,
-                'latitude' => isset($stop['latitude']) ? (float) $stop['latitude'] : null,
-                'longitude' => isset($stop['longitude']) ? (float) $stop['longitude'] : null,
-            ];
-        })->values()->all();
+        return app(ResolveStopsPayloadAction::class)->execute($this->array('stops'));
     }
 }

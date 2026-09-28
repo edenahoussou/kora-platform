@@ -172,17 +172,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // V1 MVP — Réseau (Lignes & arrêts)
     Route::get('network', [LineController::class, 'index'])->name('network.index');
-    Route::get('network/preview', [LineController::class, 'preview'])->name('network.preview');
     Route::get('network/settings/map', [MapSettingsController::class, 'edit'])->name('network.map-settings.edit');
     Route::patch('network/settings/map', [MapSettingsController::class, 'update'])->name('network.map-settings.update');
-    Route::inertia('network/map-prototype', 'network/map-prototype')->name('network.map-prototype');
-    Route::get('network/{line:uuid}', [LineController::class, 'show'])->name('network.show');
     Route::post('network', [LineController::class, 'store'])->name('network.store');
     Route::put('network/{line:uuid}', [LineController::class, 'update'])->name('network.update');
     Route::patch('network/{line:uuid}/status', [LineController::class, 'changeStatus'])->name('network.status');
-    Route::post('network/{line:uuid}/stops', [LineController::class, 'storeStop'])->name('network.stops.store');
-    Route::put('network/{line:uuid}/stops/{stop:uuid}', [LineController::class, 'updateStop'])->name('network.stops.update');
-    Route::patch('network/{line:uuid}/stops/{stop:uuid}/deactivate', [LineController::class, 'deactivateStop'])->name('network.stops.deactivate');
 
     // V1 MVP — Flotte (Ressources)
     Route::get('fleet', [BusController::class, 'index'])->name('fleet.index');
