@@ -196,6 +196,52 @@ it('preserves paid departures and manual exceptions when applying a version', fu
     expect($result['processed'])->toBe(0)->and($first->departure->refresh()->getRawOriginal('status'))->toBe('scheduled');
 });
 
+it('still allows resource changes on a sold departure until it leaves', function (): void {
+    $this->slot['bus_uuid'] = $this->bus->uuid;
+    $programme = programmingProgramme($this);
+    $planning = app(PlanningService::class);
+    $planning->generate($programme, $programme->starts_on, $programme->ends_on, $this->actor);
+    $item = $programme->occurrences()->orderBy('service_date')->first();
+    $planning->mutate([['uuid' => $item->uuid, 'revision' => 1]], 'publish', [], $this->actor);
+    $reservation = Reservation::create(['status' => 'cancelled', 'total_amount' => 5000, 'currency' => 'XOF', 'channel' => 'online']);
+    ReservationSegment::create([
+        'reservation_id' => $reservation->id, 'leg_order' => 1,
+        'departure_id' => $item->refresh()->departure->id,
+        'seat_id' => Seat::query()->where('bus_id', $this->bus->id)->first()->id,
+        'origin_stop_id' => Stop::query()->where('line_id', $this->line->id)->orderBy('stop_order')->first()->id,
+        'destination_stop_id' => Stop::query()->where('line_id', $this->line->id)->orderBy('stop_order', 'desc')->first()->id,
+        'origin_stop_order' => 1, 'destination_stop_order' => 2, 'status' => 'cancelled',
+    ]);
+    $reservation->payments()->create(['provider' => 'sandbox', 'provider_reference' => 'PAID', 'idempotency_key' => (string) Str::uuid(), 'amount' => 5000, 'currency' => 'XOF', 'status' => 'confirmed']);
+
+    expect($planning->protected($item->refresh()))->toBeTrue();
+
+    $result = $planning->mutate([['uuid' => $item->uuid, 'revision' => $item->revision]], 'change', ['time' => '07:30', 'bus_uuid' => $this->bus->uuid], $this->actor);
+    expect($result['processed'])->toBe(1)
+        ->and($item->refresh()->departure->refresh()->departure_time)->toBe('07:30:00');
+
+    $item->departure->update(['status' => 'departed', 'departed_at' => now()]);
+    $result = $planning->mutate([['uuid' => $item->uuid, 'revision' => $item->revision]], 'change', ['time' => '08:00'], $this->actor);
+    expect($result['processed'])->toBe(0)
+        ->and($result['errors'][$item->uuid])->toContain('verrouillées');
+});
+
+it('names the conflicting resource in mutation errors', function (): void {
+    $this->slot['bus_uuid'] = $this->bus->uuid;
+    $programme = programmingProgramme($this);
+    app(PlanningService::class)->generate($programme, $programme->starts_on, $programme->ends_on, $this->actor);
+    $other = programmingProgramme($this);
+    app(PlanningService::class)->generate($other, $other->starts_on, $other->ends_on, $this->actor);
+    $other->occurrences()->update(['bus_id' => null]);
+    $occurrence = $other->occurrences()->first();
+    $snapshot = $occurrence->snapshot;
+    $snapshot['bus_uuid'] = null;
+    $occurrence->update(['snapshot' => $snapshot]);
+    $result = app(PlanningService::class)->mutate([['uuid' => $occurrence->uuid, 'revision' => $occurrence->revision]], 'change', ['time' => $occurrence->snapshot['time'], 'bus_uuid' => $this->bus->uuid], $this->actor);
+    expect($result['processed'])->toBe(0)
+        ->and($result['errors'][$occurrence->uuid])->toContain('KORA-TEST');
+});
+
 it('rejects a stale version preview atomically', function (): void {
     $programme = programmingProgramme($this);
     $planning = app(PlanningService::class);
