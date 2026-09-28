@@ -110,6 +110,7 @@ class PlanningReadService
             'programmeUuid' => $item->programme->uuid, 'programmeName' => $item->programme->name,
             'departureUuid' => $item->departure?->uuid, 'departureStatus' => $item->departure?->getRawOriginal('status'),
             'protected' => $this->planning->protected($item), 'manual' => false,
+            'editable' => ! $this->planning->resourcesLocked($item),
             'occupancy' => $occupancy ?? $this->occupancyFor($item->departure?->id, $item->snapshot['bus_uuid'] ?? null),
         ] + ($assessment ?? $this->publication->assess($item));
         if ($history) {
@@ -233,7 +234,7 @@ class PlanningReadService
             'arrivalAt' => $departure->estimated_arrival_at?->toIso8601String() ?? $departure->scheduledDepartureAt()->addMinutes($slot['duration_minutes'])->toIso8601String(),
             'snapshot' => $slot, 'isException' => false, 'programmeUuid' => '', 'programmeName' => 'Départ ponctuel',
             'departureUuid' => $departure->uuid, 'departureStatus' => $departure->getRawOriginal('status'),
-            'protected' => true, 'manual' => true, 'state' => $departure->getRawOriginal('status') === 'cancelled' ? 'excluded' : 'published',
+            'protected' => true, 'editable' => false, 'manual' => true, 'state' => $departure->getRawOriginal('status') === 'cancelled' ? 'excluded' : 'published',
             'blockers' => [], 'warnings' => [],
             'occupancy' => $this->occupancyFor($departure->id, $slot['bus_uuid'] ?? null),
         ];
