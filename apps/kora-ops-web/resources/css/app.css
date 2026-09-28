@@ -3867,6 +3867,17 @@
         box-shadow: 0 20px 48px rgba(0, 29, 78, 0.18);
     }
 
+    /* Dark : --kora === --background, le hero doit rester délimité. */
+    .dark .cash-hero {
+        border: 1px solid color-mix(in srgb, var(--gold) 26%, var(--border));
+        background:
+            radial-gradient(circle at 85% 0%,
+                rgba(79, 142, 220, 0.32),
+                transparent 38%),
+            var(--card);
+        box-shadow: var(--shadow-kora);
+    }
+
     .cash-hero h2 {
         margin: 7px 0 5px;
         color: white;
