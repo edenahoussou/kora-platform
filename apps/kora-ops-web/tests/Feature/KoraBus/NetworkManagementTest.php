@@ -362,3 +362,14 @@ it('filters lines by type and builds itinerary from active stops', function (): 
             ->where('lines.data.0.segmentsCount', 1)
             ->where('lines.total', 1));
 });
+
+it('renders the preview page with statuses and permissions', function (): void {
+    $this->actingAs(networkManager())
+        ->get(route('network.preview'))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('network/preview')
+            ->has('statuses')
+            ->has('types')
+            ->has('permissions'));
+});

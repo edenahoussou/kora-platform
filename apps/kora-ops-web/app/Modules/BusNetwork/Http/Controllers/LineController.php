@@ -72,6 +72,22 @@ class LineController extends Controller
         ]);
     }
 
+    public function preview(Request $request): Response
+    {
+        Gate::authorize('viewAny', Line::class);
+
+        return inertia('network/preview', [
+            'statuses' => LineStatus::options(),
+            'types' => LineType::options(),
+            'permissions' => [
+                'canCreate' => Gate::allows('create', Line::class),
+                'canUpdate' => Gate::allows('update', new Line),
+                'canDeactivate' => Gate::allows('deactivate', new Line),
+                'canManageStops' => Gate::allows('create', Stop::class),
+            ],
+        ]);
+    }
+
     public function show(Request $request, Line $line): Response
     {
         Gate::authorize('view', $line);

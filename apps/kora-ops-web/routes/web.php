@@ -172,6 +172,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // V1 MVP — Réseau (Lignes & arrêts)
     Route::get('network', [LineController::class, 'index'])->name('network.index');
+    Route::get('network/preview', [LineController::class, 'preview'])->name('network.preview');
     Route::get('network/settings/map', [MapSettingsController::class, 'edit'])->name('network.map-settings.edit');
     Route::patch('network/settings/map', [MapSettingsController::class, 'update'])->name('network.map-settings.update');
     Route::inertia('network/map-prototype', 'network/map-prototype')->name('network.map-prototype');
