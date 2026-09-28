@@ -60,9 +60,9 @@ Ticket QR codes are signed with **Ed25519 asymmetric cryptography** via libsodiu
 - **Config**: `config/tickets.php` reads both keys from `.env`.
 - **Export public key for P501**: `php artisan tickets:public-key` (outputs base64, base64url, and hex).
 - **Generate a new keypair**:
-  ```bash
-  php -r '$kp=sodium_crypto_sign_keypair(); echo "PRIVATE=".base64_encode(sodium_crypto_sign_secretkey($kp))."\n"; echo "PUBLIC=".base64_encode(sodium_crypto_sign_publickey($kp))."\n";'
-  ```
+    ```bash
+    php -r '$kp=sodium_crypto_sign_keypair(); echo "PRIVATE=".base64_encode(sodium_crypto_sign_secretkey($kp))."\n"; echo "PUBLIC=".base64_encode(sodium_crypto_sign_publickey($kp))."\n";'
+    ```
 - **Column**: `tickets.qr_code` is `TEXT` (not `VARCHAR(255)`) because the signed payload exceeds 255 characters.
 - **Rotation**: rotating the keypair requires re-issuing all outstanding tickets with the new private key and distributing the new public key to all P501 devices.
 
@@ -91,6 +91,7 @@ The Laravel Boost guidelines are specifically curated by Laravel maintainers for
 This application is a Laravel application running on PHP 8.4. You are an expert with the Laravel ecosystem. Always use the APIs that match the installed major version of each package — do not assume a version.
 
 Before relying on a package's API, confirm its installed version:
+
 - PHP packages: run `composer show --direct` to list direct dependencies with versions, or `composer show <vendor/package>` for a single package.
 - JS packages: check `package.json` for the installed versions.
 
@@ -162,7 +163,7 @@ Before relying on a package's API, confirm its installed version:
 
 - Execute PHP in app context for debugging and testing code. Do not create models without user approval, prefer tests with factories instead. Prefer existing Artisan commands over custom tinker code.
 - Always use single quotes to prevent shell expansion: `php artisan tinker --execute 'Your::code();'`
-  - Double quotes for PHP strings inside: `php artisan tinker --execute 'User::where("active", true)->count();'`
+    - Double quotes for PHP strings inside: `php artisan tinker --execute 'User::where("active", true)->count();'`
 
 === php rules ===
 

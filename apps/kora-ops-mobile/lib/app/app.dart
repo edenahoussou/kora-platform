@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:phone_form_field/phone_form_field.dart';
 import '../features/auth/presentation/cubit/auth_cubit.dart';
 import '../features/manifeste/presentation/cubit/manifeste_cubit.dart';
 import '../features/notifications/presentation/cubit/notification_cubit.dart';
+import '../features/notifications/presentation/cubit/sent_notification_cubit.dart';
 import '../features/ops/presentation/cubit/departure_list_cubit.dart';
 import '../features/ops/presentation/cubit/selected_depart_cubit.dart';
 import '../features/scan/presentation/cubit/scan_boarding_cubit.dart';
@@ -40,6 +43,8 @@ class App extends StatelessWidget {
             value: getIt<ScanBoardingCubit>()),
         BlocProvider<NotificationCubit>.value(
             value: getIt<NotificationCubit>()),
+        BlocProvider<SentNotificationCubit>.value(
+            value: getIt<SentNotificationCubit>()),
         BlocProvider<TrackingCubit>.value(value: getIt<TrackingCubit>()),
       ],
       child: const _AppLifecycleListener(child: _AppRouterHost()),
@@ -112,6 +117,20 @@ class _AppRouterHost extends StatelessWidget {
             return MaterialApp.router(
               title: AppConfig.instance.appName,
               debugShowCheckedModeBanner: AppConfig.instance.enableDebugBanner,
+              // Requis par phone_form_field (login par téléphone, voir
+              // IdentifierInput) pour son sélecteur de pays et ses
+              // messages de validation.
+              localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+                ...PhoneFieldLocalization.delegates,
+              ],
+              supportedLocales: const <Locale>[
+                Locale('fr'),
+                Locale('en'),
+              ],
+              locale: const Locale('fr'),
               theme: AppTheme.light,
               darkTheme: AppTheme.dark,
               themeMode: themeMode,

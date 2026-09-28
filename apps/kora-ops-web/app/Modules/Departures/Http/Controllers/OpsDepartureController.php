@@ -76,9 +76,21 @@ class OpsDepartureController extends Controller
         Gate::authorize('viewAny', Departure::class);
 
         $query = app(CrewDepartureScope::class)->query($request->user())
-            ->with(['line:id,uuid,code,name,type', 'bus:id,uuid,registration_number,seat_count'])
-            ->orderBy('departure_date')
-            ->orderBy('departure_time');
+            ->with([
+                'line:id,uuid,code,name,type',
+                // Échange du 26/09/2026 : la Tournée affiche désormais la
+                // ville de départ/arrivée, pas seulement le nom de ligne —
+                // même eager-load que `show()`, sans laquelle
+                // `OpsDepartureResource.stops` reste `null` (voir sa
+                // condition `relationLoaded('stops')`).
+                'line.stops:id,uuid,line_id,name,city,country,stop_order',
+                'bus:id,uuid,registration_number,seat_count',
+            ])
+            // Les plus récemment créés/modifiés en premier (échange du
+            // 26/09/2026) — pas un tri chronologique du service, qui
+            // reste géré côté client via le filtre par date (Tournée
+            // OPS Mobile).
+            ->orderByDesc('created_at');
 
         $date = $request->string('date')->trim()->value();
         if ($date !== '') {

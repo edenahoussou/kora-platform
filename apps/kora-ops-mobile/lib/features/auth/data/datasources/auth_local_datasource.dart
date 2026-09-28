@@ -10,8 +10,7 @@ import '../../domain/entities/auth_user.dart';
 import '../../domain/entities/device_platform.dart';
 
 /// Couche DATA : persistance locale de la session, dans le stockage
-/// **sécurisé** (jamais SharedPreferences — voir périmètre du ticket
-/// "aucun secret en dur / stocké en clair").
+/// **sécurisé** (jamais SharedPreferences).
 ///
 /// La session survit à un redémarrage à froid : au lancement, l'app relit
 /// le token ici (sans appel réseau, voir AuthRepository.currentSession)
@@ -20,7 +19,13 @@ abstract class AuthLocalDataSource {
   Future<AuthSession?> readSession();
   Future<void> saveSession(AuthSession session);
   Future<void> saveUser(AuthUser user);
-  Future<String?> readLastEmail();
+
+  /// Identifiant (email ou téléphone) qui a servi à la dernière connexion
+  /// réussie sur cet appareil — sert à l'écran PIN, qui ne le redemande
+  /// pas sur un appareil déjà reconnu.
+  Future<void> saveLastIdentifier(String identifier);
+  Future<String?> readLastIdentifier();
+
   Future<void> clear();
 }
 
@@ -49,10 +54,6 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
         key: StorageKeys.session,
         value: jsonEncode(_sessionToJson(session)),
       );
-      await _storage.write(
-        key: StorageKeys.lastEmail,
-        value: session.user.email,
-      );
     } on Object catch (error) {
       throw CacheException('Impossible d’enregistrer la session : $error');
     }
@@ -67,16 +68,28 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   }
 
   @override
-  Future<String?> readLastEmail() => _storage.read(key: StorageKeys.lastEmail);
+  Future<void> saveLastIdentifier(String identifier) =>
+      _storage.write(key: StorageKeys.lastIdentifier, value: identifier);
+
+  @override
+  Future<String?> readLastIdentifier() async {
+    final identifier = await _storage.read(key: StorageKeys.lastIdentifier);
+    if (identifier != null) return identifier;
+
+    // Compatibilité : appareils mis à jour depuis une version où seul un
+    // email était mémorisé (clé `auth_last_email`), avant l'ajout du
+    // login par téléphone — évite de redemander l'identifiant une fois
+    // pour rien à la mise à jour.
+    return _storage.read(key: StorageKeys.legacyLastEmail);
+  }
 
   @override
   Future<void> clear() async {
-    // La session part, mais pas `deviceFingerprint` : l'appareil doit
-    // rester reconnu du serveur après une déconnexion, sinon la prochaine
-    // connexion redemanderait un OTP pour rien.
+    // La session part, mais pas `deviceFingerprint` ni `lastIdentifier` :
+    // l'appareil doit rester reconnu du serveur après une déconnexion, et
+    // l'écran PIN doit proposer le même compte à la prochaine ouverture
+    // plutôt que de redemander l'identifiant.
     await _storage.delete(key: StorageKeys.session);
-    // `lastEmail` reste volontairement : l'écran PIN, à la prochaine
-    // ouverture, propose le même compte plutôt que de redemander l'e-mail.
   }
 
   Map<String, dynamic> _sessionToJson(AuthSession session) => <String, dynamic>{

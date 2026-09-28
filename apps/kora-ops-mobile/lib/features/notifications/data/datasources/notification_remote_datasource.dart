@@ -11,6 +11,10 @@ abstract class NotificationRemoteDataSource {
   /// profond côté terrain).
   Future<List<OpsNotification>> list();
 
+  /// `GET /notifications/sent` — événements déclenchés par l'utilisateur
+  /// lui-même.
+  Future<List<OpsNotification>> listSent();
+
   /// `GET /notifications/unread-count`.
   Future<OpsNotificationCounts> unreadCount();
 
@@ -30,6 +34,15 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
   Future<List<OpsNotification>> list() async {
     final response = await _dio.get<dynamic>(
       ApiConstants.notificationsIndex,
+      queryParameters: const <String, dynamic>{'per_page': 50},
+    );
+    return NotificationDtos.list(response.data);
+  }
+
+  @override
+  Future<List<OpsNotification>> listSent() async {
+    final response = await _dio.get<dynamic>(
+      ApiConstants.notificationsSentIndex,
       queryParameters: const <String, dynamic>{'per_page': 50},
     );
     return NotificationDtos.list(response.data);

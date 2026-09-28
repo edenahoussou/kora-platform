@@ -4,26 +4,54 @@ namespace App\Modules\Notifications\Services;
 
 use App\Models\User;
 use App\Modules\Notifications\Data\OpsNotificationSeverity;
+use App\Modules\Notifications\Data\OpsNotificationType;
 use App\Modules\Notifications\Models\OpsNotification;
+use App\Modules\Notifications\Models\OpsNotificationEvent;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 
 /**
- * Lecture des notifications d'un utilisateur. Le périmètre est porté par les
- * lignes elles-mêmes (un destinataire par ligne, décidé à la publication) :
- * un utilisateur ne lit — ni ne marque lue — jamais la notification d'un autre.
+ * Lecture des notifications d'un utilisateur : une ligne par destinataire,
+ * décidée à la publication — jamais la notification d'un autre.
  */
 class OpsNotificationQuery
 {
     /**
+     * Notifications reçues, hors celles déclenchées par l'utilisateur
+     * lui-même — consultables via sentByUser().
+     *
      * @return Builder<OpsNotification>
      */
     public function forUser(User $user): Builder
     {
+        // Types dont l'utilisateur est l'acteur : inutile de l'en notifier.
+        $selfTriggered = [
+            OpsNotificationType::IncidentReported->value,
+            OpsNotificationType::IncidentCritical->value,
+            OpsNotificationType::DepartureDeparted->value,
+        ];
+
         return OpsNotification::query()
             ->where('audience', 'ops')
-            ->where('user_id', $user->id);
+            ->where('user_id', $user->id)
+            ->whereDoesntHave(
+                'event',
+                fn (Builder $event) => $event
+                    ->where('subject_user_id', $user->id)
+                    ->whereIn('type', $selfTriggered)
+            );
+    }
+
+    /**
+     * Événements émis par l'utilisateur — une fois par événement,
+     * quel que soit le nombre de destinataires notifiés.
+     *
+     * @return Builder<OpsNotificationEvent>
+     */
+    public function sentByUser(User $user): Builder
+    {
+        return OpsNotificationEvent::query()->where('subject_user_id', $user->id);
     }
 
     /**
@@ -41,9 +69,7 @@ class OpsNotificationQuery
             $query->whereNull('read_at');
         }
 
-        // `since` est inclusif : un client qui reprend après une coupure
-        // repart de la date de la dernière notification reçue et déduplique
-        // par `uuid` — mieux vaut une notification revue qu'une manquée.
+        // `since` est inclusif : reprise après coupure, dédup par `uuid`.
         if ($filters['since'] !== null) {
             $query->where('created_at', '>=', $filters['since']);
         }
@@ -55,6 +81,20 @@ class OpsNotificationQuery
         }
 
         return $query->paginate($perPage);
+    }
+
+    /**
+     * Événements envoyés par l'utilisateur, les plus récents d'abord.
+     *
+     * @return LengthAwarePaginator<int, OpsNotificationEvent>
+     */
+    public function paginateSent(User $user, int $perPage): LengthAwarePaginator
+    {
+        return $this->sentByUser($user)
+            ->with(['departure.line', 'terminal'])
+            ->orderByDesc('occurred_at')
+            ->orderByDesc('id')
+            ->paginate($perPage);
     }
 
     /**

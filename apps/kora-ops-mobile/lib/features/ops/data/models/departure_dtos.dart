@@ -54,8 +54,12 @@ abstract final class DepartureDtos {
         bus is Map ? (bus['registrationNumber'] as String? ?? '—') : '—';
     final int totalPlaces = bus is Map ? (bus['seatCount'] as int? ?? 0) : 0;
 
+    // Échange du 26/09/2026 : la ville (pas le nom de l'arrêt, souvent un
+    // nom de gare/agence) est ce qui doit s'afficher — "Cotonou → Lomé",
+    // pas "Gare routière C/1489 → Agence Adawlato". Repli sur le nom si
+    // jamais la ville n'est pas renseignée pour cet arrêt.
     final String route = stops.length >= 2
-        ? '${stops.first.name} → ${stops.last.name}'
+        ? '${stops.first.city ?? stops.first.name} → ${stops.last.city ?? stops.last.name}'
         : (lineName ?? '—');
 
     final String departureDate = json['departureDate'] as String? ?? '';

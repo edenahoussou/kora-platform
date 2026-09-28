@@ -26,8 +26,6 @@ import '../datasources/device_info_datasource.dart';
 /// l'appareil derrière le contrat du domaine. C'est ici que les
 /// exceptions deviennent des [Failure] : au-dessus, personne ne connaît
 /// Dio ni les codes HTTP.
-///
-/// Porté de kora-app-passenger — voir docstring de [AuthRepository].
 class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl(
     this._remote,
@@ -46,10 +44,11 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Result<OtpChallenge>> requestOtp({
-    required String email,
+    required String identifier,
     required OtpPurpose purpose,
   }) =>
-      _attempt(() => _remote.requestOtp(email: email, purpose: purpose));
+      _attempt(
+          () => _remote.requestOtp(identifier: identifier, purpose: purpose));
 
   @override
   Future<Result<OtpVerification>> verifyOtp({
@@ -65,13 +64,13 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Result<LoginOutcome>> login({
-    required String email,
+    required String identifier,
     required String pin,
     OtpVerification? verification,
   }) =>
       _attempt(() async {
         final outcome = await _remote.login(
-          email: email,
+          identifier: identifier,
           pin: pin,
           device: await _deviceInfo.currentDevice(),
           verification: verification,
@@ -81,6 +80,11 @@ class AuthRepositoryImpl implements AuthRepository {
         // l'app enchaîne sur la vérification du code.
         if (outcome is LoginSucceeded) {
           await _local.saveSession(outcome.session);
+          // Mémorise l'identifiant qui a servi à se connecter (email OU
+          // téléphone) — pas forcément le même que `session.user.email` :
+          // un compte peut se connecter par téléphone même s'il a aussi
+          // un email enregistré.
+          await _local.saveLastIdentifier(identifier);
         }
 
         return outcome;
@@ -103,7 +107,7 @@ class AuthRepositoryImpl implements AuthRepository {
       });
 
   @override
-  Future<String?> lastEmail() => _local.readLastEmail();
+  Future<String?> lastIdentifier() => _local.readLastIdentifier();
 
   @override
   Future<DeviceRegistration> currentDevice() => _deviceInfo.currentDevice();
@@ -119,9 +123,7 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Result<void>> logout() async {
     // La purge locale a lieu quoi qu'il arrive : quelqu'un qui demande à
     // se déconnecter ne doit pas rester connecté sur son téléphone parce
-    // que le serveur était injoignable. Le token restera valide côté
-    // serveur jusqu'à son expiration — compromis assumé, comme documenté
-    // dans le contrat du domaine.
+    // que le serveur était injoignable.
     try {
       await _remote.logout();
       return const Result.success(null);
@@ -149,7 +151,8 @@ class AuthRepositoryImpl implements AuthRepository {
     required String currentPin,
     required String newPin,
   }) =>
-      _attempt(() => _remote.changePin(currentPin: currentPin, newPin: newPin));
+      _attempt(
+          () => _remote.changePin(currentPin: currentPin, newPin: newPin));
 
   @override
   Future<Result<void>> unlockAccount(OtpVerification verification) =>
@@ -158,8 +161,7 @@ class AuthRepositoryImpl implements AuthRepository {
   /// Exécute [call] et traduit tout ce qui peut en sortir en [Failure].
   ///
   /// [loginAttempt] : un 403 sur `login` spécifiquement veut dire "compte
-  /// suspendu" côté API (voir AuthSessionController) — ailleurs, un 403
-  /// est un refus d'accès ordinaire.
+  /// suspendu" côté API — ailleurs, un 403 est un refus d'accès ordinaire.
   Future<Result<T>> _attempt<T>(
     Future<T> Function() call, {
     bool loginAttempt = false,

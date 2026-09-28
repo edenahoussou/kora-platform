@@ -7,27 +7,28 @@ sealed class AuthFlowEvent extends Equatable {
   List<Object?> get props => <Object?>[];
 }
 
-/// Écran email : mémorise l'adresse et passe à l'étape suivante — aucun
-/// appel réseau ici, contrairement à l'app passager (pas d'inscription
-/// dans ce périmètre, donc rien à envoyer avant d'avoir aussi le PIN).
-class AuthFlowEmailEntered extends AuthFlowEvent {
-  const AuthFlowEmailEntered(this.email);
+/// Écran identifiant : mémorise l'email ou le téléphone saisi et passe à
+/// l'étape suivante — aucun appel réseau ici, contrairement à l'app
+/// passager (pas d'inscription dans ce périmètre, donc rien à envoyer
+/// avant d'avoir aussi le PIN).
+class AuthFlowIdentifierEntered extends AuthFlowEvent {
+  const AuthFlowIdentifierEntered(this.identifier);
 
-  final String email;
+  final String identifier;
 
   @override
-  List<Object?> get props => <Object?>[email];
+  List<Object?> get props => <Object?>[identifier];
 }
 
-/// Écran PIN : e-mail + PIN, tentative de connexion.
+/// Écran PIN : identifiant + PIN, tentative de connexion.
 class AuthFlowLoginSubmitted extends AuthFlowEvent {
-  const AuthFlowLoginSubmitted({required this.email, required this.pin});
+  const AuthFlowLoginSubmitted({required this.identifier, required this.pin});
 
-  final String email;
+  final String identifier;
   final String pin;
 
   @override
-  List<Object?> get props => <Object?>[email, pin];
+  List<Object?> get props => <Object?>[identifier, pin];
 }
 
 /// Écran OTP : les six chiffres saisis.
@@ -47,12 +48,12 @@ class AuthFlowCodeResent extends AuthFlowEvent {
 
 /// Lien « PIN oublié » de l'écran de connexion.
 class AuthFlowPinResetRequested extends AuthFlowEvent {
-  const AuthFlowPinResetRequested(this.email);
+  const AuthFlowPinResetRequested(this.identifier);
 
-  final String email;
+  final String identifier;
 
   @override
-  List<Object?> get props => <Object?>[email];
+  List<Object?> get props => <Object?>[identifier];
 }
 
 /// Écran « Choisissez un nouveau PIN », après un OTP `pin_reset` vérifié.

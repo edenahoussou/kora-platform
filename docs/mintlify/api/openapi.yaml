@@ -48,7 +48,7 @@ tags:
     description: "\nCycle de vie de la session OPS liée à un terminal P501 : consultation de\nl'état, renouvellement et déconnexion. L'ouverture est le handshake\n(`POST ops-mobile/terminal/handshake`).\n\nToute réponse de refus a la forme `{ error: { code, message, action, reason? } }`.\n`action` dit au mobile quoi faire :\n- `reauthenticate` : retour à l'écran de connexion (session_expired, session_revoked, session_invalid) ;\n- `open_session` : refaire le handshake (session_not_opened, terminal_mismatch) ;\n- `contact_agency` : refus durable (terminal_unknown, terminal_inactive, terminal_lost, terminal_not_assigned, role_not_authorized, permission_denied, account_suspended) ;\n- `retry_later` : refus temporaire (terminal_maintenance, account_locked).\n\n`reason` (session_revoked) : logout, terminal_deactivated, terminal_lost, terminal_maintenance,\nterminal_reassigned, account_suspended, access_removed, replaced, expired."
   -
     name: 'OPS Mobile — Suivi de la flotte'
-    description: "\nIngestion par lots des positions GPS du terminal du convoyeur (ticket\nMEZ-100). Idempotent : `position_uuid` est fourni par le terminal, un\nrejeu (coupure réseau) ne crée jamais de doublon. Chaque terminal ne peut\npublier que pour sa propre session, son convoyeur et son départ autorisés\n— la garde `ops.session` lie déjà le jeton au terminal ; ce contrôleur\nvérifie en plus que le départ est bien affecté à ce convoyeur.\n\nErreurs : `{ error: { code, message } }` — `departure_not_assigned` (403),\n`too_many_positions` (422), plus les codes de session OPS."
+    description: "\nIngestion par lots des positions GPS du terminal du convoyeur (ticket\nMEZ-100). Idempotent : `position_uuid` est fourni par le terminal, un\nrejeu (coupure réseau) ne crée jamais de doublon. Chaque terminal ne peut\npublier que pour sa propre session, son convoyeur et son départ autorisés\n— la garde `ops.session` lie déjà le jeton au terminal ; ce contrôleur\nvérifie en plus que le départ est bien affecté à ce convoyeur.\n\nErreurs : `{ error: { code, message } }` — `departure_not_assigned` (403),\n`departure_ended` (409, départ déjà arrivé/annulé), `too_many_positions` (422),\nplus les codes de session OPS."
   -
     name: 'OPS Mobile — Sync'
     description: "\nContrat de synchronisation pour le convoyeur en réseau dégradé ou hors\nligne : vérification de version de manifeste et soumission par lot des\nopérations enregistrées localement (embarquement, no-show, libération\nde siège). Idempotent à deux niveaux (lot et opération) — un lot\nrejoué, en tout ou partie, ne crée jamais de doublon."
@@ -9299,6 +9299,174 @@ paths:
                       action:
                         type: string
                         example: contact_agency
+      tags:
+        - 'OPS — Notifications'
+  /api/v1/notifications/sent:
+    get:
+      summary: "Événements que l'utilisateur a lui-même déclenchés (incident\nsignalé, départ fait progresser…), les plus récents d'abord — ils\nn'apparaissent jamais dans `GET /notifications` (voir\n`OpsNotificationQuery::forUser`)."
+      operationId: vnementsQueLutilisateurALuiMmeDclenchsincidentSignalDpartFaitProgresserLesPlusRcentsDabordIlsNapparaissentJamaisDansGETnotificationsvoirOpsNotificationQueryforUser
+      description: ''
+      parameters:
+        -
+          in: query
+          name: per_page
+          description: '1 à 100 (30 par défaut).'
+          example: 30
+          required: false
+          schema:
+            type: integer
+            description: '1 à 100 (30 par défaut).'
+            example: 30
+        -
+          in: query
+          name: page
+          description: Page.
+          example: 1
+          required: false
+          schema:
+            type: integer
+            description: Page.
+            example: 1
+      responses:
+        200:
+          description: 'Notifications envoyées'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    -
+                      uuid: 5a1f0d43-1b52-4f0a-a7f7-0b6c4d2e9a10
+                      event_uuid: 5a1f0d43-1b52-4f0a-a7f7-0b6c4d2e9a10
+                      type: incident_reported
+                      severity: warning
+                      title: 'Incident signalé'
+                      message: 'Incident (panne) signalé par Awa Traoré sur le départ COT-LFW du 21/09/2026 à 07:30 : Fuite de liquide de refroidissement'
+                      action: open_departure
+                      is_read: true
+                      read_at: null
+                      created_at: '2026-09-21T07:41:12.000Z'
+                      occurred_at: '2026-09-21T07:41:12.000Z'
+                      departure:
+                        uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                        line_code: COT-LFW
+                        date: '2026-09-21'
+                        time: '07:30'
+                      terminal: null
+                      data:
+                        incident_uuid: 3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e41
+                        incident_type: breakdown
+                  meta:
+                    current_page: 1
+                    per_page: 30
+                    total: 1
+                    last_page: 1
+                properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        uuid: 5a1f0d43-1b52-4f0a-a7f7-0b6c4d2e9a10
+                        event_uuid: 5a1f0d43-1b52-4f0a-a7f7-0b6c4d2e9a10
+                        type: incident_reported
+                        severity: warning
+                        title: 'Incident signalé'
+                        message: 'Incident (panne) signalé par Awa Traoré sur le départ COT-LFW du 21/09/2026 à 07:30 : Fuite de liquide de refroidissement'
+                        action: open_departure
+                        is_read: true
+                        read_at: null
+                        created_at: '2026-09-21T07:41:12.000Z'
+                        occurred_at: '2026-09-21T07:41:12.000Z'
+                        departure:
+                          uuid: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6e
+                          line_code: COT-LFW
+                          date: '2026-09-21'
+                          time: '07:30'
+                        terminal: null
+                        data:
+                          incident_uuid: 3a1e4b2a-8f1a-4b3e-9a1a-2f4b6c8d0e41
+                          incident_type: breakdown
+                    items:
+                      type: object
+                      properties:
+                        uuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        event_uuid:
+                          type: string
+                          example: 00000000-0000-4000-8000-000000000000
+                        type:
+                          type: string
+                          example: incident_reported
+                        severity:
+                          type: string
+                          example: warning
+                        title:
+                          type: string
+                          example: 'Incident signalé'
+                        message:
+                          type: string
+                          example: 'Incident (panne) signalé par Awa Traoré sur le départ COT-LFW du 21/09/2026 à 07:30 : Fuite de liquide de refroidissement'
+                        action:
+                          type: string
+                          example: open_departure
+                        is_read:
+                          type: boolean
+                          example: false
+                        read_at:
+                          type: string
+                          example: null
+                          nullable: true
+                        created_at:
+                          type: string
+                          example: '2026-09-21T07:41:12.000Z'
+                        occurred_at:
+                          type: string
+                          example: '2026-09-21T07:41:12.000Z'
+                        departure:
+                          type: object
+                          properties:
+                            uuid:
+                              type: string
+                              example: 00000000-0000-4000-8000-000000000000
+                            line_code:
+                              type: string
+                              example: COT-LFW
+                            date:
+                              type: string
+                              example: '2026-09-21'
+                            time:
+                              type: string
+                              example: '07:30'
+                        terminal:
+                          type: string
+                          example: null
+                          nullable: true
+                        data:
+                          type: object
+                          properties:
+                            incident_uuid:
+                              type: string
+                              example: 00000000-0000-4000-8000-000000000000
+                            incident_type:
+                              type: string
+                              example: breakdown
+                  meta:
+                    type: object
+                    properties:
+                      current_page:
+                        type: integer
+                        example: 1
+                      per_page:
+                        type: integer
+                        example: 30
+                      total:
+                        type: integer
+                        example: 1
+                      last_page:
+                        type: integer
+                        example: 1
       tags:
         - 'OPS — Notifications'
   /api/v1/notifications/unread-count:

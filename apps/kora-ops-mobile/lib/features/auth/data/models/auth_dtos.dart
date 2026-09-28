@@ -22,13 +22,16 @@ abstract final class AuthDtos {
     return Map<String, dynamic>.from(body);
   }
 
-  static OtpChallenge otpChallenge(Object? body, {required String email}) {
+  static OtpChallenge otpChallenge(Object? body,
+      {required String identifier}) {
     final data = unwrap(body);
 
     return OtpChallenge(
       uuid: '${data['otp_challenge_uuid']}',
       purpose: OtpPurpose.fromValue('${data['purpose']}'),
-      email: data['email'] as String? ?? email,
+      identifier: data['identifier'] as String? ??
+          data['email'] as String? ??
+          identifier,
       expiresAt: _date(data['expires_at']) ?? DateTime.now().add(_otpFallback),
     );
   }

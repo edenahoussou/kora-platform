@@ -91,10 +91,16 @@ void main() {
     repository = AuthRepositoryImpl(remote, local, deviceInfo);
 
     when(() => deviceInfo.currentDevice()).thenAnswer((_) async => device);
+    // Toujours stubbée : `login()` l'appelle systématiquement après un
+    // succès direct (voir AuthRepositoryImpl.login), identifiant email ou
+    // téléphone confondus.
+    when(() => local.saveLastIdentifier(any())).thenAnswer((_) async {});
   });
 
   group('login', () {
-    test('sauvegarde la session localement en cas de succès direct', () async {
+    test(
+        'sauvegarde la session et l’identifiant localement en cas de succès direct',
+        () async {
       final session = AuthSession(
         token: 'tok',
         expiresAt: DateTime.now().add(const Duration(days: 7)),
@@ -102,7 +108,7 @@ void main() {
       );
 
       when(() => remote.login(
-            email: any(named: 'email'),
+            identifier: any(named: 'identifier'),
             pin: any(named: 'pin'),
             device: any(named: 'device'),
             verification: any(named: 'verification'),
@@ -110,15 +116,20 @@ void main() {
       when(() => local.saveSession(any())).thenAnswer((_) async {});
 
       final result = await repository.login(
-          email: 'aicha.hounkpe@kora-express.com', pin: '1234');
+          identifier: 'aicha.hounkpe@kora-express.com', pin: '1234');
 
       expect(result.isSuccess, isTrue);
       verify(() => local.saveSession(session)).called(1);
+      // Pas forcément le même que `session.user.email` : un compte peut se
+      // connecter par téléphone même s'il a aussi un email enregistré —
+      // c'est bien l'identifiant SAISI qui doit être mémorisé.
+      verify(() => local.saveLastIdentifier('aicha.hounkpe@kora-express.com'))
+          .called(1);
     });
 
     test('ne sauvegarde rien quand l’appareil est inconnu (202)', () async {
       when(() => remote.login(
-            email: any(named: 'email'),
+            identifier: any(named: 'identifier'),
             pin: any(named: 'pin'),
             device: any(named: 'device'),
             verification: any(named: 'verification'),
@@ -130,15 +141,16 @@ void main() {
           ));
 
       final result = await repository.login(
-          email: 'aicha.hounkpe@kora-express.com', pin: '1234');
+          identifier: 'aicha.hounkpe@kora-express.com', pin: '1234');
 
       expect(result.isSuccess, isTrue);
       verifyNever(() => local.saveSession(any()));
+      verifyNever(() => local.saveLastIdentifier(any()));
     });
 
     test('un 403 sur login est mappé en AccountSuspendedFailure', () async {
       when(() => remote.login(
-                email: any(named: 'email'),
+                identifier: any(named: 'identifier'),
                 pin: any(named: 'pin'),
                 device: any(named: 'device'),
                 verification: any(named: 'verification'),
@@ -147,7 +159,7 @@ void main() {
               'Compte suspendu. Contactez le support.')));
 
       final result = await repository.login(
-          email: 'aicha.hounkpe@kora-express.com', pin: '1234');
+          identifier: 'aicha.hounkpe@kora-express.com', pin: '1234');
 
       expect(result.isFailure, isTrue);
       result.when(
@@ -158,7 +170,7 @@ void main() {
 
     test('un 423 est mappé en AccountLockedFailure', () async {
       when(() => remote.login(
-                email: any(named: 'email'),
+                identifier: any(named: 'identifier'),
                 pin: any(named: 'pin'),
                 device: any(named: 'device'),
                 verification: any(named: 'verification'),
@@ -167,7 +179,7 @@ void main() {
               const LockedApiException('Compte temporairement verrouillé.')));
 
       final result = await repository.login(
-          email: 'aicha.hounkpe@kora-express.com', pin: '1234');
+          identifier: 'aicha.hounkpe@kora-express.com', pin: '1234');
 
       result.when(
         onSuccess: (_) => fail('devrait échouer'),
@@ -177,7 +189,7 @@ void main() {
 
     test('un 401 est mappé en AuthenticationFailure (PIN incorrect)', () async {
       when(() => remote.login(
-                email: any(named: 'email'),
+                identifier: any(named: 'identifier'),
                 pin: any(named: 'pin'),
                 device: any(named: 'device'),
                 verification: any(named: 'verification'),
@@ -186,7 +198,7 @@ void main() {
               const UnauthorizedApiException('Identifiants incorrects.')));
 
       final result = await repository.login(
-          email: 'aicha.hounkpe@kora-express.com', pin: '0000');
+          identifier: 'aicha.hounkpe@kora-express.com', pin: '0000');
 
       result.when(
         onSuccess: (_) => fail('devrait échouer'),
@@ -196,7 +208,7 @@ void main() {
 
     test('un 422 est mappé en ValidationFailure', () async {
       when(() => remote.login(
-                email: any(named: 'email'),
+                identifier: any(named: 'identifier'),
                 pin: any(named: 'pin'),
                 device: any(named: 'device'),
                 verification: any(named: 'verification'),
@@ -204,7 +216,8 @@ void main() {
           .thenThrow(_dioError(const ValidationApiException(
               'Les données envoyées sont invalides.')));
 
-      final result = await repository.login(email: 'not-an-email', pin: '1234');
+      final result =
+          await repository.login(identifier: 'not-an-email', pin: '1234');
 
       result.when(
         onSuccess: (_) => fail('devrait échouer'),
@@ -216,7 +229,7 @@ void main() {
         'un code métier account_suspended (hors 403 Dio direct) est mappé pareil',
         () async {
       when(() => remote.login(
-            email: any(named: 'email'),
+            identifier: any(named: 'identifier'),
             pin: any(named: 'pin'),
             device: any(named: 'device'),
             verification: any(named: 'verification'),
@@ -228,7 +241,7 @@ void main() {
       );
 
       final result = await repository.login(
-          email: 'aicha.hounkpe@kora-express.com', pin: '1234');
+          identifier: 'aicha.hounkpe@kora-express.com', pin: '1234');
 
       result.when(
         onSuccess: (_) => fail('devrait échouer'),
@@ -276,6 +289,18 @@ void main() {
     });
   });
 
+  group('lastIdentifier', () {
+    test('délègue directement à AuthLocalDataSource.readLastIdentifier',
+        () async {
+      when(() => local.readLastIdentifier())
+          .thenAnswer((_) async => 'aicha.hounkpe@kora-express.com');
+
+      final result = await repository.lastIdentifier();
+
+      expect(result, 'aicha.hounkpe@kora-express.com');
+    });
+  });
+
   group('logout', () {
     test('purge le stockage local même si l’appel réseau échoue', () async {
       when(() => remote.logout())
@@ -301,23 +326,23 @@ void main() {
   group('requestOtp / verifyOtp', () {
     test('propage le motif pin_reset au data source', () async {
       when(() => remote.requestOtp(
-            email: any(named: 'email'),
+            identifier: any(named: 'identifier'),
             purpose: OtpPurpose.pinReset,
           )).thenAnswer((_) async => OtpChallenge(
             uuid: 'chal-2',
             purpose: OtpPurpose.pinReset,
-            email: 'aicha.hounkpe@kora-express.com',
+            identifier: 'aicha.hounkpe@kora-express.com',
             expiresAt: DateTime.now().add(const Duration(minutes: 15)),
           ));
 
       final result = await repository.requestOtp(
-        email: 'aicha.hounkpe@kora-express.com',
+        identifier: 'aicha.hounkpe@kora-express.com',
         purpose: OtpPurpose.pinReset,
       );
 
       expect(result.isSuccess, isTrue);
       verify(() => remote.requestOtp(
-            email: 'aicha.hounkpe@kora-express.com',
+            identifier: 'aicha.hounkpe@kora-express.com',
             purpose: OtpPurpose.pinReset,
           )).called(1);
     });

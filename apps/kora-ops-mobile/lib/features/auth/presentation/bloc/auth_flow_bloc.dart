@@ -9,21 +9,21 @@ import '../../domain/repositories/auth_repository.dart';
 part 'auth_flow_event.dart';
 part 'auth_flow_state.dart';
 
-/// Couche PRESENTATION : la chorégraphie email → PIN → OTP (si appareil
-/// inconnu) → session, et la variante PIN oublié → OTP → nouveau PIN.
+/// Couche PRESENTATION : la chorégraphie identifiant → PIN → OTP (si
+/// appareil inconnu) → session, et la variante PIN oublié → OTP → nouveau
+/// PIN. [AuthFlowState.identifier] est un email OU un numéro de téléphone
+/// (E.164) — voir migration backend du 25/09/2026 (colonne `identifier`).
 ///
-/// Porté du `AuthFlowBloc` de kora-app-passenger, réduit au périmètre de
-/// ce ticket : ni inscription (`register/complete`), ni connexion par
-/// fournisseur (Google/Facebook) — des comptes provisionnés en interne
-/// n'en ont pas l'usage. C'est [AuthFlowState.purpose] qui décide de ce
-/// qui suit un code vérifié.
+/// Ni inscription (`register/complete`), ni connexion par fournisseur —
+/// des comptes provisionnés en interne n'en ont pas l'usage. C'est
+/// [AuthFlowState.purpose] qui décide de ce qui suit un code vérifié.
 ///
 /// Ne vit que le temps du parcours. La session, une fois ouverte, part
 /// vers [AuthCubit] via `AuthCubit.authenticate` — c'est lui qui la porte
 /// ensuite pour le reste de l'app.
 class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
   AuthFlowBloc(this._repository) : super(const AuthFlowState()) {
-    on<AuthFlowEmailEntered>(_onEmailEntered);
+    on<AuthFlowIdentifierEntered>(_onIdentifierEntered);
     on<AuthFlowLoginSubmitted>(_onLoginSubmitted);
     on<AuthFlowCodeSubmitted>(_onCodeSubmitted);
     on<AuthFlowCodeResent>(_onCodeResent);
@@ -34,13 +34,13 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
 
   final AuthRepository _repository;
 
-  void _onEmailEntered(
-    AuthFlowEmailEntered event,
+  void _onIdentifierEntered(
+    AuthFlowIdentifierEntered event,
     Emitter<AuthFlowState> emit,
   ) {
     emit(
       state.copyWith(
-        email: event.email,
+        identifier: event.identifier,
         step: AuthFlowStep.pin,
         errorMessage: '',
         isAccountLocked: false,
@@ -57,13 +57,13 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
         isSubmitting: true,
         errorMessage: '',
         isAccountLocked: false,
-        email: event.email,
+        identifier: event.identifier,
         pendingPin: event.pin,
       ),
     );
 
     final result = await _repository.login(
-      email: event.email,
+      identifier: event.identifier,
       pin: event.pin,
       // Présent seulement au second passage : après avoir relevé le défi
       // d'un appareil inconnu.
@@ -88,7 +88,7 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
               challenge: OtpChallenge(
                 uuid: challenge.uuid,
                 purpose: OtpPurpose.loginNewDevice,
-                email: event.email,
+                identifier: event.identifier,
                 expiresAt: challenge.expiresAt,
               ),
             ),
@@ -113,24 +113,11 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
       code: event.code,
     );
 
-    // Ancien code (émettait `isSubmitting: false` ici, avant la suite du
-    // parcours — c'était la cause du bug « rien ne se passe au premier
-    // essai », voir note plus bas) :
-    // final verified = result.when(
-    //   onSuccess: (verification) {
-    //     final next = state.copyWith(
-    //       isSubmitting: false,
-    //       verification: verification,
-    //     );
-    //     emit(next);
-    //     return next;
-    //   },
-    //   onFailure: (failure) {
-    //     emit(_failed(failure));
-    //     return null;
-    //   },
-    // );
-    // if (verified == null) return;
+    // On stocke le jeton de vérification sans repasser `isSubmitting` à
+    // `false` ici : le faire créerait une émission intermédiaire
+    // (`isSubmitting: false`, mais `step` encore égal à `code`) que le
+    // `firstWhere(!isSubmitting)` de la page capterait *avant* la fin
+    // réelle du parcours (rejeu de connexion ou déverrouillage).
     final OtpVerification? verification = result.when(
       onSuccess: (verification) => verification,
       onFailure: (failure) {
@@ -141,39 +128,10 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
 
     if (verification == null) return;
 
-    // Ce qui suit un code vérifié dépend du motif : rejouer la connexion,
-    // choisir un nouveau PIN, ou déverrouiller. Le rejeu de connexion est
-    // fait ici, en ligne (pas via `add()`) : la page qui a déclenché
-    // `AuthFlowCodeSubmitted` attend la prochaine émission où
-    // `isSubmitting` redevient faux, et un `add()` mettrait cette
-    // deuxième soumission dans une émission ultérieure, distincte —
-    // l'attente se résoudrait alors trop tôt, avant la vraie fin du
-    // parcours.
-    //
-    // **Bug corrigé** : on stocke le jeton de vérification sans repasser
-    // `isSubmitting` à `false` ici. Le faire créait une émission
-    // intermédiaire (`isSubmitting: false`, mais `step` encore égal à
-    // `code`) que le `firstWhere(!isSubmitting)` de la page captait
-    // *avant* la fin réelle du parcours (rejeu de connexion ou
-    // déverrouillage) : le premier appui semblait ne rien faire, alors
-    // que la connexion aboutissait en tâche de fond — d'où la nécessité
-    // de renvoyer le code pour qu'un second essai retombe, par hasard,
-    // sur un état déjà `done`.
     final AuthFlowState verifiedState = state.copyWith(
       verification: verification,
     );
 
-    // Ancien code :
-    // switch (state.purpose) {
-    //   case OtpPurpose.loginNewDevice:
-    //     await _retryLogin(emit);
-    //   case OtpPurpose.pinReset:
-    //     emit(state.copyWith(step: AuthFlowStep.newPin));
-    //   case OtpPurpose.accountUnlock:
-    //     await _unlock(emit, verified.verification!);
-    //   case OtpPurpose.registration:
-    //     emit(const AuthFlowState());
-    // }
     switch (state.purpose) {
       case OtpPurpose.loginNewDevice:
         emit(verifiedState);
@@ -187,8 +145,8 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
         emit(verifiedState);
         await _unlock(emit, verification);
       case OtpPurpose.registration:
-        // Hors périmètre de ce ticket (voir docstring de classe) — aucun
-        // écran n'y mène, filet de sécurité seulement.
+        // Hors périmètre de ce ticket — aucun écran n'y mène, filet de
+        // sécurité seulement.
         emit(const AuthFlowState());
     }
   }
@@ -200,7 +158,7 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
     emit(state.copyWith(isSubmitting: true, errorMessage: ''));
 
     final result = await _repository.login(
-      email: state.email,
+      identifier: state.identifier,
       pin: state.pendingPin,
       verification: state.verification,
     );
@@ -219,7 +177,7 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
               challenge: OtpChallenge(
                 uuid: challenge.uuid,
                 purpose: OtpPurpose.loginNewDevice,
-                email: state.email,
+                identifier: state.identifier,
                 expiresAt: challenge.expiresAt,
               ),
             ),
@@ -233,12 +191,12 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
     AuthFlowCodeResent event,
     Emitter<AuthFlowState> emit,
   ) async {
-    if (state.email.isEmpty) return;
+    if (state.identifier.isEmpty) return;
 
     emit(state.copyWith(isSubmitting: true, errorMessage: ''));
 
     final result = await _repository.requestOtp(
-      email: state.email,
+      identifier: state.identifier,
       purpose: state.purpose,
     );
 
@@ -259,13 +217,13 @@ class AuthFlowBloc extends Bloc<AuthFlowEvent, AuthFlowState> {
       state.copyWith(
         isSubmitting: true,
         errorMessage: '',
-        email: event.email,
+        identifier: event.identifier,
         purpose: OtpPurpose.pinReset,
       ),
     );
 
     final result = await _repository.requestOtp(
-      email: event.email,
+      identifier: event.identifier,
       purpose: OtpPurpose.pinReset,
     );
 

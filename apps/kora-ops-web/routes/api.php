@@ -223,6 +223,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->middleware(['auth:sanctum', 'notifications.access'])
         ->group(function (): void {
             Route::get('/', [OpsNotificationController::class, 'index'])->name('index');
+            Route::get('sent', [OpsNotificationController::class, 'sent'])->name('sent');
             Route::get('unread-count', [OpsNotificationController::class, 'unreadCount'])->name('unread-count');
             Route::get('preferences', [OpsNotificationPreferenceController::class, 'show'])->name('preferences.show');
             Route::put('preferences', [OpsNotificationPreferenceController::class, 'update'])->name('preferences.update');
