@@ -19,9 +19,8 @@ import {
     Trash2,
     X,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
-import { LineCreatorStudio } from '@/components/network/preview/line-creator-studio';
 import type { MockLine } from '@/components/network/preview/network-preview-data';
 import { INITIAL_MOCK_LINES } from '@/components/network/preview/network-preview-data';
 import { Button } from '@/components/ui/button';
@@ -33,6 +32,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
+
+// Leaflet accède à `window` au chargement : import dynamique obligatoire pour le SSR.
+const LineCreatorStudio = lazy(() =>
+    import('@/components/network/preview/line-creator-studio').then((module) => ({
+        default: module.LineCreatorStudio,
+    })),
+);
 
 type PageProps = {
     statuses: Record<string, string>;
@@ -740,12 +746,14 @@ export default function NetworkPreviewPage({
 
             {/* 8. Studio Cartographique Interactif Leaflet */}
             {studioOpen && (
-                <LineCreatorStudio
-                    open={studioOpen}
-                    onClose={() => setStudioOpen(false)}
-                    onSaveLine={handleSaveLine}
-                    initialLine={editingLine}
-                />
+                <Suspense fallback={null}>
+                    <LineCreatorStudio
+                        open={studioOpen}
+                        onClose={() => setStudioOpen(false)}
+                        onSaveLine={handleSaveLine}
+                        initialLine={editingLine}
+                    />
+                </Suspense>
             )}
         </>
     );
