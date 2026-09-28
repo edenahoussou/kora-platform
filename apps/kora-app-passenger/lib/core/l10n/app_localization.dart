@@ -481,6 +481,8 @@ class AppLocalization {
   String get departuresSearchingText => translate('departures_searching_text');
   String get paymentMethodEyebrow => translate('payment_method_eyebrow');
   String get paymentMethodTitle => translate('payment_method_title');
+  String get paymentMethodLead => translate('payment_method_lead');
+  String get paymentMethodNext => translate('payment_method_next');
   String get paymentMethodMomo => translate('payment_method_momo');
   String get paymentMethodMomoLead => translate('payment_method_momo_lead');
   String get paymentMethodWallet => translate('payment_method_wallet');
@@ -494,6 +496,8 @@ class AppLocalization {
   String get paymentMomoTitle => translate('payment_momo_title');
   String paymentMomoEyebrow(String amount) =>
       _withArgs('payment_momo_eyebrow', {'amount': amount});
+  String get paymentMomoAmount => translate('payment_momo_amount');
+  String get paymentMomoSecure => translate('payment_momo_secure');
   String get paymentMomoOperator => translate('payment_momo_operator');
   String get paymentMomoOperatorHint => translate('payment_momo_operator_hint');
   String get paymentMomoOperatorRequired =>
@@ -508,6 +512,7 @@ class AppLocalization {
   String get paymentMomoPhoneRequired =>
       translate('payment_momo_phone_required');
   String get paymentMomoPhoneShort => translate('payment_momo_phone_short');
+  String get paymentMomoNoticeTitle => translate('payment_momo_notice_title');
   String get paymentMomoNotice => translate('payment_momo_notice');
   String get paymentMomoResume => translate('payment_momo_resume');
 
@@ -925,7 +930,6 @@ class AppLocalization {
   String get assistStatusFinalizedText =>
       translate('assist_status_finalized_text');
   String get assistStatusRefusedText => translate('assist_status_refused_text');
-  String get assistStatusExpiredText => translate('assist_status_expired_text');
   String get assistStatusUnavailableText =>
       translate('assist_status_unavailable_text');
   String get assistStatusCancelledText =>

@@ -36,7 +36,6 @@ import '../../features/booking/presentation/pages/ticket_detail_page.dart';
 import '../../features/booking/presentation/pages/ticket_page.dart';
 import '../../features/booking/presentation/pages/tickets_page.dart';
 import '../../features/booking/presentation/widgets/seat_hold_watcher.dart';
-import '../../features/colis/presentation/pages/colis_page.dart';
 import '../../features/home/presentation/bloc/home_bloc.dart';
 import '../../features/home/presentation/pages/city_picker_page.dart';
 import '../../features/home/presentation/pages/date_picker_page.dart';
@@ -62,13 +61,13 @@ import '../../features/profil/presentation/pages/profile_edit_page.dart';
 import '../../features/profil/presentation/pages/security_page.dart';
 import '../../features/support/presentation/pages/contact_page.dart';
 import '../../features/support/presentation/pages/help_page.dart';
-import '../../features/wallet/presentation/pages/wallet_page.dart';
 import '../../features/welcome/data/onboarding_store.dart';
 import '../../features/welcome/presentation/pages/onboarding_page.dart';
 import '../../features/welcome/presentation/pages/splash_page.dart';
 import '../../features/welcome/presentation/pages/welcome_page.dart';
 import '../di/injector.dart';
 import '../l10n/app_localization.dart';
+import '../widgets/coming_soon_page.dart';
 
 /// Couche CORE : configuration centrale de la navigation avec `go_router`.
 ///
@@ -798,11 +797,20 @@ class AppRouter {
                 ),
               ],
             ),
+            // Colis et Wallet : les écrans existent (`ColisPage`,
+            // `WalletPage`), dessinés d'après la maquette, mais leurs
+            // fonctionnalités ne sont pas écrites — ni domaine, ni
+            // source de données. L'onglet s'ouvre donc sur du vide, le
+            // temps que la feature arrive : il remontrera l'écran
+            // complet d'une ligne, sans rien avoir à redessiner.
             StatefulShellBranch(
               routes: [
                 GoRoute(
                   path: '/colis',
-                  builder: (context, state) => const ColisPage(),
+                  builder: (context, state) => ComingSoonPage(
+                    eyebrow: context.l10n.parcelsEyebrow,
+                    title: context.l10n.parcelsTitle,
+                  ),
                 ),
               ],
             ),
@@ -810,7 +818,10 @@ class AppRouter {
               routes: [
                 GoRoute(
                   path: '/wallet',
-                  builder: (context, state) => const WalletPage(),
+                  builder: (context, state) => ComingSoonPage(
+                    eyebrow: context.l10n.walletEyebrow,
+                    title: context.l10n.walletTitle,
+                  ),
                 ),
               ],
             ),

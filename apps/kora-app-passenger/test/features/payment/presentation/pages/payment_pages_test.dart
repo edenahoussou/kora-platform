@@ -241,17 +241,54 @@ void main() {
         catalog: await loadedCatalog(),
       );
 
-      await tester.tap(find.text('Sélectionner un opérateur'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('MTN MoMo'), findsWidgets);
-      expect(find.text('Moov Flooz'), findsWidgets);
-      expect(find.text('Celtiis Cash'), findsWidgets);
+      // Les réseaux s'affichent d'emblée, chacun sur sa tuile : plus de
+      // menu à ouvrir pour savoir par où l'on peut payer.
+      expect(find.text('MTN MoMo'), findsOneWidget);
+      expect(find.text('Moov Flooz'), findsOneWidget);
+      expect(find.text('Celtiis Cash'), findsOneWidget);
+      // Et chacune porte le logo de son réseau, fourni par KORA.
+      for (final network in const ['mtn_momo', 'moov_flooz', 'celtiis_cash']) {
+        expect(
+          find.image(AssetImage('assets/images/operators/$network.png')),
+          findsOneWidget,
+          reason: 'vignette manquante pour $network',
+        );
+      }
 
       // Wave figurait dans la maquette ; le serveur ne le connaît pas.
       expect(find.text('Wave'), findsNothing);
       // FedaPay encaisse, mais n'est pas un opérateur téléphonique.
       expect(find.text('FedaPay'), findsNothing);
+    });
+
+    testWidgets('le montant à payer s’affiche en tête', (tester) async {
+      // Sur un terminal de paiement, la somme se lit avant de choisir
+      // par où l'on paie — pas en petit dans un surtitre.
+      await pump(
+        tester,
+        const MobileMoneyPage(args: args),
+        catalog: await loadedCatalog(),
+      );
+
+      expect(find.text('Montant à payer'), findsOneWidget);
+      expect(find.text(money(12500)), findsWidgets);
+      expect(find.textContaining('Paiement sécurisé'), findsOneWidget);
+    });
+
+    testWidgets('choisir un opérateur le marque comme retenu', (tester) async {
+      await pump(
+        tester,
+        const MobileMoneyPage(args: args),
+        catalog: await loadedCatalog(),
+      );
+
+      expect(find.byIcon(Icons.check_circle_rounded), findsNothing);
+
+      await tester.tap(find.text('Moov Flooz'));
+      await tester.pumpAndSettle();
+
+      // Un seul retenu : la pastille pleine ne se pose que sur lui.
+      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
     });
 
     testWidgets('sans réseau annoncé, le sélecteur le dit et reste inerte', (

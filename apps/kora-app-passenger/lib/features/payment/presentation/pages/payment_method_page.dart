@@ -11,6 +11,8 @@ import '../../../booking/domain/entities/price.dart';
 import '../../../booking/presentation/bloc/seat_hold_bloc.dart';
 import '../../domain/entities/payment_catalog.dart';
 import '../bloc/payment_catalog_bloc.dart';
+import '../widgets/operator_badge.dart';
+import '../widgets/payment_amount_card.dart';
 import 'payment_args.dart';
 
 /// Écran `payment-method` de la maquette : le choix du moyen de paiement.
@@ -64,29 +66,22 @@ class PaymentMethodPage extends StatelessWidget {
                   builder: (context, catalog) => ListView(
                     padding: EdgeInsets.zero,
                     children: [
+                      // Le montant d'abord : c'est la somme qui décide du
+                      // moyen, pas l'inverse. Elle fermait la page, là où
+                      // on ne la lisait qu'après avoir choisi.
+                      PaymentAmountCard(total: args.total.formatted),
+                      const SizedBox(height: AppSpacing.md),
+                      // Ce que fait cet écran, et ce qu'il ne fait pas :
+                      // rien n'est débité ici, on choisit seulement par
+                      // où l'on paiera.
+                      Text(
+                        l10n.paymentMethodLead,
+                        style: AppTextStyles.body(context.koraColors.textMuted),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
                       ..._methods(context, catalog, args),
                       const SizedBox(height: AppSpacing.md),
                       const _HoldReminder(),
-                      const SizedBox(height: AppSpacing.md),
-                      KoraCard(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              l10n.paymentMethodTotal,
-                              style: AppTextStyles.body(
-                                context.koraColors.textMuted,
-                              ),
-                            ),
-                            Text(
-                              args.total.formatted,
-                              style: AppTextStyles.titleMedium(
-                                context.koraTitleColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                       const SizedBox(height: AppSpacing.xl),
                     ],
                   ),
@@ -135,9 +130,13 @@ class PaymentMethodPage extends StatelessWidget {
     return [
       for (final method in methods) ...[
         _MethodTile(
-          symbol: _symbols[method.code] ?? '•',
+          code: method.code,
           title: _title(context, method),
           lead: _lead(context, method),
+          // Les logos des opérateurs remplacent leur énumération : on
+          // reconnaît son réseau avant d'avoir lu la ligne.
+          logos:
+              method.code == PaymentCatalog.mobileMoneyCode && method.isUsable,
           // Un moyen annoncé actif mais sans provider utilisable ne mène
           // nulle part : `isUsable` exige les deux.
           onTap: method.isUsable ? () => _open(context, method, args) : null,
@@ -197,11 +196,6 @@ class PaymentMethodPage extends StatelessWidget {
   }
 
   /// Le pictogramme de `.transaction-icon`, repris de la maquette.
-  static const Map<String, String> _symbols = {
-    PaymentCatalog.mobileMoneyCode: 'M',
-    PaymentCatalog.walletCode: '◫',
-  };
-
   /// Valeur d'`availability` pour un moyen hors périmètre du MVP.
   static const String _outOfMvp = 'out_of_mvp';
 }
@@ -242,21 +236,33 @@ class _CatalogNotice extends StatelessWidget {
 /// et le chevron d'entrée.
 class _MethodTile extends StatelessWidget {
   const _MethodTile({
-    required this.symbol,
+    required this.code,
     required this.title,
     required this.lead,
     required this.onTap,
+    this.logos = false,
   });
 
-  /// Le pictogramme de `.transaction-icon`, repris de la maquette.
-  final String symbol;
+  /// Le code du moyen, qui décide du pictogramme.
+  final String code;
   final String title;
   final String lead;
+
+  /// Montre les vignettes des réseaux sous la ligne de description.
+  final bool logos;
 
   /// `null` pour un moyen que le serveur annonce mais n'encaisse pas : la
   /// carte devient inerte et perd son chevron, au lieu d'ouvrir un écran
   /// qui échouerait à la fin.
   final VoidCallback? onTap;
+
+  /// Le pictogramme du moyen : un téléphone pour le Mobile Money, un
+  /// portefeuille pour le Wallet, une carte pour le reste.
+  IconData get _icon => switch (code) {
+    PaymentCatalog.mobileMoneyCode => Icons.smartphone_rounded,
+    PaymentCatalog.walletCode => Icons.account_balance_wallet_rounded,
+    _ => Icons.credit_card_rounded,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -274,14 +280,7 @@ class _MethodTile extends StatelessWidget {
               color: AppColors.gold,
               borderRadius: BorderRadius.circular(AppRadius.input),
             ),
-            child: Text(
-              symbol,
-              style: const TextStyle(
-                color: AppColors.kora,
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
+            child: Icon(_icon, size: 20, color: AppColors.kora),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
@@ -299,6 +298,18 @@ class _MethodTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(lead, style: AppTextStyles.body(koraColors.textMuted)),
+                if (logos) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      for (final network in OperatorBadge.logoNetworks)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: OperatorBadge(network: network, size: 26),
+                        ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
