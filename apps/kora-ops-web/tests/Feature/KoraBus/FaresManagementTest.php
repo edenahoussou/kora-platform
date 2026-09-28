@@ -132,7 +132,7 @@ it('filters fares by line uuid', function (): void {
             ->where('fares.data.0.baseAmount', 8500));
 });
 
-it('shows line detail with active fares in the Tarifs tab data', function (): void {
+it('exposes line fares in the network index payload', function (): void {
     [$line, $origin, $destination] = lineWithStops();
     $confort = ServiceClass::query()->where('code', 'confort')->firstOrFail();
     $premium = ServiceClass::query()->where('code', 'premium')->firstOrFail();
@@ -165,21 +165,20 @@ it('shows line detail with active fares in the Tarifs tab data', function (): vo
     $director->assignRole('operations_director');
 
     $this->actingAs($director)
-        ->get(route('network.show', $line))
+        ->get(route('network.index'))
         ->assertSuccessful()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('network/detail')
-            ->has('line.fares', 2)
-            ->where('line.fares.0.originName', 'Cotonou')
-            ->where('line.fares.0.destinationName', 'Parakou')
-            ->where('line.fares.0.serviceClassName', 'KORA Confort')
-            ->where('line.fares.0.baseAmount', 8500)
-            ->where('line.fares.1.serviceClassName', 'KORA Premium')
-            ->where('line.fares.1.baseAmount', 10500)
-            ->where('permissions.canManageFares', false));
+            ->component('network')
+            ->has('lines.0.fares', 2)
+            ->where('lines.0.fares.0.originName', 'Cotonou')
+            ->where('lines.0.fares.0.destinationName', 'Parakou')
+            ->where('lines.0.fares.0.serviceClassName', 'KORA Confort')
+            ->where('lines.0.fares.0.baseAmount', 8500)
+            ->where('lines.0.fares.1.serviceClassName', 'KORA Premium')
+            ->where('lines.0.fares.1.baseAmount', 10500));
 });
 
-it('excludes archived fares from line detail', function (): void {
+it('excludes archived fares from the network index payload', function (): void {
     [$line, $origin, $destination] = lineWithStops();
     $confort = ServiceClass::query()->where('code', 'confort')->firstOrFail();
 
@@ -199,10 +198,10 @@ it('excludes archived fares from line detail', function (): void {
     $director->assignRole('operations_director');
 
     $this->actingAs($director)
-        ->get(route('network.show', $line))
+        ->get(route('network.index'))
         ->assertSuccessful()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('line.fares', []));
+            ->where('lines.0.fares', []));
 });
 
 it('rejects unauthorized fares access for agency agents', function (): void {
