@@ -15,6 +15,7 @@ import {
     Route,
     Search,
     Trash2,
+    X,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
@@ -83,6 +84,9 @@ export function LineCreatorStudio({
 
     // Arrêt sélectionné / en surbrillance
     const [selectedStopUuid, setSelectedStopUuid] = useState<string | null>(null);
+
+    // Parcours d'onboarding du studio (masquable)
+    const [onboardingDismissed, setOnboardingDismissed] = useState(false);
 
     // Carte Leaflet
     const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -569,6 +573,7 @@ export function LineCreatorStudio({
             status: initialLine?.status ?? 'active',
             countriesCrossed: countries,
             stops,
+            fares: initialLine?.fares ?? [],
             updatedAt: new Date().toISOString(),
         };
 
@@ -639,7 +644,7 @@ export function LineCreatorStudio({
                                         : 'text-muted-foreground hover:text-foreground',
                                 )}
                             >
-                                <Navigation className="size-3.5 rotate-45 text-[var(--kora)]" />
+                                <Navigation className="size-3.5 rotate-45 text-[var(--kora)] dark:text-gold" />
                                 Sens Aller ({stops[0]?.city || 'Origine'} → {stops[stops.length - 1]?.city || 'Terminus'})
                             </button>
                             <button
@@ -660,13 +665,80 @@ export function LineCreatorStudio({
 
                     {/* Zone de contenu défilable */}
                     <div className="flex-1 overflow-y-auto p-5 space-y-5">
+                        {/* 0. Parcours d'onboarding guidé */}
+                        {!onboardingDismissed && (
+                            <div className="rounded-xl border border-gold/30 bg-muted/30 p-3.5 space-y-2.5 relative">
+                                <button
+                                    type="button"
+                                    onClick={() => setOnboardingDismissed(true)}
+                                    className="absolute right-2.5 top-2.5 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                                    title="Masquer le guide"
+                                >
+                                    <X className="size-3.5" />
+                                </button>
+                                <span className="block text-[0.625rem] font-black tracking-widest text-gold uppercase">
+                                    Comment composer votre ligne
+                                </span>
+                                <ol className="space-y-2">
+                                    {[
+                                        {
+                                            done: stops.length >= 2,
+                                            current: stops.length < 2,
+                                            label: 'Placez vos arrêts',
+                                            hint: 'Recherchez une gare ou un lieu, ou cliquez directement sur la carte.',
+                                        },
+                                        {
+                                            done: stops.length >= 2 && stops.every((s) => s.kmFromOrigin > 0 || s.stopOrder === 1),
+                                            current: stops.length >= 2,
+                                            label: 'Ordonnez et ajustez le parcours',
+                                            hint: 'Réordonnez la timeline, glissez les marqueurs pour affiner chaque point.',
+                                        },
+                                        {
+                                            done: false,
+                                            current: stops.length >= 2,
+                                            label: 'Vérifiez et enregistrez',
+                                            hint: 'Distances, durées et sens retour sont calculés automatiquement.',
+                                        },
+                                    ].map((step, idx) => (
+                                        <li key={idx} className="flex items-start gap-2.5">
+                                            <span
+                                                className={cn(
+                                                    'grid size-5 shrink-0 place-items-center rounded-full text-[0.625rem] font-black',
+                                                    step.done
+                                                        ? 'bg-gold text-[var(--kora)]'
+                                                        : step.current
+                                                            ? 'border-2 border-gold text-gold'
+                                                            : 'border border-border text-muted-foreground',
+                                                )}
+                                            >
+                                                {step.done ? <Check className="size-3" /> : idx + 1}
+                                            </span>
+                                            <div>
+                                                <strong
+                                                    className={cn(
+                                                        'block text-[0.6875rem] font-bold',
+                                                        step.current ? 'text-foreground' : 'text-muted-foreground',
+                                                    )}
+                                                >
+                                                    {step.label}
+                                                </strong>
+                                                <span className="block text-[0.625rem] leading-4 text-muted-foreground">
+                                                    {step.hint}
+                                                </span>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ol>
+                            </div>
+                        )}
+
                         {/* 1. Métadonnées de la ligne */}
                         <div className="rounded-xl border border-border/80 bg-muted/30 p-4 space-y-3">
                             <div className="flex items-center justify-between">
                                 <span className="text-[0.625rem] font-black tracking-wider text-muted-foreground uppercase">
                                     Identité de la ligne
                                 </span>
-                                <span className="rounded bg-gold/15 px-2 py-0.5 text-[0.6875rem] font-extrabold text-[var(--kora)]">
+                                <span className="rounded bg-gold/15 px-2 py-0.5 text-[0.6875rem] font-extrabold text-[var(--kora)] dark:text-gold">
                                     {type.toUpperCase()}
                                 </span>
                             </div>
@@ -700,7 +772,7 @@ export function LineCreatorStudio({
                                         type="checkbox"
                                         checked={bidirectional}
                                         onChange={(e) => setBidirectional(e.target.checked)}
-                                        className="rounded border-border text-[var(--kora)] focus:ring-[var(--kora)]"
+                                        className="rounded border-border accent-gold"
                                     />
                                     Ligne Aller-Retour (Bidirectionnelle)
                                 </label>
@@ -786,7 +858,7 @@ export function LineCreatorStudio({
                                                         className="w-full flex items-center justify-between p-2.5 rounded-lg text-left text-xs hover:bg-muted transition-colors"
                                                     >
                                                         <div className="flex items-center gap-2">
-                                                            <span className="grid size-6 place-items-center rounded-md bg-gold/20 text-[var(--kora)]">
+                                                            <span className="grid size-6 place-items-center rounded-md bg-gold/20 text-[var(--kora)] dark:text-gold">
                                                                 <MapPin className="size-3.5" />
                                                             </span>
                                                             <div>
@@ -856,7 +928,7 @@ export function LineCreatorStudio({
                                     <button
                                         type="button"
                                         onClick={fitRouteBounds}
-                                        className="inline-flex items-center gap-1 text-[0.6875rem] font-semibold text-[var(--kora)] hover:underline"
+                                        className="inline-flex items-center gap-1 text-[0.6875rem] font-semibold text-[var(--kora)] dark:text-gold hover:underline"
                                     >
                                         <Maximize2 className="size-3" /> Recentrer
                                     </button>

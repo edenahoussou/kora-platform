@@ -1,11 +1,11 @@
 import { Head, router } from '@inertiajs/react';
 import {
+    ArrowLeft,
     ArrowLeftRight,
     ArrowRight,
     CheckCircle2,
     ChevronRight,
     Clock,
-    Compass,
     Eye,
     Globe2,
     MapPin,
@@ -15,7 +15,6 @@ import {
     RotateCcw,
     Route,
     Search,
-    Sparkles,
     Trash2,
     X,
 } from 'lucide-react';
@@ -31,6 +30,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import network from '@/routes/network';
 import type { BreadcrumbItem } from '@/types';
 
 // Leaflet accède à `window` au chargement : import dynamique obligatoire pour le SSR.
@@ -98,6 +98,7 @@ export default function NetworkPreviewPage({
 
     // Ligne sélectionnée pour affichage rapide
     const [selectedLineForView, setSelectedLineForView] = useState<MockLine | null>(null);
+    const [drawerTab, setDrawerTab] = useState<'stops' | 'fares'>('stops');
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
@@ -196,8 +197,13 @@ export default function NetworkPreviewPage({
         );
     };
 
+    const openLinePreview = (line: MockLine) => {
+        setDrawerTab('stops');
+        setSelectedLineForView(line);
+    };
+
     const deleteLine = (lineUuid: string) => {
-        if (window.confirm('Voulez-vous vraiment supprimer cette ligne de la simulation ?')) {
+        if (window.confirm('Voulez-vous vraiment supprimer cette ligne ?')) {
             setLines((prev) => prev.filter((l) => l.uuid !== lineUuid));
 
             if (selectedLineForView?.uuid === lineUuid) {
@@ -208,7 +214,7 @@ export default function NetworkPreviewPage({
 
     return (
         <>
-            <Head title="Réseau & Lignes — Preview V2" />
+            <Head title="Réseau & Lignes commerciales" />
 
             <div className="cash-page">
                 {/* 1. Page Head standardisé */}
@@ -220,9 +226,6 @@ export default function NetworkPreviewPage({
                             <span>Exploitation</span>
                             <span>/</span>
                             <span className="font-bold text-foreground">Réseau & Lignes</span>
-                            <span className="rounded bg-gold/15 px-1.5 py-0.2 text-[0.625rem] font-black text-[var(--kora)]">
-                                PREVIEW V2
-                            </span>
                         </div>
                         <h1 className="text-[clamp(1.8rem,3vw,2.65rem)] font-extrabold tracking-[-0.055em] text-foreground">
                             Réseau & Lignes commerciales
@@ -235,50 +238,25 @@ export default function NetworkPreviewPage({
                     <div className="flex flex-wrap items-center gap-2.5">
                         <button
                             type="button"
-                            onClick={() => router.get('/network')}
+                            onClick={() => router.get(network.index.url())}
                             className="btn btn-ghost"
-                            title="Revenir à l’ancienne vue standard"
+                            title="Revenir à la vue réseau actuelle"
                         >
-                            ← Retour ancienne vue
+                            <ArrowLeft className="size-4" /> Retour
                         </button>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setEditingLine(null);
-                                setStudioOpen(true);
-                            }}
-                            className="btn btn-primary"
-                        >
-                            <Sparkles className="size-4" /> Studio Carte — Nouvelle ligne
-                        </button>
+                        {permissions.canCreate && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setEditingLine(null);
+                                    setStudioOpen(true);
+                                }}
+                                className="btn btn-primary"
+                            >
+                                <Plus className="size-4" /> Créer une ligne
+                            </button>
+                        )}
                     </div>
-                </div>
-
-                {/* 2. Bandeau d'information Preview */}
-                <div className="cash-reveal mb-6 rounded-2xl border border-gold/40 bg-gradient-to-r from-gold/10 via-gold/5 to-transparent p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
-                    <div className="flex items-center gap-3">
-                        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-gold text-[var(--kora)] shadow">
-                            <Compass className="size-5" />
-                        </span>
-                        <div>
-                            <strong className="block text-xs font-black text-foreground">
-                                Environnement de prévisualisation UI V2 (Données Mockées)
-                            </strong>
-                            <p className="text-[0.6875rem] text-muted-foreground">
-                                Cette maquette fonctionnelle intègre la nouvelle charte des écrans de caisse et le Studio Cartographique interactif avec calcul kilométrique automatique OSRM.
-                            </p>
-                        </div>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setEditingLine(null);
-                            setStudioOpen(true);
-                        }}
-                        className="btn btn-navy text-xs shrink-0"
-                    >
-                        Tester le Studio Carte
-                    </button>
                 </div>
 
                 {/* 3. Hero & KPIs métriques */}
@@ -354,26 +332,12 @@ export default function NetworkPreviewPage({
                     </div>
                 </section>
 
-                {/* 4. Barre de titre section & actions */}
+                {/* 4. Barre de titre section */}
                 <div className="cash-reveal cash-reveal-delay-2 cash-section-intro mb-4">
                     <div>
                         <span className="section-kicker">Référentiel des lignes</span>
                         <h2>Liaisons commerciales programmées</h2>
                     </div>
-                    {permissions.canCreate && (
-                        <div className="actions">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setEditingLine(null);
-                                    setStudioOpen(true);
-                                }}
-                                className="btn btn-navy text-xs"
-                            >
-                                <Plus className="size-3.5" /> Créer une ligne
-                            </button>
-                        </div>
-                    )}
                 </div>
 
                 {/* 5. Barre de filtres standardisée (design cash-filterbar) */}
@@ -471,13 +435,13 @@ export default function NetworkPreviewPage({
                                     {paginatedLines.map((line) => (
                                         <tr
                                             key={line.uuid}
-                                            onClick={() => setSelectedLineForView(line)}
+                                            onClick={() => openLinePreview(line)}
                                             className="group cursor-pointer border-b border-black/[0.045] transition-colors hover:bg-muted/30"
                                         >
                                             {/* Colonne Ligne */}
                                             <td className="px-4 py-3.5">
                                                 <div className="flex items-center gap-2.5">
-                                                    <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-gold/15 font-black text-xs text-[var(--kora)]">
+                                                    <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-gold font-black text-xs text-[var(--kora)]">
                                                         {line.code}
                                                     </span>
                                                     <div>
@@ -588,10 +552,10 @@ export default function NetworkPreviewPage({
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end">
                                                             <DropdownMenuItem
-                                                                onClick={() => setSelectedLineForView(line)}
+                                                                onClick={() => openLinePreview(line)}
                                                             >
                                                                 <Eye className="size-4" />
-                                                                Aperçu des arrêts
+                                                                Aperçu de la ligne
                                                             </DropdownMenuItem>
                                                             <DropdownMenuItem
                                                                 onClick={() => {
@@ -694,10 +658,35 @@ export default function NetworkPreviewPage({
                                     </div>
                                 </div>
 
-                                <div>
-                                    <h4 className="text-xs font-bold text-foreground mb-2 uppercase tracking-wider">
-                                        Arrêts ordonnés ({selectedLineForView.stops.length})
-                                    </h4>
+                                {/* Onglets : Arrêts ordonnés / Tarifs O-D */}
+                                <div className="flex gap-1.5 rounded-xl bg-muted/50 p-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => setDrawerTab('stops')}
+                                        className={cn(
+                                            'flex-1 rounded-lg px-3 py-2 text-xs font-bold transition-all',
+                                            drawerTab === 'stops'
+                                                ? 'bg-card text-foreground shadow-sm'
+                                                : 'text-muted-foreground hover:text-foreground',
+                                        )}
+                                    >
+                                        Arrêts ({selectedLineForView.stops.length})
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setDrawerTab('fares')}
+                                        className={cn(
+                                            'flex-1 rounded-lg px-3 py-2 text-xs font-bold transition-all',
+                                            drawerTab === 'fares'
+                                                ? 'bg-card text-foreground shadow-sm'
+                                                : 'text-muted-foreground hover:text-foreground',
+                                        )}
+                                    >
+                                        Tarifs ({selectedLineForView.fares.length})
+                                    </button>
+                                </div>
+
+                                {drawerTab === 'stops' && (
                                     <div className="space-y-2">
                                         {selectedLineForView.stops.map((stop, idx) => (
                                             <div
@@ -723,7 +712,62 @@ export default function NetworkPreviewPage({
                                             </div>
                                         ))}
                                     </div>
-                                </div>
+                                )}
+
+                                {drawerTab === 'fares' && (
+                                    <div className="space-y-2">
+                                        {selectedLineForView.fares.length === 0 ? (
+                                            <div className="rounded-xl border border-dashed border-border p-6 text-center">
+                                                <p className="text-xs font-bold text-foreground">
+                                                    Aucun tarif défini
+                                                </p>
+                                                <p className="mt-1 text-[0.6875rem] text-muted-foreground">
+                                                    Les tarifs origine-destination seront configurés dans l'écran Tarifs.
+                                                </p>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => router.get('/fares')}
+                                                    className="btn btn-ghost mt-3 text-xs"
+                                                >
+                                                    Gérer les tarifs
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            selectedLineForView.fares.map((fare) => (
+                                                <div
+                                                    key={fare.uuid}
+                                                    className="flex items-center justify-between p-2.5 rounded-xl border border-border/60 bg-muted/20 text-xs"
+                                                >
+                                                    <div>
+                                                        <div className="flex items-center gap-1.5 font-bold text-foreground">
+                                                            <span>{fare.originName}</span>
+                                                            <ArrowRight className="size-3 text-gold" />
+                                                            <span>{fare.destinationName}</span>
+                                                        </div>
+                                                        <span className="text-[0.625rem] text-muted-foreground uppercase font-bold">
+                                                            {fare.serviceClassName}
+                                                        </span>
+                                                    </div>
+                                                    <span className="font-black text-foreground">
+                                                        {fare.baseAmount.toLocaleString('fr-FR')}{' '}
+                                                        <small className="text-[0.625rem] font-bold text-muted-foreground">
+                                                            {fare.currency === 'XOF' ? 'FCFA' : fare.currency}
+                                                        </small>
+                                                    </span>
+                                                </div>
+                                            ))
+                                        )}
+                                        {selectedLineForView.fares.length > 0 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => router.get('/fares')}
+                                                className="w-full text-center text-[0.6875rem] font-semibold text-gold hover:underline pt-1"
+                                            >
+                                                Gérer la grille tarifaire complète →
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
 

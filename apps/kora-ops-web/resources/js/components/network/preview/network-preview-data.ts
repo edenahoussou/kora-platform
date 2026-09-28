@@ -23,6 +23,15 @@ export type MockLineStop = {
     physicalStopUuid?: string;
 };
 
+export type MockLineFare = {
+    uuid: string;
+    originName: string;
+    destinationName: string;
+    serviceClassName: string;
+    baseAmount: number;
+    currency: string;
+};
+
 export type MockLine = {
     uuid: string;
     code: string;
@@ -40,6 +49,7 @@ export type MockLine = {
     status: 'active' | 'draft' | 'archived';
     countriesCrossed: string[];
     stops: MockLineStop[];
+    fares: MockLineFare[];
     updatedAt: string;
 };
 
@@ -314,6 +324,14 @@ export const INITIAL_MOCK_LINES: MockLine[] = [
                 physicalStopUuid: 'hub-parakou-albarika',
             },
         ],
+        fares: [
+            { uuid: 'fare-l1-01', originName: 'Cotonou', destinationName: 'Parakou', serviceClassName: 'Standard', baseAmount: 5000, currency: 'XOF' },
+            { uuid: 'fare-l1-02', originName: 'Cotonou', destinationName: 'Parakou', serviceClassName: 'VIP Climatisé', baseAmount: 8000, currency: 'XOF' },
+            { uuid: 'fare-l1-03', originName: 'Cotonou', destinationName: 'Bohicon', serviceClassName: 'Standard', baseAmount: 2500, currency: 'XOF' },
+            { uuid: 'fare-l1-04', originName: 'Cotonou', destinationName: 'Dassa-Zoumè', serviceClassName: 'Standard', baseAmount: 3500, currency: 'XOF' },
+            { uuid: 'fare-l1-05', originName: 'Bohicon', destinationName: 'Parakou', serviceClassName: 'Standard', baseAmount: 3000, currency: 'XOF' },
+            { uuid: 'fare-l1-06', originName: 'Dassa-Zoumè', destinationName: 'Parakou', serviceClassName: 'Standard', baseAmount: 2200, currency: 'XOF' },
+        ],
     },
     {
         uuid: 'line-cot-lom-02',
@@ -399,6 +417,12 @@ export const INITIAL_MOCK_LINES: MockLine[] = [
                 physicalStopUuid: 'hub-lome-grand-marche',
             },
         ],
+        fares: [
+            { uuid: 'fare-l2-01', originName: 'Cotonou', destinationName: 'Lomé', serviceClassName: 'Standard', baseAmount: 3500, currency: 'XOF' },
+            { uuid: 'fare-l2-02', originName: 'Cotonou', destinationName: 'Ouidah', serviceClassName: 'Standard', baseAmount: 1000, currency: 'XOF' },
+            { uuid: 'fare-l2-03', originName: 'Ouidah', destinationName: 'Lomé', serviceClassName: 'Standard', baseAmount: 2500, currency: 'XOF' },
+            { uuid: 'fare-l2-04', originName: 'Grand-Popo', destinationName: 'Lomé', serviceClassName: 'Standard', baseAmount: 1500, currency: 'XOF' },
+        ],
     },
     {
         uuid: 'line-cot-boh-03',
@@ -471,6 +495,11 @@ export const INITIAL_MOCK_LINES: MockLine[] = [
                 physicalStopUuid: 'hub-bohicon',
             },
         ],
+        fares: [
+            { uuid: 'fare-l3-01', originName: 'Cotonou', destinationName: 'Bohicon', serviceClassName: 'Standard', baseAmount: 2000, currency: 'XOF' },
+            { uuid: 'fare-l3-02', originName: 'Cotonou', destinationName: 'Allada', serviceClassName: 'Standard', baseAmount: 1200, currency: 'XOF' },
+            { uuid: 'fare-l3-03', originName: 'Abomey-Calavi', destinationName: 'Bohicon', serviceClassName: 'Standard', baseAmount: 1800, currency: 'XOF' },
+        ],
     },
     {
         uuid: 'line-cot-por-04',
@@ -516,6 +545,9 @@ export const INITIAL_MOCK_LINES: MockLine[] = [
                 status: 'active',
                 physicalStopUuid: 'hub-porto-novo',
             },
+        ],
+        fares: [
+            { uuid: 'fare-l4-01', originName: 'Cotonou', destinationName: 'Porto-Novo', serviceClassName: 'Standard', baseAmount: 800, currency: 'XOF' },
         ],
     },
     {
@@ -602,5 +634,6 @@ export const INITIAL_MOCK_LINES: MockLine[] = [
                 physicalStopUuid: 'hub-natitingou',
             },
         ],
+        fares: [],
     },
 ];
