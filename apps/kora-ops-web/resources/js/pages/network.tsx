@@ -146,12 +146,14 @@ export default function NetworkPage({
         const totalKm = lines.reduce((acc, l) => acc + (l.distanceKm ?? 0), 0);
         const allStopUuids = new Set<string>();
         lines.forEach((l) =>
-            l.stops.forEach((s) => allStopUuids.add(s.physicalStopUuid ?? s.name)),
+            l.stops.forEach((s) =>
+                allStopUuids.add(s.physicalStopUuid ?? s.name),
+            ),
         );
         const bidirectionalRatio = Math.round(
             (lines.filter((l) => l.bidirectional).length /
                 (lines.length || 1)) *
-            100,
+                100,
         );
 
         return {
@@ -193,7 +195,7 @@ export default function NetworkPage({
                 {/* 1. Page Head standardisé */}
                 <div className="kora-page-head cash-reveal mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                     <div>
-                        <div className="kora-breadcrumb mb-2 text-[0.6875rem] text-muted-foreground flex items-center gap-1.5">
+                        <div className="kora-breadcrumb mb-2 flex items-center gap-1.5 text-[0.6875rem] text-muted-foreground">
                             <span>KORA OPS</span>
                             <span>/</span>
                             <span>Exploitation</span>
@@ -238,9 +240,9 @@ export default function NetworkPage({
                             {metrics.activeCount} lignes en exploitation active
                         </h2>
                         <p>
-                            Maillage interurbain desservant{' '}
-                            {metrics.stopsCount} gares et haltes régionales sur
-                            plus de {metrics.totalKm} km de réseau routier.
+                            Maillage interurbain desservant {metrics.stopsCount}{' '}
+                            gares et haltes régionales sur plus de{' '}
+                            {metrics.totalKm} km de réseau routier.
                         </p>
                     </div>
                     <div className="cash-hero-current">
@@ -256,9 +258,9 @@ export default function NetworkPage({
                 </section>
 
                 {/* Grille de cartes KPI légères */}
-                <section className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6 cash-reveal cash-reveal-delay-2">
+                <section className="cash-reveal cash-reveal-delay-2 mb-6 grid grid-cols-2 gap-3.5 lg:grid-cols-4">
                     <div className="rounded-2xl border border-border bg-card p-4 shadow-[0_4px_20px_rgba(0,29,78,0.03)]">
-                        <span className="text-[0.625rem] font-bold text-muted-foreground uppercase flex items-center gap-1.5">
+                        <span className="flex items-center gap-1.5 text-[0.625rem] font-bold text-muted-foreground uppercase">
                             <Route className="size-3.5 text-gold" /> Lignes
                             actives
                         </span>
@@ -274,7 +276,7 @@ export default function NetworkPage({
                     </div>
 
                     <div className="rounded-2xl border border-border bg-card p-4 shadow-[0_4px_20px_rgba(0,29,78,0.03)]">
-                        <span className="text-[0.625rem] font-bold text-muted-foreground uppercase flex items-center gap-1.5">
+                        <span className="flex items-center gap-1.5 text-[0.625rem] font-bold text-muted-foreground uppercase">
                             <MapPin className="size-3.5 text-gold" /> Points de
                             desserte
                         </span>
@@ -287,9 +289,9 @@ export default function NetworkPage({
                     </div>
 
                     <div className="rounded-2xl border border-border bg-card p-4 shadow-[0_4px_20px_rgba(0,29,78,0.03)]">
-                        <span className="text-[0.625rem] font-bold text-muted-foreground uppercase flex items-center gap-1.5">
-                            <ArrowLeftRight className="size-3.5 text-gold" /> Sens
-                            Aller-Retour
+                        <span className="flex items-center gap-1.5 text-[0.625rem] font-bold text-muted-foreground uppercase">
+                            <ArrowLeftRight className="size-3.5 text-gold" />{' '}
+                            Sens Aller-Retour
                         </span>
                         <strong className="mt-2 block text-2xl font-black text-foreground">
                             {metrics.bidirectionalRatio}%
@@ -300,15 +302,14 @@ export default function NetworkPage({
                     </div>
 
                     <div className="rounded-2xl border border-border bg-card p-4 shadow-[0_4px_20px_rgba(0,29,78,0.03)]">
-                        <span className="text-[0.625rem] font-bold text-muted-foreground uppercase flex items-center gap-1.5">
+                        <span className="flex items-center gap-1.5 text-[0.625rem] font-bold text-muted-foreground uppercase">
                             <Globe2 className="size-3.5 text-gold" /> Liaisons
                             internationales
                         </span>
                         <strong className="mt-2 block text-2xl font-black text-foreground">
                             {
-                                lines.filter(
-                                    (l) => l.type === 'internationale',
-                                ).length
+                                lines.filter((l) => l.type === 'internationale')
+                                    .length
                             }
                         </strong>
                         <span className="mt-1 block text-[0.6875rem] text-muted-foreground">
@@ -437,14 +438,14 @@ export default function NetworkPage({
                                             {/* Colonne Ligne */}
                                             <td className="px-4 py-3.5">
                                                 <div className="flex items-center gap-2.5">
-                                                    <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-gold font-black text-xs text-[var(--kora)]">
+                                                    <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-gold text-xs font-black text-[var(--kora)]">
                                                         {line.code}
                                                     </span>
                                                     <div>
-                                                        <span className="font-extrabold text-foreground text-xs block">
+                                                        <span className="block text-xs font-extrabold text-foreground">
                                                             {line.name}
                                                         </span>
-                                                        <span className="text-[0.625rem] text-muted-foreground uppercase font-bold">
+                                                        <span className="text-[0.625rem] font-bold text-muted-foreground uppercase">
                                                             {typeLabels[
                                                                 line.type
                                                             ] ?? line.type}
@@ -459,7 +460,7 @@ export default function NetworkPage({
                                                     <span>
                                                         {line.originCity}
                                                     </span>
-                                                    <ArrowRight className="size-3 text-gold shrink-0" />
+                                                    <ArrowRight className="size-3 shrink-0 text-gold" />
                                                     <span>
                                                         {line.destinationCity}
                                                     </span>
@@ -506,16 +507,16 @@ export default function NetworkPage({
                                             {/* Colonne Distance & Durée */}
                                             <td className="px-4 py-3.5">
                                                 <div className="text-xs">
-                                                    <strong className="text-foreground font-black">
+                                                    <strong className="font-black text-foreground">
                                                         {line.distanceKm !==
-                                                            null
+                                                        null
                                                             ? `${line.distanceKm} km`
                                                             : '—'}
                                                     </strong>
-                                                    <span className="text-[0.6875rem] text-muted-foreground block flex items-center gap-1 mt-0.5">
+                                                    <span className="mt-0.5 block flex items-center gap-1 text-[0.6875rem] text-muted-foreground">
                                                         <Clock className="size-3 text-gold" />
                                                         {line.estimatedDurationMinutes !==
-                                                            null
+                                                        null
                                                             ? `${Math.floor(line.estimatedDurationMinutes / 60)}h${(line.estimatedDurationMinutes % 60).toString().padStart(2, '0')}`
                                                             : '—'}
                                                     </span>
@@ -527,12 +528,12 @@ export default function NetworkPage({
                                                 <KoraStatusBadge
                                                     label={
                                                         statusLabels[
-                                                        line.status
+                                                            line.status
                                                         ] ?? line.status
                                                     }
                                                     tone={
                                                         statusTones[
-                                                        line.status
+                                                            line.status
                                                         ] ?? 'gold'
                                                     }
                                                 />
@@ -557,7 +558,7 @@ export default function NetworkPage({
                                                                     true,
                                                                 );
                                                             }}
-                                                            className="btn btn-ghost p-1.5 size-8 rounded-lg"
+                                                            className="btn btn-ghost size-8 rounded-lg p-1.5"
                                                             title="Éditer dans le Studio Carte"
                                                         >
                                                             <Pencil className="size-3.5 text-foreground" />
@@ -615,7 +616,7 @@ export default function NetworkPage({
                                                                 >
                                                                     <RotateCcw className="size-4" />
                                                                     {line.status ===
-                                                                        'active'
+                                                                    'active'
                                                                         ? 'Archiver la ligne'
                                                                         : 'Réactiver la ligne'}
                                                                 </DropdownMenuItem>
@@ -647,21 +648,21 @@ export default function NetworkPage({
             {/* 6. Drawer d'Aperçu rapide d'une ligne sélectionnée */}
             {selectedLineForView && (
                 <div
-                    className="fixed inset-0 z-40 flex justify-end bg-black/40 backdrop-blur-sm animate-in fade-in"
+                    className="fixed inset-0 z-40 flex animate-in justify-end bg-black/40 backdrop-blur-sm fade-in"
                     onClick={() => setSelectedLineForView(null)}
                 >
                     <div
-                        className="w-full max-w-lg bg-card h-full p-6 shadow-2xl overflow-y-auto flex flex-col justify-between"
+                        className="flex h-full w-full max-w-lg flex-col justify-between overflow-y-auto bg-card p-6 shadow-2xl"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div>
-                            <div className="flex items-center justify-between pb-4 border-b border-border">
+                            <div className="flex items-center justify-between border-b border-border pb-4">
                                 <div className="flex items-center gap-3">
-                                    <span className="grid size-10 place-items-center rounded-xl bg-gold text-[var(--kora)] font-black text-sm">
+                                    <span className="grid size-10 place-items-center rounded-xl bg-gold text-sm font-black text-[var(--kora)]">
                                         {selectedLineForView.code}
                                     </span>
                                     <div>
-                                        <h3 className="font-extrabold text-foreground text-base">
+                                        <h3 className="text-base font-extrabold text-foreground">
                                             {selectedLineForView.name}
                                         </h3>
                                         <span className="text-xs text-muted-foreground">
@@ -671,35 +672,33 @@ export default function NetworkPage({
                                 </div>
                                 <button
                                     type="button"
-                                    onClick={() =>
-                                        setSelectedLineForView(null)
-                                    }
-                                    className="p-1 rounded-lg hover:bg-muted"
+                                    onClick={() => setSelectedLineForView(null)}
+                                    className="rounded-lg p-1 hover:bg-muted"
                                 >
                                     <X className="size-5" />
                                 </button>
                             </div>
 
-                            <div className="py-4 space-y-4">
+                            <div className="space-y-4 py-4">
                                 <div className="grid grid-cols-2 gap-3">
-                                    <div className="p-3 rounded-xl bg-muted/40">
-                                        <small className="text-[0.625rem] text-muted-foreground uppercase font-bold">
+                                    <div className="rounded-xl bg-muted/40 p-3">
+                                        <small className="text-[0.625rem] font-bold text-muted-foreground uppercase">
                                             Distance totale
                                         </small>
                                         <strong className="block text-base font-extrabold text-foreground">
                                             {selectedLineForView.distanceKm !==
-                                                null
+                                            null
                                                 ? `${selectedLineForView.distanceKm} km`
                                                 : '—'}
                                         </strong>
                                     </div>
-                                    <div className="p-3 rounded-xl bg-muted/40">
-                                        <small className="text-[0.625rem] text-muted-foreground uppercase font-bold">
+                                    <div className="rounded-xl bg-muted/40 p-3">
+                                        <small className="text-[0.625rem] font-bold text-muted-foreground uppercase">
                                             Durée estimée
                                         </small>
                                         <strong className="block text-base font-extrabold text-foreground">
                                             {selectedLineForView.estimatedDurationMinutes !==
-                                                null
+                                            null
                                                 ? `${Math.floor(selectedLineForView.estimatedDurationMinutes / 60)}h${(selectedLineForView.estimatedDurationMinutes % 60).toString().padStart(2, '0')}`
                                                 : '—'}
                                         </strong>
@@ -742,10 +741,10 @@ export default function NetworkPage({
                                             (stop, idx) => (
                                                 <div
                                                     key={stop.uuid}
-                                                    className="flex items-center justify-between p-2.5 rounded-xl border border-border/60 bg-muted/20 text-xs"
+                                                    className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/20 p-2.5 text-xs"
                                                 >
                                                     <div className="flex items-center gap-2">
-                                                        <span className="grid size-6 place-items-center rounded-lg bg-gold text-[var(--kora)] font-black text-[10px]">
+                                                        <span className="grid size-6 place-items-center rounded-lg bg-gold text-[10px] font-black text-[var(--kora)]">
                                                             {(idx + 1)
                                                                 .toString()
                                                                 .padStart(
@@ -775,7 +774,7 @@ export default function NetworkPage({
                                 {drawerTab === 'fares' && (
                                     <div className="space-y-2">
                                         {selectedLineForView.fares.length ===
-                                            0 ? (
+                                        0 ? (
                                             <div className="rounded-xl border border-dashed border-border p-6 text-center">
                                                 <p className="text-xs font-bold text-foreground">
                                                     Aucun tarif défini
@@ -801,7 +800,7 @@ export default function NetworkPage({
                                                 (fare) => (
                                                     <div
                                                         key={fare.uuid}
-                                                        className="flex items-center justify-between p-2.5 rounded-xl border border-border/60 bg-muted/20 text-xs"
+                                                        className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/20 p-2.5 text-xs"
                                                     >
                                                         <div>
                                                             <div className="flex items-center gap-1.5 font-bold text-foreground">
@@ -817,7 +816,7 @@ export default function NetworkPage({
                                                                     }
                                                                 </span>
                                                             </div>
-                                                            <span className="text-[0.625rem] text-muted-foreground uppercase font-bold">
+                                                            <span className="text-[0.625rem] font-bold text-muted-foreground uppercase">
                                                                 {
                                                                     fare.serviceClassName
                                                                 }
@@ -829,7 +828,7 @@ export default function NetworkPage({
                                                             )}{' '}
                                                             <small className="text-[0.625rem] font-bold text-muted-foreground">
                                                                 {fare.currency ===
-                                                                    'XOF'
+                                                                'XOF'
                                                                     ? 'FCFA'
                                                                     : fare.currency}
                                                             </small>
@@ -840,24 +839,24 @@ export default function NetworkPage({
                                         )}
                                         {selectedLineForView.fares.length >
                                             0 && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        router.get('/fares')
-                                                    }
-                                                    className="w-full text-center text-[0.6875rem] font-semibold text-gold hover:underline pt-1"
-                                                >
-                                                    Gérer la grille tarifaire
-                                                    complète →
-                                                </button>
-                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    router.get('/fares')
+                                                }
+                                                className="w-full pt-1 text-center text-[0.6875rem] font-semibold text-gold hover:underline"
+                                            >
+                                                Gérer la grille tarifaire
+                                                complète →
+                                            </button>
+                                        )}
                                     </div>
                                 )}
                             </div>
                         </div>
 
                         {permissions.canUpdate && (
-                            <div className="pt-4 border-t border-border flex gap-3">
+                            <div className="flex gap-3 border-t border-border pt-4">
                                 <button
                                     type="button"
                                     onClick={() => {

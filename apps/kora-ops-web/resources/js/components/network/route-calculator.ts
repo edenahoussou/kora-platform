@@ -31,9 +31,7 @@ export function haversineKm(
     const dLon = toRad(lon2 - lon1);
     const a =
         Math.sin(dLat / 2) ** 2 +
-        Math.cos(toRad(lat1)) *
-        Math.cos(toRad(lat2)) *
-        Math.sin(dLon / 2) ** 2;
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return Math.round(earthRadiusKm * c * 10) / 10;
@@ -143,7 +141,10 @@ export async function calculateRoadRoute(
         const cumulative: number[] = [0];
         let runningTotal = 0;
 
-        if (primaryRoute.legs && primaryRoute.legs.length === points.length - 1) {
+        if (
+            primaryRoute.legs &&
+            primaryRoute.legs.length === points.length - 1
+        ) {
             primaryRoute.legs.forEach((leg: { distance: number }) => {
                 const legKm = Math.round(leg.distance / 100) / 10;
                 runningTotal += legKm;
@@ -199,10 +200,7 @@ export async function reverseGeocode(
                 addr.suburb ||
                 'Localité';
             const countryCode = (addr.country_code || 'bj').toUpperCase();
-            const name =
-                data.name ||
-                addr.road ||
-                `Arrêt ${city}`;
+            const name = data.name || addr.road || `Arrêt ${city}`;
 
             return {
                 city,
