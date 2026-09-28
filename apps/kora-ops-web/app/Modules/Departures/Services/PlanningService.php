@@ -97,6 +97,23 @@ class PlanningService
         });
     }
 
+    /**
+     * Ressources modifiables tant que le départ n'est ni parti ni clos.
+     * Les départs publiés avec billets restent éditables : les changements
+     * d'équipage ou de bus sont une réalité opérationnelle avant le départ.
+     */
+    public function resourcesLocked(PlannedDeparture $item): bool
+    {
+        if ($item->state === 'excluded') {
+            return true;
+        }
+        if ($item->departure_id === null) {
+            return $item->scheduled_at->lte(now());
+        }
+
+        return in_array($item->departure->getRawOriginal('status'), ['departed', 'arrived', 'completed', 'cancelled'], true);
+    }
+
     public function protected(PlannedDeparture $item): bool
     {
         if ($item->scheduled_at->lte(now())) {
@@ -166,15 +183,18 @@ class PlanningService
                         Departure::query()->whereKey($item->departure_id)->lockForUpdate()->firstOrFail();
                         $item->unsetRelation('departure');
                     }
-                    if ($item->state === 'excluded' || $this->protected($item)) {
-                        throw ValidationException::withMessages(['departure' => 'Départ protégé : réservation, paiement ou exploitation en cours.']);
-                    }
                     if ($operation === 'exclude') {
+                        if ($item->state === 'excluded' || $this->protected($item)) {
+                            throw ValidationException::withMessages(['departure' => 'Départ protégé : réservation, paiement ou exploitation en cours.']);
+                        }
                         if ($item->departure !== null) {
                             $item->departure->update(['status' => 'cancelled']);
                         }
                         $item->update(['state' => 'excluded', 'is_exception' => true, 'revision' => $item->revision + 1]);
                     } else {
+                        if ($this->resourcesLocked($item)) {
+                            throw ValidationException::withMessages(['departure' => 'Ressources verrouillées : le départ est déjà parti, arrivé ou sa date est passée.']);
+                        }
                         $snapshot = array_replace($item->snapshot, $changes);
                         $this->templates->validateCrew($snapshot);
                         $item->fill($this->recurrence->attributes($snapshot, $item->service_date->toDateString()));

@@ -185,7 +185,6 @@ class PublicationService
         $from = $item->scheduled_at->subMinutes((int) ($item->snapshot['preparation_minutes'] ?? 0));
         $until = $item->arrival_at;
         $people = array_filter([$item->driver_id, $item->secondary_driver_id, $item->conductor_id, $item->mechanic_id]);
-        $conflicts = [];
         if ($item->bus_id === null && $people === []) {
             return [];
         }
@@ -201,9 +200,10 @@ class PublicationService
         $planned = $this->batch !== null ? $this->batch['planned']->filter(fn (PlannedDeparture $other): bool => $other->id !== $item->id && $other->arrival_at->gt($from) && $other->scheduled_at->lt($until->addDay()) && $this->sharesResource($item, $other)) : PlannedDeparture::query()->where('state', '!=', 'excluded')->whereNull('departure_id')
             ->when($item->exists, fn ($q) => $q->where('id', '!=', $item->id))
             ->where('scheduled_at', '<', UtcDateTime::databaseValue($until->addDay(), $item))->where('arrival_at', '>', UtcDateTime::databaseValue($from, $item))->where($matches)->get();
+        $collisions = [];
         foreach ($planned as $other) {
             if ($other->scheduled_at->subMinutes((int) ($other->snapshot['preparation_minutes'] ?? 0))->lt($until)) {
-                $conflicts[] = 'Ressource déjà affectée au départ du '.$other->scheduled_at->setTimezone($other->timezone)->format('d/m H:i').'.';
+                $collisions[] = ['other' => $other, 'published' => false, 'when' => $other->scheduled_at->setTimezone($other->timezone)->format('d/m H:i')];
             }
         }
         $departures = $this->batch !== null ? $this->batch['departures']->filter(fn (Departure $other): bool => $other->id !== $item->departure_id && $this->sharesResource($item, $other)) : Departure::query()->with('plannedOccurrence')->whereIn('status', ['scheduled', 'boarding', 'departed'])
@@ -214,7 +214,41 @@ class PublicationService
             $start = $departure->scheduledDepartureAt()->utc()->addMinutes((int) $departure->delay_minutes);
             $end = $departure->estimated_arrival_at === null ? $start->addDays(7) : CarbonImmutable::instance($departure->estimated_arrival_at)->utc()->addMinutes((int) $departure->delay_minutes);
             if ($start->subMinutes((int) ($departure->plannedOccurrence?->snapshot['preparation_minutes'] ?? 0))->lt($until) && $end->gt($from)) {
-                $conflicts[] = 'Ressource déjà engagée sur un départ publié le '.$start->setTimezone($item->timezone)->format('d/m H:i').'.';
+                $collisions[] = ['other' => $departure, 'published' => true, 'when' => $start->setTimezone($item->timezone)->format('d/m H:i')];
+            }
+        }
+
+        return $this->describeConflicts($item, $collisions);
+    }
+
+    /**
+     * Nomme précisément les ressources en collision (bus, membre + poste).
+     *
+     * @param  list<array{other: PlannedDeparture|Departure, published: bool, when: string}>  $collisions
+     * @return list<string>
+     */
+    private function describeConflicts(PlannedDeparture $item, array $collisions): array
+    {
+        if ($collisions === []) {
+            return [];
+        }
+        $crews = ['driver_id' => 'chauffeur principal', 'secondary_driver_id' => 'chauffeur secondaire', 'conductor_id' => 'convoyeur', 'mechanic_id' => 'mécanicien'];
+        $conflictingBus = $item->bus_id !== null && collect($collisions)->contains(fn (array $c): bool => $c['other']->bus_id === $item->bus_id);
+        $conflictingPeople = array_filter($crews, fn (string $label, string $field): bool => $item->$field !== null && collect($collisions)->contains(fn (array $c): bool => in_array($item->$field, [$c['other']->driver_id, $c['other']->secondary_driver_id, $c['other']->conductor_id, $c['other']->mechanic_id], true)), ARRAY_FILTER_USE_BOTH);
+        $busName = $conflictingBus ? Bus::query()->whereKey($item->bus_id)->value('registration_number') : null;
+        $names = $conflictingPeople !== [] ? User::query()->whereIn('id', array_map(fn (string $field): ?int => $item->$field, array_keys($conflictingPeople)))->pluck('name', 'id') : collect();
+
+        $conflicts = [];
+        foreach ($collisions as $collision) {
+            $other = $collision['other'];
+            $context = $collision['published'] ? 'est déjà engagé sur le départ publié du' : 'est déjà affecté au départ du';
+            if ($item->bus_id !== null && $item->bus_id === $other->bus_id) {
+                $conflicts[] = 'Le bus « '.$busName.' » '.$context.' '.$collision['when'].'.';
+            }
+            foreach ($conflictingPeople as $field => $label) {
+                if (in_array($item->$field, [$other->driver_id, $other->secondary_driver_id, $other->conductor_id, $other->mechanic_id], true)) {
+                    $conflicts[] = ($names[$item->$field] ?? 'Un membre d’équipage').' ('.$label.') '.$context.' '.$collision['when'].'.';
+                }
             }
         }
 

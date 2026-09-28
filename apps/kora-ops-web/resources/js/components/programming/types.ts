@@ -90,6 +90,7 @@ export type PlanningItem = {
     departureUuid: string | null;
     departureStatus: string | null;
     protected: boolean;
+    editable: boolean;
     manual: boolean;
     state: State;
     blockers: string[];
