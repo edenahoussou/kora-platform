@@ -32,8 +32,8 @@ export function haversineKm(
     const a =
         Math.sin(dLat / 2) ** 2 +
         Math.cos(toRad(lat1)) *
-            Math.cos(toRad(lat2)) *
-            Math.sin(dLon / 2) ** 2;
+        Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) ** 2;
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return Math.round(earthRadiusKm * c * 10) / 10;
@@ -93,8 +93,8 @@ export function estimateBusDurationMinutes(
     stopsCount: number,
 ): number {
     if (distanceKm <= 0) {
-return 0;
-}
+        return 0;
+    }
 
     const drivingMinutes = (distanceKm / 60) * 60;
     const intermediateStops = Math.max(0, stopsCount - 2);
@@ -219,4 +219,75 @@ export async function reverseGeocode(
         country: 'BJ',
         label: `Arrêt (${lat.toFixed(3)}, ${lng.toFixed(3)})`,
     };
+}
+
+export type PlaceResult = {
+    label: string;
+    detail: string;
+    city: string;
+    country: string;
+    latitude: number;
+    longitude: number;
+    kind: string;
+};
+
+/** Recherche directe de lieux sur la carte (géocodage avant Nominatim, CEDEAO). */
+export async function searchPlaces(query: string): Promise<PlaceResult[]> {
+    const trimmed = query.trim();
+
+    if (trimmed.length < 3) {
+        return [];
+    }
+
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 4000);
+        const url =
+            `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(trimmed)}` +
+            `&countrycodes=bj,tg,ci,gh,ng,bf,ne&limit=6&accept-language=fr&addressdetails=1`;
+        const res = await fetch(url, {
+            signal: controller.signal,
+            headers: { 'User-Agent': 'KoraPlatform-NetworkStudio/1.0' },
+        });
+        clearTimeout(timeout);
+
+        if (!res.ok) {
+            return [];
+        }
+
+        const data = await res.json();
+
+        return (data as Array<Record<string, unknown>>)
+            .map((item) => {
+                const parts = String(item.display_name || '')
+                    .split(',')
+                    .map((p) => p.trim())
+                    .filter(Boolean);
+                const addr = (item.address || {}) as Record<string, string>;
+
+                return {
+                    label: parts[0] || 'Lieu',
+                    detail: parts.slice(1, 3).join(', '),
+                    city:
+                        addr.city ||
+                        addr.town ||
+                        addr.village ||
+                        addr.municipality ||
+                        addr.county ||
+                        parts[1] ||
+                        'Localité',
+                    country: (addr.country_code || '').toUpperCase() || 'BJ',
+                    latitude: Number(item.lat),
+                    longitude: Number(item.lon),
+                    kind: String(item.type || item.class || 'lieu'),
+                };
+            })
+            .filter(
+                (place) =>
+                    Number.isFinite(place.latitude) &&
+                    Number.isFinite(place.longitude),
+            );
+    } catch {
+        return [];
+    }
 }

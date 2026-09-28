@@ -6,6 +6,7 @@ import {
     ArrowUp,
     Check,
     Clock,
+    Compass,
     Info,
     MapPin,
     Maximize2,
@@ -21,11 +22,12 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import type { MockLine, MockLineStop, MockPhysicalStation } from './network-preview-data';
 import { MOCK_PHYSICAL_STATIONS } from './network-preview-data';
-import type { RouteCalculationResult, RoutePoint } from './route-calculator';
+import type { PlaceResult, RouteCalculationResult, RoutePoint } from './route-calculator';
 import {
     calculateRoadRoute,
     haversineKm,
     reverseGeocode,
+    searchPlaces,
 } from './route-calculator';
 
 let stopIdCounter = 0;
@@ -75,7 +77,9 @@ export function LineCreatorStudio({
     // Recherche de gare
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<MockPhysicalStation[]>([]);
+    const [placeResults, setPlaceResults] = useState<PlaceResult[]>([]);
     const [isSearching, setIsSearching] = useState(false);
+    const [isPlacesLoading, setIsPlacesLoading] = useState(false);
 
     // Arrêt sélectionné / en surbrillance
     const [selectedStopUuid, setSelectedStopUuid] = useState<string | null>(null);
@@ -380,19 +384,24 @@ export function LineCreatorStudio({
         map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
     };
 
-    // Recherche de gares physiques
+    // Recherche de gares physiques + recherche de lieux sur la carte (debounced OSM)
+    const placesSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
     const handleSearchQueryChange = (query: string) => {
         setSearchQuery(query);
+        const trimmed = query.trim();
 
-        if (!query.trim()) {
+        if (!trimmed) {
             setSearchResults([]);
+            setPlaceResults([]);
             setIsSearching(false);
+            setIsPlacesLoading(false);
 
             return;
         }
 
         setIsSearching(true);
-        const lower = query.toLowerCase();
+        const lower = trimmed.toLowerCase();
         const filtered = MOCK_PHYSICAL_STATIONS.filter(
             (st) =>
                 st.name.toLowerCase().includes(lower) ||
@@ -400,6 +409,38 @@ export function LineCreatorStudio({
                 st.code.toLowerCase().includes(lower),
         );
         setSearchResults(filtered);
+
+        // Recherche de lieux OpenStreetMap débounced (respect politique Nominatim ~1 req/s)
+        if (placesSearchTimeoutRef.current) {
+            clearTimeout(placesSearchTimeoutRef.current);
+        }
+
+        if (trimmed.length < 3) {
+            setPlaceResults([]);
+            setIsPlacesLoading(false);
+
+            return;
+        }
+
+        setIsPlacesLoading(true);
+        placesSearchTimeoutRef.current = setTimeout(async () => {
+            try {
+                const results = await searchPlaces(trimmed);
+                setPlaceResults(results);
+            } catch {
+                setPlaceResults([]);
+            } finally {
+                setIsPlacesLoading(false);
+            }
+        }, 600);
+    };
+
+    const clearSearchState = () => {
+        setSearchQuery('');
+        setSearchResults([]);
+        setPlaceResults([]);
+        setIsSearching(false);
+        setIsPlacesLoading(false);
     };
 
     // Ajouter une gare depuis la liste des résultats de recherche
@@ -413,13 +454,29 @@ export function LineCreatorStudio({
             physicalStopUuid: station.uuid,
         });
 
-        setSearchQuery('');
-        setSearchResults([]);
-        setIsSearching(false);
+        clearSearchState();
 
         // Centrer la carte sur la nouvelle gare
         mapInstanceRef.current?.flyTo([station.latitude, station.longitude], 12, {
             duration: 0.8,
+        });
+    };
+
+    // Ajouter un lieu trouvé sur la carte (géocodage OSM) — créera un physical stop au branchement backend
+    const handleAddMapPlace = (place: PlaceResult) => {
+        addStop({
+            name: place.label,
+            city: place.city,
+            country: place.country,
+            latitude: place.latitude,
+            longitude: place.longitude,
+        });
+
+        clearSearchState();
+
+        // Positionner la carte sur le lieu pour ajustement fin du marqueur
+        mapInstanceRef.current?.flyTo([place.latitude, place.longitude], 15, {
+            duration: 0.9,
         });
     };
 
@@ -705,39 +762,88 @@ export function LineCreatorStudio({
                                 <Input
                                     value={searchQuery}
                                     onChange={(e) => handleSearchQueryChange(e.target.value)}
-                                    placeholder="Ajouter une gare (ex: Cotonou, Parakou, Bohicon)..."
+                                    placeholder="Gare, ville ou lieu (ex: Savalou, Zagnanado, Lomé)…"
                                     className="pl-9 text-xs h-10 rounded-xl"
                                 />
                             </div>
 
-                            {/* Dropdown résultats de recherche */}
-                            {isSearching && searchResults.length > 0 && (
-                                <div className="absolute left-0 right-0 top-11 z-30 max-h-56 overflow-y-auto rounded-xl border border-border bg-card p-1 shadow-xl">
-                                    {searchResults.map((station) => (
-                                        <button
-                                            key={station.uuid}
-                                            type="button"
-                                            onClick={() => handleAddPhysicalStation(station)}
-                                            className="w-full flex items-center justify-between p-2.5 rounded-lg text-left text-xs hover:bg-muted transition-colors"
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <span className="grid size-6 place-items-center rounded-md bg-gold/20 text-[var(--kora)]">
-                                                    <MapPin className="size-3.5" />
+                            {/* Dropdown résultats de recherche : gares du réseau + lieux OSM */}
+                            {isSearching &&
+                                (searchResults.length > 0 ||
+                                    placeResults.length > 0 ||
+                                    isPlacesLoading) && (
+                                    <div className="absolute left-0 right-0 top-11 z-30 max-h-72 overflow-y-auto rounded-xl border border-border bg-card p-1 shadow-xl">
+                                        {searchResults.length > 0 && (
+                                            <>
+                                                <span className="block px-2.5 pt-2 pb-1 text-[0.625rem] font-black tracking-widest text-muted-foreground uppercase">
+                                                    Gares du réseau
                                                 </span>
-                                                <div>
-                                                    <strong className="block text-foreground font-semibold">{station.name}</strong>
-                                                    <span className="text-[0.6875rem] text-muted-foreground">
-                                                        {station.city}, {station.country} · {station.code}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <span className="rounded bg-muted px-1.5 py-0.5 text-[0.625rem] font-bold text-muted-foreground">
-                                                + Ajouter
-                                            </span>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
+                                                {searchResults.map((station) => (
+                                                    <button
+                                                        key={station.uuid}
+                                                        type="button"
+                                                        onClick={() => handleAddPhysicalStation(station)}
+                                                        className="w-full flex items-center justify-between p-2.5 rounded-lg text-left text-xs hover:bg-muted transition-colors"
+                                                    >
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="grid size-6 place-items-center rounded-md bg-gold/20 text-[var(--kora)]">
+                                                                <MapPin className="size-3.5" />
+                                                            </span>
+                                                            <div>
+                                                                <strong className="block text-foreground font-semibold">{station.name}</strong>
+                                                                <span className="text-[0.6875rem] text-muted-foreground">
+                                                                    {station.city}, {station.country} · {station.code}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <span className="rounded bg-muted px-1.5 py-0.5 text-[0.625rem] font-bold text-muted-foreground">
+                                                            + Ajouter
+                                                        </span>
+                                                    </button>
+                                                ))}
+                                            </>
+                                        )}
+
+                                        {(placeResults.length > 0 || isPlacesLoading) && (
+                                            <>
+                                                <span className="block px-2.5 pt-2 pb-1 mt-1 border-t border-border/50 text-[0.625rem] font-black tracking-widest text-muted-foreground uppercase">
+                                                    Lieux sur la carte
+                                                </span>
+                                                {isPlacesLoading && placeResults.length === 0 && (
+                                                    <div className="flex items-center gap-2 p-2.5 text-xs text-muted-foreground">
+                                                        <span className="size-3 rounded-full border-2 border-gold border-t-transparent animate-spin" />
+                                                        Recherche de lieux…
+                                                    </div>
+                                                )}
+                                                {placeResults.map((place, index) => (
+                                                    <button
+                                                        key={`${place.latitude}-${place.longitude}-${index}`}
+                                                        type="button"
+                                                        onClick={() => handleAddMapPlace(place)}
+                                                        className="w-full flex items-center justify-between p-2.5 rounded-lg text-left text-xs hover:bg-muted transition-colors"
+                                                    >
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            <span className="grid size-6 shrink-0 place-items-center rounded-md bg-digital/15 text-[var(--digital)]">
+                                                                <Compass className="size-3.5" />
+                                                            </span>
+                                                            <div className="min-w-0">
+                                                                <strong className="block truncate text-foreground font-semibold">
+                                                                    {place.label}
+                                                                </strong>
+                                                                <span className="block truncate text-[0.6875rem] text-muted-foreground">
+                                                                    {place.detail || `${place.city}, ${place.country}`}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[0.625rem] font-bold text-muted-foreground">
+                                                            + Ajouter
+                                                        </span>
+                                                    </button>
+                                                ))}
+                                            </>
+                                        )}
+                                    </div>
+                                )}
                         </div>
 
                         {/* 4. Timeline ordonnée des arrêts */}

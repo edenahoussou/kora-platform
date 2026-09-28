@@ -739,12 +739,14 @@ export default function NetworkPreviewPage({
             )}
 
             {/* 8. Studio Cartographique Interactif Leaflet */}
-            <LineCreatorStudio
-                open={studioOpen}
-                onClose={() => setStudioOpen(false)}
-                onSaveLine={handleSaveLine}
-                initialLine={editingLine}
-            />
+            {studioOpen && (
+                <LineCreatorStudio
+                    open={studioOpen}
+                    onClose={() => setStudioOpen(false)}
+                    onSaveLine={handleSaveLine}
+                    initialLine={editingLine}
+                />
+            )}
         </>
     );
 }
