@@ -47,11 +47,12 @@ type UsersPageProps = {
     };
     temporaryPassword?: string | null;
     otpChallengeUuid?: string | null;
-    flash?: {
-        temporaryPassword?: string;
-        otpChallengeUuid?: string;
-        toast?: { type: string; message: string };
-    };
+};
+
+/** Flash Inertia : racine de l'objet page (`page.flash`), jamais dans `props`. */
+type CredentialsFlash = {
+    temporaryPassword?: string;
+    otpChallengeUuid?: string;
 };
 
 function KpiCard({
@@ -114,9 +115,10 @@ export default function UsersPage({
     permissions = { canManage: false },
     temporaryPassword: propTempPassword,
     otpChallengeUuid: propOtpChallenge,
-    flash,
 }: UsersPageProps) {
-    const pageProps = usePage().props as unknown as UsersPageProps;
+    const page = usePage();
+    const pageProps = page.props as unknown as UsersPageProps;
+    const credentialsFlash = page.flash as CredentialsFlash;
 
     const [query, setQuery] = useState(filters.q ?? '');
     const [selectedRole, setSelectedRole] = useState(filters.role ?? 'all');
@@ -149,13 +151,11 @@ export default function UsersPage({
     const [dismissedSecret, setDismissedSecret] = useState<string | null>(null);
 
     const flashTemp =
-        flash?.temporaryPassword ??
-        pageProps?.flash?.temporaryPassword ??
+        credentialsFlash.temporaryPassword ??
         propTempPassword ??
         pageProps?.temporaryPassword;
     const flashOtp =
-        flash?.otpChallengeUuid ??
-        pageProps?.flash?.otpChallengeUuid ??
+        credentialsFlash.otpChallengeUuid ??
         propOtpChallenge ??
         pageProps?.otpChallengeUuid;
 
@@ -292,8 +292,8 @@ export default function UsersPage({
             {
                 preserveScroll: true,
                 onSuccess: (page) => {
-                    const temp = (page.props as unknown as UsersPageProps).flash
-                        ?.temporaryPassword;
+                    const temp = (page.flash as CredentialsFlash)
+                        .temporaryPassword;
 
                     if (temp) {
                         setCredPassword(temp);
@@ -321,8 +321,8 @@ export default function UsersPage({
             {
                 preserveScroll: true,
                 onSuccess: (page) => {
-                    const challenge = (page.props as unknown as UsersPageProps)
-                        .flash?.otpChallengeUuid;
+                    const challenge = (page.flash as CredentialsFlash)
+                        .otpChallengeUuid;
 
                     if (challenge) {
                         setCredOtp(challenge);
