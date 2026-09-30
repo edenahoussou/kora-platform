@@ -24,6 +24,7 @@ use App\Modules\DynamicPricing\Http\Controllers\TaxRuleController;
 use App\Modules\Expenses\Http\Controllers\ExpenseController;
 use App\Modules\Finance\Http\Controllers\RevenueController;
 use App\Modules\Fiscalization\Http\Controllers\FiscalInvoiceController;
+use App\Modules\Fiscalization\Http\Controllers\FiscalTestInvoiceController;
 use App\Modules\IdentityAccess\Http\Controllers\AgencyController;
 use App\Modules\IdentityAccess\Http\Controllers\TerminalP501Controller;
 use App\Modules\Payments\Http\Controllers\AgencyPaymentAccountController;
@@ -85,6 +86,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('fiscal-invoices/{fiscalInvoice:uuid}/pdf', [FiscalInvoiceController::class, 'pdf'])->name('fiscal-invoices.pdf');
     Route::post('fiscal-invoices/{fiscalInvoice:uuid}/retry', [FiscalInvoiceController::class, 'retry'])->name('fiscal-invoices.retry');
     Route::post('fiscal-invoices/{fiscalInvoice:uuid}/credit', [FiscalInvoiceController::class, 'credit'])->name('fiscal-invoices.credit');
+    Route::get('fiscalization/test-invoices', [FiscalTestInvoiceController::class, 'index'])->name('fiscal-test-invoices.index');
+    Route::post('fiscalization/test-invoices', [FiscalTestInvoiceController::class, 'store'])->name('fiscal-test-invoices.store');
+    Route::get('fiscalization/test-invoices/{run:uuid}/pdf', [FiscalTestInvoiceController::class, 'pdf'])->name('fiscal-test-invoices.pdf');
     Route::get('expenses', [ExpenseController::class, 'index'])->name('expenses.index');
     Route::get('expenses/export', [ExpenseController::class, 'export'])->name('expenses.export');
     Route::post('expenses', [ExpenseController::class, 'store'])->name('expenses.store');

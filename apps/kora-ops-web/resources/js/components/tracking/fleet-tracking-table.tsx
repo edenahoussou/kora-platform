@@ -15,13 +15,7 @@ import type { FleetTrackingSession } from '@/types/tracking';
 import { FleetTrackingBadge, formatAge } from './fleet-tracking-badge';
 
 type SortField =
-    | 'bus'
-    | 'line'
-    | 'conductor'
-    | 'speed'
-    | 'accuracy'
-    | 'age'
-    | 'state';
+    'bus' | 'line' | 'conductor' | 'speed' | 'accuracy' | 'age' | 'state';
 
 type SortDirection = 'asc' | 'desc';
 
@@ -69,7 +63,9 @@ export function FleetTrackingTable({
                     res = a.conductor.name.localeCompare(b.conductor.name);
                     break;
                 case 'speed':
-                    res = (a.position?.speed_kmh ?? -1) - (b.position?.speed_kmh ?? -1);
+                    res =
+                        (a.position?.speed_kmh ?? -1) -
+                        (b.position?.speed_kmh ?? -1);
                     break;
                 case 'accuracy':
                     res =
@@ -99,7 +95,7 @@ export function FleetTrackingTable({
         >
             <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                    <thead className="border-b border-border/60 bg-muted/40 text-[0.625rem] font-black uppercase tracking-wider text-muted-foreground">
+                    <thead className="border-b border-border/60 bg-muted/40 text-[0.625rem] font-black tracking-wider text-muted-foreground uppercase">
                         <tr>
                             <th className="px-4 py-3.5">
                                 <button
@@ -179,10 +175,13 @@ export function FleetTrackingTable({
                     <tbody className="divide-y divide-border/40 font-medium text-foreground">
                         {sortedSessions.length === 0 ? (
                             <tr>
-                                <td colSpan={9} className="py-12 text-center text-muted-foreground">
+                                <td
+                                    colSpan={9}
+                                    className="py-12 text-center text-muted-foreground"
+                                >
                                     <div className="flex flex-col items-center justify-center gap-2">
                                         <Bus className="size-8 text-muted-foreground/40" />
-                                        <span className="font-bold text-xs text-foreground">
+                                        <span className="text-xs font-bold text-foreground">
                                             Aucun véhicule en circulation trouvé
                                         </span>
                                         <span className="text-[0.6875rem]">
@@ -200,16 +199,20 @@ export function FleetTrackingTable({
                                 return (
                                     <tr
                                         key={session.session_uuid}
-                                        className="transition-colors hover:bg-muted/30 group"
+                                        className="group transition-colors hover:bg-muted/30"
                                     >
                                         {/* Bus */}
                                         <td className="px-4 py-3.5">
                                             <div className="flex items-center gap-2">
-                                                <span className="font-mono text-xs font-black tracking-tight text-foreground bg-muted px-2 py-0.5 rounded-md border border-border/50">
-                                                    {session.bus.registration_number}
+                                                <span className="rounded-md border border-border/50 bg-muted px-2 py-0.5 font-mono text-xs font-black tracking-tight text-foreground">
+                                                    {
+                                                        session.bus
+                                                            .registration_number
+                                                    }
                                                 </span>
-                                                <span className="text-[0.625rem] text-muted-foreground truncate max-w-[120px]">
-                                                    {session.bus.model ?? 'Coach'}
+                                                <span className="max-w-[120px] truncate text-[0.625rem] text-muted-foreground">
+                                                    {session.bus.model ??
+                                                        'Coach'}
                                                 </span>
                                             </div>
                                         </td>
@@ -217,16 +220,30 @@ export function FleetTrackingTable({
                                         {/* Line & Departure */}
                                         <td className="px-4 py-3.5">
                                             <div>
-                                                <span className="font-black text-xs text-primary dark:text-gold uppercase tracking-wider">
-                                                    {session.departure.line_code}
+                                                <span className="text-xs font-black tracking-wider text-primary uppercase dark:text-gold">
+                                                    {
+                                                        session.departure
+                                                            .line_code
+                                                    }
                                                 </span>
-                                                {(session.departure.origin || session.departure.destination) && (
-                                                    <p className="text-[0.625rem] text-muted-foreground truncate max-w-[160px]">
-                                                        {session.departure.origin} ➔ {session.departure.destination}
+                                                {(session.departure.origin ||
+                                                    session.departure
+                                                        .destination) && (
+                                                    <p className="max-w-[160px] truncate text-[0.625rem] text-muted-foreground">
+                                                        {
+                                                            session.departure
+                                                                .origin
+                                                        }{' '}
+                                                        ➔{' '}
+                                                        {
+                                                            session.departure
+                                                                .destination
+                                                        }
                                                     </p>
                                                 )}
                                                 <span className="text-[0.5625rem] text-muted-foreground/75">
-                                                    Départ : {session.departure.time}
+                                                    Départ :{' '}
+                                                    {session.departure.time}
                                                 </span>
                                             </div>
                                         </td>
@@ -241,7 +258,10 @@ export function FleetTrackingTable({
                                                 <div className="flex items-center gap-1 text-[0.625rem] text-muted-foreground">
                                                     <Smartphone className="size-2.5" />
                                                     <span className="font-mono">
-                                                        {session.terminal.serial_number ?? session.terminal.type}
+                                                        {session.terminal
+                                                            .serial_number ??
+                                                            session.terminal
+                                                                .type}
                                                     </span>
                                                 </div>
                                             </div>
@@ -260,13 +280,19 @@ export function FleetTrackingTable({
                                         <td className="px-4 py-3.5">
                                             {pos ? (
                                                 <div className="flex items-center gap-1 font-mono text-[0.6875rem] text-foreground">
-                                                    <MapPin className="size-3 text-primary shrink-0" />
+                                                    <MapPin className="size-3 shrink-0 text-primary" />
                                                     <span>
-                                                        {pos.latitude.toFixed(4)}, {pos.longitude.toFixed(4)}
+                                                        {pos.latitude.toFixed(
+                                                            4,
+                                                        )}
+                                                        ,{' '}
+                                                        {pos.longitude.toFixed(
+                                                            4,
+                                                        )}
                                                     </span>
                                                 </div>
                                             ) : (
-                                                <span className="italic text-muted-foreground/60 text-[0.625rem]">
+                                                <span className="text-[0.625rem] text-muted-foreground/60 italic">
                                                     Indisponible
                                                 </span>
                                             )}
@@ -274,23 +300,30 @@ export function FleetTrackingTable({
 
                                         {/* Speed & Heading */}
                                         <td className="px-4 py-3.5">
-                                            {speed !== null && speed !== undefined ? (
+                                            {speed !== null &&
+                                            speed !== undefined ? (
                                                 <div className="flex items-center gap-1.5 font-mono font-bold text-foreground">
-                                                    <Gauge className="size-3 text-digital shrink-0" />
-                                                    <span>{Math.round(speed)} km/h</span>
-                                                    {heading !== null && heading !== undefined && (
-                                                        <span title={`Cap : ${heading}°`}>
-                                                            <Navigation
-                                                                className="size-3 text-muted-foreground"
-                                                                style={{
-                                                                    transform: `rotate(${heading}deg)`,
-                                                                }}
-                                                            />
-                                                        </span>
-                                                    )}
+                                                    <Gauge className="size-3 shrink-0 text-digital" />
+                                                    <span>
+                                                        {Math.round(speed)} km/h
+                                                    </span>
+                                                    {heading !== null &&
+                                                        heading !==
+                                                            undefined && (
+                                                            <span
+                                                                title={`Cap : ${heading}°`}
+                                                            >
+                                                                <Navigation
+                                                                    className="size-3 text-muted-foreground"
+                                                                    style={{
+                                                                        transform: `rotate(${heading}deg)`,
+                                                                    }}
+                                                                />
+                                                            </span>
+                                                        )}
                                                 </div>
                                             ) : (
-                                                <span className="italic text-muted-foreground/60 text-[0.625rem]">
+                                                <span className="text-[0.625rem] text-muted-foreground/60 italic">
                                                     À l'arrêt
                                                 </span>
                                             )}
@@ -298,23 +331,31 @@ export function FleetTrackingTable({
 
                                         {/* Accuracy */}
                                         <td className="px-4 py-3.5">
-                                            {pos?.accuracy_meters !== null && pos?.accuracy_meters !== undefined ? (
+                                            {pos?.accuracy_meters !== null &&
+                                            pos?.accuracy_meters !==
+                                                undefined ? (
                                                 <div className="flex items-center gap-1">
                                                     <span className="font-mono text-xs font-bold text-foreground">
                                                         ± {pos.accuracy_meters}m
                                                     </span>
                                                     <span
                                                         className={`rounded px-1 text-[0.5625rem] font-extrabold uppercase ${
-                                                            pos.quality === 'accurate'
+                                                            pos.quality ===
+                                                            'accurate'
                                                                 ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
                                                                 : 'bg-amber-500/10 text-amber-700 dark:text-amber-400'
                                                         }`}
                                                     >
-                                                        {pos.quality === 'accurate' ? 'Opt.' : 'Dég.'}
+                                                        {pos.quality ===
+                                                        'accurate'
+                                                            ? 'Opt.'
+                                                            : 'Dég.'}
                                                     </span>
                                                 </div>
                                             ) : (
-                                                <span className="text-muted-foreground/60 text-[0.625rem]">—</span>
+                                                <span className="text-[0.625rem] text-muted-foreground/60">
+                                                    —
+                                                </span>
                                             )}
                                         </td>
 
@@ -325,7 +366,9 @@ export function FleetTrackingTable({
                                             </span>
                                             {pos?.recorded_at && (
                                                 <p className="text-[0.5625rem] text-muted-foreground">
-                                                    {new Date(pos.recorded_at).toLocaleTimeString([], {
+                                                    {new Date(
+                                                        pos.recorded_at,
+                                                    ).toLocaleTimeString([], {
                                                         hour: '2-digit',
                                                         minute: '2-digit',
                                                         second: '2-digit',
@@ -340,8 +383,10 @@ export function FleetTrackingTable({
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
-                                                    onClick={() => onSwitchToMap(session)}
-                                                    className="h-7 gap-1 px-2 text-[0.6875rem] font-bold border-border/70 hover:bg-muted"
+                                                    onClick={() =>
+                                                        onSwitchToMap(session)
+                                                    }
+                                                    className="h-7 gap-1 border-border/70 px-2 text-[0.6875rem] font-bold hover:bg-muted"
                                                     title="Afficher ce bus sur la carte"
                                                 >
                                                     <Crosshair className="size-3 text-gold" />
@@ -351,7 +396,9 @@ export function FleetTrackingTable({
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    onClick={() => onSelectSession(session)}
+                                                    onClick={() =>
+                                                        onSelectSession(session)
+                                                    }
                                                     className="h-7 px-2 text-[0.6875rem] font-bold text-primary hover:bg-primary/10"
                                                     title="Ouvrir la fiche télémétrie complète"
                                                 >

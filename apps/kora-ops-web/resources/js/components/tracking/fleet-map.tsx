@@ -67,21 +67,29 @@ const TILES: Record<
 const DEFAULT_CENTER: [number, number] = [7.5, 2.2];
 const DEFAULT_ZOOM = 7;
 
-function buildMarkerHtml(session: FleetTrackingSession, isSelected: boolean): string {
-    const meta = TRACKING_STATE_META[session.state] ?? TRACKING_STATE_META.session_closed;
+function buildMarkerHtml(
+    session: FleetTrackingSession,
+    isSelected: boolean,
+): string {
+    const meta =
+        TRACKING_STATE_META[session.state] ??
+        TRACKING_STATE_META.session_closed;
     const heading = session.position?.heading_degrees ?? 0;
-    const speed = session.position?.speed_kmh ? `${Math.round(session.position.speed_kmh)} km/h` : '';
+    const speed = session.position?.speed_kmh
+        ? `${Math.round(session.position.speed_kmh)} km/h`
+        : '';
     const activeIncidents = countActiveIncidents(session);
 
     return `
         <div class="kora-fleet-marker group cursor-pointer ${isSelected ? 'is-selected ring-4 ring-gold ring-offset-2' : ''}" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
             <div class="relative flex items-center justify-center">
-                ${session.state === 'live'
-            ? `<span class="absolute inline-flex h-10 w-10 animate-ping rounded-full bg-emerald-400/30"></span>`
-            : session.state === 'stale'
-                ? `<span class="absolute inline-flex h-9 w-9 animate-pulse rounded-full bg-amber-400/20"></span>`
-                : ''
-        }
+                ${
+                    session.state === 'live'
+                        ? `<span class="absolute inline-flex h-10 w-10 animate-ping rounded-full bg-emerald-400/30"></span>`
+                        : session.state === 'stale'
+                          ? `<span class="absolute inline-flex h-9 w-9 animate-pulse rounded-full bg-amber-400/20"></span>`
+                          : ''
+                }
                 <div class="relative flex h-8 w-8 items-center justify-center rounded-full shadow-lg transition-transform duration-300 group-hover:scale-110" style="background-color: ${meta.colorHex}; border: 2px solid #ffffff; box-shadow: 0 4px 14px rgba(0,0,0,0.35);">
                     <svg class="h-4 w-4" style="color: #ffffff;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><path d="M9 18h5"/><circle cx="7" cy="18" r="2"/><circle cx="16" cy="18" r="2"/>
@@ -90,19 +98,21 @@ function buildMarkerHtml(session: FleetTrackingSession, isSelected: boolean): st
                 <div style="position: absolute; inset: 0; transform: rotate(${heading}deg); pointer-events: none;">
                     <div style="position: absolute; top: -6px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 6px solid ${meta.colorHex}; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.45));"></div>
                 </div>
-                ${activeIncidents > 0
-            ? `<span class="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-0.5 text-[8px] font-black leading-none text-white border border-white shadow-md z-10">${activeIncidents}</span>`
-            : ''
-        }
+                ${
+                    activeIncidents > 0
+                        ? `<span class="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-0.5 text-[8px] font-black leading-none text-white border border-white shadow-md z-10">${activeIncidents}</span>`
+                        : ''
+                }
             </div>
             <div class="mt-1 flex flex-col items-center pointer-events-none">
                 <span class="rounded-md bg-kora/90 px-1.5 py-0.5 text-[10px] font-extrabold tracking-tight text-white shadow-md border border-white/20 whitespace-nowrap">
                     ${session.bus.registration_number}
                 </span>
-                ${speed
-            ? `<span class="rounded bg-black/75 px-1 text-[8px] font-bold text-amber-300 backdrop-blur-sm -mt-0.5">${speed}</span>`
-            : ''
-        }
+                ${
+                    speed
+                        ? `<span class="rounded bg-black/75 px-1 text-[8px] font-bold text-amber-300 backdrop-blur-sm -mt-0.5">${speed}</span>`
+                        : ''
+                }
             </div>
         </div>
     `;
@@ -189,7 +199,10 @@ export function FleetMap({
         tileLayer.on('tileerror', () => {
             tileErrorCountRef.current += 1;
 
-            if (activeTileTypeRef.current !== 'osm' && tileErrorCountRef.current > 5) {
+            if (
+                activeTileTypeRef.current !== 'osm' &&
+                tileErrorCountRef.current > 5
+            ) {
                 tileLayer.setUrl(TILES.osm.url);
                 activeTileTypeRef.current = 'osm';
                 setActiveTileType('osm');
@@ -227,7 +240,9 @@ export function FleetMap({
 
         if (activeTileType === 'ops') {
             nextUrl = isDarkMode ? TILES.dark.url : TILES.light.url;
-            nextAttr = isDarkMode ? TILES.dark.attribution : TILES.light.attribution;
+            nextAttr = isDarkMode
+                ? TILES.dark.attribution
+                : TILES.light.attribution;
         } else if (osmTileUrl) {
             nextUrl = osmTileUrl;
             nextAttr = osmAttribution || '';
@@ -313,7 +328,10 @@ export function FleetMap({
         });
 
         if (session.position?.latitude && session.position?.longitude) {
-            points.push([session.position.latitude, session.position.longitude]);
+            points.push([
+                session.position.latitude,
+                session.position.longitude,
+            ]);
         }
 
         if (points.length === 0) {
@@ -332,7 +350,10 @@ export function FleetMap({
     const hasPlannedRoute = (selectedSession?.planned_stops?.length ?? 0) >= 2;
     const hasTrajectory = (selectedSession?.recent_positions?.length ?? 0) >= 2;
     const hasMappedIncidents = (selectedSession?.incidents ?? []).some(
-        (i) => i.latitude !== null && i.longitude !== null && i.status !== 'cancelled',
+        (i) =>
+            i.latitude !== null &&
+            i.longitude !== null &&
+            i.status !== 'cancelled',
     );
 
     // Planned route corridor + actual trajectory + incidents when a session is selected
@@ -366,7 +387,9 @@ export function FleetMap({
         incidentMarkersRef.current.forEach((marker) => marker.remove());
         incidentMarkersRef.current = [];
 
-        const selected = sessions.find((s) => s.session_uuid === selectedSessionUuid);
+        const selected = sessions.find(
+            (s) => s.session_uuid === selectedSessionUuid,
+        );
 
         if (!selected) {
             autoFittedSessionRef.current = null;
@@ -380,10 +403,9 @@ export function FleetMap({
             .sort((a, b) => a.order - b.order);
 
         if (showPlannedRoute && plannedStops.length >= 2) {
-            const routeLatLngs: [number, number][] = plannedStops.map((stop) => [
-                stop.latitude,
-                stop.longitude,
-            ]);
+            const routeLatLngs: [number, number][] = plannedStops.map(
+                (stop) => [stop.latitude, stop.longitude],
+            );
 
             corridorRef.current = L.polyline(routeLatLngs, {
                 color: '#f6b000',
@@ -402,7 +424,8 @@ export function FleetMap({
             }).addTo(map);
 
             plannedStops.forEach((stop, index) => {
-                const isTerminus = index === 0 || index === plannedStops.length - 1;
+                const isTerminus =
+                    index === 0 || index === plannedStops.length - 1;
                 const marker = L.circleMarker([stop.latitude, stop.longitude], {
                     radius: isTerminus ? 6 : 4,
                     fillColor: isTerminus ? '#f6b000' : '#ffffff',
@@ -433,14 +456,20 @@ export function FleetMap({
                 const typeMeta = INCIDENT_TYPE_META[incident.type];
                 const dimmed = incident.status === 'resolved';
 
-                const marker = L.marker([incident.latitude, incident.longitude], {
-                    icon: L.divIcon({
-                        html: buildIncidentMarkerHtml(statusMeta.markerColor, dimmed),
-                        className: 'kora-incident-div-icon',
-                        iconSize: [22, 22],
-                        iconAnchor: [11, 11],
-                    }),
-                }).addTo(map);
+                const marker = L.marker(
+                    [incident.latitude, incident.longitude],
+                    {
+                        icon: L.divIcon({
+                            html: buildIncidentMarkerHtml(
+                                statusMeta.markerColor,
+                                dimmed,
+                            ),
+                            className: 'kora-incident-div-icon',
+                            iconSize: [22, 22],
+                            iconAnchor: [11, 11],
+                        }),
+                    },
+                ).addTo(map);
 
                 marker.bindTooltip(
                     `<strong>${typeMeta.label}</strong> • ${statusMeta.label}<br>${incident.description}`,
@@ -451,12 +480,21 @@ export function FleetMap({
             });
 
         // Actual trajectory polyline + breadcrumbs
-        if (showTrajectory && selected.recent_positions && selected.recent_positions.length >= 2) {
+        if (
+            showTrajectory &&
+            selected.recent_positions &&
+            selected.recent_positions.length >= 2
+        ) {
             const sorted = [...selected.recent_positions].sort(
-                (a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime(),
+                (a, b) =>
+                    new Date(a.recorded_at).getTime() -
+                    new Date(b.recorded_at).getTime(),
             );
 
-            const latLngs: [number, number][] = sorted.map((p) => [p.latitude, p.longitude]);
+            const latLngs: [number, number][] = sorted.map((p) => [
+                p.latitude,
+                p.longitude,
+            ]);
 
             const line = L.polyline(latLngs, {
                 color: isDarkMode ? '#4f8edc' : '#0057b8',
@@ -502,7 +540,13 @@ export function FleetMap({
             autoFittedSessionRef.current = selected.session_uuid;
             fitRouteBounds(selected);
         }
-    }, [selectedSessionUuid, sessions, isDarkMode, showPlannedRoute, showTrajectory]);
+    }, [
+        selectedSessionUuid,
+        sessions,
+        isDarkMode,
+        showPlannedRoute,
+        showTrajectory,
+    ]);
 
     // External commands from the detail sheet (locate incident, fit route)
     useEffect(() => {
@@ -512,7 +556,9 @@ export function FleetMap({
             return;
         }
 
-        const selected = sessions.find((s) => s.session_uuid === selectedSessionUuid);
+        const selected = sessions.find(
+            (s) => s.session_uuid === selectedSessionUuid,
+        );
 
         if (mapCommand.kind === 'fitRoute' && selected) {
             fitRouteBounds(selected);
@@ -521,9 +567,13 @@ export function FleetMap({
             mapCommand.latitude !== undefined &&
             mapCommand.longitude !== undefined
         ) {
-            map.flyTo([mapCommand.latitude, mapCommand.longitude], mapCommand.zoom ?? 14, {
-                duration: 0.8,
-            });
+            map.flyTo(
+                [mapCommand.latitude, mapCommand.longitude],
+                mapCommand.zoom ?? 14,
+                {
+                    duration: 0.8,
+                },
+            );
         }
 
         onMapCommandHandled?.();
@@ -540,7 +590,13 @@ export function FleetMap({
 
         const validCoords = sessions
             .filter((s) => s.position?.latitude && s.position?.longitude)
-            .map((s) => [s.position!.latitude, s.position!.longitude] as [number, number]);
+            .map(
+                (s) =>
+                    [s.position!.latitude, s.position!.longitude] as [
+                        number,
+                        number,
+                    ],
+            );
 
         if (validCoords.length === 0) {
             map.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
@@ -565,7 +621,9 @@ export function FleetMap({
             return;
         }
 
-        const selected = sessions.find((s) => s.session_uuid === selectedSessionUuid);
+        const selected = sessions.find(
+            (s) => s.session_uuid === selectedSessionUuid,
+        );
 
         if (selected?.position?.latitude && selected?.position?.longitude) {
             map.flyTo(
@@ -577,7 +635,9 @@ export function FleetMap({
     };
 
     return (
-        <div className={`relative isolate h-full w-full overflow-hidden rounded-2xl border border-border/60 bg-muted/20 ${className ?? ''}`}>
+        <div
+            className={`relative isolate h-full w-full overflow-hidden rounded-2xl border border-border/60 bg-muted/20 ${className ?? ''}`}
+        >
             {/* The Map DOM Container */}
             <div ref={containerRef} className="h-full w-full" />
 
@@ -619,10 +679,11 @@ export function FleetMap({
                                 fitRouteBounds(selectedSession);
                             }
                         }}
-                        className={`h-9 gap-1.5 rounded-xl px-3 text-xs font-bold shadow-lg backdrop-blur ${showPlannedRoute
-                            ? 'border-gold/60 bg-gold/15 text-gold hover:bg-gold/25'
-                            : 'border-border/80 bg-background/90 text-muted-foreground hover:bg-background'
-                            }`}
+                        className={`h-9 gap-1.5 rounded-xl px-3 text-xs font-bold shadow-lg backdrop-blur ${
+                            showPlannedRoute
+                                ? 'border-gold/60 bg-gold/15 text-gold hover:bg-gold/25'
+                                : 'border-border/80 bg-background/90 text-muted-foreground hover:bg-background'
+                        }`}
                         title="Afficher / masquer l'itinéraire prévu (ligne dorée)"
                     >
                         <Route className="size-3.5" />
@@ -635,10 +696,11 @@ export function FleetMap({
                         variant="outline"
                         size="sm"
                         onClick={() => setShowTrajectory((v) => !v)}
-                        className={`h-9 gap-1.5 rounded-xl px-3 text-xs font-bold shadow-lg backdrop-blur ${showTrajectory
-                            ? 'border-[#0057b8]/60 bg-[#0057b8]/15 text-[#0057b8] hover:bg-[#0057b8]/25 dark:border-[#4f8edc]/60 dark:bg-[#4f8edc]/15 dark:text-[#4f8edc] dark:hover:bg-[#4f8edc]/25'
-                            : 'border-border/80 bg-background/90 text-muted-foreground hover:bg-background'
-                            }`}
+                        className={`h-9 gap-1.5 rounded-xl px-3 text-xs font-bold shadow-lg backdrop-blur ${
+                            showTrajectory
+                                ? 'border-[#0057b8]/60 bg-[#0057b8]/15 text-[#0057b8] hover:bg-[#0057b8]/25 dark:border-[#4f8edc]/60 dark:bg-[#4f8edc]/15 dark:text-[#4f8edc] dark:hover:bg-[#4f8edc]/25'
+                                : 'border-border/80 bg-background/90 text-muted-foreground hover:bg-background'
+                        }`}
                         title="Afficher / masquer la trajectoire réelle GPS (ligne bleue)"
                     >
                         <Waypoints className="size-3.5" />
@@ -650,7 +712,9 @@ export function FleetMap({
                     variant="outline"
                     size="icon"
                     onClick={() =>
-                        setActiveTileType((prev) => (prev === 'ops' ? 'osm' : 'ops'))
+                        setActiveTileType((prev) =>
+                            prev === 'ops' ? 'osm' : 'ops',
+                        )
                     }
                     className="size-9 rounded-xl border-border/80 bg-background/90 shadow-lg backdrop-blur hover:bg-background"
                     title={`Style carte : ${activeTileType === 'ops' ? 'Ops Haute Précision' : 'OpenStreetMap standard'}`}
@@ -670,13 +734,13 @@ export function FleetMap({
             </div>
 
             {/* Floating Live Indicator Badge */}
-            <div className="absolute top-4 left-4 z-[400] pointer-events-none flex items-center gap-2">
+            <div className="pointer-events-none absolute top-4 left-4 z-[400] flex items-center gap-2">
                 <div className="flex items-center gap-2 rounded-xl border border-border/80 bg-background/90 px-3 py-1.5 shadow-lg backdrop-blur">
                     <span className="relative flex size-2.5">
                         <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                         <span className="relative inline-flex size-2.5 rounded-full bg-emerald-500" />
                     </span>
-                    <span className="text-[0.6875rem] font-extrabold uppercase tracking-wider text-foreground">
+                    <span className="text-[0.6875rem] font-extrabold tracking-wider text-foreground uppercase">
                         {sessions.length} bus supervisés
                     </span>
                 </div>
@@ -684,39 +748,56 @@ export function FleetMap({
 
             {/* Collapsible Signal Legend */}
             {showLegend && (
-                <div className="absolute bottom-6 left-4 z-[400] rounded-xl border border-border/80 bg-background/95 p-3 shadow-xl backdrop-blur max-w-xs transition-all">
-                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-border/50">
-                        <span className="text-[0.625rem] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                            <Sparkles className="size-3 text-gold" /> Légende des signaux
+                <div className="absolute bottom-6 left-4 z-[400] max-w-xs rounded-xl border border-border/80 bg-background/95 p-3 shadow-xl backdrop-blur transition-all">
+                    <div className="mb-2 flex items-center justify-between border-b border-border/50 pb-2">
+                        <span className="flex items-center gap-1.5 text-[0.625rem] font-black tracking-wider text-muted-foreground uppercase">
+                            <Sparkles className="size-3 text-gold" /> Légende
+                            des signaux
                         </span>
                         <button
                             type="button"
                             onClick={() => setShowLegend(false)}
-                            className="text-muted-foreground hover:text-foreground text-xs"
+                            className="text-xs text-muted-foreground hover:text-foreground"
                         >
                             &times;
                         </button>
                     </div>
                     <div className="space-y-1.5 text-xs">
                         <div className="flex items-center gap-2">
-                            <span className="size-2 rounded-full bg-emerald-500 shrink-0" />
-                            <span className="font-semibold text-[0.6875rem] text-foreground">En direct</span>
-                            <span className="text-[0.625rem] text-muted-foreground ml-auto">&lt; 90s</span>
+                            <span className="size-2 shrink-0 rounded-full bg-emerald-500" />
+                            <span className="text-[0.6875rem] font-semibold text-foreground">
+                                En direct
+                            </span>
+                            <span className="ml-auto text-[0.625rem] text-muted-foreground">
+                                &lt; 90s
+                            </span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="size-2 rounded-full bg-amber-500 shrink-0" />
-                            <span className="font-semibold text-[0.6875rem] text-foreground">Position ancienne</span>
-                            <span className="text-[0.625rem] text-muted-foreground ml-auto">&gt; 90s</span>
+                            <span className="size-2 shrink-0 rounded-full bg-amber-500" />
+                            <span className="text-[0.6875rem] font-semibold text-foreground">
+                                Position ancienne
+                            </span>
+                            <span className="ml-auto text-[0.625rem] text-muted-foreground">
+                                &gt; 90s
+                            </span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="size-2 rounded-full bg-rose-500 shrink-0" />
-                            <span className="font-semibold text-[0.6875rem] text-foreground">GPS indisponible</span>
-                            <span className="text-[0.625rem] text-muted-foreground ml-auto">Perte satellite</span>
+                            <span className="size-2 shrink-0 rounded-full bg-rose-500" />
+                            <span className="text-[0.6875rem] font-semibold text-foreground">
+                                GPS indisponible
+                            </span>
+                            <span className="ml-auto text-[0.625rem] text-muted-foreground">
+                                Perte satellite
+                            </span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="size-2 rounded-full bg-slate-400 shrink-0" />
-                            <span className="font-semibold text-[0.6875rem] text-foreground">Terminal hors ligne</span>
-                            <span className="text-[0.625rem] text-muted-foreground ml-auto">&gt; 5 min</span>
+                            <span className="size-2 shrink-0 rounded-full bg-slate-400" />
+                            <span className="text-[0.6875rem] font-semibold text-foreground">
+                                Terminal hors ligne
+                            </span>
+                            <span className="ml-auto text-[0.625rem] text-muted-foreground">
+                                &gt; 5 min
+                            </span>
                         </div>
                     </div>
 
@@ -726,7 +807,7 @@ export function FleetMap({
                             (hasTrajectory && showTrajectory) ||
                             hasMappedIncidents) && (
                             <div className="mt-3 space-y-1.5 border-t border-border/50 pt-2.5">
-                                <span className="text-[0.625rem] font-black uppercase tracking-wider text-muted-foreground">
+                                <span className="text-[0.625rem] font-black tracking-wider text-muted-foreground uppercase">
                                     Itinéraire du trajet
                                 </span>
                                 {hasPlannedRoute && showPlannedRoute && (
@@ -737,7 +818,7 @@ export function FleetMap({
                                                 borderTop: '3px dashed #f6b000',
                                             }}
                                         />
-                                        <span className="font-semibold text-[0.6875rem] text-foreground">
+                                        <span className="text-[0.6875rem] font-semibold text-foreground">
                                             Itinéraire prévu
                                         </span>
                                     </div>
@@ -746,9 +827,11 @@ export function FleetMap({
                                     <div className="flex items-center gap-2">
                                         <span
                                             className="inline-block w-5 shrink-0"
-                                            style={{ borderTop: '3px solid #0057b8' }}
+                                            style={{
+                                                borderTop: '3px solid #0057b8',
+                                            }}
                                         />
-                                        <span className="font-semibold text-[0.6875rem] text-foreground">
+                                        <span className="text-[0.6875rem] font-semibold text-foreground">
                                             Trajectoire réelle (GPS)
                                         </span>
                                     </div>
@@ -756,9 +839,11 @@ export function FleetMap({
                                 {hasMappedIncidents && (
                                     <div className="flex items-center gap-2">
                                         <span className="flex size-4 shrink-0 items-center justify-center rounded bg-rose-500 text-white">
-                                            <span className="text-[9px] font-black leading-none">!</span>
+                                            <span className="text-[9px] leading-none font-black">
+                                                !
+                                            </span>
                                         </span>
-                                        <span className="font-semibold text-[0.6875rem] text-foreground">
+                                        <span className="text-[0.6875rem] font-semibold text-foreground">
                                             Incident signalé
                                         </span>
                                     </div>

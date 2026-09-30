@@ -25,8 +25,16 @@ class GenerateFiscalInvoicePdfAction
             'creditNotes.emecfInvoice.items',
             'syncAttempts',
         ]);
-        $detail = $this->presenter->detail($invoice, false);
-        $fiscal = $detail['fiscal'];
+
+        return $this->executeDetails($this->presenter->detail($invoice, false));
+    }
+
+    /** @param array<string, mixed> $detail
+     * @return array{content: string, filename: string}
+     */
+    public function executeDetails(array $detail): array
+    {
+        $fiscal = is_array($detail['fiscal'] ?? null) ? $detail['fiscal'] : [];
         $qrSvg = null;
 
         if (($fiscal['qrCode'] ?? null) !== null || ($fiscal['codeMecEfDgi'] ?? null) !== null) {
@@ -81,7 +89,7 @@ class GenerateFiscalInvoicePdfAction
         }
 
         $content = $browsershot->pdf();
-        $reference = (string) ($detail['reference'] ?? $invoice->kora_reference);
+        $reference = (string) ($detail['reference'] ?? $detail['koraReference'] ?? 'facture-fiscale');
 
         return [
             'content' => $content,

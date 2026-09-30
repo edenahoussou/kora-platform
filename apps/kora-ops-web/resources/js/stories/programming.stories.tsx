@@ -129,8 +129,8 @@ const items: PlanningItem[] = Array.from({ length: 28 }, (_, i) => {
         blockers:
             state === 'blocked'
                 ? [
-                    'Le bus BJ 9254 RB est déjà engagé sur un autre départ de 06:30 à 10:00.',
-                ]
+                      'Le bus BJ 9254 RB est déjà engagé sur un autre départ de 06:30 à 10:00.',
+                  ]
                 : [],
         warnings: [
             'Équipage incomplet : affectation possible avant l’exploitation.',
@@ -290,31 +290,31 @@ export const Nuit: Story = { globals: { theme: 'dark' } };
 function EditorPreview({ period = false }: { period?: boolean }) {
     const props = period
         ? {
-            references: refs,
-            templates: [
-                {
-                    uuid: 'coastal-template',
-                    name: 'Ligne côtière · Semaine type',
-                    status: 'available',
-                    revision: 1,
-                    draft: null,
-                    programmeCount: 1,
-                    versions: [
-                        {
-                            uuid: 'version-1',
-                            number: 1,
-                            slots: [base],
-                            createdAt: '2026-08-31',
-                        },
-                    ],
-                },
-            ],
-        }
+              references: refs,
+              templates: [
+                  {
+                      uuid: 'coastal-template',
+                      name: 'Ligne côtière · Semaine type',
+                      status: 'available',
+                      revision: 1,
+                      draft: null,
+                      programmeCount: 1,
+                      versions: [
+                          {
+                              uuid: 'version-1',
+                              number: 1,
+                              slots: [base],
+                              createdAt: '2026-08-31',
+                          },
+                      ],
+                  },
+              ],
+          }
         : {
-            references: refs,
-            template: null,
-            initial: { name: 'Ligne côtière · Semaine type', slots: [base] },
-        };
+              references: refs,
+              template: null,
+              initial: { name: 'Ligne côtière · Semaine type', slots: [base] },
+          };
     const page: ComponentProps<typeof App>['initialPage'] = {
         component: period
             ? 'programming/programme-editor'

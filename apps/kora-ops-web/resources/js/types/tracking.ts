@@ -10,10 +10,7 @@ export type TrackingPositionQuality = 'accurate' | 'degraded';
 export type TrackingPositionSource = 'gps' | 'network' | 'fused' | 'unknown';
 
 export type TrackingPositionStatus =
-    | 'fix'
-    | 'degraded'
-    | 'gps_unavailable'
-    | 'stale';
+    'fix' | 'degraded' | 'gps_unavailable' | 'stale';
 
 export type TrackingPositionPayload = {
     latitude: number;
@@ -82,17 +79,10 @@ export type TrackingCrew = {
 };
 
 export type TrackingIncidentType =
-    | 'breakdown'
-    | 'delay'
-    | 'accident'
-    | 'security'
-    | 'other';
+    'breakdown' | 'delay' | 'accident' | 'security' | 'other';
 
 export type TrackingIncidentStatus =
-    | 'open'
-    | 'in_progress'
-    | 'resolved'
-    | 'cancelled';
+    'open' | 'in_progress' | 'resolved' | 'cancelled';
 
 export type TrackingIncident = {
     uuid: string;

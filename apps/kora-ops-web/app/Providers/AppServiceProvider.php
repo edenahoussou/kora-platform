@@ -18,7 +18,9 @@ use App\Modules\Expenses\Models\Expense;
 use App\Modules\Fiscalization\Models\FiscalInvoice;
 use App\Modules\Fiscalization\Observers\FiscalInvoiceObserver;
 use App\Modules\Fiscalization\Services\DatabaseFiscalSyncAttemptRecorder;
+use App\Modules\Fiscalization\Services\DgiFiscalTestInvoiceGateway;
 use App\Modules\Fiscalization\Services\FiscalSyncAttemptRecorder;
+use App\Modules\Fiscalization\Services\FiscalTestInvoiceGateway;
 use App\Modules\IdentityAccess\Contracts\PassengerIdentityResolver;
 use App\Modules\IdentityAccess\Models\Agency;
 use App\Modules\IdentityAccess\Models\Role;
@@ -80,6 +82,7 @@ class AppServiceProvider extends ServiceProvider
         $this->registerPaymentProviders();
         $this->app->bind(PassengerIdentityResolver::class, PhonePassengerIdentityResolver::class);
         $this->app->bind(FiscalSyncAttemptRecorder::class, DatabaseFiscalSyncAttemptRecorder::class);
+        $this->app->bind(FiscalTestInvoiceGateway::class, DgiFiscalTestInvoiceGateway::class);
         $this->app->bind(SettingsCoordinator::class, DatabaseSettingsCoordinator::class);
     }
 
@@ -154,6 +157,7 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function registerPolicies(): void
     {
+        Gate::define('manage-fiscal-test-invoices', fn (User $user): bool => $user->hasRole('system_admin'));
         Gate::policy(Agency::class, AgencyPolicy::class);
         Gate::policy(AssistedBooking::class, AssistedBookingPolicy::class);
         Gate::policy(BoardingEvent::class, BoardingEventPolicy::class);

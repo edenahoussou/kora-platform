@@ -116,6 +116,10 @@ _Avoid_: Facture billet
 Facture fiscale KORA associee a une reservation et a un paiement confirmes, dont la reference publique, le statut, les tentatives de synchronisation et l'UID MECeF sont suivis dans OPS Web.
 _Avoid_: Réponse fournisseur brute exposée à tous les rôles, facture créée en double
 
+**Facture de test e-MECeF**:
+Facture émise pour vérifier un scénario de l'auto-déclaration auprès de la DGI. Elle sert de preuve de conformité fiscale et reste distincte d'une facture normalisée issue d'une vente KORA BUS.
+_Avoid_: Vente BUS, recette, facture métier
+
 **Tentative de synchronisation fiscale**:
 Enregistrement append-only d'une soumission ou d'une finalisation vers le fournisseur e-MECeF. Le résumé assaini est consultable selon le périmètre Finance ; le payload complet est chiffré et réservé à la DAF et à l'administrateur système.
 _Avoid_: Relance sans idempotence, secret fournisseur dans un export

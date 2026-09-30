@@ -102,7 +102,12 @@ export const metricCards: Record<
 };
 
 /** Ordre d'affichage des KPIs. */
-export const metricOrder: MetricKey[] = ['sales', 'tickets', 'cash', 'departures'];
+export const metricOrder: MetricKey[] = [
+    'sales',
+    'tickets',
+    'cash',
+    'departures',
+];
 
 export const quickActionIcons: Record<string, LucideIcon> = {
     ticket: Ticket,

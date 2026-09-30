@@ -12,7 +12,14 @@ import {
     Table as TableIcon,
     X,
 } from 'lucide-react';
-import { lazy, Suspense, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import {
+    lazy,
+    Suspense,
+    useEffect,
+    useMemo,
+    useState,
+    useSyncExternalStore,
+} from 'react';
 import { toast } from 'sonner';
 import { KoraTooltip } from '@/components/kora-tooltip';
 import type { FleetMapCommand } from '@/components/tracking/fleet-map';
@@ -60,7 +67,9 @@ export default function FleetTrackingPage({
     );
 
     // Selected session for detail panel
-    const [selectedSessionUuid, setSelectedSessionUuid] = useState<string | null>(null);
+    const [selectedSessionUuid, setSelectedSessionUuid] = useState<
+        string | null
+    >(null);
     const [detailOpen, setDetailOpen] = useState(false);
 
     // One-shot map command issued from the detail sheet
@@ -71,9 +80,15 @@ export default function FleetTrackingPage({
 
     // Filter states
     const [searchQuery, setSearchQuery] = useState(initialFilters.q || '');
-    const [selectedLine, setSelectedLine] = useState(initialFilters.line || 'all');
-    const [selectedState, setSelectedState] = useState(initialFilters.state || 'all');
-    const [selectedAgency, setSelectedAgency] = useState(initialFilters.agency || 'all');
+    const [selectedLine, setSelectedLine] = useState(
+        initialFilters.line || 'all',
+    );
+    const [selectedState, setSelectedState] = useState(
+        initialFilters.state || 'all',
+    );
+    const [selectedAgency, setSelectedAgency] = useState(
+        initialFilters.agency || 'all',
+    );
 
     // Auto-refresh & Live tick
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -85,7 +100,7 @@ export default function FleetTrackingPage({
     // `false` côté serveur et à l'hydratation, `true` ensuite — garde la
     // carte (Leaflet) hors du graphe SSR sans risque de mismatch.
     const isHydrated = useSyncExternalStore(
-        () => () => { },
+        () => () => {},
         () => true,
         () => false,
     );
@@ -147,14 +162,18 @@ export default function FleetTrackingPage({
             // Text search
             if (searchQuery.trim()) {
                 const q = searchQuery.toLowerCase();
-                const busMatch = s.bus.registration_number.toLowerCase().includes(q);
+                const busMatch = s.bus.registration_number
+                    .toLowerCase()
+                    .includes(q);
                 const lineMatch =
                     s.departure.line_code?.toLowerCase().includes(q) ||
                     s.departure.line_name?.toLowerCase().includes(q) ||
                     s.departure.origin?.toLowerCase().includes(q) ||
                     s.departure.destination?.toLowerCase().includes(q);
                 const condMatch = s.conductor.name.toLowerCase().includes(q);
-                const termMatch = s.terminal.serial_number?.toLowerCase().includes(q);
+                const termMatch = s.terminal.serial_number
+                    ?.toLowerCase()
+                    .includes(q);
 
                 if (!busMatch && !lineMatch && !condMatch && !termMatch) {
                     return false;
@@ -162,7 +181,10 @@ export default function FleetTrackingPage({
             }
 
             // Line filter
-            if (selectedLine !== 'all' && s.departure.line_code !== selectedLine) {
+            if (
+                selectedLine !== 'all' &&
+                s.departure.line_code !== selectedLine
+            ) {
                 return false;
             }
 
@@ -186,18 +208,21 @@ export default function FleetTrackingPage({
         const live = sessions.filter((s) => s.state === 'live').length;
         const stale = sessions.filter((s) => s.state === 'stale').length;
         const alert = sessions.filter(
-            (s) => s.state === 'gps_unavailable' || s.state === 'terminal_offline',
+            (s) =>
+                s.state === 'gps_unavailable' || s.state === 'terminal_offline',
         ).length;
 
-        const movingBuses = sessions.filter((s) => (s.position?.speed_kmh ?? 0) > 5);
+        const movingBuses = sessions.filter(
+            (s) => (s.position?.speed_kmh ?? 0) > 5,
+        );
         const avgSpeed =
             movingBuses.length > 0
                 ? Math.round(
-                    movingBuses.reduce(
-                        (acc, s) => acc + (s.position?.speed_kmh ?? 0),
-                        0,
-                    ) / movingBuses.length,
-                )
+                      movingBuses.reduce(
+                          (acc, s) => acc + (s.position?.speed_kmh ?? 0),
+                          0,
+                      ) / movingBuses.length,
+                  )
                 : 0;
 
         return { total, live, stale, alert, avgSpeed };
@@ -275,22 +300,25 @@ export default function FleetTrackingPage({
         <>
             <Head title="Suivi de flotte — Exploitation" />
 
-            <div className="flex flex-col gap-5 min-h-[calc(100vh-8rem)]">
+            <div className="flex min-h-[calc(100vh-8rem)] flex-col gap-5">
                 {/* Top Command Bar */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <div className="flex items-center gap-2 text-[0.6875rem] font-bold text-muted-foreground uppercase tracking-widest mb-1.5">
+                        <div className="mb-1.5 flex items-center gap-2 text-[0.6875rem] font-bold tracking-widest text-muted-foreground uppercase">
                             <span>KORA OPS</span>
                             <span>/</span>
                             <span>Exploitation</span>
                             <span>/</span>
-                            <span className="text-primary dark:text-gold">Suivi de flotte</span>
+                            <span className="text-primary dark:text-gold">
+                                Suivi de flotte
+                            </span>
                         </div>
-                        <h1 className="text-[1.8125rem] font-extrabold tracking-[-0.035em] text-foreground flex items-center gap-3">
+                        <h1 className="flex items-center gap-3 text-[1.8125rem] font-extrabold tracking-[-0.035em] text-foreground">
                             Suivi de flotte
                         </h1>
-                        <p className="mt-1 text-xs text-muted-foreground max-w-2xl">
-                            Supervision télémétrique en direct des bus en circulation, de leur vitesse, cap et fraîcheur GPS.
+                        <p className="mt-1 max-w-2xl text-xs text-muted-foreground">
+                            Supervision télémétrique en direct des bus en
+                            circulation, de leur vitesse, cap et fraîcheur GPS.
                         </p>
                     </div>
 
@@ -302,7 +330,7 @@ export default function FleetTrackingPage({
                                 type="button"
                                 onClick={() => setViewMode('hybrid')}
                                 className={cn(
-                                    'rounded-lg p-1.5 text-xs font-bold transition-all flex items-center gap-1.5',
+                                    'flex items-center gap-1.5 rounded-lg p-1.5 text-xs font-bold transition-all',
                                     viewMode === 'hybrid'
                                         ? 'bg-primary text-white shadow-sm'
                                         : 'text-muted-foreground hover:text-foreground',
@@ -310,14 +338,16 @@ export default function FleetTrackingPage({
                                 title="Vue Hybride : Carte + Liste escamotable"
                             >
                                 <SquareSplitHorizontal className="size-4" />
-                                <span className="hidden md:inline">Hybride</span>
+                                <span className="hidden md:inline">
+                                    Hybride
+                                </span>
                             </button>
 
                             <button
                                 type="button"
                                 onClick={() => setViewMode('map')}
                                 className={cn(
-                                    'rounded-lg p-1.5 text-xs font-bold transition-all flex items-center gap-1.5',
+                                    'flex items-center gap-1.5 rounded-lg p-1.5 text-xs font-bold transition-all',
                                     viewMode === 'map'
                                         ? 'bg-primary text-white shadow-sm'
                                         : 'text-muted-foreground hover:text-foreground',
@@ -332,7 +362,7 @@ export default function FleetTrackingPage({
                                 type="button"
                                 onClick={() => setViewMode('table')}
                                 className={cn(
-                                    'rounded-lg p-1.5 text-xs font-bold transition-all flex items-center gap-1.5',
+                                    'flex items-center gap-1.5 rounded-lg p-1.5 text-xs font-bold transition-all',
                                     viewMode === 'table'
                                         ? 'bg-primary text-white shadow-sm'
                                         : 'text-muted-foreground hover:text-foreground',
@@ -340,17 +370,24 @@ export default function FleetTrackingPage({
                                 title="Tableau Opérations complet"
                             >
                                 <TableIcon className="size-4" />
-                                <span className="hidden md:inline">Tableau</span>
+                                <span className="hidden md:inline">
+                                    Tableau
+                                </span>
                             </button>
                         </div>
 
                         {/* Sync Time & Refresh Button */}
                         <div className="flex items-center gap-2">
                             <span
-                                className="text-[0.625rem] text-muted-foreground hidden lg:inline font-mono"
+                                className="hidden font-mono text-[0.625rem] text-muted-foreground lg:inline"
                                 suppressHydrationWarning
                             >
-                                Synchro : {lastSyncTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                Synchro :{' '}
+                                {lastSyncTime.toLocaleTimeString([], {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    second: '2-digit',
+                                })}
                             </span>
 
                             <Button
@@ -362,22 +399,30 @@ export default function FleetTrackingPage({
                                 title="Rafraîchir les positions"
                             >
                                 <RefreshCw
-                                    className={cn('size-3.5', isRefreshing && 'animate-spin text-primary')}
+                                    className={cn(
+                                        'size-3.5',
+                                        isRefreshing &&
+                                            'animate-spin text-primary',
+                                    )}
                                 />
-                                <span className="hidden sm:inline">Rafraîchir</span>
+                                <span className="hidden sm:inline">
+                                    Rafraîchir
+                                </span>
                             </Button>
                         </div>
                     </div>
                 </div>
 
                 {/* Real-time KPI Metric Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
                     {/* Total Active */}
                     <KoraTooltip
                         side="bottom"
                         content={
                             <>
-                                <span className="block font-black">En circulation</span>
+                                <span className="block font-black">
+                                    En circulation
+                                </span>
                                 Sessions de suivi actives : un bus par départ en
                                 cours dont le terminal embarqué a ouvert une
                                 session de tracking.
@@ -388,20 +433,20 @@ export default function FleetTrackingPage({
                             type="button"
                             onClick={() => setSelectedState('all')}
                             className={cn(
-                                'w-full text-left rounded-2xl border p-4 transition-all duration-200 cursor-pointer',
+                                'w-full cursor-pointer rounded-2xl border p-4 text-left transition-all duration-200',
                                 selectedState === 'all'
-                                    ? 'border-primary ring-2 ring-primary/20 bg-primary/5 dark:bg-primary/10 shadow-sm'
+                                    ? 'border-primary bg-primary/5 shadow-sm ring-2 ring-primary/20 dark:bg-primary/10'
                                     : 'border-border/60 bg-card hover:border-border hover:shadow-sm',
                             )}
                         >
-                            <div className="flex items-center justify-between text-muted-foreground mb-1">
-                                <span className="text-[0.625rem] font-black uppercase tracking-wider">
+                            <div className="mb-1 flex items-center justify-between text-muted-foreground">
+                                <span className="text-[0.625rem] font-black tracking-wider uppercase">
                                     En circulation
                                 </span>
                                 <Bus className="size-4 text-primary" />
                             </div>
                             <div className="flex items-baseline gap-2">
-                                <span className="text-2xl font-black font-mono tracking-tight text-foreground">
+                                <span className="font-mono text-2xl font-black tracking-tight text-foreground">
                                     {kpis.total}
                                 </span>
                                 <span className="text-[0.625rem] font-bold text-muted-foreground">
@@ -416,10 +461,12 @@ export default function FleetTrackingPage({
                         side="bottom"
                         content={
                             <>
-                                <span className="block font-black">En direct</span>
-                                Bus dont la dernière trame GPS a été reçue il y a
-                                moins de 90 secondes — position considérée temps
-                                réel.
+                                <span className="block font-black">
+                                    En direct
+                                </span>
+                                Bus dont la dernière trame GPS a été reçue il y
+                                a moins de 90 secondes — position considérée
+                                temps réel.
                             </>
                         }
                     >
@@ -427,20 +474,20 @@ export default function FleetTrackingPage({
                             type="button"
                             onClick={() => setSelectedState('live')}
                             className={cn(
-                                'w-full text-left rounded-2xl border p-4 transition-all duration-200 cursor-pointer',
+                                'w-full cursor-pointer rounded-2xl border p-4 text-left transition-all duration-200',
                                 selectedState === 'live'
-                                    ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-500/5 dark:bg-emerald-500/10 shadow-sm'
+                                    ? 'border-emerald-500 bg-emerald-500/5 shadow-sm ring-2 ring-emerald-500/20 dark:bg-emerald-500/10'
                                     : 'border-border/60 bg-card hover:border-border hover:shadow-sm',
                             )}
                         >
-                            <div className="flex items-center justify-between text-muted-foreground mb-1">
-                                <span className="text-[0.625rem] font-black uppercase tracking-wider">
+                            <div className="mb-1 flex items-center justify-between text-muted-foreground">
+                                <span className="text-[0.625rem] font-black tracking-wider uppercase">
                                     En direct (&lt; 90s)
                                 </span>
                                 <Radio className="size-4 text-emerald-500" />
                             </div>
                             <div className="flex items-baseline gap-2">
-                                <span className="text-2xl font-black font-mono tracking-tight text-emerald-600 dark:text-emerald-400">
+                                <span className="font-mono text-2xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
                                     {kpis.live}
                                 </span>
                                 <span className="text-[0.625rem] font-bold text-emerald-600/70 dark:text-emerald-400/70">
@@ -455,9 +502,11 @@ export default function FleetTrackingPage({
                         side="bottom"
                         content={
                             <>
-                                <span className="block font-black">Signal ancien</span>
-                                Dernière trame GPS reçue il y a plus de 90 s — la
-                                position affichée peut être en retard sur la
+                                <span className="block font-black">
+                                    Signal ancien
+                                </span>
+                                Dernière trame GPS reçue il y a plus de 90 s —
+                                la position affichée peut être en retard sur la
                                 position réelle du bus.
                             </>
                         }
@@ -466,20 +515,20 @@ export default function FleetTrackingPage({
                             type="button"
                             onClick={() => setSelectedState('stale')}
                             className={cn(
-                                'w-full text-left rounded-2xl border p-4 transition-all duration-200 cursor-pointer',
+                                'w-full cursor-pointer rounded-2xl border p-4 text-left transition-all duration-200',
                                 selectedState === 'stale'
-                                    ? 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-500/5 dark:bg-amber-500/10 shadow-sm'
+                                    ? 'border-amber-500 bg-amber-500/5 shadow-sm ring-2 ring-amber-500/20 dark:bg-amber-500/10'
                                     : 'border-border/60 bg-card hover:border-border hover:shadow-sm',
                             )}
                         >
-                            <div className="flex items-center justify-between text-muted-foreground mb-1">
-                                <span className="text-[0.625rem] font-black uppercase tracking-wider">
+                            <div className="mb-1 flex items-center justify-between text-muted-foreground">
+                                <span className="text-[0.625rem] font-black tracking-wider uppercase">
                                     Signal ancien (&gt; 90s)
                                 </span>
                                 <Clock className="size-4 text-amber-500" />
                             </div>
                             <div className="flex items-baseline gap-2">
-                                <span className="text-2xl font-black font-mono tracking-tight text-amber-600 dark:text-amber-400">
+                                <span className="font-mono text-2xl font-black tracking-tight text-amber-600 dark:text-amber-400">
                                     {kpis.stale}
                                 </span>
                                 <span className="text-[0.625rem] font-bold text-amber-600/70 dark:text-amber-400/70">
@@ -494,7 +543,9 @@ export default function FleetTrackingPage({
                         side="bottom"
                         content={
                             <>
-                                <span className="block font-black">Anomalies / Hors ligne</span>
+                                <span className="block font-black">
+                                    Anomalies / Hors ligne
+                                </span>
                                 Terminal P501 injoignable depuis plus de 5 min
                                 (hors ligne) ou GPS sans fix satellite — bus à
                                 contacter ou à surveiller.
@@ -505,20 +556,21 @@ export default function FleetTrackingPage({
                             type="button"
                             onClick={() => setSelectedState('gps_unavailable')}
                             className={cn(
-                                'w-full text-left rounded-2xl border p-4 transition-all duration-200 cursor-pointer',
-                                selectedState === 'gps_unavailable' || selectedState === 'terminal_offline'
-                                    ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-500/5 dark:bg-rose-500/10 shadow-sm'
+                                'w-full cursor-pointer rounded-2xl border p-4 text-left transition-all duration-200',
+                                selectedState === 'gps_unavailable' ||
+                                    selectedState === 'terminal_offline'
+                                    ? 'border-rose-500 bg-rose-500/5 shadow-sm ring-2 ring-rose-500/20 dark:bg-rose-500/10'
                                     : 'border-border/60 bg-card hover:border-border hover:shadow-sm',
                             )}
                         >
-                            <div className="flex items-center justify-between text-muted-foreground mb-1">
-                                <span className="text-[0.625rem] font-black uppercase tracking-wider">
+                            <div className="mb-1 flex items-center justify-between text-muted-foreground">
+                                <span className="text-[0.625rem] font-black tracking-wider uppercase">
                                     Anomalies / Hors ligne
                                 </span>
                                 <AlertOctagon className="size-4 text-rose-500" />
                             </div>
                             <div className="flex items-baseline gap-2">
-                                <span className="text-2xl font-black font-mono tracking-tight text-rose-600 dark:text-rose-400">
+                                <span className="font-mono text-2xl font-black tracking-tight text-rose-600 dark:text-rose-400">
                                     {kpis.alert}
                                 </span>
                                 <span className="text-[0.625rem] font-bold text-rose-600/70 dark:text-rose-400/70">
@@ -533,22 +585,24 @@ export default function FleetTrackingPage({
                         side="bottom"
                         content={
                             <>
-                                <span className="block font-black">Vitesse moyenne de flotte</span>
+                                <span className="block font-black">
+                                    Vitesse moyenne de flotte
+                                </span>
                                 Σ vitesses instantanées GPS ÷ nombre de bus en
                                 mouvement (&gt; 5 km/h). Les bus à l'arrêt sont
                                 exclus du calcul.
                             </>
                         }
                     >
-                        <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm col-span-2 sm:col-span-1 h-full">
-                            <div className="flex items-center justify-between text-muted-foreground mb-1">
-                                <span className="text-[0.625rem] font-black uppercase tracking-wider">
+                        <div className="col-span-2 h-full rounded-2xl border border-border/60 bg-card p-4 shadow-sm sm:col-span-1">
+                            <div className="mb-1 flex items-center justify-between text-muted-foreground">
+                                <span className="text-[0.625rem] font-black tracking-wider uppercase">
                                     Vitesse moyenne
                                 </span>
                                 <Gauge className="size-4 text-digital" />
                             </div>
                             <div className="flex items-baseline gap-2">
-                                <span className="text-2xl font-black font-mono tracking-tight text-foreground">
+                                <span className="font-mono text-2xl font-black tracking-tight text-foreground">
                                     {kpis.avgSpeed}
                                 </span>
                                 <span className="text-[0.625rem] font-bold text-muted-foreground">
@@ -560,29 +614,37 @@ export default function FleetTrackingPage({
                 </div>
 
                 {/* Persistent Filter Bar */}
-                <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm flex flex-col md:flex-row items-stretch md:items-center gap-2.5">
+                <div className="flex flex-col items-stretch gap-2.5 rounded-2xl border border-border/60 bg-card p-3 shadow-sm md:flex-row md:items-center">
                     {/* Search */}
                     <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                        <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Rechercher par immatriculation, ligne, trajet ou convoyeur…"
-                            className="h-10 pl-9 pr-3 rounded-xl bg-background border-border/60 text-xs focus-visible:ring-1 focus-visible:ring-primary"
+                            className="h-10 rounded-xl border-border/60 bg-background pr-3 pl-9 text-xs focus-visible:ring-1 focus-visible:ring-primary"
                         />
                     </div>
 
                     {/* Line Filter */}
-                    <div className="w-full md:w-52 shrink-0">
-                        <Select value={selectedLine} onValueChange={setSelectedLine}>
-                            <SelectTrigger className="h-10 rounded-xl bg-background border-border/60 text-xs font-medium">
+                    <div className="w-full shrink-0 md:w-52">
+                        <Select
+                            value={selectedLine}
+                            onValueChange={setSelectedLine}
+                        >
+                            <SelectTrigger className="h-10 rounded-xl border-border/60 bg-background text-xs font-medium">
                                 <SelectValue placeholder="Toutes les lignes" />
                             </SelectTrigger>
                             <SelectContent className="z-[600]">
-                                <SelectItem value="all">Toutes les lignes</SelectItem>
+                                <SelectItem value="all">
+                                    Toutes les lignes
+                                </SelectItem>
                                 {lines.map((line) => (
-                                    <SelectItem key={line.uuid} value={line.code}>
+                                    <SelectItem
+                                        key={line.uuid}
+                                        value={line.code}
+                                    >
                                         {line.code} — {line.name}
                                     </SelectItem>
                                 ))}
@@ -591,32 +653,53 @@ export default function FleetTrackingPage({
                     </div>
 
                     {/* State Filter */}
-                    <div className="w-full md:w-48 shrink-0">
-                        <Select value={selectedState} onValueChange={setSelectedState}>
-                            <SelectTrigger className="h-10 rounded-xl bg-background border-border/60 text-xs font-medium">
+                    <div className="w-full shrink-0 md:w-48">
+                        <Select
+                            value={selectedState}
+                            onValueChange={setSelectedState}
+                        >
+                            <SelectTrigger className="h-10 rounded-xl border-border/60 bg-background text-xs font-medium">
                                 <SelectValue placeholder="Tous les états" />
                             </SelectTrigger>
                             <SelectContent className="z-[600]">
-                                <SelectItem value="all">Tous les signaux</SelectItem>
-                                <SelectItem value="live">En direct (&lt; 90s)</SelectItem>
-                                <SelectItem value="stale">Position ancienne</SelectItem>
-                                <SelectItem value="gps_unavailable">GPS indisponible</SelectItem>
-                                <SelectItem value="terminal_offline">Terminal hors ligne</SelectItem>
+                                <SelectItem value="all">
+                                    Tous les signaux
+                                </SelectItem>
+                                <SelectItem value="live">
+                                    En direct (&lt; 90s)
+                                </SelectItem>
+                                <SelectItem value="stale">
+                                    Position ancienne
+                                </SelectItem>
+                                <SelectItem value="gps_unavailable">
+                                    GPS indisponible
+                                </SelectItem>
+                                <SelectItem value="terminal_offline">
+                                    Terminal hors ligne
+                                </SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
 
                     {/* Agency Filter (if authorized) */}
                     {canViewNetwork && agencies.length > 0 && (
-                        <div className="w-full md:w-48 shrink-0">
-                            <Select value={selectedAgency} onValueChange={setSelectedAgency}>
-                                <SelectTrigger className="h-10 rounded-xl bg-background border-border/60 text-xs font-medium">
+                        <div className="w-full shrink-0 md:w-48">
+                            <Select
+                                value={selectedAgency}
+                                onValueChange={setSelectedAgency}
+                            >
+                                <SelectTrigger className="h-10 rounded-xl border-border/60 bg-background text-xs font-medium">
                                     <SelectValue placeholder="Toutes les agences" />
                                 </SelectTrigger>
                                 <SelectContent className="z-[600]">
-                                    <SelectItem value="all">Toutes les agences</SelectItem>
+                                    <SelectItem value="all">
+                                        Toutes les agences
+                                    </SelectItem>
                                     {agencies.map((agency) => (
-                                        <SelectItem key={agency.uuid} value={agency.uuid}>
+                                        <SelectItem
+                                            key={agency.uuid}
+                                            value={agency.uuid}
+                                        >
                                             {agency.name}
                                         </SelectItem>
                                     ))}
@@ -626,7 +709,10 @@ export default function FleetTrackingPage({
                     )}
 
                     {/* Reset Filters */}
-                    {(searchQuery || selectedLine !== 'all' || selectedState !== 'all' || selectedAgency !== 'all') && (
+                    {(searchQuery ||
+                        selectedLine !== 'all' ||
+                        selectedState !== 'all' ||
+                        selectedAgency !== 'all') && (
                         <Button
                             variant="ghost"
                             size="sm"
@@ -636,28 +722,30 @@ export default function FleetTrackingPage({
                                 setSelectedState('all');
                                 setSelectedAgency('all');
                             }}
-                            className="h-10 px-3 text-xs font-bold text-muted-foreground hover:text-foreground shrink-0"
+                            className="h-10 shrink-0 px-3 text-xs font-bold text-muted-foreground hover:text-foreground"
                         >
-                            <X className="size-3.5 mr-1" />
+                            <X className="mr-1 size-3.5" />
                             Effacer
                         </Button>
                     )}
                 </div>
 
                 {/* Main Views Container */}
-                <div className="flex-1 min-h-[580px] lg:min-h-[640px] flex">
+                <div className="flex min-h-[580px] flex-1 lg:min-h-[640px]">
                     {/* View: Hybrid Dispatch (Side Panel + Map) */}
                     {viewMode === 'hybrid' && (
-                        <div className="flex w-full h-[640px] lg:h-[720px] rounded-2xl overflow-hidden border border-border/60 shadow-sm bg-card">
+                        <div className="flex h-[640px] w-full overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm lg:h-[720px]">
                             <FleetSidePanel
                                 sessions={filteredSessions}
                                 selectedSessionUuid={selectedSessionUuid}
                                 onSelectSession={handleSelectSession}
                                 collapsed={sidePanelCollapsed}
-                                onToggleCollapse={() => setSidePanelCollapsed((prev) => !prev)}
+                                onToggleCollapse={() =>
+                                    setSidePanelCollapsed((prev) => !prev)
+                                }
                             />
 
-                            <div className="relative flex-1 h-full min-w-0">
+                            <div className="relative h-full min-w-0 flex-1">
                                 {sessions.length === 0 && (
                                     <div className="pointer-events-none absolute inset-0 z-[410] flex items-center justify-center p-6">
                                         <div className="rounded-2xl border border-border/70 bg-background/90 px-6 py-4 text-center shadow-xl backdrop-blur">
@@ -665,7 +753,10 @@ export default function FleetTrackingPage({
                                                 Aucun bus en circulation
                                             </p>
                                             <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-                                                Une session de suivi s'ouvre automatiquement au départ effectif d'un bus dont le terminal P501 est actif.
+                                                Une session de suivi s'ouvre
+                                                automatiquement au départ
+                                                effectif d'un bus dont le
+                                                terminal P501 est actif.
                                             </p>
                                         </div>
                                     </div>
@@ -677,7 +768,7 @@ export default function FleetTrackingPage({
 
                     {/* View: Full Map */}
                     {viewMode === 'map' && (
-                        <div className="relative w-full h-[640px] lg:h-[720px] rounded-2xl overflow-hidden border border-border/60 shadow-sm">
+                        <div className="relative h-[640px] w-full overflow-hidden rounded-2xl border border-border/60 shadow-sm lg:h-[720px]">
                             {sessions.length === 0 && (
                                 <div className="pointer-events-none absolute inset-0 z-[410] flex items-center justify-center p-6">
                                     <div className="rounded-2xl border border-border/70 bg-background/90 px-6 py-4 text-center shadow-xl backdrop-blur">
@@ -685,7 +776,10 @@ export default function FleetTrackingPage({
                                             Aucun bus en circulation
                                         </p>
                                         <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-                                            Une session de suivi s'ouvre automatiquement au départ effectif d'un bus dont le terminal P501 est actif.
+                                            Une session de suivi s'ouvre
+                                            automatiquement au départ effectif
+                                            d'un bus dont le terminal P501 est
+                                            actif.
                                         </p>
                                     </div>
                                 </div>

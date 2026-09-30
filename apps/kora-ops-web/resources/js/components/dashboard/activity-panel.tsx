@@ -108,9 +108,7 @@ export function ActivityPanel({ activity, periodLabel }: ActivityPanelProps) {
                             <Cell
                                 key={point.label}
                                 fill={
-                                    point.isBest
-                                        ? 'var(--gold)'
-                                        : 'var(--kora)'
+                                    point.isBest ? 'var(--gold)' : 'var(--kora)'
                                 }
                             />
                         ))}
