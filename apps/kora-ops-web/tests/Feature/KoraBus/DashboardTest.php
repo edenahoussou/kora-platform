@@ -123,7 +123,7 @@ it('counts issued tickets and departures of the period', function (): void {
         'bus_id' => $bus->id,
         'departure_date' => now()->toDateString(),
         'departure_time' => '18:00',
-        'scheduled_at' => now()->addHours(3),
+        'scheduled_at' => now()->startOfDay()->addHours(12),
         'status' => 'scheduled',
     ]);
 
