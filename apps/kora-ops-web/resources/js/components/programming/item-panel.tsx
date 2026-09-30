@@ -308,10 +308,10 @@ export function ItemPanel({
                                                         occupancyPct >= 70
                                                         ? 'text-emerald-600 dark:text-emerald-400'
                                                         : occupancyPct !==
-                                                            null &&
+                                                                null &&
                                                             occupancyPct >= 30
-                                                            ? 'text-gold'
-                                                            : 'text-digital',
+                                                          ? 'text-gold'
+                                                          : 'text-digital',
                                                 )}
                                             >
                                                 {occupancyPct !== null
@@ -341,7 +341,7 @@ export function ItemPanel({
                                                 new Date(
                                                     item.scheduledAt,
                                                 ).getTime() +
-                                                minutes * 60000,
+                                                    minutes * 60000,
                                             );
                                             const localDate =
                                                 new Intl.DateTimeFormat(
@@ -353,7 +353,7 @@ export function ItemPanel({
                                                     new Date(
                                                         item.date,
                                                     ).getTime()) /
-                                                86400000,
+                                                    86400000,
                                             );
                                             const first = i === 0;
                                             const last =
@@ -376,8 +376,8 @@ export function ItemPanel({
                                                             first
                                                                 ? 'border-gold'
                                                                 : last
-                                                                    ? 'border-kora dark:border-gold'
-                                                                    : 'border-border',
+                                                                  ? 'border-kora dark:border-gold'
+                                                                  : 'border-border',
                                                         )}
                                                     >
                                                         {(first || last) && (
@@ -405,8 +405,8 @@ export function ItemPanel({
                                                                 {first
                                                                     ? 'Embarquement'
                                                                     : last
-                                                                        ? 'Destination'
-                                                                        : 'Arrêt intermédiaire'}
+                                                                      ? 'Destination'
+                                                                      : 'Arrêt intermédiaire'}
                                                             </p>
                                                         </div>
                                                         <p className="shrink-0 font-mono text-sm font-bold text-foreground tabular-nums">
@@ -683,7 +683,7 @@ export function ItemPanel({
                                             className={cn(
                                                 'gap-2',
                                                 item.state !== 'ready' &&
-                                                'flex-1',
+                                                    'flex-1',
                                             )}
                                         >
                                             <Link
@@ -746,8 +746,8 @@ export function ItemPanel({
                         {api.busy
                             ? 'Traitement en cours…'
                             : confirm === 'publish'
-                                ? 'Confirmer la publication'
-                                : 'Confirmer l’exclusion'}
+                              ? 'Confirmer la publication'
+                              : 'Confirmer l’exclusion'}
                     </PrimaryButton>
                 }
             >

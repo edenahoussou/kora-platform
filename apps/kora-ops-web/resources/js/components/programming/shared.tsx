@@ -48,13 +48,13 @@ export function ProgrammingButton({
             className={cn(
                 'h-10 rounded-[10px] px-4 text-xs font-extrabold shadow-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-gold/40 active:scale-[0.98]',
                 variant === 'default' &&
-                'bg-gold text-kora shadow-[0_4px_14px_rgba(246,176,0,0.22)] hover:bg-gold/90',
+                    'bg-gold text-kora shadow-[0_4px_14px_rgba(246,176,0,0.22)] hover:bg-gold/90',
                 (variant === 'outline' || variant === 'secondary') &&
-                'border border-border bg-card text-foreground hover:border-gold/60 hover:bg-muted/40 hover:text-foreground dark:bg-card dark:hover:bg-muted/30',
+                    'border border-border bg-card text-foreground hover:border-gold/60 hover:bg-muted/40 hover:text-foreground dark:bg-card dark:hover:bg-muted/30',
                 variant === 'ghost' &&
-                'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+                    'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
                 variant === 'destructive' &&
-                'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+                    'bg-destructive text-destructive-foreground hover:bg-destructive/90',
                 size === 'icon' && 'size-10 shrink-0 p-0',
                 size === 'sm' && 'h-9 px-3 text-xs',
                 className,
@@ -530,7 +530,7 @@ export function SelectField({
                                                 ? 'bg-gold/[0.08] text-foreground ring-1 ring-gold/20'
                                                 : 'text-foreground/90',
                                             o.disabled &&
-                                            'cursor-not-allowed opacity-40 hover:translate-x-0 hover:bg-transparent',
+                                                'cursor-not-allowed opacity-40 hover:translate-x-0 hover:bg-transparent',
                                         )}
                                         onClick={() => {
                                             onChange(o.uuid);
@@ -923,8 +923,8 @@ export function FillGauge({
         pct >= 70
             ? 'text-emerald-600 dark:text-emerald-400'
             : pct >= 30
-                ? 'text-gold'
-                : 'text-digital';
+              ? 'text-gold'
+              : 'text-digital';
 
     return (
         <div className={cn('flex items-center gap-2', className)}>
@@ -985,10 +985,10 @@ export function OccupancyRing({
         pct === null
             ? 'stroke-white/20'
             : pct >= 70
-                ? 'stroke-emerald-400'
-                : pct >= 30
-                    ? 'stroke-gold'
-                    : 'stroke-sky-300';
+              ? 'stroke-emerald-400'
+              : pct >= 30
+                ? 'stroke-gold'
+                : 'stroke-sky-300';
 
     return (
         <div

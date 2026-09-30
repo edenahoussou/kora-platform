@@ -717,7 +717,8 @@ export default function SettingsPage({
 
     const value = (
         key: string,
-    ): FormScalar | number[] | Record<string, number> | undefined => form.data.values[key];
+    ): FormScalar | number[] | Record<string, number> | undefined =>
+        form.data.values[key];
     const error = (key: string): string | undefined => {
         const errors = form.errors as Record<string, string | undefined>;
 
@@ -763,7 +764,8 @@ export default function SettingsPage({
     }[group];
     const initialValue = (
         key: string,
-    ): FormScalar | number[] | Record<string, number> | undefined => initialValues[key];
+    ): FormScalar | number[] | Record<string, number> | undefined =>
+        initialValues[key];
     const needsConfirmation =
         group === 'operations' &&
         [
@@ -822,7 +824,7 @@ export default function SettingsPage({
                         value={String(value(definition.key) ?? '')}
                         configured={Boolean(
                             (snapshot.values as Record<string, unknown>)[
-                            definition.key
+                                definition.key
                             ],
                         )}
                         multiline={definition.multiline}
@@ -857,7 +859,7 @@ export default function SettingsPage({
                     showConfigured={definition.showConfigured}
                     value={
                         value(definition.key) as
-                        string | number | null | undefined
+                            string | number | null | undefined
                     }
                     type={definition.type}
                     suffix={definition.suffix}
@@ -1275,30 +1277,69 @@ export default function SettingsPage({
                         <SettingsField
                             label="Rappel avant départ 1"
                             hint="Premier rappel Passager, initialisé à 24 h."
-                            value={(value('passengerDepartureReminderHours') as number[])[0] ?? 24}
+                            value={
+                                (
+                                    value(
+                                        'passengerDepartureReminderHours',
+                                    ) as number[]
+                                )[0] ?? 24
+                            }
                             type="number"
                             suffix="h"
                             disabled={!permissions.canManage}
-                            onChange={(nextValue) => setValue('passengerDepartureReminderHours', [Number(nextValue), ...((value('passengerDepartureReminderHours') as number[]).slice(1))])}
+                            onChange={(nextValue) =>
+                                setValue('passengerDepartureReminderHours', [
+                                    Number(nextValue),
+                                    ...(
+                                        value(
+                                            'passengerDepartureReminderHours',
+                                        ) as number[]
+                                    ).slice(1),
+                                ])
+                            }
                         />
                         <SettingsField
                             label="Rappel avant départ 2"
                             hint="Second rappel Passager, initialisé à 2 h."
-                            value={(value('passengerDepartureReminderHours') as number[])[1] ?? 2}
+                            value={
+                                (
+                                    value(
+                                        'passengerDepartureReminderHours',
+                                    ) as number[]
+                                )[1] ?? 2
+                            }
                             type="number"
                             suffix="h"
                             disabled={!permissions.canManage}
-                            onChange={(nextValue) => setValue('passengerDepartureReminderHours', [(value('passengerDepartureReminderHours') as number[])[0] ?? 24, Number(nextValue)])}
+                            onChange={(nextValue) =>
+                                setValue('passengerDepartureReminderHours', [
+                                    (
+                                        value(
+                                            'passengerDepartureReminderHours',
+                                        ) as number[]
+                                    )[0] ?? 24,
+                                    Number(nextValue),
+                                ])
+                            }
                         />
                         <SettingsField
                             label="Seuil de retard Passager"
                             hint="Le Passager est notifié à partir de ce retard."
-                            value={value('passengerDelayThresholdMinutes') as number}
+                            value={
+                                value(
+                                    'passengerDelayThresholdMinutes',
+                                ) as number
+                            }
                             type="number"
                             suffix="min"
                             disabled={!permissions.canManage}
                             error={error('passengerDelayThresholdMinutes')}
-                            onChange={(nextValue) => setNumber('passengerDelayThresholdMinutes', nextValue)}
+                            onChange={(nextValue) =>
+                                setNumber(
+                                    'passengerDelayThresholdMinutes',
+                                    nextValue,
+                                )
+                            }
                         />
                     </div>
                 </SettingsSection>
@@ -1315,77 +1356,135 @@ export default function SettingsPage({
                             suffix="s"
                             disabled={!permissions.canManage}
                             error={error('trackingStaleAfterSeconds')}
-                            onChange={(nextValue) => setNumber('trackingStaleAfterSeconds', nextValue)}
+                            onChange={(nextValue) =>
+                                setNumber(
+                                    'trackingStaleAfterSeconds',
+                                    nextValue,
+                                )
+                            }
                         />
                         <SettingsField
                             label="Terminal hors ligne après"
                             hint="Sans activité du P501 depuis ce délai, la session est signalée hors ligne."
-                            value={value('trackingTerminalOfflineAfterSeconds') as number}
+                            value={
+                                value(
+                                    'trackingTerminalOfflineAfterSeconds',
+                                ) as number
+                            }
                             type="number"
                             suffix="s"
                             disabled={!permissions.canManage}
                             error={error('trackingTerminalOfflineAfterSeconds')}
-                            onChange={(nextValue) => setNumber('trackingTerminalOfflineAfterSeconds', nextValue)}
+                            onChange={(nextValue) =>
+                                setNumber(
+                                    'trackingTerminalOfflineAfterSeconds',
+                                    nextValue,
+                                )
+                            }
                         />
                         <SettingsField
                             label="Précision dégradée au-delà de"
                             hint="Rayon d’incertitude GPS à partir duquel une position est marquée dégradée."
-                            value={value('trackingDegradedAccuracyMeters') as number}
+                            value={
+                                value(
+                                    'trackingDegradedAccuracyMeters',
+                                ) as number
+                            }
                             type="number"
                             suffix="m"
                             disabled={!permissions.canManage}
                             error={error('trackingDegradedAccuracyMeters')}
-                            onChange={(nextValue) => setNumber('trackingDegradedAccuracyMeters', nextValue)}
+                            onChange={(nextValue) =>
+                                setNumber(
+                                    'trackingDegradedAccuracyMeters',
+                                    nextValue,
+                                )
+                            }
                         />
                         <SettingsField
                             label="Couloir d’itinéraire"
                             hint="Écart maximal à la polyligne des arrêts avant le badge « Écart détecté »."
-                            value={value('trackingRouteCorridorMeters') as number}
+                            value={
+                                value('trackingRouteCorridorMeters') as number
+                            }
                             type="number"
                             suffix="m"
                             disabled={!permissions.canManage}
                             error={error('trackingRouteCorridorMeters')}
-                            onChange={(nextValue) => setNumber('trackingRouteCorridorMeters', nextValue)}
+                            onChange={(nextValue) =>
+                                setNumber(
+                                    'trackingRouteCorridorMeters',
+                                    nextValue,
+                                )
+                            }
                         />
                         <SettingsField
                             label="Historique carte par bus"
                             hint="Positions récentes exposées par session pour dessiner la trajectoire."
-                            value={value('trackingRecentPositionsLimit') as number}
+                            value={
+                                value('trackingRecentPositionsLimit') as number
+                            }
                             type="number"
                             suffix="pts"
                             disabled={!permissions.canManage}
                             error={error('trackingRecentPositionsLimit')}
-                            onChange={(nextValue) => setNumber('trackingRecentPositionsLimit', nextValue)}
+                            onChange={(nextValue) =>
+                                setNumber(
+                                    'trackingRecentPositionsLimit',
+                                    nextValue,
+                                )
+                            }
                         />
                         <SettingsField
                             label="Tolérance dérive d’horloge"
                             hint="Marge acceptée pour une trame horodatée dans le futur."
-                            value={value('trackingMaxClockSkewSeconds') as number}
+                            value={
+                                value('trackingMaxClockSkewSeconds') as number
+                            }
                             type="number"
                             suffix="s"
                             disabled={!permissions.canManage}
                             error={error('trackingMaxClockSkewSeconds')}
-                            onChange={(nextValue) => setNumber('trackingMaxClockSkewSeconds', nextValue)}
+                            onChange={(nextValue) =>
+                                setNumber(
+                                    'trackingMaxClockSkewSeconds',
+                                    nextValue,
+                                )
+                            }
                         />
                         <SettingsField
                             label="Âge max d’une position"
                             hint="Une trame plus ancienne est rejetée à l’ingestion."
-                            value={value('trackingMaxPositionAgeMinutes') as number}
+                            value={
+                                value('trackingMaxPositionAgeMinutes') as number
+                            }
                             type="number"
                             suffix="min"
                             disabled={!permissions.canManage}
                             error={error('trackingMaxPositionAgeMinutes')}
-                            onChange={(nextValue) => setNumber('trackingMaxPositionAgeMinutes', nextValue)}
+                            onChange={(nextValue) =>
+                                setNumber(
+                                    'trackingMaxPositionAgeMinutes',
+                                    nextValue,
+                                )
+                            }
                         />
                         <SettingsField
                             label="Positions max par lot"
                             hint="Taille maximale d’un lot d’ingestion envoyé par un terminal."
-                            value={value('trackingMaxPositionsPerBatch') as number}
+                            value={
+                                value('trackingMaxPositionsPerBatch') as number
+                            }
                             type="number"
                             suffix="pos"
                             disabled={!permissions.canManage}
                             error={error('trackingMaxPositionsPerBatch')}
-                            onChange={(nextValue) => setNumber('trackingMaxPositionsPerBatch', nextValue)}
+                            onChange={(nextValue) =>
+                                setNumber(
+                                    'trackingMaxPositionsPerBatch',
+                                    nextValue,
+                                )
+                            }
                         />
                         <SettingsField
                             label="Cache dernière position"
@@ -1395,7 +1494,9 @@ export default function SettingsPage({
                             suffix="s"
                             disabled={!permissions.canManage}
                             error={error('trackingCacheTtlSeconds')}
-                            onChange={(nextValue) => setNumber('trackingCacheTtlSeconds', nextValue)}
+                            onChange={(nextValue) =>
+                                setNumber('trackingCacheTtlSeconds', nextValue)
+                            }
                         />
                     </div>
                 </SettingsSection>
@@ -1474,7 +1575,8 @@ export default function SettingsPage({
             enabledKey?: string;
             environmentKey?: string;
             environmentLabel?: (
-                value: FormScalar | number[] | Record<string, number> | undefined,
+                value:
+                    FormScalar | number[] | Record<string, number> | undefined,
             ) => string;
             probeProvider?: string;
             result?: ConnectionProbeResult;
@@ -1504,11 +1606,11 @@ export default function SettingsPage({
                                         Env ·{' '}
                                         {options.environmentLabel
                                             ? options.environmentLabel(
-                                                value(options.environmentKey),
-                                            )
+                                                  value(options.environmentKey),
+                                              )
                                             : String(
-                                                value(options.environmentKey),
-                                            )}
+                                                  value(options.environmentKey),
+                                              )}
                                     </span>
                                 )}
                             </span>
@@ -1858,17 +1960,17 @@ export default function SettingsPage({
                             tips={
                                 group === 'general'
                                     ? [
-                                        {
-                                            title: 'Nom et notifications',
-                                            text: 'Le nom d’affichage est repris dans les messages et les documents générés par KORA.',
-                                        },
-                                        {
-                                            title: 'Fuseau de référence',
-                                            text: 'Conservez Africa/Porto-Novo pour garder les départs et les journaux alignés sur l’exploitation béninoise.',
-                                        },
-                                    ]
+                                          {
+                                              title: 'Nom et notifications',
+                                              text: 'Le nom d’affichage est repris dans les messages et les documents générés par KORA.',
+                                          },
+                                          {
+                                              title: 'Fuseau de référence',
+                                              text: 'Conservez Africa/Porto-Novo pour garder les départs et les journaux alignés sur l’exploitation béninoise.',
+                                          },
+                                      ]
                                     : group === 'operations'
-                                        ? [
+                                      ? [
                                             {
                                                 title: 'Confirmez les impacts',
                                                 text: 'Les délais de vente et de session peuvent modifier immédiatement les parcours en cours.',
@@ -1878,7 +1980,7 @@ export default function SettingsPage({
                                                 text: 'Utilisez un override de ligne lorsque la règle globale ne décrit pas une exploitation particulière.',
                                             },
                                         ]
-                                        : [
+                                      : [
                                             {
                                                 title: 'Testez la configuration enregistrée',
                                                 text: 'Un probe utilise uniquement les valeurs déjà sauvegardées, jamais les champs encore en édition.',

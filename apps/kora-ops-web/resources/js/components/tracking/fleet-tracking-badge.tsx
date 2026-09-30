@@ -179,7 +179,8 @@ export function FleetTrackingBadge({
     className,
     size = 'md',
 }: Props) {
-    const meta = TRACKING_STATE_META[state] ?? TRACKING_STATE_META.session_closed;
+    const meta =
+        TRACKING_STATE_META[state] ?? TRACKING_STATE_META.session_closed;
     const Icon = meta.icon;
 
     const sizeClasses = {
@@ -191,7 +192,7 @@ export function FleetTrackingBadge({
     return (
         <span
             className={cn(
-                'inline-flex items-center rounded-full font-bold border transition-colors',
+                'inline-flex items-center rounded-full border font-bold transition-colors',
                 sizeClasses[size],
                 meta.badgeClass,
                 className,
@@ -208,7 +209,10 @@ export function FleetTrackingBadge({
                     />
                 )}
                 <span
-                    className={cn('relative inline-flex size-1.5 rounded-full', meta.dotClass)}
+                    className={cn(
+                        'relative inline-flex size-1.5 rounded-full',
+                        meta.dotClass,
+                    )}
                 />
             </span>
 
@@ -217,7 +221,7 @@ export function FleetTrackingBadge({
             <span>{meta.label}</span>
 
             {ageSeconds !== undefined && ageSeconds !== null && (
-                <span className="opacity-75 font-normal ml-0.5">
+                <span className="ml-0.5 font-normal opacity-75">
                     ({formatAge(ageSeconds)})
                 </span>
             )}
