@@ -108,7 +108,8 @@ type Fiscal = {
     submittedAt: string | null;
     finalizedAt: string | null;
 };
-type InvoiceDetail = Invoice & {
+export type InvoiceDetail = Invoice & {
+    pdfUrl?: string | null;
     fiscal: Fiscal;
     items: Item[];
     payments: { name: string; label: string; amount: number }[];
@@ -218,7 +219,7 @@ function FilterSelect({
     );
 }
 
-function DetailDialog({
+export function DetailDialog({
     invoice,
     open,
     onClose,
@@ -259,13 +260,17 @@ function DetailDialog({
                                 label={invoice.statusLabel}
                                 tone={tones[invoice.status] ?? 'blue'}
                             />
-                            <a
-                                href={pdf.url(invoice.uuid)}
-                                className="btn btn-primary inline-flex items-center gap-2"
-                                onClick={(event) => event.stopPropagation()}
-                            >
-                                <Download className="size-3.5" /> PDF A4
-                            </a>
+                            {invoice.pdfUrl !== null && (
+                                <a
+                                    href={
+                                        invoice.pdfUrl ?? pdf.url(invoice.uuid)
+                                    }
+                                    className="btn btn-primary inline-flex items-center gap-2"
+                                    onClick={(event) => event.stopPropagation()}
+                                >
+                                    <Download className="size-3.5" /> PDF A4
+                                </a>
+                            )}
                         </div>
                     </div>
                 </DialogHeader>

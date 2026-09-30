@@ -26,6 +26,7 @@ type NavChild = {
     title: string;
     href: string;
     permission: NavPermission;
+    role?: string;
 };
 
 type NavEntry = {
@@ -95,6 +96,12 @@ const navItems: NavEntry[] = [
                 title: 'Facturation',
                 href: '/fiscal-invoices',
                 permission: 'fiscalization.view',
+            },
+            {
+                title: 'Campagne d’autodéclaration DGI',
+                href: '/fiscalization/test-invoices',
+                permission: null,
+                role: 'system_admin',
             },
             {
                 title: 'Dépenses',
@@ -254,7 +261,7 @@ export function KoraSidebar({
 }) {
     const { isCurrentUrl } = useCurrentUrl();
     const { auth } = usePage().props;
-    const { can, canAny } = usePermissions();
+    const { can, canAny, hasRole } = usePermissions();
     const [openGroups, setOpenGroups] = useState<string[]>([]);
 
     // La sidebar est remontée à chaque visite Inertia : on restaure les
@@ -388,8 +395,10 @@ export function KoraSidebar({
                 aria-label="Navigation principale"
             >
                 {navItems.map((item) => {
-                    const visibleChildren = item.children?.filter((child) =>
-                        canAccess(child.permission),
+                    const visibleChildren = item.children?.filter(
+                        (child) =>
+                            canAccess(child.permission) &&
+                            (!child.role || hasRole(child.role)),
                     );
 
                     if (
