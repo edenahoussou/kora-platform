@@ -51,12 +51,14 @@ it('requires authentication to initiate and poll payments', function (): void {
 });
 
 it('exposes the configured mobile payment catalog without credentials', function (): void {
-    config()->set('payments.providers.fedapay.enabled', true);
-    config()->set('payments.providers.fedapay.secret_key', 'test-fedapay-key');
-    config()->set('payments.providers.mtn_momo.enabled', true);
-    config()->set('payments.providers.mtn_momo.subscription_key', 'test-subscription');
-    config()->set('payments.providers.mtn_momo.user_id', 'test-user');
-    config()->set('payments.providers.mtn_momo.api_key', 'test-api-key');
+    $settings = app(IntegrationsSettings::class);
+    $settings->fedapayEnabled = true;
+    $settings->fedapaySecretKey = 'test-fedapay-key';
+    $settings->mtnMomoEnabled = true;
+    $settings->mtnMomoSubscriptionKey = 'test-subscription';
+    $settings->mtnMomoUserId = 'test-user';
+    $settings->mtnMomoApiKey = 'test-api-key';
+    $settings->save();
 
     $user = User::factory()->create();
     Sanctum::actingAs($user);
