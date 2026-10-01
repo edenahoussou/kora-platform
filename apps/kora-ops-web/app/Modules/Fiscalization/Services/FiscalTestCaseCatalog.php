@@ -37,6 +37,8 @@ class FiscalTestCaseCatalog
             default => throw new \InvalidArgumentException('Le numéro de test DGI doit être compris entre 1 et 10.'),
         };
 
+        $total = (int) collect($items)->sum(static fn (array $item): float => $item['price'] * $item['quantity']);
+
         $payload = [
             'ifu' => $settings->emecfDefaultIfu,
             'type' => 'FV',
@@ -45,6 +47,9 @@ class FiscalTestCaseCatalog
                 'name' => $operator->name,
             ],
             'items' => $items,
+            'payment' => [
+                ['name' => 'ESPECES', 'amount' => $total],
+            ],
         ];
 
         if (in_array($caseNumber, [8, 10], true)) {

@@ -236,6 +236,7 @@ final class DatabaseSettingsCoordinator implements SettingsCoordinator
             'emecfRetryBackoffMultiplier' => ['required', 'integer', 'min:1', 'max:10'],
             'emecfNim' => ['nullable', 'string', 'max:32'],
             'emecfShopName' => ['nullable', 'string', 'max:150'],
+            'emecfRccm' => ['nullable', 'string', 'max:32'],
             'emecfAccountStatus' => ['nullable', 'string', 'max:32'],
             'emecfAddress1' => ['nullable', 'string', 'max:500'],
             'emecfAddress2' => ['nullable', 'string', 'max:500'],

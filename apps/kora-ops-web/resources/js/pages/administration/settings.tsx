@@ -333,6 +333,12 @@ const integrationFields: Record<string, IntegrationFieldDefinition[]> = {
             icon: Building2,
         },
         {
+            key: 'emecfRccm',
+            label: 'RCCM',
+            hint: 'Numéro RCCM affiché sous l’IFU sur les factures normalisées.',
+            icon: IdCard,
+        },
+        {
             key: 'emecfNim',
             label: 'NIM',
             hint: 'Identifiant du MECeF attribué par la DGI.',

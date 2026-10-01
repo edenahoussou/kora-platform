@@ -77,7 +77,7 @@ it('creates an isolated test run with the fixed test scenario payload', function
         ->and($run->request_snapshot['items'][0]['quantity'])->toBe(2.5)
         ->and($run->request_snapshot['items'][1]['taxGroup'])->toBe('B')
         ->and($run->request_snapshot['items'][1]['quantity'])->toBe(3.25)
-        ->and($run->request_snapshot)->not->toHaveKey('payment');
+        ->and($run->request_snapshot['payment'])->toBe([['name' => 'ESPECES', 'amount' => 57500]]);
 
     $this->assertDatabaseCount('reservations', 0);
     $this->assertDatabaseCount('payments', 0);
@@ -183,7 +183,10 @@ it('stores the certified e-MECeF result without creating BUS sale records', func
         ->and($run->emecfInvoice->status)->toBe(InvoiceStatus::CONFIRMED)
         ->and($run->emecfInvoice->qr_code)->toContain('uid=dgi-test-uid-1')
         ->and($run->emecfInvoice->items)->toHaveCount(1)
-        ->and($run->emecfInvoice->items->first()->tax_group->value)->toBe('A');
+        ->and($run->emecfInvoice->items->first()->tax_group->value)->toBe('A')
+        ->and($run->emecfInvoice->payments)->toHaveCount(1)
+        ->and($run->emecfInvoice->payments->first()->name->value)->toBe('ESPECES')
+        ->and($run->emecfInvoice->payments->first()->amount)->toBe(10000);
 
     $this->assertDatabaseCount('reservations', 0);
     $this->assertDatabaseCount('payments', 0);
@@ -246,6 +249,7 @@ it('builds test six as a full negative-quantity credit of the certified test fiv
     expect($observedPayload['type'])->toBe('FA')
         ->and($observedPayload['reference'])->toBe('ABCDEFGHIJKLMN1234567890')
         ->and($observedPayload['client']['ifu'])->toBe('1234567890123')
+        ->and($observedPayload['payment'])->toBe([['name' => 'ESPECES', 'amount' => 59000]])
         ->and($observedPayload['items'][0]['quantity'])->toBe(-2.0)
         ->and($observedPayload['items'][1]['quantity'])->toBe(-3.0)
         ->and($creditRun->fresh()->status)->toBe(FiscalInvoiceStatus::Certified->value);

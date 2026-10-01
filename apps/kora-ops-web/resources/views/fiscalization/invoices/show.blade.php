@@ -333,6 +333,9 @@
                 <div class="brand">KORA</div>
                 <div class="brand-sub">{{ $invoice['emitter']['shopName'] ?? 'Transport & mobilité' }}</div>
                 <div class="seller-line">IFU : <strong>{{ $fiscal['ifu'] ?? '—' }}</strong></div>
+                @if (!empty($invoice['emitter']['rccm']))
+                    <div class="seller-line">RCCM : <strong>{{ $invoice['emitter']['rccm'] }}</strong></div>
+                @endif
             </div>
             <div class="invoice-meta">
                 <h2>{{ $invoice['documentTypeLabel'] ?? 'Facture fiscale' }}</h2>

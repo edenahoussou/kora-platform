@@ -218,6 +218,7 @@ class FiscalTestInvoicePresenter
     {
         return array_filter([
             'shopName' => $this->settings->emecfShopName,
+            'rccm' => $this->settings->emecfRccm,
             'nim' => $this->settings->emecfNim,
             'address' => implode(', ', array_filter([
                 $this->settings->emecfAddress1,
