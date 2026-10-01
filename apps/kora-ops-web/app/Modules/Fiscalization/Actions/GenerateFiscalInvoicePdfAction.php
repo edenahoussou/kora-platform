@@ -72,6 +72,7 @@ class GenerateFiscalInvoicePdfAction
             'ventilation' => EmecfTaxVentilation::fromTaxes(
                 is_array($fiscal['taxes'] ?? null) ? $fiscal['taxes'] : [],
                 $fiscal['aib'] ?? null,
+                is_array($detail['items'] ?? null) ? $detail['items'] : [],
             ),
             'amountInWords' => Number::spell($total, locale: 'fr'),
             'formatMoney' => static fn (mixed $amount): string => number_format((float) $amount, 0, ',', ' ').' XOF',

@@ -37,7 +37,13 @@ class FiscalTestCaseCatalog
             default => throw new \InvalidArgumentException('Le numéro de test DGI doit être compris entre 1 et 10.'),
         };
 
-        $total = (int) collect($items)->sum(static fn (array $item): float => $item['price'] * $item['quantity']);
+        $total = (int) collect($items)->sum(static function (array $item): float {
+            $line = $item['price'] * $item['quantity'];
+            $taxSpecific = (float) ($item['taxSpecific'] ?? 0);
+            $vatFactor = in_array($item['taxGroup'], ['B', 'D'], true) ? 1.18 : 1.0;
+
+            return $line + $taxSpecific * $vatFactor;
+        });
 
         $payload = [
             'ifu' => $settings->emecfDefaultIfu,

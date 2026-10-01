@@ -84,6 +84,22 @@ it('creates an isolated test run with the fixed test scenario payload', function
     Queue::assertPushed(RunFiscalTestInvoice::class);
 });
 
+it('includes the specific tax in the payment total of the scenario payload', function (): void {
+    fiscalTestSettings();
+    Queue::fake([RunFiscalTestInvoice::class]);
+
+    $this->actingAs(fiscalTestAdmin())
+        ->post(route('fiscal-test-invoices.store'), ['caseNumber' => 7, 'clientIfu' => '1234567890123'])
+        ->assertRedirect();
+
+    $run = FiscalTestInvoiceRun::query()->sole();
+
+    expect($run->request_snapshot['items'][0]['taxGroup'])->toBe('B')
+        ->and($run->request_snapshot['items'][0]['quantity'])->toBe(3)
+        ->and($run->request_snapshot['items'][0]['taxSpecific'])->toBe(1000)
+        ->and($run->request_snapshot['payment'])->toBe([['name' => 'ESPECES', 'amount' => 31180]]);
+});
+
 it('requires the test mode and a client IFU before a scenario can be emitted', function (): void {
     fiscalTestSettings(testMode: false);
 

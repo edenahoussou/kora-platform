@@ -463,14 +463,28 @@
             </thead>
             <tbody>
                 @forelse($invoice['items'] ?? [] as $item)
+                    @php
+                        $itemTs = \App\Modules\Fiscalization\Support\EmecfTaxVentilation::itemSpecificTax(
+                            $item,
+                            is_array($fiscal['taxes'] ?? null) ? $fiscal['taxes'] : [],
+                        );
+                        $lineTotal = (float) $item['price'] * (float) $item['quantity'] + ($itemTs['amount'] ?? 0.0);
+                    @endphp
                     <tr>
                         <td style="text-align: center;">{{ $loop->iteration }}</td>
                         <td>
                             {{ $item['name'] }}
                             <span
-                                class="tax-group-tag">{{ \App\Modules\Fiscalization\Support\EmecfTaxVentilation::itemTag($item['taxGroup'] ?? null, $item['taxSpecific'] ?? null) }}</span>
+                                class="tax-group-tag">{{ \App\Modules\Fiscalization\Support\EmecfTaxVentilation::groupTag($item['taxGroup'] ?? null) }}</span>
                             @if (!empty($item['code']))
                                 <span class="item-code">Réf : {{ $item['code'] }}</span>
+                            @endif
+                            @if ($itemTs !== null)
+                                <div class="item-code">T.S.
+                                    {{ number_format(abs((float) $item['quantity']), 0, ',', ' ') }} x
+                                    {{ number_format($itemTs['unit'], 0, ',', ' ') }} x
+                                    {{ number_format($itemTs['factor'], 2, ',', ' ') }} =
+                                    {{ number_format($itemTs['amount'], 0, ',', ' ') }}</div>
                             @endif
                             @if ($item['originalPrice'] !== null)
                                 <span class="item-code">Prix d'origine :
@@ -484,7 +498,7 @@
                         <td style="text-align: center;">{{ number_format((float) $item['quantity'], 2, ',', ' ') }}
                         </td>
                         <td style="text-align: right;">
-                            {{ number_format((float) $item['price'] * (float) $item['quantity'], 0, ',', ' ') }}
+                            {{ number_format($lineTotal, 0, ',', ' ') }}
                         </td>
                     </tr>
                 @empty
@@ -496,6 +510,7 @@
         </table>
 
         @if (!empty($ventilation))
+            @php($hasSpecificTax = collect($ventilation)->contains(fn(array $group): bool => ($group['ts'] ?? 0) != 0))
             <div>
                 <div class="section-title">--- Ventilation des impôts ---</div>
                 <table class="ventilation-table">
@@ -504,6 +519,9 @@
                             <th>Groupe</th>
                             <th style="text-align: right;">Total</th>
                             <th style="text-align: right;">Imposable</th>
+                            @if ($hasSpecificTax)
+                                <th style="text-align: right;">Impôt spécifique</th>
+                            @endif
                             <th style="text-align: right;">Impôt</th>
                         </tr>
                     </thead>
@@ -515,6 +533,11 @@
                                 <td style="text-align: right;">
                                     {{ $group['imposable'] === null ? '-' : number_format($group['imposable'], 0, ',', ' ') }}
                                 </td>
+                                @if ($hasSpecificTax)
+                                    <td style="text-align: right;">
+                                        {{ $group['ts'] == 0 ? '-' : number_format($group['ts'], 0, ',', ' ') }}
+                                    </td>
+                                @endif
                                 <td style="text-align: right;">
                                     {{ $group['impot'] === null || $group['impot'] == 0 ? '-' : number_format($group['impot'], 0, ',', ' ') }}
                                 </td>
