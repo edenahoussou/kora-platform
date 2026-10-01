@@ -293,16 +293,35 @@
         .screen-actions {
             margin: 18px auto;
             max-width: 880px;
-            text-align: center;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
         }
 
-        .screen-actions a {
+        .screen-actions a,
+        .screen-actions button {
             display: inline-block;
             padding: 9px 14px;
+            border: 0;
             border-radius: 6px;
             background: #001d4e;
             color: #fff;
+            font: inherit;
             text-decoration: none;
+            cursor: pointer;
+        }
+
+        .screen-actions .btn-secondary {
+            background: #fff;
+            color: #001d4e;
+            border: 1px solid #001d4e;
+        }
+
+        .brand-logo {
+            display: block;
+            max-height: 20mm;
+            max-width: 58mm;
+            margin-bottom: 3mm;
         }
 
         @media print {
@@ -318,6 +337,15 @@
 </head>
 
 <body>
+    @if (!($isPdf ?? true))
+        <nav class="screen-actions" aria-label="Actions de la facture">
+            <a href="{{ $backUrl ?? url()->previous() }}" class="btn-secondary">← Retour</a>
+            <button type="button" onclick="window.print()">Imprimer</button>
+            @if (!empty($pdfUrl))
+                <a href="{{ $pdfUrl }}">Télécharger le PDF</a>
+            @endif
+        </nav>
+    @endif
     <main class="page">
         @if (($invoice['status'] ?? null) !== 'certified')
             <div class="status-banner">
@@ -330,7 +358,11 @@
 
         <header class="invoice-header">
             <div>
-                <div class="brand">KORA</div>
+                @if (!empty($logoDataUri))
+                    <img src="{{ $logoDataUri }}" alt="KORA" class="brand-logo">
+                @else
+                    <div class="brand">KORA</div>
+                @endif
                 <div class="brand-sub">{{ $invoice['emitter']['shopName'] ?? 'Transport & mobilité' }}</div>
                 <div class="seller-line">IFU : <strong>{{ $fiscal['ifu'] ?? '—' }}</strong></div>
                 @if (!empty($invoice['emitter']['rccm']))
@@ -428,6 +460,8 @@
                         <td style="text-align: center;">{{ $loop->iteration }}</td>
                         <td>
                             {{ $item['name'] }}
+                            <span
+                                class="tax-group-tag">{{ \App\Modules\Fiscalization\Support\EmecfTaxVentilation::itemTag($item['taxGroup'] ?? null, $item['taxSpecific'] ?? null) }}</span>
                             @if (!empty($item['code']))
                                 <span class="item-code">Réf : {{ $item['code'] }}</span>
                             @endif
@@ -444,107 +478,104 @@
                         </td>
                         <td style="text-align: right;">
                             {{ number_format((float) $item['price'] * (float) $item['quantity'], 0, ',', ' ') }}
-                            <span class="tax-group-tag">[{{ $item['taxGroup'] ?? '—' }}@if ($item['taxSpecific'] !== null)
-                                    · TS {{ number_format((float) $item['taxSpecific'], 0, ',', ' ') }}
-                                @endif]</span>
                         </td>
                     </tr>
+                @empty
+                    <tr>
+                        <td colspan="5">Aucun article fiscal enregistré.</td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+
+        @if (!empty($ventilation))
+            <div>
+                <div class="section-title">--- Ventilation des impôts ---</div>
+                <table class="ventilation-table">
+                    <thead>
+                        <tr>
+                            <th>Groupe</th>
+                            <th style="text-align: right;">Total</th>
+                            <th style="text-align: right;">Imposable</th>
+                            <th style="text-align: right;">Impôt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($ventilation as $group)
+                            <tr>
+                                <td>{{ $group['label'] }}</td>
+                                <td style="text-align: right;">{{ number_format($group['total'], 0, ',', ' ') }}</td>
+                                <td style="text-align: right;">
+                                    {{ $group['imposable'] === null ? '-' : number_format($group['imposable'], 0, ',', ' ') }}
+                                </td>
+                                <td style="text-align: right;">
+                                    {{ $group['impot'] === null || $group['impot'] <= 0 ? '-' : number_format($group['impot'], 0, ',', ' ') }}
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+
+        <div class="total-section">
+            <div class="total-box">Total :
+                {{ number_format((float) ($fiscal['taxes']['total'] ?? $invoice['amount']), 0, ',', ' ') }} XOF</div>
+        </div>
+
+        <div>
+            <div class="section-title">--- Répartition des paiements ---</div>
+            <table class="payment-table">
+                <thead>
+                    <tr>
+                        <th>Type de paiement</th>
+                        <th style="text-align: right; width: 130px;">Payé</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($invoice['payments'] ?? [] as $payment)
+                        <tr>
+                            <td style="text-transform: uppercase;">{{ $payment['label'] ?? $payment['name'] }}</td>
+                            <td style="text-align: right;">{{ number_format((float) $payment['amount'], 0, ',', ' ') }}
+                            </td>
+                        </tr>
                     @empty
                         <tr>
-                            <td colspan="5">Aucun article fiscal enregistré.</td>
+                            <td colspan="2">—</td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
+        </div>
 
-            @if (!empty($ventilation))
-                <div>
-                    <div class="section-title">--- Ventilation des impôts ---</div>
-                    <table class="ventilation-table">
-                        <thead>
-                            <tr>
-                                <th>Groupe</th>
-                                <th style="text-align: right;">Total</th>
-                                <th style="text-align: right;">Imposable</th>
-                                <th style="text-align: right;">Impôt</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($ventilation as $group)
-                                <tr>
-                                    <td>{{ $group['label'] }}</td>
-                                    <td style="text-align: right;">{{ number_format($group['total'], 0, ',', ' ') }}</td>
-                                    <td style="text-align: right;">
-                                        {{ $group['imposable'] === null ? '-' : number_format($group['imposable'], 0, ',', ' ') }}
-                                    </td>
-                                    <td style="text-align: right;">
-                                        {{ $group['impot'] === null || $group['impot'] <= 0 ? '-' : number_format($group['impot'], 0, ',', ' ') }}
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @endif
+        <div class="amount-words">
+            Arrêtée la présente facture à la somme de
+            <strong>{{ $amountInWords }} francs CFA</strong> TTC.
+        </div>
 
-            <div class="total-section">
-                <div class="total-box">Total :
-                    {{ number_format((float) ($fiscal['taxes']['total'] ?? $invoice['amount']), 0, ',', ' ') }} XOF</div>
-            </div>
-
-            <div>
-                <div class="section-title">--- Répartition des paiements ---</div>
-                <table class="payment-table">
-                    <thead>
-                        <tr>
-                            <th>Type de paiement</th>
-                            <th style="text-align: right; width: 130px;">Payé</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($invoice['payments'] ?? [] as $payment)
-                            <tr>
-                                <td style="text-transform: uppercase;">{{ $payment['label'] ?? $payment['name'] }}</td>
-                                <td style="text-align: right;">{{ number_format((float) $payment['amount'], 0, ',', ' ') }}
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="2">—</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="amount-words">
-                Arrêtée la présente facture à la somme de
-                <strong>{{ $amountInWords }} francs CFA</strong> TTC.
-            </div>
-
-            @if ($qrSvg || !empty($fiscal['codeMecEfDgi']))
-                <div class="security-box">
-                    <div class="security-title">--- Éléments de sécurité de la facture normalisée ---</div>
-                    <div class="security-content">
-                        <div class="qr-code">
-                            @if ($qrSvg)
-                                {!! $qrSvg !!}
-                            @endif
-                        </div>
-                        <div class="security-details">
-                            <div>Code MECeF/DGI : <strong>{{ $fiscal['codeMecEfDgi'] ?? '—' }}</strong></div>
-                            <div>MECeF NIM : <strong>{{ $fiscal['nim'] ?? '—' }}</strong></div>
-                            <div>MECeF Compteurs : <strong>{{ $fiscal['counters'] ?? '—' }}</strong></div>
-                            <div>MECeF Heure : <strong>{{ $fiscal['dateTime'] ?? '—' }}</strong></div>
-                        </div>
+        @if ($qrSvg || !empty($fiscal['codeMecEfDgi']))
+            <div class="security-box">
+                <div class="security-title">--- Éléments de sécurité de la facture normalisée ---</div>
+                <div class="security-content">
+                    <div class="qr-code">
+                        @if ($qrSvg)
+                            {!! $qrSvg !!}
+                        @endif
+                    </div>
+                    <div class="security-details">
+                        <div>Code MECeF/DGI : <strong>{{ $fiscal['codeMecEfDgi'] ?? '—' }}</strong></div>
+                        <div>MECeF NIM : <strong>{{ $fiscal['nim'] ?? '—' }}</strong></div>
+                        <div>MECeF Compteurs : <strong>{{ $fiscal['counters'] ?? '—' }}</strong></div>
+                        <div>MECeF Heure : <strong>{{ $fiscal['dateTime'] ?? '—' }}</strong></div>
                     </div>
                 </div>
-            @endif
+            </div>
+        @endif
 
-            <footer class="invoice-footer">
-                <span>Document généré par KORA OPS · Montants en XOF</span>
-            </footer>
-        </main>
-    </body>
+        <footer class="invoice-footer">
+            <span>Document généré par KORA OPS · Montants en XOF</span>
+        </footer>
+    </main>
+</body>
 
-    </html>
+</html>

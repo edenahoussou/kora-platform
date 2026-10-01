@@ -59,6 +59,7 @@ class FiscalInvoicePresenter
             'creditNotesCount' => $invoice->credit_notes_count ?? 0,
             'createdAt' => $invoice->created_at?->toIso8601String(),
             'finalizedAt' => $finalizedAt,
+            'viewUrl' => route('fiscal-invoices.show', $invoice->uuid),
         ];
     }
 

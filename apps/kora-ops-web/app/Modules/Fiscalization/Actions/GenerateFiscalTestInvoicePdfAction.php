@@ -19,4 +19,16 @@ class GenerateFiscalTestInvoicePdfAction
 
         return $this->generateFiscalInvoicePdf->executeDetails($this->presenter->detail($run));
     }
+
+    public function renderRun(FiscalTestInvoiceRun $run, ?string $pdfUrl = null, ?string $backUrl = null): string
+    {
+        $run->loadMissing(['emecfInvoice.items', 'emecfInvoice.payments', 'requestedBy']);
+
+        return $this->generateFiscalInvoicePdf->renderDetails(
+            $this->presenter->detail($run),
+            isPdf: false,
+            pdfUrl: $pdfUrl,
+            backUrl: $backUrl,
+        );
+    }
 }

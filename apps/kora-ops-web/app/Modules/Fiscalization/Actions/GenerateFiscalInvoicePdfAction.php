@@ -31,10 +31,22 @@ class GenerateFiscalInvoicePdfAction
         return $this->executeDetails($this->presenter->detail($invoice, false));
     }
 
-    /** @param array<string, mixed> $detail
-     * @return array{content: string, filename: string}
-     */
-    public function executeDetails(array $detail): array
+    public function renderInvoice(FiscalInvoice $invoice, ?string $pdfUrl = null, ?string $backUrl = null): string
+    {
+        $invoice->loadMissing([
+            'reservation',
+            'emecfInvoice.items',
+            'emecfInvoice.payments',
+            'originalFiscalInvoice.emecfInvoice',
+            'creditNotes.emecfInvoice.items',
+            'syncAttempts',
+        ]);
+
+        return $this->renderDetails($this->presenter->detail($invoice, false), isPdf: false, pdfUrl: $pdfUrl, backUrl: $backUrl);
+    }
+
+    /** @param array<string, mixed> $detail */
+    public function renderDetails(array $detail, bool $isPdf, ?string $pdfUrl = null, ?string $backUrl = null): string
     {
         $fiscal = is_array($detail['fiscal'] ?? null) ? $detail['fiscal'] : [];
         $qrSvg = null;
@@ -44,12 +56,19 @@ class GenerateFiscalInvoicePdfAction
         }
 
         $total = (int) ($fiscal['taxes']['total'] ?? $detail['amount'] ?? 0);
+        $logoPath = public_path('kora-logo-invoice.png');
+        $logoDataUri = is_file($logoPath)
+            ? 'data:image/png;base64,'.base64_encode((string) file_get_contents($logoPath))
+            : null;
 
-        $html = view('fiscalization.invoices.show', [
+        return view('fiscalization.invoices.show', [
             'invoice' => $detail,
             'fiscal' => $fiscal,
             'qrSvg' => $qrSvg,
-            'isPdf' => true,
+            'isPdf' => $isPdf,
+            'pdfUrl' => $pdfUrl,
+            'backUrl' => $backUrl,
+            'logoDataUri' => $logoDataUri,
             'ventilation' => EmecfTaxVentilation::fromTaxes(
                 is_array($fiscal['taxes'] ?? null) ? $fiscal['taxes'] : [],
                 $fiscal['aib'] ?? null,
@@ -57,6 +76,14 @@ class GenerateFiscalInvoicePdfAction
             'amountInWords' => Number::spell($total, locale: 'fr'),
             'formatMoney' => static fn (mixed $amount): string => number_format((float) $amount, 0, ',', ' ').' XOF',
         ])->render();
+    }
+
+    /** @param array<string, mixed> $detail
+     * @return array{content: string, filename: string}
+     */
+    public function executeDetails(array $detail): array
+    {
+        $html = $this->renderDetails($detail, isPdf: true);
         $profile = config('pdf.profiles.invoice', []);
         $commonArgs = config('pdf.common_args', []);
         $profileArgs = is_array($profile['args'] ?? null) ? $profile['args'] : [];
