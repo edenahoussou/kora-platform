@@ -98,7 +98,9 @@ class FiscalInvoicePresenter
             'payments' => ($invoice->emecfInvoice !== null ? $invoice->emecfInvoice->payments : collect())->map(fn (EmecfInvoicePayment $payment): array => [
                 'name' => $payment->name->value,
                 'label' => $payment->payment_type_label,
-                'amount' => (int) $payment->amount,
+                'amount' => $invoice->document_kind === FiscalInvoiceDocumentKind::CreditNote
+                    ? -abs((int) $payment->amount)
+                    : (int) $payment->amount,
             ])->all(),
             'attempts' => $invoice->syncAttempts->sortBy('attempt_number')->values()->map(fn (FiscalSyncAttempt $attempt): array => [
                 'uuid' => $attempt->uuid,

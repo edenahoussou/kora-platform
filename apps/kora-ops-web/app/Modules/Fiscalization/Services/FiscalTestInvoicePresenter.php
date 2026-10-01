@@ -86,7 +86,9 @@ class FiscalTestInvoicePresenter
             'payments' => $invoice?->payments->map(fn ($payment): array => [
                 'name' => $payment->name->value,
                 'label' => $payment->payment_type_label,
-                'amount' => (int) $payment->amount,
+                'amount' => $invoice->type->value === 'FA'
+                    ? -abs((int) $payment->amount)
+                    : (int) $payment->amount,
             ])->all() ?? [],
             'attempts' => [],
             'creditNotes' => [],
