@@ -36,8 +36,9 @@ class FiscalTestInvoicePresenter
     /** @return array<string, mixed> */
     public function detail(FiscalTestInvoiceRun $run): array
     {
-        $run->loadMissing(['emecfInvoice.items', 'emecfInvoice.payments']);
+        $run->loadMissing(['emecfInvoice.items', 'emecfInvoice.payments', 'sourceRun.emecfInvoice']);
         $invoice = $run->emecfInvoice;
+        $originalCode = $run->sourceRun?->emecfInvoice?->code_mec_ef_dgi;
 
         return [
             'uuid' => $run->uuid,
@@ -90,6 +91,7 @@ class FiscalTestInvoicePresenter
             'attempts' => [],
             'creditNotes' => [],
             'originalInvoice' => null,
+            'originalInvoiceReference' => $originalCode === null ? null : preg_replace('/[^A-Za-z0-9]/', '', $originalCode),
             'reason' => null,
             'requestedAt' => $run->created_at?->toIso8601String(),
             'requestedBy' => $run->requestedBy?->name,
