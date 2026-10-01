@@ -122,7 +122,7 @@ it('maps AIB and specific tax in the DGI examples', function (): void {
         ->and($caseSeven['client']['ifu'])->toBe('1234567890123')
         ->and($caseEight['aib'])->toBe('B')
         ->and($caseNine['aib'])->toBe('A')
-        ->and($caseNine['client']['name'])->toBe('Client de démonstration KORA')
+        ->and($caseNine['client']['name'])->toBe('EDEN AHOUSSOU')
         ->and($caseTen['aib'])->toBe('B')
         ->and($caseTen['items'][1]['taxSpecific'])->toBe(1000);
 });
@@ -205,8 +205,8 @@ it('builds test six as a full negative-quantity credit of the certified test fiv
         'total' => 59000,
     ]);
     $originalInvoice->items()->createMany([
-        ['name' => 'Article exonéré - Test DGI', 'price' => 10000, 'quantity' => 2, 'tax_group' => 'A'],
-        ['name' => 'Article taxable - Test DGI', 'price' => 10000, 'quantity' => 3, 'tax_group' => 'B'],
+        ['name' => 'Billet de bus Cotonou → Parakou', 'price' => 10000, 'quantity' => 2, 'tax_group' => 'A'],
+        ['name' => 'Billet de bus Cotonou → Parakou, classe VIP', 'price' => 10000, 'quantity' => 3, 'tax_group' => 'B'],
     ]);
     $sourceRun = FiscalTestInvoiceRun::query()->create([
         'case_number' => 5,
@@ -222,7 +222,8 @@ it('builds test six as a full negative-quantity credit of the certified test fiv
         'status' => FiscalInvoiceStatus::Pending->value,
         'request_snapshot' => [],
     ]);
-    $observedPayload = null;
+    /** @var array<string, mixed> $observedPayload */
+    $observedPayload = [];
     $gateway = new class($observedPayload) implements FiscalTestInvoiceGateway
     {
         public function __construct(public mixed &$observedPayload) {}
