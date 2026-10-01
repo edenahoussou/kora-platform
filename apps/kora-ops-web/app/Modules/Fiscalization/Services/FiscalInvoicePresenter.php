@@ -190,6 +190,7 @@ class FiscalInvoicePresenter
 
         return array_filter([
             'shopName' => $settings->emecfShopName,
+            'rccm' => $settings->emecfRccm,
             'nim' => $settings->emecfNim,
             'address' => implode(', ', array_filter([
                 $settings->emecfAddress1,

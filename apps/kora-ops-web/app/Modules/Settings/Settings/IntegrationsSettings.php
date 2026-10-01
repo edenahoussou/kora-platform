@@ -72,6 +72,8 @@ final class IntegrationsSettings extends Settings
 
     public ?string $emecfShopName = null;
 
+    public ?string $emecfRccm = null;
+
     public ?string $emecfAccountStatus = null;
 
     public ?string $emecfAddress1 = null;

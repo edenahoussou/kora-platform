@@ -130,6 +130,9 @@ class RunFiscalTestInvoice implements ShouldBeUnique, ShouldQueue
                 'taxGroup' => $item->tax_group->value,
                 'taxSpecific' => $item->tax_specific,
             ], static fn (mixed $value): bool => $value !== null))->all(),
+            'payment' => [
+                ['name' => 'ESPECES', 'amount' => (int) abs((float) $original->total)],
+            ],
         ];
     }
 
@@ -180,6 +183,13 @@ class RunFiscalTestInvoice implements ShouldBeUnique, ShouldQueue
                 'quantity' => $item['quantity'],
                 'tax_group' => $item['taxGroup'],
                 'tax_specific' => $item['taxSpecific'] ?? null,
+            ]);
+        }
+
+        foreach (($payload['payment'] ?? []) as $payment) {
+            $invoice->payments()->create([
+                'name' => $payment['name'],
+                'amount' => $payment['amount'],
             ]);
         }
 
