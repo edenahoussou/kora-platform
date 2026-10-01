@@ -46,7 +46,6 @@ class FiscalTestInvoiceController extends Controller
                 'latestRun' => $latestRun === null ? null : $presenter->listItem($latestRun),
                 'runs' => $caseRuns->map(fn (FiscalTestInvoiceRun $run): array => [
                     'summary' => $presenter->listItem($run),
-                    'detail' => $presenter->detail($run),
                 ])->values()->all(),
                 'historyCount' => $caseRuns->count(),
             ]);
@@ -98,6 +97,21 @@ class FiscalTestInvoiceController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('La facture de test a été mise en file.')]);
 
         return back();
+    }
+
+    public function show(
+        FiscalTestInvoiceRun $run,
+        GenerateFiscalTestInvoicePdfAction $generatePdf,
+    ): SymfonyResponse {
+        Gate::authorize('manage-fiscal-test-invoices');
+
+        return response($generatePdf->renderRun(
+            $run,
+            pdfUrl: $run->status === FiscalInvoiceStatus::Certified->value
+                ? route('fiscal-test-invoices.pdf', $run->uuid)
+                : null,
+            backUrl: route('fiscal-test-invoices.index'),
+        ));
     }
 
     public function pdf(FiscalTestInvoiceRun $run, GenerateFiscalTestInvoicePdfAction $generatePdf): SymfonyResponse

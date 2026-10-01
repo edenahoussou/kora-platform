@@ -29,6 +29,7 @@ class FiscalTestInvoicePresenter
             'createdAt' => $run->created_at?->toIso8601String(),
             'canDownloadPdf' => $run->status === FiscalInvoiceStatus::Certified->value && $invoice?->qr_code !== null,
             'pdfUrl' => route('fiscal-test-invoices.pdf', $run->uuid),
+            'viewUrl' => route('fiscal-test-invoices.show', $run->uuid),
         ];
     }
 

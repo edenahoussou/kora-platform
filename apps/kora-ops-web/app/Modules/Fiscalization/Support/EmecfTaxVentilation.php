@@ -41,6 +41,27 @@ class EmecfTaxVentilation
         return $rows;
     }
 
+    /** Libellé court du groupe affiché à côté de la désignation, comme sur le site de vérification e-MECeF. */
+    public static function groupTag(?string $group): string
+    {
+        return match (strtoupper((string) $group)) {
+            'A' => 'A-EX',
+            'B', 'C', 'D', 'E', 'F' => strtoupper((string) $group),
+            default => '—',
+        };
+    }
+
+    /** Tag complet entre parenthèses, avec la taxe spécifique éventuelle : « (A-EX) », « (F · TS 500) ». */
+    public static function itemTag(?string $group, mixed $taxSpecific = null): string
+    {
+        $tag = self::groupTag($group);
+        if (is_numeric($taxSpecific) && (float) $taxSpecific > 0) {
+            $tag .= ' · TS '.number_format((float) $taxSpecific, 0, ',', ' ');
+        }
+
+        return '('.$tag.')';
+    }
+
     /** @return list<array{label: string, total: string, imposable: string|null, impot: string|null}> */
     private static function definitions(): array
     {

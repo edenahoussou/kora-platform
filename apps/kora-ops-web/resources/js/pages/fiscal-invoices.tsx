@@ -56,6 +56,7 @@ type Invoice = {
     creditNotesCount: number;
     createdAt: string | null;
     finalizedAt: string | null;
+    viewUrl: string;
 };
 type Item = {
     lineKey: string;
@@ -965,9 +966,10 @@ export default function FiscalInvoicesPage({
                                         <tr
                                             key={invoice.uuid}
                                             className="group cursor-pointer border-b border-border/60 transition-colors hover:bg-muted/30"
-                                            onClick={() =>
-                                                openDetail(invoice.uuid)
-                                            }
+                                            onClick={() => {
+                                                window.location.href =
+                                                    invoice.viewUrl;
+                                            }}
                                         >
                                             <td className="px-4 py-3.5">
                                                 <div className="flex items-center gap-3">
@@ -1061,17 +1063,24 @@ export default function FiscalInvoicesPage({
                                                     >
                                                         <Download className="size-3.5" />
                                                     </a>
+                                                    <a
+                                                        href={invoice.viewUrl}
+                                                        className="grid size-8 place-items-center rounded-lg bg-muted text-foreground hover:bg-gold/15"
+                                                        aria-label="Voir le détail"
+                                                    >
+                                                        <Eye className="size-3.5" />
+                                                    </a>
                                                     <button
                                                         type="button"
                                                         className="grid size-8 place-items-center rounded-lg bg-muted text-foreground hover:bg-gold/15"
-                                                        aria-label="Voir le détail"
+                                                        aria-label="Actions fiscales"
                                                         onClick={() =>
                                                             openDetail(
                                                                 invoice.uuid,
                                                             )
                                                         }
                                                     >
-                                                        <Eye className="size-3.5" />
+                                                        <SlidersHorizontal className="size-3.5" />
                                                     </button>
                                                 </div>
                                             </td>

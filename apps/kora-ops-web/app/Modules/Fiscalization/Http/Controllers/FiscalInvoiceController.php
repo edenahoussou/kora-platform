@@ -50,11 +50,17 @@ class FiscalInvoiceController extends Controller
         ]);
     }
 
-    public function show(FiscalInvoice $fiscalInvoice): RedirectResponse
-    {
+    public function show(
+        FiscalInvoice $fiscalInvoice,
+        GenerateFiscalInvoicePdfAction $pdf,
+    ): SymfonyResponse {
         Gate::authorize('view', $fiscalInvoice);
 
-        return to_route('fiscal-invoices.index', ['invoice' => $fiscalInvoice->uuid]);
+        return response($pdf->renderInvoice(
+            $fiscalInvoice,
+            pdfUrl: route('fiscal-invoices.pdf', $fiscalInvoice->uuid),
+            backUrl: route('fiscal-invoices.index'),
+        ));
     }
 
     public function pdf(

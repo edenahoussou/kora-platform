@@ -11,8 +11,6 @@ import {
 import { useState } from 'react';
 import { usePermissions } from '@/hooks/use-permissions';
 import { cn } from '@/lib/utils';
-import { DetailDialog } from '@/pages/fiscal-invoices';
-import type { InvoiceDetail } from '@/pages/fiscal-invoices';
 import { store } from '@/routes/fiscal-test-invoices';
 
 type RunSummary = {
@@ -27,6 +25,7 @@ type RunSummary = {
     createdAt: string | null;
     canDownloadPdf: boolean;
     pdfUrl: string;
+    viewUrl: string;
 };
 
 type Case = {
@@ -36,7 +35,7 @@ type Case = {
     needsClientIfu: boolean;
     canRun: boolean;
     latestRun: RunSummary | null;
-    runs: { summary: RunSummary; detail: InvoiceDetail }[];
+    runs: { summary: RunSummary }[];
     historyCount: number;
 };
 
@@ -67,8 +66,6 @@ export default function FiscalTestInvoices({
         Record<number, string>
     >({});
     const [processingCase, setProcessingCase] = useState<number | null>(null);
-    const [selectedInvoice, setSelectedInvoice] =
-        useState<InvoiceDetail | null>(null);
     const canRunCampaign =
         hasRole('system_admin') && testModeEnabled && configured;
 
@@ -284,22 +281,16 @@ export default function FiscalTestInvoices({
                                             PDF
                                         </a>
                                     )}
-                                    {testCase.runs.map(
-                                        ({ summary, detail }) => (
-                                            <button
-                                                key={summary.uuid}
-                                                type="button"
-                                                onClick={() =>
-                                                    setSelectedInvoice(detail)
-                                                }
-                                                className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-bold text-kora hover:bg-kora/5"
-                                            >
-                                                <Eye className="size-3.5" />{' '}
-                                                Détail #
-                                                {summary.uuid.slice(0, 8)}
-                                            </button>
-                                        ),
-                                    )}
+                                    {testCase.runs.map(({ summary }) => (
+                                        <a
+                                            key={summary.uuid}
+                                            href={summary.viewUrl}
+                                            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-bold text-kora hover:bg-kora/5"
+                                        >
+                                            <Eye className="size-3.5" /> Détail
+                                            #{summary.uuid.slice(0, 8)}
+                                        </a>
+                                    ))}
                                 </div>
                             </article>
                         );
@@ -312,13 +303,6 @@ export default function FiscalTestInvoices({
                     nouvelle émission conservée dans l’historique.
                 </footer>
             </main>
-            <DetailDialog
-                invoice={selectedInvoice}
-                open={selectedInvoice !== null}
-                onClose={() => setSelectedInvoice(null)}
-                permissions={{ canRetry: false, canCredit: false }}
-                onCredit={() => undefined}
-            />
         </>
     );
 }
