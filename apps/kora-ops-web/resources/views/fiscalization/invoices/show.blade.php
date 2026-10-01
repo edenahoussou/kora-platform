@@ -63,6 +63,13 @@
             color: #001d4e;
         }
 
+        .origin-ref {
+            color: #b45309;
+            font-weight: 800;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
         .invoice-meta {
             text-align: right;
         }
@@ -372,14 +379,14 @@
             <div class="invoice-meta">
                 <h2>{{ $invoice['documentTypeLabel'] ?? 'Facture fiscale' }}</h2>
                 <div class="meta-line">Facture #
-                    <strong>{{ $fiscal['reference'] ?? ($invoice['reference'] ?? '—') }}</strong>
+                    <strong>{{ $fiscal['codeMecEfDgi'] ?? ($invoice['reference'] ?? '—') }}</strong>
                 </div>
                 <div class="meta-line">Date :
                     <strong>{{ isset($invoice['finalizedAt']) && $invoice['finalizedAt'] ? \Illuminate\Support\Carbon::parse($invoice['finalizedAt'])->format('d/m/Y H:i') : \Illuminate\Support\Carbon::parse($invoice['createdAt'] ?? 'now')->format('d/m/Y H:i') }}</strong>
                 </div>
                 @if (($invoice['documentType'] ?? null) === 'FA' && !empty($invoice['originalInvoiceReference']))
-                    <div class="meta-line"><strong>Facture d'origine :
-                            {{ $invoice['originalInvoiceReference'] }}</strong>
+                    <div class="meta-line">Facture d'origine :
+                        <strong class="origin-ref">{{ $invoice['originalInvoiceReference'] }}</strong>
                     </div>
                 @endif
                 <div class="meta-line">Opérateur :
