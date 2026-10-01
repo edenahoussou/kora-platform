@@ -55,8 +55,14 @@ class EmecfTaxVentilation
         $aibAmount = self::number($taxes['aibAmount'] ?? null);
 
         if ($aibAmount != 0.0) {
+            $aibRate = match (strtoupper((string) $aibCode)) {
+                'A' => '1%',
+                'B' => '5%',
+                default => null,
+            };
+
             $rows[] = [
-                'label' => 'AIB'.($aibCode !== null ? ' ('.$aibCode.')' : ''),
+                'label' => 'AIB'.($aibRate !== null ? ' ('.$aibRate.')' : ''),
                 'total' => $aibAmount,
                 'imposable' => null,
                 'ts' => 0.0,
