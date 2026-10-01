@@ -4,7 +4,9 @@ namespace App\Modules\Fiscalization\Actions;
 
 use App\Modules\Fiscalization\Models\FiscalInvoice;
 use App\Modules\Fiscalization\Services\FiscalInvoicePresenter;
+use App\Modules\Fiscalization\Support\EmecfTaxVentilation;
 use App\Modules\Ticketing\Actions\GenerateTicketQrCodeAction;
+use Illuminate\Support\Number;
 use Spatie\Browsershot\Browsershot;
 
 class GenerateFiscalInvoicePdfAction
@@ -41,11 +43,18 @@ class GenerateFiscalInvoicePdfAction
             $qrSvg = $this->generateQr->execute((string) ($fiscal['qrCode'] ?? $fiscal['codeMecEfDgi']));
         }
 
+        $total = (int) ($fiscal['taxes']['total'] ?? $detail['amount'] ?? 0);
+
         $html = view('fiscalization.invoices.show', [
             'invoice' => $detail,
             'fiscal' => $fiscal,
             'qrSvg' => $qrSvg,
             'isPdf' => true,
+            'ventilation' => EmecfTaxVentilation::fromTaxes(
+                is_array($fiscal['taxes'] ?? null) ? $fiscal['taxes'] : [],
+                $fiscal['aib'] ?? null,
+            ),
+            'amountInWords' => Number::spell($total, locale: 'fr'),
             'formatMoney' => static fn (mixed $amount): string => number_format((float) $amount, 0, ',', ' ').' XOF',
         ])->render();
         $profile = config('pdf.profiles.invoice', []);

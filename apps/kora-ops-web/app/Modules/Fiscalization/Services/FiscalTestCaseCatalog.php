@@ -56,7 +56,7 @@ class FiscalTestCaseCatalog
         if (in_array($caseNumber, [5, 7, 9], true)) {
             $payload['client'] = [
                 'ifu' => $clientIfu,
-                'name' => 'Client de démonstration KORA',
+                'name' => 'EDEN AHOUSSOU',
             ];
         }
 
@@ -66,9 +66,16 @@ class FiscalTestCaseCatalog
     /** @return array{code: string, name: string, price: int, quantity: float, taxGroup: string, taxSpecific?: int} */
     private function item(string $taxGroup, float $quantity, ?int $taxSpecific = null): array
     {
+        [$code, $name] = match (true) {
+            $taxGroup === 'A' && fmod($quantity, 1.0) !== 0.0 => ['COLIS-STD', 'Envoi de colis Cotonou → Parakou (tarif au kg)'],
+            $taxGroup === 'A' => ['BILLET-STD', 'Billet de bus Cotonou → Parakou'],
+            fmod($quantity, 1.0) !== 0.0 => ['COLIS-EXP', 'Envoi de colis express Cotonou → Parakou (tarif au kg)'],
+            default => ['BILLET-VIP', 'Billet de bus Cotonou → Parakou, classe VIP'],
+        };
+
         return array_filter([
-            'code' => 'DGI-TEST-'.$taxGroup,
-            'name' => $taxGroup === 'A' ? 'Article exonéré - Test DGI' : 'Article taxable - Test DGI',
+            'code' => $code,
+            'name' => $name,
             'price' => 10000,
             'quantity' => $quantity,
             'taxGroup' => $taxGroup,
