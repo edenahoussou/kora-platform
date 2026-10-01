@@ -377,9 +377,9 @@
                 <div class="meta-line">Date :
                     <strong>{{ isset($invoice['finalizedAt']) && $invoice['finalizedAt'] ? \Illuminate\Support\Carbon::parse($invoice['finalizedAt'])->format('d/m/Y H:i') : \Illuminate\Support\Carbon::parse($invoice['createdAt'] ?? 'now')->format('d/m/Y H:i') }}</strong>
                 </div>
-                @if (($invoice['documentType'] ?? null) === 'FA' && !empty($invoice['originalInvoice']['reference']))
+                @if (($invoice['documentType'] ?? null) === 'FA' && !empty($invoice['originalInvoiceReference']))
                     <div class="meta-line">Ref. facture d'origine :
-                        <strong>{{ $invoice['originalInvoice']['reference'] }}</strong>
+                        <strong>{{ $invoice['originalInvoiceReference'] }}</strong>
                     </div>
                 @endif
                 <div class="meta-line">Opérateur :

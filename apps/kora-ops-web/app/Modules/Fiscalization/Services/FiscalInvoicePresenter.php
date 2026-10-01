@@ -115,6 +115,7 @@ class FiscalInvoicePresenter
             ])->all(),
             'creditNotes' => $invoice->creditNotes->map(fn (FiscalInvoice $creditNote): array => $this->listItem($creditNote))->all(),
             'originalInvoice' => $invoice->originalFiscalInvoice === null ? null : $this->listItem($invoice->originalFiscalInvoice),
+            'originalInvoiceReference' => $this->originalReference($invoice),
             'reason' => $invoice->credit_note_reason,
             'requestedAt' => $invoice->requested_at?->toIso8601String(),
             'requestedBy' => $invoice->requestedBy?->name,
@@ -238,5 +239,13 @@ class FiscalInvoicePresenter
         }
 
         return $left->name === $right->name && $left->price === $right->price;
+    }
+
+    /** Référence DGI de la facture d'origine, sans tirets, comme exigé sur les avoirs. */
+    private function originalReference(FiscalInvoice $invoice): ?string
+    {
+        $code = $invoice->originalFiscalInvoice?->emecfInvoice?->code_mec_ef_dgi;
+
+        return $code === null ? null : preg_replace('/[^A-Za-z0-9]/', '', $code);
     }
 }
