@@ -516,7 +516,7 @@
                                     {{ $group['imposable'] === null ? '-' : number_format($group['imposable'], 0, ',', ' ') }}
                                 </td>
                                 <td style="text-align: right;">
-                                    {{ $group['impot'] === null || $group['impot'] <= 0 ? '-' : number_format($group['impot'], 0, ',', ' ') }}
+                                    {{ $group['impot'] === null || $group['impot'] == 0 ? '-' : number_format($group['impot'], 0, ',', ' ') }}
                                 </td>
                             </tr>
                         @endforeach
