@@ -15,7 +15,7 @@ class EmecfTaxVentilation
         foreach (self::definitions() as $definition) {
             $total = self::number($taxes[$definition['total']] ?? null);
 
-            if ($total <= 0) {
+            if ($total == 0.0) {
                 continue;
             }
 
@@ -29,7 +29,7 @@ class EmecfTaxVentilation
 
         $aibAmount = self::number($taxes['aibAmount'] ?? null);
 
-        if ($aibAmount > 0) {
+        if ($aibAmount != 0.0) {
             $rows[] = [
                 'label' => 'AIB'.($aibCode !== null ? ' ('.$aibCode.')' : ''),
                 'total' => $aibAmount,
