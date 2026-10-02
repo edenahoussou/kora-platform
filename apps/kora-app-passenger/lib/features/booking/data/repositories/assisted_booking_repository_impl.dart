@@ -119,12 +119,17 @@ ServerFailure? _supportUnavailable(DioException error) {
 ///
 /// Sa réponse est « This action is unauthorized. » — le message par défaut
 /// de Laravel, en anglais, que le voyageur voyait tel quel. Le motif est
-/// côté serveur : la politique exige, en plus d'être propriétaire de la
-/// réservation, la permission `bookings.create`, portée par le rôle
-/// `passenger`. Ce rôle n'est posé qu'à l'inscription : un compte né
-/// autrement — guichet, import, réservation assistée — ne l'a pas, et se
-/// voit refuser le relais vers un agent alors qu'il peut réserver, annuler
-/// et payer.
+/// côté serveur : `ReservationPolicy::requestAssistance` exige, en plus
+/// d'être propriétaire de la réservation, un compte actif portant la
+/// permission `bookings.create` — là où l'annulation et le code promo se
+/// contentent de la propriété. Le relais vers un agent est donc refusé à
+/// des comptes qui peuvent par ailleurs réserver, payer et annuler.
+///
+/// Le back a depuis fermé le cas courant : un compte créé à partir d'un
+/// numéro reçoit le rôle `passenger` à sa création. Restent ceux qu'il ne
+/// couvre pas — un compte créé avant ce correctif, un compte déjà porteur
+/// d'un autre rôle (le rôle `passenger` n'est ajouté à la connexion que
+/// s'il n'en a aucun), un compte suspendu.
 ///
 /// L'app ne peut pas lever ce refus. Elle peut au moins le dire en
 /// français, et indiquer la sortie : le paiement en ligne, lui, reste
