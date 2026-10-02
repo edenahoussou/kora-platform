@@ -12,7 +12,7 @@ it('filters users by search query', function (): void {
     User::factory()->create(['name' => 'Other Person']);
 
     $this->actingAs($admin)
-        ->get('/users?q=' . urlencode('ZZZ Unique'))
+        ->get('/users?q='.urlencode('ZZZ Unique'))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->has('users.data', 1)
