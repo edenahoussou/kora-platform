@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use App\Modules\IdentityAccess\Services\PhonePassengerIdentityResolver;
+use Spatie\Permission\Models\Role;
 
 it('resolves a user by exact international phone match', function (): void {
     $user = User::factory()->create([
@@ -64,4 +65,26 @@ it('returns null when normalizing an empty phone', function (): void {
     expect($resolver->normalizePhone(null))->toBeNull()
         ->and($resolver->normalizePhone(''))->toBeNull()
         ->and($resolver->normalizePhone('  '))->toBeNull();
+});
+
+it('assigns the passenger role when creating an account by phone', function (): void {
+    $resolver = app(PhonePassengerIdentityResolver::class);
+    $resolved = $resolver->resolveOrCreateByPhone('+2290191003606', 'Kevin Mobile');
+
+    expect($resolved->hasRole('passenger'))->toBeTrue();
+});
+
+it('does not touch roles of an existing user resolved by phone', function (): void {
+    $user = User::factory()->create([
+        'phone' => '+2290191003606',
+        'country_code' => '+229',
+    ]);
+    $user->assignRole(Role::findOrCreate('system_admin', 'web'));
+
+    $resolver = app(PhonePassengerIdentityResolver::class);
+    $resolved = $resolver->resolveOrCreateByPhone('+2290191003606', 'Kevin Mobile');
+
+    expect($resolved->id)->toBe($user->id)
+        ->and($resolved->fresh()->hasRole('system_admin'))->toBeTrue()
+        ->and($resolved->fresh()->hasRole('passenger'))->toBeFalse();
 });
