@@ -4,9 +4,11 @@ namespace App\Modules\IdentityAccess\Services;
 
 use App\Models\User;
 use App\Modules\IdentityAccess\Contracts\PassengerIdentityResolver;
+use App\Modules\IdentityAccess\Data\SystemRole;
 use App\Modules\Notifications\Channels\OtpCodeChannel;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Spatie\Permission\Models\Role;
 
 class PhonePassengerIdentityResolver implements PassengerIdentityResolver
 {
@@ -83,11 +85,15 @@ class PhonePassengerIdentityResolver implements PassengerIdentityResolver
             ]);
         }
 
-        return User::query()->create([
+        $user = User::query()->create([
             'name' => trim($name),
             'email' => 'traveler+'.Str::uuid().'@'.OtpCodeChannel::PLACEHOLDER_EMAIL_DOMAIN,
             'phone' => $normalizedPhone,
             'password' => Str::random(64),
         ]);
+
+        $user->assignRole(Role::findOrCreate(SystemRole::Passenger->value));
+
+        return $user;
     }
 }
