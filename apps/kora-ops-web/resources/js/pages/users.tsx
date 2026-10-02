@@ -15,7 +15,7 @@ import {
     Unlock,
     Users as UsersIcon,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { KoraStatusBadge } from '@/components/kora-status-badge';
 import { UserCredentialsDialog } from '@/components/users/user-credentials-dialog';
 import { UserDetailDrawer } from '@/components/users/user-detail-drawer';
@@ -244,7 +244,38 @@ export default function UsersPage({
         });
     };
 
-    const applyFilters = () => visit({ page: 1 });
+    const searchTimer = useRef<number | null>(null);
+
+    const handleQueryChange = (value: string) => {
+        setQuery(value);
+
+        if (searchTimer.current !== null) {
+            window.clearTimeout(searchTimer.current);
+        }
+
+        searchTimer.current = window.setTimeout(() => {
+            searchTimer.current = null;
+            visit({ q: value, page: 1 });
+        }, 450);
+    };
+
+    useEffect(
+        () => () => {
+            if (searchTimer.current !== null) {
+                window.clearTimeout(searchTimer.current);
+            }
+        },
+        [],
+    );
+
+    const applyFilters = () => {
+        if (searchTimer.current !== null) {
+            window.clearTimeout(searchTimer.current);
+            searchTimer.current = null;
+        }
+
+        visit({ page: 1 });
+    };
 
     const resetFilters = () => {
         setQuery('');
@@ -490,7 +521,9 @@ export default function UsersPage({
                     <Search className="cash-filter-icon size-4" />
                     <input
                         value={query}
-                        onChange={(event) => setQuery(event.target.value)}
+                        onChange={(event) =>
+                            handleQueryChange(event.target.value)
+                        }
                         onKeyDown={(event) => {
                             if (event.key === 'Enter') {
                                 applyFilters();

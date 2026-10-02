@@ -4025,6 +4025,10 @@
         letter-spacing: -0.03em;
     }
 
+    .dark .cash-kpi strong {
+        color: var(--foreground);
+    }
+
     .cash-kpi .trend {
         color: var(--digital);
         font-size: 11px;
@@ -4512,6 +4516,10 @@
         letter-spacing: -0.045em;
         text-overflow: ellipsis;
         white-space: nowrap;
+    }
+
+    .dark .cash-ledger-balance strong {
+        color: var(--foreground);
     }
 
     .cash-ledger-breakdown {
