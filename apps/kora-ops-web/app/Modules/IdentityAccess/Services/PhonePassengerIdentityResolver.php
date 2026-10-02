@@ -92,7 +92,7 @@ class PhonePassengerIdentityResolver implements PassengerIdentityResolver
             'password' => Str::random(64),
         ]);
 
-        $user->assignRole(Role::findOrCreate(SystemRole::Passenger->value));
+        $user->assignRole(Role::findOrCreate(SystemRole::Passenger->value, 'web'));
 
         return $user;
     }

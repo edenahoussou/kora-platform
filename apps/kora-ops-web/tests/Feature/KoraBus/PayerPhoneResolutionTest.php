@@ -79,7 +79,7 @@ it('does not touch roles of an existing user resolved by phone', function (): vo
         'phone' => '+2290191003606',
         'country_code' => '+229',
     ]);
-    $user->assignRole(Role::findOrCreate('system_admin'));
+    $user->assignRole(Role::findOrCreate('system_admin', 'web'));
 
     $resolver = app(PhonePassengerIdentityResolver::class);
     $resolved = $resolver->resolveOrCreateByPhone('+2290191003606', 'Kevin Mobile');
