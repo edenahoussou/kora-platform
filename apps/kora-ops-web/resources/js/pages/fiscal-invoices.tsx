@@ -505,7 +505,7 @@ export function DetailDialog({
                                         </span>
                                         <a
                                             href={pdf.url(note.uuid)}
-                                            className="text-kora underline-offset-2 hover:underline"
+                                            className="text-kora underline-offset-2 hover:underline dark:text-digital"
                                         >
                                             PDF
                                         </a>

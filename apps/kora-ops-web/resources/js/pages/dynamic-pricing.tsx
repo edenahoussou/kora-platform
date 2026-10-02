@@ -494,7 +494,7 @@ export default function DynamicPricingPage({
                                 onClick={() =>
                                     setShowSettings((current) => !current)
                                 }
-                                className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-digital transition-[color,transform] duration-300 hover:translate-x-0.5 hover:text-kora"
+                                className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-digital transition-[color,transform] duration-300 hover:translate-x-0.5 hover:text-kora dark:hover:text-digital"
                             >
                                 {showSettings
                                     ? 'Masquer les réglages'

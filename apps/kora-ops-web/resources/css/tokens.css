@@ -1,5 +1,6 @@
 :root {
     --kora: #001d4e;
+    --brand-ink: var(--kora);
     --gold: #f6b000;
     --digital: #0057b8;
     --mist: #f4f6f8;
@@ -44,6 +45,7 @@
 
 .dark {
     --kora: #061839;
+    --brand-ink: var(--foreground);
     --gold: #f6b000;
     --digital: #4f8edc;
     --mist: #15213a;

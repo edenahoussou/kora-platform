@@ -285,7 +285,7 @@ export default function FiscalTestInvoices({
                                         <a
                                             key={summary.uuid}
                                             href={summary.viewUrl}
-                                            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-bold text-kora hover:bg-kora/5"
+                                            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-bold text-kora hover:bg-kora/5 dark:text-digital"
                                         >
                                             <Eye className="size-3.5" /> Détail
                                             #{summary.uuid.slice(0, 8)}
