@@ -90,6 +90,7 @@ void main() {
   Future<void> pumpSearch(
     WidgetTester tester, {
     TripType tripType = TripType.oneway,
+    BusSearchArgs? args,
   }) async {
     tester.view.physicalSize = const Size(390 * 3, 844 * 3);
     tester.view.devicePixelRatio = 3;
@@ -99,7 +100,17 @@ void main() {
       routes: [
         GoRoute(
           path: '/',
-          builder: (_, _) => BusSearchPage(tripType: tripType),
+          builder: (_, _) =>
+              BusSearchPage(args: args ?? BusSearchArgs(tripType: tripType)),
+        ),
+        // L'accueil n'est pas monté non plus : on vérifie seulement qu'on
+        // y atterrit.
+        GoRoute(
+          path: '/home',
+          builder: (context, state) {
+            pushed.add(state.uri.toString());
+            return const Scaffold(body: Text('accueil'));
+          },
         ),
         // Le centre d'aide n'est pas monté : seul le fait d'y aller compte.
         GoRoute(
@@ -313,5 +324,47 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(pushed, [AppRouter.helpPath]);
+  });
+
+  testWidgets('rouvert depuis « Aucun retour », le trajet est retrouvé', (
+    tester,
+  ) async {
+    // On y revient pour changer une date, pas pour tout retaper : le
+    // formulaire repartait vide, villes et dates comprises.
+    await pumpSearch(
+      tester,
+      args: BusSearchArgs(
+        tripType: TripType.roundtrip,
+        origin: kMockCities.first,
+        destination: kMockCities[1],
+        date: DateTime(2026, 8, 20),
+        returnDate: DateTime(2026, 8, 24),
+        passengers: 3,
+      ),
+    );
+
+    // L'écran affiche la ville par son libellé complet (« Cotonou · St
+    // Michel »), pas par son seul nom.
+    expect(find.text(kMockCities.first.label), findsWidgets);
+    expect(find.text(kMockCities[1].label), findsWidgets);
+    // Et la date du retour, celle qui n'a rien donné, est là pour être
+    // changée.
+    expect(find.textContaining('24 août'), findsWidgets);
+  });
+
+  testWidgets('le retour ramène à l’accueil quand la pile est vide', (
+    tester,
+  ) async {
+    // On arrive ici par « Changer la date du retour », qui fait un
+    // `context.go` : la pile est remplacée, l'écran devient le seul. Le
+    // `pop` d'alors quittait la dernière route et laissait un écran noir
+    // dont on ne sortait plus.
+    await pumpSearch(tester);
+
+    await tester.tap(find.byIcon(Icons.chevron_left_rounded));
+    await tester.pumpAndSettle();
+
+    expect(pushed, contains('/home'));
+    expect(find.text('accueil'), findsOneWidget);
   });
 }

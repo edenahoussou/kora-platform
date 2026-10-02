@@ -65,6 +65,7 @@ import '../../features/welcome/data/onboarding_store.dart';
 import '../constants/api_constants.dart';
 import '../constants/storage_keys.dart';
 import '../env/app_env.dart';
+import '../network/session_expiry.dart';
 import '../services/app_permissions.dart';
 import '../services/oauth_sign_in.dart';
 
@@ -156,9 +157,18 @@ void _registerCore() {
     ),
   );
 
+  // Une session refusée se sait d'un seul endroit : l'intercepteur la
+  // signale, `AuthBloc` la traduit en déconnexion, et le garde de
+  // navigation ramène à la connexion.
+  getIt.registerLazySingleton<SessionExpiry>(SessionExpiry.new);
+
   // On expose directement `Dio` aussi : la plupart des data sources n'ont
   // besoin que de `Dio`, pas de tout `DioClient`.
-  getIt.registerLazySingleton<Dio>(() => getIt<DioClient>().dio);
+  getIt.registerLazySingleton<Dio>(
+    () =>
+        getIt<DioClient>().dio
+          ..interceptors.add(SessionExpiredInterceptor(getIt<SessionExpiry>())),
+  );
 }
 
 /// Feature "theme" (mode clair/sombre) — voir features/theme/.

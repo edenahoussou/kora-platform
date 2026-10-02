@@ -41,6 +41,17 @@ class AuthProfileUpdated extends AuthEvent {
 }
 
 /// Déconnexion demandée par l'utilisateur.
+/// Le serveur a refusé le token : session périmée, ou révoquée depuis un
+/// autre appareil.
+///
+/// Distinct de [AuthLogoutRequested] : il n'y a rien à révoquer côté
+/// serveur — c'est lui qui vient de nous refuser — et l'utilisateur n'a
+/// rien demandé. On purge et on le ramène à la connexion, plutôt que de
+/// le laisser devant un accueil qui ne chargera jamais.
+class AuthSessionExpired extends AuthEvent {
+  const AuthSessionExpired();
+}
+
 class AuthLogoutRequested extends AuthEvent {
   const AuthLogoutRequested();
 }

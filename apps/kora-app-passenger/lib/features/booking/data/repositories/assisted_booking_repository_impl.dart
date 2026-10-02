@@ -26,7 +26,7 @@ class AssistedBookingRepositoryImpl
     required String contactPhone,
     required String idempotencyKey,
   }) async {
-    ServerFailure? unavailable;
+    Failure? translated;
 
     final result = await attempt(() async {
       try {
@@ -40,12 +40,13 @@ class AssistedBookingRepositoryImpl
       } on DioException catch (error) {
         // Le 503 du support ne porte qu'un code : sans ça, le mapper
         // commun rendrait « erreur serveur », qui ne dit pas quoi faire.
-        unavailable = _supportUnavailable(error);
+        // Le 403, lui, arrive avec le message anglais de Laravel.
+        translated = _supportUnavailable(error) ?? _notAllowed(error);
         rethrow;
       }
     });
 
-    final captured = unavailable;
+    final captured = translated;
     return captured == null ? result : Left(captured);
   }
 
@@ -111,6 +112,29 @@ ServerFailure? _supportUnavailable(DioException error) {
   return const ServerFailure(
     'Le service d’assistance KORA est momentanément injoignable. '
     'Réessayez dans un instant, ou payez en ligne.',
+  );
+}
+
+/// Le serveur refuse la demande d'assistance pour ce compte.
+///
+/// Sa réponse est « This action is unauthorized. » — le message par défaut
+/// de Laravel, en anglais, que le voyageur voyait tel quel. Le motif est
+/// côté serveur : la politique exige, en plus d'être propriétaire de la
+/// réservation, la permission `bookings.create`, portée par le rôle
+/// `passenger`. Ce rôle n'est posé qu'à l'inscription : un compte né
+/// autrement — guichet, import, réservation assistée — ne l'a pas, et se
+/// voit refuser le relais vers un agent alors qu'il peut réserver, annuler
+/// et payer.
+///
+/// L'app ne peut pas lever ce refus. Elle peut au moins le dire en
+/// français, et indiquer la sortie : le paiement en ligne, lui, reste
+/// ouvert.
+AuthFailure? _notAllowed(DioException error) {
+  if (error.response?.statusCode != 403) return null;
+
+  return const AuthFailure(
+    'Votre compte n’est pas autorisé à confier une réservation à un agent. '
+    'Payez en ligne, ou contactez le support KORA.',
   );
 }
 

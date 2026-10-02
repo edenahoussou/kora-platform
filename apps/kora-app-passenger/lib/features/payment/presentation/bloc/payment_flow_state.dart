@@ -66,6 +66,7 @@ class PaymentFlowState extends Equatable {
     Failure? failure,
     bool clearFailure = false,
     bool? isVerifying,
+    int? round,
   }) {
     return PaymentFlowState(
       status: status ?? this.status,
@@ -75,7 +76,10 @@ class PaymentFlowState extends Equatable {
       // un message qui ne vaut plus rien.
       failure: clearFailure ? null : failure ?? this.failure,
       isVerifying: isVerifying ?? this.isVerifying,
-      round: round,
+      // Le numéro d'essai ne se remet pas à zéro tout seul : il compte les
+      // demandes déjà parties pour cette réservation, et c'est lui qui
+      // fait d'un nouvel essai une demande neuve aux yeux du serveur.
+      round: round ?? this.round,
     );
   }
 

@@ -325,7 +325,6 @@ void main() {
           provider: 'fedapay',
           network: 'mtn_momo',
           phone: '+2290166000001',
-          idempotencyKey: 'kora-1',
         ),
       );
       await bloc.stream.firstWhere((state) => !state.isStarting);
@@ -333,12 +332,11 @@ void main() {
       return bloc;
     }
 
-    testWidgets('après un refus, « Payer » cède la place à la sortie', (
-      tester,
-    ) async {
-      // Le bloc refuse de relancer une demande déjà ouverte — c'est ce qui
-      // protège du double débit. Le bouton « Payer » n'avait donc plus
-      // aucun effet, et le voyageur appuyait dans le vide.
+    testWidgets('après un refus, on peut repayer sur place', (tester) async {
+      // Le voyageur corrige son numéro et réessaie ici même : c'est ce
+      // qu'il fait naturellement. L'écran lui opposait « Changer de
+      // moyen », qui le renvoyait choisir un moyen qu'il avait déjà
+      // choisi.
       final flow = await flowWith(
         const PaymentAttempt(
           id: 'pay-1',
@@ -354,8 +352,8 @@ void main() {
         flow: flow,
       );
 
-      expect(find.text('Payer ${money(12500)}'), findsNothing);
-      expect(find.text('Changer de moyen'), findsOneWidget);
+      expect(find.text('Payer ${money(12500)}'), findsOneWidget);
+      expect(find.text('Changer de moyen'), findsNothing);
     });
   });
 

@@ -131,7 +131,6 @@ void main() {
         provider: 'fedapay',
         network: 'mtn_momo',
         phone: '+2290166000000',
-        idempotencyKey: 'kora-1',
       ),
     );
     await flow.stream.firstWhere((state) => !state.isStarting);
@@ -264,7 +263,6 @@ void main() {
         provider: 'fedapay',
         network: 'mtn_momo',
         phone: '+2290166000001',
-        idempotencyKey: 'kora-1',
       ),
     );
 

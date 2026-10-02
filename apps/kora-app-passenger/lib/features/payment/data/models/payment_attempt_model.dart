@@ -26,7 +26,35 @@ class PaymentAttemptModel {
       checkoutUrl:
           ApiJson.stringOrNull(_json['payment_url']) ??
           ApiJson.stringOrNull(_json['redirect_url']),
+      reservationHeld: _reservationHeld(),
     );
+  }
+
+  /// La réservation tient-elle encore ses sièges ?
+  ///
+  /// Le serveur joint son statut à la réponse de paiement. Un refus
+  /// d'opérateur la passe à `expired` et relâche les places : c'est ce
+  /// qui rendait tout nouvel essai impossible, sans que l'app le sache.
+  ///
+  /// Sans statut dans la réponse, on suppose la réservation vivante :
+  /// mieux vaut proposer un essai de trop que d'annoncer à tort des
+  /// sièges perdus.
+  bool _reservationHeld() {
+    final reservation = _json['reservation'];
+    if (reservation is! Map) return true;
+
+    final status = ApiJson.stringOrNull(
+      Map<String, dynamic>.from(reservation)['status'],
+    );
+    if (status == null) return true;
+
+    return const {
+      'held',
+      'confirmed',
+      'assistance_pending',
+      'paid',
+      'ticketed',
+    }.contains(status);
   }
 
   /// Une cadence nulle ou négative n'en est pas une : elle ferait tourner

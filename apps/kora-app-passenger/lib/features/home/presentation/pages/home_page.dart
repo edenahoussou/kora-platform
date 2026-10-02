@@ -10,6 +10,7 @@ import '../../../../core/widgets/section_title.dart';
 import '../../../auth/domain/entities/auth_user.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../booking/domain/entities/city.dart';
+import '../../../booking/presentation/pages/bus_search_page.dart';
 import '../bloc/home_bloc.dart';
 import '../widgets/home_hero.dart';
 import '../widgets/home_quick_grid.dart';
@@ -211,8 +212,10 @@ class _HomeContent extends StatelessWidget {
           icon: Icons.swap_horiz_rounded,
           title: context.l10n.homeRoundTripTitle,
           message: context.l10n.homeRoundTripText,
-          onTap: () =>
-              context.push(AppRouter.busSearchPath, extra: TripType.roundtrip),
+          onTap: () => context.push(
+            AppRouter.busSearchPath,
+            extra: const BusSearchArgs(tripType: TripType.roundtrip),
+          ),
         ),
       ],
     );

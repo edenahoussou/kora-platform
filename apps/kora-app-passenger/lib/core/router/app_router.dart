@@ -36,7 +36,6 @@ import '../../features/booking/presentation/pages/ticket_detail_page.dart';
 import '../../features/booking/presentation/pages/ticket_page.dart';
 import '../../features/booking/presentation/pages/tickets_page.dart';
 import '../../features/booking/presentation/widgets/seat_hold_watcher.dart';
-import '../../features/home/presentation/bloc/home_bloc.dart';
 import '../../features/home/presentation/pages/city_picker_page.dart';
 import '../../features/home/presentation/pages/date_picker_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
@@ -486,11 +485,12 @@ class AppRouter {
         GoRoute(
           path: busSearchPath,
           builder: (context, state) => BusSearchPage(
-            // L'accueil passe `TripType.roundtrip` depuis sa carte dédiée ;
-            // les autres entrées n'envoient rien et gardent l'aller simple.
-            tripType: state.extra is TripType
-                ? state.extra! as TripType
-                : TripType.oneway,
+            // L'accueil passe son type de trajet ; « Aucun retour »
+            // rapporte en plus le trajet déjà composé, pour ne pas le
+            // faire ressaisir. Les autres entrées n'envoient rien.
+            args: state.extra is BusSearchArgs
+                ? state.extra! as BusSearchArgs
+                : const BusSearchArgs(),
           ),
         ),
         GoRoute(
@@ -843,6 +843,11 @@ class AppRouter {
 /// L'onglet Voyages dans la barre du bas, dans l'ordre des branches.
 const int _voyagesBranch = 1;
 
+/// Les deux onglets qui attendent leur feature : leurs écrans dorment
+/// dans le dépôt, et l'app ne les ouvre pas.
+const int _colisBranch = 2;
+const int _walletBranch = 3;
+
 /// Le `Scaffold` commun à tous les onglets : il porte la [KoraBottomNav]
 /// et affiche la branche active via [navigationShell].
 class _ScaffoldWithNavBar extends StatelessWidget {
@@ -871,6 +876,12 @@ class _ScaffoldWithNavBar extends StatelessWidget {
           ],
           currentIndex: navigationShell.currentIndex,
           onTap: (index) {
+            // Colis et Wallet n'ont pas encore de fonctionnalité : leurs
+            // écrans dorment dans le dépôt et l'onglet ne montrerait
+            // qu'un en-tête. L'appui ne mène donc nulle part, comme la
+            // tuile de l'accueil et celle de KORA Ride.
+            if (index == _colisBranch || index == _walletBranch) return;
+
             // Ouvrir Voyages relit les billets : l'émission suit le
             // paiement de quelques secondes, et la branche garde son
             // état — sans ça, le billet qu'on vient d'acheter n'y

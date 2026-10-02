@@ -179,17 +179,6 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
         provider: provider.code,
         network: network,
         phone: '${_country.code}${_phone.text.replaceAll(RegExp(r'\D'), '')}',
-        // Volontairement déterministe : un réseau qui coupe entre l'envoi
-        // et la réponse laisse le voyageur retaper « Payer », et cette clé
-        // fait alors répondre au serveur le paiement déjà ouvert plutôt
-        // que d'en créer un second. Une clé tirée au hasard à chaque appui
-        // provoquerait exactement le double débit qu'elle prétend éviter.
-        //
-        // Le numéro d'essai la complète : sans lui, un essai après un refus
-        // renvoyait la même clé, et le serveur ressortait l'ancien refus.
-        idempotencyKey:
-            'kora-${hold.id}-$network-'
-            '${context.read<PaymentFlowBloc>().state.round}',
       ),
     );
   }
@@ -284,18 +273,11 @@ class _MobileMoneyPageState extends State<MobileMoneyPage> {
       );
     }
 
-    // Refusé : réessayer suppose de repartir d'une demande neuve, et cela
-    // se décide sur l'écran des moyens de paiement.
-    if (flow.attempt != null) {
-      return KoraButton(
-        label: l10n.paymentFailedSwitch,
-        variant: KoraButtonVariant.ghost,
-        onPressed: () {
-          context.read<PaymentFlowBloc>().add(const PaymentFlowReset());
-          backToPaymentMethods(context);
-        },
-      );
-    }
+    // Un paiement refusé ne verrouille plus l'écran : le voyageur corrige
+    // son numéro et réessaie ici même. C'est ce qu'il fait naturellement,
+    // et le renvoyer au choix du moyen pour ça n'apportait rien — le
+    // bouton « Payer » ci-dessous remet la demande à zéro avant de
+    // repartir.
 
     return KoraButton(
       label: l10n.paymentMomoPay(widget.args!.total.formatted),

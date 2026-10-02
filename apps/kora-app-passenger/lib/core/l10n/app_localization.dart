@@ -581,6 +581,9 @@ class AppLocalization {
 
   String get paymentFailedText => translate('payment_failed_text');
 
+  String get paymentFailedHeldText => translate('payment_failed_held_text');
+  String get paymentFailedRetryPayment =>
+      translate('payment_failed_retry_payment');
   String get paymentFailedRetry => translate('payment_failed_retry');
 
   String get paymentFailedSwitch => translate('payment_failed_switch');

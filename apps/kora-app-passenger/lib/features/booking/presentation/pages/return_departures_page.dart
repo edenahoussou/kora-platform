@@ -7,10 +7,25 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/date_formats.dart';
 import '../../../../core/utils/title_color.dart';
 import '../../../../core/widgets/screen_header.dart';
+import '../../../home/presentation/bloc/home_bloc.dart';
 import '../../domain/entities/departure.dart';
 import '../widgets/departure_tile.dart';
 import '../widgets/state_view.dart';
+import 'bus_search_page.dart';
 import 'departure_detail_page.dart';
+
+/// Le formulaire rouvert sur le trajet déjà composé.
+///
+/// La date du retour y revient telle qu'elle a été demandée : c'est elle
+/// qu'on vient changer, et la voir affichée dit laquelle n'a rien donné.
+BusSearchArgs _searchAgain(ReturnDeparturesArgs args) => BusSearchArgs(
+  tripType: TripType.roundtrip,
+  origin: args.outbound.line.origin,
+  destination: args.outbound.line.destination,
+  date: args.outbound.departsAt,
+  returnDate: args.returnDate,
+  passengers: args.passengers,
+);
 
 /// Ce que le choix de l'aller transmet à celui du retour.
 class ReturnDeparturesArgs {
@@ -83,7 +98,7 @@ class ReturnDeparturesPage extends StatelessWidget {
               ),
               Expanded(
                 child: departures.isEmpty
-                    ? _Empty(outbound: args.outbound)
+                    ? _Empty(args: args)
                     : _List(args: args),
               ),
             ],
@@ -187,9 +202,9 @@ class _OutboundReminder extends StatelessWidget {
 /// à proposer. On renvoie au formulaire plutôt que de laisser le voyageur
 /// devant une liste muette — la date du retour est ce qu'il faut changer.
 class _Empty extends StatelessWidget {
-  const _Empty({required this.outbound});
+  const _Empty({required this.args});
 
-  final Departure outbound;
+  final ReturnDeparturesArgs args;
 
   @override
   Widget build(BuildContext context) {
@@ -198,7 +213,7 @@ class _Empty extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.only(bottom: AppSpacing.xl),
       children: [
-        _OutboundReminder(departure: outbound),
+        _OutboundReminder(departure: args.outbound),
         const SizedBox(height: AppSpacing.lg),
         StateView(
           icon: Icons.event_busy_rounded,
@@ -206,8 +221,10 @@ class _Empty extends StatelessWidget {
           message: l10n.returnResultsEmptyText,
           primaryLabel: l10n.returnResultsEmptyCta,
           // Deux crans en arrière : la liste de l'aller, puis le
-          // formulaire, où se règle la date du retour.
-          onPrimary: () => context.go(AppRouter.busSearchPath),
+          // formulaire, où se règle la date du retour. Le trajet
+          // repart avec lui : seule la date est à reprendre.
+          onPrimary: () =>
+              context.go(AppRouter.busSearchPath, extra: _searchAgain(args)),
         ),
       ],
     );
