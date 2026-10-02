@@ -121,7 +121,7 @@
     .sale-success h1 {
         max-width: 73.75rem;
         margin: 0.35rem 0 0.45rem;
-        color: var(--kora);
+        color: var(--brand-ink);
         font-size: clamp(2rem, 4vw, 2.75rem);
         letter-spacing: -0.04em;
     }
@@ -211,7 +211,7 @@
     }
 
     .ticket-route-large b {
-        color: var(--kora);
+        color: var(--brand-ink);
         font-family: var(--font-mono);
         font-size: 2.125rem;
         letter-spacing: -0.08em;
@@ -272,7 +272,7 @@
     .ticket-grid strong {
         margin-top: 0.3rem;
         overflow: hidden;
-        color: var(--kora);
+        color: var(--brand-ink);
         font-family: var(--font-mono);
         font-size: 0.66rem;
         text-overflow: ellipsis;
@@ -306,7 +306,7 @@
     .ticket-qr small {
         grid-column: 1 / -1;
         margin-top: 0.3rem;
-        color: var(--kora);
+        color: var(--brand-ink);
         font-family: var(--font-mono);
         font-size: 0.45rem;
         text-align: center;
@@ -333,7 +333,7 @@
 
     .ticket-code b {
         max-width: 16rem;
-        color: var(--kora);
+        color: var(--brand-ink);
         font-family: var(--font-mono);
         font-size: 0.52rem;
         letter-spacing: 0.08em;
@@ -361,7 +361,7 @@
     }
 
     .action-rail-heading span {
-        color: var(--kora);
+        color: var(--brand-ink);
         font-size: 0.75rem;
         font-weight: 800;
     }
@@ -383,7 +383,7 @@
         border: 1px solid transparent;
         border-radius: 0.85rem;
         background: transparent;
-        color: var(--kora);
+        color: var(--brand-ink);
         cursor: pointer;
         text-align: left;
         transition:
@@ -413,7 +413,7 @@
         place-items: center;
         border-radius: 0.7rem;
         background: rgb(0 29 78 / 6%);
-        color: var(--kora);
+        color: var(--brand-ink);
     }
 
     .action-rail-label {
@@ -445,7 +445,7 @@
 
     .action-rail-button-primary:hover:not(:disabled),
     .action-rail-button-primary:focus-visible {
-        border-color: var(--kora);
+        border-color: var(--brand-ink);
         background: var(--digital);
     }
 
@@ -824,7 +824,7 @@
     .revenue-kpi-disabled-label {
         display: block;
         margin-top: 16px;
-        color: var(--kora);
+        color: var(--brand-ink);
         font-size: clamp(1.05rem, 1.6vw, 1.38rem);
         letter-spacing: -0.045em;
         line-height: 1.1;
@@ -1114,7 +1114,7 @@
     .revenue-refund-total {
         display: block;
         margin-top: 22px;
-        color: var(--kora);
+        color: var(--brand-ink);
         font-size: clamp(1.55rem, 2.5vw, 2.2rem);
         letter-spacing: -0.055em;
     }
@@ -3072,7 +3072,7 @@
         height: 30px;
         border-radius: 9px;
         background: color-mix(in srgb, var(--digital) 9%, transparent);
-        color: var(--kora);
+        color: var(--brand-ink);
     }
 
     .manifest-summary-card-absent .manifest-summary-icon {
@@ -4007,7 +4007,7 @@
         height: 32px;
         place-items: center;
         border-radius: 10px;
-        color: var(--kora);
+        color: var(--brand-ink);
         background: color-mix(in srgb, var(--gold) 18%, transparent);
         font-weight: 900;
     }
@@ -4020,7 +4020,7 @@
     .cash-kpi strong {
         display: block;
         margin: 13px 0 8px;
-        color: var(--kora);
+        color: var(--brand-ink);
         font-size: 25px;
         letter-spacing: -0.03em;
     }
@@ -4507,7 +4507,7 @@
 
     .cash-ledger-balance strong {
         overflow: hidden;
-        color: var(--kora);
+        color: var(--brand-ink);
         font-size: clamp(1.24rem, 1.65vw, 1.55rem);
         letter-spacing: -0.045em;
         text-overflow: ellipsis;
@@ -5283,7 +5283,7 @@
 
     .departure-time time {
         margin: 4px 0;
-        color: var(--kora);
+        color: var(--brand-ink);
         font-size: 26px;
         font-weight: 900;
     }
@@ -5316,7 +5316,7 @@
     }
 
     .trip-title strong {
-        color: var(--kora);
+        color: var(--brand-ink);
         font-size: 12px;
     }
 
@@ -5388,7 +5388,7 @@
     }
 
     .route-cities b {
-        color: var(--kora);
+        color: var(--brand-ink);
         font-size: 10px;
     }
 
@@ -5439,7 +5439,7 @@
     }
 
     .departure-price .price {
-        color: var(--kora);
+        color: var(--brand-ink);
         font-size: 15px;
         font-weight: 900;
     }
@@ -5463,7 +5463,7 @@
     }
 
     .price-final {
-        color: var(--kora);
+        color: var(--brand-ink);
         font-size: 15px;
         font-weight: 900;
     }
@@ -5598,7 +5598,7 @@
     }
 
     .pricing-intelligence-title {
-        color: var(--kora);
+        color: var(--brand-ink);
         font-size: 13px;
         font-weight: 900;
         letter-spacing: -0.01em;
@@ -5673,7 +5673,7 @@
         display: inline-flex;
         align-items: center;
         gap: 5px;
-        color: var(--kora);
+        color: var(--brand-ink);
         font-size: 9px;
         font-weight: 900;
     }
@@ -5704,7 +5704,7 @@
     }
 
     .timeline-segment-price-final {
-        color: var(--kora);
+        color: var(--brand-ink);
         font-size: 10px;
         font-weight: 900;
     }
@@ -5972,7 +5972,7 @@
     }
 
     .payer-choice.is-active {
-        border-color: var(--kora);
+        border-color: var(--brand-ink);
         background: var(--kora);
         color: #fff;
     }
@@ -6510,7 +6510,7 @@
         gap: 5px;
         font-size: 10px;
         font-weight: 700;
-        color: var(--kora);
+        color: var(--brand-ink);
     }
 
     .direct-bus-label strong {
@@ -6923,7 +6923,7 @@
         place-items: center;
         border: 0;
         border-radius: 12px;
-        color: var(--kora);
+        color: var(--brand-ink);
         background: var(--mist);
         transition: 0.2s ease;
     }
@@ -6968,7 +6968,7 @@
         justify-content: center;
         gap: 7px;
         margin-top: 14px;
-        color: var(--kora);
+        color: var(--brand-ink);
     }
 
     .seat-availability strong {
@@ -7052,7 +7052,7 @@
         place-items: center;
         border: 3px solid var(--kora);
         border-radius: 50%;
-        color: var(--kora);
+        color: var(--brand-ink);
         font-size: 9px;
     }
 
@@ -7112,7 +7112,7 @@
     .seat {
         border: 1px solid rgba(0, 29, 78, 0.13);
         border-radius: 10px 10px 7px 7px;
-        color: var(--kora);
+        color: var(--brand-ink);
         background: var(--card);
         font-size: 9px;
         font-weight: 850;
@@ -7182,7 +7182,7 @@
         right: 1px;
         bottom: -7px;
         left: 1px;
-        color: var(--kora);
+        color: var(--brand-ink);
         font-size: 6px;
     }
 
@@ -7199,7 +7199,7 @@
     }
 
     .seat-counter > span {
-        color: var(--kora);
+        color: var(--brand-ink);
         font-weight: 800;
     }
 
@@ -7229,7 +7229,7 @@
 
     .seat-counter strong {
         min-width: 22px;
-        color: var(--kora);
+        color: var(--brand-ink);
         text-align: center;
     }
 
@@ -7244,7 +7244,7 @@
         padding: 10px 13px;
         border-left: 3px solid var(--gold);
         border-radius: 8px;
-        color: var(--kora);
+        color: var(--brand-ink);
         background: rgba(246, 176, 0, 0.1);
         font-size: 8px;
         line-height: 1.5;
@@ -7355,7 +7355,7 @@
 
     .seat-dialog-close:hover {
         border-color: var(--gold);
-        color: var(--kora);
+        color: var(--brand-ink);
         background: color-mix(in srgb, var(--gold) 20%, var(--card));
         transform: rotate(4deg);
     }
@@ -7612,7 +7612,7 @@
     }
 
     .seat-trip-route strong {
-        color: var(--kora);
+        color: var(--brand-ink);
         font-size: 18px;
         letter-spacing: -0.04em;
     }
@@ -7777,7 +7777,7 @@
         place-items: center;
         border: 1px solid color-mix(in srgb, var(--gold) 55%, var(--border));
         border-radius: 9px;
-        color: var(--kora);
+        color: var(--brand-ink);
         background: color-mix(in srgb, var(--gold) 20%, var(--card));
         font-size: 10px;
         font-weight: 900;
@@ -7841,7 +7841,7 @@
 
     .seat-counter-controls strong {
         min-width: 22px;
-        color: var(--kora);
+        color: var(--brand-ink);
         font-size: 14px;
         text-align: center;
     }
@@ -7926,7 +7926,7 @@
         padding: 10px 11px;
         border-left: 3px solid var(--gold);
         border-radius: 9px;
-        color: var(--kora);
+        color: var(--brand-ink);
         background: color-mix(in srgb, var(--gold) 12%, var(--card));
         font-size: 8px;
         line-height: 1.5;
@@ -8569,7 +8569,7 @@
 }
 
 .kora-onboarding-btn-next {
-    color: var(--kora);
+    color: var(--brand-ink);
     background: rgba(246, 176, 0, 0.15);
 }
 
@@ -8990,7 +8990,7 @@
         place-items: center;
         border: 1px solid var(--border);
         border-radius: 9px;
-        color: var(--kora);
+        color: var(--brand-ink);
         background: var(--card);
         transition: 0.2s ease;
     }
@@ -9177,7 +9177,7 @@
         place-items: center;
         border: 3px solid var(--kora);
         border-radius: 50%;
-        color: var(--kora);
+        color: var(--brand-ink);
         font-size: 9px;
     }
 
@@ -9227,7 +9227,7 @@
         place-items: center;
         border: 1px solid color-mix(in srgb, var(--kora) 16%, var(--border));
         border-radius: 10px 10px 7px 7px;
-        color: var(--kora);
+        color: var(--brand-ink);
         background: var(--card);
         font-size: 10px;
         font-weight: 850;
