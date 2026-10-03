@@ -43,6 +43,7 @@ enum SystemRole: string
                 'bookings.cancel',
                 'tickets.view',
                 'company-accounts.view',
+                'company-portal.access',
             ],
             self::BusDriver => [
                 'departures.progress',
@@ -293,6 +294,7 @@ enum SystemRole: string
             'company-credit.view',
             'company-credit.manage',
             'company-reports.export',
+            'company-portal.access',
             'assisted-bookings.view-agency',
             'assisted-bookings.claim',
             'assisted-bookings.manage-agency',

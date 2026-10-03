@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Modules\CompanyAccounts\Http\Middleware\EnsureCompanyReferent;
 use App\Modules\IdentityAccess\Http\Middleware\EnsureOpsSession;
 use App\Modules\IdentityAccess\Http\Middleware\EnsureTerminalIsUsable;
 use App\Modules\IdentityAccess\Services\OpsSessionAuthenticationFailureResponder;
@@ -46,6 +47,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'ops.session' => EnsureOpsSession::class,
             'notifications.access' => EnsureNotificationsAccess::class,
             'ops.notifications' => EnsureNotificationsAccess::class,
+            'company.referent' => EnsureCompanyReferent::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -39,6 +39,11 @@ export function CompanyAccountDetailPanel({
 }: Props) {
     const [userUuid, setUserUuid] = useState('');
     const [role, setRole] = useState<'referent' | 'member'>('member');
+    const [referentForm, setReferentForm] = useState({
+        name: '',
+        email: '',
+        phone: '',
+    });
 
     if (!account) {
         return null;
@@ -70,6 +75,35 @@ export function CompanyAccountDetailPanel({
                 onSuccess: () => {
                     setUserUuid('');
                     toast.success('Membre mis à jour.');
+                },
+            },
+        );
+    };
+
+    const inviteReferent = () => {
+        if (!referentForm.name.trim() || !referentForm.email.trim()) {
+            toast.error('Nom et email du responsable sont requis.');
+
+            return;
+        }
+
+        if (
+            account.referent &&
+            !window.confirm(
+                `${account.referent.name} sera remplacé comme responsable du compte. Continuer ?`,
+            )
+        ) {
+            return;
+        }
+
+        router.post(
+            companies.referent.store.url({ companyAccount: account.uuid }),
+            referentForm,
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setReferentForm({ name: '', email: '', phone: '' });
+                    toast.success('Invitation envoyée au responsable.');
                 },
             },
         );
@@ -350,6 +384,74 @@ export function CompanyAccountDetailPanel({
                                         onClick={addMember}
                                     >
                                         <Check className="size-4" /> Enregistrer
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                        {canManageMembers && (
+                            <div className="grid gap-2.5 rounded-xl border border-border p-4">
+                                <div>
+                                    <strong className="block text-xs font-black text-foreground">
+                                        Inviter un responsable
+                                    </strong>
+                                    <span className="text-[0.625rem] text-muted-foreground">
+                                        Le responsable reçoit un email pour
+                                        définir son mot de passe et accéder à
+                                        l'espace entreprise.
+                                    </span>
+                                </div>
+                                <div className="grid gap-2.5 sm:grid-cols-2">
+                                    <label className="field">
+                                        <span>Nom complet</span>
+                                        <input
+                                            className="control"
+                                            value={referentForm.name}
+                                            onChange={(event) =>
+                                                setReferentForm((prev) => ({
+                                                    ...prev,
+                                                    name: event.target.value,
+                                                }))
+                                            }
+                                            placeholder="Nom du responsable"
+                                        />
+                                    </label>
+                                    <label className="field">
+                                        <span>Téléphone</span>
+                                        <input
+                                            className="control"
+                                            value={referentForm.phone}
+                                            onChange={(event) =>
+                                                setReferentForm((prev) => ({
+                                                    ...prev,
+                                                    phone: event.target.value,
+                                                }))
+                                            }
+                                            placeholder="+229…"
+                                        />
+                                    </label>
+                                </div>
+                                <div className="grid items-end gap-2.5 sm:grid-cols-[1fr_auto]">
+                                    <label className="field">
+                                        <span>Email</span>
+                                        <input
+                                            className="control"
+                                            type="email"
+                                            value={referentForm.email}
+                                            onChange={(event) =>
+                                                setReferentForm((prev) => ({
+                                                    ...prev,
+                                                    email: event.target.value,
+                                                }))
+                                            }
+                                            placeholder="responsable@entreprise.com"
+                                        />
+                                    </label>
+                                    <button
+                                        type="button"
+                                        className="btn btn-primary"
+                                        onClick={inviteReferent}
+                                    >
+                                        <UserPlus className="size-4" /> Inviter
                                     </button>
                                 </div>
                             </div>
