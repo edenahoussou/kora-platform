@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\CompanyAccountWebController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PublicLegalController;
 use App\Modules\AssistedBooking\Http\Controllers\AssistedBookingController;
 use App\Modules\Booking\Http\Controllers\CounterSaleController;
@@ -32,13 +32,9 @@ use App\Modules\Ticketing\Http\Controllers\TicketIndexController;
 use App\Modules\Ticketing\Http\Controllers\TicketPreviewController;
 use App\Modules\Ticketing\Http\Controllers\TicketViewController;
 use App\Modules\Tracking\Http\Controllers\FleetTrackingPageController;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn () => Auth::check()
-    ? redirect()->route('dashboard')
-    : redirect()->route('login')
-)->name('home');
+Route::get('/', HomeController::class)->name('home');
 
 Route::get('privacy-policy', [PublicLegalController::class, 'privacyPolicy'])
     ->name('privacy-policy');
@@ -290,14 +286,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('{promotion:uuid}', [PromotionController::class, 'update'])->name('update');
         Route::patch('{promotion:uuid}/status', [PromotionController::class, 'changeStatus'])->name('status');
     });
-    Route::prefix('companies')->name('companies.')->group(function (): void {
-        Route::get('/', [CompanyAccountWebController::class, 'index'])->name('index');
-        Route::post('/', [CompanyAccountWebController::class, 'store'])->name('store');
-        Route::put('{companyAccount:uuid}', [CompanyAccountWebController::class, 'update'])->name('update');
-        Route::patch('{companyAccount:uuid}/status', [CompanyAccountWebController::class, 'changeStatus'])->name('status');
-        Route::post('{companyAccount:uuid}/members', [CompanyAccountWebController::class, 'addMember'])->name('members.store');
-    });
-
     // Ressources — V2 (sauf fleet qui est V1)
     Route::get('resources', $comingSoon('Ressources', 'Pilotez la disponibilité et les affectations des véhicules.', 'Ressources — V2'))->name('resources');
     Route::get('maintenance', $comingSoon('Maintenance', 'Planifiez les interventions et maîtrisez les immobilisations.', 'Ressources — V2'))->name('maintenance');
@@ -322,4 +310,5 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 require __DIR__.'/administration.php';
+require __DIR__.'/companies.php';
 require __DIR__.'/settings.php';

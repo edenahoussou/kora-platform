@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Modules\BusNetwork\Models\MapSetting;
 use App\Modules\Cash\Models\CashSession;
+use App\Modules\CompanyAccounts\Actions\ResolveReferentCompanyAccountAction;
 use App\Modules\Settings\Settings\IntegrationsSettings;
 use App\Modules\Ticketing\Models\Ticket;
 use Illuminate\Http\Request;
@@ -41,6 +42,7 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
         $settings = app(IntegrationsSettings::class);
+        $referentAccount = app(ResolveReferentCompanyAccountAction::class)->handle($user);
 
         return [
             ...parent::share($request),
@@ -57,6 +59,11 @@ class HandleInertiaRequests extends Middleware
                     'permissions' => $user->getAllPermissions()->pluck('name')->toArray(),
                     'roles' => $user->getRoleNames()->toArray(),
                 ] : null,
+            ],
+            'companyPortal' => $referentAccount === null ? null : [
+                'uuid' => $referentAccount->uuid,
+                'name' => $referentAccount->name,
+                'reference' => $referentAccount->reference,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'mapConfig' => [

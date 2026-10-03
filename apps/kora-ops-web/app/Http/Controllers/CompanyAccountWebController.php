@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ChangeCompanyAccountStatusRequest;
+use App\Http\Requests\InviteCompanyReferentRequest;
 use App\Http\Requests\StoreCompanyAccountWebRequest;
 use App\Http\Requests\UpdateCompanyAccountWebRequest;
 use App\Models\User;
@@ -15,13 +16,16 @@ use App\Modules\CompanyAccounts\Models\CompanyAccount;
 use App\Modules\CompanyAccounts\Models\CompanyAccountMember;
 use App\Modules\CompanyAccounts\Models\CompanyCreditHold;
 use App\Modules\CompanyAccounts\Models\CompanyCreditTransaction;
+use App\Modules\IdentityAccess\Contracts\PassengerIdentityResolver;
 use App\Modules\IdentityAccess\Data\SystemRole;
 use App\Modules\IdentityAccess\Data\UserStatus;
+use App\Modules\IdentityAccess\Models\Role;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -29,6 +33,8 @@ use Inertia\Response;
 
 class CompanyAccountWebController extends Controller
 {
+    public function __construct(private readonly PassengerIdentityResolver $identityResolver) {}
+
     public function index(Request $request): Response
     {
         Gate::authorize('viewAny', CompanyAccount::class);
@@ -149,6 +155,64 @@ class CompanyAccountWebController extends Controller
 
         activity()->performedOn($companyAccount)->causedBy($request->user())->withProperties(['member_uuid' => $user->uuid, 'role' => $member->role->value])->log('company_account_member_updated');
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Membre mis à jour.']);
+
+        return to_route('companies.index');
+    }
+
+    /**
+     * Invite un référent d'organisation : crée ou rattache le compte
+     * utilisateur (voyageur) puis lui envoie un lien d'activation par email
+     * pour définir son mot de passe.
+     */
+    public function inviteReferent(InviteCompanyReferentRequest $request, CompanyAccount $companyAccount): RedirectResponse
+    {
+        $data = $request->validated();
+        $email = Str::lower($data['email']);
+
+        $user = User::query()->where('email', $email)->first();
+        $normalizedPhone = null;
+        if ($user === null) {
+            $normalizedPhone = $this->identityResolver->normalizePhone(
+                $data['phone'] ?? null,
+                $data['country_code'] ?? null,
+            );
+            if ($normalizedPhone !== null) {
+                $user = User::query()->where('phone', $normalizedPhone)->first();
+            }
+        }
+
+        if ($user === null) {
+            $user = User::query()->create([
+                'name' => $data['name'],
+                'email' => $email,
+                'phone' => $normalizedPhone ?? null,
+                'country_code' => $data['country_code'] ?? null,
+                'password' => Str::random(64),
+                'status' => UserStatus::Active,
+            ]);
+            $user->assignRole(Role::findOrCreate(SystemRole::Passenger->value, 'web'));
+        } else {
+            $this->ensureEligibleMember($user);
+        }
+
+        DB::transaction(function () use ($companyAccount, $user): void {
+            $lockedAccount = CompanyAccount::query()->whereKey($companyAccount->getKey())->lockForUpdate()->firstOrFail();
+            $lockedAccount->members()
+                ->where('role', 'referent')
+                ->where('status', CompanyMemberStatus::Active->value)
+                ->where('user_id', '!=', $user->getKey())
+                ->update(['status' => CompanyMemberStatus::Inactive]);
+
+            CompanyAccountMember::query()->updateOrCreate(
+                ['company_account_id' => $lockedAccount->getKey(), 'user_id' => $user->getKey()],
+                ['role' => 'referent', 'status' => CompanyMemberStatus::Active],
+            );
+        });
+
+        Password::sendResetLink(['email' => $user->email]);
+
+        activity()->performedOn($companyAccount)->causedBy($request->user())->withProperties(['referent_uuid' => $user->uuid])->log('company_account_referent_invited');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Invitation envoyée au responsable du compte.']);
 
         return to_route('companies.index');
     }

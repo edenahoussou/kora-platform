@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
     AlertTriangle,
+    Building2,
     Bus,
     FileText,
     LayoutDashboard,
@@ -43,6 +44,12 @@ const navItems: NavEntry[] = [
         href: dashboard().url,
         icon: LayoutDashboard,
         permission: null,
+    },
+    {
+        title: 'Espace entreprise',
+        href: '/entreprise',
+        icon: Building2,
+        permission: 'company-portal.access',
     },
     {
         title: 'Vente',
@@ -260,7 +267,7 @@ export function KoraSidebar({
     onToggleCollapse: () => void;
 }) {
     const { isCurrentUrl } = useCurrentUrl();
-    const { auth } = usePage().props;
+    const { auth, companyPortal } = usePage().props;
     const { can, canAny, hasRole } = usePermissions();
     const [openGroups, setOpenGroups] = useState<string[]>([]);
 
@@ -406,6 +413,7 @@ export function KoraSidebar({
                         (item.href === '/cash' && !auth?.user?.canViewCash) ||
                         (item.href === '/tickets' &&
                             !auth?.user?.canViewTickets) ||
+                        (item.href === '/entreprise' && !companyPortal) ||
                         (item.children && visibleChildren?.length === 0)
                     ) {
                         return null;
